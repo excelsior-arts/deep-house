@@ -1,0 +1,25 @@
+{
+ "note": "One line per master seed and theme: the tempo, the bars, the event count and a SHA-256 of the plan's canonical JSON. Written by tools/golden.mjs --bless; checked by --check.",
+ "masters": {
+  "1": [
+   {"index":0,"seed":"1#0","preset":"sub","bpm":104,"bars":240,"events":3997,"hash":"e7e377a212b9d9e3a81b6bc0fd895e739b0db078505e940d9ca8c1591cf8af61"},
+   {"index":1,"seed":"1#1","preset":"sub","bpm":104.1,"bars":224,"events":4297,"hash":"105dd03cc1da0b1f86e0ef30f0f3bd89250c28540760610101f4fd8258c238f0"},
+   {"index":2,"seed":"1#2","preset":"growl","bpm":104.3,"bars":80,"events":1334,"hash":"eb6d6cdd82be5234b59f868c3b3a53ab98640dd46f52fa1ce45aadc4cb5b45e5"},
+   {"index":3,"seed":"1#3","preset":"growl","bpm":104.4,"bars":112,"events":2176,"hash":"28639d8a725ceb1cf7a1075fc530e8f70377eea3980cede4969df807abb6f731"},
+   {"index":4,"seed":"1#4","preset":"growl","bpm":104.6,"bars":144,"events":2419,"hash":"89518b81d2c6a8dda9095935a6db2eb4502fe4ec51225b34cf88d4d138d35522"},
+   {"index":5,"seed":"1#5","preset":"sub","bpm":104.7,"bars":96,"events":1717,"hash":"d41e2c16c485a6e4db8a0ce8ef1ad40d49efd1713f6774ca801f6c6119c705e4"}
+  ],
+  "21323": [
+   {"index":0,"seed":"21323#0","preset":"growl","bpm":100,"bars":128,"events":2160,"hash":"d5664825f61dc160b10b1efd7fcee728e9fd960e4507292a9a0b0f6d316d3405"},
+   {"index":1,"seed":"21323#1","preset":"growl","bpm":100.1,"bars":160,"events":2526,"hash":"da68861ca4e243044573ae79409241c17245831a72f38905c7b648709636a87c"},
+   {"index":2,"seed":"21323#2","preset":"growl","bpm":100.3,"bars":192,"events":3256,"hash":"ab87b62b3c1298da394d97f49cb9f5b674151a4b4e1291806d11088c961fd11b"},
+   {"index":3,"seed":"21323#3","preset":"growl","bpm":100.4,"bars":240,"events":5387,"hash":"4f33319e013143844b405424690280bb5f06759d28f7627f6a7355eacb8f5e55"}
+  ],
+  "92970": [
+   {"index":0,"seed":"92970#0","preset":"growl","bpm":101,"bars":160,"events":3496,"hash":"7667de69d8ae1c6243ea819a8e025dcaedab215f77a01fa0c51a6c005c94e693"},
+   {"index":1,"seed":"92970#1","preset":"sub","bpm":101.1,"bars":112,"events":2034,"hash":"e87cc50385c222dfda1bc0c6c9378b47e0e42f677cc08e96347b31bcf44200bf"},
+   {"index":2,"seed":"92970#2","preset":"growl","bpm":101.3,"bars":80,"events":1664,"hash":"2ac1d2330e8c77ebb27723bf94760d5c6a3ba923e5f2a480df5f73368eba41b0"},
+   {"index":3,"seed":"92970#3","preset":"growl","bpm":101.4,"bars":80,"events":1279,"hash":"f516ba7b6ca62d058911027e585b11a36b6badb88fbdf6f5c969cf108c6d99d1"}
+  ]
+ }
+}

@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1140" width="1500" height="1140" role="img" aria-label="A component diagram: a master seed becomes theme seeds and dice, the dice become a plan and a track of events, the track is played by synthesised voices on two decks through a mix chain to the audio output, and the ring reads the mix; an inset sequence diagram shows the seam between two decks.">
+  <style>
+    .paper { fill: #ffffff; }
+    .ln { fill: none; stroke: #111111; stroke-linecap: butt; stroke-linejoin: miter; }
+    .thin { stroke-width: 1.6; }
+    .flow { stroke-width: 2.2; }
+    .head { stroke-width: 2.2; }
+    .dep  { stroke-width: 2.2; stroke-dasharray: 9 7; }
+    .life { stroke-width: 1.6; stroke-dasharray: 7 7; }
+    .box  { fill: #ffffff; stroke: #111111; stroke-width: 2.2; }
+    .icon { fill: #ffffff; stroke: #111111; stroke-width: 1.6; }
+    .pkg  { fill: #f1f0ed; stroke: #8b8b86; stroke-width: 1.8; }
+    .frame { fill: none; stroke: #111111; stroke-width: 1.8; }
+    .act  { fill: #ffffff; stroke: #111111; stroke-width: 1.8; }
+    text {
+      font-family: system-ui, -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      fill: #111111;
+    }
+    .pkgname { font-size: 25px; font-weight: 600; }
+    .ster { font-size: 20px; fill: #444444; }
+    .name { font-size: 27px; font-weight: 600; }
+    .det  { font-size: 21px; fill: #222222; }
+    .msg  { font-size: 20px; fill: #111111; paint-order: stroke; stroke: #ffffff; stroke-width: 5; stroke-linejoin: round; }
+    .leg  { font-size: 21px; fill: #111111; }
+    .legttl { font-size: 24px; font-weight: 600; }
+  </style>
+  <rect class="paper" x="0" y="0" width="1500" height="1140"/>
+  <g>
+    <rect class="pkg" x="30" y="70" width="670" height="770"/>
+    <rect class="pkg" x="30" y="36" width="94" height="34"/>
+    <text class="pkgname" x="47" y="59">Plan</text>
+  </g>
+  <g>
+    <rect class="pkg" x="730" y="70" width="410" height="770"/>
+    <rect class="pkg" x="730" y="36" width="109" height="34"/>
+    <text class="pkgname" x="747" y="59">Sound</text>
+  </g>
+  <g>
+    <rect class="pkg" x="1170" y="70" width="300" height="770"/>
+    <rect class="pkg" x="1170" y="36" width="94" height="34"/>
+    <text class="pkgname" x="1187" y="59">Page</text>
+  </g>
+  <g>
+    <rect class="box" x="70" y="110" width="590" height="102" rx="3"/>
+    <text class="ster" x="365.0" y="134" text-anchor="middle">&#171;input&#187;</text>
+    <text class="name" x="365.0" y="162" text-anchor="middle">Master seed</text>
+    <path class="ln thin" d="M70 174 H660"/>
+    <text class="det" x="88" y="196">one number — the whole night follows from it</text>
+  </g>
+  <g>
+    <rect class="box" x="70" y="242" width="590" height="102" rx="3"/>
+    <rect class="icon" x="620" y="256" width="26" height="18"/>
+    <rect class="icon" x="614" y="259" width="12" height="5"/>
+    <rect class="icon" x="614" y="266" width="12" height="5"/>
+    <text class="ster" x="365.0" y="266" text-anchor="middle">&#171;generator&#187;</text>
+    <text class="name" x="365.0" y="294" text-anchor="middle">Theme seeds</text>
+    <path class="ln thin" d="M70 306 H660"/>
+    <text class="det" x="88" y="328">seed # n, one after another; one tempo all night</text>
+  </g>
+  <g>
+    <rect class="box" x="70" y="374" width="590" height="127" rx="3"/>
+    <rect class="icon" x="620" y="388" width="26" height="18"/>
+    <rect class="icon" x="614" y="391" width="12" height="5"/>
+    <rect class="icon" x="614" y="398" width="12" height="5"/>
+    <text class="ster" x="365.0" y="398" text-anchor="middle">&#171;generator&#187;</text>
+    <text class="name" x="365.0" y="426" text-anchor="middle">Dice</text>
+    <path class="ln thin" d="M70 438 H660"/>
+    <text class="det" x="88" y="460">room · key · tempo · timbre</text>
+    <text class="det" x="88" y="485">density · effects · wet · figures</text>
+  </g>
+  <g>
+    <rect class="box" x="70" y="531" width="590" height="152" rx="3"/>
+    <rect class="icon" x="620" y="545" width="26" height="18"/>
+    <rect class="icon" x="614" y="548" width="12" height="5"/>
+    <rect class="icon" x="614" y="555" width="12" height="5"/>
+    <text class="ster" x="365.0" y="555" text-anchor="middle">&#171;generator&#187;</text>
+    <text class="name" x="365.0" y="583" text-anchor="middle">Plan</text>
+    <path class="ln thin" d="M70 595 H660"/>
+    <text class="det" x="88" y="617">progression — chord motions, second-order Markov table</text>
+    <text class="det" x="88" y="642">figures — bass, hat and stab masks, mined</text>
+    <text class="det" x="88" y="667">arrangement — sections in eight-bar phrases</text>
+  </g>
+  <g>
+    <rect class="box" x="70" y="713" width="590" height="102" rx="3"/>
+    <text class="ster" x="365.0" y="737" text-anchor="middle">&#171;artifact&#187;</text>
+    <text class="name" x="365.0" y="765" text-anchor="middle">Track</text>
+    <path class="ln thin" d="M70 777 H660"/>
+    <text class="det" x="88" y="799">events and automation curves — no audio yet</text>
+  </g>
+  <g>
+    <rect class="box" x="760" y="110" width="350" height="152" rx="3"/>
+    <rect class="icon" x="1070" y="124" width="26" height="18"/>
+    <rect class="icon" x="1064" y="127" width="12" height="5"/>
+    <rect class="icon" x="1064" y="134" width="12" height="5"/>
+    <text class="ster" x="935.0" y="134" text-anchor="middle">&#171;voice&#187;</text>
+    <text class="name" x="935.0" y="162" text-anchor="middle">Voices</text>
+    <path class="ln thin" d="M760 174 H1110"/>
+    <text class="det" x="778" y="196">kick · sub · hats · clap</text>
+    <text class="det" x="778" y="221">keys · strings · piano · effects</text>
+    <text class="det" x="778" y="246">synthesised, never sampled</text>
+  </g>
+  <g>
+    <rect class="box" x="760" y="302" width="170" height="76" rx="3"/>
+    <text class="ster" x="845.0" y="326" text-anchor="middle">&#171;deck&#187;</text>
+    <text class="name" x="845.0" y="354" text-anchor="middle">Deck A</text>
+  </g>
+  <g>
+    <rect class="box" x="940" y="302" width="170" height="76" rx="3"/>
+    <text class="ster" x="1025.0" y="326" text-anchor="middle">&#171;deck&#187;</text>
+    <text class="name" x="1025.0" y="354" text-anchor="middle">Deck B</text>
+  </g>
+  <g>
+    <rect class="box" x="760" y="418" width="350" height="152" rx="3"/>
+    <rect class="icon" x="1070" y="432" width="26" height="18"/>
+    <rect class="icon" x="1064" y="435" width="12" height="5"/>
+    <rect class="icon" x="1064" y="442" width="12" height="5"/>
+    <text class="ster" x="935.0" y="442" text-anchor="middle">&#171;component&#187;</text>
+    <text class="name" x="935.0" y="470" text-anchor="middle">Mix</text>
+    <path class="ln thin" d="M760 482 H1110"/>
+    <text class="det" x="778" y="504">sidechain duck, one per kick</text>
+    <text class="det" x="778" y="529">stereo width</text>
+    <text class="det" x="778" y="554">limiter · soft clip</text>
+  </g>
+  <g>
+    <rect class="box" x="760" y="640" width="350" height="102" rx="3"/>
+    <text class="ster" x="935.0" y="664" text-anchor="middle">&#171;config&#187;</text>
+    <text class="name" x="935.0" y="692" text-anchor="middle">Params</text>
+    <path class="ln thin" d="M760 704 H1110"/>
+    <text class="det" x="778" y="726">measured tunables</text>
+  </g>
+  <g>
+    <rect class="box" x="1195" y="110" width="250" height="152" rx="3"/>
+    <rect class="icon" x="1405" y="124" width="26" height="18"/>
+    <rect class="icon" x="1399" y="127" width="12" height="5"/>
+    <rect class="icon" x="1399" y="134" width="12" height="5"/>
+    <text class="ster" x="1320.0" y="134" text-anchor="middle">&#171;page&#187;</text>
+    <text class="name" x="1320.0" y="162" text-anchor="middle">Ring</text>
+    <path class="ln thin" d="M1195 174 H1445"/>
+    <text class="det" x="1213" y="196">band — the mix ahead</text>
+    <text class="det" x="1213" y="221">cells — the dice</text>
+    <text class="det" x="1213" y="246">centre — play, cast</text>
+  </g>
+  <g>
+    <rect class="box" x="1195" y="456" width="250" height="76" rx="3"/>
+    <rect class="icon" x="1405" y="470" width="26" height="18"/>
+    <rect class="icon" x="1399" y="473" width="12" height="5"/>
+    <rect class="icon" x="1399" y="480" width="12" height="5"/>
+    <text class="ster" x="1320.0" y="480" text-anchor="middle">&#171;device&#187;</text>
+    <text class="name" x="1320.0" y="508" text-anchor="middle">Audio out</text>
+  </g>
+  <g>
+    <path class="ln flow" d="M365 212 L365 242"/>
+    <path class="ln head" d="M371.6 228.5 L365 242"/>
+    <path class="ln head" d="M358.4 228.5 L365 242"/>
+    <path class="ln flow" d="M365 344 L365 374"/>
+    <path class="ln head" d="M371.6 360.5 L365 374"/>
+    <path class="ln head" d="M358.4 360.5 L365 374"/>
+    <path class="ln flow" d="M365 501 L365 531"/>
+    <path class="ln head" d="M371.6 517.5 L365 531"/>
+    <path class="ln head" d="M358.4 517.5 L365 531"/>
+    <path class="ln flow" d="M365 683 L365 713"/>
+    <path class="ln head" d="M371.6 699.5 L365 713"/>
+    <path class="ln head" d="M358.4 699.5 L365 713"/>
+    <path class="ln flow" d="M660 764 L715 764 L715 150 L760 150"/>
+    <path class="ln head" d="M746.5 143.4 L760 150"/>
+    <path class="ln head" d="M746.5 156.6 L760 150"/>
+    <path class="ln flow" d="M845 262 L845 302"/>
+    <path class="ln head" d="M851.6 288.5 L845 302"/>
+    <path class="ln head" d="M838.4 288.5 L845 302"/>
+    <path class="ln flow" d="M1025 262 L1025 302"/>
+    <path class="ln head" d="M1031.6 288.5 L1025 302"/>
+    <path class="ln head" d="M1018.4 288.5 L1025 302"/>
+    <path class="ln flow" d="M845 378 L845 418"/>
+    <path class="ln head" d="M851.6 404.5 L845 418"/>
+    <path class="ln head" d="M838.4 404.5 L845 418"/>
+    <path class="ln flow" d="M1025 378 L1025 418"/>
+    <path class="ln head" d="M1031.6 404.5 L1025 418"/>
+    <path class="ln head" d="M1018.4 404.5 L1025 418"/>
+    <path class="ln flow" d="M1110 494 L1195 494"/>
+    <path class="ln head" d="M1181.5 487.4 L1195 494"/>
+    <path class="ln head" d="M1181.5 500.6 L1195 494"/>
+    <path class="ln dep" d="M1195 186 L1167 186 L1167 540 L1110 540"/>
+    <path class="ln head" d="M1123.5 546.6 L1110 540"/>
+    <path class="ln head" d="M1123.5 533.4 L1110 540"/>
+    <path class="ln dep" d="M935 640 L935 570"/>
+    <path class="ln head" d="M928.4 583.5 L935 570"/>
+    <path class="ln head" d="M941.6 583.5 L935 570"/>
+    <path class="ln dep" d="M760 691 L742 691 L742 220 L760 220"/>
+    <path class="ln head" d="M746.5 213.4 L760 220"/>
+    <path class="ln head" d="M746.5 226.6 L760 220"/>
+  </g>
+  <text class="msg" transform="translate(1160,330) rotate(-90)" text-anchor="middle">&#171;reads&#187;</text>
+  <g>
+    <rect class="frame" x="30" y="880" width="870" height="240"/>
+    <path class="ln thin" d="M30 880 H170 L188 900 V914 H30 Z"/>
+    <text class="msg" x="46" y="906">sd &#160;seam</text>
+    <rect class="box" x="110" y="930" width="220" height="48"/>
+    <text class="det" x="220" y="960" text-anchor="middle">deck A : outgoing</text>
+    <rect class="box" x="600" y="930" width="220" height="48"/>
+    <text class="det" x="710" y="960" text-anchor="middle">deck B : incoming</text>
+    <path class="ln life" d="M220 978 V1100"/>
+    <path class="ln life" d="M710 978 V1100"/>
+    <rect class="act" x="213" y="1000" width="14" height="96"/>
+    <rect class="act" x="703" y="1014" width="14" height="82"/>
+  </g>
+  <g>
+    <path class="ln flow" d="M227 1014 L703 1014"/>
+    <path class="ln head" d="M689.5 1007.4 L703 1014"/>
+    <path class="ln head" d="M689.5 1020.6 L703 1014"/>
+    <text class="msg" x="465" y="1006" text-anchor="middle">seam opens on the sixteen-bar boundary</text>
+    <path class="ln flow" d="M227 1060 L703 1060"/>
+    <path class="ln head" d="M689.5 1053.4 L703 1060"/>
+    <path class="ln head" d="M689.5 1066.6 L703 1060"/>
+    <text class="msg" x="465" y="1052" text-anchor="middle">the bottom changes hands, eight bars in</text>
+    <path class="ln flow" d="M227 1082 L300 1082 L300 1096 L227 1096"/>
+    <path class="ln head" d="M240.5 1102.6 L227 1096"/>
+    <path class="ln head" d="M240.5 1089.4 L227 1096"/>
+    <text class="msg" x="315" y="1103">outgoing fades out and stops</text>
+  </g>
+  <g>
+    <rect class="frame" x="950" y="880" width="520" height="240"/>
+    <text class="legttl" x="975" y="920">Notation</text>
+    <path class="ln flow" d="M975 965 L1060 965"/>
+    <path class="ln head" d="M1046.5 958.4 L1060 965"/>
+    <path class="ln head" d="M1046.5 971.6 L1060 965"/>
+    <text class="leg" x="1078" y="972">flow — what becomes what</text>
+    <path class="ln dep" d="M975 1012 L1060 1012"/>
+    <path class="ln head" d="M1046.5 1005.4 L1060 1012"/>
+    <path class="ln head" d="M1046.5 1018.6 L1060 1012"/>
+    <text class="leg" x="1078" y="1019">dependency — reads, does not build</text>
+    <rect class="pkg" x="975" y="1042" width="85" height="34"/>
+    <text class="leg" x="1078" y="1066">stage</text>
+    <text class="ster" x="975" y="1104">&#171;kind&#187;</text>
+    <text class="leg" x="1078" y="1104">what the part is</text>
+  </g>
+</svg>

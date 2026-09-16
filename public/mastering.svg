@@ -1,0 +1,538 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 3056" width="1500" height="3056" role="img" aria-label="A component diagram of the mastering chain: each theme's voices land on a mono kick and bass bus and on drums, keys and melodic buses with their rooms, are ducked, widened and filtered, and leave through the theme's own loudness trim; the set's shared tail is a DC block, the master EQ, the make-up gain, a look-ahead limiter, a soft clipper and the output route to the audio device; a timing panel shows one kick ducking the melodic bus and the bass, and the limiter's look-ahead.">
+  <style>
+    .paper { fill: #ffffff; }
+    .ln { fill: none; stroke: #111111; stroke-linecap: butt; stroke-linejoin: miter; }
+    .thin { stroke-width: 1.6; }
+    .flow { stroke-width: 2.2; }
+    .head { stroke-width: 2.2; }
+    .dep  { stroke-width: 2.2; stroke-dasharray: 9 7; }
+    .life { stroke-width: 1.6; stroke-dasharray: 7 7; }
+    .box  { fill: #ffffff; stroke: #111111; stroke-width: 2.2; }
+    .pkg  { fill: #f1f0ed; stroke: #8b8b86; stroke-width: 1.8; }
+    .frame { fill: none; stroke: #111111; stroke-width: 1.8; }
+    .dot  { fill: #111111; }
+    text {
+      font-family: system-ui, -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      fill: #111111;
+    }
+    .pkgname { font-size: 25px; font-weight: 600; }
+    .ster { font-size: 20px; fill: #444444; }
+    .name { font-size: 27px; font-weight: 600; }
+    .det  { font-size: 21px; fill: #222222; }
+    .msg  { font-size: 20px; fill: #111111; paint-order: stroke; stroke: #ffffff; stroke-width: 5; stroke-linejoin: round; }
+    .leg  { font-size: 21px; fill: #111111; }
+    .legttl { font-size: 24px; font-weight: 600; }
+  </style>
+  <rect class="paper" x="0" y="0" width="1500" height="3056"/>
+  <g>
+    <rect class="pkg" x="30" y="70" width="960" height="2392"/>
+    <rect class="pkg" x="30" y="36" width="160" height="34"/>
+    <text class="pkgname" x="47" y="59" data-w="130">Per theme</text>
+  </g>
+  <g>
+    <rect class="pkg" x="1020" y="70" width="450" height="1999"/>
+    <rect class="pkg" x="1020" y="36" width="132" height="34"/>
+    <text class="pkgname" x="1037" y="59" data-w="102">The set</text>
+  </g>
+  <g>
+    <path class="ln flow" d="M510 282 L510 312"/>
+    <path class="ln flow" d="M47 312 L745 312"/>
+    <path class="ln flow" d="M265 312 L265 356"/>
+    <path class="ln head" d="M258.4 342.5 L265 356"/>
+    <path class="ln head" d="M271.6 342.5 L265 356"/>
+    <path class="ln flow" d="M47 312 L47 576.5 L65 576.5"/>
+    <path class="ln head" d="M51.5 583.1 L65 576.5"/>
+    <path class="ln head" d="M51.5 569.9 L65 576.5"/>
+    <path class="ln flow" d="M265 640 L265 670"/>
+    <path class="ln head" d="M258.4 656.5 L265 670"/>
+    <path class="ln head" d="M271.6 656.5 L265 670"/>
+    <path class="ln flow" d="M265 797 L265 827"/>
+    <path class="ln head" d="M258.4 813.5 L265 827"/>
+    <path class="ln head" d="M271.6 813.5 L265 827"/>
+    <path class="ln flow" d="M265 979 L265 1009"/>
+    <path class="ln head" d="M258.4 995.5 L265 1009"/>
+    <path class="ln head" d="M271.6 995.5 L265 1009"/>
+    <path class="ln flow" d="M265 1136 L265 1166"/>
+    <path class="ln head" d="M258.4 1152.5 L265 1166"/>
+    <path class="ln head" d="M271.6 1152.5 L265 1166"/>
+    <path class="ln flow" d="M465 419.5 L478 419.5 L478 1229.5 L465 1229.5"/>
+    <path class="ln head" d="M478.5 1222.9 L465 1229.5"/>
+    <path class="ln head" d="M478.5 1236.1 L465 1229.5"/>
+    <path class="ln flow" d="M265 1293 L265 1323"/>
+    <path class="ln head" d="M258.4 1309.5 L265 1323"/>
+    <path class="ln head" d="M271.6 1309.5 L265 1323"/>
+    <path class="ln flow" d="M265 1475 L265 1505"/>
+    <path class="ln head" d="M258.4 1491.5 L265 1505"/>
+    <path class="ln head" d="M271.6 1491.5 L265 1505"/>
+    <path class="ln flow" d="M65 1251.5 L47 1251.5 L47 1568.5 L65 1568.5"/>
+    <path class="ln head" d="M51.5 1575.1 L65 1568.5"/>
+    <path class="ln head" d="M51.5 1561.9 L65 1568.5"/>
+    <path class="ln flow" d="M745 312 L745 356"/>
+    <path class="ln head" d="M738.4 342.5 L745 356"/>
+    <path class="ln head" d="M751.6 342.5 L745 356"/>
+    <path class="ln flow" d="M505 312 L505 601.5 L525 601.5"/>
+    <path class="ln head" d="M511.5 608.1 L525 601.5"/>
+    <path class="ln head" d="M511.5 594.9 L525 601.5"/>
+    <path class="ln flow" d="M505 783.5 L525 783.5"/>
+    <path class="ln head" d="M511.5 790.1 L525 783.5"/>
+    <path class="ln head" d="M511.5 776.9 L525 783.5"/>
+    <path class="ln flow" d="M745 690 L745 720"/>
+    <path class="ln head" d="M738.4 706.5 L745 720"/>
+    <path class="ln head" d="M751.6 706.5 L745 720"/>
+    <path class="ln flow" d="M745 847 L745 877"/>
+    <path class="ln head" d="M738.4 863.5 L745 877"/>
+    <path class="ln head" d="M751.6 863.5 L745 877"/>
+    <path class="ln flow" d="M745 1004 L745 1034"/>
+    <path class="ln head" d="M738.4 1020.5 L745 1034"/>
+    <path class="ln head" d="M751.6 1020.5 L745 1034"/>
+    <path class="ln flow" d="M745 1161 L745 1191"/>
+    <path class="ln head" d="M738.4 1177.5 L745 1191"/>
+    <path class="ln head" d="M751.6 1177.5 L745 1191"/>
+    <path class="ln flow" d="M745 1318 L745 1348"/>
+    <path class="ln head" d="M738.4 1334.5 L745 1348"/>
+    <path class="ln head" d="M751.6 1334.5 L745 1348"/>
+    <path class="ln flow" d="M965 419.5 L977 419.5 L977 1254.5 L965 1254.5"/>
+    <path class="ln head" d="M978.5 1247.9 L965 1254.5"/>
+    <path class="ln head" d="M978.5 1261.1 L965 1254.5"/>
+    <path class="ln flow" d="M505 783.5 L505 1971.5"/>
+    <path class="ln flow" d="M505 1764.5 L465 1764.5"/>
+    <path class="ln head" d="M478.5 1757.9 L465 1764.5"/>
+    <path class="ln head" d="M478.5 1771.1 L465 1764.5"/>
+    <path class="ln flow" d="M505 1971.5 L465 1971.5"/>
+    <path class="ln head" d="M478.5 1964.9 L465 1971.5"/>
+    <path class="ln head" d="M478.5 1978.1 L465 1971.5"/>
+    <path class="ln flow" d="M505 1764.5 L525 1764.5"/>
+    <path class="ln head" d="M511.5 1771.1 L525 1764.5"/>
+    <path class="ln head" d="M511.5 1757.9 L525 1764.5"/>
+    <path class="ln flow" d="M505 1971.5 L525 1971.5"/>
+    <path class="ln head" d="M511.5 1978.1 L525 1971.5"/>
+    <path class="ln head" d="M511.5 1964.9 L525 1971.5"/>
+    <path class="ln flow" d="M265 1632 L265 1652 L47 1652 L47 2253 L175 2253 L175 2275"/>
+    <path class="ln head" d="M168.4 2261.5 L175 2275"/>
+    <path class="ln head" d="M181.6 2261.5 L175 2275"/>
+    <path class="ln flow" d="M745 1500 L745 1520 L977 1520 L977 2082 L355 2082 L355 2275"/>
+    <path class="ln head" d="M348.4 2261.5 L355 2275"/>
+    <path class="ln head" d="M361.6 2261.5 L355 2275"/>
+    <path class="ln flow" d="M465 2326 L525 2326"/>
+    <path class="ln head" d="M511.5 2332.6 L525 2326"/>
+    <path class="ln head" d="M511.5 2319.4 L525 2326"/>
+    <path class="ln dep" d="M745 2275 L745 2231"/>
+    <path class="ln head" d="M751.6 2244.5 L745 2231"/>
+    <path class="ln head" d="M738.4 2244.5 L745 2231"/>
+    <path class="ln flow" d="M1245 257 L1245 287"/>
+    <path class="ln head" d="M1238.4 273.5 L1245 287"/>
+    <path class="ln head" d="M1251.6 273.5 L1245 287"/>
+    <path class="ln flow" d="M1245 389 L1245 419"/>
+    <path class="ln head" d="M1238.4 405.5 L1245 419"/>
+    <path class="ln head" d="M1251.6 405.5 L1245 419"/>
+    <path class="ln flow" d="M1245 546 L1245 576"/>
+    <path class="ln head" d="M1238.4 562.5 L1245 576"/>
+    <path class="ln head" d="M1251.6 562.5 L1245 576"/>
+    <path class="ln flow" d="M1245 703 L1245 733"/>
+    <path class="ln head" d="M1238.4 719.5 L1245 733"/>
+    <path class="ln head" d="M1251.6 719.5 L1245 733"/>
+    <path class="ln flow" d="M1245 860 L1245 890"/>
+    <path class="ln head" d="M1238.4 876.5 L1245 890"/>
+    <path class="ln head" d="M1251.6 876.5 L1245 890"/>
+    <path class="ln flow" d="M1245 992 L1245 1022"/>
+    <path class="ln head" d="M1238.4 1008.5 L1245 1022"/>
+    <path class="ln head" d="M1251.6 1008.5 L1245 1022"/>
+    <path class="ln flow" d="M1245 1124 L1245 1154"/>
+    <path class="ln head" d="M1238.4 1140.5 L1245 1154"/>
+    <path class="ln head" d="M1251.6 1140.5 L1245 1154"/>
+    <path class="ln flow" d="M1245 1306 L1245 1336"/>
+    <path class="ln head" d="M1238.4 1322.5 L1245 1336"/>
+    <path class="ln head" d="M1251.6 1322.5 L1245 1336"/>
+    <path class="ln flow" d="M1245 1538 L1245 1568"/>
+    <path class="ln head" d="M1238.4 1554.5 L1245 1568"/>
+    <path class="ln head" d="M1251.6 1554.5 L1245 1568"/>
+    <path class="ln flow" d="M1245 1720 L1245 1750"/>
+    <path class="ln head" d="M1238.4 1736.5 L1245 1750"/>
+    <path class="ln head" d="M1251.6 1736.5 L1245 1750"/>
+    <path class="ln flow" d="M1245 1852 L1245 1882"/>
+    <path class="ln head" d="M1238.4 1868.5 L1245 1882"/>
+    <path class="ln head" d="M1251.6 1868.5 L1245 1882"/>
+    <path class="ln flow" d="M965 2351 L1005 2351 L1005 181 L1045 181"/>
+    <path class="ln head" d="M1031.5 187.6 L1045 181"/>
+    <path class="ln head" d="M1031.5 174.4 L1045 181"/>
+    <path class="ln flow" d="M1245 2034 L1245 2109"/>
+    <path class="ln head" d="M1238.4 2095.5 L1245 2109"/>
+    <path class="ln head" d="M1251.6 2095.5 L1245 2109"/>
+  </g>
+  <g>
+    <g>
+    <rect class="box" x="60" y="105" width="900" height="177" rx="3"/>
+    <text class="ster" x="510" y="129" text-anchor="middle">&#171;voice&#187;</text>
+    <text class="name" x="510" y="157" text-anchor="middle" data-w="864">Voices</text>
+    <path class="ln thin" d="M60 169 H960"/>
+    <text class="det" x="80" y="191" data-w="862">kick · sub · hats · shaker · clap · keys · pad · piano · effects — synthesised, never sampled</text>
+    <text class="det" x="80" y="216" data-w="862">peak dB under the master bus: kick −3.0 · sub −14.0 · clap −5.5 · hats −5.5 and −5.0</text>
+    <text class="det" x="80" y="241" data-w="862">shaker −9.5 · keys −10.5 · pad −5.0 · piano −7.5 · effects −19.0</text>
+    <text class="det" x="80" y="266" data-w="862">each voice lands on one bus, and feeds the rooms beside it by its own send amount</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="356" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="380" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="265" y="408" text-anchor="middle" data-w="364">Kick bus</text>
+    <path class="ln thin" d="M65 420 H465"/>
+    <circle class="dot" cx="74" cy="436" r="3.6"/>
+    <text class="det" x="85" y="442" data-w="362">channelCount 1, explicit</text>
+    <text class="det" x="85" y="467" data-w="362">mono by construction, not by rule</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="513" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="537" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="265" y="565" text-anchor="middle" data-w="364">Sub bus</text>
+    <path class="ln thin" d="M65 577 H465"/>
+    <text class="det" x="85" y="599" data-w="362">channelCount 1, explicit</text>
+    <text class="det" x="85" y="624" data-w="362">+1.5 dB of sub at a drop</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="670" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="694" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="265" y="722" text-anchor="middle" data-w="364">Bass body</text>
+    <path class="ln thin" d="M65 734 H465"/>
+    <text class="det" x="85" y="756" data-w="362">peaking 115 Hz · +3.0 dB · Q 0.65</text>
+    <text class="det" x="85" y="781" data-w="362">+4.5 dB more at full push</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="827" width="400" height="152" rx="3"/>
+    <text class="ster" x="265" y="851" text-anchor="middle">&#171;dynamics&#187;</text>
+    <text class="name" x="265" y="879" text-anchor="middle" data-w="364">Bass compressor</text>
+    <path class="ln thin" d="M65 891 H465"/>
+    <text class="det" x="85" y="913" data-w="362">threshold −20 dB · knee 8</text>
+    <text class="det" x="85" y="938" data-w="362">ratio 2.2 : 1</text>
+    <text class="det" x="85" y="963" data-w="362">attack 18 ms · release 120 ms</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1009" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="1033" text-anchor="middle">&#171;gain&#187;</text>
+    <text class="name" x="265" y="1061" text-anchor="middle" data-w="364">Bass duck</text>
+    <path class="ln thin" d="M65 1073 H465"/>
+    <circle class="dot" cx="74" cy="1089" r="3.6"/>
+    <text class="det" x="85" y="1095" data-w="362">−8.0 dB, one ramp per kick</text>
+    <text class="det" x="85" y="1120" data-w="362">after the compressor, not before</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1166" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="1190" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="265" y="1218" text-anchor="middle" data-w="364">Low sum</text>
+    <path class="ln thin" d="M65 1230 H465"/>
+    <text class="det" x="85" y="1252" data-w="362">kick and bass, one mono bus</text>
+    <text class="det" x="85" y="1277" data-w="362">highpass 28 Hz · Q 0.7</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1323" width="400" height="152" rx="3"/>
+    <text class="ster" x="265" y="1347" text-anchor="middle">&#171;effect&#187;</text>
+    <text class="name" x="265" y="1375" text-anchor="middle" data-w="364">The push</text>
+    <path class="ln thin" d="M65 1387 H465"/>
+    <text class="det" x="85" y="1409" data-w="362">parallel saturation, drive 0.5</text>
+    <text class="det" x="85" y="1434" data-w="362">blended to 0.22 at a drop</text>
+    <text class="det" x="85" y="1459" data-w="362">nothing at all through a groove</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1505" width="400" height="127" rx="3"/>
+    <text class="ster" x="265" y="1529" text-anchor="middle">&#171;dynamics&#187;</text>
+    <text class="name" x="265" y="1557" text-anchor="middle" data-w="364">Glue</text>
+    <path class="ln thin" d="M65 1569 H465"/>
+    <text class="det" x="85" y="1591" data-w="362">ratio 1 and drive 0 — not built</text>
+    <text class="det" x="85" y="1616" data-w="362">a compressor here clicks in Firefox</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="356" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="380" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="745" y="408" text-anchor="middle" data-w="404">Drums bus</text>
+    <path class="ln thin" d="M525 420 H965"/>
+    <text class="det" x="545" y="442" data-w="402">hats · shaker · clap</text>
+    <text class="det" x="545" y="467" data-w="402">no duck: straight to the macro filter</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="513" width="440" height="177" rx="3"/>
+    <text class="ster" x="745" y="537" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="745" y="565" text-anchor="middle" data-w="404">Keys bus</text>
+    <path class="ln thin" d="M525 577 H965"/>
+    <text class="det" x="545" y="599" data-w="402">the keys, through a slow chorus</text>
+    <text class="det" x="545" y="624" data-w="402">dry 0.7 · two lines, 12 and 17.5 ms</text>
+    <text class="det" x="545" y="649" data-w="402">0.18 and 0.23 Hz · ±3.5 ms · pan ±0.6</text>
+    <text class="det" x="545" y="674" data-w="402">wet 0.42 each, into the melodic bus</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="720" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="744" text-anchor="middle">&#171;bus&#187;</text>
+    <text class="name" x="745" y="772" text-anchor="middle" data-w="404">Melodic bus</text>
+    <path class="ln thin" d="M525 784 H965"/>
+    <text class="det" x="545" y="806" data-w="402">pad · piano · effects</text>
+    <text class="det" x="545" y="831" data-w="402">and the keys bus above it</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="877" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="901" text-anchor="middle">&#171;gain&#187;</text>
+    <text class="name" x="745" y="929" text-anchor="middle" data-w="404">Melodic duck</text>
+    <path class="ln thin" d="M525 941 H965"/>
+    <circle class="dot" cx="534" cy="957" r="3.6"/>
+    <text class="det" x="545" y="963" data-w="402">−16.0 dB, reached over 5 ms</text>
+    <text class="det" x="545" y="988" data-w="402">one ramp per kick — the rooms duck too</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="1034" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="1058" text-anchor="middle">&#171;stage&#187;</text>
+    <text class="name" x="745" y="1086" text-anchor="middle" data-w="404">Width</text>
+    <path class="ln thin" d="M525 1098 H965"/>
+    <circle class="dot" cx="534" cy="1114" r="3.6"/>
+    <text class="det" x="545" y="1120" data-w="402">mid/side: the mid is never touched</text>
+    <circle class="dot" cx="534" cy="1139" r="3.6"/>
+    <text class="det" x="545" y="1145" data-w="402">side × 1.45, ±0.34 at 0.21 Hz</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="1191" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="1215" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="745" y="1243" text-anchor="middle" data-w="404">Macro filter</text>
+    <path class="ln thin" d="M525 1255 H965"/>
+    <text class="det" x="545" y="1277" data-w="402">lowpass, 420 Hz closed to 15 kHz open</text>
+    <text class="det" x="545" y="1302" data-w="402">Q 0.707 — the arrangement’s one knob</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="1348" width="440" height="152" rx="3"/>
+    <text class="ster" x="745" y="1372" text-anchor="middle">&#171;stage&#187;</text>
+    <text class="name" x="745" y="1400" text-anchor="middle" data-w="404">Low end mono</text>
+    <path class="ln thin" d="M525 1412 H965"/>
+    <circle class="dot" cx="534" cy="1428" r="3.6"/>
+    <text class="det" x="545" y="1434" data-w="402">mid/side again: side highpass 100 Hz</text>
+    <text class="det" x="545" y="1459" data-w="402">Q −3.01 dB, which is Butterworth</text>
+    <text class="det" x="545" y="1484" data-w="402">below the corner there is no side</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1676" width="400" height="177" rx="3"/>
+    <text class="ster" x="265" y="1700" text-anchor="middle">&#171;send&#187;</text>
+    <text class="name" x="265" y="1728" text-anchor="middle" data-w="364">Delay</text>
+    <path class="ln thin" d="M65 1740 H465"/>
+    <text class="det" x="85" y="1762" data-w="362">dotted eighth — 0.75 of a beat</text>
+    <text class="det" x="85" y="1787" data-w="362">feedback 0.34 · lowpass 2400 Hz</text>
+    <circle class="dot" cx="74" cy="1806" r="3.6"/>
+    <text class="det" x="85" y="1812" data-w="362">one line to both channels</text>
+    <text class="det" x="85" y="1837" data-w="362">level 0.5, back into the duck</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="1883" width="400" height="177" rx="3"/>
+    <text class="ster" x="265" y="1907" text-anchor="middle">&#171;send&#187;</text>
+    <text class="name" x="265" y="1935" text-anchor="middle" data-w="364">Reverb</text>
+    <path class="ln thin" d="M65 1947 H465"/>
+    <text class="det" x="85" y="1969" data-w="362">pre-delay 18 ms · highpass 150 Hz</text>
+    <text class="det" x="85" y="1994" data-w="362">hall 2.4 s, correlation 0.25</text>
+    <text class="det" x="85" y="2019" data-w="362">lowpass 4 kHz · level 0.95</text>
+    <text class="det" x="85" y="2044" data-w="362">back into the duck</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="1676" width="440" height="177" rx="3"/>
+    <text class="ster" x="745" y="1700" text-anchor="middle">&#171;send&#187;</text>
+    <text class="name" x="745" y="1728" text-anchor="middle" data-w="404">Clap room</text>
+    <path class="ln thin" d="M525 1740 H965"/>
+    <circle class="dot" cx="534" cy="1756" r="3.6"/>
+    <text class="det" x="545" y="1762" data-w="402">pre-delay 53 ms, short and bright</text>
+    <text class="det" x="545" y="1787" data-w="402">highpass 600 Hz · lowpass 11 kHz</text>
+    <circle class="dot" cx="534" cy="1806" r="3.6"/>
+    <text class="det" x="545" y="1812" data-w="402">room 0.32 s, correlation 0.7</text>
+    <text class="det" x="545" y="1837" data-w="402">level 0.85, into the drums bus</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="1883" width="440" height="177" rx="3"/>
+    <text class="ster" x="745" y="1907" text-anchor="middle">&#171;send&#187;</text>
+    <text class="name" x="745" y="1935" text-anchor="middle" data-w="404">Piano hall</text>
+    <path class="ln thin" d="M525 1947 H965"/>
+    <text class="det" x="545" y="1969" data-w="402">pre-delay 32 ms · highpass 190 Hz</text>
+    <text class="det" x="545" y="1994" data-w="402">hall 4.2 s, decay 2.3 · lowpass 3.4 kHz</text>
+    <text class="det" x="545" y="2019" data-w="402">level 1.0, back into the duck</text>
+    <text class="det" x="545" y="2044" data-w="402">built the first time a piano sends</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="2104" width="440" height="127" rx="3"/>
+    <text class="ster" x="745" y="2128" text-anchor="middle">&#171;artifact&#187;</text>
+    <text class="name" x="745" y="2156" text-anchor="middle" data-w="404">Theme plan</text>
+    <path class="ln thin" d="M525 2168 H965"/>
+    <text class="det" x="545" y="2190" data-w="402">the theme’s dice and its events</text>
+    <text class="det" x="545" y="2215" data-w="402">read once, before a note sounds</text>
+    </g>
+  <g>
+    <rect class="box" x="65" y="2275" width="400" height="102" rx="3"/>
+    <text class="ster" x="265" y="2299" text-anchor="middle">&#171;gain&#187;</text>
+    <text class="name" x="265" y="2327" text-anchor="middle" data-w="364">Theme output</text>
+    <path class="ln thin" d="M65 2339 H465"/>
+    <text class="det" x="85" y="2361" data-w="362">one gain — the theme, summed</text>
+    </g>
+  <g>
+    <rect class="box" x="525" y="2275" width="440" height="152" rx="3"/>
+    <text class="ster" x="745" y="2299" text-anchor="middle">&#171;trim&#187;</text>
+    <text class="name" x="745" y="2327" text-anchor="middle" data-w="404">Theme loudness</text>
+    <path class="ln thin" d="M525 2339 H965"/>
+    <text class="det" x="545" y="2361" data-w="402">fitted at plan time, one per theme</text>
+    <text class="det" x="545" y="2386" data-w="402">from the theme’s dice and its plan</text>
+    <text class="det" x="545" y="2411" data-w="402">so no theme arrives louder than another</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="105" width="400" height="152" rx="3"/>
+    <text class="ster" x="1245" y="129" text-anchor="middle">&#171;deck&#187;</text>
+    <text class="name" x="1245" y="157" text-anchor="middle" data-w="364">Deck channel</text>
+    <path class="ln thin" d="M1045 169 H1445"/>
+    <text class="det" x="1065" y="191" data-w="362">highpass 18 Hz · lowpass 20 kHz</text>
+    <text class="det" x="1065" y="216" data-w="362">and a fader of its own</text>
+    <text class="det" x="1065" y="241" data-w="362">two decks at a seam, one master</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="287" width="400" height="102" rx="3"/>
+    <text class="ster" x="1245" y="311" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="339" text-anchor="middle" data-w="364">DC block</text>
+    <path class="ln thin" d="M1045 351 H1445"/>
+    <text class="det" x="1065" y="373" data-w="362">highpass 22 Hz · Q 0.7</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="419" width="400" height="127" rx="3"/>
+    <text class="ster" x="1245" y="443" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="471" text-anchor="middle" data-w="364">Low shelf</text>
+    <path class="ln thin" d="M1045 483 H1445"/>
+    <circle class="dot" cx="1054" cy="499" r="3.6"/>
+    <text class="det" x="1065" y="505" data-w="362">70 Hz · −2.0 dB</text>
+    <text class="det" x="1065" y="530" data-w="362">keeps the sub off the bell</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="576" width="400" height="127" rx="3"/>
+    <text class="ster" x="1245" y="600" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="628" text-anchor="middle" data-w="364">Low-mid bell</text>
+    <path class="ln thin" d="M1045 640 H1445"/>
+    <circle class="dot" cx="1054" cy="656" r="3.6"/>
+    <text class="det" x="1065" y="662" data-w="362">160 Hz · +7.5 dB · Q 0.62</text>
+    <text class="det" x="1065" y="687" data-w="362">the octave nothing plays in</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="733" width="400" height="127" rx="3"/>
+    <text class="ster" x="1245" y="757" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="785" text-anchor="middle" data-w="364">Mid bell</text>
+    <path class="ln thin" d="M1045 797 H1445"/>
+    <circle class="dot" cx="1054" cy="813" r="3.6"/>
+    <text class="det" x="1065" y="819" data-w="362">1.1 kHz · +5.5 dB · Q 0.55</text>
+    <text class="det" x="1065" y="844" data-w="362">where the record says least</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="890" width="400" height="102" rx="3"/>
+    <text class="ster" x="1245" y="914" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="942" text-anchor="middle" data-w="364">Presence</text>
+    <path class="ln thin" d="M1045 954 H1445"/>
+    <text class="det" x="1065" y="976" data-w="362">2.6 kHz · +5.5 dB · Q 0.6</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1022" width="400" height="102" rx="3"/>
+    <text class="ster" x="1245" y="1046" text-anchor="middle">&#171;filter&#187;</text>
+    <text class="name" x="1245" y="1074" text-anchor="middle" data-w="364">Air</text>
+    <path class="ln thin" d="M1045 1086 H1445"/>
+    <text class="det" x="1065" y="1108" data-w="362">high shelf 8.5 kHz · +1.8 dB</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1154" width="400" height="152" rx="3"/>
+    <text class="ster" x="1245" y="1178" text-anchor="middle">&#171;gain&#187;</text>
+    <text class="name" x="1245" y="1206" text-anchor="middle" data-w="364">Make-up</text>
+    <path class="ln thin" d="M1045 1218 H1445"/>
+    <circle class="dot" cx="1054" cy="1234" r="3.6"/>
+    <text class="det" x="1065" y="1240" data-w="362">0.84 — the gain into the ceiling</text>
+    <text class="det" x="1065" y="1265" data-w="362">seed 1 theme 2 reads −12.31 LUFS</text>
+    <text class="det" x="1065" y="1290" data-w="362">over its 224 bars, gated</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1336" width="400" height="202" rx="3"/>
+    <text class="ster" x="1245" y="1360" text-anchor="middle">&#171;worklet&#187;</text>
+    <text class="name" x="1245" y="1388" text-anchor="middle" data-w="364">Look-ahead limiter</text>
+    <path class="ln thin" d="M1045 1400 H1445"/>
+    <text class="det" x="1065" y="1422" data-w="362">ceiling 0.75 — −2.5 dBFS</text>
+    <text class="det" x="1065" y="1447" data-w="362">look-ahead 5 ms · hold 25 ms</text>
+    <text class="det" x="1065" y="1472" data-w="362">release 200 ms</text>
+    <text class="det" x="1065" y="1497" data-w="362">one gain for both channels</text>
+    <text class="det" x="1065" y="1522" data-w="362">no worklet: the set runs 2 dB lower</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1568" width="400" height="152" rx="3"/>
+    <text class="ster" x="1245" y="1592" text-anchor="middle">&#171;safety&#187;</text>
+    <text class="name" x="1245" y="1620" text-anchor="middle" data-w="364">Soft clipper</text>
+    <path class="ln thin" d="M1045 1632 H1445"/>
+    <text class="det" x="1065" y="1654" data-w="362">linear below 0.80 · drive 2.2 · 4×</text>
+    <text class="det" x="1065" y="1679" data-w="362">cannot pass 0.891, or −1.0 dBFS</text>
+    <text class="det" x="1065" y="1704" data-w="362">memoryless: no attack, no release</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1750" width="400" height="102" rx="3"/>
+    <text class="ster" x="1245" y="1774" text-anchor="middle">&#171;gain&#187;</text>
+    <text class="name" x="1245" y="1802" text-anchor="middle" data-w="364">Trim</text>
+    <path class="ln thin" d="M1045 1814 H1445"/>
+    <text class="det" x="1065" y="1836" data-w="362">1.0 — where the file finally lands</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="1882" width="400" height="152" rx="3"/>
+    <text class="ster" x="1245" y="1906" text-anchor="middle">&#171;route&#187;</text>
+    <text class="name" x="1245" y="1934" text-anchor="middle" data-w="364">Output</text>
+    <path class="ln thin" d="M1045 1946 H1445"/>
+    <text class="det" x="1065" y="1968" data-w="362">direct — straight to the context</text>
+    <text class="det" x="1065" y="1993" data-w="362">element — a lock-screen card</text>
+    <text class="det" x="1065" y="2018" data-w="362">silent — the checks, a gain of zero</text>
+    </g>
+  <g>
+    <rect class="box" x="1045" y="2109" width="400" height="76" rx="3"/>
+    <text class="ster" x="1245" y="2133" text-anchor="middle">&#171;device&#187;</text>
+    <text class="name" x="1245" y="2161" text-anchor="middle" data-w="364">Audio out</text>
+    </g>
+  </g>
+  <text class="msg" x="519" y="1660" text-anchor="start">sends</text>
+  <text class="msg" x="759" y="2257" text-anchor="start">«reads»</text>
+  <g>
+    <rect class="frame" x="30" y="2576" width="1440" height="450"/>
+    <path class="ln thin" d="M30 2576 H205 L223 2596 V2610 H30 Z"/>
+    <text class="msg" x="46" y="2602">td &#160;one kick</text>
+    <text class="det" x="52" y="2692" data-w="250">melodic : duck</text>
+    <text class="ster" x="52" y="2718" data-w="250">keys · pad · piano · rooms</text>
+    <path class="ln life" d="M330 2688 H1440"/>
+    <path class="ln flow" d="M381.6 2688 L390.2 2742.1 L474.6 2745.6 L832.7 2700.8 L1334 2688 L1440 2688"/>
+    <text class="msg" x="474.6" y="2769.6" text-anchor="middle">−16.0 dB at 54 ms</text>
+    <text class="msg" x="842.7" y="2724.8" text-anchor="start">−3.6 dB by 0.45 of the beat</text>
+    <text class="msg" x="1334" y="2674" text-anchor="end">unity again at 0.95 of the beat</text>
+    <text class="det" x="52" y="2792" data-w="250">bass : duck low</text>
+    <text class="ster" x="52" y="2818" data-w="250">the sub, after its compressor</text>
+    <path class="ln life" d="M330 2788 H1440"/>
+    <path class="ln flow" d="M381.6 2788 L390.2 2813.2 L474.6 2816.8 L832.7 2796.6 L1334 2788 L1440 2788"/>
+    <text class="msg" x="474.6" y="2840.8" text-anchor="middle">−8.0 dB at 54 ms</text>
+    <text class="msg" x="402.2" y="2672" text-anchor="start">5 ms to the knee</text>
+    <path class="ln life" d="M390.2 2676 V2822.8"/>
+    <text class="det" x="52" y="2888" data-w="250">master : limiter</text>
+    <text class="ster" x="52" y="2914" data-w="250">gain, as far as the peak asks</text>
+    <path class="ln life" d="M330 2884 H1440"/>
+    <path class="ln flow" d="M330 2884 L373 2884 L381.6 2914 L424.7 2914 L424.7 2914 L433.3 2913.3 L441.9 2912.5 L450.5 2911.8 L459.1 2911.1 L467.7 2910.5 L476.3 2909.8 L484.9 2909.2 L493.5 2908.6 L502.1 2908 L510.7 2907.4 L519.3 2906.8 L527.9 2906.2 L536.5 2905.7 L545.1 2905.1 L553.7 2904.6 L562.3 2904.1 L570.9 2903.6 L579.5 2903.1 L588.1 2902.7 L596.7 2902.2 L605.3 2901.7 L614 2901.3 L622.6 2900.9 L631.2 2900.5 L639.8 2900.1 L648.4 2899.7 L657 2899.3 L665.6 2898.9 L674.2 2898.5 L682.8 2898.2 L691.4 2897.8 L700 2897.5 L708.6 2897.1 L717.2 2896.8 L725.8 2896.5 L734.4 2896.2 L743 2895.9 L751.6 2895.6 L760.2 2895.3 L768.8 2895 L777.4 2894.8 L786 2894.5 L794.7 2894.2 L803.3 2894 L811.9 2893.7 L820.5 2893.5 L829.1 2893.3 L837.7 2893 L846.3 2892.8 L854.9 2892.6 L863.5 2892.4 L872.1 2892.2 L880.7 2892 L889.3 2891.8 L897.9 2891.6 L906.5 2891.4 L915.1 2891.2 L923.7 2891 L932.3 2890.9 L940.9 2890.7 L949.5 2890.5 L958.1 2890.4 L966.7 2890.2 L975.3 2890.1 L984 2889.9 L992.6 2889.8 L1001.2 2889.6 L1009.8 2889.5 L1018.4 2889.3 L1027 2889.2 L1035.6 2889.1 L1044.2 2889 L1052.8 2888.8 L1061.4 2888.7 L1070 2888.6 L1078.6 2888.5 L1087.2 2888.4 L1095.8 2888.3 L1104.4 2888.2 L1113 2888.1 L1121.6 2888 L1130.2 2887.9 L1138.8 2887.8 L1147.4 2887.7 L1156 2887.6 L1164.7 2887.5 L1173.3 2887.4 L1181.9 2887.3 L1190.5 2887.2 L1199.1 2887.2 L1207.7 2887.1 L1216.3 2887 L1224.9 2886.9 L1233.5 2886.9 L1242.1 2886.8 L1250.7 2886.7 L1259.3 2886.7 L1267.9 2886.6 L1276.5 2886.5 L1285.1 2886.5 L1293.7 2886.4 L1302.3 2886.3 L1310.9 2886.3 L1319.5 2886.2 L1328.1 2886.2 L1336.7 2886.1 L1345.3 2886.1 L1354 2886 L1362.6 2886 L1371.2 2885.9 L1379.8 2885.9 L1388.4 2885.8 L1397 2885.8 L1405.6 2885.7 L1414.2 2885.7 L1422.8 2885.7 L1431.4 2885.6 L1440 2885.6"/>
+    <text class="msg" x="441.9" y="2868" text-anchor="start">look-ahead 5 ms: the gain moves first, and the audio is held the same 5 ms</text>
+    <text class="msg" x="404" y="2936" text-anchor="middle">hold 25 ms</text>
+    <text class="msg" x="588.1" y="2936" text-anchor="start">release 200 ms — the ceiling is 0.75, and the clipper behind it cannot pass 0.891</text>
+    <path class="ln thin" d="M330 2966 H1440"/>
+    <path class="ln thin" d="M381.6 2966 V2975"/>
+    <text class="leg" x="381.6" y="2996" text-anchor="middle">0</text>
+    <path class="ln thin" d="M474.6 2966 V2975"/>
+    <text class="leg" x="474.6" y="2996" text-anchor="middle">54</text>
+    <path class="ln thin" d="M832.7 2966 V2975"/>
+    <text class="leg" x="832.7" y="2996" text-anchor="middle">262</text>
+    <path class="ln thin" d="M1334 2966 V2975"/>
+    <text class="leg" x="1334" y="2996" text-anchor="middle">553</text>
+    <text class="leg" x="1440" y="2606" text-anchor="end">ms, the kick at zero — a beat is 582 ms at 103 BPM</text>
+    <circle class="dot" cx="56" cy="2990" r="3.6"/>
+    <text class="leg" x="70" y="2996">every number is measured</text>
+  </g>
+  <g>
+    <rect class="frame" x="1020" y="2231" width="450" height="300"/>
+    <text class="legttl" x="1045" y="2271">Notation</text>
+    <path class="ln flow" d="M1045 2316 H1130"/>
+    <path class="ln head" d="M1116.5 2322.6 L1130 2316"/>
+    <path class="ln head" d="M1116.5 2309.4 L1130 2316"/>
+    <text class="leg" x="1160" y="2323" data-w="285">signal — what feeds what</text>
+    <path class="ln dep" d="M1045 2363 H1130"/>
+    <path class="ln head" d="M1116.5 2369.6 L1130 2363"/>
+    <path class="ln head" d="M1116.5 2356.4 L1130 2363"/>
+    <text class="leg" x="1160" y="2370" data-w="285">reads, not a signal</text>
+    <rect class="pkg" x="1045" y="2393" width="85" height="34"/>
+    <text class="leg" x="1160" y="2417" data-w="285">per theme, or the set</text>
+    <text class="ster" x="1045" y="2464">&#171;kind&#187;</text>
+    <text class="leg" x="1160" y="2464" data-w="285">what the part is</text>
+    <circle class="dot" cx="1054" cy="2499" r="3.6"/>
+    <text class="leg" x="1160" y="2506" data-w="285">measured, from the sets</text>
+  </g>
+</svg>

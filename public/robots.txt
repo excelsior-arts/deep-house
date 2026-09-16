@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://excelsior-arts.github.io/deep-house/sitemap.xml

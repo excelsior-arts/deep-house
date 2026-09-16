@@ -1,0 +1,12 @@
+tmp/
+node_modules/
+.DS_Store
+*.wav
+*.mp3
+*.aif
+*.aiff
+*.flac
+*.ogg
+*.m4a
+*.opus
+.release-build/

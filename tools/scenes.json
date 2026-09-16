@@ -1,0 +1,135 @@
+{
+ "note": "The windows of music the suite renders and meters, and the gates every one of them has to pass. The list is not a sample of the catalogue: it is what has actually gone wrong in this project, one scene per fault, so a fix that is undone fails a named line. Rendered offline in an OfflineAudioContext, which reaches no output device, in Chromium and in Firefox. Blessed envelopes live in tools/reference/<scene>-<engine>.json; seed1-open is also held to tools/reference-seed1.json, which is the same reading in the shape it has always had.",
+ "sampleRate": 48000,
+ "gates": {
+  "prerollBars": 2,
+  "tailSeconds": 1.5,
+  "truePeakCeilingDbTP": -1,
+  "samplePeakCeilingDbFS": -1,
+  "bandTolerance": 0.5,
+  "lufsTolerance": 0.3,
+  "peakTolerance": 0.3,
+  "monoTolerance": 0.0002,
+  "clickStep": 0.05,
+  "clickRatio": 8,
+  "limiterOver1dBShare": 0.85,
+  "limiterShareTolerance": 0.08,
+  "mainLufs": -12.3,
+  "mainLufsTolerance": 1.25,
+  "dropOverMainsLU": 1.5,
+  "breakdownOverMainsLU": 0.5,
+  "why": {
+   "prerollBars": "Two bars of the theme before the window are rendered and thrown away, so the reverb, the delay and the limiter's envelope are running by the time the window opens rather than starting from rest inside it. Everything before that reaches the render as events with no voice: develop() reads them and stages the window against the theme's real history, and fireEvent() does not build a node for them. Without that, seed 15576's minimal room measured 4.5 dB out in a band and four tenths of a decibel out in loudness, because a window taken on its own looks like a theme where nothing has held long enough to be moved to the back.",
+   "limiterOver1dBShare": "The share of the window in which the master limiter took more than a decibel off, read off the limiter's own meter — the worklet posts the worst reduction it saw every eighth of a second and the suite counts the posts. The stated ceiling is loose on purpose, because this record lives on its limiter: the nine scenes measure 2% to 75%, and the eight bars of seed 1 that have always been the reference measure 45% with a worst of 6.7 dB. What is tight is limiterShareTolerance, which holds each scene to the share it was blessed at.",
+   "limiterShareTolerance": "Eight points either side of the blessed share. An offline render is deterministic to the sample — two renders of a scene agree to 0.000 dB — so this is a real gate and not a noise band: a mix change that puts the master a decibel harder on the ceiling moves it.",
+   "mainLufs": "A main groove sits inside a band round -12.3 LUFS, and the band is 1.25 where it used to be -12 and 2. What changed is the record: each theme now carries a loudness trim worked out from its own plan (src/loudness.js, PARAMS.loudness), so the rooms no longer sit decibels apart by die roll. The same six main windows measured -13.62, -13.37, -12.99, -12.05, -11.15 and -10.74 before it and measure -13.33, -12.34, -12.99, -11.95, -12.08 and -11.27 after: a spread of 2.88 LU down to 2.06, and the sd of 120 measured themes' own mid-main windows from 0.921 to 0.477. It is not the fit's 0.52 LU residual because these six windows were chosen for the faults they hold and not for being typical — the trim's target is the theme's own mid-main window, and a drop's neighbour or the fourteenth bar of a theme is not that window; they sit about 0.7 LU above the -13.0 the trim aims at, and seed 1's opening is a `generate()` track with no trim at all, which is why tools/reference-seed1.json did not move by a hundredth. Each scene's own loudness is still pinned to a tenth by its blessed envelope; this is the outer net. The make-up gain is untouched at 0.84, where the click gate holds it (tmp/TODO.md): levelling the themes against each other and making the record louder are two decisions and this is only the first.",
+   "engine": "The absolute loudness band, and the drop and breakdown measured against their theme's mains, are checked in Chromium only. Firefox is a second engine and not a second machine: it reads the same eight bars up to 3.6 dB apart in a band and 1.2 LU louder, and it does not move a drop and a main by the same amount — seed 1's drop sits +0.61 LU over its mains in Chromium and +1.70 in Firefox. That is its own biquads and not the record. WebKit agrees with Chromium to a hundredth of a decibel. What Firefox is here for is the mono rule, the click ratio and its own blessed envelope.",
+   "breakdownOverMainsLU": "A breakdown should be under its theme's mains and the patched record has it at +0.27 LU (tmp/plans/sub-drop.md), which is what a breakdown with a bass, no kick and therefore no sidechain measures. Half a decibel is the line; before the push-curve fix these bars read four decibels over.",
+   "clickStep": "The absolute bound is a lone *kick*: a sine, on a bus that is mono, whose one-sample move is arithmetic — a 56 Hz wave near full scale moves under 0.01 a sample and the captures that started this moved 0.31. Every other hit is held to the ratio alone, in both engines. A lone hat or shaker reads 0.06 to 0.08 at four or five times its neighbours in Chromium and 1.7x that again in Firefox, and that is a pre-rendered noise burst and not a discontinuity; holding it to 0.05 would have been a gate on the hat's timbre. A step stands forty times over its neighbours."
+  }
+ },
+ "scenes": [
+  {
+   "name": "seed1-open",
+   "source": "track",
+   "masterSeed": 1,
+   "minutes": 1,
+   "theme": 0,
+   "fromBar": 0,
+   "bars": 8,
+   "kind": "main",
+   "legacy": "reference-seed1.json",
+   "why": "The eight bars the suite has always metered: seed 1's opening, growl, the push at zero. It stays first and its reading stays in the file it has always been in."
+  },
+  {
+   "name": "seed1-drop",
+   "source": "theme",
+   "masterSeed": 1,
+   "theme": 1,
+   "fromBar": 60,
+   "bars": 8,
+   "kind": "drop",
+   "against": "seed1-main",
+   "why": "The drop Eugene captured and called broken. The sub's proportion is right and its level, its drive and its placement were not; the patch that fixed it is the one this scene holds still."
+  },
+  {
+   "name": "seed1-breakdown",
+   "source": "theme",
+   "masterSeed": 1,
+   "theme": 1,
+   "fromBar": 104,
+   "bars": 8,
+   "kind": "breakdown",
+   "against": "seed1-main",
+   "why": "The eleven bars of breakdown that the push curve used to drive into the drop behind them, because a drop wrote one point at its downbeat and applyCurve ramped to it from wherever the section before had left off. The quietest section in the theme measured four decibels over its loudest mains."
+  },
+  {
+   "name": "seed1-main",
+   "source": "theme",
+   "masterSeed": 1,
+   "theme": 1,
+   "fromBar": 68,
+   "bars": 8,
+   "kind": "main",
+   "why": "The main groove the two scenes above are measured against, taken from the bars immediately after the drop so the comparison is between neighbours and not between ends of a theme."
+  },
+  {
+   "name": "seed15576-sub",
+   "source": "theme",
+   "masterSeed": 15576,
+   "theme": 1,
+   "fromBar": 32,
+   "bars": 8,
+   "kind": "main",
+   "why": "The minimal sub room Eugene marked \"hi hats are too intense given minimal density\" while calling the composition amazing. The hats never moved with the density die; hatEnergy() now reads the room's own levels and writes one number per theme, and this window is where it lands."
+  },
+  {
+   "name": "seed25417-voicing",
+   "source": "theme",
+   "masterSeed": 25417,
+   "theme": 1,
+   "fromBar": 12,
+   "bars": 4,
+   "kind": "main",
+   "why": "Bar 14, marked -3: D#4 F#4 A#4 B4 C#5, a semitone beating at 27.7 Hz. The voice-leading rule that takes the nearest octave among the octaves that are not a semitone from a tone already placed is what this holds still."
+  },
+  {
+   "name": "seed68299-voicing",
+   "source": "theme",
+   "masterSeed": 68299,
+   "theme": 1,
+   "fromBar": 6,
+   "bars": 4,
+   "kind": "main",
+   "why": "Bar 8, marked -3 and \"weird effect\": F#4 G#4 A4, the other half of the same fault."
+  },
+  {
+   "name": "seed15576-growl",
+   "source": "theme",
+   "masterSeed": 15576,
+   "theme": 0,
+   "fromBar": 108,
+   "bars": 8,
+   "kind": "main",
+   "knownClick": {
+    "firefox": {
+     "step": 0.1726,
+     "why": "FOUND BY THIS GATE, and not caused by it. At bar 111.875 — the last eighth of the last bar of a sixteen-bar phrase — Firefox puts a one-sample move of 0.1726 into the record where Chromium puts 0.0471. It read 0.1643 against 0.0448 before this theme took its loudness trim of +0.43 dB, and it has grown by exactly that trim, which is the arithmetic of a step and not a new fault, and sidedClicks reads 0.1248 of it in one channel alone. It is not the window: a render of the whole theme up to bar 116 reads 0.1628 at the same instant in Firefox and 0.0171 in Chromium. It is not one layer either: rendered alone, no layer moves more than 0.034 there, so it is the two engines' filters diverging under a dense phrase line and the master reacting to what arrives. It is written down here and pinned rather than waved through: the reading may not grow, and tmp/TODO.md carries it as an open item for Eugene."
+    }
+   },
+   "why": "The densest eight bars of a growl main groove: all eight layers sounding at once, which is where the master chain is asked to do the most and where the balance passes' mid bell and low shelf are load-bearing."
+  },
+  {
+   "name": "seed1-seam",
+   "source": "mix",
+   "masterSeed": 1,
+   "themes": 3,
+   "themeBars": 16,
+   "theme": 0,
+   "fromBar": 0,
+   "bars": 0,
+   "kind": "seam",
+   "why": "A three-theme set across its first hand-over: two decks through one master, the sum in its dip, the low end changing hands on a downbeat. The themes are shortened to sixteen bars so the first seam arrives half a minute in rather than seven minutes in; the seam the render reports has to be the one the plan predicts, which is the check that tools/setplan.mjs has not drifted from renderMix. The window is the whole blend, from the seam to its end. renderMix cannot express a cut: a skip is a live gesture on a live deck and there is no argument to renderMix that asks for one, so the cut window this list would otherwise hold is covered by the transport scenarios in tools/test-browsers.mjs instead."
+  }
+ ]
+}

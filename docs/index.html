@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- The page is one module graph served off a static folder; without this a
+         tab can keep an old ring alive across a commit. -->
+    <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Deep House</title>
+    <meta name="description" content="An endless deep house set, generated in your browser." />
+    <meta name="theme-color" content="#000000" />
+
+    <meta property="og:title" content="Deep House" />
+    <meta property="og:description" content="An endless deep house set, generated in your browser." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://excelsior-arts.github.io/deep-house/" />
+    <meta property="og:image" content="https://excelsior-arts.github.io/deep-house/card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Deep House" />
+    <meta name="twitter:description" content="An endless deep house set, generated in your browser." />
+    <meta name="twitter:image" content="https://excelsior-arts.github.io/deep-house/card.png" />
+
+    <!-- What a search engine is told: the page is one address, and it is a
+         free music application, not a document. -->
+    <link rel="canonical" href="https://excelsior-arts.github.io/deep-house/" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Deep House",
+      "url": "https://excelsior-arts.github.io/deep-house/",
+      "description": "An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires a browser with Web Audio",
+      "image": "https://excelsior-arts.github.io/deep-house/card.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Organization", "name": "Excelsior Arts", "url": "https://github.com/excelsior-arts" }
+    }
+    </script>
+
+    <!-- The sigil cut for a tab strip, where every other mark is one flat
+         colour: the same drawing as before — the belt at 6.75 so a pixel
+         survives between it and the star's points, the two squares at R_STAR,
+         the centre a filled dot because a 2.4 outline is a smudge — with the
+         two things a strip does not want taken out of it. The coin it stood on
+         is gone, so the ground is nothing, and the gold is one ink. A strip is
+         dark because the browser is, so the file decides its own colour: the
+         page's ink on a light one, its pale gold on a dark one. The PNGs below
+         are the fallback and can only be one of the two, so they are the ink —
+         a tab strip is light far more often than it is not. -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Cstyle%3Esvg{color:%2305040a}@media (prefers-color-scheme:dark){svg{color:%23ffe0a0}}%3C/style%3E%3Cg fill='none' stroke='currentColor' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Ccircle cx='8' cy='8' r='1.3' fill='currentColor'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <style>:root{--pale:#ffe9a8;--gold:#f2c14e;--deep:#c98a2b;--ink:#05040a;--lightningcss-light: ;--lightningcss-dark:initial;color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;min-height:100vh;overscroll-behavior:none;background:#000;min-height:100dvh}body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;background:#000;margin:0;font-family:Futura,Avenir Next,Century Gothic,Optima,Questrial,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}.said{clip:rect(0 0 0 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}#say{clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}#actions g[tabindex]:focus-visible{outline-offset:3px;outline:2px solid #ffe9a8}#field{background:#000;min-height:120dvh;position:fixed;inset:-10vh 0}#stage{perspective:1500px;perspective-origin:50%;place-items:center;display:grid;position:fixed;inset:0}#tilt{cursor:default;width:min(94vmin,960px);height:min(94vmin,960px);transform-style:preserve-3d;will-change:transform;position:relative;transform:rotateX(0)rotateY(0)}.layer{will-change:transform, opacity;width:100%;height:100%;display:block;position:absolute;inset:0;overflow:visible}#outer{transform:translateZ(-13px)}#star,#inner{transform:translateZ(17px)}#glow{transform:translateZ(20px)}text{fill:var(--gold);text-transform:uppercase;paint-order:stroke;stroke:#05040a;stroke-width:3.2px;stroke-linejoin:round;stroke-linecap:round;font-weight:400}.ln{fill:none;stroke:url(#gold);stroke-linecap:round;stroke-linejoin:round}.hair{stroke-width:1.1px;opacity:.75}.thin{stroke-width:1.6px}.med{stroke-width:2.4px}#cells g.cell{transition:opacity .26s}@media (max-width:560px){.laneKey{display:none}}#mark{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);opacity:.3;cursor:pointer;text-shadow:0 0 3px #05040a,0 0 7px #05040a,0 1px 2px #05040a;font-size:10px;text-decoration:none;transition:opacity .24s;position:fixed}#mark:hover,#mark:focus-visible{opacity:.85}@media (max-width:699px){#mark{left:50%;right:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%)}}#cells g.cell text{transition:fill .26s,opacity .26s}#seedEdit .seedWrap{letter-spacing:2.34px;text-transform:uppercase;height:100%;color:var(--gold);pointer-events:none;text-shadow:0 0 2px #05040a,0 0 4px #05040a;justify-content:center;align-items:center;gap:4px;font-family:inherit;font-size:9px;display:flex}#seedEdit .seedWrap span{opacity:.55}#seedEdit input{width:52px;font:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;color:var(--pale);caret-color:var(--gold);text-shadow:inherit;pointer-events:auto;touch-action:auto;-webkit-user-select:text;user-select:text;background:0 0;border:0;outline:0;margin:0;padding:0}#seedEdit input::selection{color:#fff6de;background:#f2c14e59}</style>
+    <script type="module" crossorigin src="./assets/deep-house-c0O6vdIH.js"></script>
+  </head>
+  <body>
+    <div id="field"></div>
+    <!-- What a screen reader and a search engine are told, since the sigil
+         itself says nothing: the page's one heading and its two sentences,
+         read aloud and indexed, never drawn. -->
+    <h1 class="said">Deep House</h1>
+    <p class="said">An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays. Touch the centre to start; the band is the mix ahead, the cells of the star are the dice this theme was rolled from, and the dice under the centre cast a new set.</p>
+    <div id="say" aria-live="polite" role="status"></div>
+    <!-- The set leaves through here: iOS hangs its lock-screen card and its
+         controls on a playing media element, not on an audio graph. -->
+    <audio id="sound" playsinline></audio>
+
+    <a id="mark" href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Excelsior Arts</a>
+
+    <div id="stage">
+      <div id="tilt">
+        <!-- shared defs live in the first layer -->
+        <svg class="layer" id="outer" viewBox="0 0 1000 1000" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
+              <stop offset="0" stop-color="#fff3c8" />
+              <stop offset="0.34" stop-color="#ffd97a" />
+              <stop offset="0.68" stop-color="#f2c14e" />
+              <stop offset="1" stop-color="#b9781f" />
+            </linearGradient>
+            <linearGradient id="goldBright" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
+              <stop offset="0" stop-color="#fffbe8" />
+              <stop offset="0.5" stop-color="#ffe9a8" />
+              <stop offset="1" stop-color="#f2c14e" />
+            </linearGradient>
+            <!-- A whisper of bloom: the line work reads first. The strong
+                 glow belongs to the live layer, which paints its own halo. -->
+            <filter id="bloom" x="-8%" y="-8%" width="116%" height="116%"
+                    color-interpolation-filters="sRGB" filterUnits="objectBoundingBox">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b" />
+              <feComponentTransfer in="b" result="bd">
+                <feFuncA type="linear" slope="0.55" />
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode in="bd" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g id="outerGlow" filter="url(#bloom)">
+            <g id="rim"></g>
+            <g id="timeline"></g>
+          </g>
+          <!-- What moves on the rim while the set plays: the shade over the
+               bars already played and the coming theme's lanes. A sibling of
+               the bloomed group, not a child: the blur is rasterised once and
+               kept, and a write here never makes the browser run it again. -->
+          <g id="outerLive"></g>
+        </svg>
+
+        <!-- The star's own sheet, so the mandala can turn as a composited
+             layer: the bloom under it is rasterised once and never re-run. -->
+        <svg class="layer" id="star" viewBox="0 0 1000 1000" aria-hidden="true">
+          <!-- The lines that bind the cells breathe, so they live outside the
+               bloom with a stroked halo in its place, and under the cells they
+               run into. -->
+          <g id="starGlow" filter="url(#bloom)">
+            <g id="spin"></g>
+          </g>
+          <g id="starLines"></g>
+          <!-- The cells wander with their vertices, so they leave the bloom
+               too and carry a stroked halo in its place. -->
+          <g id="starCells"></g>
+          <!-- The cells' words ride the same turning sheet but outside the
+               bloom, so each can be held upright by a transform of its own
+               without ever writing inside a filter. -->
+          <g id="starLive"></g>
+        </svg>
+
+        <svg class="layer" id="inner" viewBox="0 0 1000 1000" role="group" aria-label="transport">
+          <g id="innerGlow" filter="url(#bloom)">
+            <g id="core" aria-hidden="true"></g>
+          </g>
+          <!-- the four beat dots, lit in turn: outside the blur for the same reason -->
+          <g id="innerLive" aria-hidden="true"></g>
+        </svg>
+
+        <!-- Everything that moves every frame. No filter here: the halo is a
+             second, wider, translucent stroke, so a moving cursor never makes
+             the browser re-run a gaussian blur. -->
+        <svg class="layer" id="glow" viewBox="0 0 1000 1000" aria-hidden="true">
+          <g id="live"></g>
+        </svg>
+      </div>
+    </div>
+  </body>
+</html>
