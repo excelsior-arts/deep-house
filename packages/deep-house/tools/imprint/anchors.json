@@ -1,0 +1,218 @@
+{
+ "schema": 1,
+ "version": "1",
+ "calibrated": {
+  "on": "the fourteen golden themes",
+  "date": "2026-09-17",
+  "note": "The `house` raw of every feature is the median of what this set of imprints measured; a wall declared as a factor of the centre moved with it, and an absolute wall did not."
+ },
+ "note": "The scale itself. Every bird is the weighted mean of its features' normalised values, and a feature is normalised through three raw anchors: `zero` is the reading at that bird's 0 wall, `one` the reading at its 1 wall, and `house` the reading of deep house as this project plays it \u2014 which is measured, not chosen. The mapping is piecewise linear, zero -> 0, house -> that bird's houseValue, one -> 1, clamped at both ends, and it works for a feature that falls as the bird rises (lowCentroidHz, eventRate) because the arithmetic only asks that the three anchors be monotone. The `houseValue` numbers are PLAN-MAGIC-V2's illustrative default vector; the `house` raws are rewritten by `calibrate.py --recentre` from the median of the fourteen golden themes, which is what makes the golden sit on the default vector by construction rather than by luck. `zero` and `one` are physics and genre knowledge, not measurements, and are marked as such: they say what silence, a drone, a breakbeat and a chest-crush low end read as, and moving one moves everything ever measured, so a change to them is a re-calibration and gets a line in notes/analysis/imprint-calibration.md.",
+ "birds": {
+  "ember": {
+   "houseValue": 0.42,
+   "definition": "How much of the sound arrives as an attack rather than as held tone.",
+   "features": {
+    "percShare": {
+     "zero": 0.02,
+     "house": 0.06606,
+     "one": 0.6,
+     "weight": 1,
+     "unit": "share of energy",
+     "note": "The percussive half of an HPSS split (margin 1,3), as a share of the whole. 0: a drone has almost none. 1: a breaks record is better than half transient."
+    },
+    "onsetCrestDb": {
+     "zero": 2.0,
+     "house": 27.92942,
+     "one": 40.0,
+     "weight": 0.5,
+     "unit": "dB",
+     "note": "The onset envelope's 95th percentile over its median. A field with no hits in it barely rises. Half weight, and the weaker half of Ember: it is partly a measure of how dense the mix is, and the fourteen golden themes read 27.9 dB where the three reference sets read 15.0 \u2014 a generated groove has a cleaner floor under its hits than a DJ mix does. The 1 wall of 40 dB is genre knowledge and is untested: nothing measured so far comes near it."
+    }
+   }
+  },
+  "tide": {
+   "houseValue": 0.52,
+   "definition": "How long a sound is held once it has started, and how wet the room it is held in is.",
+   "features": {
+    "sustain300Db": {
+     "zero": -34.0,
+     "house": -3.07531,
+     "one": -1.0,
+     "weight": 1,
+     "unit": "dB",
+     "note": "The 300 Hz - 4 kHz level 300 ms after a non-kick onset, against that onset's own peak; timbres.md's per-family measure (pluck -26.4, electric piano -8.7, organ -8.4). The 0 wall was -24 until the calibration found a real theme under it \u2014 seed 1 theme 1, sub room, minimal, reads -29.6 and its mid band falls 43 dB between hits \u2014 so the wall is -34, outside anything this project has made."
+    },
+    "decayDbPerSec": {
+     "zero": -70.0,
+     "house": -22.0,
+     "one": -2.0,
+     "weight": 0,
+     "unit": "dB/s",
+     "note": "The slope of the mid band's log envelope from a non-kick onset's own peak to the next onset or 400 ms. WEIGHT 0, and this is a finding rather than a default: in a sidechained record the mid band RISES for the whole beat after a kick, because the duck's recovery is the envelope, and even with kick-coincident onsets thrown out the fourteen golden themes read a median of +1.1 dB/s (p25 -6.5, p75 +5.8) and the reference sets -4.4. A tail cannot be read off this music, which is what space.md found when it gave up on the reverb it could not isolate. It stays measured and reported, at no weight, so the day a drier pole exists there is a number to compare.",
+     "measured": 1.14893
+    },
+    "floorRatioDb": {
+     "zero": -48.0,
+     "house": -16.41553,
+     "one": -3.0,
+     "weight": 1,
+     "unit": "dB",
+     "note": "The 10th percentile of the mid band against its 95th: how far the wash falls between hits. space.md measures a chord layer that never clears (-1.9 dB between head and tail). The 0 wall was -30 and is -48, for the same theme and the same reason: a minimal sub room really is that empty between its hits, and a wall a record can stand on is not a wall."
+    }
+   }
+  },
+  "zephyr": {
+   "houseValue": 0.38,
+   "definition": "Where the spectrum sits and how much air stands above the body.",
+   "features": {
+    "centroidLogHz": {
+     "zero": 2.602,
+     "house": 2.88962,
+     "one": 3.699,
+     "weight": 1,
+     "unit": "log10 Hz",
+     "note": "The power centroid over 200 Hz - 11 kHz. 400 Hz is dark and closed, 1400 Hz is the mined deep house reading (REPORT: harmonic layer 1568 Hz, whole-mix p50 1634 Hz), 5 kHz is hiss with no body."
+    },
+    "airBalanceDb": {
+     "zero": -30.0,
+     "house": -12.09717,
+     "one": 0.0,
+     "weight": 1,
+     "unit": "dB",
+     "note": "4-11 kHz against 300 Hz - 2 kHz. The target spectrum has the 5-10 kHz thirds eight to eleven decibels under the 500-2000 ones, so a hat shelf and a pad read about -14."
+    }
+   }
+  },
+  "root": {
+   "houseValue": 0.72,
+   "definition": "How much mass there is under everything, and how low its centre sits.",
+   "features": {
+    "lowShareDb": {
+     "zero": -20.0,
+     "house": 7.23732,
+     "one": 16.0,
+     "weight": 1,
+     "unit": "dB",
+     "note": "20-120 Hz against 120 Hz - 11 kHz. A record with no floor is twenty decibels down there; this record measures +7.2 and the reference sets +4.8, so deep house is well over level with the rest of the spectrum and the 1 wall is 16, not the 8 this table first guessed."
+    },
+    "lowCentroidHz": {
+     "zero": 160.0,
+     "house": 58.2131,
+     "one": 45.0,
+     "weight": 1,
+     "unit": "Hz",
+     "note": "The power centroid inside 20-200 Hz, and it FALLS as Root rises. REPORT measures the kick at 50-61 Hz and the bass fundamental at 55-70; a thin record has nothing under 160."
+    },
+    "kickPresenceDb": {
+     "zero": 0.0,
+     "house": 9.13915,
+     "one": 16.0,
+     "weight": 0.5,
+     "unit": "dB",
+     "needsGrid": true,
+     "note": "The 40-120 Hz envelope on the beat against the same envelope on the three sixteenths after it. REPORT's on/off-beat ratio is 2.63, about 8 dB. Half weight and grid-bound: a drone has mass and no kick, and that must not read as no Root."
+    }
+   }
+  },
+  "gleam": {
+   "houseValue": 0.32,
+   "definition": "How light the harmony is: the mode, and how far the voicings reach past the triad.",
+   "features": {
+    "modeScore": {
+     "zero": -0.6,
+     "house": -0.0436,
+     "one": 0.5,
+     "weight": 1,
+     "unit": "correlation difference",
+     "note": "The best major Krumhansl-Kessler correlation minus the best minor one. The sources are minor 71-94% of the time, so house sits well under zero."
+    },
+    "extensionShare": {
+     "zero": 0.55655,
+     "house": 1.20989,
+     "one": 2.2383,
+     "weight": 1,
+     "zeroFactor": 0.46,
+     "oneFactor": 1.85,
+     "unit": "ratio",
+     "note": "Chroma rotated to the tonic: the 9th, 11th, 13th and flat seventh against the root and the fifth. REPORT's de-leaked table gives (0.054+0.056+0.041+0.056)/(0.339+0.162) = 0.41 for that vocabulary; a CQT chroma with its neighbour leakage left in reads the same music about three times higher, which is why the walls here are factors of the measured house centre and not that 0.41."
+    }
+   }
+  },
+  "veil": {
+   "houseValue": 0.48,
+   "definition": "How fast the sound changes from one block of bars to the next.",
+   "features": {
+    "blockNovelty": {
+     "zero": 0.01961,
+     "house": 0.19607,
+     "one": 0.43135,
+     "weight": 1,
+     "zeroFactor": 0.1,
+     "oneFactor": 2.2,
+     "unit": "mean absolute step",
+     "note": "The median step between consecutive one-bar blocks of a fixed-scale timbre-harmony-band vector. 0 is the same bar twice. The 1 wall is a factor because the absolute size of a step belongs to that vector's scales: 2.2x house sits above the shuffled reading \u2014 the same distance taken between two bars of the piece picked at random, which every window reports beside it \u2014 so Veil reaches 1 only where a bar is less like the bar before it than like any other bar in the piece."
+    },
+    "fluxNorm": {
+     "zero": 0.03692,
+     "house": 0.14768,
+     "one": 0.29536,
+     "weight": 1,
+     "zeroFactor": 0.25,
+     "oneFactor": 2.0,
+     "unit": "share of magnitude per frame",
+     "note": "Frame-to-frame L1 change of a 64-band mel spectrum, normalised by that frame's own magnitude, so it is a rate and not a level. Mel and not the 1025 STFT bins: bin to bin, most of what moves in 23 ms is the noise floor. Factor walls, for the same reason the block step has them."
+    }
+   }
+  },
+  "spark": {
+   "houseValue": 0.28,
+   "definition": "How much of the rhythm falls off the beat, and whether there is a grid at all.",
+   "features": {
+    "syncIndex": {
+     "zero": 0.0,
+     "house": 0.08427,
+     "one": 0.55,
+     "weight": 1,
+     "unit": "share of onset energy",
+     "needsGrid": true,
+     "note": "The onset-strength envelope folded onto the four sixteenths of a beat: the 'e' and the 'a' against the whole beat. The beat itself is the kick and the '&' is the offbeat hat, and NEITHER is syncopation \u2014 REPORT's own hat fold puts 1.00 on the '&' and 0.29 on the sixteenths between \u2014 so house is a low number here and chopped breaks a high one. The envelope and not the detected onsets: peak picking counts the hats and skips half the kicks, and a reading taken off it is a statement about the detector (it read 0.98 on a record whose own figure is four on the floor)."
+    },
+    "offGridShare": {
+     "zero": 0.02,
+     "house": 0.12,
+     "one": 0.45,
+     "weight": 0,
+     "unit": "share of onset energy",
+     "needsGrid": true,
+     "note": "Onset energy further than three tenths of a sixteenth (about 43 ms at 104 BPM) from the nearest sixteenth. WEIGHT 0: a sequencer is on the grid to the sample, so the fourteen golden themes measure a median of exactly 0.000 (p75 0.022) and there is no house centre to put here; the three reference sets, played by hands and mixed by a DJ, measure 0.020. It stays in the schema, in the scorecard and in the measurement, at no weight, because it is the feature that will separate a played break from a programmed one the day there is one to measure.",
+     "measured": 0.0
+    }
+   }
+  },
+  "loom": {
+   "houseValue": 0.58,
+   "definition": "How long the piece takes to say anything: the event rate and the span of its phrases.",
+   "features": {
+    "eventRate": {
+     "zero": 7.26746,
+     "house": 3.02811,
+     "one": 0.36337,
+     "weight": 1,
+     "zeroFactor": 2.4,
+     "oneFactor": 0.12,
+     "unit": "onsets per second",
+     "note": "Detected onsets per second, and it FALLS as Loom rises: short loops and busy cuts at one end, very long forms with few events at the other. The absolute count belongs to librosa's onset detector and not to the music, so the walls are factors of the measured house centre: busy cuts are about two and a half times as many events as deep house, and a very long form about an eighth as many."
+    },
+    "spanSeconds": {
+     "zero": 4.0,
+     "house": 9.6595,
+     "one": 120.0,
+     "weight": 1,
+     "unit": "seconds",
+     "scope": "track",
+     "note": "The median spacing of the peaks of a four-bar novelty curve over the whole contiguous piece. Eight bars at 104 BPM is 18.5 s and sixteen is 37, so house sits around twenty. Measurable only on contiguous audio of forty seconds or more; an imprint made of sampled windows has no such curve and drops this feature, which is what pulls Loom's confidence down."
+    }
+   }
+  }
+ }
+}

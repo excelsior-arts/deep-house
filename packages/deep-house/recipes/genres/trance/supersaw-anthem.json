@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "trance/supersaw-anthem",
+  "revision": 1,
+  "name": "The supersaw anthem",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.7,
+            0.65,
+            0.7,
+            0.65
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              1,
+              1
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.2,
+            0.2
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            5,
+            5
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0,
+                0,
+                -3
+              ],
+              "beats": [
+                0.5,
+                1,
+                1,
+                1,
+                0.5
+              ],
+              "holds": [
+                0.1,
+                0.4,
+                0.4,
+                0.4,
+                0.4
+              ],
+              "accents": [
+                0.1,
+                1,
+                0.95,
+                1,
+                0.9
+              ]
+            }
+          ]
+        }
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "sustained",
+        "register": "mid",
+        "families": [
+          "ensemble"
+        ],
+        "properties": {
+          "struck": false,
+          "holdMin": 0.6,
+          "brightnessMin": 1000,
+          "brightnessMax": 2600
+        },
+        "prefer": {
+          "holdMax": 0.75,
+          "brightnessMin": 2400
+        },
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.75,
+              0.75
+            ],
+            "leaps": [
+              0.25,
+              0.25
+            ]
+          },
+          "cell": {
+            "beats": [
+              16,
+              16
+            ]
+          },
+          "onGrid": [
+            0.888,
+            0.889
+          ],
+          "range": {
+            "semitones": [
+              8,
+              8
+            ]
+          },
+          "density": [
+            2.25,
+            2.25
+          ],
+          "returns": {
+            "bars": [
+              4,
+              4
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                2,
+                4,
+                5,
+                4,
+                3,
+                2,
+                1,
+                2
+              ],
+              "beats": [
+                1.5,
+                1.5,
+                3,
+                1,
+                1,
+                2,
+                2,
+                2,
+                2
+              ],
+              "holds": [
+                1.25,
+                1.25,
+                2.75,
+                0.75,
+                0.75,
+                1.75,
+                1.75,
+                1.75,
+                1.75
+              ],
+              "accents": [
+                0.85,
+                0.9,
+                1,
+                0.9,
+                0.85,
+                0.85,
+                0.8,
+                0.8,
+                0.9
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.6,
+          0.7
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            4,
+            4
+          ]
+        },
+        "behavior": "ostinato",
+        "duration": {
+          "beats": [
+            0.75,
+            2.75
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      136,
+      140
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "drop",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "uplifting trance: a four-bar anthem line on a bright sawtooth lead — long notes climbing to the fifth and falling back through the scale — over four on the floor and the offbeat bass",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Four bars of lead: a dotted climb (root, third, fifth) held over the bar, a step past it and down through the scale to rest on the third — the shape of a trance hook, not any one tune. The lead is the stacked, detuned supersaw — in this kitchen an ensemble (a pad) and not a keyboard, because the sustained player draws only bed-capable voices and the saw lead is declared a keyboard that does not sustain as a bed. With the offbeat bass under it."
+  }
+}

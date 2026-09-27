@@ -1,0 +1,274 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "study/calm-piano-01",
+  "name": "Calm piano phrase with chord landings",
+  "scope": "layer",
+  "applies": "figure",
+  "origin": "mined",
+  "interpreter": "v2.21",
+  "birds": {},
+  "wants": {
+    "figures": {
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "holdMax": 0.4,
+          "brightnessMin": 1500,
+          "brightnessMax": 4000
+        },
+        "prefer": {
+          "holdMin": 0.25,
+          "holdMax": 0.3,
+          "brightnessMin": 3000,
+          "brightnessMax": 4000
+        },
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.4117647058823529,
+              0.4117647058823529
+            ],
+            "leaps": [
+              0.5882352941176471,
+              0.5882352941176471
+            ]
+          },
+          "cell": {
+            "beats": [
+              62,
+              62
+            ]
+          },
+          "onGrid": [
+            0.8571428571428571,
+            0.8571428571428571
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            1.3548387096774193,
+            1.3548387096774193
+          ],
+          "returns": {
+            "bars": [
+              16,
+              16
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                -3,
+                -5,
+                -5,
+                -4,
+                -3,
+                -6,
+                -5,
+                -5,
+                -3,
+                -6,
+                -4,
+                -3,
+                -5,
+                -4,
+                -3,
+                -6,
+                -3,
+                -5,
+                -5,
+                -6,
+                -4
+              ],
+              "beats": [
+                2,
+                4,
+                0.75,
+                0.75,
+                2.5,
+                4,
+                4,
+                6,
+                2,
+                2,
+                4,
+                6,
+                0.75,
+                1.25,
+                2,
+                6,
+                4,
+                2,
+                2,
+                4,
+                2
+              ],
+              "holds": [
+                1.2,
+                2.4,
+                0.5,
+                0.5,
+                1.8,
+                2,
+                2.4,
+                2.8,
+                1.5,
+                1.7,
+                2.2,
+                2.6,
+                0.5,
+                0.7,
+                1.8,
+                2.8,
+                1.8,
+                1.4,
+                1.7,
+                2.8,
+                1.6
+              ],
+              "accents": [
+                0.9375,
+                0.775,
+                0.8125,
+                0.6875,
+                1,
+                0.5890000000000001,
+                0.8250000000000001,
+                0.75,
+                0.9375,
+                0.75,
+                0.875,
+                1,
+                0.8125,
+                0.6875,
+                0.9750000000000001,
+                0.5890000000000001,
+                1,
+                0.775,
+                0.725,
+                0.8,
+                0.8999999999999999
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.87,
+          0.89
+        ],
+        "entry": {
+          "beats": [
+            2,
+            2
+          ]
+        },
+        "spacing": {
+          "bars": [
+            16,
+            16
+          ]
+        },
+        "duration": {
+          "beats": [
+            1,
+            1
+          ]
+        },
+        "behavior": "phrase",
+        "phrasing": {
+          "starts": [
+            0,
+            6,
+            16
+          ],
+          "dynamics": [
+            1,
+            1,
+            1
+          ],
+          "character": "full"
+        },
+        "voicings": [
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            -4,
+            -2,
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            -4,
+            -2,
+            0
+          ]
+        ],
+        "support": {
+          "sustained": "separate"
+        }
+      }
+    },
+    "ambience": {
+      "figure": "intimate"
+    },
+    "presence": {
+      "figure": "supporting"
+    }
+  },
+  "forbids": [],
+  "provenance": {
+    "evidence": "study/calm-piano-part-02"
+  }
+}

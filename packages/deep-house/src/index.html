@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- No cache meta: browsers ignore http-equiv Cache-Control and Pragma
+         (R128 of the reconciled review of 09-24). Every asset this page loads
+         is named by its hash, so a new build is a new module graph. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Deep House</title>
+    <meta name="description" content="An endless deep house set, generated in your browser." />
+    <meta name="theme-color" content="#000000" />
+
+    <meta property="og:title" content="Deep House" />
+    <meta property="og:description" content="An endless deep house set, generated in your browser." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://deephouse.audio/" />
+    <meta property="og:image" content="https://deephouse.audio/card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Deep House" />
+    <meta name="twitter:description" content="An endless deep house set, generated in your browser." />
+    <meta name="twitter:image" content="https://deephouse.audio/card.png" />
+
+    <!-- What a search engine is told: the page is one address, and it is a
+         free music application, not a document. -->
+    <link rel="canonical" href="https://deephouse.audio/" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Deep House",
+      "url": "https://deephouse.audio/",
+      "description": "An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires a browser with Web Audio",
+      "image": "https://deephouse.audio/card.png",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "author": { "@type": "Organization", "name": "Excelsior Arts", "url": "https://github.com/excelsior-arts" }
+    }
+    </script>
+
+    <!-- The sigil cut for a tab strip, where every other mark is one flat
+         colour: the same drawing as before — the belt at 6.75 so a pixel
+         survives between it and the star's points, the two squares at R_STAR,
+         the centre the play arrow, five tall with its upright edge on the
+         half unit, since a tab is 16 CSS px and a retina screen draws it at 32,
+         where that edge is a whole pixel and the arrow clears the star — with the
+         two things a strip does not want taken out of it. The coin it stood on
+         is gone, so the ground is nothing, and the gold is one ink. A strip is
+         dark because the browser is, so the file decides its own colour: the
+         page's ink on a light one, its pale gold on a dark one. The PNGs below
+         are the fallback and can only be one of the two, so they are the ink —
+         a tab strip is light far more often than it is not. -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Cstyle%3Esvg{color:%2305040a}@media (prefers-color-scheme:dark){svg{color:%23ffe0a0}}%3C/style%3E%3Cg fill='none' stroke='currentColor' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Cpath d='M6.5 5.5 L10.6 8 L6.5 10.5 Z' fill='currentColor'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- The page's one face, fetched before anything asks for it so the ring's
+         words are drawn in it the first time. `crossorigin` is not a mistake:
+         a font is always fetched in CORS mode, and a preload without it is a
+         second request the browser throws away. -->
+    <link rel="preload" href="./fonts/jost.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* **The face is Jost** (Eugene, 09-23), the Futura revival by
+         indestructible type under the OFL, and it is served from beside the
+         page: one variable file, `fonts/jost.woff2`, cut to the weight axis
+         the page reaches (400–500) and to Latin, 16,660 bytes, its licence in
+         `fonts/OFL.txt`. It replaced a stack that began with the system's
+         Futura, and **it is a change of face and not of look**: every size on
+         the page was tuned against Futura Medium, so the face is scaled to
+         Futura Medium's cap height (Jost's cap is 0.700 of the em, Futura's
+         0.754, so 107.7 %) and its line box is set to Futura's own (ascent
+         1.039, descent 0.260, gap 0.030 of the em, each divided by the same
+         107.7 % because the browser scales an override with the face). At
+         that size its capitals are Futura's widths to within half a per cent,
+         so no tracking moved. The old stack stays behind it for the moment
+         before the file arrives and for a browser that refuses it. */
+      @font-face {
+        font-family: 'Jost';
+        font-style: normal;
+        font-weight: 400 500;
+        font-display: swap;
+        src: url(./fonts/jost.woff2) format('woff2');
+        size-adjust: 107.7%;
+        ascent-override: 96.47%;
+        descent-override: 24.12%;
+        line-gap-override: 2.77%;
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+          U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      :root {
+        --pale: #ffe9a8;
+        --gold: #f2c14e;
+        --ink: #05040a;
+        /* The ring's square, said once: the tilt is this and the phone's panel
+           stands half of it below the middle (it was two numbers, min(94vmin,
+           960px) and min(47vmin, 480px), until round (f) of the reconciled
+           review of 09-24, D43). */
+        /* round K14: of the viewport the page is actually seen in (the
+           visual viewport, `fitViewport` in ring.ts), where the phone's
+           browser has one; the static viewport's vmin otherwise */
+        --ring: min(calc(0.94 * var(--vv-min, 100vmin)), 960px);
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      /* One ground, set identically on the document, the page and the field:
+         a phone retracts its address bar and a fixed element that was sized to
+         the small viewport comes up short, which shows as a seam across the
+         middle of the screen. */
+      html, body {
+        height: 100%;
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: #000000;
+        overscroll-behavior: none;
+      }
+      body {
+        margin: 0;
+        background: #000000;
+        overflow: hidden;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: 'Jost', 'Futura', 'Avenir Next', 'Century Gothic', 'Optima', 'Questrial',
+          system-ui, -apple-system, 'Segoe UI', sans-serif;
+        /* Futura has no regular on a Mac: its lightest is Medium, and that is
+           what every "400" on this page was drawn in. Jost's stem at 450 is
+           Futura Medium's (0.146 of the cap against 0.151; 400 is 0.121), so
+           the page's own weight is 450 and the type reads as heavy as it did. */
+        font-weight: 450;
+      }
+      .said {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      #say {
+        position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+      }
+      /* the four actions are reachable by keyboard, and since the compass
+         round so are the eight cells: a cell answers focus the way it answers
+         a finger, with its reading drawn.
+         **Focus is drawn, and only for a key** (round K24, Eugene: "round, with
+         a dashed outline — shown only on keyboard navigation and hidden for
+         click activities"). The browser's outline is off on every key of the
+         page, in every state. A round SVG key wears a dashed circle of its own
+         (`focusRing` in ring.ts); an HTML key a dashed outline that follows its
+         own corner — a circle on the round ones (the gear, the panel's − and
+         +), a soft rectangle on the name and the slider — in the worn gold at
+         the ring's dash strength, only under `:focus-visible`, and not while
+         the page holds a focus it put back after a pointer (`data-quiet-focus`,
+         until the next key). */
+      #actions g[tabindex], #starCells g.cell,
+      #actions g[tabindex]:focus, #starCells g.cell:focus,
+      #actions g[tabindex]:focus-visible, #starCells g.cell:focus-visible { outline: none; }
+      #mark:focus, #panel:focus, #birdPanel button:focus, #birdPanel input[type=range]:focus { outline: none; }
+      #mark:focus-visible, #panel:focus-visible, #birdPanel button:focus-visible, #birdPanel input[type=range]:focus-visible {
+        outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);
+        outline-offset: 3px;
+      }
+      #mark { border-radius: 3px; }
+      #panel { border-radius: 50%; }
+      #birdPanel input[type=range] { border-radius: 10px; }
+      :root[data-quiet-focus] :focus-visible { outline: none !important; }
+      #field {
+        position: fixed;
+        inset: -10vh -0 -10vh 0;
+        min-height: 120dvh;
+        background: #000000;
+        background-attachment: scroll;
+      }
+      /* **The ring stands in the middle of the viewport it is seen in**
+         (round K14, Eugene: *"on all screen sizes and platforms the ring
+         should be exactly in the centre of the viewport"*). Everything else
+         on the page is laid over it; the stage alone is where the ring is,
+         and it is the visual viewport — on iOS the static one a fixed box
+         spans runs under the browser's own bars, so its middle is not the
+         middle of what is seen. `fitViewport` (ring.ts) writes the four
+         numbers on every change of it; without them the stage is the
+         dynamic viewport, and without that the static one. */
+      #stage {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        perspective: 1500px;
+        perspective-origin: 50% 50%;
+        /* **The ring selects nothing, wherever it is drawn** (round K9). The
+           page's body says so, but the machine view carries the stage into its
+           own corner, inside a sheet whose type is selectable — and a drag on
+           a bird there ran a text selection across every word on the ring.
+           The ring says it for itself; the seed's field below takes it back. */
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      :root:not([data-view="machine"]) #stage {
+        top: var(--vv-top, 0px);
+        left: var(--vv-left, 0px);
+        right: auto;
+        bottom: auto;
+        width: var(--vv-w, 100vw);
+        height: 100vh;
+        height: var(--vv-h, 100dvh);
+      }
+      #tilt {
+        position: relative;
+        cursor: default;
+        width: var(--ring);
+        height: var(--ring);
+        transform-style: preserve-3d;
+        will-change: transform;
+        transform: rotateX(0deg) rotateY(0deg);
+      }
+      /* Two stacked layers at different depths: the rim hangs a little behind
+         the star, so a tilt gives the sigil parallax instead of a flat card. */
+      .layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        display: block;
+        will-change: transform, opacity;
+      }
+      #outer { transform: translateZ(-13px); }
+      #star  { transform: translateZ(17px); }
+      #inner { transform: translateZ(17px); }
+      #glow  { transform: translateZ(20px); }
+      /* Engraved, not printed: every label is drawn once in the page's own
+         black underneath itself, so a line passing behind it is cut cleanly
+         around the letters instead of running through them. */
+      text {
+        fill: var(--gold);
+        text-transform: uppercase;
+        font-weight: 450;
+        paint-order: stroke;
+        stroke: #05040a;
+        stroke-width: 3.2;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
+      /* The tapped explanation that runs along the rim: white, not gold. It is
+         the only line of type on the ring with the band's lit lanes behind it,
+         and gold on gold is the one place the knockout alone does not carry.
+         A class, because a `fill` attribute is the lowest author style there is
+         and the rule above would win over it. */
+      text.tell { fill: #ffffff; }
+      /* One gradient for every line on the ring, the transport's included:
+         since 09-23 nothing on it keeps the gold when the spell moves away. */
+      .ln { fill: none; stroke: url(#gold); stroke-linecap: round; stroke-linejoin: round; }
+      .hair { stroke-width: 1.1; opacity: 0.75; }
+      .thin { stroke-width: 1.6; }
+      .med  { stroke-width: 2.4; }
+      /* the lane initials are a whisper; below tablet width they would be noise */
+      @media (max-width: 560px) { .laneKey { display: none; } }
+      /* The page's only words outside the sigil: quiet, engraved the same way,
+         and tucked into the corner clear of the ring at every width. */
+      #mark {
+        position: fixed;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        z-index: 2;
+        /* K23: the name as it is written, "Excelsior Arts" — title case,
+           Jost 500 at the sheet's 11 px (10.2 here, the page's Jost being
+           size-adjusted 107.7 %), tracked 0.12 em (upper case at 10 px and
+           0.34 em until then) — and moved in off the right edge by the gear's width
+           and a gap, so the two sit on one line. K28 (Eugene: "a bit small on
+           mobile — a 20 % increase; on desktop the same"): 12.24 px, a fifth
+           more, its line box 19 px, 52 px in to leave the larger gear its place. */
+        font-size: 12.24px;
+        font-weight: 500;
+        line-height: 19px;
+        letter-spacing: 0.12em;
+        right: calc(52px + env(safe-area-inset-right, 0px));
+        color: var(--gold);
+        opacity: 0.3;
+        text-decoration: none;
+        cursor: pointer;
+        text-shadow: 0 0 3px #05040a, 0 0 7px #05040a, 0 1px 2px #05040a;
+        transition: opacity 240ms ease;
+        /* a button since K25, drawn as the name it was */
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #mark:hover,
+      #mark:focus-visible { opacity: 0.85; }
+      /* **The app's own name, and the first permanent mark this page has added
+         since the panel icon** (Eugene, 09-20). It stands where the `v1 | v2`
+         toggle stood under the dev flag — the machine view's selector is the
+         one switch now — and unlike that toggle it is not under a flag: it
+         ships, because the name of the thing is not a debugging affordance.
+
+         **It is a title and not a label** (his word): the heaviest weight this
+         family carries, large enough to be the first thing read on the page,
+         and **white** — `text.tell`'s own `#ffffff`, which is the one ink on
+         this page that reads the same whatever the derived colour does, so the
+         name of the thing does not change colour with the music. Everything
+         gold on this ring is a value; the name is not a value.
+
+         It is **sized off `vmin` the way the ring is**, so the two scale
+         together and the title never crowds the sigil: the ring is
+         `min(94vmin, 960px)` and this is a fraction of the same number,
+         clamped at both ends so a narrow phone still reads it and a wide
+         desktop does not shout. **The three numbers are Eugene's own**, tuned
+         in devtools against the built page and taken verbatim — `clamp(24px,
+         4.4vmin, 32px)` at weight 500, *"to tame it a bit, you made it too
+         bold"* — so one clamp serves both widths and only the placement is
+         overridden on a phone. Where it sits is the credit's rule mirrored
+         top for bottom and left for right: top-left on a desktop, centred at
+         the top of the stack on a phone, fixed so the ring may move under it,
+         and out of the way under the engineer's face. No rule, no box, no
+         ornament. A heading carries a browser's own margins, size and weight,
+         so all three are said here.
+
+         **Since 09-23 it is the wordmark and not type**: `wordmark.svg`, DEEP
+         HOUSE drawn from Jost Medium and spaced by hand (`notes/rounds/
+         brand.md`), in an `<img>` whose `alt` is the heading's name, so a
+         screen reader and a search engine still read "Deep House". It is an
+         `<img>` and not the drawing inlined: the file is the one source of the
+         mark, the audit takes a relative `src` as it takes every picture, and
+         a picture is white whatever any rule on this page says about `fill`.
+         The font size is still the clamp above, because the mark is measured
+         in it: **0.786 em tall** (the O's overshoot to its undershoot, a cap
+         of 0.754 em — Futura's, which is what the type was), and set **0.254
+         em down and 0.082 em in**, which puts its cap line and the D's stem
+         where the type's were, within a fifth of a pixel at 24 and at 32 px.
+         The knockout is the type's shadow as a filter; the alt text keeps the
+         white and the weight for the moment before the picture arrives. */
+      #name {
+        position: fixed;
+        top: calc(16px + env(safe-area-inset-top, 0px));
+        left: calc(20px + env(safe-area-inset-left, 0px));
+        z-index: 2;
+        margin: 0;
+        font-size: clamp(24px, 4.4vmin, 32px);
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
+        color: #ffffff;
+        pointer-events: none;
+      }
+      #name img {
+        display: block;
+        height: 0.786em;
+        width: auto;
+        margin: 0.254em 0 0 0.082em;
+        filter: drop-shadow(0 0 4px #05040a) drop-shadow(0 0 10px #05040a) drop-shadow(0 1px 3px #05040a);
+      }
+      /* **A phone held sideways keeps the corners** (K30, the reviews of 09-26):
+         under 700 px wide and short, the ring reaches the top and the bottom
+         edges, so the name centred over it and the credit centred under it sat
+         22–31 px inside its circle at 568×320 and 640×360. The centred layout
+         is the portrait phone's; a landscape one keeps the desktop's corners,
+         where the ring leaves room. */
+      @media (max-width: 699px) and (orientation: portrait) {
+        #mark {
+          right: auto;
+          left: 50%;
+          transform: translateX(-50%);
+          bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        }
+        #name {
+          left: 50%;
+          transform: translateX(-50%);
+          top: calc(16px + env(safe-area-inset-top, 0px));
+        }
+        /* centred on its ink, not on an inset */
+        #name img { margin-left: 0; }
+      }
+      /* **The way into the machine view.** Eugene, 09-19: the page has one key
+         and it is the space bar, so the engineer's face is reached by a
+         control and not by a letter. A button, so Tab reaches it and a screen
+         reader names it; that is not a shortcut. Since K23 it is a gear —
+         eight teeth, line work, the transport's soft corners, a hole — on the
+         footer's line at its right end, centred on the name's line box (16 px
+         tall, 16 px up; 14 on the phone, where the name is centred and the
+         gear still ends the line), in the ring's worn colour at half strength:
+         "noticeable but not in your face" (it was a panel drawn a hair above
+         the ground, above the name). Hidden inside the machine view (M8,
+         machine/look.ts). K28: a fifth larger, 21.6 px, the drawing scaled
+         whole so its line keeps K23's weight, centred in a 44 px square that
+         is the touch target, placed so the gear still ends the line 18 px in
+         and stands level with the name. */
+      #panel {
+        position: fixed;
+        right: calc(7px + env(safe-area-inset-right, 0px));
+        bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+        opacity: 0.5;
+        z-index: 4;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        color: var(--gold);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 220ms ease;
+      }
+      #panel:hover,
+      #panel:focus-visible { opacity: 0.85; }
+      @media (max-width: 699px) and (orientation: portrait) {
+        #panel { bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
+      }
+      /* The seed under the die while it is being typed: the caption's own
+         type, its colour and its knockout, carried as a shadow because an
+         input is HTML and cannot be engraved the way a text node is. No box
+         and no focus ring — the caret is the only thing that says it is
+         open. The wrapper takes no pointer, so the ring under it is still
+         the ring; only the field itself does. */
+      #seedEdit .seedWrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        height: 100%;
+        font-family: inherit;
+        font-size: 9px;
+        letter-spacing: 2.34px;
+        text-transform: uppercase;
+        color: var(--gold);
+        pointer-events: none;
+        text-shadow: 0 0 2px #05040a, 0 0 4px #05040a;
+      }
+      #seedEdit .seedWrap span { opacity: 0.55; }
+      #seedEdit input {
+        width: 52px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font: inherit;
+        letter-spacing: inherit;
+        text-transform: inherit;
+        text-align: left;
+        color: var(--pale);
+        caret-color: var(--gold);
+        text-shadow: inherit;
+        pointer-events: auto;
+        touch-action: auto;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      #seedEdit input::selection { background: color-mix(in srgb, var(--gold) 35%, transparent); color: #ffffff; }
+      /* **The phone's panel** (Eugene, 09-23): a finger on a bird opens it
+         under the ring — the bird's name and its percent, what it means, what
+         it is doing now, and two big buttons that step it. Line work, the
+         ring's own type and gold, no fill: a panel of the same make as the
+         mark that opens the machine view. It is opened by a finger on a bird
+         and by nothing else, so a desktop under a mouse never shows it. It
+         stands under the ring where there is room and over its foot where
+         there is not. */
+      /* **A bottom sheet** (round K20, Eugene: *"on mobile the panel sometimes
+         overlaps the bottom logo. A simpler rule: the panel always starts from
+         the bottom of the page up and covers everything underneath — the site
+         logo, the machine button, etc. It's a pop-up."*): anchored to the
+         bottom of the viewport it is seen in (`layPanel` sets the gap under the
+         visual viewport), full width on the page's own black, over the footer
+         and the machine-view mark, its rows stacked up from the bottom above
+         the safe-area inset. It never moves with the ring; on a short screen
+         it covers part of the ring, which is what a pop-up does. */
+      #birdPanel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        z-index: 6;
+        padding: 14px calc(16px + env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+        color: var(--gold);
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        background: #000000;
+        border: 0;
+        /* round K7: a vertical drag on the panel is the swipe that puts it
+           away, so the page does not take it as a scroll */
+        touch-action: pan-x;
+      }
+      /* Round K3, his sketch: the name, the full description, then − a slider
+         + in one row, then what the bird is doing now. No borders on the panel
+         or its buttons; the slider is a hairline with the house marked on it
+         and the percent standing over its knob, the one place it is said. */
+      /* round K12d: what changes under the finger on top, where the finger
+         does not cover it; the name and its meaning under the slider */
+      #birdPanel .now { font-size: 11px; color: var(--pale); min-height: 1.3em; }
+      #birdPanel .steps { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+      #birdPanel .name { margin-top: 8px; color: #ffffff; font-size: 15px; font-weight: 500; }
+      #birdPanel .means { margin-top: 6px; font-size: 11px; opacity: 0.8; }
+      #birdPanel .steps[hidden] { display: none; }
+      /* the rows keep the width they had inside the sheet's full width */
+      #birdPanel > * { max-width: 560px; margin-inline: auto; }
+      #birdPanel button {
+        flex: 0 0 56px;
+        height: 56px;
+        margin: 0;
+        padding: 0;
+        font: inherit;
+        font-size: 30px;
+        line-height: 1;
+        color: var(--gold);
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #birdPanel button:active { background: color-mix(in srgb, var(--gold) 14%, transparent); }
+      #birdPanel .slide { position: relative; flex: 1; height: 56px; }
+      #birdPanel input[type=range] {
+        -webkit-appearance: none;
+        appearance: none;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 56px;
+        margin: 0;
+        background: transparent;
+        touch-action: manipulation;
+      }
+      #birdPanel input[type=range]::-webkit-slider-runnable-track { height: 1px; background: color-mix(in srgb, var(--gold) 60%, transparent); }
+      #birdPanel input[type=range]::-moz-range-track { height: 1px; background: color-mix(in srgb, var(--gold) 60%, transparent); }
+      #birdPanel input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%;
+        background: #000000; border: 1.5px solid var(--gold);
+      }
+      #birdPanel input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #000000; border: 1.5px solid var(--gold); }
+      /* the house, marked where 100 % stands on the slider */
+      #birdPanel .house {
+        position: absolute; top: calc(50% - 7px); width: 1px; height: 14px; pointer-events: none;
+        left: calc(11px + (100% - 22px) * 100 / 130); background: var(--gold); opacity: 0.6;
+      }
+      #birdPanel .pct { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; pointer-events: none; color: var(--pale); }
+      /* **The About** (round K25): a large sheet centred on the page's black,
+         in the ring's line work — a thin border and the rules in the worn
+         colour, the words in white and the pale; the gold stays in the
+         instrument. On a phone it takes the width less a 16 px gutter each
+         side and scrolls inside itself if it must; the page under it never
+         scrolls (`about-open` on the root while it is up). */
+      #about {
+        box-sizing: border-box;
+        width: min(680px, calc(100vw - 32px));
+        max-width: none;
+        max-height: calc(100dvh - 32px);
+        overflow: auto;
+        overscroll-behavior: contain;
+        margin: auto;
+        padding: 56px 48px 40px;
+        color: rgba(255, 255, 255, 0.86);
+        background: #000000;
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+        border-radius: 4px;
+        text-align: center;
+        font-family: inherit;
+        font-weight: 450;
+        touch-action: pan-y;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      #about::backdrop { background: rgba(0, 0, 0, 0.78); }
+      #about h2 { margin: 0; color: #ffffff; font-size: 30px; font-weight: 500; letter-spacing: 0.04em; line-height: 1.2; }
+      #about .aboutVer { color: rgba(255, 255, 255, 0.62); font-size: 0.55em; letter-spacing: 0.12em; margin-left: 0.3em; white-space: nowrap; }
+      #about .aboutSub { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255, 255, 255, 0.62); }
+      #about hr { width: 56px; margin: 28px auto; border: 0; border-top: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); }
+      #about .aboutWhat { margin: 0; font-size: 15px; line-height: 1.75; color: #ffffff; opacity: 0.86; }
+      #about .aboutWhat span { display: block; }
+      #about .aboutLinks { list-style: none; margin: 0; padding: 0; font-size: 13px; letter-spacing: 0.06em; line-height: 2.3; }
+      #about .aboutLinks a {
+        color: #ffffff;
+        text-decoration: underline;
+        text-decoration-color: color-mix(in srgb, var(--gold) 55%, transparent);
+        text-underline-offset: 4px;
+        text-decoration-thickness: 1px;
+        border-radius: 2px;
+      }
+      #about .aboutLinks a:hover { text-decoration-color: var(--gold); }
+      /* the close key in the corner, drawn as the desk's keys are: a small
+         capitalised word in a thin box with a 2 px corner */
+      #about .aboutClose {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        height: 22px;
+        min-width: 24px;
+        padding: 0 9px;
+        margin: 0;
+        font: inherit;
+        font-size: 9.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.72);
+        background: transparent;
+        border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+        border-radius: 2px;
+        cursor: pointer;
+      }
+      #about .aboutClose:hover { border-color: var(--gold); color: #ffffff; }
+      #about:focus, #about .aboutClose:focus, #about .aboutLinks a:focus { outline: none; }
+      #about .aboutClose:focus-visible, #about .aboutLinks a:focus-visible {
+        outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);
+        outline-offset: 3px;
+      }
+      /* the switch: the desk's key with two states, its state a word in its own
+         cell — on in white over a worn-colour border, off dimmed */
+      #about .aboutKey {
+        display: inline-flex;
+        align-items: stretch;
+        height: 26px;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.86);
+        background: transparent;
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+        border-radius: 2px;
+        cursor: pointer;
+      }
+      #about .aboutKey > span { display: grid; place-items: center; padding: 0 10px; }
+      #about .aboutKeyState { min-width: 30px; border-left: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); color: #ffffff; }
+      #about .aboutKey[aria-checked="false"] { color: rgba(255, 255, 255, 0.5); border-color: rgba(255, 255, 255, 0.22); }
+      #about .aboutKey[aria-checked="false"] .aboutKeyState { color: rgba(255, 255, 255, 0.5); border-left-color: rgba(255, 255, 255, 0.22); }
+      #about .aboutKey:hover { border-color: var(--gold); }
+      #about .aboutKey:focus { outline: none; }
+      #about .aboutKey:focus-visible { outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent); outline-offset: 3px; }
+      #about .aboutReportsWhat { margin: 12px auto 0; max-width: 480px; font-size: 11.5px; line-height: 1.6; color: rgba(255, 255, 255, 0.6); }
+      :root.about-open, :root.about-open body { overflow: hidden; }
+      @media (max-width: 699px) {
+        #about { padding: 52px 20px 28px; }
+        #about h2 { font-size: 24px; }
+        #about .aboutWhat { font-size: 14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="field"></div>
+    <!-- **The page's one heading, and since 09-20 the one mark that says what
+         this is.** It was hidden with the paragraph under it — the sigil says
+         nothing, so a screen reader and a search engine were told in type
+         nobody saw. The name is drawn now, and it is the same element: the
+         heading a search engine reads and the name a listener sees are one
+         thing, so neither can drift from the other. The paragraph under it
+         stays said and not drawn, because it is a description and the ring is
+         the description. -->
+    <h1 id="name"><img src="./wordmark.svg" alt="Deep House" width="14415" height="1610" /></h1>
+    <p class="said">An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
+    <div id="say" aria-live="polite" role="status"></div>
+    <!-- The set leaves through here: iOS hangs its lock-screen card and its
+         controls on a playing media element, not on an audio graph. -->
+    <audio id="sound" playsinline></audio>
+
+    <!-- The footer's name opens the About (round K25): a button, its look the
+         name's as it was, its name for a screen reader "About". -->
+    <button id="mark" type="button" aria-label="About" aria-haspopup="dialog" aria-controls="about">Excelsior Arts</button>
+
+    <!-- **The About** (round K25, Eugene: "click on Excelsior Arts should show
+         a large popup centred in the page, aka the About page"). A native
+         modal dialog: the page under it is inert, focus goes in and comes back
+         to the key that opened it, and Escape closes it — the dialog's own
+         contract, which the page's one-key rule does not reach: it is not a
+         shortcut the page adds but how a modal sheet is left. Also closed by
+         its key in the corner and by a press on the dark outside. Nothing of
+         it is written into the address: it is not a place one returns to. -->
+    <dialog id="about" tabindex="-1" aria-labelledby="aboutTitle" aria-describedby="aboutWhat">
+      <button class="aboutClose" id="aboutClose" type="button" aria-label="Close the About">close</button>
+      <h2 id="aboutTitle">Deep House <span class="aboutVer" id="aboutVer"></span></h2>
+      <p class="aboutSub">Offline Electronic Music Generator</p>
+      <hr />
+      <p class="aboutWhat" id="aboutWhat">
+        <span>A helpful music companion. No distracting vocals. No agenda. Just vibes.</span>
+        <span>The default sound is tuned to deep house. Other genres are being built and coming soon…</span>
+        <span>Right now the player is at its best on its default lightweight deep house themes and on slow-beat ambient soundscapes (turn Ember down).</span>
+        <span>The link is always the track that plays. Share it, and it plays the same anywhere.</span>
+      </p>
+      <hr />
+      <ul class="aboutLinks">
+        <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener">Follow on X for news</a></li>
+        <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener">Composer Eugene T · Follow</a></li>
+        <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Source</a></li>
+        <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener">License: PolyForm Noncommercial 1.0.0</a></li>
+      </ul>
+      <hr />
+      <!-- The one thing the page ever sends, and its switch (K25): a two-state
+           key in the desk's style, on unless this listener said otherwise. -->
+      <div class="aboutReports">
+        <button class="aboutKey" id="aboutReports" type="button" role="switch" aria-checked="true" aria-describedby="aboutReportsWhat">
+          <span class="aboutKeyName">Anonymous error reports</span><span class="aboutKeyState" id="aboutReportsState">on</span>
+        </button>
+        <p class="aboutReportsWhat" id="aboutReportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+      </div>
+    </dialog>
+
+    <!-- The panel: the way into the machine view (hidden inside it since M8).
+         Since K23 its mark is a gear, eight teeth in the transport's soft
+         corners, on the footer's line at its right end. -->
+    <button id="panel" type="button" aria-label="the machine view" aria-expanded="false">
+      <svg width="21.6" height="21.6" viewBox="0 0 18 18" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M7.38 3.29Q7.72 3.15 7.71 2.79L7.69 1.5Q7.69 1.13 8.06 1.13L9.94 1.13Q10.31 1.13 10.31 1.5L10.29 2.79Q10.28 3.15 10.62 3.29L11.89 3.82Q12.23 3.96 12.48 3.7L13.38 2.77Q13.64 2.51 13.9 2.77L15.23 4.1Q15.49 4.36 15.23 4.62L14.3 5.52Q14.04 5.77 14.18 6.11L14.71 7.38Q14.85 7.72 15.21 7.71L16.5 7.69Q16.87 7.69 16.87 8.06L16.87 9.94Q16.87 10.31 16.5 10.31L15.21 10.29Q14.85 10.28 14.71 10.62L14.18 11.89Q14.04 12.23 14.3 12.48L15.23 13.38Q15.49 13.64 15.23 13.9L13.9 15.23Q13.64 15.49 13.38 15.23L12.48 14.3Q12.23 14.04 11.89 14.18L10.62 14.71Q10.28 14.85 10.29 15.21L10.31 16.5Q10.31 16.87 9.94 16.87L8.06 16.87Q7.69 16.87 7.69 16.5L7.71 15.21Q7.72 14.85 7.38 14.71L6.11 14.18Q5.77 14.04 5.52 14.3L4.62 15.23Q4.36 15.49 4.1 15.23L2.77 13.9Q2.51 13.64 2.77 13.38L3.7 12.48Q3.96 12.23 3.82 11.89L3.29 10.62Q3.15 10.28 2.79 10.29L1.5 10.31Q1.13 10.31 1.13 9.94L1.13 8.06Q1.13 7.69 1.5 7.69L2.79 7.71Q3.15 7.72 3.29 7.38L3.82 6.11Q3.96 5.77 3.7 5.52L2.77 4.62Q2.51 4.36 2.77 4.1L4.1 2.77Q4.36 2.51 4.62 2.77L5.52 3.7Q5.77 3.96 6.11 3.82Z" />
+        <circle cx="9" cy="9" r="2.42" />
+      </svg>
+    </button>
+
+    <!-- The phone's panel for the bird a finger is on: its words, and Less
+         and More. Hidden until a finger opens it (`ring.ts`). -->
+    <!-- Round K12d, Eugene: "the changing value on top, so it's not covered by
+         the finger; the static bird name and subtitle at the bottom of the
+         slider." Top to bottom: the live line, − the slider +, with the
+         percent over the knob, and then the bird's name and what it means. -->
+    <div id="birdPanel" role="group" aria-label="the ring's control" hidden>
+      <div class="now" id="birdPanelNow"></div>
+      <div class="steps" id="birdPanelSteps">
+        <button id="birdPanelLess" type="button" aria-label="less">−</button>
+        <div class="slide">
+          <input id="birdPanelSlider" type="range" min="0" max="130" step="1" aria-label="percent of the house" />
+          <span class="house" aria-hidden="true"></span>
+          <span class="pct" id="birdPanelPct" aria-hidden="true"></span>
+        </div>
+        <button id="birdPanelMore" type="button" aria-label="more">+</button>
+      </div>
+      <div class="name" id="birdPanelName"></div>
+      <div class="means" id="birdPanelMeans"></div>
+    </div>
+
+    <div id="stage">
+      <div id="tilt">
+        <!-- shared defs live in the first layer -->
+        <svg class="layer" id="outer" viewBox="0 0 1000 1000" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
+              <stop offset="0" stop-color="#fff3c8" />
+              <stop offset="0.34" stop-color="#ffd97a" />
+              <stop offset="0.68" stop-color="#f2c14e" />
+              <stop offset="1" stop-color="#b9781f" />
+            </linearGradient>
+            <!-- A whisper of bloom: the line work reads first. The strong
+                 glow belongs to the live layer, which paints its own halo. -->
+            <filter id="bloom" x="-8%" y="-8%" width="116%" height="116%"
+                    color-interpolation-filters="sRGB" filterUnits="objectBoundingBox">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b" />
+              <feComponentTransfer in="b" result="bd">
+                <feFuncA type="linear" slope="0.55" />
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode in="bd" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g id="outerGlow" filter="url(#bloom)">
+            <g id="rim"></g>
+            <g id="timeline"></g>
+          </g>
+          <!-- What moves on the rim while the set plays: the shade over the
+               bars already played and the coming theme's lanes. A sibling of
+               the bloomed group, not a child: the blur is rasterised once and
+               kept, and a write here never makes the browser run it again. -->
+          <g id="outerLive"></g>
+        </svg>
+
+        <!-- The star's own sheet, so the mandala can turn as a composited
+             layer: the bloom under it is rasterised once and never re-run. -->
+        <!-- The sheet is no longer hidden from a screen reader: since the
+             compass round the eight cells are the one thing on the star a
+             keyboard can reach, and each carries its whole reading as its own
+             label. Everything else on it is line work or is the words the
+             labels already say, so each of those groups is hidden by name —
+             `aria-hidden` on an ancestor cannot be taken back by a child, which
+             is why it moved off the sheet and onto the three groups. -->
+        <svg class="layer" id="star" viewBox="0 0 1000 1000" role="group" aria-label="the eight controls of the sound">
+          <!-- The lines that bind the cells breathe, so they live outside the
+               bloom with a stroked halo in its place, and under the cells they
+               run into. -->
+          <g id="starGlow" filter="url(#bloom)" aria-hidden="true">
+            <g id="spin"></g>
+          </g>
+          <g id="starLines" aria-hidden="true"></g>
+          <!-- The birds' words, over the star's lines and under the birds
+               themselves (Eugene, round K3: *"labels are drawn over the ring's
+               lines but under the bird circles"*). -->
+          <g id="starWords" aria-hidden="true"></g>
+          <!-- The cells wander with their vertices, so they leave the bloom
+               too and carry a stroked halo in its place. -->
+          <g id="starCells"></g>
+          <!-- The cells' words ride the same turning sheet but outside the
+               bloom, so each can be held upright by a transform of its own
+               without ever writing inside a filter. -->
+          <g id="starLive" aria-hidden="true"></g>
+        </svg>
+
+        <svg class="layer" id="inner" viewBox="0 0 1000 1000" role="group" aria-label="transport">
+          <g id="innerGlow" filter="url(#bloom)">
+            <g id="core" aria-hidden="true"></g>
+          </g>
+          <!-- the four beat dots, lit in turn: outside the blur for the same reason -->
+          <g id="innerLive" aria-hidden="true"></g>
+        </svg>
+
+        <!-- Everything that moves every frame. No filter here: the halo is a
+             second, wider, translucent stroke, so a moving cursor never makes
+             the browser re-run a gaussian blur. -->
+        <svg class="layer" id="glow" viewBox="0 0 1000 1000" aria-hidden="true">
+          <g id="live"></g>
+        </svg>
+      </div>
+    </div>
+    <script type="module" src="./ring.ts"></script>
+  </body>
+</html>

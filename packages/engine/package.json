@@ -1,0 +1,44 @@
+{
+  "name": "@deep-house/engine",
+  "version": "1.0.0",
+  "description": "The machine: voices, DSP, the master graph, the decks and the one scheduling contract. It makes and plays sound and knows no music.",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "exports": {
+    "./voices": "./src/voices/index.ts",
+    "./voices/descriptor": "./src/voices/descriptor.ts",
+    "./voices/contract": "./src/voices/voice-contract.ts",
+    "./voices/signatures": "./src/voices/signatures.json",
+    "./effects": "./src/effects/index.ts",
+    "./effects/contract": "./src/effects/contract.ts",
+    "./params": "./src/params.ts",
+    "./dsp": "./src/dsp.ts",
+    "./master": "./src/master.ts",
+    "./graph": "./src/graph.ts",
+    "./source-mix": "./src/source-mix.ts",
+    "./describe": "./src/describe.ts",
+    "./taps": "./src/taps.ts",
+    "./deck": "./src/deck.ts",
+    "./schedule": "./src/schedule.ts",
+    "./ramp": "./src/ramp.ts",
+    "./scheduler": "./src/scheduler.ts",
+    "./set-clock": "./src/set-clock.ts",
+    "./clock": "./src/clock.ts",
+    "./settings": "./src/settings.ts",
+    "./style": "./src/style.ts",
+    "./program": "./src/program.ts",
+    "./session": "./src/session.ts",
+    "./meter": "./tools/meter.ts",
+    "./harness": "./tools/harness.ts",
+    "./standin": "./tools/standin.ts"
+  },
+  "files": [
+    "src",
+    "tools"
+  ],
+  "scripts": {
+    "test": "node tools/test-all.ts",
+    "standalone": "node tools/standalone.ts"
+  }
+}

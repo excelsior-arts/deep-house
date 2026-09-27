@@ -1,0 +1,903 @@
+{
+ "note": "Written by tools/imprint/lane-trim.ts --bless. Every number here came off a render of one candidate alone on its lane — the lane's layer soloed, the other lane of that layer muted — on the record's own figure, against the lane's incumbent on the same window; nothing in it was reasoned. `trims` is the decibels that bring a candidate to the incumbent's integrated loudness, and the incumbent's own is nought by construction. `shape` is the second reading, taken off the same samples by --read: which third-octave band is the loudest, what share of the whole sits in it, the per cent in 400 Hz-2 kHz, 4-12.5 kHz and under 400 Hz, and the sample peak over the integrated loudness.",
+ "measuredAt": "2026-09-19",
+ "readAt": "2026-09-20",
+ "strategy": "house-v2",
+ "sampleRate": 48000,
+ "lanes": {
+  "offbeat": {
+   "layer": "hats",
+   "incumbent": "hatClosed",
+   "windows": [
+    "growl: 21323#1 bar 68+8",
+    "sub: 1#1 bar 76+8"
+   ],
+   "measured": {
+    "hatClosed": {
+     "growl": {
+      "lufs": -30.97,
+      "highToMidDb": 12.36,
+      "events": 40,
+      "peakDb": -7.94
+     },
+     "sub": {
+      "lufs": -29.09,
+      "highToMidDb": 15.34,
+      "events": 39,
+      "peakDb": -12.3
+     }
+    },
+    "hatTight": {
+     "growl": {
+      "lufs": -27.44,
+      "highToMidDb": 20.48,
+      "events": 40,
+      "peakDb": -2.6
+     },
+     "sub": {
+      "lufs": -29.42,
+      "highToMidDb": 20.16,
+      "events": 39,
+      "peakDb": -5.61
+     }
+    },
+    "hatLoose": {
+     "growl": {
+      "lufs": -18.4,
+      "highToMidDb": 12.23,
+      "events": 40,
+      "peakDb": -3.07
+     },
+     "sub": {
+      "lufs": -16.4,
+      "highToMidDb": 12.2,
+      "events": 39,
+      "peakDb": -2.4
+     }
+    },
+    "hatSizzle": {
+     "growl": {
+      "lufs": -24.12,
+      "highToMidDb": 27.25,
+      "events": 40,
+      "peakDb": -4.43
+     },
+     "sub": {
+      "lufs": -26.74,
+      "highToMidDb": 28.33,
+      "events": 39,
+      "peakDb": -6.38
+     }
+    },
+    "ride": {
+     "growl": {
+      "lufs": -17.2,
+      "highToMidDb": 7.26,
+      "events": 40,
+      "peakDb": -4.21
+     },
+     "sub": {
+      "lufs": -15.03,
+      "highToMidDb": 7.24,
+      "events": 39,
+      "peakDb": -2.5
+     }
+    }
+   },
+   "shape": {
+    "hatClosed": {
+     "growl": {
+      "peakHz": 6300,
+      "share": 20.6,
+      "mid": 4.5,
+      "high": 77.4,
+      "low": 0,
+      "crestDb": 23.03
+     },
+     "sub": {
+      "peakHz": 6300,
+      "share": 23.4,
+      "mid": 2.4,
+      "high": 82.7,
+      "low": 0,
+      "crestDb": 16.79
+     }
+    },
+    "hatTight": {
+     "growl": {
+      "peakHz": 8000,
+      "share": 28.8,
+      "mid": 0.8,
+      "high": 91.1,
+      "low": 0,
+      "crestDb": 24.84
+     },
+     "sub": {
+      "peakHz": 8000,
+      "share": 29.5,
+      "mid": 0.9,
+      "high": 90.4,
+      "low": 0,
+      "crestDb": 23.81
+     }
+    },
+    "hatLoose": {
+     "growl": {
+      "peakHz": 6300,
+      "share": 17.1,
+      "mid": 4.6,
+      "high": 76.2,
+      "low": 0,
+      "crestDb": 15.33
+     },
+     "sub": {
+      "peakHz": 6300,
+      "share": 16.7,
+      "mid": 4.6,
+      "high": 75.9,
+      "low": 0,
+      "crestDb": 14
+     }
+    },
+    "hatSizzle": {
+     "growl": {
+      "peakHz": 10000,
+      "share": 46.9,
+      "mid": 0.2,
+      "high": 92.8,
+      "low": 0,
+      "crestDb": 19.69
+     },
+     "sub": {
+      "peakHz": 10000,
+      "share": 46.5,
+      "mid": 0.1,
+      "high": 92.6,
+      "low": 0,
+      "crestDb": 20.36
+     }
+    },
+    "ride": {
+     "growl": {
+      "peakHz": 3150,
+      "share": 14.1,
+      "mid": 11.9,
+      "high": 63.3,
+      "low": 0,
+      "crestDb": 12.99
+     },
+     "sub": {
+      "peakHz": 3150,
+      "share": 14.3,
+      "mid": 11.9,
+      "high": 63,
+      "low": 0,
+      "crestDb": 12.53
+     }
+    }
+   },
+   "relative": {
+    "hatClosed": {
+     "lufsDb": 0,
+     "highToMidDb": 0,
+     "windows": [
+      "growl",
+      "sub"
+     ]
+    },
+    "hatTight": {
+     "lufsDb": -1.6,
+     "highToMidDb": 6.5,
+     "windows": [
+      "growl",
+      "sub"
+     ]
+    },
+    "hatLoose": {
+     "lufsDb": -12.6,
+     "highToMidDb": -1.6,
+     "windows": [
+      "growl",
+      "sub"
+     ]
+    },
+    "hatSizzle": {
+     "lufsDb": -4.6,
+     "highToMidDb": 13.9,
+     "windows": [
+      "growl",
+      "sub"
+     ]
+    },
+    "ride": {
+     "lufsDb": -13.9,
+     "highToMidDb": -6.6,
+     "windows": [
+      "growl",
+      "sub"
+     ]
+    }
+   },
+   "trims": {
+    "hatTight": -1.6,
+    "hatLoose": -12.6,
+    "hatSizzle": -4.6,
+    "ride": -13.9
+   }
+  },
+  "offbeatOpen": {
+   "layer": "hats",
+   "incumbent": "hatOpen",
+   "windows": [
+    "sub24: 1#1 bar 76+24",
+    "busy24: 92970#1 bar 42+24"
+   ],
+   "measured": {
+    "hatOpen": {
+     "sub24": {
+      "lufs": -21.92,
+      "highToMidDb": 12.19,
+      "events": 1,
+      "peakDb": -7.88
+     },
+     "busy24": {
+      "lufs": -19.68,
+      "highToMidDb": 11.62,
+      "events": 2,
+      "peakDb": -4.87
+     }
+    },
+    "hatTight": {
+     "sub24": {
+      "lufs": -27.51,
+      "highToMidDb": 21.44,
+      "events": 1,
+      "peakDb": -5.65
+     },
+     "busy24": {
+      "lufs": -27.89,
+      "highToMidDb": 21.8,
+      "events": 2,
+      "peakDb": -5.7
+     }
+    },
+    "hatLoose": {
+     "sub24": {
+      "lufs": -14.3,
+      "highToMidDb": 12.13,
+      "events": 1,
+      "peakDb": -2.5
+     },
+     "busy24": {
+      "lufs": -15.66,
+      "highToMidDb": 12.23,
+      "events": 2,
+      "peakDb": -2.5
+     }
+    },
+    "hatSizzle": {
+     "sub24": {
+      "lufs": -24.51,
+      "highToMidDb": 37.78,
+      "events": 1,
+      "peakDb": -9.97
+     },
+     "busy24": {
+      "lufs": -25.86,
+      "highToMidDb": 25.3,
+      "events": 2,
+      "peakDb": -8.28
+     }
+    },
+    "ride": {
+     "sub24": {
+      "lufs": -13.55,
+      "highToMidDb": 7.93,
+      "events": 1,
+      "peakDb": -2.5
+     },
+     "busy24": {
+      "lufs": -15.32,
+      "highToMidDb": 7.24,
+      "events": 2,
+      "peakDb": -3.18
+     }
+    }
+   },
+   "shape": {
+    "hatOpen": {
+     "sub24": {
+      "peakHz": 5000,
+      "share": 19.3,
+      "mid": 4.5,
+      "high": 75,
+      "low": 0,
+      "crestDb": 14.04
+     },
+     "busy24": {
+      "peakHz": 6300,
+      "share": 19,
+      "mid": 5.1,
+      "high": 73.7,
+      "low": 0,
+      "crestDb": 14.81
+     }
+    },
+    "hatTight": {
+     "sub24": {
+      "peakHz": 8000,
+      "share": 30.1,
+      "mid": 0.7,
+      "high": 92.3,
+      "low": 0,
+      "crestDb": 21.86
+     },
+     "busy24": {
+      "peakHz": 8000,
+      "share": 32.8,
+      "mid": 0.6,
+      "high": 92.5,
+      "low": 0,
+      "crestDb": 22.19
+     }
+    },
+    "hatLoose": {
+     "sub24": {
+      "peakHz": 8000,
+      "share": 16.5,
+      "mid": 4.6,
+      "high": 75.2,
+      "low": 0,
+      "crestDb": 11.8
+     },
+     "busy24": {
+      "peakHz": 6300,
+      "share": 17.6,
+      "mid": 4.6,
+      "high": 76.4,
+      "low": 0,
+      "crestDb": 13.16
+     }
+    },
+    "hatSizzle": {
+     "sub24": {
+      "peakHz": 10000,
+      "share": 51.3,
+      "mid": 0,
+      "high": 93.3,
+      "low": 0,
+      "crestDb": 14.54
+     },
+     "busy24": {
+      "peakHz": 10000,
+      "share": 44.1,
+      "mid": 0.3,
+      "high": 91.4,
+      "low": 0,
+      "crestDb": 17.58
+     }
+    },
+    "ride": {
+     "sub24": {
+      "peakHz": 4000,
+      "share": 14.6,
+      "mid": 10.4,
+      "high": 64.8,
+      "low": 0,
+      "crestDb": 11.05
+     },
+     "busy24": {
+      "peakHz": 3150,
+      "share": 14.7,
+      "mid": 11.8,
+      "high": 62.7,
+      "low": 0,
+      "crestDb": 12.14
+     }
+    }
+   },
+   "relative": {
+    "hatOpen": {
+     "lufsDb": 0,
+     "highToMidDb": 0,
+     "windows": [
+      "sub24",
+      "busy24"
+     ]
+    },
+    "hatTight": {
+     "lufsDb": 6.9,
+     "highToMidDb": 9.7,
+     "windows": [
+      "sub24",
+      "busy24"
+     ]
+    },
+    "hatLoose": {
+     "lufsDb": -5.8,
+     "highToMidDb": 0.3,
+     "windows": [
+      "sub24",
+      "busy24"
+     ]
+    },
+    "hatSizzle": {
+     "lufsDb": 4.4,
+     "highToMidDb": 19.6,
+     "windows": [
+      "sub24",
+      "busy24"
+     ]
+    },
+    "ride": {
+     "lufsDb": -6.4,
+     "highToMidDb": -4.3,
+     "windows": [
+      "sub24",
+      "busy24"
+     ]
+    }
+   },
+   "trims": {
+    "hatTight": 6.9,
+    "hatLoose": -5.8,
+    "hatSizzle": 4.4,
+    "ride": -6.4
+   }
+  },
+  "sixteenth": {
+   "layer": "shaker",
+   "incumbent": "shaker",
+   "windows": [
+    "sub: 1#1 bar 76+8",
+    "sixteenths: 15819#1 bar 58+8"
+   ],
+   "measured": {
+    "shaker": {
+     "sub": {
+      "lufs": -23.6,
+      "highToMidDb": 12.55,
+      "events": 10,
+      "peakDb": -7.66
+     },
+     "sixteenths": {
+      "lufs": -23.58,
+      "highToMidDb": 14.21,
+      "events": 40,
+      "peakDb": -6.4
+     }
+    },
+    "conga": {
+     "sub": {
+      "lufs": -16.64,
+      "highToMidDb": -32.97,
+      "events": 10,
+      "peakDb": -2.5
+     },
+     "sixteenths": {
+      "lufs": -16.34,
+      "highToMidDb": -32.5,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    },
+    "bongo": {
+     "sub": {
+      "lufs": -19.61,
+      "highToMidDb": -42.17,
+      "events": 10,
+      "peakDb": -2.5
+     },
+     "sixteenths": {
+      "lufs": -19.38,
+      "highToMidDb": -41.27,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    },
+    "tom": {
+     "sub": {
+      "lufs": -13.04,
+      "highToMidDb": -41.7,
+      "events": 10,
+      "peakDb": -2.5
+     },
+     "sixteenths": {
+      "lufs": -12.66,
+      "highToMidDb": -41.44,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    },
+    "cabasa": {
+     "sub": {
+      "lufs": -25.29,
+      "highToMidDb": 18.33,
+      "events": 10,
+      "peakDb": -2.63
+     },
+     "sixteenths": {
+      "lufs": -24.59,
+      "highToMidDb": 19.3,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    },
+    "tambourine": {
+     "sub": {
+      "lufs": -24.11,
+      "highToMidDb": 24.41,
+      "events": 10,
+      "peakDb": -4.68
+     },
+     "sixteenths": {
+      "lufs": -23.82,
+      "highToMidDb": 25.23,
+      "events": 40,
+      "peakDb": -4.94
+     }
+    },
+    "cowbell": {
+     "sub": {
+      "lufs": -21.81,
+      "highToMidDb": -10.19,
+      "events": 10,
+      "peakDb": -3.79
+     },
+     "sixteenths": {
+      "lufs": -21.53,
+      "highToMidDb": -10.26,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    },
+    "woodblock": {
+     "sub": {
+      "lufs": -30.05,
+      "highToMidDb": -21.01,
+      "events": 10,
+      "peakDb": -2.5
+     },
+     "sixteenths": {
+      "lufs": -29.26,
+      "highToMidDb": -20.85,
+      "events": 40,
+      "peakDb": -2.5
+     }
+    }
+   },
+   "shape": {
+    "shaker": {
+     "sub": {
+      "peakHz": 5000,
+      "share": 22.7,
+      "mid": 3.9,
+      "high": 69.7,
+      "low": 0,
+      "crestDb": 15.94
+     },
+     "sixteenths": {
+      "peakHz": 5000,
+      "share": 20.5,
+      "mid": 2.8,
+      "high": 73.1,
+      "low": 0,
+      "crestDb": 17.18
+     }
+    },
+    "conga": {
+     "sub": {
+      "peakHz": 250,
+      "share": 68.9,
+      "mid": 2.1,
+      "high": 0,
+      "low": 97.9,
+      "crestDb": 14.14
+     },
+     "sixteenths": {
+      "peakHz": 250,
+      "share": 68.7,
+      "mid": 2.2,
+      "high": 0,
+      "low": 97.8,
+      "crestDb": 13.84
+     }
+    },
+    "bongo": {
+     "sub": {
+      "peakHz": 500,
+      "share": 45.9,
+      "mid": 99.8,
+      "high": 0,
+      "low": 0.1,
+      "crestDb": 17.11
+     },
+     "sixteenths": {
+      "peakHz": 500,
+      "share": 48.1,
+      "mid": 99.8,
+      "high": 0,
+      "low": 0.1,
+      "crestDb": 16.88
+     }
+    },
+    "tom": {
+     "sub": {
+      "peakHz": 160,
+      "share": 52.3,
+      "mid": 0.2,
+      "high": 0,
+      "low": 99.8,
+      "crestDb": 10.54
+     },
+     "sixteenths": {
+      "peakHz": 160,
+      "share": 58.8,
+      "mid": 0.2,
+      "high": 0,
+      "low": 99.8,
+      "crestDb": 10.16
+     }
+    },
+    "cabasa": {
+     "sub": {
+      "peakHz": 5000,
+      "share": 21.8,
+      "mid": 1.2,
+      "high": 84.9,
+      "low": 0,
+      "crestDb": 22.66
+     },
+     "sixteenths": {
+      "peakHz": 5000,
+      "share": 22.2,
+      "mid": 1,
+      "high": 87.7,
+      "low": 0,
+      "crestDb": 22.09
+     }
+    },
+    "tambourine": {
+     "sub": {
+      "peakHz": 6300,
+      "share": 22.2,
+      "mid": 0.3,
+      "high": 91.9,
+      "low": 0,
+      "crestDb": 19.43
+     },
+     "sixteenths": {
+      "peakHz": 8000,
+      "share": 22.2,
+      "mid": 0.3,
+      "high": 92.9,
+      "low": 0,
+      "crestDb": 18.88
+     }
+    },
+    "cowbell": {
+     "sub": {
+      "peakHz": 2500,
+      "share": 31,
+      "mid": 62.9,
+      "high": 6,
+      "low": 0,
+      "crestDb": 18.02
+     },
+     "sixteenths": {
+      "peakHz": 2500,
+      "share": 30.7,
+      "mid": 63.2,
+      "high": 6,
+      "low": 0.1,
+      "crestDb": 19.03
+     }
+    },
+    "woodblock": {
+     "sub": {
+      "peakHz": 1250,
+      "share": 56.8,
+      "mid": 89.7,
+      "high": 0.7,
+      "low": 0,
+      "crestDb": 27.55
+     },
+     "sixteenths": {
+      "peakHz": 1250,
+      "share": 49.1,
+      "mid": 88.9,
+      "high": 0.7,
+      "low": 0,
+      "crestDb": 26.76
+     }
+    }
+   },
+   "relative": {
+    "shaker": {
+     "lufsDb": 0,
+     "highToMidDb": 0,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "conga": {
+     "lufsDb": -7.1,
+     "highToMidDb": -46.1,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "bongo": {
+     "lufsDb": -4.1,
+     "highToMidDb": -55.1,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "tom": {
+     "lufsDb": -10.7,
+     "highToMidDb": -55,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "cabasa": {
+     "lufsDb": 1.3,
+     "highToMidDb": 5.4,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "tambourine": {
+     "lufsDb": 0.4,
+     "highToMidDb": 11.4,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "cowbell": {
+     "lufsDb": -1.9,
+     "highToMidDb": -23.6,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    },
+    "woodblock": {
+     "lufsDb": 6.1,
+     "highToMidDb": -34.3,
+     "windows": [
+      "sub",
+      "sixteenths"
+     ]
+    }
+   },
+   "trims": {
+    "conga": -7.1,
+    "bongo": -4.1,
+    "tom": -10.7,
+    "cabasa": 1.3,
+    "tambourine": 0.4,
+    "cowbell": -1.9,
+    "woodblock": 6.1
+   }
+  },
+  "backbeat": {
+   "layer": "clap",
+   "incumbent": "clap",
+   "windows": [
+    "growl: 21323#1 bar 68+8",
+    "sub: 1#1 bar 76+8"
+   ],
+   "measured": {
+    "clap": {
+     "growl": {
+      "lufs": -26.09,
+      "highToMidDb": 1.94,
+      "events": 20,
+      "peakDb": -7.3
+     },
+     "sub": {
+      "lufs": null,
+      "highToMidDb": null,
+      "events": 0,
+      "peakDb": -600
+     }
+    },
+    "snare": {
+     "growl": {
+      "lufs": -29.87,
+      "highToMidDb": -4.58,
+      "events": 20,
+      "peakDb": -9.31
+     },
+     "sub": {
+      "lufs": null,
+      "highToMidDb": null,
+      "events": 0,
+      "peakDb": -600
+     }
+    },
+    "rimshot": {
+     "growl": {
+      "lufs": -34.79,
+      "highToMidDb": -12.66,
+      "events": 20,
+      "peakDb": -8.14
+     },
+     "sub": {
+      "lufs": null,
+      "highToMidDb": null,
+      "events": 0,
+      "peakDb": -600
+     }
+    }
+   },
+   "shape": {
+    "clap": {
+     "growl": {
+      "peakHz": 4000,
+      "share": 14.2,
+      "mid": 29.3,
+      "high": 45.8,
+      "low": 0.4,
+      "crestDb": 18.79
+     }
+    },
+    "snare": {
+     "growl": {
+      "peakHz": 200,
+      "share": 24,
+      "mid": 30,
+      "high": 10.4,
+      "low": 43.3,
+      "crestDb": 20.56
+     }
+    },
+    "rimshot": {
+     "growl": {
+      "peakHz": 400,
+      "share": 29,
+      "mid": 69.7,
+      "high": 3.8,
+      "low": 13.3,
+      "crestDb": 26.65
+     }
+    }
+   },
+   "relative": {
+    "clap": {
+     "lufsDb": 0,
+     "highToMidDb": 0,
+     "windows": [
+      "growl"
+     ]
+    },
+    "snare": {
+     "lufsDb": 3.8,
+     "highToMidDb": -6.5,
+     "windows": [
+      "growl"
+     ]
+    },
+    "rimshot": {
+     "lufsDb": 8.7,
+     "highToMidDb": -14.6,
+     "windows": [
+      "growl"
+     ]
+    }
+   },
+   "trims": {
+    "snare": 3.8,
+    "rimshot": 8.7
+   }
+  }
+ }
+}

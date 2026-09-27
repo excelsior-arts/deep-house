@@ -1,0 +1,7091 @@
+{
+ "schema": 2,
+ "kind": "calibration",
+ "strategy": "house-v2",
+ "encoder": "mining/2+anchors.json@1e899ba4",
+ "windows": {
+  "short": "8 bars from the middle of the first main section at or after bar 16 — what an attempt renders",
+  "long": "55 seconds of contiguous audio from the same instant, across whatever sections follow"
+ },
+ "provenance": {
+  "at": "2026-09-20T23:52:22Z",
+  "build": "51c0dcf05487",
+  "seeds": [
+   "2000",
+   "2001",
+   "2002",
+   "2003",
+   "2004"
+  ],
+  "levels": [
+   0.1,
+   0.3,
+   0.7,
+   0.9
+  ],
+  "spells": {
+   "axis": 32,
+   "house": 1,
+   "heldOut": 20
+  },
+  "points": 265,
+  "residualCeiling": 0.25,
+  "note": "A map of displacement from the live house-spell reading, fitted on paired differences: the same seed rendered at the house and at the spell. origin is that live reading, not the golden HOUSE vector — they disagree (Spark 0.48 against 0.275) and adding a live delta onto the vector was reporting the wrong reach. The house knot is nought by construction. A reading outside the reach is clamped onto it and inverted onto the house-nearest die of a plateau. table is the sweep at eight bars; attempt asks by nearest row, not by eight independent inverses."
+ },
+ "birds": {
+  "ember": {
+   "window": "short",
+   "knots": [
+    [
+     0.1,
+     -0.3433
+    ],
+    [
+     0.3,
+     -0.0013
+    ],
+    [
+     0.394,
+     0
+    ],
+    [
+     0.7,
+     0.0027
+    ],
+    [
+     0.9,
+     0.0029
+    ]
+   ],
+   "house": 0.394,
+   "origin": 0.3537,
+   "reach": [
+    0.0104,
+    0.3566
+   ],
+   "slope": 0.4328,
+   "cross": {
+    "tide": [
+     [
+      0.1,
+      0.1829
+     ],
+     [
+      0.3,
+      0.0617
+     ],
+     [
+      0.558,
+      0
+     ],
+     [
+      0.7,
+      -0.1838
+     ],
+     [
+      0.9,
+      -0.2721
+     ]
+    ],
+    "veil": [
+     [
+      0.1,
+      0.0096
+     ],
+     [
+      0.3,
+      -0.0156
+     ],
+     [
+      0.473,
+      0
+     ],
+     [
+      0.7,
+      0.048
+     ],
+     [
+      0.9,
+      0.0324
+     ]
+    ],
+    "loom": [
+     [
+      0.1,
+      -0.0274
+     ],
+     [
+      0.3,
+      -0.0285
+     ],
+     [
+      0.578,
+      0
+     ],
+     [
+      0.7,
+      0.0072
+     ],
+     [
+      0.9,
+      0.0101
+     ]
+    ],
+    "gleam": [
+     [
+      0.1,
+      0.0004
+     ],
+     [
+      0.3,
+      0.0026
+     ],
+     [
+      0.359,
+      0
+     ],
+     [
+      0.7,
+      0.0034
+     ],
+     [
+      0.9,
+      0.0034
+     ]
+    ]
+   },
+   "residual": 0.1022,
+   "n": 100,
+   "why": "reach 0.346 over noise 0.037"
+  },
+  "tide": {
+   "window": "short",
+   "knots": [
+    [
+     0.1,
+     0.0807
+    ],
+    [
+     0.3,
+     0.0467
+    ],
+    [
+     0.558,
+     0
+    ],
+    [
+     0.7,
+     0
+    ],
+    [
+     0.9,
+     0
+    ]
+   ],
+   "house": 0.558,
+   "origin": 0.5464,
+   "reach": [
+    0.5464,
+    0.6271
+   ],
+   "slope": 0.1009,
+   "cross": {
+    "spark": [
+     [
+      0.1,
+      0.0728
+     ],
+     [
+      0.275,
+      0
+     ],
+     [
+      0.3,
+      -0.0017
+     ],
+     [
+      0.7,
+      0.2084
+     ],
+     [
+      0.9,
+      0.1919
+     ]
+    ]
+   },
+   "residual": 0.1595,
+   "n": 100,
+   "why": "reach 0.081 over noise 0.067"
+  },
+  "zephyr": {
+   "window": "long",
+   "knots": [
+    [
+     0.1,
+     -0.0567
+    ],
+    [
+     0.3,
+     -0.0164
+    ],
+    [
+     0.377,
+     0
+    ],
+    [
+     0.7,
+     0.0567
+    ],
+    [
+     0.9,
+     0.0567
+    ]
+   ],
+   "house": 0.377,
+   "origin": 0.3436,
+   "reach": [
+    0.2869,
+    0.4003
+   ],
+   "slope": 0.1417,
+   "cross": {
+    "tide": [
+     [
+      0.1,
+      0.1178
+     ],
+     [
+      0.3,
+      0.0611
+     ],
+     [
+      0.558,
+      0
+     ],
+     [
+      0.7,
+      -0.0238
+     ],
+     [
+      0.9,
+      -0.0187
+     ]
+    ],
+    "gleam": [
+     [
+      0.1,
+      -0.0577
+     ],
+     [
+      0.3,
+      -0.0584
+     ],
+     [
+      0.359,
+      0
+     ],
+     [
+      0.7,
+      -0.0087
+     ],
+     [
+      0.9,
+      -0.0098
+     ]
+    ],
+    "spark": [
+     [
+      0.1,
+      -0.0476
+     ],
+     [
+      0.275,
+      0
+     ],
+     [
+      0.3,
+      0.0502
+     ],
+     [
+      0.7,
+      -0.031
+     ],
+     [
+      0.9,
+      -0.0422
+     ]
+    ]
+   },
+   "residual": 0.1899,
+   "n": 100,
+   "why": "reach 0.113 over noise 0.062 against 0.123/0.068 at eight bars"
+  },
+  "root": {
+   "window": "long",
+   "knots": [
+    [
+     0.1,
+     -0.0179
+    ],
+    [
+     0.3,
+     -0.0179
+    ],
+    [
+     0.7,
+     0
+    ],
+    [
+     0.717,
+     0
+    ],
+    [
+     0.9,
+     0.0142
+    ]
+   ],
+   "house": 0.717,
+   "origin": 0.729,
+   "reach": [
+    0.7111,
+    0.7432
+   ],
+   "slope": 0.0401,
+   "cross": {
+    "spark": [
+     [
+      0.1,
+      -0.0058
+     ],
+     [
+      0.275,
+      0
+     ],
+     [
+      0.3,
+      0.0027
+     ],
+     [
+      0.7,
+      -0.1188
+     ],
+     [
+      0.9,
+      -0.1277
+     ]
+    ],
+    "loom": [
+     [
+      0.1,
+      -0.0148
+     ],
+     [
+      0.3,
+      -0.02
+     ],
+     [
+      0.578,
+      0
+     ],
+     [
+      0.7,
+      0.0259
+     ],
+     [
+      0.9,
+      0.0012
+     ]
+    ]
+   },
+   "residual": 0.0819,
+   "n": 100,
+   "why": "reach 0.032 over noise 0.02 against 0.054/0.034 at eight bars"
+  },
+  "gleam": {
+   "window": "long",
+   "knots": [
+    [
+     0.1,
+     0.0016
+    ],
+    [
+     0.3,
+     0.0016
+    ],
+    [
+     0.359,
+     0
+    ],
+    [
+     0.7,
+     -0.0262
+    ],
+    [
+     0.9,
+     -0.0262
+    ]
+   ],
+   "house": 0.359,
+   "origin": 0.4095,
+   "reach": [
+    0.3833,
+    0.4111
+   ],
+   "slope": 0.0348,
+   "cross": {
+    "ember": [
+     [
+      0.1,
+      -0.1532
+     ],
+     [
+      0.3,
+      0.0004
+     ],
+     [
+      0.394,
+      0
+     ],
+     [
+      0.7,
+      -0.0101
+     ],
+     [
+      0.9,
+      -0.012
+     ]
+    ],
+    "loom": [
+     [
+      0.1,
+      0.0098
+     ],
+     [
+      0.3,
+      0.0116
+     ],
+     [
+      0.578,
+      0
+     ],
+     [
+      0.7,
+      0.0002
+     ],
+     [
+      0.9,
+      0.0001
+     ]
+    ]
+   },
+   "residual": 0.1199,
+   "n": 100,
+   "why": "reach 0.028 over noise 0.037 against 0.009/0.016 at eight bars"
+  },
+  "veil": {
+   "window": "long",
+   "knots": [
+    [
+     0.1,
+     -0.1107
+    ],
+    [
+     0.3,
+     -0.1107
+    ],
+    [
+     0.473,
+     0
+    ],
+    [
+     0.7,
+     0.1782
+    ],
+    [
+     0.9,
+     0.1782
+    ]
+   ],
+   "house": 0.473,
+   "origin": 0.5196,
+   "reach": [
+    0.4089,
+    0.6978
+   ],
+   "slope": 0.3611,
+   "cross": {
+    "spark": [
+     [
+      0.1,
+      0.1551
+     ],
+     [
+      0.275,
+      0
+     ],
+     [
+      0.3,
+      0.024
+     ],
+     [
+      0.7,
+      0.018
+     ],
+     [
+      0.9,
+      0.0106
+     ]
+    ],
+    "gleam": [
+     [
+      0.1,
+      -0.0091
+     ],
+     [
+      0.3,
+      0.0106
+     ],
+     [
+      0.359,
+      0
+     ],
+     [
+      0.7,
+      -0.0429
+     ],
+     [
+      0.9,
+      -0.0451
+     ]
+    ],
+    "loom": [
+     [
+      0.1,
+      0.0324
+     ],
+     [
+      0.3,
+      0.0446
+     ],
+     [
+      0.578,
+      0
+     ],
+     [
+      0.7,
+      0.0023
+     ],
+     [
+      0.9,
+      -0.0066
+     ]
+    ],
+    "root": [
+     [
+      0.1,
+      -0.0332
+     ],
+     [
+      0.3,
+      -0.0198
+     ],
+     [
+      0.7,
+      -0.0097
+     ],
+     [
+      0.717,
+      0
+     ],
+     [
+      0.9,
+      -0.043
+     ]
+    ]
+   },
+   "residual": 0.1706,
+   "n": 100,
+   "why": "reach 0.289 over noise 0.059 against 0.319/0.07 at eight bars"
+  },
+  "spark": {
+   "window": "long",
+   "knots": [
+    [
+     0.1,
+     -0.1325
+    ],
+    [
+     0.275,
+     0
+    ],
+    [
+     0.3,
+     0.0073
+    ],
+    [
+     0.7,
+     0.0075
+    ],
+    [
+     0.9,
+     0.0751
+    ]
+   ],
+   "house": 0.275,
+   "origin": 0.4818,
+   "reach": [
+    0.3493,
+    0.5569
+   ],
+   "slope": 0.2595,
+   "cross": {
+    "ember": [
+     [
+      0.1,
+      -0.1487
+     ],
+     [
+      0.3,
+      -0.0001
+     ],
+     [
+      0.394,
+      0
+     ],
+     [
+      0.7,
+      0.0477
+     ],
+     [
+      0.9,
+      0.0602
+     ]
+    ]
+   },
+   "residual": 0.2361,
+   "n": 100,
+   "why": "reach 0.208 over noise 0.065 against 0.183/0.06 at eight bars"
+  },
+  "loom": {
+   "window": "short",
+   "knots": [
+    [
+     0.1,
+     -0.0813
+    ],
+    [
+     0.3,
+     -0.0813
+    ],
+    [
+     0.578,
+     0
+    ],
+    [
+     0.7,
+     0.0232
+    ],
+    [
+     0.9,
+     0.0522
+    ]
+   ],
+   "house": 0.578,
+   "origin": 0.6387,
+   "reach": [
+    0.5574,
+    0.6909
+   ],
+   "slope": 0.1669,
+   "cross": {
+    "root": [
+     [
+      0.1,
+      -0.0555
+     ],
+     [
+      0.3,
+      -0.093
+     ],
+     [
+      0.7,
+      -0.0022
+     ],
+     [
+      0.717,
+      0
+     ],
+     [
+      0.9,
+      0.0997
+     ]
+    ]
+   },
+   "residual": 0.1949,
+   "n": 100,
+   "why": "reach 0.134 over noise 0.042"
+  }
+ },
+ "table": [
+  {
+   "id": "house/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2983,
+    "tide": 0.5001,
+    "zephyr": 0.3349,
+    "root": 0.6736,
+    "gleam": 0.2921,
+    "veil": 0.5575,
+    "spark": 0.5682,
+    "loom": 0.6051
+   }
+  },
+  {
+   "id": "house/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4202,
+    "tide": 0.5153,
+    "zephyr": 0.2471,
+    "root": 0.7142,
+    "gleam": 0.3013,
+    "veil": 0.6577,
+    "spark": 0.2846,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "house/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3969,
+    "tide": 0.4677,
+    "zephyr": 0.556,
+    "root": 0.7766,
+    "gleam": 0.3269,
+    "veil": 0.4273,
+    "spark": 0.3891,
+    "loom": 0.7106
+   }
+  },
+  {
+   "id": "house/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.236,
+    "tide": 0.7434,
+    "zephyr": 0.0925,
+    "root": 0.6986,
+    "gleam": 0.3867,
+    "veil": 0.4001,
+    "spark": 0.7786,
+    "loom": 0.5265
+   }
+  },
+  {
+   "id": "house/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4173,
+    "tide": 0.5056,
+    "zephyr": 0.3839,
+    "root": 0.7128,
+    "gleam": 0.6079,
+    "veil": 0.5226,
+    "spark": 0.3931,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "ember@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.1,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0066,
+    "tide": 0.769,
+    "zephyr": 0.1813,
+    "root": 0.4953,
+    "gleam": 0.2827,
+    "veil": 0.4266,
+    "spark": 0.8193,
+    "loom": 0.714
+   }
+  },
+  {
+   "id": "ember@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.1,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0178,
+    "tide": 0.724,
+    "zephyr": 0.0797,
+    "root": 0.532,
+    "gleam": 0.187,
+    "veil": 0.5889,
+    "spark": 0.8349,
+    "loom": 0.3547
+   }
+  },
+  {
+   "id": "ember@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.1,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0073,
+    "tide": 0.6869,
+    "zephyr": 0.1156,
+    "root": 0.6764,
+    "gleam": 0.2159,
+    "veil": 0.5052,
+    "spark": 0,
+    "loom": 0.9719
+   }
+  },
+  {
+   "id": "ember@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.1,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0138,
+    "tide": 0.6054,
+    "zephyr": 0.0948,
+    "root": 0.6692,
+    "gleam": 0.2713,
+    "veil": 0.4938,
+    "spark": 0,
+    "loom": 0.9286
+   }
+  },
+  {
+   "id": "ember@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.1,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0068,
+    "tide": 0.6628,
+    "zephyr": 0.1029,
+    "root": 0.632,
+    "gleam": 0.3944,
+    "veil": 0.5559,
+    "spark": 0,
+    "loom": 0.9903
+   }
+  },
+  {
+   "id": "ember@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.3,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3072,
+    "tide": 0.499,
+    "zephyr": 0.3351,
+    "root": 0.6843,
+    "gleam": 0.2943,
+    "veil": 0.5582,
+    "spark": 0.5634,
+    "loom": 0.6051
+   }
+  },
+  {
+   "id": "ember@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.3,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.418,
+    "tide": 0.6107,
+    "zephyr": 0.247,
+    "root": 0.714,
+    "gleam": 0.297,
+    "veil": 0.6624,
+    "spark": 0.2848,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "ember@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.3,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3964,
+    "tide": 0.4595,
+    "zephyr": 0.5529,
+    "root": 0.7765,
+    "gleam": 0.3286,
+    "veil": 0.4319,
+    "spark": 0.3887,
+    "loom": 0.7106
+   }
+  },
+  {
+   "id": "ember@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.3,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2173,
+    "tide": 0.7953,
+    "zephyr": 0.1008,
+    "root": 0.6953,
+    "gleam": 0.3969,
+    "veil": 0.4238,
+    "spark": 0.8066,
+    "loom": 0.6344
+   }
+  },
+  {
+   "id": "ember@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.3,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4235,
+    "tide": 0.5089,
+    "zephyr": 0.3826,
+    "root": 0.7145,
+    "gleam": 0.6117,
+    "veil": 0.5243,
+    "spark": 0.394,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "ember@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.7,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3446,
+    "tide": 0.4561,
+    "zephyr": 0.3482,
+    "root": 0.6834,
+    "gleam": 0.2977,
+    "veil": 0.6619,
+    "spark": 0.5712,
+    "loom": 0.5237
+   }
+  },
+  {
+   "id": "ember@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.7,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3945,
+    "tide": 0.4176,
+    "zephyr": 0.4087,
+    "root": 0.7194,
+    "gleam": 0.4069,
+    "veil": 0.6688,
+    "spark": 0.5037,
+    "loom": 0.4785
+   }
+  },
+  {
+   "id": "ember@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.7,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4141,
+    "tide": 0.4248,
+    "zephyr": 0.5907,
+    "root": 0.7904,
+    "gleam": 0.3533,
+    "veil": 0.7036,
+    "spark": 0.3745,
+    "loom": 0.637
+   }
+  },
+  {
+   "id": "ember@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.7,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3152,
+    "tide": 0.7476,
+    "zephyr": 0.0597,
+    "root": 0.7636,
+    "gleam": 0.347,
+    "veil": 0.5276,
+    "spark": 0.8446,
+    "loom": 0.3389
+   }
+  },
+  {
+   "id": "ember@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.7,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3138,
+    "tide": 0.4294,
+    "zephyr": 0.4029,
+    "root": 0.7296,
+    "gleam": 0.5405,
+    "veil": 0.6498,
+    "spark": 0.3769,
+    "loom": 0.6263
+   }
+  },
+  {
+   "id": "ember@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.9,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3423,
+    "tide": 0.4689,
+    "zephyr": 0.3604,
+    "root": 0.6944,
+    "gleam": 0.2916,
+    "veil": 0.7303,
+    "spark": 0.5955,
+    "loom": 0.5986
+   }
+  },
+  {
+   "id": "ember@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.9,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3936,
+    "tide": 0.4178,
+    "zephyr": 0.4088,
+    "root": 0.721,
+    "gleam": 0.4074,
+    "veil": 0.6712,
+    "spark": 0.5043,
+    "loom": 0.4785
+   }
+  },
+  {
+   "id": "ember@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.9,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4148,
+    "tide": 0.4243,
+    "zephyr": 0.5911,
+    "root": 0.7907,
+    "gleam": 0.3604,
+    "veil": 0.7038,
+    "spark": 0.3743,
+    "loom": 0.637
+   }
+  },
+  {
+   "id": "ember@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.9,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3203,
+    "tide": 0.7482,
+    "zephyr": 0.0633,
+    "root": 0.7599,
+    "gleam": 0.3464,
+    "veil": 0.5252,
+    "spark": 0.9073,
+    "loom": 0.4107
+   }
+  },
+  {
+   "id": "ember@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.9,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3122,
+    "tide": 0.4295,
+    "zephyr": 0.4032,
+    "root": 0.7257,
+    "gleam": 0.5508,
+    "veil": 0.65,
+    "spark": 0.3773,
+    "loom": 0.6263
+   }
+  },
+  {
+   "id": "tide@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.1,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.5559,
+    "tide": 0.3951,
+    "zephyr": 0.3826,
+    "root": 0.7526,
+    "gleam": 0.4442,
+    "veil": 0.6549,
+    "spark": 0.3872,
+    "loom": 0.4056
+   }
+  },
+  {
+   "id": "tide@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.1,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4474,
+    "tide": 0.7534,
+    "zephyr": 0.3087,
+    "root": 0.6196,
+    "gleam": 0.4713,
+    "veil": 1,
+    "spark": 0.3208,
+    "loom": 0.5884
+   }
+  },
+  {
+   "id": "tide@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.1,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.6162,
+    "tide": 0.4981,
+    "zephyr": 0.8078,
+    "root": 0.8086,
+    "gleam": 0.5023,
+    "veil": 0.5314,
+    "spark": 0.3007,
+    "loom": 0.7613
+   }
+  },
+  {
+   "id": "tide@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.1,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4635,
+    "tide": 0.7545,
+    "zephyr": 0.0513,
+    "root": 0.7033,
+    "gleam": 0.443,
+    "veil": 0.5379,
+    "spark": 0.8128,
+    "loom": 0.3682
+   }
+  },
+  {
+   "id": "tide@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.1,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.6004,
+    "tide": 0.7345,
+    "zephyr": 0.6657,
+    "root": 0.8106,
+    "gleam": 0.6102,
+    "veil": 0.5615,
+    "spark": 0.2918,
+    "loom": 0.7453
+   }
+  },
+  {
+   "id": "tide@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.3,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.362,
+    "tide": 0.5045,
+    "zephyr": 0.311,
+    "root": 0.6585,
+    "gleam": 0.332,
+    "veil": 0.6416,
+    "spark": 0.4983,
+    "loom": 0.58
+   }
+  },
+  {
+   "id": "tide@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.3,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3849,
+    "tide": 0.6701,
+    "zephyr": 0.3993,
+    "root": 0.7026,
+    "gleam": 0.4404,
+    "veil": 0.6292,
+    "spark": 0.5165,
+    "loom": 0.471
+   }
+  },
+  {
+   "id": "tide@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.3,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4693,
+    "tide": 0.5117,
+    "zephyr": 0.6424,
+    "root": 0.8098,
+    "gleam": 0.3525,
+    "veil": 0.4845,
+    "spark": 0.3053,
+    "loom": 0.7613
+   }
+  },
+  {
+   "id": "tide@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.3,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3705,
+    "tide": 0.7608,
+    "zephyr": 0.0755,
+    "root": 0.7235,
+    "gleam": 0.4361,
+    "veil": 0.4902,
+    "spark": 0.8253,
+    "loom": 0.4041
+   }
+  },
+  {
+   "id": "tide@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.3,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4903,
+    "tide": 0.5185,
+    "zephyr": 0.4808,
+    "root": 0.7561,
+    "gleam": 0.6354,
+    "veil": 0.5308,
+    "spark": 0.2869,
+    "loom": 0.7535
+   }
+  },
+  {
+   "id": "tide@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.7,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1062,
+    "tide": 0.4721,
+    "zephyr": 0.3431,
+    "root": 0.6946,
+    "gleam": 0.2349,
+    "veil": 0.6689,
+    "spark": 0.573,
+    "loom": 0.6888
+   }
+  },
+  {
+   "id": "tide@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.7,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3058,
+    "tide": 0.5839,
+    "zephyr": 0.2494,
+    "root": 0.7281,
+    "gleam": 0.2235,
+    "veil": 0.6163,
+    "spark": 0.3043,
+    "loom": 0.5655
+   }
+  },
+  {
+   "id": "tide@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.7,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2226,
+    "tide": 0.4584,
+    "zephyr": 0.3676,
+    "root": 0.765,
+    "gleam": 0.2816,
+    "veil": 0.5496,
+    "spark": 0.5287,
+    "loom": 0.7106
+   }
+  },
+  {
+   "id": "tide@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.7,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0988,
+    "tide": 0.7787,
+    "zephyr": 0.2911,
+    "root": 0.7937,
+    "gleam": 0.2614,
+    "veil": 0.4854,
+    "spark": 0,
+    "loom": 0.85
+   }
+  },
+  {
+   "id": "tide@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.7,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1162,
+    "tide": 0.6647,
+    "zephyr": 0.342,
+    "root": 0.7173,
+    "gleam": 0.5261,
+    "veil": 0.5374,
+    "spark": 0.3976,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "tide@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.9,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0665,
+    "tide": 0.47,
+    "zephyr": 0.3059,
+    "root": 0.7136,
+    "gleam": 0.2052,
+    "veil": 0.6768,
+    "spark": 0.5397,
+    "loom": 0.6805
+   }
+  },
+  {
+   "id": "tide@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.9,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.187,
+    "tide": 0.6505,
+    "zephyr": 0.2762,
+    "root": 0.7419,
+    "gleam": 0.1785,
+    "veil": 0.6224,
+    "spark": 0.3435,
+    "loom": 0.6135
+   }
+  },
+  {
+   "id": "tide@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.9,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0705,
+    "tide": 0.4623,
+    "zephyr": 0.3589,
+    "root": 0.7534,
+    "gleam": 0.3085,
+    "veil": 0.4865,
+    "spark": 0.4844,
+    "loom": 0.7191
+   }
+  },
+  {
+   "id": "tide@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.9,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.014,
+    "tide": 0.7587,
+    "zephyr": 0.395,
+    "root": 0.7155,
+    "gleam": 0.1693,
+    "veil": 0.3248,
+    "spark": 0.7512,
+    "loom": 0.593
+   }
+  },
+  {
+   "id": "tide@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.9,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.0701,
+    "tide": 0.4833,
+    "zephyr": 0.2773,
+    "root": 0.6964,
+    "gleam": 0.2119,
+    "veil": 0.5709,
+    "spark": 0.4461,
+    "loom": 0.7289
+   }
+  },
+  {
+   "id": "zephyr@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.1,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2746,
+    "tide": 0.4443,
+    "zephyr": 0.2755,
+    "root": 0.6978,
+    "gleam": 0.2726,
+    "veil": 0.5136,
+    "spark": 0.5159,
+    "loom": 0.7642
+   }
+  },
+  {
+   "id": "zephyr@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.1,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4546,
+    "tide": 0.6216,
+    "zephyr": 0.1897,
+    "root": 0.7117,
+    "gleam": 0.3023,
+    "veil": 0.6312,
+    "spark": 0.2491,
+    "loom": 0.647
+   }
+  },
+  {
+   "id": "zephyr@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.1,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4066,
+    "tide": 0.5985,
+    "zephyr": 0.5077,
+    "root": 0.7773,
+    "gleam": 0.3266,
+    "veil": 0.4502,
+    "spark": 0.2941,
+    "loom": 0.7613
+   }
+  },
+  {
+   "id": "zephyr@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.1,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2297,
+    "tide": 0.5174,
+    "zephyr": 0.0278,
+    "root": 0.7317,
+    "gleam": 0.3847,
+    "veil": 0.3472,
+    "spark": 0.8744,
+    "loom": 0.4545
+   }
+  },
+  {
+   "id": "zephyr@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.1,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4281,
+    "tide": 0.5129,
+    "zephyr": 0.332,
+    "root": 0.7073,
+    "gleam": 0.592,
+    "veil": 0.531,
+    "spark": 0.2809,
+    "loom": 0.7535
+   }
+  },
+  {
+   "id": "zephyr@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.3,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2848,
+    "tide": 0.5047,
+    "zephyr": 0.3432,
+    "root": 0.6714,
+    "gleam": 0.292,
+    "veil": 0.5457,
+    "spark": 0.5681,
+    "loom": 0.5509
+   }
+  },
+  {
+   "id": "zephyr@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.3,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.429,
+    "tide": 0.5083,
+    "zephyr": 0.2368,
+    "root": 0.7131,
+    "gleam": 0.3013,
+    "veil": 0.6574,
+    "spark": 0.2786,
+    "loom": 0.647
+   }
+  },
+  {
+   "id": "zephyr@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.3,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4009,
+    "tide": 0.4959,
+    "zephyr": 0.5143,
+    "root": 0.7729,
+    "gleam": 0.3278,
+    "veil": 0.447,
+    "spark": 0.3064,
+    "loom": 0.7613
+   }
+  },
+  {
+   "id": "zephyr@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.3,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2086,
+    "tide": 0.7679,
+    "zephyr": 0.0522,
+    "root": 0.7805,
+    "gleam": 0.3885,
+    "veil": 0.3814,
+    "spark": 0.8473,
+    "loom": 0.4833
+   }
+  },
+  {
+   "id": "zephyr@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.3,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4196,
+    "tide": 0.5178,
+    "zephyr": 0.3796,
+    "root": 0.7122,
+    "gleam": 0.6069,
+    "veil": 0.5288,
+    "spark": 0.3914,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "zephyr@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.7,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.319,
+    "tide": 0.4844,
+    "zephyr": 0.3911,
+    "root": 0.7088,
+    "gleam": 0.3036,
+    "veil": 0.5379,
+    "spark": 0.6866,
+    "loom": 0.4928
+   }
+  },
+  {
+   "id": "zephyr@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.7,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3923,
+    "tide": 0.684,
+    "zephyr": 0.3771,
+    "root": 0.7231,
+    "gleam": 0.3096,
+    "veil": 0.5768,
+    "spark": 0.3335,
+    "loom": 0.5364
+   }
+  },
+  {
+   "id": "zephyr@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.7,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.38,
+    "tide": 0.4708,
+    "zephyr": 0.7252,
+    "root": 0.8179,
+    "gleam": 0.3282,
+    "veil": 0.2997,
+    "spark": 0.4405,
+    "loom": 0.6937
+   }
+  },
+  {
+   "id": "zephyr@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.7,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2254,
+    "tide": 0.7764,
+    "zephyr": 0.3715,
+    "root": 0.6728,
+    "gleam": 0.3649,
+    "veil": 0.3995,
+    "spark": 0.7949,
+    "loom": 0.8749
+   }
+  },
+  {
+   "id": "zephyr@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.7,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4175,
+    "tide": 0.4624,
+    "zephyr": 0.2974,
+    "root": 0.6725,
+    "gleam": 0.6063,
+    "veil": 0.3565,
+    "spark": 0.41,
+    "loom": 0.6632
+   }
+  },
+  {
+   "id": "zephyr@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.9,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2831,
+    "tide": 0.5327,
+    "zephyr": 0.3814,
+    "root": 0.6672,
+    "gleam": 0.2901,
+    "veil": 0.3823,
+    "spark": 0.542,
+    "loom": 0.5073
+   }
+  },
+  {
+   "id": "zephyr@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.9,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4196,
+    "tide": 0.5651,
+    "zephyr": 0.4085,
+    "root": 0.7906,
+    "gleam": 0.3002,
+    "veil": 0.5476,
+    "spark": 0.3379,
+    "loom": 0.4274
+   }
+  },
+  {
+   "id": "zephyr@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.9,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3781,
+    "tide": 0.5198,
+    "zephyr": 0.3718,
+    "root": 0.7275,
+    "gleam": 0.3005,
+    "veil": 0.5985,
+    "spark": 0.5785,
+    "loom": 0.4365
+   }
+  },
+  {
+   "id": "zephyr@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.9,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2045,
+    "tide": 0.7724,
+    "zephyr": 0.2603,
+    "root": 0.6421,
+    "gleam": 0.3897,
+    "veil": 0.3773,
+    "spark": 0.7615,
+    "loom": 0.9578
+   }
+  },
+  {
+   "id": "zephyr@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.9,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3752,
+    "tide": 0.4852,
+    "zephyr": 0.3107,
+    "root": 0.7166,
+    "gleam": 0.6262,
+    "veil": 0.553,
+    "spark": 0.497,
+    "loom": 0.5894
+   }
+  },
+  {
+   "id": "root@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.1,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2703,
+    "tide": 0.5108,
+    "zephyr": 0.3746,
+    "root": 0.648,
+    "gleam": 0.2942,
+    "veil": 0.4202,
+    "spark": 0.4859,
+    "loom": 0.5437
+   }
+  },
+  {
+   "id": "root@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.1,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3636,
+    "tide": 0.54,
+    "zephyr": 0.2999,
+    "root": 0.7319,
+    "gleam": 0.348,
+    "veil": 0.6165,
+    "spark": 0.4081,
+    "loom": 0.647
+   }
+  },
+  {
+   "id": "root@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.1,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3673,
+    "tide": 0.5581,
+    "zephyr": 0.4177,
+    "root": 0.7345,
+    "gleam": 0.2986,
+    "veil": 0.5267,
+    "spark": 0.3907,
+    "loom": 0.6176
+   }
+  },
+  {
+   "id": "root@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.1,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2076,
+    "tide": 0.5505,
+    "zephyr": 0.3365,
+    "root": 0.6707,
+    "gleam": 0.4226,
+    "veil": 0.3747,
+    "spark": 0.7383,
+    "loom": 0.5265
+   }
+  },
+  {
+   "id": "root@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.1,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3905,
+    "tide": 0.5156,
+    "zephyr": 0.3511,
+    "root": 0.6852,
+    "gleam": 0.6223,
+    "veil": 0.5076,
+    "spark": 0.4025,
+    "loom": 0.5811
+   }
+  },
+  {
+   "id": "root@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.3,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2849,
+    "tide": 0.5614,
+    "zephyr": 0.3607,
+    "root": 0.6683,
+    "gleam": 0.2999,
+    "veil": 0.4419,
+    "spark": 0.4834,
+    "loom": 0.5509
+   }
+  },
+  {
+   "id": "root@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.3,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3695,
+    "tide": 0.6884,
+    "zephyr": 0.3001,
+    "root": 0.6935,
+    "gleam": 0.3441,
+    "veil": 0.7052,
+    "spark": 0.3687,
+    "loom": 0.5582
+   }
+  },
+  {
+   "id": "root@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.3,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3721,
+    "tide": 0.5923,
+    "zephyr": 0.4219,
+    "root": 0.7298,
+    "gleam": 0.2985,
+    "veil": 0.5272,
+    "spark": 0.3533,
+    "loom": 0.5539
+   }
+  },
+  {
+   "id": "root@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.3,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2447,
+    "tide": 0.7831,
+    "zephyr": 0.3765,
+    "root": 0.7088,
+    "gleam": 0.3933,
+    "veil": 0.3509,
+    "spark": 0.7771,
+    "loom": 0.4761
+   }
+  },
+  {
+   "id": "root@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.3,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3895,
+    "tide": 0.5188,
+    "zephyr": 0.3506,
+    "root": 0.6864,
+    "gleam": 0.6231,
+    "veil": 0.507,
+    "spark": 0.3961,
+    "loom": 0.5894
+   }
+  },
+  {
+   "id": "root@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.7,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2918,
+    "tide": 0.474,
+    "zephyr": 0.3428,
+    "root": 0.6661,
+    "gleam": 0.2797,
+    "veil": 0.6797,
+    "spark": 0.5682,
+    "loom": 0.6888
+   }
+  },
+  {
+   "id": "root@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.7,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3972,
+    "tide": 0.7515,
+    "zephyr": 0.3697,
+    "root": 0.7198,
+    "gleam": 0.3127,
+    "veil": 0.5789,
+    "spark": 0.3215,
+    "loom": 0.5437
+   }
+  },
+  {
+   "id": "root@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.7,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3969,
+    "tide": 0.4677,
+    "zephyr": 0.556,
+    "root": 0.7758,
+    "gleam": 0.3269,
+    "veil": 0.4273,
+    "spark": 0.3891,
+    "loom": 0.7106
+   }
+  },
+  {
+   "id": "root@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.7,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.236,
+    "tide": 0.7434,
+    "zephyr": 0.0925,
+    "root": 0.6967,
+    "gleam": 0.3867,
+    "veil": 0.4001,
+    "spark": 0.7786,
+    "loom": 0.5265
+   }
+  },
+  {
+   "id": "root@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.7,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4173,
+    "tide": 0.5056,
+    "zephyr": 0.3839,
+    "root": 0.7121,
+    "gleam": 0.6079,
+    "veil": 0.5226,
+    "spark": 0.3931,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "root@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.9,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2772,
+    "tide": 0.4985,
+    "zephyr": 0.274,
+    "root": 0.6326,
+    "gleam": 0.2927,
+    "veil": 0.4445,
+    "spark": 0.4951,
+    "loom": 0.6805
+   }
+  },
+  {
+   "id": "root@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.9,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.5961,
+    "tide": 0.3149,
+    "zephyr": 0.6202,
+    "root": 0.8647,
+    "gleam": 0.2824,
+    "veil": 0.3664,
+    "spark": 0.2172,
+    "loom": 0.6219
+   }
+  },
+  {
+   "id": "root@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.9,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3978,
+    "tide": 0.5298,
+    "zephyr": 0.5497,
+    "root": 0.7716,
+    "gleam": 0.3179,
+    "veil": 0.3995,
+    "spark": 0.3849,
+    "loom": 0.7191
+   }
+  },
+  {
+   "id": "root@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.9,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2278,
+    "tide": 0.7758,
+    "zephyr": 0.221,
+    "root": 0.7597,
+    "gleam": 0.3984,
+    "veil": 0.5157,
+    "spark": 0,
+    "loom": 0.9412
+   }
+  },
+  {
+   "id": "root@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.9,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4176,
+    "tide": 0.5065,
+    "zephyr": 0.3807,
+    "root": 0.7106,
+    "gleam": 0.613,
+    "veil": 0.5356,
+    "spark": 0.3931,
+    "loom": 0.7289
+   }
+  },
+  {
+   "id": "gleam@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.1,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2761,
+    "tide": 0.5144,
+    "zephyr": 0.2936,
+    "root": 0.6749,
+    "gleam": 0.2953,
+    "veil": 0.5847,
+    "spark": 0.4928,
+    "loom": 0.647
+   }
+  },
+  {
+   "id": "gleam@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.1,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.418,
+    "tide": 0.5313,
+    "zephyr": 0.2343,
+    "root": 0.708,
+    "gleam": 0.3035,
+    "veil": 0.6496,
+    "spark": 0.2827,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "gleam@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.1,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4117,
+    "tide": 0.7999,
+    "zephyr": 0.3275,
+    "root": 0.7778,
+    "gleam": 0.3309,
+    "veil": 0.4362,
+    "spark": 0.2664,
+    "loom": 0.7867
+   }
+  },
+  {
+   "id": "gleam@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.1,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2345,
+    "tide": 0.784,
+    "zephyr": 0.2986,
+    "root": 0.7589,
+    "gleam": 0.4106,
+    "veil": 0.4003,
+    "spark": 0.6697,
+    "loom": 0.4833
+   }
+  },
+  {
+   "id": "gleam@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.1,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4304,
+    "tide": 0.5134,
+    "zephyr": 0.2839,
+    "root": 0.7145,
+    "gleam": 0.6199,
+    "veil": 0.5048,
+    "spark": 0.3717,
+    "loom": 0.655
+   }
+  },
+  {
+   "id": "gleam@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.3,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2927,
+    "tide": 0.5051,
+    "zephyr": 0.2922,
+    "root": 0.6713,
+    "gleam": 0.2947,
+    "veil": 0.5799,
+    "spark": 0.4925,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "gleam@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.3,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4202,
+    "tide": 0.5752,
+    "zephyr": 0.2471,
+    "root": 0.7131,
+    "gleam": 0.3013,
+    "veil": 0.6577,
+    "spark": 0.2846,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "gleam@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.3,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4095,
+    "tide": 0.5062,
+    "zephyr": 0.3576,
+    "root": 0.7732,
+    "gleam": 0.3325,
+    "veil": 0.4879,
+    "spark": 0.2714,
+    "loom": 0.7867
+   }
+  },
+  {
+   "id": "gleam@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.3,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.236,
+    "tide": 0.7434,
+    "zephyr": 0.0925,
+    "root": 0.6998,
+    "gleam": 0.3867,
+    "veil": 0.4001,
+    "spark": 0.7786,
+    "loom": 0.5265
+   }
+  },
+  {
+   "id": "gleam@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.3,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4233,
+    "tide": 0.5165,
+    "zephyr": 0.369,
+    "root": 0.7159,
+    "gleam": 0.6084,
+    "veil": 0.5288,
+    "spark": 0.3091,
+    "loom": 0.7946
+   }
+  },
+  {
+   "id": "gleam@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.7,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2843,
+    "tide": 0.5104,
+    "zephyr": 0.3376,
+    "root": 0.6238,
+    "gleam": 0.2932,
+    "veil": 0.4443,
+    "spark": 0.5337,
+    "loom": 0.5073
+   }
+  },
+  {
+   "id": "gleam@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.7,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3451,
+    "tide": 0.6674,
+    "zephyr": 0.3864,
+    "root": 0.7656,
+    "gleam": 0.3597,
+    "veil": 0.6127,
+    "spark": 0.5409,
+    "loom": 0.471
+   }
+  },
+  {
+   "id": "gleam@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.7,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4048,
+    "tide": 0.501,
+    "zephyr": 0.4652,
+    "root": 0.7196,
+    "gleam": 0.288,
+    "veil": 0.4532,
+    "spark": 0.3623,
+    "loom": 0.7021
+   }
+  },
+  {
+   "id": "gleam@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.7,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3267,
+    "tide": 0.6181,
+    "zephyr": 0.1556,
+    "root": 0.6608,
+    "gleam": 0.3832,
+    "veil": 0.4909,
+    "spark": 0.8441,
+    "loom": 0.7008
+   }
+  },
+  {
+   "id": "gleam@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.7,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4246,
+    "tide": 0.4878,
+    "zephyr": 0.2755,
+    "root": 0.6689,
+    "gleam": 0.6026,
+    "veil": 0.3877,
+    "spark": 0.3759,
+    "loom": 0.6961
+   }
+  },
+  {
+   "id": "gleam@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.9,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2843,
+    "tide": 0.5104,
+    "zephyr": 0.3376,
+    "root": 0.6329,
+    "gleam": 0.2932,
+    "veil": 0.4443,
+    "spark": 0.5337,
+    "loom": 0.5073
+   }
+  },
+  {
+   "id": "gleam@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.9,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3454,
+    "tide": 0.6675,
+    "zephyr": 0.3866,
+    "root": 0.7657,
+    "gleam": 0.3596,
+    "veil": 0.6128,
+    "spark": 0.536,
+    "loom": 0.471
+   }
+  },
+  {
+   "id": "gleam@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.9,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4048,
+    "tide": 0.5012,
+    "zephyr": 0.4594,
+    "root": 0.7181,
+    "gleam": 0.2879,
+    "veil": 0.4527,
+    "spark": 0.3626,
+    "loom": 0.6852
+   }
+  },
+  {
+   "id": "gleam@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.9,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3267,
+    "tide": 0.6181,
+    "zephyr": 0.1556,
+    "root": 0.6583,
+    "gleam": 0.3832,
+    "veil": 0.4909,
+    "spark": 0.8441,
+    "loom": 0.7008
+   }
+  },
+  {
+   "id": "gleam@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.9,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4246,
+    "tide": 0.4878,
+    "zephyr": 0.2755,
+    "root": 0.6665,
+    "gleam": 0.6026,
+    "veil": 0.3877,
+    "spark": 0.3759,
+    "loom": 0.6961
+   }
+  },
+  {
+   "id": "veil@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.1,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2937,
+    "tide": 0.5225,
+    "zephyr": 0.3937,
+    "root": 0.6758,
+    "gleam": 0.2962,
+    "veil": 0.3537,
+    "spark": 0.5435,
+    "loom": 0.5146
+   }
+  },
+  {
+   "id": "veil@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.1,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3965,
+    "tide": 0.5467,
+    "zephyr": 0.4577,
+    "root": 0.7543,
+    "gleam": 0.4174,
+    "veil": 0.3202,
+    "spark": 0.3453,
+    "loom": 0.5437
+   }
+  },
+  {
+   "id": "veil@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.1,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4606,
+    "tide": 0.4729,
+    "zephyr": 0.3062,
+    "root": 0.7177,
+    "gleam": 0.3485,
+    "veil": 0.4866,
+    "spark": 0.5048,
+    "loom": 0.6937
+   }
+  },
+  {
+   "id": "veil@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.1,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2422,
+    "tide": 0.7237,
+    "zephyr": 0.3658,
+    "root": 0.7015,
+    "gleam": 0.3991,
+    "veil": 0.3877,
+    "spark": 0.816,
+    "loom": 0.6344
+   }
+  },
+  {
+   "id": "veil@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.1,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4239,
+    "tide": 0.5039,
+    "zephyr": 0.2266,
+    "root": 0.6613,
+    "gleam": 0.5462,
+    "veil": 0.3997,
+    "spark": 0.3766,
+    "loom": 0.7043
+   }
+  },
+  {
+   "id": "veil@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.3,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2765,
+    "tide": 0.5313,
+    "zephyr": 0.3901,
+    "root": 0.673,
+    "gleam": 0.2967,
+    "veil": 0.3598,
+    "spark": 0.5437,
+    "loom": 0.5146
+   }
+  },
+  {
+   "id": "veil@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.3,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3965,
+    "tide": 0.5478,
+    "zephyr": 0.4577,
+    "root": 0.7539,
+    "gleam": 0.4174,
+    "veil": 0.3202,
+    "spark": 0.3453,
+    "loom": 0.5437
+   }
+  },
+  {
+   "id": "veil@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.3,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3948,
+    "tide": 0.4706,
+    "zephyr": 0.3784,
+    "root": 0.6817,
+    "gleam": 0.3184,
+    "veil": 0.3921,
+    "spark": 0.3614,
+    "loom": 0.6768
+   }
+  },
+  {
+   "id": "veil@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.3,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2422,
+    "tide": 0.623,
+    "zephyr": 0.3658,
+    "root": 0.7046,
+    "gleam": 0.3991,
+    "veil": 0.3877,
+    "spark": 0.816,
+    "loom": 0.6344
+   }
+  },
+  {
+   "id": "veil@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.3,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3806,
+    "tide": 0.4413,
+    "zephyr": 0.3114,
+    "root": 0.732,
+    "gleam": 0.5801,
+    "veil": 0.5534,
+    "spark": 0.4536,
+    "loom": 0.7289
+   }
+  },
+  {
+   "id": "veil@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.7,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3774,
+    "tide": 0.7132,
+    "zephyr": 0.4018,
+    "root": 0.6965,
+    "gleam": 0.279,
+    "veil": 0.7224,
+    "spark": 0.4303,
+    "loom": 0.4928
+   }
+  },
+  {
+   "id": "veil@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.7,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4232,
+    "tide": 0.6849,
+    "zephyr": 0.2863,
+    "root": 0.7315,
+    "gleam": 0.3066,
+    "veil": 0.6826,
+    "spark": 0.3116,
+    "loom": 0.5364
+   }
+  },
+  {
+   "id": "veil@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.7,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4156,
+    "tide": 0.7423,
+    "zephyr": 0.3733,
+    "root": 0.7284,
+    "gleam": 0.3513,
+    "veil": 0.7359,
+    "spark": 0.292,
+    "loom": 0.6345
+   }
+  },
+  {
+   "id": "veil@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.7,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3461,
+    "tide": 0.6991,
+    "zephyr": 0.0888,
+    "root": 0.6704,
+    "gleam": 0.3179,
+    "veil": 0.6428,
+    "spark": 0,
+    "loom": 0.9163
+   }
+  },
+  {
+   "id": "veil@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.7,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4465,
+    "tide": 0.6531,
+    "zephyr": 0.2773,
+    "root": 0.7088,
+    "gleam": 0.3949,
+    "veil": 0.7815,
+    "spark": 0.3438,
+    "loom": 0.5739
+   }
+  },
+  {
+   "id": "veil@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.9,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3774,
+    "tide": 0.7228,
+    "zephyr": 0.4018,
+    "root": 0.6948,
+    "gleam": 0.279,
+    "veil": 0.7224,
+    "spark": 0.4303,
+    "loom": 0.4928
+   }
+  },
+  {
+   "id": "veil@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.9,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4058,
+    "tide": 0.6757,
+    "zephyr": 0.2633,
+    "root": 0.717,
+    "gleam": 0.3069,
+    "veil": 0.6653,
+    "spark": 0.293,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "veil@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.9,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4021,
+    "tide": 0.7593,
+    "zephyr": 0.3961,
+    "root": 0.7251,
+    "gleam": 0.3665,
+    "veil": 0.7172,
+    "spark": 0.4106,
+    "loom": 0.4365
+   }
+  },
+  {
+   "id": "veil@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.9,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3302,
+    "tide": 0.5749,
+    "zephyr": 0.2469,
+    "root": 0.7042,
+    "gleam": 0.3344,
+    "veil": 0.6165,
+    "spark": 0.5467,
+    "loom": 0.792
+   }
+  },
+  {
+   "id": "veil@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.9,
+    "spark": 0.275,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.415,
+    "tide": 0.5615,
+    "zephyr": 0.262,
+    "root": 0.695,
+    "gleam": 0.417,
+    "veil": 0.8027,
+    "spark": 0.3894,
+    "loom": 0.5667
+   }
+  },
+  {
+   "id": "spark@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.1,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3508,
+    "tide": 0.4565,
+    "zephyr": 0.3923,
+    "root": 0.7306,
+    "gleam": 0.305,
+    "veil": 0.5191,
+    "spark": 0.5185,
+    "loom": 0.714
+   }
+  },
+  {
+   "id": "spark@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.1,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4202,
+    "tide": 0.5752,
+    "zephyr": 0.2471,
+    "root": 0.7117,
+    "gleam": 0.3013,
+    "veil": 0.6577,
+    "spark": 0.2846,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "spark@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.1,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4271,
+    "tide": 0.7786,
+    "zephyr": 0.3747,
+    "root": 0.719,
+    "gleam": 0.3518,
+    "veil": 0.7509,
+    "spark": 0.2836,
+    "loom": 0.6091
+   }
+  },
+  {
+   "id": "spark@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.1,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.363,
+    "tide": 0.494,
+    "zephyr": 0.1799,
+    "root": 0.6919,
+    "gleam": 0.3233,
+    "veil": 0.6092,
+    "spark": 0.4297,
+    "loom": 0.7754
+   }
+  },
+  {
+   "id": "spark@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.1,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4521,
+    "tide": 0.7918,
+    "zephyr": 0.2627,
+    "root": 0.709,
+    "gleam": 0.3956,
+    "veil": 0.7482,
+    "spark": 0.3052,
+    "loom": 0.6058
+   }
+  },
+  {
+   "id": "spark@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.3,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2983,
+    "tide": 0.5001,
+    "zephyr": 0.3349,
+    "root": 0.671,
+    "gleam": 0.2921,
+    "veil": 0.5575,
+    "spark": 0.5682,
+    "loom": 0.6051
+   }
+  },
+  {
+   "id": "spark@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.3,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3972,
+    "tide": 0.7515,
+    "zephyr": 0.3697,
+    "root": 0.7198,
+    "gleam": 0.3127,
+    "veil": 0.5789,
+    "spark": 0.3215,
+    "loom": 0.5437
+   }
+  },
+  {
+   "id": "spark@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.3,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.3969,
+    "tide": 0.4677,
+    "zephyr": 0.556,
+    "root": 0.7728,
+    "gleam": 0.3269,
+    "veil": 0.4273,
+    "spark": 0.3891,
+    "loom": 0.7106
+   }
+  },
+  {
+   "id": "spark@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.3,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2643,
+    "tide": 0.4907,
+    "zephyr": 0.223,
+    "root": 0.6988,
+    "gleam": 0.3875,
+    "veil": 0.6031,
+    "spark": 0.7633,
+    "loom": 0.7422
+   }
+  },
+  {
+   "id": "spark@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.3,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.4173,
+    "tide": 0.5138,
+    "zephyr": 0.3839,
+    "root": 0.7087,
+    "gleam": 0.6079,
+    "veil": 0.5226,
+    "spark": 0.3931,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "spark@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.7,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1028,
+    "tide": 0.5473,
+    "zephyr": 0.3488,
+    "root": 0.6036,
+    "gleam": 0.2946,
+    "veil": 0.5488,
+    "spark": 0.6435,
+    "loom": 0.5884
+   }
+  },
+  {
+   "id": "spark@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.7,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2576,
+    "tide": 0.8329,
+    "zephyr": 0.3675,
+    "root": 0.6245,
+    "gleam": 0.2796,
+    "veil": 0.5038,
+    "spark": 0.4086,
+    "loom": 0.7391
+   }
+  },
+  {
+   "id": "spark@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.7,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1519,
+    "tide": 0.8163,
+    "zephyr": 0.268,
+    "root": 0.597,
+    "gleam": 0.3303,
+    "veil": 0.5628,
+    "spark": 0.3756,
+    "loom": 0.736
+   }
+  },
+  {
+   "id": "spark@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.7,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1307,
+    "tide": 0.7816,
+    "zephyr": 0.314,
+    "root": 0.6995,
+    "gleam": 0.3312,
+    "veil": 0.3548,
+    "spark": 0.6792,
+    "loom": 0.5265
+   }
+  },
+  {
+   "id": "spark@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.7,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1934,
+    "tide": 0.7962,
+    "zephyr": 0.2393,
+    "root": 0.5192,
+    "gleam": 0.4863,
+    "veil": 0.5657,
+    "spark": 0.3613,
+    "loom": 0.7782
+   }
+  },
+  {
+   "id": "spark@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.9,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1127,
+    "tide": 0.8009,
+    "zephyr": 0.373,
+    "root": 0.606,
+    "gleam": 0.3096,
+    "veil": 0.5525,
+    "spark": 0.6681,
+    "loom": 0.6219
+   }
+  },
+  {
+   "id": "spark@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.9,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.2576,
+    "tide": 0.8329,
+    "zephyr": 0.3675,
+    "root": 0.6242,
+    "gleam": 0.2796,
+    "veil": 0.5038,
+    "spark": 0.4086,
+    "loom": 0.7391
+   }
+  },
+  {
+   "id": "spark@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.9,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.127,
+    "tide": 0.6351,
+    "zephyr": 0.2814,
+    "root": 0.5865,
+    "gleam": 0.3322,
+    "veil": 0.5181,
+    "spark": 0.4767,
+    "loom": 0.736
+   }
+  },
+  {
+   "id": "spark@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.9,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.1308,
+    "tide": 0.6312,
+    "zephyr": 0.2946,
+    "root": 0.6374,
+    "gleam": 0.3349,
+    "veil": 0.3825,
+    "spark": 0.845,
+    "loom": 0.3969
+   }
+  },
+  {
+   "id": "spark@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.9,
+    "loom": 0.578
+   },
+   "read": {
+    "ember": 0.197,
+    "tide": 0.7917,
+    "zephyr": 0.1821,
+    "root": 0.5354,
+    "gleam": 0.495,
+    "veil": 0.5627,
+    "spark": 0.3394,
+    "loom": 0.7617
+   }
+  },
+  {
+   "id": "loom@0.10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.1
+   },
+   "read": {
+    "ember": 0.3231,
+    "tide": 0.4704,
+    "zephyr": 0.4041,
+    "root": 0.7017,
+    "gleam": 0.311,
+    "veil": 0.515,
+    "spark": 0.686,
+    "loom": 0.5
+   }
+  },
+  {
+   "id": "loom@0.10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.1
+   },
+   "read": {
+    "ember": 0.3526,
+    "tide": 0.6247,
+    "zephyr": 0.4001,
+    "root": 0.7654,
+    "gleam": 0.3588,
+    "veil": 0.6074,
+    "spark": 0.5149,
+    "loom": 0.4782
+   }
+  },
+  {
+   "id": "loom@0.10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.1
+   },
+   "read": {
+    "ember": 0.373,
+    "tide": 0.5196,
+    "zephyr": 0.4546,
+    "root": 0.7296,
+    "gleam": 0.2991,
+    "veil": 0.5426,
+    "spark": 0.429,
+    "loom": 0.5539
+   }
+  },
+  {
+   "id": "loom@0.10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.1
+   },
+   "read": {
+    "ember": 0.2068,
+    "tide": 0.7594,
+    "zephyr": 0.3875,
+    "root": 0.6379,
+    "gleam": 0.3753,
+    "veil": 0.3767,
+    "spark": 0.7449,
+    "loom": 0.5625
+   }
+  },
+  {
+   "id": "loom@0.10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.1
+   },
+   "read": {
+    "ember": 0.376,
+    "tide": 0.4871,
+    "zephyr": 0.2928,
+    "root": 0.7256,
+    "gleam": 0.6268,
+    "veil": 0.5333,
+    "spark": 0.4421,
+    "loom": 0.7289
+   }
+  },
+  {
+   "id": "loom@0.30/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.3
+   },
+   "read": {
+    "ember": 0.302,
+    "tide": 0.4774,
+    "zephyr": 0.3845,
+    "root": 0.6941,
+    "gleam": 0.2997,
+    "veil": 0.5311,
+    "spark": 0.6915,
+    "loom": 0.5
+   }
+  },
+  {
+   "id": "loom@0.30/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.3
+   },
+   "read": {
+    "ember": 0.3526,
+    "tide": 0.6247,
+    "zephyr": 0.4001,
+    "root": 0.7654,
+    "gleam": 0.3588,
+    "veil": 0.6074,
+    "spark": 0.5149,
+    "loom": 0.4782
+   }
+  },
+  {
+   "id": "loom@0.30/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.3
+   },
+   "read": {
+    "ember": 0.373,
+    "tide": 0.5196,
+    "zephyr": 0.4546,
+    "root": 0.7268,
+    "gleam": 0.2991,
+    "veil": 0.5426,
+    "spark": 0.429,
+    "loom": 0.5539
+   }
+  },
+  {
+   "id": "loom@0.30/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.3
+   },
+   "read": {
+    "ember": 0.2068,
+    "tide": 0.7594,
+    "zephyr": 0.3875,
+    "root": 0.6449,
+    "gleam": 0.3753,
+    "veil": 0.3767,
+    "spark": 0.7449,
+    "loom": 0.5625
+   }
+  },
+  {
+   "id": "loom@0.30/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.3
+   },
+   "read": {
+    "ember": 0.392,
+    "tide": 0.5012,
+    "zephyr": 0.3407,
+    "root": 0.6846,
+    "gleam": 0.6229,
+    "veil": 0.5128,
+    "spark": 0.4343,
+    "loom": 0.655
+   }
+  },
+  {
+   "id": "loom@0.70/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.7
+   },
+   "read": {
+    "ember": 0.3456,
+    "tide": 0.4931,
+    "zephyr": 0.3982,
+    "root": 0.7356,
+    "gleam": 0.3043,
+    "veil": 0.5444,
+    "spark": 0.4623,
+    "loom": 0.5967
+   }
+  },
+  {
+   "id": "loom@0.70/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.7
+   },
+   "read": {
+    "ember": 0.4202,
+    "tide": 0.5153,
+    "zephyr": 0.2471,
+    "root": 0.7132,
+    "gleam": 0.3013,
+    "veil": 0.6577,
+    "spark": 0.2846,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "loom@0.70/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.7
+   },
+   "read": {
+    "ember": 0.4015,
+    "tide": 0.5146,
+    "zephyr": 0.5212,
+    "root": 0.7778,
+    "gleam": 0.3329,
+    "veil": 0.4257,
+    "spark": 0.3077,
+    "loom": 0.7867
+   }
+  },
+  {
+   "id": "loom@0.70/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.7
+   },
+   "read": {
+    "ember": 0.2137,
+    "tide": 0.7702,
+    "zephyr": 0.0716,
+    "root": 0.7788,
+    "gleam": 0.392,
+    "veil": 0.4075,
+    "spark": 0.9104,
+    "loom": 0.5337
+   }
+  },
+  {
+   "id": "loom@0.70/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.7
+   },
+   "read": {
+    "ember": 0.4236,
+    "tide": 0.5204,
+    "zephyr": 0.3665,
+    "root": 0.7132,
+    "gleam": 0.6079,
+    "veil": 0.5361,
+    "spark": 0.2902,
+    "loom": 0.7535
+   }
+  },
+  {
+   "id": "loom@0.90/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.9
+   },
+   "read": {
+    "ember": 0.3466,
+    "tide": 0.4474,
+    "zephyr": 0.2865,
+    "root": 0.7018,
+    "gleam": 0.308,
+    "veil": 0.4898,
+    "spark": 0.4295,
+    "loom": 0.7726
+   }
+  },
+  {
+   "id": "loom@0.90/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.9
+   },
+   "read": {
+    "ember": 0.4202,
+    "tide": 0.5153,
+    "zephyr": 0.2471,
+    "root": 0.713,
+    "gleam": 0.3013,
+    "veil": 0.6577,
+    "spark": 0.2846,
+    "loom": 0.6386
+   }
+  },
+  {
+   "id": "loom@0.90/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.9
+   },
+   "read": {
+    "ember": 0.405,
+    "tide": 0.5434,
+    "zephyr": 0.5121,
+    "root": 0.7684,
+    "gleam": 0.3268,
+    "veil": 0.4283,
+    "spark": 0.3025,
+    "loom": 0.7867
+   }
+  },
+  {
+   "id": "loom@0.90/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.9
+   },
+   "read": {
+    "ember": 0.2237,
+    "tide": 0.6614,
+    "zephyr": 0.0739,
+    "root": 0.6983,
+    "gleam": 0.3911,
+    "veil": 0.3897,
+    "spark": 0.8188,
+    "loom": 0.4617
+   }
+  },
+  {
+   "id": "loom@0.90/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.9
+   },
+   "read": {
+    "ember": 0.4239,
+    "tide": 0.5127,
+    "zephyr": 0.369,
+    "root": 0.7147,
+    "gleam": 0.6143,
+    "veil": 0.5306,
+    "spark": 0.3164,
+    "loom": 0.7946
+   }
+  },
+  {
+   "id": "mix-01/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.665,
+    "tide": 0.865,
+    "zephyr": 0.494,
+    "root": 0.748,
+    "gleam": 0.305,
+    "veil": 0.083,
+    "spark": 0.662,
+    "loom": 0.501
+   },
+   "read": {
+    "ember": 0.0621,
+    "tide": 0.824,
+    "zephyr": 0.2712,
+    "root": 0.6139,
+    "gleam": 0.2015,
+    "veil": 0.6564,
+    "spark": 0.4807,
+    "loom": 0.7028
+   }
+  },
+  {
+   "id": "mix-01/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.665,
+    "tide": 0.865,
+    "zephyr": 0.494,
+    "root": 0.748,
+    "gleam": 0.305,
+    "veil": 0.083,
+    "spark": 0.662,
+    "loom": 0.501
+   },
+   "read": {
+    "ember": 0.1063,
+    "tide": 0.7908,
+    "zephyr": 0.3501,
+    "root": 0.6557,
+    "gleam": 0.5369,
+    "veil": 0.4558,
+    "spark": 0.4569,
+    "loom": 0.7028
+   }
+  },
+  {
+   "id": "mix-01/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.665,
+    "tide": 0.865,
+    "zephyr": 0.494,
+    "root": 0.748,
+    "gleam": 0.305,
+    "veil": 0.083,
+    "spark": 0.662,
+    "loom": 0.501
+   },
+   "read": {
+    "ember": 0.0995,
+    "tide": 0.8066,
+    "zephyr": 0.3122,
+    "root": 0.6461,
+    "gleam": 0.2851,
+    "veil": 0.57,
+    "spark": 0.5308,
+    "loom": 0.7
+   }
+  },
+  {
+   "id": "mix-01/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.665,
+    "tide": 0.865,
+    "zephyr": 0.494,
+    "root": 0.748,
+    "gleam": 0.305,
+    "veil": 0.083,
+    "spark": 0.662,
+    "loom": 0.501
+   },
+   "read": {
+    "ember": 0.0826,
+    "tide": 0.7785,
+    "zephyr": 0.277,
+    "root": 0.6717,
+    "gleam": 0.2549,
+    "veil": 0.5257,
+    "spark": 0.4534,
+    "loom": 0.3389
+   }
+  },
+  {
+   "id": "mix-01/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.665,
+    "tide": 0.865,
+    "zephyr": 0.494,
+    "root": 0.748,
+    "gleam": 0.305,
+    "veil": 0.083,
+    "spark": 0.662,
+    "loom": 0.501
+   },
+   "read": {
+    "ember": 0.0966,
+    "tide": 0.775,
+    "zephyr": 0.1895,
+    "root": 0.624,
+    "gleam": 0.4804,
+    "veil": 0.5491,
+    "spark": 0.3821,
+    "loom": 0.6879
+   }
+  },
+  {
+   "id": "mix-02/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.802,
+    "tide": 0.717,
+    "zephyr": 0.774,
+    "root": 0.504,
+    "gleam": 0.281,
+    "veil": 0.537,
+    "spark": 0.211,
+    "loom": 0.794
+   },
+   "read": {
+    "ember": 0.1429,
+    "tide": 0.4452,
+    "zephyr": 0.3189,
+    "root": 0.6927,
+    "gleam": 0.4025,
+    "veil": 0.6564,
+    "spark": 0.5381,
+    "loom": 0.5418
+   }
+  },
+  {
+   "id": "mix-02/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.802,
+    "tide": 0.717,
+    "zephyr": 0.774,
+    "root": 0.504,
+    "gleam": 0.281,
+    "veil": 0.537,
+    "spark": 0.211,
+    "loom": 0.794
+   },
+   "read": {
+    "ember": 0.3684,
+    "tide": 0.4571,
+    "zephyr": 0.3532,
+    "root": 0.7132,
+    "gleam": 0.2413,
+    "veil": 0.7485,
+    "spark": 0.4161,
+    "loom": 0.5237
+   }
+  },
+  {
+   "id": "mix-02/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.802,
+    "tide": 0.717,
+    "zephyr": 0.774,
+    "root": 0.504,
+    "gleam": 0.281,
+    "veil": 0.537,
+    "spark": 0.211,
+    "loom": 0.794
+   },
+   "read": {
+    "ember": 0.3822,
+    "tide": 0.5187,
+    "zephyr": 0.4403,
+    "root": 0.7085,
+    "gleam": 0.3873,
+    "veil": 0.8703,
+    "spark": 0.4378,
+    "loom": 0.3102
+   }
+  },
+  {
+   "id": "mix-02/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.802,
+    "tide": 0.717,
+    "zephyr": 0.774,
+    "root": 0.504,
+    "gleam": 0.281,
+    "veil": 0.537,
+    "spark": 0.211,
+    "loom": 0.794
+   },
+   "read": {
+    "ember": 0.1346,
+    "tide": 0.7583,
+    "zephyr": 0.1926,
+    "root": 0.8111,
+    "gleam": 0.216,
+    "veil": 0.4637,
+    "spark": 0.9033,
+    "loom": 0.1054
+   }
+  },
+  {
+   "id": "mix-02/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.802,
+    "tide": 0.717,
+    "zephyr": 0.774,
+    "root": 0.504,
+    "gleam": 0.281,
+    "veil": 0.537,
+    "spark": 0.211,
+    "loom": 0.794
+   },
+   "read": {
+    "ember": 0.418,
+    "tide": 0.5191,
+    "zephyr": 0.3679,
+    "root": 0.7173,
+    "gleam": 0.3853,
+    "veil": 0.7686,
+    "spark": 0.4675,
+    "loom": 0.4331
+   }
+  },
+  {
+   "id": "mix-03/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.67,
+    "tide": 0.107,
+    "zephyr": 0.919,
+    "root": 0.103,
+    "gleam": 0.184,
+    "veil": 0.819,
+    "spark": 0.059,
+    "loom": 0.665
+   },
+   "read": {
+    "ember": 0.4013,
+    "tide": 0.7464,
+    "zephyr": 0.3367,
+    "root": 0.5855,
+    "gleam": 0.3798,
+    "veil": 0.8382,
+    "spark": 0.3855,
+    "loom": 0.5146
+   }
+  },
+  {
+   "id": "mix-03/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.67,
+    "tide": 0.107,
+    "zephyr": 0.919,
+    "root": 0.103,
+    "gleam": 0.184,
+    "veil": 0.819,
+    "spark": 0.059,
+    "loom": 0.665
+   },
+   "read": {
+    "ember": 0.4977,
+    "tide": 0.824,
+    "zephyr": 0.4035,
+    "root": 0.6827,
+    "gleam": 0.457,
+    "veil": 0.7607,
+    "spark": 0.3534,
+    "loom": 0.5884
+   }
+  },
+  {
+   "id": "mix-03/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.67,
+    "tide": 0.107,
+    "zephyr": 0.919,
+    "root": 0.103,
+    "gleam": 0.184,
+    "veil": 0.819,
+    "spark": 0.059,
+    "loom": 0.665
+   },
+   "read": {
+    "ember": 0.5518,
+    "tide": 0.5346,
+    "zephyr": 0.5655,
+    "root": 0.7156,
+    "gleam": 0.4862,
+    "veil": 0.5893,
+    "spark": 0.3919,
+    "loom": 0.4365
+   }
+  },
+  {
+   "id": "mix-03/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.67,
+    "tide": 0.107,
+    "zephyr": 0.919,
+    "root": 0.103,
+    "gleam": 0.184,
+    "veil": 0.819,
+    "spark": 0.059,
+    "loom": 0.665
+   },
+   "read": {
+    "ember": 0.3394,
+    "tide": 0.5693,
+    "zephyr": 0.2117,
+    "root": 0.5688,
+    "gleam": 0.4386,
+    "veil": 0.711,
+    "spark": 0,
+    "loom": 0.85
+   }
+  },
+  {
+   "id": "mix-03/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.67,
+    "tide": 0.107,
+    "zephyr": 0.919,
+    "root": 0.103,
+    "gleam": 0.184,
+    "veil": 0.819,
+    "spark": 0.059,
+    "loom": 0.665
+   },
+   "read": {
+    "ember": 0.6153,
+    "tide": 0.5491,
+    "zephyr": 0.5643,
+    "root": 0.7252,
+    "gleam": 0.4327,
+    "veil": 0.8114,
+    "spark": 0.4625,
+    "loom": 0.5311
+   }
+  },
+  {
+   "id": "mix-04/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.716,
+    "tide": 0.91,
+    "zephyr": 0.782,
+    "root": 0.358,
+    "gleam": 0.798,
+    "veil": 0.328,
+    "spark": 0.691,
+    "loom": 0.099
+   },
+   "read": {
+    "ember": 0.0472,
+    "tide": 0.779,
+    "zephyr": 0.3824,
+    "root": 0.6543,
+    "gleam": 0.2271,
+    "veil": 0.5552,
+    "spark": 0.6432,
+    "loom": 0.609
+   }
+  },
+  {
+   "id": "mix-04/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.716,
+    "tide": 0.91,
+    "zephyr": 0.782,
+    "root": 0.358,
+    "gleam": 0.798,
+    "veil": 0.328,
+    "spark": 0.691,
+    "loom": 0.099
+   },
+   "read": {
+    "ember": 0.0875,
+    "tide": 0.5495,
+    "zephyr": 0.4423,
+    "root": 0.675,
+    "gleam": 0.3396,
+    "veil": 0.4313,
+    "spark": 0.5547,
+    "loom": 0.569
+   }
+  },
+  {
+   "id": "mix-04/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.716,
+    "tide": 0.91,
+    "zephyr": 0.782,
+    "root": 0.358,
+    "gleam": 0.798,
+    "veil": 0.328,
+    "spark": 0.691,
+    "loom": 0.099
+   },
+   "read": {
+    "ember": 0.0734,
+    "tide": 0.5119,
+    "zephyr": 0.1286,
+    "root": 0.5524,
+    "gleam": 0.3276,
+    "veil": 0.5279,
+    "spark": 0.4511,
+    "loom": 0.6895
+   }
+  },
+  {
+   "id": "mix-04/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.716,
+    "tide": 0.91,
+    "zephyr": 0.782,
+    "root": 0.358,
+    "gleam": 0.798,
+    "veil": 0.328,
+    "spark": 0.691,
+    "loom": 0.099
+   },
+   "read": {
+    "ember": 0.037,
+    "tide": 0.7746,
+    "zephyr": 0.0632,
+    "root": 0.6186,
+    "gleam": 0.2765,
+    "veil": 0.4318,
+    "spark": 0.7278,
+    "loom": 0.3568
+   }
+  },
+  {
+   "id": "mix-04/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.716,
+    "tide": 0.91,
+    "zephyr": 0.782,
+    "root": 0.358,
+    "gleam": 0.798,
+    "veil": 0.328,
+    "spark": 0.691,
+    "loom": 0.099
+   },
+   "read": {
+    "ember": 0.0726,
+    "tide": 0.5742,
+    "zephyr": 0.1012,
+    "root": 0.4881,
+    "gleam": 0.4959,
+    "veil": 0.3942,
+    "spark": 0.4296,
+    "loom": 0.7084
+   }
+  },
+  {
+   "id": "mix-05/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.522,
+    "tide": 0.612,
+    "zephyr": 0.579,
+    "root": 0.909,
+    "gleam": 0.566,
+    "veil": 0.426,
+    "spark": 0.769,
+    "loom": 0.129
+   },
+   "read": {
+    "ember": 0.0693,
+    "tide": 0.6836,
+    "zephyr": 0.2067,
+    "root": 0.5518,
+    "gleam": 0.252,
+    "veil": 0.3166,
+    "spark": 0.4113,
+    "loom": 0.6302
+   }
+  },
+  {
+   "id": "mix-05/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.522,
+    "tide": 0.612,
+    "zephyr": 0.579,
+    "root": 0.909,
+    "gleam": 0.566,
+    "veil": 0.426,
+    "spark": 0.769,
+    "loom": 0.129
+   },
+   "read": {
+    "ember": 0.2498,
+    "tide": 0.3546,
+    "zephyr": 0.6304,
+    "root": 0.7122,
+    "gleam": 0.2879,
+    "veil": 0.2872,
+    "spark": 0.2828,
+    "loom": 0.6554
+   }
+  },
+  {
+   "id": "mix-05/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.522,
+    "tide": 0.612,
+    "zephyr": 0.579,
+    "root": 0.909,
+    "gleam": 0.566,
+    "veil": 0.426,
+    "spark": 0.769,
+    "loom": 0.129
+   },
+   "read": {
+    "ember": 0.0866,
+    "tide": 0.5608,
+    "zephyr": 0.1773,
+    "root": 0.5839,
+    "gleam": 0.3116,
+    "veil": 0.3553,
+    "spark": 0.3824,
+    "loom": 0.7444
+   }
+  },
+  {
+   "id": "mix-05/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.522,
+    "tide": 0.612,
+    "zephyr": 0.579,
+    "root": 0.909,
+    "gleam": 0.566,
+    "veil": 0.426,
+    "spark": 0.769,
+    "loom": 0.129
+   },
+   "read": {
+    "ember": 0.1352,
+    "tide": 0.6251,
+    "zephyr": 0.009,
+    "root": 0.6066,
+    "gleam": 0.335,
+    "veil": 0.4272,
+    "spark": 0.8466,
+    "loom": 0.4473
+   }
+  },
+  {
+   "id": "mix-05/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.522,
+    "tide": 0.612,
+    "zephyr": 0.579,
+    "root": 0.909,
+    "gleam": 0.566,
+    "veil": 0.426,
+    "spark": 0.769,
+    "loom": 0.129
+   },
+   "read": {
+    "ember": 0.1915,
+    "tide": 0.8117,
+    "zephyr": 0.1352,
+    "root": 0.509,
+    "gleam": 0.4444,
+    "veil": 0.3212,
+    "spark": 0.2731,
+    "loom": 0.7289
+   }
+  },
+  {
+   "id": "mix-06/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.259,
+    "tide": 0.799,
+    "zephyr": 0.122,
+    "root": 0.921,
+    "gleam": 0.586,
+    "veil": 0.216,
+    "spark": 0.187,
+    "loom": 0.139
+   },
+   "read": {
+    "ember": 0.0728,
+    "tide": 0.5423,
+    "zephyr": 0.2238,
+    "root": 0.6044,
+    "gleam": 0.2039,
+    "veil": 0.4565,
+    "spark": 0.5104,
+    "loom": 0.647
+   }
+  },
+  {
+   "id": "mix-06/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.259,
+    "tide": 0.799,
+    "zephyr": 0.122,
+    "root": 0.921,
+    "gleam": 0.586,
+    "veil": 0.216,
+    "spark": 0.187,
+    "loom": 0.139
+   },
+   "read": {
+    "ember": 0.1599,
+    "tide": 0.3811,
+    "zephyr": 0.6716,
+    "root": 0.8054,
+    "gleam": 0.3439,
+    "veil": 0.2859,
+    "spark": 0.4071,
+    "loom": 0.6972
+   }
+  },
+  {
+   "id": "mix-06/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.259,
+    "tide": 0.799,
+    "zephyr": 0.122,
+    "root": 0.921,
+    "gleam": 0.586,
+    "veil": 0.216,
+    "spark": 0.187,
+    "loom": 0.139
+   },
+   "read": {
+    "ember": 0.1898,
+    "tide": 0.4728,
+    "zephyr": 0.2001,
+    "root": 0.6737,
+    "gleam": 0.3492,
+    "veil": 0.5386,
+    "spark": 0.512,
+    "loom": 0.6937
+   }
+  },
+  {
+   "id": "mix-06/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.259,
+    "tide": 0.799,
+    "zephyr": 0.122,
+    "root": 0.921,
+    "gleam": 0.586,
+    "veil": 0.216,
+    "spark": 0.187,
+    "loom": 0.139
+   },
+   "read": {
+    "ember": 0.1003,
+    "tide": 0.7636,
+    "zephyr": 0.1082,
+    "root": 0.6535,
+    "gleam": 0.2447,
+    "veil": 0.3894,
+    "spark": 0.4492,
+    "loom": 0.8914
+   }
+  },
+  {
+   "id": "mix-06/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.259,
+    "tide": 0.799,
+    "zephyr": 0.122,
+    "root": 0.921,
+    "gleam": 0.586,
+    "veil": 0.216,
+    "spark": 0.187,
+    "loom": 0.139
+   },
+   "read": {
+    "ember": 0.1316,
+    "tide": 0.4995,
+    "zephyr": 0.1648,
+    "root": 0.6359,
+    "gleam": 0.456,
+    "veil": 0.4298,
+    "spark": 0.3849,
+    "loom": 0.7125
+   }
+  },
+  {
+   "id": "mix-07/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.439,
+    "tide": 0.626,
+    "zephyr": 0.374,
+    "root": 0.308,
+    "gleam": 0.407,
+    "veil": 0.41,
+    "spark": 0.475,
+    "loom": 0.364
+   },
+   "read": {
+    "ember": 0.0654,
+    "tide": 0.8296,
+    "zephyr": 0.3699,
+    "root": 0.595,
+    "gleam": 0.2684,
+    "veil": 0.3347,
+    "spark": 0.4889,
+    "loom": 0.7307
+   }
+  },
+  {
+   "id": "mix-07/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.439,
+    "tide": 0.626,
+    "zephyr": 0.374,
+    "root": 0.308,
+    "gleam": 0.407,
+    "veil": 0.41,
+    "spark": 0.475,
+    "loom": 0.364
+   },
+   "read": {
+    "ember": 0.1636,
+    "tide": 0.8327,
+    "zephyr": 0.3674,
+    "root": 0.6328,
+    "gleam": 0.2895,
+    "veil": 0.4783,
+    "spark": 0.4085,
+    "loom": 0.7391
+   }
+  },
+  {
+   "id": "mix-07/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.439,
+    "tide": 0.626,
+    "zephyr": 0.374,
+    "root": 0.308,
+    "gleam": 0.407,
+    "veil": 0.41,
+    "spark": 0.475,
+    "loom": 0.364
+   },
+   "read": {
+    "ember": 0.1609,
+    "tide": 0.7777,
+    "zephyr": 0.2555,
+    "root": 0.6335,
+    "gleam": 0.3219,
+    "veil": 0.3708,
+    "spark": 0.2676,
+    "loom": 0.7613
+   }
+  },
+  {
+   "id": "mix-07/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.439,
+    "tide": 0.626,
+    "zephyr": 0.374,
+    "root": 0.308,
+    "gleam": 0.407,
+    "veil": 0.41,
+    "spark": 0.475,
+    "loom": 0.364
+   },
+   "read": {
+    "ember": 0.1267,
+    "tide": 0.7365,
+    "zephyr": 0.3934,
+    "root": 0.6648,
+    "gleam": 0.3225,
+    "veil": 0.3545,
+    "spark": 0.7843,
+    "loom": 0.4977
+   }
+  },
+  {
+   "id": "mix-07/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.439,
+    "tide": 0.626,
+    "zephyr": 0.374,
+    "root": 0.308,
+    "gleam": 0.407,
+    "veil": 0.41,
+    "spark": 0.475,
+    "loom": 0.364
+   },
+   "read": {
+    "ember": 0.1461,
+    "tide": 0.7606,
+    "zephyr": 0.2534,
+    "root": 0.552,
+    "gleam": 0.4789,
+    "veil": 0.507,
+    "spark": 0.3163,
+    "loom": 0.7946
+   }
+  },
+  {
+   "id": "mix-08/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.733,
+    "tide": 0.686,
+    "zephyr": 0.732,
+    "root": 0.851,
+    "gleam": 0.863,
+    "veil": 0.606,
+    "spark": 0.416,
+    "loom": 0.193
+   },
+   "read": {
+    "ember": 0.1829,
+    "tide": 0.4478,
+    "zephyr": 0.4176,
+    "root": 0.7391,
+    "gleam": 0.4258,
+    "veil": 0.6196,
+    "spark": 0.6829,
+    "loom": 0.5056
+   }
+  },
+  {
+   "id": "mix-08/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.733,
+    "tide": 0.686,
+    "zephyr": 0.732,
+    "root": 0.851,
+    "gleam": 0.863,
+    "veil": 0.606,
+    "spark": 0.416,
+    "loom": 0.193
+   },
+   "read": {
+    "ember": 0.3625,
+    "tide": 0.4134,
+    "zephyr": 0.3966,
+    "root": 0.7679,
+    "gleam": 0.3408,
+    "veil": 0.6779,
+    "spark": 0.5278,
+    "loom": 0.4332
+   }
+  },
+  {
+   "id": "mix-08/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.733,
+    "tide": 0.686,
+    "zephyr": 0.732,
+    "root": 0.851,
+    "gleam": 0.863,
+    "veil": 0.606,
+    "spark": 0.416,
+    "loom": 0.193
+   },
+   "read": {
+    "ember": 0.334,
+    "tide": 0.4189,
+    "zephyr": 0.2543,
+    "root": 0.7187,
+    "gleam": 0.2882,
+    "veil": 0.6428,
+    "spark": 0.5057,
+    "loom": 0.616
+   }
+  },
+  {
+   "id": "mix-08/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.733,
+    "tide": 0.686,
+    "zephyr": 0.732,
+    "root": 0.851,
+    "gleam": 0.863,
+    "veil": 0.606,
+    "spark": 0.416,
+    "loom": 0.193
+   },
+   "read": {
+    "ember": 0.2299,
+    "tide": 0.5266,
+    "zephyr": 0.0922,
+    "root": 0.6322,
+    "gleam": 0.2598,
+    "veil": 0.5777,
+    "spark": 0.4083,
+    "loom": 0.6332
+   }
+  },
+  {
+   "id": "mix-08/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.733,
+    "tide": 0.686,
+    "zephyr": 0.732,
+    "root": 0.851,
+    "gleam": 0.863,
+    "veil": 0.606,
+    "spark": 0.416,
+    "loom": 0.193
+   },
+   "read": {
+    "ember": 0.1324,
+    "tide": 0.4382,
+    "zephyr": 0.2533,
+    "root": 0.6785,
+    "gleam": 0.4534,
+    "veil": 0.516,
+    "spark": 0.3633,
+    "loom": 0.6263
+   }
+  },
+  {
+   "id": "mix-09/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.761,
+    "tide": 0.799,
+    "zephyr": 0.941,
+    "root": 0.562,
+    "gleam": 0.403,
+    "veil": 0.616,
+    "spark": 0.663,
+    "loom": 0.905
+   },
+   "read": {
+    "ember": 0.0556,
+    "tide": 0.7326,
+    "zephyr": 0.3677,
+    "root": 0.5791,
+    "gleam": 0.2315,
+    "veil": 0.3797,
+    "spark": 0.535,
+    "loom": 0.6507
+   }
+  },
+  {
+   "id": "mix-09/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.761,
+    "tide": 0.799,
+    "zephyr": 0.941,
+    "root": 0.562,
+    "gleam": 0.403,
+    "veil": 0.616,
+    "spark": 0.663,
+    "loom": 0.905
+   },
+   "read": {
+    "ember": 0.1847,
+    "tide": 0.3835,
+    "zephyr": 0.7045,
+    "root": 0.7532,
+    "gleam": 0.2983,
+    "veil": 0.3227,
+    "spark": 0.3806,
+    "loom": 0.4604
+   }
+  },
+  {
+   "id": "mix-09/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.761,
+    "tide": 0.799,
+    "zephyr": 0.941,
+    "root": 0.562,
+    "gleam": 0.403,
+    "veil": 0.616,
+    "spark": 0.663,
+    "loom": 0.905
+   },
+   "read": {
+    "ember": 0.1263,
+    "tide": 0.5819,
+    "zephyr": 0.3496,
+    "root": 0.6524,
+    "gleam": 0.3095,
+    "veil": 0.5842,
+    "spark": 0.4997,
+    "loom": 0.5844
+   }
+  },
+  {
+   "id": "mix-09/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.761,
+    "tide": 0.799,
+    "zephyr": 0.941,
+    "root": 0.562,
+    "gleam": 0.403,
+    "veil": 0.616,
+    "spark": 0.663,
+    "loom": 0.905
+   },
+   "read": {
+    "ember": 0.1391,
+    "tide": 0.7294,
+    "zephyr": 0.3934,
+    "root": 0.6864,
+    "gleam": 0.2776,
+    "veil": 0.3851,
+    "spark": 0.8058,
+    "loom": 0.3927
+   }
+  },
+  {
+   "id": "mix-09/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.761,
+    "tide": 0.799,
+    "zephyr": 0.941,
+    "root": 0.562,
+    "gleam": 0.403,
+    "veil": 0.616,
+    "spark": 0.663,
+    "loom": 0.905
+   },
+   "read": {
+    "ember": 0.0662,
+    "tide": 0.5157,
+    "zephyr": 0.3123,
+    "root": 0.5658,
+    "gleam": 0.4627,
+    "veil": 0.5369,
+    "spark": 0.469,
+    "loom": 0.616
+   }
+  },
+  {
+   "id": "mix-10/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.889,
+    "tide": 0.486,
+    "zephyr": 0.674,
+    "root": 0.37,
+    "gleam": 0.181,
+    "veil": 0.616,
+    "spark": 0.11,
+    "loom": 0.457
+   },
+   "read": {
+    "ember": 0.4098,
+    "tide": 0.4743,
+    "zephyr": 0.22,
+    "root": 0.6311,
+    "gleam": 0.3691,
+    "veil": 0.7877,
+    "spark": 0.4669,
+    "loom": 0.5509
+   }
+  },
+  {
+   "id": "mix-10/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.889,
+    "tide": 0.486,
+    "zephyr": 0.674,
+    "root": 0.37,
+    "gleam": 0.181,
+    "veil": 0.616,
+    "spark": 0.11,
+    "loom": 0.457
+   },
+   "read": {
+    "ember": 0.4139,
+    "tide": 0.4656,
+    "zephyr": 0.3606,
+    "root": 0.687,
+    "gleam": 0.3745,
+    "veil": 0.7633,
+    "spark": 0.3713,
+    "loom": 0.4966
+   }
+  },
+  {
+   "id": "mix-10/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.889,
+    "tide": 0.486,
+    "zephyr": 0.674,
+    "root": 0.37,
+    "gleam": 0.181,
+    "veil": 0.616,
+    "spark": 0.11,
+    "loom": 0.457
+   },
+   "read": {
+    "ember": 0.4576,
+    "tide": 0.4959,
+    "zephyr": 0.5203,
+    "root": 0.7184,
+    "gleam": 0.4356,
+    "veil": 0.8105,
+    "spark": 0.3975,
+    "loom": 0.3376
+   }
+  },
+  {
+   "id": "mix-10/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.889,
+    "tide": 0.486,
+    "zephyr": 0.674,
+    "root": 0.37,
+    "gleam": 0.181,
+    "veil": 0.616,
+    "spark": 0.11,
+    "loom": 0.457
+   },
+   "read": {
+    "ember": 0.4223,
+    "tide": 0.823,
+    "zephyr": 0.3669,
+    "root": 0.6888,
+    "gleam": 0.5312,
+    "veil": 0.6733,
+    "spark": 0.756,
+    "loom": 0.4017
+   }
+  },
+  {
+   "id": "mix-10/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.889,
+    "tide": 0.486,
+    "zephyr": 0.674,
+    "root": 0.37,
+    "gleam": 0.181,
+    "veil": 0.616,
+    "spark": 0.11,
+    "loom": 0.457
+   },
+   "read": {
+    "ember": 0.5134,
+    "tide": 0.4577,
+    "zephyr": 0.4165,
+    "root": 0.7294,
+    "gleam": 0.4178,
+    "veil": 0.9242,
+    "spark": 0.4436,
+    "loom": 0.451
+   }
+  },
+  {
+   "id": "mix-11/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.208,
+    "tide": 0.07,
+    "zephyr": 0.08,
+    "root": 0.6,
+    "gleam": 0.499,
+    "veil": 0.218,
+    "spark": 0.92,
+    "loom": 0.112
+   },
+   "read": {
+    "ember": 0.3367,
+    "tide": 0.7925,
+    "zephyr": 0.3746,
+    "root": 0.5022,
+    "gleam": 0.414,
+    "veil": 0.6383,
+    "spark": 0.6267,
+    "loom": 0.5582
+   }
+  },
+  {
+   "id": "mix-11/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.208,
+    "tide": 0.07,
+    "zephyr": 0.08,
+    "root": 0.6,
+    "gleam": 0.499,
+    "veil": 0.218,
+    "spark": 0.92,
+    "loom": 0.112
+   },
+   "read": {
+    "ember": 0.4303,
+    "tide": 0.5834,
+    "zephyr": 0.4199,
+    "root": 0.5581,
+    "gleam": 0.2456,
+    "veil": 0.4662,
+    "spark": 0.317,
+    "loom": 0.5884
+   }
+  },
+  {
+   "id": "mix-11/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.208,
+    "tide": 0.07,
+    "zephyr": 0.08,
+    "root": 0.6,
+    "gleam": 0.499,
+    "veil": 0.218,
+    "spark": 0.92,
+    "loom": 0.112
+   },
+   "read": {
+    "ember": 0.4843,
+    "tide": 0.5416,
+    "zephyr": 0.641,
+    "root": 0.707,
+    "gleam": 0.406,
+    "veil": 0.4878,
+    "spark": 0.2805,
+    "loom": 0.7275
+   }
+  },
+  {
+   "id": "mix-11/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.208,
+    "tide": 0.07,
+    "zephyr": 0.08,
+    "root": 0.6,
+    "gleam": 0.499,
+    "veil": 0.218,
+    "spark": 0.92,
+    "loom": 0.112
+   },
+   "read": {
+    "ember": 0.3316,
+    "tide": 0.5147,
+    "zephyr": 0.3493,
+    "root": 0.6469,
+    "gleam": 0.5879,
+    "veil": 0.5997,
+    "spark": 0,
+    "loom": 0
+   }
+  },
+  {
+   "id": "mix-11/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.208,
+    "tide": 0.07,
+    "zephyr": 0.08,
+    "root": 0.6,
+    "gleam": 0.499,
+    "veil": 0.218,
+    "spark": 0.92,
+    "loom": 0.112
+   },
+   "read": {
+    "ember": 0.5113,
+    "tide": 0.8223,
+    "zephyr": 0.4666,
+    "root": 0.5564,
+    "gleam": 0.4892,
+    "veil": 0.4757,
+    "spark": 0.2452,
+    "loom": 0.7371
+   }
+  },
+  {
+   "id": "mix-12/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.092,
+    "tide": 0.678,
+    "zephyr": 0.224,
+    "root": 0.219,
+    "gleam": 0.821,
+    "veil": 0.536,
+    "spark": 0.196,
+    "loom": 0.927
+   },
+   "read": {
+    "ember": 0.0125,
+    "tide": 0.7952,
+    "zephyr": 0.3191,
+    "root": 0.558,
+    "gleam": 0.3078,
+    "veil": 0.4749,
+    "spark": 0.9002,
+    "loom": 0
+   }
+  },
+  {
+   "id": "mix-12/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.092,
+    "tide": 0.678,
+    "zephyr": 0.224,
+    "root": 0.219,
+    "gleam": 0.821,
+    "veil": 0.536,
+    "spark": 0.196,
+    "loom": 0.927
+   },
+   "read": {
+    "ember": 0.1362,
+    "tide": 0.4456,
+    "zephyr": 0.6451,
+    "root": 0.9692,
+    "gleam": 0.1338,
+    "veil": 0.4348,
+    "spark": 0,
+    "loom": 0.7307
+   }
+  },
+  {
+   "id": "mix-12/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.092,
+    "tide": 0.678,
+    "zephyr": 0.224,
+    "root": 0.219,
+    "gleam": 0.821,
+    "veil": 0.536,
+    "spark": 0.196,
+    "loom": 0.927
+   },
+   "read": {
+    "ember": 0.0508,
+    "tide": 0.6471,
+    "zephyr": 0.0832,
+    "root": 0.5522,
+    "gleam": 0.4066,
+    "veil": 0.6158,
+    "spark": 0,
+    "loom": 0.8438
+   }
+  },
+  {
+   "id": "mix-12/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.092,
+    "tide": 0.678,
+    "zephyr": 0.224,
+    "root": 0.219,
+    "gleam": 0.821,
+    "veil": 0.536,
+    "spark": 0.196,
+    "loom": 0.927
+   },
+   "read": {
+    "ember": 0.0242,
+    "tide": 0.7406,
+    "zephyr": 0.1175,
+    "root": 0.6198,
+    "gleam": 0.2263,
+    "veil": 0.4107,
+    "spark": 0,
+    "loom": 0.2855
+   }
+  },
+  {
+   "id": "mix-12/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.092,
+    "tide": 0.678,
+    "zephyr": 0.224,
+    "root": 0.219,
+    "gleam": 0.821,
+    "veil": 0.536,
+    "spark": 0.196,
+    "loom": 0.927
+   },
+   "read": {
+    "ember": 0.0748,
+    "tide": 0.7998,
+    "zephyr": 0.0247,
+    "root": 0.4925,
+    "gleam": 0.2494,
+    "veil": 0.557,
+    "spark": 0,
+    "loom": 0.6276
+   }
+  },
+  {
+   "id": "mix-13/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.265,
+    "tide": 0.186,
+    "zephyr": 0.842,
+    "root": 0.627,
+    "gleam": 0.581,
+    "veil": 0.269,
+    "spark": 0.408,
+    "loom": 0.305
+   },
+   "read": {
+    "ember": 0.3985,
+    "tide": 0.4495,
+    "zephyr": 0.4104,
+    "root": 0.6912,
+    "gleam": 0.4027,
+    "veil": 0.6214,
+    "spark": 0.6763,
+    "loom": 0.5219
+   }
+  },
+  {
+   "id": "mix-13/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.265,
+    "tide": 0.186,
+    "zephyr": 0.842,
+    "root": 0.627,
+    "gleam": 0.581,
+    "veil": 0.269,
+    "spark": 0.408,
+    "loom": 0.305
+   },
+   "read": {
+    "ember": 0.4462,
+    "tide": 0.5094,
+    "zephyr": 0.5376,
+    "root": 0.7578,
+    "gleam": 0.5499,
+    "veil": 0.566,
+    "spark": 0.616,
+    "loom": 0.5219
+   }
+  },
+  {
+   "id": "mix-13/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.265,
+    "tide": 0.186,
+    "zephyr": 0.842,
+    "root": 0.627,
+    "gleam": 0.581,
+    "veil": 0.269,
+    "spark": 0.408,
+    "loom": 0.305
+   },
+   "read": {
+    "ember": 0.5237,
+    "tide": 0.4483,
+    "zephyr": 0.7015,
+    "root": 0.7634,
+    "gleam": 0.4674,
+    "veil": 0.4565,
+    "spark": 0.3552,
+    "loom": 0.6937
+   }
+  },
+  {
+   "id": "mix-13/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.265,
+    "tide": 0.186,
+    "zephyr": 0.842,
+    "root": 0.627,
+    "gleam": 0.581,
+    "veil": 0.269,
+    "spark": 0.408,
+    "loom": 0.305
+   },
+   "read": {
+    "ember": 0.4271,
+    "tide": 0.4723,
+    "zephyr": 0.2195,
+    "root": 0.6351,
+    "gleam": 0.4446,
+    "veil": 0.5969,
+    "spark": 0.7064,
+    "loom": 0.7339
+   }
+  },
+  {
+   "id": "mix-13/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.265,
+    "tide": 0.186,
+    "zephyr": 0.842,
+    "root": 0.627,
+    "gleam": 0.581,
+    "veil": 0.269,
+    "spark": 0.408,
+    "loom": 0.305
+   },
+   "read": {
+    "ember": 0.5355,
+    "tide": 0.685,
+    "zephyr": 0.485,
+    "root": 0.7322,
+    "gleam": 0.6005,
+    "veil": 0.4925,
+    "spark": 0.3719,
+    "loom": 0.6961
+   }
+  },
+  {
+   "id": "mix-14/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.931,
+    "tide": 0.333,
+    "zephyr": 0.708,
+    "root": 0.34,
+    "gleam": 0.155,
+    "veil": 0.8,
+    "spark": 0.165,
+    "loom": 0.528
+   },
+   "read": {
+    "ember": 0.4395,
+    "tide": 0.4708,
+    "zephyr": 0.2702,
+    "root": 0.6274,
+    "gleam": 0.3588,
+    "veil": 0.8024,
+    "spark": 0.4728,
+    "loom": 0.5418
+   }
+  },
+  {
+   "id": "mix-14/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.931,
+    "tide": 0.333,
+    "zephyr": 0.708,
+    "root": 0.34,
+    "gleam": 0.155,
+    "veil": 0.8,
+    "spark": 0.165,
+    "loom": 0.528
+   },
+   "read": {
+    "ember": 0.4455,
+    "tide": 0.4763,
+    "zephyr": 0.3736,
+    "root": 0.6786,
+    "gleam": 0.4131,
+    "veil": 0.7573,
+    "spark": 0.3664,
+    "loom": 0.4875
+   }
+  },
+  {
+   "id": "mix-14/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.931,
+    "tide": 0.333,
+    "zephyr": 0.708,
+    "root": 0.34,
+    "gleam": 0.155,
+    "veil": 0.8,
+    "spark": 0.165,
+    "loom": 0.528
+   },
+   "read": {
+    "ember": 0.4873,
+    "tide": 0.503,
+    "zephyr": 0.5177,
+    "root": 0.6992,
+    "gleam": 0.4607,
+    "veil": 0.6894,
+    "spark": 0.3888,
+    "loom": 0.3741
+   }
+  },
+  {
+   "id": "mix-14/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.931,
+    "tide": 0.333,
+    "zephyr": 0.708,
+    "root": 0.34,
+    "gleam": 0.155,
+    "veil": 0.8,
+    "spark": 0.165,
+    "loom": 0.528
+   },
+   "read": {
+    "ember": 0.4751,
+    "tide": 0.4407,
+    "zephyr": 0.1916,
+    "root": 0.6601,
+    "gleam": 0.5415,
+    "veil": 0.872,
+    "spark": 0.6042,
+    "loom": 0.6539
+   }
+  },
+  {
+   "id": "mix-14/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.931,
+    "tide": 0.333,
+    "zephyr": 0.708,
+    "root": 0.34,
+    "gleam": 0.155,
+    "veil": 0.8,
+    "spark": 0.165,
+    "loom": 0.528
+   },
+   "read": {
+    "ember": 0.5576,
+    "tide": 0.5525,
+    "zephyr": 0.4687,
+    "root": 0.7117,
+    "gleam": 0.5997,
+    "veil": 0.7749,
+    "spark": 0.4584,
+    "loom": 0.4331
+   }
+  },
+  {
+   "id": "mix-15/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.15,
+    "tide": 0.893,
+    "zephyr": 0.621,
+    "root": 0.583,
+    "gleam": 0.425,
+    "veil": 0.739,
+    "spark": 0.864,
+    "loom": 0.71
+   },
+   "read": {
+    "ember": 0.0108,
+    "tide": 0.7959,
+    "zephyr": 0.3321,
+    "root": 0.5737,
+    "gleam": 0.2831,
+    "veil": 0.4226,
+    "spark": 0.898,
+    "loom": 0
+   }
+  },
+  {
+   "id": "mix-15/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.15,
+    "tide": 0.893,
+    "zephyr": 0.621,
+    "root": 0.583,
+    "gleam": 0.425,
+    "veil": 0.739,
+    "spark": 0.864,
+    "loom": 0.71
+   },
+   "read": {
+    "ember": 0,
+    "tide": 0.836,
+    "zephyr": 0.243,
+    "root": 0.629,
+    "gleam": 0.1594,
+    "veil": 0.3075,
+    "spark": 0.9002,
+    "loom": 0.5926
+   }
+  },
+  {
+   "id": "mix-15/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.15,
+    "tide": 0.893,
+    "zephyr": 0.621,
+    "root": 0.583,
+    "gleam": 0.425,
+    "veil": 0.739,
+    "spark": 0.864,
+    "loom": 0.71
+   },
+   "read": {
+    "ember": 0.0214,
+    "tide": 0.7,
+    "zephyr": 0.2227,
+    "root": 0.6477,
+    "gleam": 0.291,
+    "veil": 0.4186,
+    "spark": 0,
+    "loom": 0.8865
+   }
+  },
+  {
+   "id": "mix-15/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.15,
+    "tide": 0.893,
+    "zephyr": 0.621,
+    "root": 0.583,
+    "gleam": 0.425,
+    "veil": 0.739,
+    "spark": 0.864,
+    "loom": 0.71
+   },
+   "read": {
+    "ember": 0.0132,
+    "tide": 0.783,
+    "zephyr": 0.3982,
+    "root": 0.7769,
+    "gleam": 0.1664,
+    "veil": 0.3801,
+    "spark": 0,
+    "loom": 0.3588
+   }
+  },
+  {
+   "id": "mix-15/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.15,
+    "tide": 0.893,
+    "zephyr": 0.621,
+    "root": 0.583,
+    "gleam": 0.425,
+    "veil": 0.739,
+    "spark": 0.864,
+    "loom": 0.71
+   },
+   "read": {
+    "ember": 0.0145,
+    "tide": 0.8047,
+    "zephyr": 0.0982,
+    "root": 0.6211,
+    "gleam": 0.3774,
+    "veil": 0.4434,
+    "spark": 0,
+    "loom": 0.9509
+   }
+  },
+  {
+   "id": "mix-16/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.45,
+    "tide": 0.142,
+    "zephyr": 0.653,
+    "root": 0.152,
+    "gleam": 0.949,
+    "veil": 0.538,
+    "spark": 0.104,
+    "loom": 0.27
+   },
+   "read": {
+    "ember": 0.4071,
+    "tide": 0.7559,
+    "zephyr": 0.3499,
+    "root": 0.6071,
+    "gleam": 0.3997,
+    "veil": 0.7282,
+    "spark": 0.4805,
+    "loom": 0.5146
+   }
+  },
+  {
+   "id": "mix-16/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.45,
+    "tide": 0.142,
+    "zephyr": 0.653,
+    "root": 0.152,
+    "gleam": 0.949,
+    "veil": 0.538,
+    "spark": 0.104,
+    "loom": 0.27
+   },
+   "read": {
+    "ember": 0.4178,
+    "tide": 0.7147,
+    "zephyr": 0.4035,
+    "root": 0.6678,
+    "gleam": 0.5559,
+    "veil": 0.6251,
+    "spark": 0.5115,
+    "loom": 0.4419
+   }
+  },
+  {
+   "id": "mix-16/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.45,
+    "tide": 0.142,
+    "zephyr": 0.653,
+    "root": 0.152,
+    "gleam": 0.949,
+    "veil": 0.538,
+    "spark": 0.104,
+    "loom": 0.27
+   },
+   "read": {
+    "ember": 0.6123,
+    "tide": 0.5355,
+    "zephyr": 0.5383,
+    "root": 0.7229,
+    "gleam": 0.4391,
+    "veil": 0.7848,
+    "spark": 0.2028,
+    "loom": 0.6091
+   }
+  },
+  {
+   "id": "mix-16/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.45,
+    "tide": 0.142,
+    "zephyr": 0.653,
+    "root": 0.152,
+    "gleam": 0.949,
+    "veil": 0.538,
+    "spark": 0.104,
+    "loom": 0.27
+   },
+   "read": {
+    "ember": 0.431,
+    "tide": 0.6597,
+    "zephyr": 0.3314,
+    "root": 0.6727,
+    "gleam": 0.4011,
+    "veil": 0.74,
+    "spark": 0.4545,
+    "loom": 0.7505
+   }
+  },
+  {
+   "id": "mix-16/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.45,
+    "tide": 0.142,
+    "zephyr": 0.653,
+    "root": 0.152,
+    "gleam": 0.949,
+    "veil": 0.538,
+    "spark": 0.104,
+    "loom": 0.27
+   },
+   "read": {
+    "ember": 0.6222,
+    "tide": 0.8039,
+    "zephyr": 0.3483,
+    "root": 0.7028,
+    "gleam": 0.4196,
+    "veil": 0.7441,
+    "spark": 0.2881,
+    "loom": 0.5894
+   }
+  },
+  {
+   "id": "mix-17/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.46,
+    "tide": 0.851,
+    "zephyr": 0.694,
+    "root": 0.244,
+    "gleam": 0.108,
+    "veil": 0.079,
+    "spark": 0.592,
+    "loom": 0.441
+   },
+   "read": {
+    "ember": 0.0623,
+    "tide": 0.8357,
+    "zephyr": 0.3584,
+    "root": 0.6039,
+    "gleam": 0.2413,
+    "veil": 0.2969,
+    "spark": 0.4559,
+    "loom": 0.6972
+   }
+  },
+  {
+   "id": "mix-17/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.46,
+    "tide": 0.851,
+    "zephyr": 0.694,
+    "root": 0.244,
+    "gleam": 0.108,
+    "veil": 0.079,
+    "spark": 0.592,
+    "loom": 0.441
+   },
+   "read": {
+    "ember": 0.0792,
+    "tide": 0.7948,
+    "zephyr": 0.3151,
+    "root": 0.6579,
+    "gleam": 0.3134,
+    "veil": 0.4241,
+    "spark": 0.3983,
+    "loom": 0.7391
+   }
+  },
+  {
+   "id": "mix-17/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.46,
+    "tide": 0.851,
+    "zephyr": 0.694,
+    "root": 0.244,
+    "gleam": 0.108,
+    "veil": 0.079,
+    "spark": 0.592,
+    "loom": 0.441
+   },
+   "read": {
+    "ember": 0.0811,
+    "tide": 0.6369,
+    "zephyr": 0.2445,
+    "root": 0.6005,
+    "gleam": 0.3116,
+    "veil": 0.5341,
+    "spark": 0.3698,
+    "loom": 0.736
+   }
+  },
+  {
+   "id": "mix-17/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.46,
+    "tide": 0.851,
+    "zephyr": 0.694,
+    "root": 0.244,
+    "gleam": 0.108,
+    "veil": 0.079,
+    "spark": 0.592,
+    "loom": 0.441
+   },
+   "read": {
+    "ember": 0.0526,
+    "tide": 0.7954,
+    "zephyr": 0.3009,
+    "root": 0.7227,
+    "gleam": 0.3167,
+    "veil": 0.3756,
+    "spark": 0.7406,
+    "loom": 0.4689
+   }
+  },
+  {
+   "id": "mix-17/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.46,
+    "tide": 0.851,
+    "zephyr": 0.694,
+    "root": 0.244,
+    "gleam": 0.108,
+    "veil": 0.079,
+    "spark": 0.592,
+    "loom": 0.441
+   },
+   "read": {
+    "ember": 0.0906,
+    "tide": 0.7543,
+    "zephyr": 0.2114,
+    "root": 0.5955,
+    "gleam": 0.4919,
+    "veil": 0.479,
+    "spark": 0.4384,
+    "loom": 0.6468
+   }
+  },
+  {
+   "id": "mix-18/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.87,
+    "tide": 0.703,
+    "zephyr": 0.615,
+    "root": 0.426,
+    "gleam": 0.228,
+    "veil": 0.492,
+    "spark": 0.382,
+    "loom": 0.837
+   },
+   "read": {
+    "ember": 0.1366,
+    "tide": 0.4814,
+    "zephyr": 0.3766,
+    "root": 0.6919,
+    "gleam": 0.4119,
+    "veil": 0.51,
+    "spark": 0.5382,
+    "loom": 0.5147
+   }
+  },
+  {
+   "id": "mix-18/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.87,
+    "tide": 0.703,
+    "zephyr": 0.615,
+    "root": 0.426,
+    "gleam": 0.228,
+    "veil": 0.492,
+    "spark": 0.382,
+    "loom": 0.837
+   },
+   "read": {
+    "ember": 0.2249,
+    "tide": 0.4596,
+    "zephyr": 0.4212,
+    "root": 0.7755,
+    "gleam": 0.3213,
+    "veil": 0.5577,
+    "spark": 0.4334,
+    "loom": 0.7132
+   }
+  },
+  {
+   "id": "mix-18/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.87,
+    "tide": 0.703,
+    "zephyr": 0.615,
+    "root": 0.426,
+    "gleam": 0.228,
+    "veil": 0.492,
+    "spark": 0.382,
+    "loom": 0.837
+   },
+   "read": {
+    "ember": 0.2672,
+    "tide": 0.4859,
+    "zephyr": 0.3903,
+    "root": 0.7879,
+    "gleam": 0.2771,
+    "veil": 0.6812,
+    "spark": 0.4271,
+    "loom": 0.3558
+   }
+  },
+  {
+   "id": "mix-18/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.87,
+    "tide": 0.703,
+    "zephyr": 0.615,
+    "root": 0.426,
+    "gleam": 0.228,
+    "veil": 0.492,
+    "spark": 0.382,
+    "loom": 0.837
+   },
+   "read": {
+    "ember": 0.1456,
+    "tide": 0.762,
+    "zephyr": 0.2159,
+    "root": 0.7895,
+    "gleam": 0.226,
+    "veil": 0.6339,
+    "spark": 0.8415,
+    "loom": 0.3658
+   }
+  },
+  {
+   "id": "mix-18/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.87,
+    "tide": 0.703,
+    "zephyr": 0.615,
+    "root": 0.426,
+    "gleam": 0.228,
+    "veil": 0.492,
+    "spark": 0.382,
+    "loom": 0.837
+   },
+   "read": {
+    "ember": 0.1242,
+    "tide": 0.4809,
+    "zephyr": 0.3263,
+    "root": 0.7192,
+    "gleam": 0.4295,
+    "veil": 0.666,
+    "spark": 0.4647,
+    "loom": 0.5133
+   }
+  },
+  {
+   "id": "mix-19/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.111,
+    "tide": 0.453,
+    "zephyr": 0.729,
+    "root": 0.205,
+    "gleam": 0.628,
+    "veil": 0.793,
+    "spark": 0.701,
+    "loom": 0.264
+   },
+   "read": {
+    "ember": 0.0116,
+    "tide": 0.7938,
+    "zephyr": 0.3205,
+    "root": 0.5267,
+    "gleam": 0.3216,
+    "veil": 0.5505,
+    "spark": 0.8997,
+    "loom": 0
+   }
+  },
+  {
+   "id": "mix-19/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.111,
+    "tide": 0.453,
+    "zephyr": 0.729,
+    "root": 0.205,
+    "gleam": 0.628,
+    "veil": 0.793,
+    "spark": 0.701,
+    "loom": 0.264
+   },
+   "read": {
+    "ember": 0.1062,
+    "tide": 0.5015,
+    "zephyr": 0.3714,
+    "root": 0.8529,
+    "gleam": 0.2635,
+    "veil": 0.2621,
+    "spark": 0,
+    "loom": 0.7223
+   }
+  },
+  {
+   "id": "mix-19/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.111,
+    "tide": 0.453,
+    "zephyr": 0.729,
+    "root": 0.205,
+    "gleam": 0.628,
+    "veil": 0.793,
+    "spark": 0.701,
+    "loom": 0.264
+   },
+   "read": {
+    "ember": 0.0661,
+    "tide": 0.6884,
+    "zephyr": 0.1807,
+    "root": 0.6048,
+    "gleam": 0.257,
+    "veil": 0.5619,
+    "spark": 0,
+    "loom": 0.8737
+   }
+  },
+  {
+   "id": "mix-19/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.111,
+    "tide": 0.453,
+    "zephyr": 0.729,
+    "root": 0.205,
+    "gleam": 0.628,
+    "veil": 0.793,
+    "spark": 0.701,
+    "loom": 0.264
+   },
+   "read": {
+    "ember": 0.0113,
+    "tide": 0.9027,
+    "zephyr": 0.3615,
+    "root": 0.7128,
+    "gleam": 0.1863,
+    "veil": 0.5151,
+    "spark": 0,
+    "loom": 0.2401
+   }
+  },
+  {
+   "id": "mix-19/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.111,
+    "tide": 0.453,
+    "zephyr": 0.729,
+    "root": 0.205,
+    "gleam": 0.628,
+    "veil": 0.793,
+    "spark": 0.701,
+    "loom": 0.264
+   },
+   "read": {
+    "ember": 0.0557,
+    "tide": 0.8361,
+    "zephyr": 0.123,
+    "root": 0.5649,
+    "gleam": 0.423,
+    "veil": 0.6871,
+    "spark": 0,
+    "loom": 0.9548
+   }
+  },
+  {
+   "id": "mix-20/2000",
+   "seed": "2000",
+   "spell": {
+    "ember": 0.277,
+    "tide": 0.104,
+    "zephyr": 0.624,
+    "root": 0.63,
+    "gleam": 0.441,
+    "veil": 0.573,
+    "spark": 0.225,
+    "loom": 0.12
+   },
+   "read": {
+    "ember": 0.4442,
+    "tide": 0.4556,
+    "zephyr": 0.3953,
+    "root": 0.6911,
+    "gleam": 0.4295,
+    "veil": 0.5785,
+    "spark": 0.6955,
+    "loom": 0.4346
+   }
+  },
+  {
+   "id": "mix-20/2001",
+   "seed": "2001",
+   "spell": {
+    "ember": 0.277,
+    "tide": 0.104,
+    "zephyr": 0.624,
+    "root": 0.63,
+    "gleam": 0.441,
+    "veil": 0.573,
+    "spark": 0.225,
+    "loom": 0.12
+   },
+   "read": {
+    "ember": 0.4328,
+    "tide": 0.6802,
+    "zephyr": 0.3995,
+    "root": 0.659,
+    "gleam": 0.5394,
+    "veil": 0.6385,
+    "spark": 0.5177,
+    "loom": 0.471
+   }
+  },
+  {
+   "id": "mix-20/2002",
+   "seed": "2002",
+   "spell": {
+    "ember": 0.277,
+    "tide": 0.104,
+    "zephyr": 0.624,
+    "root": 0.63,
+    "gleam": 0.441,
+    "veil": 0.573,
+    "spark": 0.225,
+    "loom": 0.12
+   },
+   "read": {
+    "ember": 0.6098,
+    "tide": 0.4781,
+    "zephyr": 0.5788,
+    "root": 0.7148,
+    "gleam": 0.4999,
+    "veil": 0.8723,
+    "spark": 0.2966,
+    "loom": 0.6176
+   }
+  },
+  {
+   "id": "mix-20/2003",
+   "seed": "2003",
+   "spell": {
+    "ember": 0.277,
+    "tide": 0.104,
+    "zephyr": 0.624,
+    "root": 0.63,
+    "gleam": 0.441,
+    "veil": 0.573,
+    "spark": 0.225,
+    "loom": 0.12
+   },
+   "read": {
+    "ember": 0.4002,
+    "tide": 0.646,
+    "zephyr": 0.3949,
+    "root": 0.6319,
+    "gleam": 0.5159,
+    "veil": 0.6872,
+    "spark": 0.804,
+    "loom": 0.6013
+   }
+  },
+  {
+   "id": "mix-20/2004",
+   "seed": "2004",
+   "spell": {
+    "ember": 0.277,
+    "tide": 0.104,
+    "zephyr": 0.624,
+    "root": 0.63,
+    "gleam": 0.441,
+    "veil": 0.573,
+    "spark": 0.225,
+    "loom": 0.12
+   },
+   "read": {
+    "ember": 0.6109,
+    "tide": 0.4892,
+    "zephyr": 0.4899,
+    "root": 0.7265,
+    "gleam": 0.434,
+    "veil": 0.8856,
+    "spark": 0.314,
+    "loom": 0.6058
+   }
+  }
+ ]
+}

@@ -2,10 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- The page is one module graph served off a static folder; without this a
-         tab can keep an old ring alive across a commit. -->
-    <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
+    <!-- No cache meta: browsers ignore http-equiv Cache-Control and Pragma
+         (R128 of the reconciled review of 09-24). Every asset this page loads
+         is named by its hash, so a new build is a new module graph. -->
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -17,30 +16,30 @@
     <meta property="og:title" content="Deep House" />
     <meta property="og:description" content="An endless deep house set, generated in your browser." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://excelsior-arts.github.io/deep-house/" />
-    <meta property="og:image" content="https://excelsior-arts.github.io/deep-house/card.png" />
+    <meta property="og:url" content="https://deephouse.audio/" />
+    <meta property="og:image" content="https://deephouse.audio/card.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Deep House" />
     <meta name="twitter:description" content="An endless deep house set, generated in your browser." />
-    <meta name="twitter:image" content="https://excelsior-arts.github.io/deep-house/card.png" />
+    <meta name="twitter:image" content="https://deephouse.audio/card.png" />
 
     <!-- What a search engine is told: the page is one address, and it is a
          free music application, not a document. -->
-    <link rel="canonical" href="https://excelsior-arts.github.io/deep-house/" />
+    <link rel="canonical" href="https://deephouse.audio/" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Deep House",
-      "url": "https://excelsior-arts.github.io/deep-house/",
+      "url": "https://deephouse.audio/",
       "description": "An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Any",
       "browserRequirements": "Requires a browser with Web Audio",
-      "image": "https://excelsior-arts.github.io/deep-house/card.png",
+      "image": "https://deephouse.audio/card.png",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
       "author": { "@type": "Organization", "name": "Excelsior Arts", "url": "https://github.com/excelsior-arts" }
     }
@@ -49,34 +48,117 @@
     <!-- The sigil cut for a tab strip, where every other mark is one flat
          colour: the same drawing as before — the belt at 6.75 so a pixel
          survives between it and the star's points, the two squares at R_STAR,
-         the centre a filled dot because a 2.4 outline is a smudge — with the
+         the centre the play arrow, five tall with its upright edge on the
+         half unit, since a tab is 16 CSS px and a retina screen draws it at 32,
+         where that edge is a whole pixel and the arrow clears the star — with the
          two things a strip does not want taken out of it. The coin it stood on
          is gone, so the ground is nothing, and the gold is one ink. A strip is
          dark because the browser is, so the file decides its own colour: the
          page's ink on a light one, its pale gold on a dark one. The PNGs below
          are the fallback and can only be one of the two, so they are the ink —
          a tab strip is light far more often than it is not. -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Cstyle%3Esvg{color:%2305040a}@media (prefers-color-scheme:dark){svg{color:%23ffe0a0}}%3C/style%3E%3Cg fill='none' stroke='currentColor' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Ccircle cx='8' cy='8' r='1.3' fill='currentColor'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Cstyle%3Esvg{color:%2305040a}@media (prefers-color-scheme:dark){svg{color:%23ffe0a0}}%3C/style%3E%3Cg fill='none' stroke='currentColor' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Cpath d='M6.5 5.5 L10.6 8 L6.5 10.5 Z' fill='currentColor'/%3E%3C/svg%3E" />
     <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <style>:root{--pale:#ffe9a8;--gold:#f2c14e;--deep:#c98a2b;--ink:#05040a;--lightningcss-light: ;--lightningcss-dark:initial;color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;min-height:100vh;overscroll-behavior:none;background:#000;min-height:100dvh}body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;background:#000;margin:0;font-family:Futura,Avenir Next,Century Gothic,Optima,Questrial,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}.said{clip:rect(0 0 0 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}#say{clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}#actions g[tabindex]:focus-visible{outline-offset:3px;outline:2px solid #ffe9a8}#field{background:#000;min-height:120dvh;position:fixed;inset:-10vh 0}#stage{perspective:1500px;perspective-origin:50%;place-items:center;display:grid;position:fixed;inset:0}#tilt{cursor:default;width:min(94vmin,960px);height:min(94vmin,960px);transform-style:preserve-3d;will-change:transform;position:relative;transform:rotateX(0)rotateY(0)}.layer{will-change:transform, opacity;width:100%;height:100%;display:block;position:absolute;inset:0;overflow:visible}#outer{transform:translateZ(-13px)}#star,#inner{transform:translateZ(17px)}#glow{transform:translateZ(20px)}text{fill:var(--gold);text-transform:uppercase;paint-order:stroke;stroke:#05040a;stroke-width:3.2px;stroke-linejoin:round;stroke-linecap:round;font-weight:400}.ln{fill:none;stroke:url(#gold);stroke-linecap:round;stroke-linejoin:round}.hair{stroke-width:1.1px;opacity:.75}.thin{stroke-width:1.6px}.med{stroke-width:2.4px}#cells g.cell{transition:opacity .26s}@media (max-width:560px){.laneKey{display:none}}#mark{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);opacity:.3;cursor:pointer;text-shadow:0 0 3px #05040a,0 0 7px #05040a,0 1px 2px #05040a;font-size:10px;text-decoration:none;transition:opacity .24s;position:fixed}#mark:hover,#mark:focus-visible{opacity:.85}@media (max-width:699px){#mark{left:50%;right:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%)}}#cells g.cell text{transition:fill .26s,opacity .26s}#seedEdit .seedWrap{letter-spacing:2.34px;text-transform:uppercase;height:100%;color:var(--gold);pointer-events:none;text-shadow:0 0 2px #05040a,0 0 4px #05040a;justify-content:center;align-items:center;gap:4px;font-family:inherit;font-size:9px;display:flex}#seedEdit .seedWrap span{opacity:.55}#seedEdit input{width:52px;font:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;color:var(--pale);caret-color:var(--gold);text-shadow:inherit;pointer-events:auto;touch-action:auto;-webkit-user-select:text;user-select:text;background:0 0;border:0;outline:0;margin:0;padding:0}#seedEdit input::selection{color:#fff6de;background:#f2c14e59}</style>
-    <script type="module" crossorigin src="./assets/deep-house-c0O6vdIH.js"></script>
+    <!-- The page's one face, fetched before anything asks for it so the ring's
+         words are drawn in it the first time. `crossorigin` is not a mistake:
+         a font is always fetched in CORS mode, and a preload without it is a
+         second request the browser throws away. -->
+    <link rel="preload" href="./fonts/jost.woff2" as="font" type="font/woff2" crossorigin />
+    <style>@font-face{font-family:Jost;font-style:normal;font-weight:400 500;font-display:swap;src:url(./fonts/jost.woff2)format("woff2");size-adjust:107.7%;ascent-override:96.47%;descent-override:24.12%;line-gap-override:2.77%;unicode-range:U+??,U+131,U+152-153,U+2BB-2BC,U+2C6,U+2DA,U+2DC,U+304,U+308,U+329,U+2000-206F,U+20AC,U+2122,U+2212,U+2215,U+FEFF,U+FFFD}:root{--pale:#ffe9a8;--gold:#f2c14e;--ink:#05040a;--ring:min(calc(.94 * var(--vv-min,100vmin)), 960px);--lightningcss-light: ;--lightningcss-dark:initial;color-scheme:dark}*{box-sizing:border-box}html,body{height:100%;min-height:100vh;overscroll-behavior:none;background:#000;min-height:100dvh}body{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;background:#000;margin:0;font-family:Jost,Futura,Avenir Next,Century Gothic,Optima,Questrial,system-ui,-apple-system,Segoe UI,sans-serif;font-weight:450;overflow:hidden}.said{clip:rect(0 0 0 0);white-space:nowrap;border:0;width:1px;height:1px;margin:-1px;padding:0;position:absolute;overflow:hidden}#say{clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}#actions g[tabindex],#starCells g.cell,#actions g[tabindex]:focus,#starCells g.cell:focus,#actions g[tabindex]:focus-visible,#starCells g.cell:focus-visible,#mark:focus,#panel:focus,#birdPanel button:focus,#birdPanel input[type=range]:focus{outline:none}#mark:focus-visible,#panel:focus-visible,#birdPanel button:focus-visible,#birdPanel input[type=range]:focus-visible{outline:1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);outline-offset:3px}#mark{border-radius:3px}#panel{border-radius:50%}#birdPanel input[type=range]{border-radius:10px}:root[data-quiet-focus] :focus-visible{outline:none!important}#field{background:#000;min-height:120dvh;position:fixed;inset:-10vh 0}#stage{perspective:1500px;perspective-origin:50%;-webkit-user-select:none;user-select:none;place-items:center;display:grid;position:fixed;inset:0}:root:not([data-view=machine]) #stage{top:var(--vv-top,0px);left:var(--vv-left,0px);width:var(--vv-w,100vw);height:100vh;height:var(--vv-h,100dvh);bottom:auto;right:auto}#tilt{cursor:default;width:var(--ring);height:var(--ring);transform-style:preserve-3d;will-change:transform;position:relative;transform:rotateX(0)rotateY(0)}.layer{will-change:transform, opacity;width:100%;height:100%;display:block;position:absolute;inset:0;overflow:visible}#outer{transform:translateZ(-13px)}#star,#inner{transform:translateZ(17px)}#glow{transform:translateZ(20px)}text{fill:var(--gold);text-transform:uppercase;paint-order:stroke;stroke:#05040a;stroke-width:3.2px;stroke-linejoin:round;stroke-linecap:round;font-weight:450}text.tell{fill:#fff}.ln{fill:none;stroke:url(#gold);stroke-linecap:round;stroke-linejoin:round}.hair{stroke-width:1.1px;opacity:.75}.thin{stroke-width:1.6px}.med{stroke-width:2.4px}@media (max-width:560px){.laneKey{display:none}}#mark{bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2;letter-spacing:.12em;right:calc(52px + env(safe-area-inset-right,0px));color:var(--gold);opacity:.3;cursor:pointer;text-shadow:0 0 3px #05040a,0 0 7px #05040a,0 1px 2px #05040a;-webkit-tap-highlight-color:transparent;background:0 0;border:0;margin:0;padding:0;font-family:inherit;font-size:12.24px;font-weight:500;line-height:19px;text-decoration:none;transition:opacity .24s;position:fixed}#mark:hover,#mark:focus-visible{opacity:.85}#name{top:calc(16px + env(safe-area-inset-top,0px));left:calc(20px + env(safe-area-inset-left,0px));z-index:2;white-space:nowrap;color:#fff;pointer-events:none;margin:0;font-size:clamp(24px,4.4vmin,32px);font-weight:500;line-height:1;position:fixed}#name img{filter:drop-shadow(0 0 4px #05040a)drop-shadow(0 0 10px #05040a)drop-shadow(0 1px 3px #05040a);width:auto;height:.786em;margin:.254em 0 0 .082em;display:block}@media (max-width:699px) and (orientation:portrait){#mark{left:50%;right:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%)}#name{left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%)}#name img{margin-left:0}}#panel{right:calc(7px + env(safe-area-inset-right,0px));bottom:calc(4px + env(safe-area-inset-bottom,0px));opacity:.5;z-index:4;width:44px;height:44px;color:var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent;background:0 0;border:0;place-items:center;margin:0;padding:0;transition:opacity .22s;display:grid;position:fixed}#panel:hover,#panel:focus-visible{opacity:.85}@media (max-width:699px) and (orientation:portrait){#panel{bottom:calc(2px + env(safe-area-inset-bottom,0px))}}#seedEdit .seedWrap{letter-spacing:2.34px;text-transform:uppercase;height:100%;color:var(--gold);pointer-events:none;text-shadow:0 0 2px #05040a,0 0 4px #05040a;justify-content:center;align-items:center;gap:4px;font-family:inherit;font-size:9px;display:flex}#seedEdit .seedWrap span{opacity:.55}#seedEdit input{width:52px;font:inherit;letter-spacing:inherit;text-transform:inherit;text-align:left;color:var(--pale);caret-color:var(--gold);text-shadow:inherit;pointer-events:auto;touch-action:auto;-webkit-user-select:text;user-select:text;background:0 0;border:0;outline:0;margin:0;padding:0}#seedEdit input::selection{background:color-mix(in srgb, var(--gold) 35%, transparent);color:#fff}#birdPanel{z-index:6;padding:14px calc(16px + env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));color:var(--gold);text-align:center;text-transform:uppercase;letter-spacing:.2em;touch-action:pan-x;background:#000;border:0;margin:0;position:fixed;bottom:0;left:0;right:0}#birdPanel .now{color:var(--pale);min-height:1.3em;font-size:11px}#birdPanel .steps{align-items:center;gap:6px;margin-top:6px;display:flex}#birdPanel .name{color:#fff;margin-top:8px;font-size:15px;font-weight:500}#birdPanel .means{opacity:.8;margin-top:6px;font-size:11px}#birdPanel .steps[hidden]{display:none}#birdPanel>*{max-width:560px;margin-inline:auto}#birdPanel button{height:56px;font:inherit;color:var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent;background:0 0;border:0;border-radius:50%;flex:0 0 56px;margin:0;padding:0;font-size:30px;line-height:1}#birdPanel button:active{background:color-mix(in srgb, var(--gold) 14%, transparent)}#birdPanel .slide{flex:1;height:56px;position:relative}#birdPanel input[type=range]{appearance:none;touch-action:manipulation;background:0 0;width:100%;height:56px;margin:0;position:absolute;inset:0}#birdPanel input[type=range]::-webkit-slider-runnable-track{background:color-mix(in srgb, var(--gold) 60%, transparent);height:1px}#birdPanel input[type=range]::-moz-range-track{background:color-mix(in srgb, var(--gold) 60%, transparent);height:1px}#birdPanel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;border:1.5px solid var(--gold);background:#000;border-radius:50%;width:22px;height:22px;margin-top:-11px}#birdPanel input[type=range]::-moz-range-thumb{border:1.5px solid var(--gold);background:#000;border-radius:50%;width:22px;height:22px}#birdPanel .house{pointer-events:none;background:var(--gold);opacity:.6;width:1px;height:14px;position:absolute;top:calc(50% - 7px);left:calc(76.9231% - 5.92308px)}#birdPanel .pct{pointer-events:none;color:var(--pale);font-size:11px;position:absolute;top:0;transform:translate(-50%)}#about{box-sizing:border-box;overscroll-behavior:contain;color:#ffffffdb;border:1px solid color-mix(in srgb, var(--gold) 55%, transparent);text-align:center;touch-action:pan-y;-webkit-user-select:text;user-select:text;background:#000;border-radius:4px;width:min(680px,100vw - 32px);max-width:none;max-height:calc(100dvh - 32px);margin:auto;padding:56px 48px 40px;font-family:inherit;font-weight:450;overflow:auto}#about::backdrop{background:#000000c7}#about h2{color:#fff;letter-spacing:.04em;margin:0;font-size:30px;font-weight:500;line-height:1.2}#about .aboutVer{color:#ffffff9e;letter-spacing:.12em;white-space:nowrap;margin-left:.3em;font-size:.55em}#about .aboutSub{letter-spacing:.3em;text-transform:uppercase;color:#ffffff9e;margin:10px 0 0;font-size:11px}#about hr{border:0;border-top:1px solid color-mix(in srgb, var(--gold) 55%, transparent);width:56px;margin:28px auto}#about .aboutWhat{color:#fff;opacity:.86;margin:0;font-size:15px;line-height:1.75}#about .aboutWhat span{display:block}#about .aboutLinks{letter-spacing:.06em;margin:0;padding:0;font-size:13px;line-height:2.3;list-style:none}#about .aboutLinks a{color:#fff;text-decoration:underline;-webkit-text-decoration-color:color-mix(in srgb, var(--gold) 55%, transparent);text-decoration-color:color-mix(in srgb, var(--gold) 55%, transparent);text-underline-offset:4px;border-radius:2px;text-decoration-thickness:1px}#about .aboutLinks a:hover{-webkit-text-decoration-color:var(--gold);text-decoration-color:var(--gold)}#about .aboutClose{min-width:24px;height:22px;font:inherit;letter-spacing:.12em;text-transform:uppercase;color:#ffffffb8;border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);cursor:pointer;background:0 0;border-radius:2px;margin:0;padding:0 9px;font-size:9.5px;position:absolute;top:14px;right:14px}#about .aboutClose:hover{border-color:var(--gold);color:#fff}#about:focus,#about .aboutClose:focus,#about .aboutLinks a:focus{outline:none}#about .aboutClose:focus-visible,#about .aboutLinks a:focus-visible{outline:1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);outline-offset:3px}#about .aboutKey{height:26px;font:inherit;letter-spacing:.12em;text-transform:uppercase;color:#ffffffdb;border:1px solid color-mix(in srgb, var(--gold) 55%, transparent);cursor:pointer;background:0 0;border-radius:2px;align-items:stretch;margin:0;padding:0;font-size:10px;display:inline-flex}#about .aboutKey>span{place-items:center;padding:0 10px;display:grid}#about .aboutKeyState{border-left:1px solid color-mix(in srgb, var(--gold) 55%, transparent);color:#fff;min-width:30px}#about .aboutKey[aria-checked=false]{color:#ffffff80;border-color:#ffffff38}#about .aboutKey[aria-checked=false] .aboutKeyState{color:#ffffff80;border-left-color:#ffffff38}#about .aboutKey:hover{border-color:var(--gold)}#about .aboutKey:focus{outline:none}#about .aboutKey:focus-visible{outline:1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);outline-offset:3px}#about .aboutReportsWhat{color:#fff9;max-width:480px;margin:12px auto 0;font-size:11.5px;line-height:1.6}:root.about-open,:root.about-open body{overflow:hidden}@media (max-width:699px){#about{padding:52px 20px 28px}#about h2{font-size:24px}#about .aboutWhat{font-size:14px}}</style>
+    <script type="module" crossorigin src="./assets/deep-house-Cv6Ouk1p.js"></script>
   </head>
   <body>
     <div id="field"></div>
-    <!-- What a screen reader and a search engine are told, since the sigil
-         itself says nothing: the page's one heading and its two sentences,
-         read aloud and indexed, never drawn. -->
-    <h1 class="said">Deep House</h1>
-    <p class="said">An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays. Touch the centre to start; the band is the mix ahead, the cells of the star are the dice this theme was rolled from, and the dice under the centre cast a new set.</p>
+    <!-- **The page's one heading, and since 09-20 the one mark that says what
+         this is.** It was hidden with the paragraph under it — the sigil says
+         nothing, so a screen reader and a search engine were told in type
+         nobody saw. The name is drawn now, and it is the same element: the
+         heading a search engine reads and the name a listener sees are one
+         thing, so neither can drift from the other. The paragraph under it
+         stays said and not drawn, because it is a description and the ring is
+         the description. -->
+    <h1 id="name"><img src="./wordmark.svg" alt="Deep House" width="14415" height="1610" /></h1>
+    <p class="said">An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
     <div id="say" aria-live="polite" role="status"></div>
     <!-- The set leaves through here: iOS hangs its lock-screen card and its
          controls on a playing media element, not on an audio graph. -->
     <audio id="sound" playsinline></audio>
 
-    <a id="mark" href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Excelsior Arts</a>
+    <!-- The footer's name opens the About (round K25): a button, its look the
+         name's as it was, its name for a screen reader "About". -->
+    <button id="mark" type="button" aria-label="About" aria-haspopup="dialog" aria-controls="about">Excelsior Arts</button>
+
+    <!-- **The About** (round K25, Eugene: "click on Excelsior Arts should show
+         a large popup centred in the page, aka the About page"). A native
+         modal dialog: the page under it is inert, focus goes in and comes back
+         to the key that opened it, and Escape closes it — the dialog's own
+         contract, which the page's one-key rule does not reach: it is not a
+         shortcut the page adds but how a modal sheet is left. Also closed by
+         its key in the corner and by a press on the dark outside. Nothing of
+         it is written into the address: it is not a place one returns to. -->
+    <dialog id="about" tabindex="-1" aria-labelledby="aboutTitle" aria-describedby="aboutWhat">
+      <button class="aboutClose" id="aboutClose" type="button" aria-label="Close the About">close</button>
+      <h2 id="aboutTitle">Deep House <span class="aboutVer" id="aboutVer"></span></h2>
+      <p class="aboutSub">Offline Electronic Music Generator</p>
+      <hr />
+      <p class="aboutWhat" id="aboutWhat">
+        <span>A helpful music companion. No distracting vocals. No agenda. Just vibes.</span>
+        <span>The default sound is tuned to deep house. Other genres are being built and coming soon…</span>
+        <span>Right now the player is at its best on its default lightweight deep house themes and on slow-beat ambient soundscapes (turn Ember down).</span>
+        <span>The link is always the track that plays. Share it, and it plays the same anywhere.</span>
+      </p>
+      <hr />
+      <ul class="aboutLinks">
+        <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener">Follow on X for news</a></li>
+        <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener">Composer Eugene T · Follow</a></li>
+        <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Source</a></li>
+        <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener">License: PolyForm Noncommercial 1.0.0</a></li>
+      </ul>
+      <hr />
+      <!-- The one thing the page ever sends, and its switch (K25): a two-state
+           key in the desk's style, on unless this listener said otherwise. -->
+      <div class="aboutReports">
+        <button class="aboutKey" id="aboutReports" type="button" role="switch" aria-checked="true" aria-describedby="aboutReportsWhat">
+          <span class="aboutKeyName">Anonymous error reports</span><span class="aboutKeyState" id="aboutReportsState">on</span>
+        </button>
+        <p class="aboutReportsWhat" id="aboutReportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+      </div>
+    </dialog>
+
+    <!-- The panel: the way into the machine view (hidden inside it since M8).
+         Since K23 its mark is a gear, eight teeth in the transport's soft
+         corners, on the footer's line at its right end. -->
+    <button id="panel" type="button" aria-label="the machine view" aria-expanded="false">
+      <svg width="21.6" height="21.6" viewBox="0 0 18 18" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M7.38 3.29Q7.72 3.15 7.71 2.79L7.69 1.5Q7.69 1.13 8.06 1.13L9.94 1.13Q10.31 1.13 10.31 1.5L10.29 2.79Q10.28 3.15 10.62 3.29L11.89 3.82Q12.23 3.96 12.48 3.7L13.38 2.77Q13.64 2.51 13.9 2.77L15.23 4.1Q15.49 4.36 15.23 4.62L14.3 5.52Q14.04 5.77 14.18 6.11L14.71 7.38Q14.85 7.72 15.21 7.71L16.5 7.69Q16.87 7.69 16.87 8.06L16.87 9.94Q16.87 10.31 16.5 10.31L15.21 10.29Q14.85 10.28 14.71 10.62L14.18 11.89Q14.04 12.23 14.3 12.48L15.23 13.38Q15.49 13.64 15.23 13.9L13.9 15.23Q13.64 15.49 13.38 15.23L12.48 14.3Q12.23 14.04 11.89 14.18L10.62 14.71Q10.28 14.85 10.29 15.21L10.31 16.5Q10.31 16.87 9.94 16.87L8.06 16.87Q7.69 16.87 7.69 16.5L7.71 15.21Q7.72 14.85 7.38 14.71L6.11 14.18Q5.77 14.04 5.52 14.3L4.62 15.23Q4.36 15.49 4.1 15.23L2.77 13.9Q2.51 13.64 2.77 13.38L3.7 12.48Q3.96 12.23 3.82 11.89L3.29 10.62Q3.15 10.28 2.79 10.29L1.5 10.31Q1.13 10.31 1.13 9.94L1.13 8.06Q1.13 7.69 1.5 7.69L2.79 7.71Q3.15 7.72 3.29 7.38L3.82 6.11Q3.96 5.77 3.7 5.52L2.77 4.62Q2.51 4.36 2.77 4.1L4.1 2.77Q4.36 2.51 4.62 2.77L5.52 3.7Q5.77 3.96 6.11 3.82Z" />
+        <circle cx="9" cy="9" r="2.42" />
+      </svg>
+    </button>
+
+    <!-- The phone's panel for the bird a finger is on: its words, and Less
+         and More. Hidden until a finger opens it (`ring.ts`). -->
+    <!-- Round K12d, Eugene: "the changing value on top, so it's not covered by
+         the finger; the static bird name and subtitle at the bottom of the
+         slider." Top to bottom: the live line, − the slider +, with the
+         percent over the knob, and then the bird's name and what it means. -->
+    <div id="birdPanel" role="group" aria-label="the ring's control" hidden>
+      <div class="now" id="birdPanelNow"></div>
+      <div class="steps" id="birdPanelSteps">
+        <button id="birdPanelLess" type="button" aria-label="less">−</button>
+        <div class="slide">
+          <input id="birdPanelSlider" type="range" min="0" max="130" step="1" aria-label="percent of the house" />
+          <span class="house" aria-hidden="true"></span>
+          <span class="pct" id="birdPanelPct" aria-hidden="true"></span>
+        </div>
+        <button id="birdPanelMore" type="button" aria-label="more">+</button>
+      </div>
+      <div class="name" id="birdPanelName"></div>
+      <div class="means" id="birdPanelMeans"></div>
+    </div>
 
     <div id="stage">
       <div id="tilt">
@@ -88,11 +170,6 @@
               <stop offset="0.34" stop-color="#ffd97a" />
               <stop offset="0.68" stop-color="#f2c14e" />
               <stop offset="1" stop-color="#b9781f" />
-            </linearGradient>
-            <linearGradient id="goldBright" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
-              <stop offset="0" stop-color="#fffbe8" />
-              <stop offset="0.5" stop-color="#ffe9a8" />
-              <stop offset="1" stop-color="#f2c14e" />
             </linearGradient>
             <!-- A whisper of bloom: the line work reads first. The strong
                  glow belongs to the live layer, which paints its own halo. -->
@@ -121,21 +198,32 @@
 
         <!-- The star's own sheet, so the mandala can turn as a composited
              layer: the bloom under it is rasterised once and never re-run. -->
-        <svg class="layer" id="star" viewBox="0 0 1000 1000" aria-hidden="true">
+        <!-- The sheet is no longer hidden from a screen reader: since the
+             compass round the eight cells are the one thing on the star a
+             keyboard can reach, and each carries its whole reading as its own
+             label. Everything else on it is line work or is the words the
+             labels already say, so each of those groups is hidden by name —
+             `aria-hidden` on an ancestor cannot be taken back by a child, which
+             is why it moved off the sheet and onto the three groups. -->
+        <svg class="layer" id="star" viewBox="0 0 1000 1000" role="group" aria-label="the eight controls of the sound">
           <!-- The lines that bind the cells breathe, so they live outside the
                bloom with a stroked halo in its place, and under the cells they
                run into. -->
-          <g id="starGlow" filter="url(#bloom)">
+          <g id="starGlow" filter="url(#bloom)" aria-hidden="true">
             <g id="spin"></g>
           </g>
-          <g id="starLines"></g>
+          <g id="starLines" aria-hidden="true"></g>
+          <!-- The birds' words, over the star's lines and under the birds
+               themselves (Eugene, round K3: *"labels are drawn over the ring's
+               lines but under the bird circles"*). -->
+          <g id="starWords" aria-hidden="true"></g>
           <!-- The cells wander with their vertices, so they leave the bloom
                too and carry a stroked halo in its place. -->
           <g id="starCells"></g>
           <!-- The cells' words ride the same turning sheet but outside the
                bloom, so each can be held upright by a transform of its own
                without ever writing inside a filter. -->
-          <g id="starLive"></g>
+          <g id="starLive" aria-hidden="true"></g>
         </svg>
 
         <svg class="layer" id="inner" viewBox="0 0 1000 1000" role="group" aria-label="transport">

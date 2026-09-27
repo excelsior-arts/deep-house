@@ -1,0 +1,286 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "downtempo/lo-fi",
+  "revision": 1,
+  "name": "Lo-fi beats",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            10,
+            16,
+            23,
+            26
+          ],
+          "accents": [
+            1,
+            0.85,
+            1,
+            0.65,
+            0.85
+          ],
+          "families": [
+            "drum"
+          ],
+          "feel": {
+            "swing": 0.6,
+            "delay": {
+              "beats": 0.03
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.14
+          }
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.6,
+            "delay": {
+              "beats": 0.03
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.14
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14
+          ],
+          "accents": [
+            0.45,
+            0.3,
+            0.5,
+            0.3,
+            0.45,
+            0.3,
+            0.5,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0.03
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.14
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "held"
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "brightnessMin": 1500,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.29,
+          "brightnessMax": 2000
+        },
+        "motif": {
+          "contour": "rise",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            1,
+            1
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                1
+              ],
+              "beats": [
+                4,
+                4
+              ],
+              "holds": [
+                3.5,
+                3.5
+              ],
+              "accents": [
+                0.75,
+                0.7
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.45,
+          0.55
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            2,
+            2
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -6,
+            -4,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      70,
+      90
+    ],
+    "nearest": [
+      95,
+      105
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "lo-fi hip-hop: a lazy boom-bap — kick one and three-and, snare two and four — played behind the beat with heavy swing, under electric-piano seventh chords and a soft sub",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: kick one, three-and; one, two-a, three-and; the snare on two and four; eighth hats swung to 0.62 and late by a thirtieth of a beat with loose dynamics — the drunk feel the style is known for. The chords are stacked sevenths on a warm electric keyboard, one per bar, held; the sub holds the root. The vinyl crackle is the composer's own texture (vinylBed) and cannot be asked for by a row."
+  }
+}

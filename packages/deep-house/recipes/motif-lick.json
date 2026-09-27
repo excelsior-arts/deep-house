@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/lick",
+  "interpreter": "v2",
+  "scope": "motif",
+  "applies": "lead",
+  "name": "the lick",
+  "origin": "golden",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "arch",
+      "intervals": {
+        "steps": [
+          0.3,
+          1
+        ],
+        "leaps": [
+          0,
+          0.7
+        ]
+      },
+      "cell": {
+        "beats": [
+          2,
+          4
+        ]
+      },
+      "onGrid": [
+        0.3,
+        0.9
+      ],
+      "range": {
+        "semitones": [
+          3,
+          14
+        ]
+      },
+      "density": [
+        2,
+        6.5
+      ],
+      "returns": {
+        "bars": [
+          4,
+          8
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "verdicts": [],
+  "provenance": {
+    "from": "authored from production convention, PLAN-MOTIF §3",
+    "degrees": "scale degrees relative to the chord that is sounding; the row names no note and no voice",
+    "calibration": "the twelve authored motifs of src/motif.ts, each of which falls inside one of these boxes",
+    "note": "A line between the chords: four to seven notes that go up and come back, mostly by step, mostly on the beat. It is the part the record has never had — a figure above middle C with a shape of its own instead of a grid of chords."
+  }
+}

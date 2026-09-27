@@ -1,0 +1,196 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "trance/offbeat-bass",
+  "revision": 1,
+  "name": "The offbeat bass",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.7,
+            0.65,
+            0.7,
+            0.65
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              1,
+              1
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.2,
+            0.2
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            5,
+            5
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0,
+                0,
+                -3
+              ],
+              "beats": [
+                0.5,
+                1,
+                1,
+                1,
+                0.5
+              ],
+              "holds": [
+                0.1,
+                0.4,
+                0.4,
+                0.4,
+                0.4
+              ],
+              "accents": [
+                0.1,
+                1,
+                0.95,
+                1,
+                0.9
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      136,
+      140
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "trance: four on the floor with the bass on every offbeat eighth between the kicks, open hats on the same offbeats, a clap on two and four",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the kick on the beats and the bass answering it on each and — the bounce every trance record from the late nineties rides — the root for three and the fifth under it for the last. A path cannot open on a rest, so each bar starts with a ghost of the root under the kick, a tenth of the weight and a tenth of a beat long. Open hats double the bass offbeats, closed sixteenths are left out. 136-140 is above the fast band's top (130), so it plays at 130 under the Techno key: trance has no key of its own yet."
+  }
+}

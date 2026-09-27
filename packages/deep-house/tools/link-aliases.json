@@ -1,0 +1,874 @@
+{
+  "note": "Round K29: every link of the link digest that named a bird in full, beside the link the page writes for it since the birds are written by their two letters, and the hash of the program the full-name link played when it was the digest's key (tools/link-digest.json at dcf6c91). tools/check-link.ts holds, for every row, that the old link reads to the same state as the new, that the page's writer turns the old link's state into exactly the new link, and that the digest's row for the new link carries this hash: a link somebody saved with the full names plays what it always played. Never re-keyed; rows are only added. Hashes for the pull rows S8 (Root's mass knob, the drums-off bass families) and S9 (the bass pedal reading Loom) moved on 2026-09-26 were updated to the merged digest's: the old link and the new still read to one state and play the same record as each other; what that record is moved by those rounds' rules, under the softened lock policy. Round K34: the first theme is left out of a written link (a link without a theme plays the first), so every K29 row's new link lost its theme=1, and every digest link that carried theme=1 at 9f03685 is added beside the link the page writes for it now, with the hash its digest row carried then and carries still.",
+  "rows": [
+    {
+      "old": "seed=27191&v=2&theme=1&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "13642d13aad05600e7ad583a27e1421ab8b344a8d9c7287f8619bc0099d3beb0"
+    },
+    {
+      "old": "seed=27191&v=2&theme=2&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&theme=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "c6d9306c647bb55dd8b425f3187f08fa8bf60cb697649ba479c1bf352765206b"
+    },
+    {
+      "old": "seed=27191&v=2&theme=3&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&theme=3&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "dfb5d4c43b8a125cf5af31989ecb5a6f702f29825b99090675b8796e1c4cefc9"
+    },
+    {
+      "old": "seed=27191&v=2&theme=4&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&theme=4&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "82fa35f4b968838f94de8efc2c6ce217745d77bbaf5ad6b6de3546999de86bdf"
+    },
+    {
+      "old": "seed=27191&v=2&theme=5&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&theme=5&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "74d6c844833d3e398d9374e284439bf5206449326efadbf2a3741fa056c945b3"
+    },
+    {
+      "old": "seed=27191&v=2&theme=1&spell=ember:0.14,gleam:0.00,veil:0.34,spark:0.00,loom:0.81",
+      "new": "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "36cbb69e45c5eb07d2391ab5ecf580c94fc65d233db5d6c95d96b1eeb60cc22d",
+      "themes": 5
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ember:0.10",
+      "new": "seed=1&v=1&spell=em:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ember:0.90",
+      "new": "seed=1&v=1&spell=em:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=tide:0.10",
+      "new": "seed=1&v=1&spell=ti:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=tide:0.90",
+      "new": "seed=1&v=1&spell=ti:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=zephyr:0.10",
+      "new": "seed=1&v=1&spell=ze:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=zephyr:0.90",
+      "new": "seed=1&v=1&spell=ze:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=root:0.10",
+      "new": "seed=1&v=1&spell=ro:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=root:0.90",
+      "new": "seed=1&v=1&spell=ro:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=gleam:0.10",
+      "new": "seed=1&v=1&spell=gl:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=gleam:0.90",
+      "new": "seed=1&v=1&spell=gl:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=veil:0.10",
+      "new": "seed=1&v=1&spell=ve:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=veil:0.90",
+      "new": "seed=1&v=1&spell=ve:0.90",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=spark:0.10",
+      "new": "seed=1&v=1&spell=sp:0.10",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=spark:0.90",
+      "new": "seed=1&v=1&spell=sp:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=loom:0.10",
+      "new": "seed=1&v=1&spell=lo:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=loom:0.90",
+      "new": "seed=1&v=1&spell=lo:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ember:0.20,tide:0.80,veil:0.70",
+      "new": "seed=1&v=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ember:0.85,root:0.30,gleam:0.75,spark:0.90",
+      "new": "seed=1&v=1&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=tide:0.25,zephyr:0.90,veil:0.10,loom:0.15",
+      "new": "seed=1&v=1&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ember:0.20,tide:0.80,veil:0.70",
+      "new": "seed=1&v=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "sets",
+      "hash": "493df3f813401161ed88e8b26a35d70f48134728158e7da04f7e6eb60ede8229",
+      "themes": 3
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ember:0.10",
+      "new": "seed=1&v=2&spell=em:0.10",
+      "group": "pulls",
+      "hash": "68634932857ecee8cb84b9c0fdd9adad6e7c77424f18309f13c5e1f6cc44bf18"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ember:0.90",
+      "new": "seed=1&v=2&spell=em:0.90",
+      "group": "pulls",
+      "hash": "60c30c4569032a2ca9abbc2e58c05dc568f3ea5a489c14e7f390dda728a42119"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=tide:0.10",
+      "new": "seed=1&v=2&spell=ti:0.10",
+      "group": "pulls",
+      "hash": "25508793956c731bc775c66070c24ff42c860b41e234640a5df1e14957e41a22"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=tide:0.90",
+      "new": "seed=1&v=2&spell=ti:0.90",
+      "group": "pulls",
+      "hash": "d7527a32b9c2881d2e7945209363a7dae2ae789af4187a1e7dcca41c40ae0f1c"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=zephyr:0.10",
+      "new": "seed=1&v=2&spell=ze:0.10",
+      "group": "pulls",
+      "hash": "41a98e722943f57ee21c842153204dded99e99db4b0211f2f80d8c84f447ac61"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=zephyr:0.90",
+      "new": "seed=1&v=2&spell=ze:0.90",
+      "group": "pulls",
+      "hash": "44f14b7333a07df13b062bbc0720bed50ef2324d74676fac4ca0af5606a158d8"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=root:0.10",
+      "new": "seed=1&v=2&spell=ro:0.10",
+      "group": "pulls",
+      "hash": "94c169f1b7860fef89b40d1b5e1e4820dc560ad7990d697495ac84910e95f4ef"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=root:0.90",
+      "new": "seed=1&v=2&spell=ro:0.90",
+      "group": "pulls",
+      "hash": "7fd4f0554ce1a29a50f627966ffb57f5b0f24158c1a285d84a7c21fc7143d0d0"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=gleam:0.10",
+      "new": "seed=1&v=2&spell=gl:0.10",
+      "group": "pulls",
+      "hash": "910afbdf3e504de5b59d88136dbb6e7d79730abb085c07e4b9decdfa4513f3a5"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=gleam:0.90",
+      "new": "seed=1&v=2&spell=gl:0.90",
+      "group": "pulls",
+      "hash": "ee95f36b1dd295c34a2e8b5a8a5b06104871dcae9d9e1e129c1572a79f6af0c4"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=veil:0.10",
+      "new": "seed=1&v=2&spell=ve:0.10",
+      "group": "pulls",
+      "hash": "3061b0c519951a608b7c74b3d4b35c0883099c8332f91539d336a7be34d1a16a"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=veil:0.90",
+      "new": "seed=1&v=2&spell=ve:0.90",
+      "group": "pulls",
+      "hash": "f9af7f69d9407fd87a9f3b361ce96cb532c3d4eb877e5bda5d5bff7fa658372c"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=spark:0.10",
+      "new": "seed=1&v=2&spell=sp:0.10",
+      "group": "pulls",
+      "hash": "ba8b63774a9c6f7c5e78ad5abf63192e989991dd1a87dec95d12a6dec7200ffa"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=spark:0.90",
+      "new": "seed=1&v=2&spell=sp:0.90",
+      "group": "pulls",
+      "hash": "bfc5245ec4400b4c964e8c2b6d6b7af3b5ad425864a321d9ded45fcf3d8697d7"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=loom:0.10",
+      "new": "seed=1&v=2&spell=lo:0.10",
+      "group": "pulls",
+      "hash": "bd99cf893d8fff6509a287ecfd6038c1ba5ff1938e6b54308bbefc7a89dd8f10"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=loom:0.90",
+      "new": "seed=1&v=2&spell=lo:0.90",
+      "group": "pulls",
+      "hash": "819a732bd484f58730fc6d7e8698ca5ee66d5f6c1c0529146f044b87178355c2"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ember:0.20,tide:0.80,veil:0.70",
+      "new": "seed=1&v=2&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "pulls",
+      "hash": "aa4e4dd961a37869d7afcbc8d5d8b5b0d04a0d2139cd593d47c5cf25e69f82ee"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ember:0.85,root:0.30,gleam:0.75,spark:0.90",
+      "new": "seed=1&v=2&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "group": "pulls",
+      "hash": "b3501191410ad298af48802c3480b4ed7ab286b6523416afc4725c7e66befc58"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=tide:0.25,zephyr:0.90,veil:0.10,loom:0.15",
+      "new": "seed=1&v=2&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "group": "pulls",
+      "hash": "9139275024dfc6f3a17c9a3a9845d073b474c99d7cdb0857589a311a0c8abec7"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ember:0.20,tide:0.80,veil:0.70",
+      "new": "seed=1&v=2&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "sets",
+      "hash": "9cb7b676e7994dbcae8e62b150222a742a69745b07706efed91c186ebc484af4",
+      "themes": 3
+    },
+    {
+      "old": "seed=1&v=1&theme=1",
+      "new": "seed=1&v=1",
+      "group": "masters",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=21323&v=1&theme=1",
+      "new": "seed=21323&v=1",
+      "group": "masters",
+      "hash": "10f84ef437148c56d17f29e27dd72e8017c18fc25e63cb8d50c897dcb99a6930"
+    },
+    {
+      "old": "seed=92970&v=1&theme=1",
+      "new": "seed=92970&v=1",
+      "group": "masters",
+      "hash": "abb641c83ea3ef77346a7b974969f5c27be0318d3356fa7ce6e7946d725570bc"
+    },
+    {
+      "old": "seed=1&v=1&theme=1",
+      "new": "seed=1&v=1",
+      "group": "sets",
+      "hash": "493df3f813401161ed88e8b26a35d70f48134728158e7da04f7e6eb60ede8229",
+      "themes": 3
+    },
+    {
+      "old": "seed=1&v=2&theme=1",
+      "new": "seed=1&v=2",
+      "group": "masters",
+      "hash": "910afbdf3e504de5b59d88136dbb6e7d79730abb085c07e4b9decdfa4513f3a5"
+    },
+    {
+      "old": "seed=21323&v=2&theme=1",
+      "new": "seed=21323&v=2",
+      "group": "masters",
+      "hash": "5f25a29cb516888688346151a77290f1c28bd2537302eed90bbc1f8e53971635"
+    },
+    {
+      "old": "seed=92970&v=2&theme=1",
+      "new": "seed=92970&v=2",
+      "group": "masters",
+      "hash": "c01869e51fa1ce15a80324d25d3389f18bf6e457ca45a37dbdc2014db7a36295"
+    },
+    {
+      "old": "seed=1&v=2&theme=1",
+      "new": "seed=1&v=2",
+      "group": "sets",
+      "hash": "9cb7b676e7994dbcae8e62b150222a742a69745b07706efed91c186ebc484af4",
+      "themes": 3
+    },
+    {
+      "old": "seed=27191&v=2&theme=1&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "new": "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "13642d13aad05600e7ad583a27e1421ab8b344a8d9c7287f8619bc0099d3beb0"
+    },
+    {
+      "old": "seed=27191&v=2&theme=1&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "new": "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+      "group": "benchmark",
+      "hash": "36cbb69e45c5eb07d2391ab5ecf580c94fc65d233db5d6c95d96b1eeb60cc22d",
+      "themes": 5
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=em:0.10",
+      "new": "seed=1&v=1&spell=em:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=em:0.90",
+      "new": "seed=1&v=1&spell=em:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ti:0.10",
+      "new": "seed=1&v=1&spell=ti:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ti:0.90",
+      "new": "seed=1&v=1&spell=ti:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ze:0.10",
+      "new": "seed=1&v=1&spell=ze:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ze:0.90",
+      "new": "seed=1&v=1&spell=ze:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ro:0.10",
+      "new": "seed=1&v=1&spell=ro:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ro:0.90",
+      "new": "seed=1&v=1&spell=ro:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=gl:0.10",
+      "new": "seed=1&v=1&spell=gl:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=gl:0.90",
+      "new": "seed=1&v=1&spell=gl:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ve:0.10",
+      "new": "seed=1&v=1&spell=ve:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ve:0.90",
+      "new": "seed=1&v=1&spell=ve:0.90",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=sp:0.10",
+      "new": "seed=1&v=1&spell=sp:0.10",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=sp:0.90",
+      "new": "seed=1&v=1&spell=sp:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=lo:0.10",
+      "new": "seed=1&v=1&spell=lo:0.10",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=lo:0.90",
+      "new": "seed=1&v=1&spell=lo:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "new": "seed=1&v=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "pulls",
+      "hash": "6bc89417050d587cd3323bcf5b31620e325b859a2fb8fe5df18862170692ef90"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "new": "seed=1&v=1&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "new": "seed=1&v=1&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "group": "pulls",
+      "hash": "e5e0a8967158df46903f2896204b51f896d84e5ebb6865934987e04887952ab4"
+    },
+    {
+      "old": "seed=1&v=1&theme=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "new": "seed=1&v=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "sets",
+      "hash": "493df3f813401161ed88e8b26a35d70f48134728158e7da04f7e6eb60ede8229",
+      "themes": 3
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=em:0.10",
+      "new": "seed=1&v=2&spell=em:0.10",
+      "group": "pulls",
+      "hash": "68634932857ecee8cb84b9c0fdd9adad6e7c77424f18309f13c5e1f6cc44bf18"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=em:0.90",
+      "new": "seed=1&v=2&spell=em:0.90",
+      "group": "pulls",
+      "hash": "60c30c4569032a2ca9abbc2e58c05dc568f3ea5a489c14e7f390dda728a42119"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ti:0.10",
+      "new": "seed=1&v=2&spell=ti:0.10",
+      "group": "pulls",
+      "hash": "25508793956c731bc775c66070c24ff42c860b41e234640a5df1e14957e41a22"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ti:0.90",
+      "new": "seed=1&v=2&spell=ti:0.90",
+      "group": "pulls",
+      "hash": "d7527a32b9c2881d2e7945209363a7dae2ae789af4187a1e7dcca41c40ae0f1c"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ze:0.10",
+      "new": "seed=1&v=2&spell=ze:0.10",
+      "group": "pulls",
+      "hash": "41a98e722943f57ee21c842153204dded99e99db4b0211f2f80d8c84f447ac61"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ze:0.90",
+      "new": "seed=1&v=2&spell=ze:0.90",
+      "group": "pulls",
+      "hash": "44f14b7333a07df13b062bbc0720bed50ef2324d74676fac4ca0af5606a158d8"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ro:0.10",
+      "new": "seed=1&v=2&spell=ro:0.10",
+      "group": "pulls",
+      "hash": "94c169f1b7860fef89b40d1b5e1e4820dc560ad7990d697495ac84910e95f4ef"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ro:0.90",
+      "new": "seed=1&v=2&spell=ro:0.90",
+      "group": "pulls",
+      "hash": "7fd4f0554ce1a29a50f627966ffb57f5b0f24158c1a285d84a7c21fc7143d0d0"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=gl:0.10",
+      "new": "seed=1&v=2&spell=gl:0.10",
+      "group": "pulls",
+      "hash": "910afbdf3e504de5b59d88136dbb6e7d79730abb085c07e4b9decdfa4513f3a5"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=gl:0.90",
+      "new": "seed=1&v=2&spell=gl:0.90",
+      "group": "pulls",
+      "hash": "ee95f36b1dd295c34a2e8b5a8a5b06104871dcae9d9e1e129c1572a79f6af0c4"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ve:0.10",
+      "new": "seed=1&v=2&spell=ve:0.10",
+      "group": "pulls",
+      "hash": "3061b0c519951a608b7c74b3d4b35c0883099c8332f91539d336a7be34d1a16a"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ve:0.90",
+      "new": "seed=1&v=2&spell=ve:0.90",
+      "group": "pulls",
+      "hash": "f9af7f69d9407fd87a9f3b361ce96cb532c3d4eb877e5bda5d5bff7fa658372c"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=sp:0.10",
+      "new": "seed=1&v=2&spell=sp:0.10",
+      "group": "pulls",
+      "hash": "ba8b63774a9c6f7c5e78ad5abf63192e989991dd1a87dec95d12a6dec7200ffa"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=sp:0.90",
+      "new": "seed=1&v=2&spell=sp:0.90",
+      "group": "pulls",
+      "hash": "bfc5245ec4400b4c964e8c2b6d6b7af3b5ad425864a321d9ded45fcf3d8697d7"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=lo:0.10",
+      "new": "seed=1&v=2&spell=lo:0.10",
+      "group": "pulls",
+      "hash": "bd99cf893d8fff6509a287ecfd6038c1ba5ff1938e6b54308bbefc7a89dd8f10"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=lo:0.90",
+      "new": "seed=1&v=2&spell=lo:0.90",
+      "group": "pulls",
+      "hash": "819a732bd484f58730fc6d7e8698ca5ee66d5f6c1c0529146f044b87178355c2"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "new": "seed=1&v=2&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "pulls",
+      "hash": "aa4e4dd961a37869d7afcbc8d5d8b5b0d04a0d2139cd593d47c5cf25e69f82ee"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "new": "seed=1&v=2&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+      "group": "pulls",
+      "hash": "b3501191410ad298af48802c3480b4ed7ab286b6523416afc4725c7e66befc58"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "new": "seed=1&v=2&spell=ti:0.25,ze:0.90,ve:0.10,lo:0.15",
+      "group": "pulls",
+      "hash": "9139275024dfc6f3a17c9a3a9845d073b474c99d7cdb0857589a311a0c8abec7"
+    },
+    {
+      "old": "seed=1&v=2&theme=1&spell=em:0.20,ti:0.80,ve:0.70",
+      "new": "seed=1&v=2&spell=em:0.20,ti:0.80,ve:0.70",
+      "group": "sets",
+      "hash": "9cb7b676e7994dbcae8e62b150222a742a69745b07706efed91c186ebc484af4",
+      "themes": 3
+    },
+    {
+      "old": "seed=4&v=1&theme=1",
+      "new": "seed=4&v=1",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&accompaniment=auto",
+      "new": "seed=4&v=1&accompaniment=auto",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&development=phrased",
+      "new": "seed=4&v=1&development=phrased",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&accompaniment=auto&development=phrased",
+      "new": "seed=4&v=1&accompaniment=auto&development=phrased",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&development=shaped",
+      "new": "seed=4&v=1&development=shaped",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&accompaniment=auto&development=shaped",
+      "new": "seed=4&v=1&accompaniment=auto&development=shaped",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&development=percussion",
+      "new": "seed=4&v=1&development=percussion",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=1&theme=1&accompaniment=auto&development=percussion",
+      "new": "seed=4&v=1&accompaniment=auto&development=percussion",
+      "group": "modes",
+      "hash": "0079f80bf7eaa887828081042561d9f627c587c3b85698b70d4c9522e42a0b96"
+    },
+    {
+      "old": "seed=4&v=2&theme=1",
+      "new": "seed=4&v=2",
+      "group": "modes",
+      "hash": "85c173986f4f34e181853174e1bab12560552ef48a075de4831d0b953cc1549e"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&accompaniment=auto",
+      "new": "seed=4&v=2&accompaniment=auto",
+      "group": "modes",
+      "hash": "85c173986f4f34e181853174e1bab12560552ef48a075de4831d0b953cc1549e"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&development=phrased",
+      "new": "seed=4&v=2&development=phrased",
+      "group": "modes",
+      "hash": "07479693f760dc7d55b0cd09ded240031efffd151aab57a2f2ba106199a8ebfa"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&accompaniment=auto&development=phrased",
+      "new": "seed=4&v=2&accompaniment=auto&development=phrased",
+      "group": "modes",
+      "hash": "07479693f760dc7d55b0cd09ded240031efffd151aab57a2f2ba106199a8ebfa"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&development=shaped",
+      "new": "seed=4&v=2&development=shaped",
+      "group": "modes",
+      "hash": "691a41ece0b7379bdb06fe002c67d6ca3e327493e2f2cf7a07edad11cb9517ec"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&accompaniment=auto&development=shaped",
+      "new": "seed=4&v=2&accompaniment=auto&development=shaped",
+      "group": "modes",
+      "hash": "691a41ece0b7379bdb06fe002c67d6ca3e327493e2f2cf7a07edad11cb9517ec"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&development=percussion",
+      "new": "seed=4&v=2&development=percussion",
+      "group": "modes",
+      "hash": "7c11550b3c9b3bc9f170a521b7fa1df7ac2402b9f0c273bf965ce8c304cd6fa4"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&accompaniment=auto&development=percussion",
+      "new": "seed=4&v=2&accompaniment=auto&development=percussion",
+      "group": "modes",
+      "hash": "7c11550b3c9b3bc9f170a521b7fa1df7ac2402b9f0c273bf965ce8c304cd6fa4"
+    },
+    {
+      "old": "seed=4&v=2&theme=1&development=shaped",
+      "new": "seed=4&v=2&development=shaped",
+      "group": "sets",
+      "hash": "53915338424dd366f66152d2ea511430e53e20acbcceeba0ed87ad7d78f4e421",
+      "themes": 3
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=auto",
+      "new": "seed=3&v=1&recipe=auto",
+      "group": "recipes",
+      "hash": "f3ff9bf33cf68bdce2c8c5fb1861c63d65581d07a2997745409787327eb56c37"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/deep-house",
+      "new": "seed=3&v=1&recipe=house/deep-house",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/sub-room",
+      "new": "seed=3&v=1&recipe=house/sub-room",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/growl-room",
+      "new": "seed=3&v=1&recipe=house/growl-room",
+      "group": "recipes",
+      "hash": "f3ff9bf33cf68bdce2c8c5fb1861c63d65581d07a2997745409787327eb56c37"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/pump",
+      "new": "seed=3&v=1&recipe=house/pump",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/pump&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/pump&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/lick",
+      "new": "seed=3&v=1&recipe=house/lick",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/lick&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/lick&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/answer",
+      "new": "seed=3&v=1&recipe=house/answer",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/answer&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/answer&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/hand-conversation&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/hand-conversation&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/hand-rolling&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/hand-rolling&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=1&theme=1&recipe=house/hand-answers&accompaniment=auto",
+      "new": "seed=3&v=1&recipe=house/hand-answers&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c0b0bc1781a3de272901cba9cd7c66cdf715fe2d169f8f2324f2f00f094af81b"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=auto",
+      "new": "seed=3&v=2&recipe=auto",
+      "group": "recipes",
+      "hash": "d60d9b6bd04c86484abf6b06b9b2ad8a8283b6f19fd8805a457d0c2b01bad03d"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/deep-house",
+      "new": "seed=3&v=2&recipe=house/deep-house",
+      "group": "recipes",
+      "hash": "4fcf14d9e740f011dfc70639b91c5e74f0415596ea64e2892e384fcae3d8932f"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/sub-room",
+      "new": "seed=3&v=2&recipe=house/sub-room",
+      "group": "recipes",
+      "hash": "1f51b33cb45fed8ee9736509c54d31056ccd9d43c84d7df14f67df56ab8aff76"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/growl-room",
+      "new": "seed=3&v=2&recipe=house/growl-room",
+      "group": "recipes",
+      "hash": "96a9e6c9d823454df26ee338fa9f107fb1d6f457fdc2e4b49dac27e8a005d805"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/pump",
+      "new": "seed=3&v=2&recipe=house/pump",
+      "group": "recipes",
+      "hash": "8de4e96b2656acfb35c824d832d27b7e2b928d51d3398b6eb26fa76906115c42"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/pump&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/pump&accompaniment=auto",
+      "group": "recipes",
+      "hash": "8a0f20db230ed8e83683f70e93627f970d247b61ef97f6ee66368e63d8cef54f"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/lick",
+      "new": "seed=3&v=2&recipe=house/lick",
+      "group": "recipes",
+      "hash": "bd3f1f9f5e82d67034667aa4c3fe84425ad6a9a24cb48f06f134a6c35abb42ef"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/lick&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/lick&accompaniment=auto",
+      "group": "recipes",
+      "hash": "da18de4ec3edec800beb1a7b30ad7e198544a80d52ccfdf232cf37aedd9f8344"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/answer",
+      "new": "seed=3&v=2&recipe=house/answer",
+      "group": "recipes",
+      "hash": "328622c0f01b935dbc949fa486fb5ea06460ec4c4ad565a3c8fe0e5e3449c779"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/answer&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/answer&accompaniment=auto",
+      "group": "recipes",
+      "hash": "c13b671bfd3ae9fcdb53f66eab4e92eba1213d3b7489be36c707ffa28c7b3238"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-conversation&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/hand-conversation&accompaniment=auto",
+      "group": "recipes",
+      "hash": "0d409b173b7f9a683b1730d5efd92f784004cad3f9e09003e76a4435e9e12b2e"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-rolling&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/hand-rolling&accompaniment=auto",
+      "group": "recipes",
+      "hash": "305c0a0af4f2818758df7b940ca9ec3c1b97495812010dc0da0a1e497971edfc"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-answers&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/hand-answers&accompaniment=auto",
+      "group": "recipes",
+      "hash": "1e4e467e2bc3172dd6ea96ee7c10169dd3d3ff5d57da7a3e3d8776d1cf7c97f3"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-conversation&accompaniment=auto&development=phrased",
+      "new": "seed=3&v=2&recipe=house/hand-conversation&accompaniment=auto&development=phrased",
+      "group": "recipes",
+      "hash": "1af735055656abca6b1012006a615a3448e838cee4f00a476f524248254af245"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-conversation&accompaniment=auto&development=shaped",
+      "new": "seed=3&v=2&recipe=house/hand-conversation&accompaniment=auto&development=shaped",
+      "group": "recipes",
+      "hash": "8755dd446ea9b6f4c755d4d459ec419e41e204431421c675a6e36b04fc0ce6a3"
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=auto",
+      "new": "seed=3&v=2&recipe=auto",
+      "group": "sets",
+      "hash": "a91e73842d6b85ee2d57da296d18f5e9493831fdecc3014d84f66d955e5fc56a",
+      "themes": 3
+    },
+    {
+      "old": "seed=3&v=2&theme=1&recipe=house/hand-conversation&accompaniment=auto",
+      "new": "seed=3&v=2&recipe=house/hand-conversation&accompaniment=auto",
+      "group": "sets",
+      "hash": "a91e73842d6b85ee2d57da296d18f5e9493831fdecc3014d84f66d955e5fc56a",
+      "themes": 3
+    }
+  ]
+}

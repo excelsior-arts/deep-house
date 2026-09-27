@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "study/hand-tone-08",
+  "name": "Hand percussion colour comparison",
+  "scope": "layer",
+  "applies": "sixteenth",
+  "origin": "listener",
+  "interpreter": "v2.22",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "sixteenth": [
+        {
+          "bars": 2,
+          "steps": [
+            2,
+            6,
+            10,
+            14,
+            18,
+            22,
+            26,
+            30
+          ],
+          "accents": [
+            0.1,
+            0.17,
+            0.1,
+            0.14,
+            0.11,
+            0.19,
+            0.1,
+            0.16
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.03,
+            "brightnessMin": 4000,
+            "brightnessMax": 8000
+          },
+          "prefer": {
+            "holdMax": 0.01,
+            "brightnessMin": 5000,
+            "brightnessMax": 7000
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0.008
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.16
+          }
+        },
+        {
+          "bars": 2,
+          "steps": [
+            2,
+            6,
+            14,
+            18,
+            22,
+            30
+          ],
+          "accents": [
+            0.17,
+            0.25,
+            0.19,
+            0.17,
+            0.23,
+            0.21
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.04,
+            "brightnessMin": 1800,
+            "brightnessMax": 3400
+          },
+          "prefer": {
+            "holdMin": 0.015,
+            "holdMax": 0.03,
+            "brightnessMin": 2200,
+            "brightnessMax": 3000
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0.008
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.16
+          },
+          "character": "warm-open"
+        }
+      ]
+    },
+    "presence": {
+      "sixteenth": "supporting"
+    },
+    "ambience": {
+      "sixteenth": "intimate"
+    }
+  },
+  "forbids": [],
+  "provenance": {
+    "evidence": "study/hand-tone-08"
+  }
+}

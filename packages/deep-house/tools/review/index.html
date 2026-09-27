@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Review</title>
+    <!--
+      The page is one file: the ring's ground and the ring's gold, at a size a
+      list is read at rather than a size a ring is looked at. No glow anywhere —
+      this is a bench tool, and a blurred edge on a list of twenty-one cards is
+      a blurred edge twenty-one times. Every rule is line work, every number is
+      a real value, and the only motion is the card that becomes current.
+    -->
+    <style>
+      :root {
+        --pale: #ffe9a8;
+        --gold: #f2c14e;
+        --deep: #c98a2b;
+        --dim: #8a7743;
+        --line: rgba(242, 193, 78, 0.24);
+        --ink: #05040a;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { background: #000; margin: 0; }
+      body {
+        color: var(--gold);
+        font-family: 'Futura', 'Avenir Next', 'Century Gothic', 'Optima', 'Questrial',
+          system-ui, -apple-system, 'Segoe UI', sans-serif;
+        font-size: 16px;
+        line-height: 1.45;
+        padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
+      }
+      main, header, footer { max-width: 860px; margin: 0 auto; }
+
+      /* --- the header: what this is, and how far through it he is --- */
+      header {
+        position: sticky; top: 0; z-index: 5;
+        background: #000;
+        padding: calc(18px + env(safe-area-inset-top, 0px)) 0 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 { font-size: 19px; font-weight: 500; letter-spacing: 0.04em; margin: 0 0 2px; color: var(--pale); }
+      .kind { color: var(--dim); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; }
+      .head-row { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; }
+      .count { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--pale); }
+      .bar { flex: 1 1 140px; height: 3px; background: rgba(242, 193, 78, 0.16); min-width: 120px; }
+      .bar > i { display: block; height: 100%; background: var(--gold); width: 0; }
+      .keys { color: var(--dim); font-size: 12px; letter-spacing: 0.05em; margin-top: 8px; }
+      .keys b { color: var(--deep); font-weight: 500; }
+      .keys .bit + .bit::before { content: ' · '; }
+      label.toggle { font-size: 13px; color: var(--pale); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+      input[type='checkbox'] { accent-color: var(--gold); width: 15px; height: 15px; }
+
+      /* --- the list --- */
+      h2 {
+        font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--dim); font-weight: 500; margin: 28px 0 10px;
+        border-top: 1px solid var(--line); padding-top: 10px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-left: 3px solid transparent;
+        padding: 14px 16px; margin: 10px 0;
+        /* the header is sticky, so a card scrolled to stops under it and not
+           behind it */
+        scroll-margin-top: 130px;
+      }
+      .card.current { border-left-color: var(--gold); background: rgba(242, 193, 78, 0.04); }
+      .card .n { color: var(--dim); font-variant-numeric: tabular-nums; font-size: 13px; }
+      .card .title { color: var(--pale); font-size: 16px; margin: 2px 0 0; }
+      .card .subtitle { color: var(--deep); font-size: 13px; margin-top: 3px; }
+
+      /* the compact meta table: a name and a value, and nothing between them */
+      .meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin: 12px 0 0; font-size: 13px; }
+      .meta dt { color: var(--dim); letter-spacing: 0.06em; }
+      .meta dd { color: var(--pale); margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+      .player { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+      audio { height: 34px; flex: 1 1 260px; min-width: 200px; }
+      button {
+        font: inherit; font-size: 13px; letter-spacing: 0.06em;
+        color: var(--gold); background: transparent;
+        border: 1px solid var(--line); padding: 7px 12px; cursor: pointer;
+      }
+      button:hover { border-color: var(--gold); }
+      button:focus-visible { outline: 2px solid var(--pale); outline-offset: 2px; }
+      button.on { color: var(--ink); background: var(--gold); border-color: var(--gold); }
+      button.play { min-width: 86px; }
+      .ab { display: inline-flex; }
+      .ab button { border-right-width: 0; }
+      .ab button:last-child { border-right-width: 1px; }
+      .missing { color: #d08b6a; font-size: 13px; }
+
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .actions button { display: inline-flex; gap: 8px; align-items: center; }
+      .actions button .k {
+        border: 1px solid var(--line); padding: 0 5px; font-size: 11px; color: var(--dim);
+        line-height: 1.5;
+      }
+      .actions button.on .k, .actions button:hover .k { border-color: currentColor; color: inherit; }
+      /* the four questions: a label and its answers, one line each */
+      .fields { margin-top: 12px; display: grid; gap: 6px; }
+      .field { display: grid; grid-template-columns: 190px 1fr; gap: 10px; align-items: center; }
+      .field .flabel { color: var(--dim); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .field .opts { display: flex; gap: 6px; flex-wrap: wrap; }
+      .field .opts button { padding: 5px 10px; display: inline-flex; gap: 7px; align-items: center; }
+      .field .opts button .k { border: 1px solid var(--line); padding: 0 5px; font-size: 11px; color: var(--dim); line-height: 1.5; }
+      .field .opts button.on .k, .field .opts button:hover .k { border-color: currentColor; color: inherit; }
+      .field.unset .flabel { color: var(--deep); }
+      textarea {
+        display: block; width: 100%; margin-top: 10px; min-height: 44px; resize: vertical;
+        font: inherit; font-size: 14px; color: var(--pale); background: transparent;
+        border: 1px solid var(--line); padding: 8px 10px;
+      }
+      textarea::placeholder { color: var(--dim); }
+      textarea:focus { outline: none; border-color: var(--gold); }
+      .said { margin-top: 10px; font-size: 13px; color: var(--deep); font-variant-numeric: tabular-nums; }
+      .said b { color: var(--pale); font-weight: 500; }
+
+      /* reviewed: one line, and a way back into it */
+      .card.done { padding: 9px 12px; margin: 5px 0; display: flex; gap: 10px; align-items: baseline; }
+      .card.done > :not(.line) { display: none; }
+      .card.done .line { display: flex; gap: 10px; align-items: baseline; flex: 1; min-width: 0; flex-wrap: wrap; font-size: 14px; }
+      .card:not(.done) .line { display: none; }
+      .card.done .line .verdict { color: var(--pale); white-space: nowrap; }
+      /* a reviewed card is one line, so its title and its note are given the
+         width that is left and cut with an ellipsis rather than pushing the
+         page sideways: `min-width: 0` is what lets a flex item shrink at all. */
+      .card.done .line .who { color: var(--gold); flex: 1 1 140px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .card.done .line .note { color: var(--deep); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .card.done button { padding: 4px 9px; font-size: 12px; }
+
+      footer { color: var(--dim); font-size: 12px; margin-top: 30px; border-top: 1px solid var(--line); padding-top: 10px; }
+
+      @media (max-width: 520px) {
+        body { font-size: 15px; padding-left: 12px; padding-right: 12px; }
+        /* a form has a key per answer and the buttons print their own; four
+           lines of legend on a phone is four lines of the list gone */
+        .keys .bit.opt { display: none; }
+        .meta { grid-template-columns: 1fr; gap: 0 0; }
+        .meta dt { margin-top: 6px; font-size: 12px; }
+        .actions button { flex: 1 1 auto; justify-content: center; }
+        .field { grid-template-columns: 1fr; gap: 3px; }
+        .field .opts button { flex: 1 1 auto; justify-content: center; }
+        textarea { min-height: 58px; }
+        audio { flex: 1 1 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="kind" id="kind">review</div>
+      <h1 id="title">…</h1>
+      <div class="head-row">
+        <span class="count" id="count">…</span>
+        <span class="bar"><i id="fill"></i></span>
+        <label class="toggle"><input type="checkbox" id="auto" checked /> auto-advance</label>
+      </div>
+      <div class="keys" id="keys"></div>
+    </header>
+
+    <main>
+      <div id="pending"></div>
+      <section id="doneWrap" hidden>
+        <h2>reviewed</h2>
+        <div id="done"></div>
+      </section>
+    </main>
+
+    <footer id="foot"></footer>
+
+    <script type="module">
+      const $ = (s) => document.querySelector(s);
+      const el = (tag, cls, text) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text != null) n.textContent = text;
+        return n;
+      };
+
+      let S = null;            // the session as the server holds it
+      let ORDER = { pending: [], reviewed: [] };
+      let current = null;      // the item being reviewed
+      const cards = new Map(); // id -> the card, built once and moved, never rebuilt,
+                               // so an <audio> keeps its position and its loop.
+
+      /** A value in the meta table: a number as a number, a list as a line. */
+      const show = (v) => {
+        if (Array.isArray(v)) return v.join(', ');
+        if (v && typeof v === 'object') return Object.entries(v).map(([k, x]) => `${k} ${x}`).join(', ');
+        if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(3);
+        return String(v);
+      };
+
+      const actionOf = (id) => (S.actions || []).find((a) => a.id === id);
+      const stateOf = (id) => (S.state || {})[id];
+
+      // --- one card --------------------------------------------------------
+      function build(item, index) {
+        const card = el('div', 'card');
+        card.id = `card-${item.id}`;
+        card.dataset.item = item.id;
+
+        // the one line it collapses to once it has been decided
+        const line = el('div', 'line');
+        const verdict = el('span', 'verdict');
+        const who = el('span', 'who', item.title);
+        const note = el('span', 'note');
+        const reopen = el('button', null, 'reopen');
+        reopen.addEventListener('click', (e) => { e.stopPropagation(); open(item.id); });
+        line.append(verdict, who, note, reopen);
+
+        const head = el('div');
+        head.append(el('div', 'n', `${index + 1} / ${S.items.length}`), el('div', 'title', item.title));
+        if (item.subtitle) head.append(el('div', 'subtitle', item.subtitle));
+
+        const meta = el('dl', 'meta');
+        for (const [k, v] of Object.entries(item.meta || {})) {
+          meta.append(el('dt', null, k), el('dd', null, show(v)));
+        }
+        // An earlier build's answer about other audio of these bars: shown for
+        // context, never counted as this card's answer (`superseded` in the
+        // manifest, tools/review/README.md).
+        const sup = (S.superseded || {})[item.id];
+        if (sup && sup.entry) {
+          const a = actionOf(sup.entry.action);
+          meta.append(el('dt', null, 'an earlier build said'),
+            el('dd', null, `${a ? a.label : sup.entry.action}${sup.entry.note ? ' — ' + sup.entry.note : ''} (build ${sup.was.build || '?'}, now ${sup.now.build || '?'})`));
+        }
+
+        // --- the player: a big button, the native scrubber, a loop, an A/B ---
+        const player = el('div', 'player');
+        const audio = el('audio');
+        audio.controls = true;
+        audio.preload = 'none';
+        audio.src = `/audio/${encodeURIComponent(item.id)}`;
+        const play = el('button', 'play', 'play');
+        play.addEventListener('click', (e) => { e.stopPropagation(); setCurrent(item.id); toggle(item.id); });
+        const loop = el('button', null, 'loop');
+        loop.addEventListener('click', (e) => { e.stopPropagation(); setLoop(item.id, !audio.loop); });
+        audio.addEventListener('play', () => { play.textContent = 'pause'; });
+        audio.addEventListener('pause', () => { play.textContent = 'play'; });
+        audio.addEventListener('ended', () => { play.textContent = 'play'; });
+        player.append(play, audio, loop);
+
+        if (item.source) {
+          const ab = el('div', 'ab');
+          const mine = el('button', 'on', 'this');
+          const src = el('button', null, 'source');
+          // A/B keeps its place in the file and keeps playing. The order
+          // matters: a card is loaded lazily, so nothing fetches metadata until
+          // something asks for the sound — `play()` is what starts the load, and
+          // the seek to where the other file was goes on `loadedmetadata`, which
+          // only then fires. Setting the time first and playing after is the
+          // version that silently stops the music.
+          const swap = (toSource) => {
+            const at = audio.currentTime;
+            const was = !audio.paused;
+            audio.preload = 'metadata';
+            audio.src = `/audio/${encodeURIComponent(item.id)}${toSource ? '/source' : ''}`;
+            audio.addEventListener('loadedmetadata', () => {
+              audio.currentTime = Math.min(at, Math.max(0, audio.duration - 0.05) || 0);
+            }, { once: true });
+            if (was) audio.play().catch(() => {});
+            mine.classList.toggle('on', !toSource);
+            src.classList.toggle('on', toSource);
+          };
+          mine.addEventListener('click', (e) => { e.stopPropagation(); swap(false); });
+          src.addEventListener('click', (e) => { e.stopPropagation(); swap(true); });
+          player.append(ab);
+          ab.append(mine, src);
+        }
+        if (!item.has.wav) player.append(el('span', 'missing', `no wav at ${item.wav} — render it first`));
+
+        // --- the decision: one of a few, or a form of a few questions ---
+        const actions = el('div', 'actions');
+        for (const a of S.actions || []) {
+          const b = el('button');
+          b.dataset.action = a.id;
+          b.append(el('span', null, a.label), el('span', 'k', a.key));
+          b.addEventListener('click', (e) => { e.stopPropagation(); setCurrent(item.id); send(item.id, a.id); });
+          actions.append(b);
+        }
+
+        const fields = el('div', 'fields');
+        for (const f of S.fields || []) {
+          const row = el('div', 'field');
+          row.dataset.field = f.id;
+          row.append(el('span', 'flabel', f.label));
+          const opts = el('div', 'opts');
+          for (const o of f.options || []) {
+            const b = el('button');
+            b.dataset.field = f.id;
+            b.dataset.option = o.id;
+            b.append(el('span', null, o.label), el('span', 'k', o.key));
+            b.addEventListener('click', (e) => { e.stopPropagation(); setCurrent(item.id); answer(item.id, f.id, o.id); });
+            opts.append(b);
+          }
+          row.append(opts);
+          fields.append(row);
+        }
+
+        const text = el('textarea');
+        text.placeholder = S.fields
+          ? 'a word about it — what the artefact is, where it fits'
+          : 'a note, in your own words — kept as a verdict';
+        text.rows = 1;
+        // With a form, the note is an answer like the others and is written when
+        // he leaves the field; with actions it goes with the decision, as it did.
+        if (S.fields) text.addEventListener('change', () => post({ item: item.id, note: text.value.trim() }));
+
+        const said = el('div', 'said');
+
+        card.append(line, head, meta, player, actions, fields, text, said);
+        card.addEventListener('mousedown', () => setCurrent(item.id));
+        cards.set(item.id, { card, audio, play, loop, actions, fields, text, said, line: { verdict, note }, item });
+        return card;
+      }
+
+      /** What one card's answers say, in the order the manifest asks them. */
+      function summary(id) {
+        const e = stateOf(id);
+        if (!e || !S.fields) return '';
+        const said = [];
+        for (const f of S.fields) {
+          const v = e.fields?.[f.id];
+          if (v == null || (Array.isArray(v) && !v.length)) continue;
+          const label = (one) => (f.options || []).find((o) => o.id === one)?.label || one;
+          said.push(Array.isArray(v) ? v.map(label).join(', ') : label(v));
+        }
+        return said.join(' · ');
+      }
+
+      /** What a card says about itself, once it has been decided or cleared. */
+      function dress(id) {
+        const c = cards.get(id);
+        const e = stateOf(id);
+        const a = e && actionOf(e.action);
+        // **Whether an item is reviewed is the server's answer and not the
+        // page's**, because with a form it depends on which fields the manifest
+        // marked required: the order it sends already says which side it is on.
+        c.card.classList.toggle('done', ORDER.reviewed.includes(id));
+        for (const b of c.actions.querySelectorAll('button')) b.classList.toggle('on', !!e && b.dataset.action === e.action);
+        for (const b of c.fields.querySelectorAll('button')) {
+          const v = e?.fields?.[b.dataset.field];
+          b.classList.toggle('on', Array.isArray(v) ? v.includes(b.dataset.option) : v === b.dataset.option);
+        }
+        for (const row of c.fields.querySelectorAll('.field')) {
+          const f = (S.fields || []).find((x) => x.id === row.dataset.field);
+          const v = e?.fields?.[row.dataset.field];
+          row.classList.toggle('unset', !!f?.required && (v == null || (Array.isArray(v) && !v.length)));
+        }
+        if (e && e.note !== undefined && document.activeElement !== c.text && !c.text.value) c.text.value = e.note;
+        if (S.fields) {
+          const said = summary(id);
+          c.said.innerHTML = '';
+          if (said) c.said.append(el('b', null, said), document.createTextNode(e.note ? ` · ${e.note}` : ''));
+          c.line.verdict.textContent = '';
+          c.line.note.textContent = [said, e?.note].filter(Boolean).join(' · ');
+          return;
+        }
+        if (e) {
+          const at = new Date(e.at);
+          const when = Number.isNaN(+at) ? e.at : at.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          const score = e.score > 0 ? `+${e.score}` : String(e.score);
+          c.said.innerHTML = '';
+          c.said.append(el('b', null, `${a ? a.label : e.action} ${score}`), document.createTextNode(` · ${when}${e.note ? ` · ${e.note}` : ''}`));
+          c.line.verdict.textContent = `${a ? a.label : e.action} ${score}`;
+          c.line.note.textContent = e.note || '';
+          if (e.note && !c.text.value) c.text.value = e.note;
+        } else {
+          c.said.textContent = '';
+          c.line.verdict.textContent = '';
+          c.line.note.textContent = '';
+        }
+      }
+
+      /**
+       * The order, and it is the same order after a refresh: pending first in
+       * manifest order, reviewed under their own heading, newest first. Cards
+       * are **moved**, never rebuilt, so nothing that is playing stops.
+       */
+      function layout() {
+        const pending = $('#pending');
+        const done = $('#done');
+        for (const id of ORDER.pending) pending.append(cards.get(id).card);
+        for (const id of ORDER.reviewed) done.append(cards.get(id).card);
+        $('#doneWrap').hidden = ORDER.reviewed.length === 0;
+        const n = ORDER.reviewed.length;
+        $('#count').textContent = `${n} of ${S.items.length} reviewed`;
+        $('#fill').style.width = `${(n / S.items.length) * 100}%`;
+        for (const id of cards.keys()) dress(id);
+      }
+
+      // --- being somewhere in the list ------------------------------------
+      function setCurrent(id, { scroll = false } = {}) {
+        if (current && cards.has(current)) cards.get(current).card.classList.remove('current');
+        current = id;
+        if (!id) return;
+        const c = cards.get(id);
+        c.card.classList.add('current');
+        if (scroll) c.card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+
+      /** A reviewed card, opened again to change its decision. */
+      function open(id) {
+        cards.get(id).card.classList.remove('done');
+        setCurrent(id, { scroll: true });
+      }
+
+      const rank = () => [...ORDER.pending, ...ORDER.reviewed];
+
+      function step(by) {
+        const list = rank();
+        const i = list.indexOf(current);
+        const next = list[Math.max(0, Math.min(list.length - 1, (i < 0 ? 0 : i) + by))];
+        if (next) setCurrent(next, { scroll: true });
+      }
+
+      // --- playing ---------------------------------------------------------
+      function toggle(id, force) {
+        const c = cards.get(id);
+        if (!c) return;
+        if (force === false || (force === undefined && !c.audio.paused)) { c.audio.pause(); return; }
+        for (const [other, o] of cards) if (other !== id) o.audio.pause();
+        c.audio.play().catch(() => {});
+      }
+      function setLoop(id, on) {
+        const c = cards.get(id);
+        c.audio.loop = on;
+        c.loop.classList.toggle('on', on);
+      }
+
+      // --- deciding --------------------------------------------------------
+      /**
+       * Every answer goes the same way: written at once, and the server says
+       * what the list looks like afterwards — which side of *reviewed* the item
+       * is on is its answer to give, since with a form it depends on which
+       * fields are required.
+       */
+      async function post(body) {
+        const id = body.item;
+        const c = cards.get(id);
+        const wasDone = ORDER.reviewed.includes(id);
+        const wasCurrent = current === id;
+        const r = await fetch('/api/state', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!r.ok) { alert(out.error || 'the server refused the answer'); return; }
+        S.state = S.state || {};
+        if (out.entry) S.state[id] = out.entry;
+        else delete S.state[id];
+        ORDER = out.order;
+        layout();
+        const done = ORDER.reviewed.includes(id);
+        if (done && !wasDone) {
+          c.audio.pause();
+          if (wasCurrent && $('#auto').checked) {
+            const next = ORDER.pending.find((p) => p !== id);
+            if (next) { setCurrent(next, { scroll: true }); toggle(next, true); }
+            else setCurrent(id);
+          } else if (wasCurrent) setCurrent(id);
+        } else if (!done && wasDone) {
+          setCurrent(id, { scroll: true });
+        }
+      }
+
+      const send = (id, action) => post({ item: id, action, note: cards.get(id).text.value.trim() });
+
+      /**
+       * One answer to one field. A second click on the answer that is already
+       * there takes it back — a wrong key is undone with the same key, and a
+       * `multi` collects instead of replacing.
+       */
+      function answer(id, fieldId, optionId) {
+        const f = (S.fields || []).find((x) => x.id === fieldId);
+        if (!f) return;
+        const v = stateOf(id)?.fields?.[fieldId];
+        let next;
+        if (f.kind === 'multi') {
+          const have = Array.isArray(v) ? v : [];
+          next = have.includes(optionId) ? have.filter((x) => x !== optionId) : [...have, optionId];
+          if (!next.length) next = null;
+        } else {
+          next = v === optionId ? null : optionId;
+        }
+        return post({ item: id, fields: { [fieldId]: next } });
+      }
+
+      // --- the keys --------------------------------------------------------
+      //
+      // **What the manifest claims, the manifest gets**: a session that answers
+      // *no* with `n` means `n`, so the page's own `n` and `p` step aside and
+      // the arrows do the walking, always. Nothing else moves.
+      const CLAIMED = new Map();  // key -> what pressing it answers
+      function claim() {
+        CLAIMED.clear();
+        for (const a of S.actions || []) CLAIMED.set(a.key.toLowerCase(), { action: a.id });
+        for (const f of S.fields || []) for (const o of f.options || []) CLAIMED.set(o.key.toLowerCase(), { field: f.id, option: o.id });
+      }
+      document.addEventListener('keydown', (ev) => {
+        const typing = /^(TEXTAREA|INPUT)$/.test(ev.target.tagName);
+        if (typing) { if (ev.key === 'Escape') ev.target.blur(); return; }
+        if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+        const k = ev.key.toLowerCase();
+        if (ev.key === ' ') { ev.preventDefault(); if (current) toggle(current); return; }
+        if (ev.key === 'ArrowDown' || (k === 'n' && !CLAIMED.has('n'))) { ev.preventDefault(); step(1); return; }
+        if (ev.key === 'ArrowUp' || (k === 'p' && !CLAIMED.has('p'))) { ev.preventDefault(); step(-1); return; }
+        if (k === 'l' && !CLAIMED.has('l')) { ev.preventDefault(); if (current) setLoop(current, !cards.get(current).audio.loop); return; }
+        const what = CLAIMED.get(k);
+        if (what && current) {
+          ev.preventDefault();
+          if (what.action) send(current, what.action);
+          else answer(current, what.field, what.option);
+        }
+      });
+
+      // --- the start -------------------------------------------------------
+      const load = async () => {
+        const payload = await (await fetch('/api/session')).json();
+        S = payload.session;
+        ORDER = payload.order;
+        document.title = `${S.title} — review`;
+        $('#title').textContent = S.title;
+        $('#kind').textContent = S.kind;
+        claim();
+        $('#keys').innerHTML = '';
+        const bits = [['space', 'play'],
+          [CLAIMED.has('n') ? '↓' : 'n', 'next'], [CLAIMED.has('p') ? '↑' : 'p', 'previous'],
+          ...(CLAIMED.has('l') ? [] : [['l', 'loop']]),
+          ...(S.actions || []).map((a) => [a.key, a.label, true]),
+          ...(S.fields || []).flatMap((f) => (f.options || []).map((o) => [o.key, o.label, true]))];
+        bits.forEach(([key, what, opt]) => {
+          const bit = el('span', `bit${opt ? ' opt' : ''}`);
+          bit.append(el('b', null, key), document.createTextNode(` ${what}`));
+          $('#keys').append(bit);
+        });
+        $('#foot').textContent = `${payload.file} — every decision is written into it at once`
+          + `${S.rowWrite === 'verdict' ? ', and a verdict onto the row' : S.rowWrite === 'none' ? '' : ', and onto the row it scores'}`;
+        const pending = $('#pending');
+        pending.innerHTML = '';
+        $('#done').innerHTML = '';
+        cards.clear();
+        S.items.forEach((item, i) => pending.append(build(item, i)));
+        layout();
+        setCurrent(ORDER.pending[0] || ORDER.reviewed[0] || null);
+      };
+      load();
+    </script>
+  </body>
+</html>

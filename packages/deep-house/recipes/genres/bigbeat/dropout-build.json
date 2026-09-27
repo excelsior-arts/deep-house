@@ -1,0 +1,312 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "bigbeat/dropout-build",
+  "revision": 1,
+  "name": "The drop-out and build",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 8,
+          "steps": [
+            0,
+            4,
+            8,
+            10,
+            12,
+            16,
+            20,
+            23,
+            24,
+            28,
+            32,
+            36,
+            40,
+            42,
+            44,
+            48,
+            52,
+            56,
+            60,
+            96,
+            100,
+            104,
+            108,
+            112,
+            116,
+            120,
+            124
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 8,
+          "steps": [
+            4,
+            7,
+            9,
+            12,
+            15,
+            20,
+            22,
+            25,
+            28,
+            31,
+            36,
+            39,
+            41,
+            44,
+            47,
+            52,
+            54,
+            57,
+            60,
+            63,
+            96,
+            98,
+            100,
+            102,
+            104,
+            106,
+            108,
+            110,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127
+          ],
+          "accents": [
+            1,
+            0.4,
+            0.4,
+            1,
+            0.4,
+            1,
+            0.4,
+            0.4,
+            1,
+            0.4,
+            1,
+            0.4,
+            0.4,
+            1,
+            0.4,
+            1,
+            0.4,
+            0.4,
+            1,
+            0.4,
+            0.45,
+            0.48,
+            0.51,
+            0.54,
+            0.57,
+            0.6,
+            0.63,
+            0.66,
+            0.7,
+            0.719,
+            0.738,
+            0.757,
+            0.776,
+            0.795,
+            0.814,
+            0.833,
+            0.852,
+            0.871,
+            0.89,
+            0.909,
+            0.928,
+            0.947,
+            0.966,
+            0.985
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 8,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            32,
+            34,
+            36,
+            38,
+            40,
+            42,
+            44,
+            46,
+            48,
+            50,
+            52,
+            54,
+            56,
+            58,
+            60,
+            62
+          ],
+          "accents": [
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45,
+            0.65,
+            0.45
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      120,
+      140
+    ]
+  },
+  "sections": [
+    "main",
+    "build",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "big beat's arrangement move, as a drum part: four bars of the break, two bars where the drums drop out, and two bars of a snare roll doubling back in to the drop",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Eight bars on the theme clock: the break over a four for four bars, nothing but the composer's own parts for two, then the kick on the beats under a snare roll in eighths and then sixteenths, rising, back into bar one. It is a section move written as a cell: a track pin plays it in every drummed section, so the drop-out lands where the eight-bar clock puts it and not where the arrangement's drop is — the gap is section-scoped cells."
+  }
+}

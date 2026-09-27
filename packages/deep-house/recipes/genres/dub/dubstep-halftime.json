@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dub/dubstep-halftime",
+  "revision": 1,
+  "name": "The dubstep halftime",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            14,
+            16,
+            27
+          ],
+          "accents": [
+            1,
+            0.7,
+            1,
+            0.8
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            8,
+            24,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            0.3
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            13,
+            14
+          ],
+          "accents": [
+            0.7,
+            0.6,
+            0.7,
+            0.35,
+            0.6
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.4,
+            0.4
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            7.5,
+            7.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0
+              ],
+              "beats": [
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                2.5
+              ],
+              "holds": [
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                2.25
+              ],
+              "accents": [
+                1,
+                0.7,
+                0.9,
+                0.7,
+                1,
+                0.7,
+                0.9,
+                0.7,
+                1,
+                0.6,
+                0.8,
+                0.6,
+                0.9,
+                0.8,
+                1
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor",
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      138,
+      142
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "dubstep: the half-time grid of a 140 track — kick on one, snare on the third beat — under a wobbling sub, here re-struck in eighths and sixteenths where the genre sweeps a filter with an LFO",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: kick one and a late kick before the second bar, snare on beat three of each bar, eighth hats with a sixteenth pickup. The wobble is the genre's filter moved by an LFO in eighths or triplets; the kitchen has no LFO on a bass voice, so the row approximates it by re-striking the sub: eighths through the first bar, sixteenths into a held note in the second. It plays at 130 under the Dub key: 140 is out of every band."
+  }
+}

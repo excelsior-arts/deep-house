@@ -1,0 +1,228 @@
+{
+  "kind": "genre-recipe-audit",
+  "note": "Where each genre recipe (src/recipes.ts GENRE_LIBRARY) is audited: a seed and a theme (one-based, as a link counts) whose tempo sits in the recipe's band under the family key's spell, and that spell. The link is `?seed=<seed>&v=2&theme=<theme>&spell=<spell>&recipe=<id>&accompaniment=base&development=base`; a genre row carries no bird box of its own (its `birds` is empty), so the spell is the link's. tools/genre-recipes.ts renders these, tools/check-link.ts plays them, notes/rounds/recipes-g1.md is the table.",
+  "keys": {
+    "dnb": {
+      "label": "Drum and Bass",
+      "spell": "em:0.95,sp:0.85,ze:0.70,ro:0.60,ve:0.60",
+      "from": "src/machine/genres.json, the Drum and Bass family"
+    },
+    "breaks": {
+      "label": "Breaks",
+      "spell": "em:0.72,sp:0.70,ti:0.45,ze:0.65",
+      "from": "notes/analysis/genres-2026-09-25.md §2, the Breaks key before it gave its cell to Trance; since recipes-g3 also Big Beat's key (Big Beat is not a family of genres.json)"
+    },
+    "dub": {
+      "label": "Dub",
+      "spell": "em:0.72,sp:0.10,ti:0.90,ze:0.25,ro:0.85,ve:0.15,lo:0.80",
+      "from": "src/machine/genres.json, the Dub family (Dub Techno's spell, which the family borrows)"
+    },
+    "downtempo": {
+      "label": "Downtempo",
+      "spell": "em:0.30,ti:0.70,ro:0.55",
+      "from": "src/machine/genres.json, the Downtempo family (Dub is one of its sub-genres)"
+    },
+    "techno": {
+      "label": "Techno",
+      "spell": "em:0.75,ro:0.60,ze:0.50,ve:0.60",
+      "from": "src/machine/genres.json, the Techno family (and trance's key until Trance has a spell: 130 is the fast band's top)"
+    },
+    "techhouse": {
+      "label": "Tech House",
+      "spell": "em:0.70,sp:0.40,ze:0.60,ro:0.60,ti:0.45",
+      "from": "src/machine/genres.json, House / Tech House: UK Garage has no spell yet, and this is the tuned key nearest its 130; also the house sub-genres' key, since the House family's own spell stays in the house band (95-105) and their 118-128 is the fast band's"
+    },
+    "ambient": {
+      "label": "Ambient",
+      "spell": "em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,lo:0.80,sp:0.00",
+      "from": "src/machine/genres.json, the Ambient family"
+    }
+  },
+  "rows": {
+    "dnb/two-step": {
+      "seed": "2",
+      "theme": 1,
+      "key": "dnb"
+    },
+    "dnb/amen": {
+      "seed": "14",
+      "theme": 1,
+      "key": "dnb"
+    },
+    "dnb/jungle-chop": {
+      "seed": "26",
+      "theme": 1,
+      "key": "dnb"
+    },
+    "dnb/liquid-roller": {
+      "seed": "28",
+      "theme": 1,
+      "key": "dnb"
+    },
+    "dnb/halftime": {
+      "seed": "30",
+      "theme": 1,
+      "key": "dnb"
+    },
+    "dnb/breakbeat": {
+      "seed": "2",
+      "theme": 1,
+      "key": "breaks"
+    },
+    "dub/dub-techno-chord": {
+      "seed": "19",
+      "theme": 1,
+      "key": "dub"
+    },
+    "dub/one-drop": {
+      "seed": "19",
+      "theme": 1,
+      "key": "downtempo"
+    },
+    "dub/dubstep-halftime": {
+      "seed": "2",
+      "theme": 1,
+      "key": "dub"
+    },
+    "dub/deep-dubstep": {
+      "seed": "14",
+      "theme": 1,
+      "key": "dub"
+    },
+    "dub/steppers": {
+      "seed": "26",
+      "theme": 1,
+      "key": "dub"
+    },
+    "trance/offbeat-bass": {
+      "seed": "2",
+      "theme": 1,
+      "key": "techno"
+    },
+    "trance/rolling-bass": {
+      "seed": "14",
+      "theme": 1,
+      "key": "techno"
+    },
+    "trance/supersaw-anthem": {
+      "seed": "26",
+      "theme": 1,
+      "key": "techno"
+    },
+    "trance/gated-chords": {
+      "seed": "28",
+      "theme": 1,
+      "key": "techno"
+    },
+    "trance/build-roll": {
+      "seed": "30",
+      "theme": 1,
+      "key": "techno"
+    },
+    "garage/2-step": {
+      "seed": "2",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "garage/speed-garage": {
+      "seed": "14",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "garage/bassline": {
+      "seed": "26",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "garage/uk-funky": {
+      "seed": "28",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "techno/driving-four": {
+      "seed": "2",
+      "theme": 1,
+      "key": "techno"
+    },
+    "techno/minimal": {
+      "seed": "14",
+      "theme": 1,
+      "key": "techno"
+    },
+    "techno/detroit-chords": {
+      "seed": "26",
+      "theme": 1,
+      "key": "techno"
+    },
+    "techno/acid-line": {
+      "seed": "28",
+      "theme": 1,
+      "key": "techno"
+    },
+    "downtempo/trip-hop": {
+      "seed": "19",
+      "theme": 1,
+      "key": "downtempo"
+    },
+    "downtempo/lo-fi": {
+      "seed": "6",
+      "theme": 1,
+      "key": "downtempo"
+    },
+    "ambient/slow-chords": {
+      "seed": "2",
+      "theme": 1,
+      "key": "ambient"
+    },
+    "house/minimal-house": {
+      "seed": "3",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "house/afro-house": {
+      "seed": "25",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "house/disco-house": {
+      "seed": "11",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "house/acid-house": {
+      "seed": "13",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "house/progressive-house": {
+      "seed": "8",
+      "theme": 1,
+      "key": "techhouse"
+    },
+    "bigbeat/breaks-four": {
+      "seed": "2",
+      "theme": 1,
+      "key": "breaks"
+    },
+    "bigbeat/riff-bass": {
+      "seed": "14",
+      "theme": 1,
+      "key": "breaks"
+    },
+    "bigbeat/stab-siren": {
+      "seed": "26",
+      "theme": 1,
+      "key": "breaks"
+    },
+    "bigbeat/dropout-build": {
+      "seed": "28",
+      "theme": 1,
+      "key": "breaks"
+    },
+    "bigbeat/hardcore-break": {
+      "seed": "30",
+      "theme": 1,
+      "key": "breaks"
+    }
+  }
+}

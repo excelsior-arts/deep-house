@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/growl-room",
+  "interpreter": "v1",
+  "scope": "track",
+  "applies": null,
+  "name": "the growl room",
+  "origin": "golden",
+  "birds": {
+    "ember": [
+      0.359,
+      0.477
+    ],
+    "tide": [
+      0.485,
+      0.747
+    ],
+    "zephyr": [
+      0.275,
+      0.465
+    ],
+    "root": [
+      0.655,
+      0.797
+    ],
+    "gleam": [
+      0.226,
+      0.366
+    ],
+    "veil": [
+      0.436,
+      0.562
+    ],
+    "spark": [
+      0.217,
+      0.305
+    ],
+    "loom": [
+      0.579,
+      0.639
+    ]
+  },
+  "wants": {
+    "roles": [
+      "backbeat",
+      "bassline",
+      "kick",
+      "offbeat"
+    ],
+    "families": [
+      "bass",
+      "drum",
+      "noise"
+    ],
+    "rates": {
+      "backbeat": {
+        "perBar": 2.172,
+        "min": 1.448,
+        "max": 3.258
+      },
+      "bassline": {
+        "perBar": 3.375,
+        "min": 2.25,
+        "max": 5.063
+      },
+      "kick": {
+        "perBar": 4.031,
+        "min": 2.687,
+        "max": 6.047
+      },
+      "offbeat": {
+        "perBar": 4,
+        "min": 2.667,
+        "max": 6
+      }
+    },
+    "stage": {
+      "front": "bassline",
+      "lead": "figure",
+      "back": [
+        "sustained"
+      ],
+      "treatments": [],
+      "steadyFront": false
+    }
+  },
+  "forbids": [],
+  "weight": 0.55,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "from": "the 72 measured themes of the growl room",
+    "centre": "the mean of those themes on each bird, out of src/styles/deep-house-signatures.json",
+    "box": "plus and minus their spread on that bird, clamped into 0..1",
+    "wants": "read off the plans of the same 72 themes: a role or a family at least 90% of them play, the median rate of each with the +/-1.5x band the verdicts of 09-18 set, and the stage at least 60% of them hold",
+    "window": "up to 32 bars of main groove per theme, the window the imprint was read over",
+    "anchors": "anchors.json@1e899ba4",
+    "signatures": "2026-09-18",
+    "calibration": "notes/analysis/imprint-calibration.md",
+    "note": "The two rooms are the two clusters the calibration found, and it found them without knowing a room existed: Tide, Zephyr, Veil and Spark separate sub from growl in the golden with no overlap. A roll inside this row is a roll inside one cluster, where a roll inside the house row is a roll between two."
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "ambient/slow-chords",
+  "revision": 1,
+  "name": "Slow ambient chords",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "figures": {
+      "figure": {
+        "follows": "harmony",
+        "articulation": "sustained",
+        "register": "mid",
+        "families": [
+          "ensemble"
+        ],
+        "properties": {
+          "struck": false,
+          "holdMin": 0.6,
+          "brightnessMin": 1000,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.8
+        },
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.666,
+              0.667
+            ],
+            "leaps": [
+              0.333,
+              0.334
+            ]
+          },
+          "cell": {
+            "beats": [
+              64,
+              64
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              4,
+              4
+            ]
+          },
+          "density": [
+            0.25,
+            0.25
+          ],
+          "returns": {
+            "bars": [
+              16,
+              16
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                -1,
+                1,
+                0
+              ],
+              "beats": [
+                16,
+                16,
+                16,
+                16
+              ],
+              "holds": [
+                15,
+                15,
+                15,
+                15
+              ],
+              "accents": [
+                0.7,
+                0.65,
+                0.75,
+                0.7
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.45,
+          0.55
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            16,
+            16
+          ]
+        },
+        "behavior": "phrase",
+        "duration": {
+          "beats": [
+            15,
+            15
+          ]
+        },
+        "voicings": [
+          [
+            -7,
+            -4,
+            -2,
+            0
+          ]
+        ]
+      },
+      "texture": {
+        "follows": "harmony",
+        "articulation": "pulse",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "brightnessMin": 5000
+        },
+        "strength": [
+          0.3,
+          0.4
+        ],
+        "spacing": {
+          "bars": [
+            3,
+            5
+          ]
+        },
+        "entry": {
+          "beats": [
+            2,
+            6
+          ]
+        },
+        "duration": {
+          "beats": [
+            2,
+            4
+          ]
+        },
+        "ambience": "immersed"
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": false
+  },
+  "tempo": {
+    "bpm": [
+      48,
+      70
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown",
+    "intro",
+    "outro"
+  ],
+  "provenance": {
+    "pattern": "ambient: slow, sustained chords that change every four bars and swell in and out, with a sparse high bell far back in the room — no drums, no pulse",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Sixteen bars: four chords on a held ensemble, each four bars long and voiced wide, swelling in over a beat and out over two. Over it an immersed bell, one note every few bars, above 2 kHz — the top octave the research found missing from the ambient key. Plays under the Ambient key, where the drums are off; the row asks for no drums and claims no rhythm."
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/breakbeat",
+  "revision": 1,
+  "name": "The breakbeat",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            7,
+            10,
+            16,
+            18,
+            25,
+            30
+          ],
+          "accents": [
+            1,
+            0.8,
+            0.95,
+            1,
+            0.8,
+            0.85,
+            0.75
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            20,
+            23,
+            28,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            0.3
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.75,
+            0.3,
+            0.55,
+            0.3,
+            0.75,
+            0.3,
+            0.55,
+            0.3,
+            0.75,
+            0.3,
+            0.55,
+            0.3,
+            0.75,
+            0.3,
+            0.55,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        },
+        {
+          "bars": 2,
+          "steps": [
+            30
+          ],
+          "accents": [
+            0.7
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0.333,
+              0.334
+            ],
+            "leaps": [
+              0.666,
+              0.667
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.6,
+            0.6
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            2.5,
+            2.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                3,
+                0,
+                -1
+              ],
+              "beats": [
+                0.75,
+                1.75,
+                1.5,
+                2,
+                2
+              ],
+              "holds": [
+                0.5,
+                1.5,
+                1.25,
+                1.75,
+                1.5
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.8,
+                0.95,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      125,
+      135
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "breakbeat (nu-skool and big beat): a funk break's syncopated kick under a firm two-and-four snare at 125-135, sixteenth hats with an open hat at the end of the phrase",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Breaks is not a family in genres.json any more; it lives under drum and bass, which is where the break came to rest. Two bars: kick one, two-a, three-and; then one, one-and, three-e, four-and. Snare on two and four with ghosts on two-a and four-a. Closed sixteenths, accented on the eighths and lightly swung, and a loose hat opening on the last and of each second bar. The bass is a syncopated funk line inside a fifth."
+  }
+}

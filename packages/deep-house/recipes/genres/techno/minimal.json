@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "techno/minimal",
+  "revision": 1,
+  "name": "Minimal",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            7,
+            13,
+            26
+          ],
+          "accents": [
+            0.6,
+            0.45,
+            0.55
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMin": 2200
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.55,
+            0.5,
+            0.55,
+            0.5
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.25,
+            0.25
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                0
+              ],
+              "beats": [
+                1.75,
+                2.75,
+                1.75,
+                1.75
+              ],
+              "holds": [
+                0.25,
+                0.25,
+                0.25,
+                0.5
+              ],
+              "accents": [
+                0.9,
+                0.8,
+                0.75,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      124,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "minimal techno: the four and very little else — a cross-stick placed off the beat, a closed hat on the offbeat, and a sub that dots a short syncopated figure",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars, and the space is the point: the cross-stick falls on the a of two and the e of four in the first bar and on three-and in the second, the only closed hat is on each offbeat, the sub plays four short notes in two bars. Eugene's favourite, and the one the research thought nearest the house already."
+  }
+}

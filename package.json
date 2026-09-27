@@ -1,20 +1,32 @@
 {
   "name": "deep-house",
-  "description": "Deep House — a browser-only procedural deep house generator",
-  "version": "1.0.0",
+  "description": "Deep House \u2014 a browser-only procedural deep house generator",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "license": "PolyForm-Noncommercial-1.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "check": "node tools/check.mjs && node tools/check-release.mjs",
-    "test": "vite build && node tools/test.mjs",
-    "test:browsers": "vite build && node tools/test-browsers.mjs",
-    "release": "node tools/release.mjs"
+    "dev": "npm run dev -w @deep-house/app",
+    "build": "npm run build -w @deep-house/app",
+    "build:preview": "npm run build:preview -w @deep-house/app",
+    "preview": "npm run preview -w @deep-house/app",
+    "types": "tsc --noEmit",
+    "check": "npm run types && npm run check -w @deep-house/app && node tools/check-release.ts",
+    "test": "npm run test -w @deep-house/app",
+    "test:browsers": "npm run test:browsers -w @deep-house/app",
+    "test:engine": "npm run test -w @deep-house/engine",
+    "pictures": "node tools/machine-view.ts --out public --sizes one",
+    "review": "npm run review -w @deep-house/app --",
+    "release": "node tools/release.ts"
   },
   "devDependencies": {
+    "@types/node": "^24.13.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "6.0.3",
     "vite": "8.3.0"
   }
 }

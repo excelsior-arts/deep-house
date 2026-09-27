@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/acid-house",
+  "revision": 1,
+  "name": "Acid house",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.65,
+            0.6,
+            0.65,
+            0.6
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.5,
+              0.5
+            ],
+            "leaps": [
+              0.5,
+              0.5
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.363,
+            0.364
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            11,
+            11
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                2,
+                0,
+                1,
+                0,
+                3,
+                2,
+                0,
+                0,
+                1
+              ],
+              "beats": [
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.5,
+                0.5
+              ],
+              "holds": [
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2
+              ],
+              "accents": [
+                1,
+                0.6,
+                0.9,
+                0.5,
+                1,
+                0.6,
+                0.95,
+                0.7,
+                1,
+                0.6,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      118,
+      126
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "acid house (Chicago, 1987): a drum machine's four, clap and offbeat hat under a sixteenth bass-synth line with accents off the beat",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the kit plain and swung a touch (0.54, a drum machine's swing), the line in sixteenths with rests, climbing to the third and falling back, accented against the beat. As with techno's acid line, the resonant filter and the slides that make it acid are not in the kitchen; this is the line on the sub."
+  }
+}

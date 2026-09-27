@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "garage/speed-garage",
+  "revision": 1,
+  "name": "Speed garage",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            1,
+            3,
+            5,
+            7,
+            9,
+            11,
+            13,
+            15
+          ],
+          "accents": [
+            0.35,
+            0.4,
+            0.35,
+            0.45,
+            0.35,
+            0.4,
+            0.35,
+            0.45
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.6,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        },
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.75,
+            0.7,
+            0.75,
+            0.7
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          },
+          "feel": {
+            "swing": 0.6,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              1,
+              1
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.375,
+            0.375
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            8,
+            8
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                4,
+                0,
+                0,
+                4,
+                0,
+                4
+              ],
+              "beats": [
+                0.5,
+                1,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.25,
+                0.25
+              ],
+              "holds": [
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.4,
+                0.2,
+                0.2
+              ],
+              "accents": [
+                0.3,
+                1,
+                0.8,
+                0.9,
+                1,
+                0.8,
+                0.7,
+                0.9
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      130,
+      138
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "speed garage: four on the floor with a snare on two and four, open hats on every offbeat and swung sixteenths between, under a bass that jumps between the root and the fifth on the offbeats",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar of drums: the house kick, a snare (not a clap) on two and four, a loose hat opening on each and, and swung closed sixteenths under it. The bass is the genre's bounce: short notes on the offbeats and the a of each beat, root and fifth. The warp of its famous bass (a pitch-bent, filtered patch) is not in the kitchen."
+  }
+}

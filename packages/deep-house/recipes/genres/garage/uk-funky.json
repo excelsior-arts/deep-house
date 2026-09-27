@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "garage/uk-funky",
+  "revision": 1,
+  "name": "UK funky",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            11,
+            12,
+            20,
+            27,
+            28
+          ],
+          "accents": [
+            1,
+            0.3,
+            1,
+            1,
+            0.3,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.6,
+            0.55,
+            0.6,
+            0.6
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            3,
+            6,
+            9,
+            10,
+            13,
+            16,
+            19,
+            22,
+            24,
+            25,
+            29,
+            30
+          ],
+          "accents": [
+            0.6,
+            0.45,
+            0.55,
+            0.4,
+            0.35,
+            0.5,
+            0.6,
+            0.45,
+            0.55,
+            0.35,
+            0.4,
+            0.5,
+            0.45
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMax": 3000
+          },
+          "prefer": {
+            "holdMin": 0.015
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                -1,
+                0
+              ],
+              "beats": [
+                3,
+                1,
+                3,
+                1
+              ],
+              "holds": [
+                2.75,
+                0.75,
+                2.75,
+                0.75
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.95,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting",
+      "sixteenth": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      128,
+      132
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "UK funky: a four-on-the-floor kick with soca and afro-house percussion rolling round it — hand drums and toms in a syncopated sixteenth pattern — a clap on two and four with extra ghost claps, and a sparse sub",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: the kick keeps four; the hand drums play a tresillo-shaped line (the three-three-two) over the two bars with fills between; claps on two and four and a ghost on the a of three; closed hats on the offbeat, lightly swung. A sub held on the root with one move a bar."
+  }
+}

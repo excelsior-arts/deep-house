@@ -1,0 +1,1731 @@
+{
+ "schema": 1,
+ "kind": "signatures",
+ "style": "deep-house",
+ "provenance": {
+  "date": "2026-09-18",
+  "tool": "packages/deep-house/tools/imprint/signatures.js",
+  "seeds": "master seeds 1-40, themes 0-2, and the fourteen golden themes of 1, 92970 and 21323",
+  "themes": 131,
+  "window": "up to 32 bars of main groove per theme (src/loudness.js's own loudnessWindow), rendered offline through the real graph at 48000 Hz, one at a time, and read by tools/imprint/imprint.py",
+  "anchors": "anchors.json@1e899ba4",
+  "spell": "none: every theme of the sweep was planned at the house, so what is measured is the record as it is",
+  "note": "A candidate's signature is what the themes that rolled it measured, not what the candidate does on its own. A bird drives a list only where its spread across the candidates is at least its spread within them."
+ },
+ "centre": {
+  "ember": 0.381,
+  "tide": 0.4635,
+  "zephyr": 0.4312,
+  "root": 0.755,
+  "gleam": 0.3004,
+  "veil": 0.406,
+  "spark": 0.3145,
+  "loom": 0.5832
+ },
+ "spread": {
+  "ember": 0.0764,
+  "tide": 0.1696,
+  "zephyr": 0.1299,
+  "root": 0.0736,
+  "gleam": 0.0801,
+  "veil": 0.1221,
+  "spark": 0.1624,
+  "loom": 0.0371
+ },
+ "confidence": {
+  "ember": 1,
+  "tide": 1,
+  "zephyr": 1,
+  "root": 1,
+  "gleam": 1,
+  "veil": 1,
+  "spark": 1,
+  "loom": 1
+ },
+ "lists": {
+  "rooms": {
+   "die": "preset",
+   "drawn": 2,
+   "draws": 120,
+   "drives": [
+    "veil",
+    "spark"
+   ],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0488,
+     "within": 0.059,
+     "error": 0.0073
+    },
+    "tide": {
+     "between": 0.1124,
+     "within": 0.127,
+     "error": 0.0157
+    },
+    "zephyr": {
+     "between": 0.0861,
+     "within": 0.0977,
+     "error": 0.0121
+    },
+    "root": {
+     "between": 0.0279,
+     "within": 0.0684,
+     "error": 0.0084
+    },
+    "gleam": {
+     "between": 0.0184,
+     "within": 0.0781,
+     "error": 0.0097
+    },
+    "veil": {
+     "between": 0.109,
+     "within": 0.0542,
+     "error": 0.0067
+    },
+    "spark": {
+     "between": 0.1577,
+     "within": 0.0348,
+     "error": 0.0043
+    },
+    "loom": {
+     "between": 0.0254,
+     "within": 0.0271,
+     "error": 0.0033
+    }
+   },
+   "candidates": {
+    "sub": {
+     "n": 59,
+     "mean": {
+      "ember": 0.32,
+      "tide": 0.39,
+      "zephyr": 0.543,
+      "root": 0.782,
+      "gleam": 0.333,
+      "veil": 0.28,
+      "spark": 0.578,
+      "loom": 0.558
+     },
+     "sd": {
+      "ember": 0.059,
+      "tide": 0.122,
+      "zephyr": 0.101,
+      "root": 0.065,
+      "gleam": 0.087,
+      "veil": 0.041,
+      "spark": 0.018,
+      "loom": 0.023
+     }
+    },
+    "growl": {
+     "n": 72,
+     "mean": {
+      "ember": 0.418,
+      "tide": 0.616,
+      "zephyr": 0.37,
+      "root": 0.726,
+      "gleam": 0.296,
+      "veil": 0.499,
+      "spark": 0.261,
+      "loom": 0.609
+     },
+     "sd": {
+      "ember": 0.059,
+      "tide": 0.131,
+      "zephyr": 0.095,
+      "root": 0.071,
+      "gleam": 0.07,
+      "veil": 0.063,
+      "spark": 0.044,
+      "loom": 0.03
+     }
+    }
+   }
+  },
+  "leadTimbres": {
+   "die": "timbre",
+   "drawn": 7,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.026,
+     "within": 0.0739,
+     "error": 0.0171
+    },
+    "tide": {
+     "between": 0.07,
+     "within": 0.1573,
+     "error": 0.0364
+    },
+    "zephyr": {
+     "between": 0.0581,
+     "within": 0.1179,
+     "error": 0.0272
+    },
+    "root": {
+     "between": 0.0225,
+     "within": 0.0715,
+     "error": 0.0165
+    },
+    "gleam": {
+     "between": 0.0204,
+     "within": 0.0791,
+     "error": 0.0183
+    },
+    "veil": {
+     "between": 0.0317,
+     "within": 0.1208,
+     "error": 0.0279
+    },
+    "spark": {
+     "between": 0.0327,
+     "within": 0.1631,
+     "error": 0.0377
+    },
+    "loom": {
+     "between": 0.0068,
+     "within": 0.0375,
+     "error": 0.0087
+    }
+   },
+   "candidates": {
+    "ep": {
+     "n": 34,
+     "mean": {
+      "ember": 0.364,
+      "tide": 0.409,
+      "zephyr": 0.517,
+      "root": 0.764,
+      "gleam": 0.294,
+      "veil": 0.368,
+      "spark": 0.415,
+      "loom": 0.587
+     },
+     "sd": {
+      "ember": 0.087,
+      "tide": 0.213,
+      "zephyr": 0.155,
+      "root": 0.09,
+      "gleam": 0.082,
+      "veil": 0.119,
+      "spark": 0.167,
+      "loom": 0.044
+     }
+    },
+    "strings": {
+     "n": 30,
+     "mean": {
+      "ember": 0.392,
+      "tide": 0.576,
+      "zephyr": 0.432,
+      "root": 0.754,
+      "gleam": 0.307,
+      "veil": 0.444,
+      "spark": 0.373,
+      "loom": 0.595
+     },
+     "sd": {
+      "ember": 0.048,
+      "tide": 0.161,
+      "zephyr": 0.115,
+      "root": 0.058,
+      "gleam": 0.078,
+      "veil": 0.118,
+      "spark": 0.143,
+      "loom": 0.039
+     }
+    },
+    "piano": {
+     "n": 35,
+     "mean": {
+      "ember": 0.367,
+      "tide": 0.52,
+      "zephyr": 0.445,
+      "root": 0.75,
+      "gleam": 0.328,
+      "veil": 0.399,
+      "spark": 0.422,
+      "loom": 0.585
+     },
+     "sd": {
+      "ember": 0.072,
+      "tide": 0.108,
+      "zephyr": 0.109,
+      "root": 0.069,
+      "gleam": 0.084,
+      "veil": 0.123,
+      "spark": 0.173,
+      "loom": 0.028
+     }
+    },
+    "pluck": {
+     "n": 12,
+     "mean": {
+      "ember": 0.354,
+      "tide": 0.523,
+      "zephyr": 0.432,
+      "root": 0.733,
+      "gleam": 0.302,
+      "veil": 0.394,
+      "spark": 0.445,
+      "loom": 0.583
+     },
+     "sd": {
+      "ember": 0.06,
+      "tide": 0.119,
+      "zephyr": 0.098,
+      "root": 0.079,
+      "gleam": 0.075,
+      "veil": 0.135,
+      "spark": 0.142,
+      "loom": 0.039
+     }
+    },
+    "organ": {
+     "n": 10,
+     "mean": {
+      "ember": 0.441,
+      "tide": 0.634,
+      "zephyr": 0.308,
+      "root": 0.706,
+      "gleam": 0.366,
+      "veil": 0.438,
+      "spark": 0.321,
+      "loom": 0.573
+     },
+     "sd": {
+      "ember": 0.074,
+      "tide": 0.139,
+      "zephyr": 0.05,
+      "root": 0.053,
+      "gleam": 0.066,
+      "veil": 0.1,
+      "spark": 0.173,
+      "loom": 0.029
+     }
+    },
+    "rhodes": {
+     "n": 6,
+     "mean": {
+      "ember": 0.354,
+      "tide": 0.523,
+      "zephyr": 0.36,
+      "root": 0.722,
+      "gleam": 0.31,
+      "veil": 0.337,
+      "spark": 0.437,
+      "loom": 0.569
+     },
+     "sd": {
+      "ember": 0.127,
+      "tide": 0.103,
+      "zephyr": 0.07,
+      "root": 0.055,
+      "gleam": 0.036,
+      "veil": 0.111,
+      "spark": 0.175,
+      "loom": 0.044
+     }
+    },
+    "swell": {
+     "n": 4,
+     "mean": {
+      "ember": 0.3,
+      "tide": 0.547,
+      "zephyr": 0.53,
+      "root": 0.839,
+      "gleam": 0.283,
+      "veil": 0.389,
+      "spark": 0.412,
+      "loom": 0.582
+     },
+     "sd": {
+      "ember": 0.057,
+      "tide": 0.148,
+      "zephyr": 0.072,
+      "root": 0.035,
+      "gleam": 0.104,
+      "veil": 0.151,
+      "spark": 0.193,
+      "loom": 0.043
+     }
+    }
+   }
+  },
+  "padPartners": {
+   "die": "partner",
+   "drawn": 2,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0199,
+     "within": 0.074,
+     "error": 0.0116
+    },
+    "tide": {
+     "between": 0.0119,
+     "within": 0.1704,
+     "error": 0.0268
+    },
+    "zephyr": {
+     "between": 0.0195,
+     "within": 0.1329,
+     "error": 0.0209
+    },
+    "root": {
+     "between": 0.0017,
+     "within": 0.0796,
+     "error": 0.0125
+    },
+    "gleam": {
+     "between": 0.011,
+     "within": 0.0825,
+     "error": 0.013
+    },
+    "veil": {
+     "between": 0.0081,
+     "within": 0.1227,
+     "error": 0.0193
+    },
+    "spark": {
+     "between": 0.0119,
+     "within": 0.1654,
+     "error": 0.026
+    },
+    "loom": {
+     "between": 0.0059,
+     "within": 0.0361,
+     "error": 0.0057
+    }
+   },
+   "candidates": {
+    "strings": {
+     "n": 62,
+     "mean": {
+      "ember": 0.353,
+      "tide": 0.481,
+      "zephyr": 0.484,
+      "root": 0.754,
+      "gleam": 0.304,
+      "veil": 0.381,
+      "spark": 0.429,
+      "loom": 0.589
+     },
+     "sd": {
+      "ember": 0.076,
+      "tide": 0.165,
+      "zephyr": 0.125,
+      "root": 0.084,
+      "gleam": 0.076,
+      "veil": 0.119,
+      "spark": 0.164,
+      "loom": 0.037
+     }
+    },
+    "rhodes": {
+     "n": 19,
+     "mean": {
+      "ember": 0.4,
+      "tide": 0.453,
+      "zephyr": 0.438,
+      "root": 0.75,
+      "gleam": 0.33,
+      "veil": 0.4,
+      "spark": 0.401,
+      "loom": 0.575
+     },
+     "sd": {
+      "ember": 0.067,
+      "tide": 0.187,
+      "zephyr": 0.156,
+      "root": 0.063,
+      "gleam": 0.101,
+      "veil": 0.134,
+      "spark": 0.17,
+      "loom": 0.033
+     }
+    }
+   }
+  },
+  "stabPartners": {
+   "die": "partner",
+   "drawn": 5,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0177,
+     "within": 0.0755,
+     "error": 0.0239
+    },
+    "tide": {
+     "between": 0.0659,
+     "within": 0.1388,
+     "error": 0.0439
+    },
+    "zephyr": {
+     "between": 0.0388,
+     "within": 0.1118,
+     "error": 0.0354
+    },
+    "root": {
+     "between": 0.0282,
+     "within": 0.0594,
+     "error": 0.0188
+    },
+    "gleam": {
+     "between": 0.0216,
+     "within": 0.0773,
+     "error": 0.0244
+    },
+    "veil": {
+     "between": 0.0471,
+     "within": 0.1125,
+     "error": 0.0356
+    },
+    "spark": {
+     "between": 0.0565,
+     "within": 0.1515,
+     "error": 0.0479
+    },
+    "loom": {
+     "between": 0.0107,
+     "within": 0.0383,
+     "error": 0.0121
+    }
+   },
+   "candidates": {
+    "ep": {
+     "n": 14,
+     "mean": {
+      "ember": 0.37,
+      "tide": 0.504,
+      "zephyr": 0.439,
+      "root": 0.759,
+      "gleam": 0.319,
+      "veil": 0.358,
+      "spark": 0.437,
+      "loom": 0.581
+     },
+     "sd": {
+      "ember": 0.096,
+      "tide": 0.176,
+      "zephyr": 0.127,
+      "root": 0.065,
+      "gleam": 0.081,
+      "veil": 0.111,
+      "spark": 0.167,
+      "loom": 0.033
+     }
+    },
+    "piano": {
+     "n": 11,
+     "mean": {
+      "ember": 0.377,
+      "tide": 0.543,
+      "zephyr": 0.421,
+      "root": 0.774,
+      "gleam": 0.322,
+      "veil": 0.426,
+      "spark": 0.406,
+      "loom": 0.576
+     },
+     "sd": {
+      "ember": 0.077,
+      "tide": 0.126,
+      "zephyr": 0.115,
+      "root": 0.061,
+      "gleam": 0.077,
+      "veil": 0.134,
+      "spark": 0.161,
+      "loom": 0.036
+     }
+    },
+    "pluck": {
+     "n": 13,
+     "mean": {
+      "ember": 0.409,
+      "tide": 0.669,
+      "zephyr": 0.395,
+      "root": 0.738,
+      "gleam": 0.312,
+      "veil": 0.477,
+      "spark": 0.341,
+      "loom": 0.587
+     },
+     "sd": {
+      "ember": 0.03,
+      "tide": 0.119,
+      "zephyr": 0.101,
+      "root": 0.056,
+      "gleam": 0.054,
+      "veil": 0.124,
+      "spark": 0.102,
+      "loom": 0.047
+     }
+    },
+    "rhodes": {
+     "n": 7,
+     "mean": {
+      "ember": 0.411,
+      "tide": 0.629,
+      "zephyr": 0.32,
+      "root": 0.685,
+      "gleam": 0.28,
+      "veil": 0.468,
+      "spark": 0.27,
+      "loom": 0.61
+     },
+     "sd": {
+      "ember": 0.074,
+      "tide": 0.117,
+      "zephyr": 0.084,
+      "root": 0.053,
+      "gleam": 0.042,
+      "veil": 0.071,
+      "spark": 0.137,
+      "loom": 0.036
+     }
+    },
+    "glass": {
+     "n": 5,
+     "mean": {
+      "ember": 0.399,
+      "tide": 0.561,
+      "zephyr": 0.435,
+      "root": 0.766,
+      "gleam": 0.368,
+      "veil": 0.419,
+      "spark": 0.349,
+      "loom": 0.593
+     },
+     "sd": {
+      "ember": 0.09,
+      "tide": 0.122,
+      "zephyr": 0.12,
+      "root": 0.056,
+      "gleam": 0.135,
+      "veil": 0.074,
+      "spark": 0.203,
+      "loom": 0.035
+     }
+    }
+   }
+  },
+  "densities": {
+   "die": "density",
+   "drawn": 3,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0124,
+     "within": 0.076,
+     "error": 0.0115
+    },
+    "tide": {
+     "between": 0.0219,
+     "within": 0.1692,
+     "error": 0.0256
+    },
+    "zephyr": {
+     "between": 0.0048,
+     "within": 0.1307,
+     "error": 0.0198
+    },
+    "root": {
+     "between": 0.0165,
+     "within": 0.0724,
+     "error": 0.011
+    },
+    "gleam": {
+     "between": 0.0066,
+     "within": 0.0806,
+     "error": 0.0122
+    },
+    "veil": {
+     "between": 0.0209,
+     "within": 0.121,
+     "error": 0.0183
+    },
+    "spark": {
+     "between": 0.0097,
+     "within": 0.1635,
+     "error": 0.0247
+    },
+    "loom": {
+     "between": 0.0013,
+     "within": 0.0373,
+     "error": 0.0056
+    }
+   },
+   "candidates": {
+    "minimal": {
+     "n": 81,
+     "mean": {
+      "ember": 0.366,
+      "tide": 0.501,
+      "zephyr": 0.445,
+      "root": 0.762,
+      "gleam": 0.314,
+      "veil": 0.389,
+      "spark": 0.405,
+      "loom": 0.585
+     },
+     "sd": {
+      "ember": 0.083,
+      "tide": 0.184,
+      "zephyr": 0.131,
+      "root": 0.077,
+      "gleam": 0.08,
+      "veil": 0.123,
+      "spark": 0.168,
+      "loom": 0.039
+     }
+    },
+    "medium": {
+     "n": 37,
+     "mean": {
+      "ember": 0.379,
+      "tide": 0.522,
+      "zephyr": 0.455,
+      "root": 0.725,
+      "gleam": 0.305,
+      "veil": 0.405,
+      "spark": 0.41,
+      "loom": 0.588
+     },
+     "sd": {
+      "ember": 0.063,
+      "tide": 0.145,
+      "zephyr": 0.127,
+      "root": 0.068,
+      "gleam": 0.078,
+      "veil": 0.118,
+      "spark": 0.156,
+      "loom": 0.035
+     }
+    },
+    "busy": {
+     "n": 13,
+     "mean": {
+      "ember": 0.407,
+      "tide": 0.574,
+      "zephyr": 0.442,
+      "root": 0.759,
+      "gleam": 0.329,
+      "veil": 0.46,
+      "spark": 0.375,
+      "loom": 0.586
+     },
+     "sd": {
+      "ember": 0.063,
+      "tide": 0.133,
+      "zephyr": 0.139,
+      "root": 0.052,
+      "gleam": 0.091,
+      "veil": 0.117,
+      "spark": 0.156,
+      "loom": 0.032
+     }
+    }
+   }
+  },
+  "densityLabels": {
+   "die": "density (label)",
+   "drawn": 3,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0124,
+     "within": 0.076,
+     "error": 0.0115
+    },
+    "tide": {
+     "between": 0.0219,
+     "within": 0.1692,
+     "error": 0.0256
+    },
+    "zephyr": {
+     "between": 0.0048,
+     "within": 0.1307,
+     "error": 0.0198
+    },
+    "root": {
+     "between": 0.0165,
+     "within": 0.0724,
+     "error": 0.011
+    },
+    "gleam": {
+     "between": 0.0066,
+     "within": 0.0806,
+     "error": 0.0122
+    },
+    "veil": {
+     "between": 0.0209,
+     "within": 0.121,
+     "error": 0.0183
+    },
+    "spark": {
+     "between": 0.0097,
+     "within": 0.1635,
+     "error": 0.0247
+    },
+    "loom": {
+     "between": 0.0013,
+     "within": 0.0373,
+     "error": 0.0056
+    }
+   },
+   "candidates": {
+    "minimal": {
+     "n": 81,
+     "mean": {
+      "ember": 0.366,
+      "tide": 0.501,
+      "zephyr": 0.445,
+      "root": 0.762,
+      "gleam": 0.314,
+      "veil": 0.389,
+      "spark": 0.405,
+      "loom": 0.585
+     },
+     "sd": {
+      "ember": 0.083,
+      "tide": 0.184,
+      "zephyr": 0.131,
+      "root": 0.077,
+      "gleam": 0.08,
+      "veil": 0.123,
+      "spark": 0.168,
+      "loom": 0.039
+     }
+    },
+    "medium": {
+     "n": 37,
+     "mean": {
+      "ember": 0.379,
+      "tide": 0.522,
+      "zephyr": 0.455,
+      "root": 0.725,
+      "gleam": 0.305,
+      "veil": 0.405,
+      "spark": 0.41,
+      "loom": 0.588
+     },
+     "sd": {
+      "ember": 0.063,
+      "tide": 0.145,
+      "zephyr": 0.127,
+      "root": 0.068,
+      "gleam": 0.078,
+      "veil": 0.118,
+      "spark": 0.156,
+      "loom": 0.035
+     }
+    },
+    "busy": {
+     "n": 13,
+     "mean": {
+      "ember": 0.407,
+      "tide": 0.574,
+      "zephyr": 0.442,
+      "root": 0.759,
+      "gleam": 0.329,
+      "veil": 0.46,
+      "spark": 0.375,
+      "loom": 0.586
+     },
+     "sd": {
+      "ember": 0.063,
+      "tide": 0.133,
+      "zephyr": 0.139,
+      "root": 0.052,
+      "gleam": 0.091,
+      "veil": 0.117,
+      "spark": 0.156,
+      "loom": 0.032
+     }
+    }
+   }
+  },
+  "voicingStyles": {
+   "die": "voicing",
+   "drawn": 2,
+   "draws": 0,
+   "drives": [
+    "veil",
+    "spark"
+   ],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0488,
+     "within": 0.059,
+     "error": 0.0073
+    },
+    "tide": {
+     "between": 0.1124,
+     "within": 0.127,
+     "error": 0.0157
+    },
+    "zephyr": {
+     "between": 0.0861,
+     "within": 0.0977,
+     "error": 0.0121
+    },
+    "root": {
+     "between": 0.0279,
+     "within": 0.0684,
+     "error": 0.0084
+    },
+    "gleam": {
+     "between": 0.0184,
+     "within": 0.0781,
+     "error": 0.0097
+    },
+    "veil": {
+     "between": 0.109,
+     "within": 0.0542,
+     "error": 0.0067
+    },
+    "spark": {
+     "between": 0.1577,
+     "within": 0.0348,
+     "error": 0.0043
+    },
+    "loom": {
+     "between": 0.0254,
+     "within": 0.0271,
+     "error": 0.0033
+    }
+   },
+   "candidates": {
+    "ninths": {
+     "n": 72,
+     "mean": {
+      "ember": 0.418,
+      "tide": 0.616,
+      "zephyr": 0.37,
+      "root": 0.726,
+      "gleam": 0.296,
+      "veil": 0.499,
+      "spark": 0.261,
+      "loom": 0.609
+     },
+     "sd": {
+      "ember": 0.059,
+      "tide": 0.131,
+      "zephyr": 0.095,
+      "root": 0.071,
+      "gleam": 0.07,
+      "veil": 0.063,
+      "spark": 0.044,
+      "loom": 0.03
+     }
+    },
+    "sevenths": {
+     "n": 0,
+     "mean": null,
+     "sd": null
+    },
+    "elevenths": {
+     "n": 59,
+     "mean": {
+      "ember": 0.32,
+      "tide": 0.39,
+      "zephyr": 0.543,
+      "root": 0.782,
+      "gleam": 0.333,
+      "veil": 0.28,
+      "spark": 0.578,
+      "loom": 0.558
+     },
+     "sd": {
+      "ember": 0.059,
+      "tide": 0.122,
+      "zephyr": 0.101,
+      "root": 0.065,
+      "gleam": 0.087,
+      "veil": 0.041,
+      "spark": 0.018,
+      "loom": 0.023
+     }
+    }
+   }
+  },
+  "fxPalettes": {
+   "die": "fx",
+   "drawn": 4,
+   "draws": 120,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.008,
+     "within": 0.0769,
+     "error": 0.0134
+    },
+    "tide": {
+     "between": 0.0374,
+     "within": 0.1673,
+     "error": 0.0292
+    },
+    "zephyr": {
+     "between": 0.0228,
+     "within": 0.1296,
+     "error": 0.0226
+    },
+    "root": {
+     "between": 0.0151,
+     "within": 0.0727,
+     "error": 0.0127
+    },
+    "gleam": {
+     "between": 0.0106,
+     "within": 0.08,
+     "error": 0.014
+    },
+    "veil": {
+     "between": 0.0095,
+     "within": 0.1231,
+     "error": 0.0215
+    },
+    "spark": {
+     "between": 0.0112,
+     "within": 0.1642,
+     "error": 0.0287
+    },
+    "loom": {
+     "between": 0.0055,
+     "within": 0.037,
+     "error": 0.0065
+    }
+   },
+   "candidates": {
+    "open": {
+     "n": 35,
+     "mean": {
+      "ember": 0.387,
+      "tide": 0.479,
+      "zephyr": 0.469,
+      "root": 0.76,
+      "gleam": 0.312,
+      "veil": 0.386,
+      "spark": 0.401,
+      "loom": 0.586
+     },
+     "sd": {
+      "ember": 0.054,
+      "tide": 0.162,
+      "zephyr": 0.142,
+      "root": 0.078,
+      "gleam": 0.083,
+      "veil": 0.11,
+      "spark": 0.169,
+      "loom": 0.033
+     }
+    },
+    "dry": {
+     "n": 29,
+     "mean": {
+      "ember": 0.366,
+      "tide": 0.56,
+      "zephyr": 0.418,
+      "root": 0.725,
+      "gleam": 0.323,
+      "veil": 0.412,
+      "spark": 0.388,
+      "loom": 0.592
+     },
+     "sd": {
+      "ember": 0.096,
+      "tide": 0.163,
+      "zephyr": 0.123,
+      "root": 0.063,
+      "gleam": 0.093,
+      "veil": 0.133,
+      "spark": 0.164,
+      "loom": 0.035
+     }
+    },
+    "deep": {
+     "n": 38,
+     "mean": {
+      "ember": 0.372,
+      "tide": 0.542,
+      "zephyr": 0.432,
+      "root": 0.75,
+      "gleam": 0.319,
+      "veil": 0.401,
+      "spark": 0.419,
+      "loom": 0.578
+     },
+     "sd": {
+      "ember": 0.067,
+      "tide": 0.176,
+      "zephyr": 0.114,
+      "root": 0.065,
+      "gleam": 0.076,
+      "veil": 0.131,
+      "spark": 0.163,
+      "loom": 0.041
+     }
+    },
+    "tight": {
+     "n": 29,
+     "mean": {
+      "ember": 0.37,
+      "tide": 0.473,
+      "zephyr": 0.472,
+      "root": 0.767,
+      "gleam": 0.294,
+      "veil": 0.405,
+      "spark": 0.402,
+      "loom": 0.59
+     },
+     "sd": {
+      "ember": 0.09,
+      "tide": 0.166,
+      "zephyr": 0.139,
+      "root": 0.084,
+      "gleam": 0.066,
+      "veil": 0.117,
+      "spark": 0.16,
+      "loom": 0.038
+     }
+    }
+   }
+  },
+  "keyRoots": {
+   "die": "key",
+   "drawn": 12,
+   "draws": 0,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0279,
+     "within": 0.0741,
+     "error": 0.0224
+    },
+    "tide": {
+     "between": 0.0304,
+     "within": 0.1744,
+     "error": 0.0528
+    },
+    "zephyr": {
+     "between": 0.0141,
+     "within": 0.1351,
+     "error": 0.0409
+    },
+    "root": {
+     "between": 0.0296,
+     "within": 0.0703,
+     "error": 0.0213
+    },
+    "gleam": {
+     "between": 0.038,
+     "within": 0.0736,
+     "error": 0.0223
+    },
+    "veil": {
+     "between": 0.0335,
+     "within": 0.1227,
+     "error": 0.0371
+    },
+    "spark": {
+     "between": 0.0286,
+     "within": 0.1671,
+     "error": 0.0506
+    },
+    "loom": {
+     "between": 0.0116,
+     "within": 0.0368,
+     "error": 0.0111
+    }
+   },
+   "candidates": {
+    "0": {
+     "n": 11,
+     "mean": {
+      "ember": 0.404,
+      "tide": 0.525,
+      "zephyr": 0.441,
+      "root": 0.771,
+      "gleam": 0.269,
+      "veil": 0.384,
+      "spark": 0.394,
+      "loom": 0.592
+     },
+     "sd": {
+      "ember": 0.048,
+      "tide": 0.16,
+      "zephyr": 0.1,
+      "root": 0.078,
+      "gleam": 0.052,
+      "veil": 0.12,
+      "spark": 0.186,
+      "loom": 0.034
+     }
+    },
+    "1": {
+     "n": 8,
+     "mean": {
+      "ember": 0.396,
+      "tide": 0.536,
+      "zephyr": 0.456,
+      "root": 0.735,
+      "gleam": 0.226,
+      "veil": 0.433,
+      "spark": 0.391,
+      "loom": 0.598
+     },
+     "sd": {
+      "ember": 0.043,
+      "tide": 0.24,
+      "zephyr": 0.154,
+      "root": 0.024,
+      "gleam": 0.092,
+      "veil": 0.142,
+      "spark": 0.154,
+      "loom": 0.045
+     }
+    },
+    "2": {
+     "n": 8,
+     "mean": {
+      "ember": 0.365,
+      "tide": 0.472,
+      "zephyr": 0.47,
+      "root": 0.766,
+      "gleam": 0.322,
+      "veil": 0.375,
+      "spark": 0.448,
+      "loom": 0.574
+     },
+     "sd": {
+      "ember": 0.068,
+      "tide": 0.139,
+      "zephyr": 0.144,
+      "root": 0.051,
+      "gleam": 0.054,
+      "veil": 0.097,
+      "spark": 0.178,
+      "loom": 0.033
+     }
+    },
+    "3": {
+     "n": 10,
+     "mean": {
+      "ember": 0.356,
+      "tide": 0.501,
+      "zephyr": 0.421,
+      "root": 0.698,
+      "gleam": 0.322,
+      "veil": 0.419,
+      "spark": 0.4,
+      "loom": 0.584
+     },
+     "sd": {
+      "ember": 0.056,
+      "tide": 0.183,
+      "zephyr": 0.151,
+      "root": 0.072,
+      "gleam": 0.081,
+      "veil": 0.135,
+      "spark": 0.148,
+      "loom": 0.036
+     }
+    },
+    "4": {
+     "n": 11,
+     "mean": {
+      "ember": 0.382,
+      "tide": 0.52,
+      "zephyr": 0.437,
+      "root": 0.717,
+      "gleam": 0.312,
+      "veil": 0.419,
+      "spark": 0.356,
+      "loom": 0.599
+     },
+     "sd": {
+      "ember": 0.089,
+      "tide": 0.134,
+      "zephyr": 0.14,
+      "root": 0.075,
+      "gleam": 0.065,
+      "veil": 0.099,
+      "spark": 0.171,
+      "loom": 0.025
+     }
+    },
+    "5": {
+     "n": 11,
+     "mean": {
+      "ember": 0.388,
+      "tide": 0.58,
+      "zephyr": 0.43,
+      "root": 0.701,
+      "gleam": 0.333,
+      "veil": 0.427,
+      "spark": 0.349,
+      "loom": 0.606
+     },
+     "sd": {
+      "ember": 0.064,
+      "tide": 0.164,
+      "zephyr": 0.131,
+      "root": 0.054,
+      "gleam": 0.075,
+      "veil": 0.107,
+      "spark": 0.158,
+      "loom": 0.032
+     }
+    },
+    "6": {
+     "n": 11,
+     "mean": {
+      "ember": 0.398,
+      "tide": 0.543,
+      "zephyr": 0.45,
+      "root": 0.766,
+      "gleam": 0.28,
+      "veil": 0.404,
+      "spark": 0.43,
+      "loom": 0.593
+     },
+     "sd": {
+      "ember": 0.058,
+      "tide": 0.141,
+      "zephyr": 0.143,
+      "root": 0.073,
+      "gleam": 0.05,
+      "veil": 0.12,
+      "spark": 0.157,
+      "loom": 0.036
+     }
+    },
+    "7": {
+     "n": 11,
+     "mean": {
+      "ember": 0.332,
+      "tide": 0.464,
+      "zephyr": 0.434,
+      "root": 0.769,
+      "gleam": 0.268,
+      "veil": 0.368,
+      "spark": 0.407,
+      "loom": 0.594
+     },
+     "sd": {
+      "ember": 0.074,
+      "tide": 0.167,
+      "zephyr": 0.126,
+      "root": 0.1,
+      "gleam": 0.063,
+      "veil": 0.112,
+      "spark": 0.188,
+      "loom": 0.037
+     }
+    },
+    "8": {
+     "n": 12,
+     "mean": {
+      "ember": 0.374,
+      "tide": 0.48,
+      "zephyr": 0.46,
+      "root": 0.741,
+      "gleam": 0.367,
+      "veil": 0.357,
+      "spark": 0.427,
+      "loom": 0.573
+     },
+     "sd": {
+      "ember": 0.065,
+      "tide": 0.172,
+      "zephyr": 0.142,
+      "root": 0.106,
+      "gleam": 0.114,
+      "veil": 0.099,
+      "spark": 0.153,
+      "loom": 0.034
+     }
+    },
+    "9": {
+     "n": 11,
+     "mean": {
+      "ember": 0.408,
+      "tide": 0.52,
+      "zephyr": 0.451,
+      "root": 0.789,
+      "gleam": 0.352,
+      "veil": 0.471,
+      "spark": 0.396,
+      "loom": 0.57
+     },
+     "sd": {
+      "ember": 0.064,
+      "tide": 0.206,
+      "zephyr": 0.132,
+      "root": 0.048,
+      "gleam": 0.054,
+      "veil": 0.162,
+      "spark": 0.151,
+      "loom": 0.029
+     }
+    },
+    "10": {
+     "n": 14,
+     "mean": {
+      "ember": 0.319,
+      "tide": 0.518,
+      "zephyr": 0.462,
+      "root": 0.781,
+      "gleam": 0.345,
+      "veil": 0.358,
+      "spark": 0.438,
+      "loom": 0.578
+     },
+     "sd": {
+      "ember": 0.117,
+      "tide": 0.184,
+      "zephyr": 0.123,
+      "root": 0.054,
+      "gleam": 0.079,
+      "veil": 0.144,
+      "spark": 0.176,
+      "loom": 0.047
+     }
+    },
+    "11": {
+     "n": 13,
+     "mean": {
+      "ember": 0.381,
+      "tide": 0.506,
+      "zephyr": 0.461,
+      "root": 0.765,
+      "gleam": 0.321,
+      "veil": 0.408,
+      "spark": 0.403,
+      "loom": 0.575
+     },
+     "sd": {
+      "ember": 0.085,
+      "tide": 0.184,
+      "zephyr": 0.138,
+      "root": 0.055,
+      "gleam": 0.073,
+      "veil": 0.114,
+      "spark": 0.174,
+      "loom": 0.044
+     }
+    }
+   },
+   "byMode": {
+    "minor": {
+     "n": 108,
+     "mean": {
+      "ember": 0.369,
+      "tide": 0.508,
+      "zephyr": 0.451,
+      "root": 0.755,
+      "gleam": 0.311,
+      "veil": 0.401,
+      "spark": 0.407,
+      "loom": 0.585
+     },
+     "sd": {
+      "ember": 0.074,
+      "tide": 0.172,
+      "zephyr": 0.133,
+      "root": 0.075,
+      "gleam": 0.081,
+      "veil": 0.123,
+      "spark": 0.16,
+      "loom": 0.036
+     }
+    },
+    "dorian": {
+     "n": 23,
+     "mean": {
+      "ember": 0.398,
+      "tide": 0.543,
+      "zephyr": 0.434,
+      "root": 0.733,
+      "gleam": 0.319,
+      "veil": 0.399,
+      "spark": 0.387,
+      "loom": 0.589
+     },
+     "sd": {
+      "ember": 0.086,
+      "tide": 0.156,
+      "zephyr": 0.118,
+      "root": 0.064,
+      "gleam": 0.076,
+      "veil": 0.121,
+      "spark": 0.175,
+      "loom": 0.044
+     }
+    }
+   },
+   "byModeNote": "measured and not wired: the mode is a die of its own (`mix:key:<n>`'s minor chance) and phase 1 adds no range to it. Recorded because it is the grouping of the roots that a bird could carry, and because Gleam reads the key it hears rather than the key the plan wrote."
+  },
+  "melodyBars": {
+   "die": "melody",
+   "drawn": 2,
+   "draws": 269,
+   "drives": [],
+   "silent": [
+    "ember",
+    "tide",
+    "zephyr",
+    "root",
+    "gleam",
+    "veil",
+    "spark",
+    "loom"
+   ],
+   "spreads": {
+    "ember": {
+     "between": 0.0308,
+     "within": 0.0666,
+     "error": 0.0235
+    },
+    "tide": {
+     "between": 0.0635,
+     "within": 0.0968,
+     "error": 0.0342
+    },
+    "zephyr": {
+     "between": 0.0432,
+     "within": 0.114,
+     "error": 0.0403
+    },
+    "root": {
+     "between": 0.0089,
+     "within": 0.0575,
+     "error": 0.0203
+    },
+    "gleam": {
+     "between": 0.0298,
+     "within": 0.0539,
+     "error": 0.019
+    },
+    "veil": {
+     "between": 0.0585,
+     "within": 0.1074,
+     "error": 0.038
+    },
+    "spark": {
+     "between": 0.066,
+     "within": 0.1584,
+     "error": 0.056
+    },
+    "loom": {
+     "between": 0.0015,
+     "within": 0.031,
+     "error": 0.011
+    }
+   },
+   "candidates": {
+    "2": {
+     "n": 7,
+     "mean": {
+      "ember": 0.411,
+      "tide": 0.609,
+      "zephyr": 0.376,
+      "root": 0.765,
+      "gleam": 0.354,
+      "veil": 0.49,
+      "spark": 0.303,
+      "loom": 0.579
+     },
+     "sd": {
+      "ember": 0.029,
+      "tide": 0.123,
+      "zephyr": 0.093,
+      "root": 0.04,
+      "gleam": 0.037,
+      "veil": 0.108,
+      "spark": 0.127,
+      "loom": 0.023
+     }
+    },
+    "4": {
+     "n": 9,
+     "mean": {
+      "ember": 0.349,
+      "tide": 0.481,
+      "zephyr": 0.463,
+      "root": 0.747,
+      "gleam": 0.294,
+      "veil": 0.372,
+      "spark": 0.436,
+      "loom": 0.576
+     },
+     "sd": {
+      "ember": 0.085,
+      "tide": 0.07,
+      "zephyr": 0.128,
+      "root": 0.068,
+      "gleam": 0.064,
+      "veil": 0.107,
+      "spark": 0.179,
+      "loom": 0.036
+     }
+    }
+   }
+  }
+ },
+ "ranges": {
+  "tempoSlowChance": {
+   "derived": "pulse",
+   "bird": "pulse",
+   "slope": 0.3205,
+   "r": 0.018,
+   "n": 42,
+   "meanBird": 0.2234,
+   "meanOutcome": 0.8333,
+   "base": 0.75,
+   "wired": false,
+   "note": null
+  },
+  "tempoBpm": {
+   "derived": "pulse",
+   "bird": "pulse",
+   "slope": 14.7632,
+   "r": 0.119,
+   "n": 42,
+   "meanBird": 0.2234,
+   "meanOutcome": 101.8813,
+   "base": null,
+   "wired": false,
+   "note": null
+  },
+  "shortBlendChance": {
+   "derived": "changeRate",
+   "bird": "veil",
+   "slope": -0.3464,
+   "r": -0.091,
+   "n": 131,
+   "meanBird": 0.4005,
+   "meanOutcome": 0.6947,
+   "base": 0.7,
+   "wired": false,
+   "note": null
+  },
+  "blendBars": {
+   "derived": "changeRate",
+   "bird": "veil",
+   "slope": 10.3142,
+   "r": 0.073,
+   "n": 131,
+   "meanBird": 0.4005,
+   "meanOutcome": 21.6489,
+   "base": null,
+   "wired": false,
+   "note": null
+  },
+  "sectionBars": {
+   "derived": "formLength",
+   "bird": "loom",
+   "slope": 20.1087,
+   "r": 0.159,
+   "n": 131,
+   "meanBird": 0.586,
+   "meanOutcome": 19.4568,
+   "base": null,
+   "wired": false,
+   "note": "inert: makeArrangement scales the drawn lengths to the bars the theme asked for, so a multiplier on the p25/p75 window divides straight back out. Measured over 300 arrangements, multipliers of 0.5 to 2 give the same mean section length to the bar. The slope is recorded and the multiplier stays at 1 until the window is the thing that decides a section's length."
+  }
+ }
+}

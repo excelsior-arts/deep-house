@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/amen",
+  "revision": 1,
+  "name": "The Amen break",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 4,
+          "steps": [
+            0,
+            2,
+            10,
+            11,
+            16,
+            18,
+            26,
+            27,
+            32,
+            34,
+            42,
+            50,
+            51,
+            58
+          ],
+          "accents": [
+            1,
+            0.8,
+            0.95,
+            0.75,
+            1,
+            0.8,
+            0.95,
+            0.75,
+            1,
+            0.8,
+            0.95,
+            0.8,
+            0.7,
+            0.95
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 4,
+          "steps": [
+            4,
+            7,
+            9,
+            12,
+            15,
+            20,
+            23,
+            25,
+            28,
+            31,
+            36,
+            39,
+            41,
+            46,
+            49,
+            52,
+            55,
+            57,
+            62
+          ],
+          "accents": [
+            1,
+            0.45,
+            0.45,
+            1,
+            0.45,
+            1,
+            0.45,
+            0.45,
+            1,
+            0.45,
+            1,
+            0.45,
+            0.45,
+            1,
+            0.45,
+            1,
+            0.45,
+            0.45,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14
+          ],
+          "accents": [
+            0.8,
+            0.55,
+            0.8,
+            0.55,
+            0.8,
+            0.55,
+            0.8,
+            0.55
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "held"
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      160,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "the Amen break as drummers write it out: four bars of eighth cymbals over kick one, one-and, three-and, three-a and snares on two, two-a, three-e, four, four-a, the third bar dropping a hit and the fourth pushing the kick late",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Four bars, the break's own shape: bars one and two identical, bar three leaves the snare off four for four-and, bar four starts the kick on the one-and and adds a snare on the one-e. The ghosted snares are the break's quieter strokes. The break's cymbal is a ride in the record; the kit here has one but it is not enabled on the offbeat lane, so the eighths are closed hats. The sub is held on the root under each chord, as the classic jungle and drum and bass tracks built on this break mostly did."
+  }
+}

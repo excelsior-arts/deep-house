@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dub/one-drop",
+  "revision": 1,
+  "name": "The one drop",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            8
+          ],
+          "accents": [
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            8
+          ],
+          "accents": [
+            0.9
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMin": 2200
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14
+          ],
+          "accents": [
+            0.5,
+            0.35,
+            0.5,
+            0.35,
+            0.5,
+            0.35,
+            0.5,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.333,
+              0.334
+            ],
+            "leaps": [
+              0.666,
+              0.667
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.428,
+            0.429
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            3.5,
+            3.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                2,
+                4,
+                2,
+                0,
+                1,
+                0
+              ],
+              "beats": [
+                1.5,
+                1,
+                1.5,
+                1,
+                1.5,
+                1,
+                0.5
+              ],
+              "holds": [
+                1.25,
+                0.75,
+                1.25,
+                0.75,
+                1.25,
+                0.75,
+                0.5
+              ],
+              "accents": [
+                0.95,
+                0.8,
+                0.9,
+                0.75,
+                0.95,
+                0.8,
+                0.7
+              ]
+            }
+          ]
+        }
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMax": 0.12,
+          "brightnessMin": 1500,
+          "brightnessMax": 3500
+        },
+        "prefer": {
+          "brightnessMax": 2500
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            3,
+            3
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0
+              ],
+              "beats": [
+                1,
+                2,
+                1
+              ],
+              "holds": [
+                0.25,
+                0.25,
+                0.25
+              ],
+              "accents": [
+                0.3,
+                0.8,
+                0.8
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.45,
+          0.55
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            1,
+            1
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -4,
+            -2,
+            0
+          ]
+        ],
+        "rests": {
+          "bars": 1,
+          "beats": [
+            [
+              0,
+              0.25
+            ]
+          ]
+        }
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      70,
+      80
+    ],
+    "nearest": [
+      95,
+      100
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "roots reggae and dub: the one drop — kick and rim together on the third beat and nothing on the one — with the skank chopping the chord on two and four and a bass line that walks around the root",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the kick and a cross-stick land together on beat three (step 8), the hats tick the eighths with the offbeat lighter, the skank is a short triad on two and four. The bass is a two-bar melodic line inside a fifth that leaves the one empty, as roots bass lines do. Played under the Downtempo key, whose band is the slowest with drums (95-105): a one drop wants 70-80, where no band is."
+  }
+}

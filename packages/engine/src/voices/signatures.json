@@ -1,0 +1,2683 @@
+{
+ "schema": 1,
+ "kind": "layerSignatures",
+ "note": "MEASURED. What every playable instrument in the registry reads as when it is rendered ALONE through the real graph — the eight birds of notes/plans/PLAN-IMPRINT.md, on the single-layer scale in packages/deep-house/tools/imprint/anchors-layer.json, which is a different scale from the full-mix anchors.json and a row here may never be compared with a row measured on that one. Rebuilt by `node packages/deep-house/tools/imprint/layer.js --render --write`. house-v2 reads it (src/catalogue-v2.js joins it to the names a candidate list uses, src/spell.ts leans on it); house-v1 must not, because its own weights are a measurement of the record on the whole-mix scale. The percussion rows are read on the harmonic scale rather than one of their own, and some of them sit on a wall of it: a reading on a wall is a lean and is not a measurement.",
+ "measured": {
+  "date": "2026-09-19",
+  "anchors": "anchors-layer.json@c6df9c74",
+  "anchorsVersion": "layer-1",
+  "calibratedOn": "the instruments of the record, each alone (the 21 playable instruments of the 13 voices that existed before round K2, in two registers each)",
+  "tool": "packages/deep-house/tools/imprint/layer.js",
+  "fixture": "packages/engine/tools/audition-voices.ts + audition-voices-2.ts + audition-drums.ts",
+  "rate": 48000,
+  "bars": 8,
+  "prerollBars": 2,
+  "bpm": 120,
+  "registers": [
+   "base (+0 semitones, velocity x1)",
+   "up5 (+7 semitones, velocity x0.75)"
+  ],
+  "drumRegisters": [
+   "base (velocity x1; a drum's register is its velocity)",
+   "soft (velocity x0.75; a drum's register is its velocity)"
+  ],
+  "drumFixture": "packages/engine/tools/audition-drums.ts"
+ },
+ "instruments": {
+  "kick": {
+   "voice": "kick",
+   "timbre": null,
+   "role": "kick",
+   "table": "K2",
+   "family": "drum",
+   "layer": "kick",
+   "birds": {
+    "ember": 0.9829,
+    "tide": 0.355,
+    "zephyr": 0.1372,
+    "root": 0.961,
+    "gleam": 0.2338,
+    "veil": 0.2654,
+    "spark": 0.0206,
+    "loom": 0.5938
+   },
+   "spread": {
+    "ember": 0.0003,
+    "tide": 0.0098,
+    "zephyr": 0,
+    "root": 0.001,
+    "gleam": 0.0014,
+    "veil": 0.0001,
+    "spark": 0.0004,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.526,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "hatClosed": {
+   "voice": "hatClosed",
+   "timbre": null,
+   "role": "offbeat",
+   "table": "K2",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 1,
+    "tide": 0.0958,
+    "zephyr": 0.9464,
+    "root": 0.5313,
+    "gleam": 0.3052,
+    "veil": 0.3019,
+    "spark": 0.0126,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0076,
+    "zephyr": 0.0149,
+    "root": 0.0917,
+    "gleam": 0.0562,
+    "veil": 0.0094,
+    "spark": 0.0009,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "hatOpen": {
+   "voice": "hatOpen",
+   "timbre": null,
+   "role": "offbeat",
+   "table": "K2",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 0.9325,
+    "tide": 0.5303,
+    "zephyr": 0.9306,
+    "root": 0.515,
+    "gleam": 0.2912,
+    "veil": 0.3165,
+    "spark": 0.207,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0.0017,
+    "tide": 0.0127,
+    "zephyr": 0.0133,
+    "root": 0.064,
+    "gleam": 0.0331,
+    "veil": 0.0222,
+    "spark": 0.0027,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.934,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "shaker": {
+   "voice": "shaker",
+   "timbre": null,
+   "role": "sixteenth",
+   "table": "K2",
+   "family": "noise",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.7146,
+    "tide": 0.544,
+    "zephyr": 0.9337,
+    "root": 0.5794,
+    "gleam": 0.3948,
+    "veil": 0.3124,
+    "spark": 0.9034,
+    "loom": 0.0829
+   },
+   "spread": {
+    "ember": 0.0011,
+    "tide": 0.0124,
+    "zephyr": 0.0093,
+    "root": 0.0065,
+    "gleam": 0.0028,
+    "veil": 0.0028,
+    "spark": 0.0016,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.598,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 16,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "clap": {
+   "voice": "clap",
+   "timbre": null,
+   "role": "backbeat",
+   "table": "K2",
+   "family": "drum",
+   "layer": "clap",
+   "birds": {
+    "ember": 1,
+    "tide": 0.0748,
+    "zephyr": 0.8419,
+    "root": 0.537,
+    "gleam": 0.3735,
+    "veil": 0.2567,
+    "spark": 0,
+    "loom": 0.8011
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.012,
+    "zephyr": 0,
+    "root": 0,
+    "gleam": 0.0001,
+    "veil": 0.0045,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.8,
+    "gleam": 0.56,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 2,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "sub": {
+   "voice": "sub",
+   "timbre": null,
+   "role": "bassline",
+   "table": "K2",
+   "family": "bass",
+   "layer": "bass",
+   "birds": {
+    "ember": 0.3952,
+    "tide": 0.1985,
+    "zephyr": 0.265,
+    "root": 0.8896,
+    "gleam": 0.3487,
+    "veil": 0.3126,
+    "spark": 0.1195,
+    "loom": 0.4635
+   },
+   "spread": {
+    "ember": 0.0131,
+    "tide": 0.0447,
+    "zephyr": 0.0432,
+    "root": 0.0346,
+    "gleam": 0.0058,
+    "veil": 0.0371,
+    "spark": 0,
+    "loom": 0.0026
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.517,
+    "veil": 1,
+    "spark": 0.791,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "keys:rhodes": {
+   "voice": "keys",
+   "timbre": "rhodes",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0158,
+    "tide": 0.5468,
+    "zephyr": 0.2385,
+    "root": 0.6631,
+    "gleam": 0.3757,
+    "veil": 0.4526,
+    "spark": 0.2636,
+    "loom": 0.5436
+   },
+   "spread": {
+    "ember": 0.0036,
+    "tide": 0.0041,
+    "zephyr": 0.0594,
+    "root": 0.011,
+    "gleam": 0.028,
+    "veil": 0.0035,
+    "spark": 0.0005,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.311,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.3,
+    "brightnessHz": 1900,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "keys:glass": {
+   "voice": "keys",
+   "timbre": "glass",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0306,
+    "tide": 0.5663,
+    "zephyr": 0.3884,
+    "root": 0.6745,
+    "gleam": 0.3494,
+    "veil": 0.474,
+    "spark": 0.2602,
+    "loom": 0.5401
+   },
+   "spread": {
+    "ember": 0.0086,
+    "tide": 0.026,
+    "zephyr": 0.0319,
+    "root": 0.0236,
+    "gleam": 0.0096,
+    "veil": 0.0076,
+    "spark": 0.0148,
+    "loom": 0.0035
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.864,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.32,
+    "brightnessHz": 2600,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "keys:ep": {
+   "voice": "keys",
+   "timbre": "ep",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.009,
+    "tide": 0.5676,
+    "zephyr": 0.3155,
+    "root": 0.7433,
+    "gleam": 0.3838,
+    "veil": 0.5179,
+    "spark": 0.2882,
+    "loom": 0.5262
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0208,
+    "zephyr": 0.0036,
+    "root": 0.0003,
+    "gleam": 0.0159,
+    "veil": 0.0006,
+    "spark": 0.0075,
+    "loom": 0.0035
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.266,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.37,
+    "brightnessHz": 1800,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "keys:organ": {
+   "voice": "keys",
+   "timbre": "organ",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0063,
+    "tide": 0.5966,
+    "zephyr": 0.2419,
+    "root": 0.7325,
+    "gleam": 0.3732,
+    "veil": 0.5471,
+    "spark": 0.3483,
+    "loom": 0.4948
+   },
+   "spread": {
+    "ember": 0.0003,
+    "tide": 0.0112,
+    "zephyr": 0.0272,
+    "root": 0.002,
+    "gleam": 0.0168,
+    "veil": 0.0094,
+    "spark": 0.0029,
+    "loom": 0.007
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.374,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.72,
+    "brightnessHz": 2500,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "keys:pluck": {
+   "voice": "keys",
+   "timbre": "pluck",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.2735,
+    "tide": 0.426,
+    "zephyr": 0.3896,
+    "root": 0.7315,
+    "gleam": 0.3906,
+    "veil": 0.5286,
+    "spark": 0.3135,
+    "loom": 0.4669
+   },
+   "spread": {
+    "ember": 0.0224,
+    "tide": 0.0002,
+    "zephyr": 0.0217,
+    "root": 0.0038,
+    "gleam": 0.0079,
+    "veil": 0.0185,
+    "spark": 0.0342,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.737,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.048,
+    "brightnessHz": 2000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "piano": {
+   "voice": "piano",
+   "timbre": "piano",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.4072,
+    "tide": 0.4096,
+    "zephyr": 0.3323,
+    "root": 0.7574,
+    "gleam": 0.4031,
+    "veil": 0.4418,
+    "spark": 0.2095,
+    "loom": 0.4077
+   },
+   "spread": {
+    "ember": 0.0765,
+    "tide": 0.0323,
+    "zephyr": 0.0271,
+    "root": 0.0086,
+    "gleam": 0.0027,
+    "veil": 0.0092,
+    "spark": 0.0441,
+    "loom": 0.0174
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.376,
+    "veil": 0.667,
+    "spark": 0.885,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.26,
+    "brightnessHz": 3450,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "pad:strings": {
+   "voice": "pad",
+   "timbre": "strings",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0189,
+    "tide": 0.8194,
+    "zephyr": 0.1992,
+    "root": 0.6038,
+    "gleam": 0.2494,
+    "veil": 0.6421,
+    "spark": 0,
+    "loom": 0.953
+   },
+   "spread": {
+    "ember": 0.0093,
+    "tide": 0.0197,
+    "zephyr": 0.0271,
+    "root": 0.0977,
+    "gleam": 0.0006,
+    "veil": 0.0343,
+    "spark": 0,
+    "loom": 0.0138
+   },
+   "confidence": {
+    "ember": 0.625,
+    "tide": 0.209,
+    "zephyr": 1,
+    "root": 0.8,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.52,
+    "brightnessHz": 1200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "pad:swell": {
+   "voice": "pad",
+   "timbre": "swell",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0003,
+    "tide": 0.8414,
+    "zephyr": 0.2419,
+    "root": 0.3623,
+    "gleam": 0.266,
+    "veil": 0.6503,
+    "spark": 0,
+    "loom": 0.3657
+   },
+   "spread": {
+    "ember": 0.0002,
+    "tide": 0.0122,
+    "zephyr": 0.0156,
+    "root": 0.0664,
+    "gleam": 0.0089,
+    "veil": 0.0145,
+    "spark": 0,
+    "loom": 0.0083
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.4,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.32,
+    "brightnessHz": 1200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "pad:organ": {
+   "voice": "pad",
+   "timbre": "organ",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0007,
+    "tide": 0.9267,
+    "zephyr": 0.195,
+    "root": 0.5234,
+    "gleam": 0.2344,
+    "veil": 0.3443,
+    "spark": 0,
+    "loom": 0.9668
+   },
+   "spread": {
+    "ember": 0.0002,
+    "tide": 0.0044,
+    "zephyr": 0.0485,
+    "root": 0.0608,
+    "gleam": 0.0008,
+    "veil": 0.0096,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 0.5,
+    "tide": 0.167,
+    "zephyr": 1,
+    "root": 0.4,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.72,
+    "brightnessHz": 2500,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "pad:rhodes": {
+   "voice": "pad",
+   "timbre": "rhodes",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0052,
+    "tide": 0.8513,
+    "zephyr": 0.149,
+    "root": 0.3488,
+    "gleam": 0.3396,
+    "veil": 0.3853,
+    "spark": 0.2042,
+    "loom": 0.8908
+   },
+   "spread": {
+    "ember": 0.0007,
+    "tide": 0.0005,
+    "zephyr": 0.0506,
+    "root": 0.0819,
+    "gleam": 0.0084,
+    "veil": 0.0315,
+    "spark": 0.0271,
+    "loom": 0.0087
+   },
+   "confidence": {
+    "ember": 0.938,
+    "tide": 0.48,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.879,
+    "veil": 1,
+    "spark": 0.11,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.3,
+    "brightnessHz": 1900,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "riser": {
+   "voice": "riser",
+   "timbre": null,
+   "role": "texture",
+   "table": "K2",
+   "family": "effect",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.62,
+    "tide": 0.414,
+    "zephyr": 0.9135,
+    "root": 0.3409,
+    "gleam": 0.3411,
+    "veil": 0.6826,
+    "spark": 0.8707,
+    "loom": 0.7716
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0,
+    "zephyr": 0,
+    "root": 0,
+    "gleam": 0,
+    "veil": 0,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.1,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "sweepDown": {
+   "voice": "sweepDown",
+   "timbre": null,
+   "role": "texture",
+   "table": "K2",
+   "family": "effect",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.9367,
+    "tide": 0.1493,
+    "zephyr": 0.8596,
+    "root": 0.6221,
+    "gleam": 0.4133,
+    "veil": 0.5582,
+    "spark": 0.3216,
+    "loom": 0.9945
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0,
+    "zephyr": 0,
+    "root": 0,
+    "gleam": 0,
+    "veil": 0,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 0.25,
+    "tide": 0.083,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.569,
+    "veil": 1,
+    "spark": 0.08,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "swell": {
+   "voice": "swell",
+   "timbre": "swell",
+   "role": "texture",
+   "table": "K2",
+   "family": "effect",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.9232,
+    "tide": 0.2602,
+    "zephyr": 0.7811,
+    "root": 0.3964,
+    "gleam": 0.3994,
+    "veil": 0.5228,
+    "spark": 0.9201,
+    "loom": 0.7544
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0,
+    "zephyr": 0,
+    "root": 0,
+    "gleam": 0,
+    "veil": 0,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": 0.32,
+    "brightnessHz": 1200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "impact": {
+   "voice": "impact",
+   "timbre": null,
+   "role": "texture",
+   "table": "K2",
+   "family": "effect",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.4538,
+    "tide": 0.9249,
+    "zephyr": 0.2228,
+    "root": 0.9218,
+    "gleam": 0.3611,
+    "veil": 0.4542,
+    "spark": 0,
+    "loom": 0.9945
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0,
+    "zephyr": 0,
+    "root": 0,
+    "gleam": 0,
+    "veil": 0,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 0.25,
+    "tide": 0.083,
+    "zephyr": 1,
+    "root": 0.8,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": null,
+    "brightnessHz": null,
+    "struck": null
+   },
+   "registers": 2
+  },
+  "pluckBass": {
+   "voice": "pluckBass",
+   "timbre": "pluckBass",
+   "role": "bassline",
+   "table": "K2",
+   "family": "bass",
+   "layer": "bass",
+   "birds": {
+    "ember": 0.4358,
+    "tide": 0.1802,
+    "zephyr": 0.3102,
+    "root": 0.6774,
+    "gleam": 0.2892,
+    "veil": 0.3031,
+    "spark": 0.3693,
+    "loom": 0.5869
+   },
+   "spread": {
+    "ember": 0.0106,
+    "tide": 0.0194,
+    "zephyr": 0.0411,
+    "root": 0.0852,
+    "gleam": 0.0106,
+    "veil": 0.0162,
+    "spark": 0.0023,
+    "loom": 0.0069
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.985,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.18,
+    "brightnessHz": 900,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "sawLead": {
+   "voice": "sawLead",
+   "timbre": "sawLead",
+   "role": "melody",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0213,
+    "tide": 0.4706,
+    "zephyr": 0.4894,
+    "root": 0.5353,
+    "gleam": 0.3362,
+    "veil": 0.5524,
+    "spark": 0.5567,
+    "loom": 0.6905
+   },
+   "spread": {
+    "ember": 0.0016,
+    "tide": 0.0014,
+    "zephyr": 0.0234,
+    "root": 0.0345,
+    "gleam": 0.0122,
+    "veil": 0.0142,
+    "spark": 0.008,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.951,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.55,
+    "brightnessHz": 1500,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "fmBell": {
+   "voice": "fmBell",
+   "timbre": "fmBell",
+   "role": "melody",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0652,
+    "tide": 0.7734,
+    "zephyr": 0.4017,
+    "root": 0.5833,
+    "gleam": 0.3513,
+    "veil": 0.4278,
+    "spark": 0.5396,
+    "loom": 0.6283
+   },
+   "spread": {
+    "ember": 0.0226,
+    "tide": 0.0323,
+    "zephyr": 0.0609,
+    "root": 0.0002,
+    "gleam": 0.0155,
+    "veil": 0.0261,
+    "spark": 0.0236,
+    "loom": 0.007
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.75,
+    "gleam": 1,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.07,
+    "brightnessHz": 6200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "karplusPluck": {
+   "voice": "karplusPluck",
+   "timbre": "karplusPluck",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.5853,
+    "tide": 0.4096,
+    "zephyr": 0.7135,
+    "root": 0.3635,
+    "gleam": 0.3947,
+    "veil": 0.6202,
+    "spark": 0.3122,
+    "loom": 0.4739
+   },
+   "spread": {
+    "ember": 0.0764,
+    "tide": 0.0122,
+    "zephyr": 0.0111,
+    "root": 0.0251,
+    "gleam": 0.0355,
+    "veil": 0.0104,
+    "spark": 0.0012,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.22,
+    "brightnessHz": 3200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "formantPad": {
+   "voice": "formantPad",
+   "timbre": "formantPad",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0003,
+    "tide": 0.8747,
+    "zephyr": 0.3407,
+    "root": 0.3447,
+    "gleam": 0.2602,
+    "veil": 0.3946,
+    "spark": 0,
+    "loom": 0.4506
+   },
+   "spread": {
+    "ember": 0.0002,
+    "tide": 0.0144,
+    "zephyr": 0.0249,
+    "root": 0.0208,
+    "gleam": 0.0161,
+    "veil": 0.0096,
+    "spark": 0,
+    "loom": 0.0156
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.4,
+    "gleam": 0.56,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.74,
+    "brightnessHz": 4600,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "clavKey": {
+   "voice": "clavKey",
+   "timbre": "clavKey",
+   "role": "figure",
+   "table": "K2",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.6345,
+    "tide": 0.3226,
+    "zephyr": 0.5531,
+    "root": 0.5643,
+    "gleam": 0.3904,
+    "veil": 0.629,
+    "spark": 0.2852,
+    "loom": 0.4844
+   },
+   "spread": {
+    "ember": 0.0228,
+    "tide": 0.0035,
+    "zephyr": 0.0257,
+    "root": 0.0036,
+    "gleam": 0.027,
+    "veil": 0.0337,
+    "spark": 0.0217,
+    "loom": 0.0035
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.75,
+    "gleam": 0.744,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.1,
+    "brightnessHz": 3400,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "supersawPad": {
+   "voice": "supersawPad",
+   "timbre": "supersawPad",
+   "role": "sustained",
+   "table": "K2",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0002,
+    "tide": 0.8785,
+    "zephyr": 0.3458,
+    "root": 0.2928,
+    "gleam": 0.2283,
+    "veil": 0.5796,
+    "spark": 0.8841,
+    "loom": 0.3806
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0029,
+    "zephyr": 0.0219,
+    "root": 0.0992,
+    "gleam": 0.0032,
+    "veil": 0.0176,
+    "spark": 0.0033,
+    "loom": 0.0285
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.7,
+    "brightnessHz": 2500,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "pulseLead": {
+   "voice": "pulseLead",
+   "timbre": "pulseLead",
+   "role": "melody",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0387,
+    "tide": 0.4426,
+    "zephyr": 0.5554,
+    "root": 0.4991,
+    "gleam": 0.34,
+    "veil": 0.606,
+    "spark": 0.5671,
+    "loom": 0.6189
+   },
+   "spread": {
+    "ember": 0.0009,
+    "tide": 0.0458,
+    "zephyr": 0.0232,
+    "root": 0.0592,
+    "gleam": 0.0229,
+    "veil": 0.0195,
+    "spark": 0.0023,
+    "loom": 0.0441
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.75,
+    "zephyr": 1,
+    "root": 0.75,
+    "gleam": 1,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.5,
+    "brightnessHz": 1800,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "triLead": {
+   "voice": "triLead",
+   "timbre": "triLead",
+   "role": "melody",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0011,
+    "tide": 0.4217,
+    "zephyr": 0.4637,
+    "root": 0.3054,
+    "gleam": 0.3332,
+    "veil": 0.4844,
+    "spark": 0.6645,
+    "loom": 0.5696
+   },
+   "spread": {
+    "ember": 0.0001,
+    "tide": 0.0053,
+    "zephyr": 0.0263,
+    "root": 0.0137,
+    "gleam": 0.0171,
+    "veil": 0.0133,
+    "spark": 0.0213,
+    "loom": 0.0103
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.6,
+    "brightnessHz": 2400,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "subSoft": {
+   "voice": "subSoft",
+   "timbre": "subSoft",
+   "role": "bassline",
+   "table": "K4",
+   "family": "bass",
+   "layer": "bass",
+   "birds": {
+    "ember": 0.3344,
+    "tide": 0.0675,
+    "zephyr": 0.1956,
+    "root": 0.8542,
+    "gleam": 0.2862,
+    "veil": 0.3126,
+    "spark": 0.1346,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0.0084,
+    "tide": 0.0008,
+    "zephyr": 0.0013,
+    "root": 0.0106,
+    "gleam": 0.0066,
+    "veil": 0.0527,
+    "spark": 0.0009,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.919,
+    "veil": 1,
+    "spark": 0.695,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.25,
+    "brightnessHz": 400,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "subTri": {
+   "voice": "subTri",
+   "timbre": "subTri",
+   "role": "bassline",
+   "table": "K4",
+   "family": "bass",
+   "layer": "bass",
+   "birds": {
+    "ember": 0.1565,
+    "tide": 0.1061,
+    "zephyr": 0.2267,
+    "root": 0.787,
+    "gleam": 0.2782,
+    "veil": 0.308,
+    "spark": 0.1341,
+    "loom": 0.5938
+   },
+   "spread": {
+    "ember": 0.0159,
+    "tide": 0.011,
+    "zephyr": 0.0119,
+    "root": 0.0266,
+    "gleam": 0.0418,
+    "veil": 0.0488,
+    "spark": 0.0075,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.577,
+    "veil": 1,
+    "spark": 0.722,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.3,
+    "brightnessHz": 260,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "sawPad": {
+   "voice": "sawPad",
+   "timbre": "sawPad",
+   "role": "sustained",
+   "table": "K4",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0001,
+    "tide": 0.9176,
+    "zephyr": 0.4161,
+    "root": 0.219,
+    "gleam": 0.2388,
+    "veil": 0.5657,
+    "spark": 0.8839,
+    "loom": 0.4919
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.001,
+    "zephyr": 0.0206,
+    "root": 0.1089,
+    "gleam": 0.0018,
+    "veil": 0.0284,
+    "spark": 0.0051,
+    "loom": 0.057
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0.086,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.85,
+    "brightnessHz": 1100,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "fmGlass": {
+   "voice": "fmGlass",
+   "timbre": "fmGlass",
+   "role": "melody",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0613,
+    "tide": 0.6717,
+    "zephyr": 0.4621,
+    "root": 0.5295,
+    "gleam": 0.3851,
+    "veil": 0.4785,
+    "spark": 0.5903,
+    "loom": 0.6767
+   },
+   "spread": {
+    "ember": 0.0022,
+    "tide": 0.0144,
+    "zephyr": 0.044,
+    "root": 0.0489,
+    "gleam": 0.0152,
+    "veil": 0.0216,
+    "spark": 0.0332,
+    "loom": 0.0276
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.968,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.12,
+    "brightnessHz": 8000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "fmEp": {
+   "voice": "fmEp",
+   "timbre": "fmEp",
+   "role": "figure",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.1225,
+    "tide": 0.6559,
+    "zephyr": 0.2798,
+    "root": 0.7794,
+    "gleam": 0.4153,
+    "veil": 0.521,
+    "spark": 0.2733,
+    "loom": 0.5088
+   },
+   "spread": {
+    "ember": 0.0201,
+    "tide": 0.0199,
+    "zephyr": 0.0538,
+    "root": 0.0007,
+    "gleam": 0.0211,
+    "veil": 0.0098,
+    "spark": 0.0136,
+    "loom": 0.007
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.192,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.2,
+    "brightnessHz": 5200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "fmPluck": {
+   "voice": "fmPluck",
+   "timbre": "fmPluck",
+   "role": "figure",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.7705,
+    "tide": 0.3248,
+    "zephyr": 0.3931,
+    "root": 0.588,
+    "gleam": 0.3545,
+    "veil": 0.5103,
+    "spark": 0.2081,
+    "loom": 0.5296
+   },
+   "spread": {
+    "ember": 0.0233,
+    "tide": 0.0029,
+    "zephyr": 0.0428,
+    "root": 0.0033,
+    "gleam": 0.0731,
+    "veil": 0.0071,
+    "spark": 0.0251,
+    "loom": 0.0139
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.861,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.04,
+    "brightnessHz": 7000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "marimba": {
+   "voice": "marimba",
+   "timbre": "marimba",
+   "role": "figure",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0781,
+    "tide": 0.6385,
+    "zephyr": 0.3411,
+    "root": 0.538,
+    "gleam": 0.3313,
+    "veil": 0.426,
+    "spark": 0.2424,
+    "loom": 0.5401
+   },
+   "spread": {
+    "ember": 0.0046,
+    "tide": 0.0035,
+    "zephyr": 0.0393,
+    "root": 0.0527,
+    "gleam": 0.0446,
+    "veil": 0.0131,
+    "spark": 0.0045,
+    "loom": 0.0035
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.75,
+    "gleam": 0.479,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.05,
+    "brightnessHz": 3000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "vibes": {
+   "voice": "vibes",
+   "timbre": "vibes",
+   "role": "figure",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0049,
+    "tide": 0.831,
+    "zephyr": 0.2384,
+    "root": 0.4628,
+    "gleam": 0.3371,
+    "veil": 0.4813,
+    "spark": 0.3212,
+    "loom": 0.5401
+   },
+   "spread": {
+    "ember": 0.0008,
+    "tide": 0.0242,
+    "zephyr": 0.0558,
+    "root": 0.0519,
+    "gleam": 0.0235,
+    "veil": 0.0082,
+    "spark": 0.0065,
+    "loom": 0.0035
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.372,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.35,
+    "brightnessHz": 4200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "brightPiano": {
+   "voice": "brightPiano",
+   "timbre": "brightPiano",
+   "role": "figure",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.4602,
+    "tide": 0.4669,
+    "zephyr": 0.5191,
+    "root": 0.5073,
+    "gleam": 0.373,
+    "veil": 0.4426,
+    "spark": 0.2043,
+    "loom": 0.5436
+   },
+   "spread": {
+    "ember": 0.0045,
+    "tide": 0.0002,
+    "zephyr": 0.057,
+    "root": 0.0486,
+    "gleam": 0.0013,
+    "veil": 0.0076,
+    "spark": 0.0022,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.182,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5,
+    "hold": 0.1,
+    "brightnessHz": 6000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "reedOrgan": {
+   "voice": "reedOrgan",
+   "timbre": "reedOrgan",
+   "role": "melody",
+   "table": "K4",
+   "family": "keyboard",
+   "layer": "keys",
+   "birds": {
+    "ember": 0.0003,
+    "tide": 0.8883,
+    "zephyr": 0.4753,
+    "root": 0.3346,
+    "gleam": 0.349,
+    "veil": 0.5506,
+    "spark": 0.7607,
+    "loom": 0.5567
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.023,
+    "zephyr": 0.0167,
+    "root": 0.0619,
+    "gleam": 0.0043,
+    "veil": 0.0041,
+    "spark": 0.0175,
+    "loom": 0.0026
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 0.833,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 3,
+    "hold": 0.8,
+    "brightnessHz": 3200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "vinylBed": {
+   "voice": "vinylBed",
+   "timbre": "vinylBed",
+   "role": "texture",
+   "table": "K4",
+   "family": "noise",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.0878,
+    "tide": 0.5656,
+    "zephyr": 0.8077,
+    "root": 0.3834,
+    "gleam": 0.3884,
+    "veil": 0.6119,
+    "spark": 0.7889,
+    "loom": 0.9807
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.006,
+    "zephyr": 0,
+    "root": 0.0006,
+    "gleam": 0,
+    "veil": 0.0007,
+    "spark": 0.0011,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 0.375,
+    "tide": 0.25,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.1,
+    "veil": 1,
+    "spark": 0.113,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": 1,
+    "brightnessHz": 5200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "grainPad": {
+   "voice": "grainPad",
+   "timbre": "grainPad",
+   "role": "sustained",
+   "table": "K4",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0132,
+    "tide": 0.8591,
+    "zephyr": 0.5204,
+    "root": 0.375,
+    "gleam": 0.4043,
+    "veil": 0.6335,
+    "spark": 0.8289,
+    "loom": 0.1087
+   },
+   "spread": {
+    "ember": 0.0045,
+    "tide": 0.0008,
+    "zephyr": 0.0173,
+    "root": 0.1787,
+    "gleam": 0.0023,
+    "veil": 0.028,
+    "spark": 0.0217,
+    "loom": 0.0415
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.35,
+    "veil": 1,
+    "spark": 0.534,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.8,
+    "brightnessHz": 2600,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "sweepUp": {
+   "voice": "sweepUp",
+   "timbre": "sweepUp",
+   "role": "texture",
+   "table": "K4",
+   "family": "effect",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.2469,
+    "tide": 0.3622,
+    "zephyr": 0.8543,
+    "root": 0.197,
+    "gleam": 0.3902,
+    "veil": 0.6436,
+    "spark": 0.8862,
+    "loom": 0.5519
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.2046,
+    "zephyr": 0,
+    "root": 0.0031,
+    "gleam": 0,
+    "veil": 0.0052,
+    "spark": 0.0106,
+    "loom": 0.008
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.75,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.785,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": 0.9,
+    "brightnessHz": 6000,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "wavePad": {
+   "voice": "wavePad",
+   "timbre": "wavePad",
+   "role": "sustained",
+   "table": "K4",
+   "family": "ensemble",
+   "layer": "pad",
+   "birds": {
+    "ember": 0.0001,
+    "tide": 0.928,
+    "zephyr": 0.4948,
+    "root": 0.1341,
+    "gleam": 0.2441,
+    "veil": 0.2806,
+    "spark": 0.8201,
+    "loom": 0.7734
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0048,
+    "zephyr": 0.0153,
+    "root": 0.0859,
+    "gleam": 0.0041,
+    "veil": 0.0192,
+    "spark": 0.007,
+    "loom": 0.0138
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 1,
+    "veil": 1,
+    "spark": 0.172,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 1.5,
+    "hold": 0.9,
+    "brightnessHz": 2200,
+    "struck": false
+   },
+   "registers": 2
+  },
+  "conga": {
+   "voice": "conga",
+   "timbre": "conga",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "drum",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.5029,
+    "tide": 0.407,
+    "zephyr": 0.2025,
+    "root": 0.5094,
+    "gleam": 0.1799,
+    "veil": 0.3383,
+    "spark": 0.5533,
+    "loom": 0.5227
+   },
+   "spread": {
+    "ember": 0.0093,
+    "tide": 0.0035,
+    "zephyr": 0.0014,
+    "root": 0.0033,
+    "gleam": 0.0097,
+    "veil": 0.0045,
+    "spark": 0.0007,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.733,
+    "veil": 1,
+    "spark": 0.83,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5.5,
+    "hold": 0.02,
+    "brightnessHz": 2600,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "bongo": {
+   "voice": "bongo",
+   "timbre": "bongo",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "drum",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.8863,
+    "tide": 0,
+    "zephyr": 0.2784,
+    "root": 0.5117,
+    "gleam": 0.2054,
+    "veil": 0.479,
+    "spark": 0.4208,
+    "loom": 0.5157
+   },
+   "spread": {
+    "ember": 0.002,
+    "tide": 0,
+    "zephyr": 0.0013,
+    "root": 0.0221,
+    "gleam": 0.0055,
+    "veil": 0.0001,
+    "spark": 0.0242,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.927,
+    "veil": 1,
+    "spark": 0.881,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5.5,
+    "hold": 0.01,
+    "brightnessHz": 3400,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "snare": {
+   "voice": "snare",
+   "timbre": "snare",
+   "role": "backbeat",
+   "table": "K3",
+   "family": "drum",
+   "layer": "clap",
+   "birds": {
+    "ember": 1,
+    "tide": 0.0438,
+    "zephyr": 0.7084,
+    "root": 0.4587,
+    "gleam": 0.3367,
+    "veil": 0.3341,
+    "spark": 0,
+    "loom": 0.7734
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0156,
+    "zephyr": 0.0019,
+    "root": 0.0103,
+    "gleam": 0.0107,
+    "veil": 0.0041,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.8,
+    "gleam": 0.756,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 2.25,
+    "hold": 0.01,
+    "brightnessHz": 1900,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "rimshot": {
+   "voice": "rimshot",
+   "timbre": "rimshot",
+   "role": "backbeat",
+   "table": "K3",
+   "family": "drum",
+   "layer": "clap",
+   "birds": {
+    "ember": 1,
+    "tide": 0.3363,
+    "zephyr": 0.5208,
+    "root": 0.5534,
+    "gleam": 0.3911,
+    "veil": 0.3187,
+    "spark": 0,
+    "loom": 0.7734
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0189,
+    "zephyr": 0.0067,
+    "root": 0.0034,
+    "gleam": 0.0212,
+    "veil": 0.0011,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.8,
+    "gleam": 0.111,
+    "veil": 1,
+    "spark": 0,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 2.25,
+    "hold": 0,
+    "brightnessHz": 2400,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "hatTight": {
+   "voice": "hatTight",
+   "timbre": "hatTight",
+   "role": "offbeat",
+   "table": "K3",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 1,
+    "tide": 0.1765,
+    "zephyr": 0.993,
+    "root": 0.5313,
+    "gleam": 0.2576,
+    "veil": 0.2786,
+    "spark": 0.0006,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0105,
+    "zephyr": 0.0038,
+    "root": 0.0886,
+    "gleam": 0.0166,
+    "veil": 0.0035,
+    "spark": 0,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.564,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0,
+    "brightnessHz": 8200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "hatLoose": {
+   "voice": "hatLoose",
+   "timbre": "hatLoose",
+   "role": "offbeat",
+   "table": "K3",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 0.968,
+    "tide": 0.487,
+    "zephyr": 0.9399,
+    "root": 0.4965,
+    "gleam": 0.3036,
+    "veil": 0.3132,
+    "spark": 0.1855,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0.0075,
+    "tide": 0.0112,
+    "zephyr": 0.0121,
+    "root": 0.053,
+    "gleam": 0.0161,
+    "veil": 0.0023,
+    "spark": 0.0053,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.725,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.02,
+    "brightnessHz": 6600,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "hatSizzle": {
+   "voice": "hatSizzle",
+   "timbre": "hatSizzle",
+   "role": "offbeat",
+   "table": "K3",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 1,
+    "tide": 0.0747,
+    "zephyr": 1,
+    "root": 0.5049,
+    "gleam": 0.3749,
+    "veil": 0.3126,
+    "spark": 0.0294,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0316,
+    "zephyr": 0,
+    "root": 0.0615,
+    "gleam": 0.042,
+    "veil": 0.0221,
+    "spark": 0.0014,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.75,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.371,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.01,
+    "brightnessHz": 9500,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "ride": {
+   "voice": "ride",
+   "timbre": "ride",
+   "role": "offbeat",
+   "table": "K3",
+   "family": "noise",
+   "layer": "hats",
+   "birds": {
+    "ember": 0.2936,
+    "tide": 0.8508,
+    "zephyr": 0.8959,
+    "root": 0.4868,
+    "gleam": 0.3383,
+    "veil": 0.3303,
+    "spark": 0.4354,
+    "loom": 0.4143
+   },
+   "spread": {
+    "ember": 0.0184,
+    "tide": 0.006,
+    "zephyr": 0.0038,
+    "root": 0.0226,
+    "gleam": 0.043,
+    "veil": 0.0077,
+    "spark": 0.0124,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.566,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 8,
+    "hold": 0.08,
+    "brightnessHz": 5200,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "crash": {
+   "voice": "crash",
+   "timbre": "crash",
+   "role": "texture",
+   "table": "K3",
+   "family": "noise",
+   "layer": "fx",
+   "birds": {
+    "ember": 0.5052,
+    "tide": 0.1612,
+    "zephyr": 0.905,
+    "root": 0.3012,
+    "gleam": 0.2551,
+    "veil": 0.4703,
+    "spark": 0.5107,
+    "loom": 0.9945
+   },
+   "spread": {
+    "ember": 0.0202,
+    "tide": 0.0156,
+    "zephyr": 0.0061,
+    "root": 0.1145,
+    "gleam": 0.0104,
+    "veil": 0.0005,
+    "spark": 0.0137,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 0.25,
+    "tide": 0.083,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.875,
+    "veil": 1,
+    "spark": 0.267,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 0.25,
+    "hold": 0.22,
+    "brightnessHz": 7000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "tom": {
+   "voice": "tom",
+   "timbre": "tom",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "drum",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.6169,
+    "tide": 0.1052,
+    "zephyr": 0.1407,
+    "root": 0.4415,
+    "gleam": 0.257,
+    "veil": 0.2833,
+    "spark": 0.6038,
+    "loom": 0.732
+   },
+   "spread": {
+    "ember": 0.0122,
+    "tide": 0.0069,
+    "zephyr": 0.0009,
+    "root": 0.0025,
+    "gleam": 0.0209,
+    "veil": 0.0029,
+    "spark": 0.001,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.277,
+    "veil": 0.833,
+    "spark": 0.514,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 2.75,
+    "hold": 0.03,
+    "brightnessHz": 1400,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "cabasa": {
+   "voice": "cabasa",
+   "timbre": "cabasa",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "noise",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.9662,
+    "tide": 0.0937,
+    "zephyr": 0.9733,
+    "root": 0.627,
+    "gleam": 0.4103,
+    "veil": 0.3406,
+    "spark": 0.888,
+    "loom": 0.088
+   },
+   "spread": {
+    "ember": 0.0002,
+    "tide": 0.0086,
+    "zephyr": 0.0074,
+    "root": 0.0129,
+    "gleam": 0.0201,
+    "veil": 0.0005,
+    "spark": 0.0009,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.26,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 16,
+    "hold": 0,
+    "brightnessHz": 6000,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "tambourine": {
+   "voice": "tambourine",
+   "timbre": "tambourine",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "noise",
+   "layer": "shaker",
+   "birds": {
+    "ember": 1,
+    "tide": 0.134,
+    "zephyr": 0.9938,
+    "root": 0.5214,
+    "gleam": 0.3214,
+    "veil": 0.3226,
+    "spark": 0.0242,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0068,
+    "zephyr": 0.002,
+    "root": 0.0521,
+    "gleam": 0.0532,
+    "veil": 0.0031,
+    "spark": 0.0006,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.395,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.03,
+    "brightnessHz": 7500,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "cowbell": {
+   "voice": "cowbell",
+   "timbre": "cowbell",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "drum",
+   "layer": "shaker",
+   "birds": {
+    "ember": 0.4728,
+    "tide": 0.3324,
+    "zephyr": 0.5992,
+    "root": 0.6127,
+    "gleam": 0.349,
+    "veil": 0.219,
+    "spark": 0.0154,
+    "loom": 0.4195
+   },
+   "spread": {
+    "ember": 0.0073,
+    "tide": 0.0118,
+    "zephyr": 0.0052,
+    "root": 0.0083,
+    "gleam": 0.0325,
+    "veil": 0.002,
+    "spark": 0.0014,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.75,
+    "gleam": 0.853,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 8,
+    "hold": 0.01,
+    "brightnessHz": 2600,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "woodblock": {
+   "voice": "woodblock",
+   "timbre": "woodblock",
+   "role": "sixteenth",
+   "table": "K3",
+   "family": "drum",
+   "layer": "shaker",
+   "birds": {
+    "ember": 1,
+    "tide": 0.5011,
+    "zephyr": 0.5521,
+    "root": 0.5503,
+    "gleam": 0.367,
+    "veil": 0.3633,
+    "spark": 0.562,
+    "loom": 0.5157
+   },
+   "spread": {
+    "ember": 0,
+    "tide": 0.0088,
+    "zephyr": 0.0023,
+    "root": 0.0285,
+    "gleam": 0.0552,
+    "veil": 0.005,
+    "spark": 0.0226,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 0.5,
+    "gleam": 0.1,
+    "veil": 1,
+    "spark": 0.901,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 5.5,
+    "hold": 0,
+    "brightnessHz": 1400,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "kickLong": {
+   "voice": "kickLong",
+   "timbre": "kickLong",
+   "role": "kick",
+   "table": "K3",
+   "family": "drum",
+   "layer": "kick",
+   "birds": {
+    "ember": 0.3131,
+    "tide": 0.3603,
+    "zephyr": 0.1775,
+    "root": 0.7896,
+    "gleam": 0.1894,
+    "veil": 0.2632,
+    "spark": 0.0358,
+    "loom": 0.5869
+   },
+   "spread": {
+    "ember": 0.0212,
+    "tide": 0,
+    "zephyr": 0.0041,
+    "root": 0.0017,
+    "gleam": 0.0076,
+    "veil": 0.0021,
+    "spark": 0.0042,
+    "loom": 0.0069
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 1,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.313,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0.04,
+    "brightnessHz": 120,
+    "struck": true
+   },
+   "registers": 2
+  },
+  "kickPunch": {
+   "voice": "kickPunch",
+   "timbre": "kickPunch",
+   "role": "kick",
+   "table": "K3",
+   "family": "drum",
+   "layer": "kick",
+   "birds": {
+    "ember": 0.913,
+    "tide": 0.0795,
+    "zephyr": 0.1927,
+    "root": 0.884,
+    "gleam": 0.2646,
+    "veil": 0.2835,
+    "spark": 0.0459,
+    "loom": 0.58
+   },
+   "spread": {
+    "ember": 0.0089,
+    "tide": 0.006,
+    "zephyr": 0,
+    "root": 0.0019,
+    "gleam": 0.0167,
+    "veil": 0.004,
+    "spark": 0.0022,
+    "loom": 0
+   },
+   "confidence": {
+    "ember": 1,
+    "tide": 0.5,
+    "zephyr": 1,
+    "root": 1,
+    "gleam": 0.249,
+    "veil": 1,
+    "spark": 1,
+    "loom": 0.225
+   },
+   "salience": {
+    "onsetsPerBar": 4,
+    "hold": 0,
+    "brightnessHz": 220,
+    "struck": true
+   },
+   "registers": 2
+  }
+ }
+}

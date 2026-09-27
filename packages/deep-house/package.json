@@ -1,0 +1,25 @@
+{
+  "name": "@deep-house/app",
+  "version": "2.0.0",
+  "description": "Deep House — the composer and the page: the dice, the corpus, the style, the sound stage, the set and the ring.",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "dependencies": {
+    "@deep-house/engine": "1.0.0",
+    "@sentry/browser": "^11.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "scripts": {
+    "dev": "VITE_PRIVATE_TOOLS=1 vite",
+    "build": "vite build",
+    "build:preview": "VITE_PRIVATE_TOOLS=1 vite build",
+    "preview": "vite preview",
+    "check": "node tools/check.ts && node --test tools/check-composition.ts tools/check-calibration.ts tools/check-live-audition.ts tools/check-recipe-selection.ts tools/check-recipe-assembly.ts tools/check-recipe-context.ts tools/check-development-shape.ts tools/check-development-rhythm.ts tools/check-rhythm-characters.ts tools/check-recipe-catalogue.ts tools/check-recipe-performance.ts tools/check-scene.ts tools/check-composer.ts tools/check-link.ts tools/check-transport.ts",
+    "test": "node tools/test.ts --build",
+    "test:browsers": "vite build && node tools/test-browsers.ts",
+    "imprint:golden": "node tools/imprint/imprint-golden.ts",
+    "review": "node tools/review/server.ts"
+  }
+}

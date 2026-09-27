@@ -1,0 +1,64 @@
+{
+ "note": "One line per master seed and theme of the developed program — every event's onset, arrival and resolved parameters, every automation point the graph is given, the sidechain, the trim and the routing — plus one line per set for the seam curves. `masters` and `sets` are the default strategy, house-v1, which is the record; every other strategy is a section of its own under `strategies`. Written by tools/program.ts --bless; checked by --check. The golden digest locks the plan; this locks what the plan becomes. `settings`: a SHA-256 of what the voices render with — the resolved settings, the duck shape and the stage's rows — beside `hash` and not in it.",
+ "strategy": "house-v1",
+ "masters": {
+  "1": [
+   {"index":0,"seed":"1#0","events":3997,"automation":116,"duck":7470,"trimDb":-0.005,"firstOnset":0,"lastOnset":553.5516923076922,"hash":"18f00b025cc536fe54e22aa92d2859e6f372d215c89c945ffa5dfee6e340b93d","settings":"7aa32b12177f522c49e4cac4013add44c4671620e120bdb5f79d440c54fe599d"},
+   {"index":1,"seed":"1#1","events":4297,"automation":92,"duck":7800,"trimDb":1.46,"firstOnset":0,"lastOnset":516.1323285302593,"hash":"9cef2a4e392434d1778974dfd2c96fb5aeebce892c8be0adf94cc6d832cc08af","settings":"f9fdca1e407d9e4ce75409639d7887836c6e923f327ebee207cbaf414516862e"},
+   {"index":2,"seed":"1#2","events":1334,"automation":48,"duck":2810,"trimDb":0.799,"firstOnset":0,"lastOnset":183.79074017257912,"hash":"a90f7c4aa42f24bb3fbbf35aaa92e70f527e280402cc6c8a7d565c8d625218c9","settings":"c3abfcbac89a2b11175684402755821f20a8d1ed55901ec04274bdab634ecf95"},
+   {"index":3,"seed":"1#3","events":2176,"automation":69,"duck":3560,"trimDb":1.364,"firstOnset":0,"lastOnset":257.183908045977,"hash":"9e3f42efd0cce1bf52cf5a47824144c6d93ac467c4a14616716fd70027fd2176","settings":"24af4a67af87bf8130ed5a1b9fefa2e327b614090afff53596a426d13fc1a24e"},
+   {"index":4,"seed":"1#4","events":2419,"automation":58,"duck":5040,"trimDb":0.104,"firstOnset":0,"lastOnset":330.1147227533461,"hash":"7dd21a27e4ecf7e28a1087bb574a7f68d9dfb72dace5df55af2a5184e0699898","settings":"41289d2c13f04b2cf6471c94b8c6ccbb797a4348809c3ead3ff977eb4bc6955d"},
+   {"index":5,"seed":"1#5","events":1717,"automation":53,"duck":3380,"trimDb":-1.45,"firstOnset":0,"lastOnset":219.76477363896848,"hash":"74f8cf0dad99f4e7b6042104eabc1022e467e4b640899f4a6f4d7a8942857f31","settings":"513cf361a20c44d866601321e13ade0efbf938033604d7138ba831ebb3b8ed51"}
+  ],
+  "21323": [
+   {"index":0,"seed":"21323#0","events":2160,"automation":74,"duck":3920,"trimDb":2.12,"firstOnset":0,"lastOnset":306.89400000000006,"hash":"219a2ecbd9abe0b6132186d2f048556743531d663a88d8411a87366a780221a2","settings":"d72c3b9a5c94f95e665ba72a7a6092c2c2d2a855d432c7d409df992490b547c7"},
+   {"index":1,"seed":"21323#1","events":2526,"automation":82,"duck":5300,"trimDb":0.933,"firstOnset":0,"lastOnset":383.31068331668337,"hash":"a29fe37f4d43096d7ff6b1b780d00f29faec21628e61c0a8ee7744152ff81be8","settings":"6c58748d8567d9fd1b9c528ee8302b64dc48f2f1b3047f127fd2867b49eb9451"},
+   {"index":2,"seed":"21323#2","events":3256,"automation":82,"duck":6820,"trimDb":0.87,"firstOnset":0,"lastOnset":459.116632103689,"hash":"4cb78b8c77b373d967290d1dcdf33b6593dfec4360b059e5f2d964472ddef586","settings":"40b838858c1a4508f7e886f7f636f8e5dff9fbb98ce24ec956416d870bb418be"},
+   {"index":3,"seed":"21323#3","events":5387,"automation":97,"duck":8250,"trimDb":-0.527,"firstOnset":0,"lastOnset":573.400374501992,"hash":"14fcc7a68c8d02847d28ea58ddf19100923bb5652686b6b79d7572e3b8e8fdc5","settings":"b2207edde458cb69c3c3d4935cf26046ea2732166160e691a577808e4478a382"}
+  ],
+  "92970": [
+   {"index":0,"seed":"92970#0","events":3496,"automation":56,"duck":5440,"trimDb":-0.633,"firstOnset":0,"lastOnset":379.9009900990099,"hash":"c502961d341e296eea001132c4ab1add4d35248962705ca6b26c353e68f64be2","settings":"eacfbb1cc2a3a3921f5aa660297f5c0e9f448777419eaf02e68703f5e1677a36"},
+   {"index":1,"seed":"92970#1","events":2034,"automation":66,"duck":4170,"trimDb":0.984,"firstOnset":0,"lastOnset":265.5726350148368,"hash":"dcd69548b8b95a2f94ab4d21a98d68994f21eaa2366f2a8bdcefa608c306d01b","settings":"cd287846aa1df709d59c9f7e851ff8c436c9341ac1ed6fc569f35b3c3f41f9ab"},
+   {"index":2,"seed":"92970#2","events":1664,"automation":45,"duck":2900,"trimDb":-1.607,"firstOnset":0,"lastOnset":189.23388153998025,"hash":"9c01390cfc62d859209af4c6edea8668c61aa6c1d1e79902d31e807ceea02a7a","settings":"f0ba826779857608a6e16ccb9c03c1b5bbb87e03bd55795d08e8c210bfb1d8eb"},
+   {"index":3,"seed":"92970#3","events":1279,"automation":48,"duck":2730,"trimDb":-0.293,"firstOnset":0,"lastOnset":189.0472544378698,"hash":"3e02b2c966dfdd950829e4290827c232a2e9c02a69673779f2e19a45353a3b46","settings":"a0d303061a0b6c1f1208c811256e9e69bb184469b4370c8aa5908043deaf1cff"}
+  ]
+ },
+ "sets": {
+  "1": {"seams":5,"points":104,"hash":"c711a6ad5f368faefabe93142f5c1eadba3432f6eee3236d20cfbd58654285eb"},
+  "21323": {"seams":3,"points":60,"hash":"1158f2c947b95b65b77c413c96c1188f1f22f85edac5dea6e3fa5619706ebccc"},
+  "92970": {"seams":3,"points":60,"hash":"b4f161cff27bdeecf31c86015e301269d31f9479fd5d375bfb58b432f59078ea"}
+ },
+ "strategies": {
+  "house-v2": {
+   "note": "One line per master seed and theme of the developed program — every event's onset, arrival and resolved parameters, every automation point the graph is given, the sidechain, the trim and the routing — plus one line per set for the seam curves. `masters` and `sets` are the default strategy, house-v1, which is the record; every other strategy is a section of its own under `strategies`. Written by tools/program.ts --bless; checked by --check. The golden digest locks the plan; this locks what the plan becomes. `settings`: a SHA-256 of what the voices render with — the resolved settings, the duck shape and the stage's rows — beside `hash` and not in it.",
+   "strategy": "house-v2",
+   "masters": {
+    "1": [
+     {"index":0,"seed":"1#0","events":2755,"automation":148,"duck":4870,"trimDb":-1.328,"firstOnset":0,"lastOnset":378.16707692307693,"hash":"85f01326eccf6ec2d9a2e3ad15e81eba2f7ebf6fe27c952aa28b96ad935aa0d7","settings":"b0c337fca3589397301bcb7aec76de319afb07aaa802bb76c40d5eb05d410fcd"},
+     {"index":1,"seed":"1#1","events":2380,"automation":115,"duck":4830,"trimDb":0.77,"firstOnset":0,"lastOnset":340.9221902017291,"hash":"b74b93209b1aa78186db5e84766f7d8310291748d15ed139bf9dffa177184133","settings":"40bf1603b5d53a90322addc040b551685aa4a4f74e5c6b42555ec6f3838c9425"},
+     {"index":2,"seed":"1#2","events":942,"automation":65,"duck":1920,"trimDb":-0.502,"firstOnset":0,"lastOnset":128.56542857142858,"hash":"de069026937221a4e2af58a1e40c302ce84247e2c7c3c4513f01737c7a4e5654","settings":"40efe2ca3fd6cebdd913319881e400a3439987368224bdec421cbf16e5eec24f"},
+     {"index":3,"seed":"1#3","events":1518,"automation":87,"duck":2430,"trimDb":-1.996,"firstOnset":0,"lastOnset":156.0284827586207,"hash":"ac60536d55517ae9979fc97f9c0a12bab6ba9103d7648bfea4b65ff23126ba70","settings":"d14a48d707d7355e35693c3bc06ad9b418bc15ede6834bfd00f1a9d86b70d19d"},
+     {"index":4,"seed":"1#4","events":3064,"automation":75,"duck":3400,"trimDb":-1.998,"firstOnset":0,"lastOnset":219.97487954110898,"hash":"e1d3e9e81700d80718cf3547f54373208480f929f296f3e6d7dfe717727dc4b9","settings":"44a7354220271a1d902b9490b32f2f044fad9f4b0fa6e43e5dae8d3151b1db4f"},
+     {"index":5,"seed":"1#5","events":1213,"automation":87,"duck":2420,"trimDb":0.021,"firstOnset":0,"lastOnset":155.58739255014328,"hash":"2658acb81555edf8cf577676f8cc3d1ca6c6d6169f5e5a59ae71833f85cc6148","settings":"30cb53d521a33408cb58c44d823ac6df2b63104667bb22da9cf4938f572715a0"}
+    ],
+    "21323": [
+     {"index":0,"seed":"21323#0","events":1573,"automation":70,"duck":2780,"trimDb":-0.97,"firstOnset":0,"lastOnset":191.694,"hash":"664fe427262e717821b3ede0263bae1563d4ce4d78f3dc2a7b397d91ace4eece","settings":"a8ad47cf51ae063eb6add789ee10de92831f9678a9e63008a145965fdb33c0ec"},
+     {"index":1,"seed":"21323#1","events":2512,"automation":138,"duck":3630,"trimDb":-1.13,"firstOnset":0,"lastOnset":258.63535864135866,"hash":"7e3e47371c80e8586c914f797df0b8e332dc3f84d4f1d5dd51946f804d467bd3","settings":"2bb9bf6e5de870c02977fc9e1721c919e0dd164157ac34622c4586a11b677652"},
+     {"index":2,"seed":"21323#2","events":3784,"automation":121,"duck":4330,"trimDb":-2.204,"firstOnset":0,"lastOnset":296.40476769690935,"hash":"35e8170ebfd3d51ec3da6340ff35d20248ed1c90322d4583fd5df6fa5a789323","settings":"2e1170223e6bd997cc74dc458f6fe378016d2f69e1d9eee7c4f845a62ad200ae"},
+     {"index":3,"seed":"21323#3","events":2737,"automation":120,"duck":5520,"trimDb":0.343,"firstOnset":0,"lastOnset":391.72706772908367,"hash":"8bf4c1ffe79c7cb71b4a198b68959a6aef4018f6404fb8721667ec20fb288678","settings":"ec93deb2759e3ebdd0222eed6b7e56ed8d8259a60fd8054e692b3185c57d2bbd"}
+    ],
+    "92970": [
+     {"index":0,"seed":"92970#0","events":1628,"automation":81,"duck":3590,"trimDb":-1.006,"firstOnset":0,"lastOnset":256.33063366336637,"hash":"87d743c1dd77c1a007d23a10659ba8395086d1c319820ad8e00b3b657c9f626c","settings":"9d2fe7412e2283488a0ff96a24f56b1c818cc7db9e48e37f753e8c5716ba9619"},
+     {"index":1,"seed":"92970#1","events":1259,"automation":81,"duck":2360,"trimDb":0.432,"firstOnset":0,"lastOnset":161.12759643916917,"hash":"58121e241e6bd9e8f6c81170d2810920a5289be19c53b1ff31b0aff863dfb4cc","settings":"bf71c83fdd519a7be734386ce8171df18dd1d647f2867e5b3e8267cbb91cd014"},
+     {"index":2,"seed":"92970#2","events":1136,"automation":65,"duck":1780,"trimDb":-3.19,"firstOnset":0,"lastOnset":132.08292201382034,"hash":"7bad23debf03f07effe8b1896ffaf7de080077c9d5d32a2142696a8de192c3a9","settings":"7e0a05b7dab7a556937a8bfe09a37a9c03a0810177122be47598d9218a55b0f4"},
+     {"index":3,"seed":"92970#3","events":1011,"automation":65,"duck":1940,"trimDb":-1.441,"firstOnset":0,"lastOnset":132.24252071005915,"hash":"1c1aa0bfe5766905b944d4c612d5d86a8e1d9485a1aecf6588d1e610af1cbff0","settings":"07e75e2fe572c0c6a1eac37d6976a786d7e4e49380959c9183f2e49dad209fc3"}
+    ]
+   },
+   "sets": {
+    "1": {"seams":5,"points":104,"hash":"76a52a2923639b5118d9b1ba9f8b69db28fd7aa822d389a9230b04ed61ed0faf"},
+    "21323": {"seams":3,"points":60,"hash":"61fd77cb7d3df5defdb6c3c0aae415f1119872035704d0a6b06acf674124ee3d"},
+    "92970": {"seams":3,"points":58,"hash":"ebfa867ca0120539efef8e10bc39d08cfb74b991309ab45931bc5378b666f477"}
+   }
+  }
+ }
+}

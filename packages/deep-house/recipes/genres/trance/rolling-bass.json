@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "trance/rolling-bass",
+  "revision": 1,
+  "name": "The rolling bass",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.35,
+            0.35,
+            0.7,
+            0.35,
+            0.35,
+            0.35,
+            0.7,
+            0.35,
+            0.35,
+            0.35,
+            0.7,
+            0.35,
+            0.35,
+            0.35,
+            0.7,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.25,
+            0.25
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            16,
+            16
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "beats": [
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25
+              ],
+              "holds": [
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2
+              ],
+              "accents": [
+                0.1,
+                1,
+                0.8,
+                0.8,
+                0.1,
+                1,
+                0.8,
+                0.8,
+                0.1,
+                1,
+                0.8,
+                0.8,
+                0.1,
+                1,
+                0.8,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      138,
+      148
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "psytrance and tech trance: four on the floor with the bass on the three sixteenths after every kick (kick, bass, bass, bass), the gallop that drives the style",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the kick on the beat and three short bass notes filling the rest of each beat, all on the root with the last of the bar a step up. Closed sixteenth hats accented on the offbeat. No backbeat — the style leaves it to the percussion. At 130 under the Techno key."
+  }
+}

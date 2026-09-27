@@ -1,0 +1,678 @@
+{
+  "kind": "bird-labels",
+  "schema": 1,
+  "note": "What each bird's cell says (round K13 of the ring). `big` is the quantity the bird itself biases, read off the spell the theme is planned under: a control of the style (`control`), a field of derive() (`derive`), or a reading of the plan the bird leans (`plan`). `bands` segment it, rising: each band holds up to the threshold its `upTo` names, and the last holds the rest. A threshold is never a number typed here: `window` is a family's own `when` on that control in the style's composition (family, variant or null, control, min|max), and `record` is the edge of what the fourteen golden themes reach on the bird (HOUSE -/+ HOUSE_OUTER, spell.ts). `sub` is the seed's locked reading, which the bird does not bias, said as a subtitle with its role. `reads` is what the cell's whole reading is computed from, by the name the spell layer biases it under: `derive.<field>` for a field of derive(), `control.<name>` for a control of the style, `list.<id>` for a candidate list: the ring's dotted lines come from it, and tools/check.ts holds it to the measured matrix (tools/birds-matrix.json). Two reads are a rule of the composer's and not a die of the cell's own (round K14): Gleam's chords read the tempo family, because the harmony pedal that holds the progression on its tonic requires the struck figure, and the figure opens only above 110 BPM; and Tide's section count reads whether the drums are on, because a theme under 96 bars gets its short outro only where it has a grid (R38). `says` is the long form (Eugene's copy to polish): one plain present-tense sentence of what the music is at that value, with the locked reading after it (`lockedSays`) — the explanation, the phone panel's line and the screen reader read nothing else, and tools/check.ts refuses a pole word in it. No genre is named anywhere in it (Eugene, 09-24: a genre word is not going to be accurate); a tempo family is said by what the kick does. `short` is the line the panel and the track show: the band's fact in five words at most, never the locked reading (that is the subtitle's) and never a genre; `says` stays the long form for the screen reader and a later info tip (Eugene, 09-24: \"more compact factual explanations that fit in 4-5 words\"). `lean` (round K15, Eugene: *\"we have at best 3–4 word variations per bird … could we fill in more text variants on bird movement\"*) is where in its band the value stands, off the same continuous quantity: the lower third says `lean.low`, the upper third `lean.high`, the middle the band's own — so a drag reads differently every sixth or so of the range while the word turns only at a threshold the composer has. `timbres` is each timbre id as it reads after \"The keys are …\" and on the short line (round K15: \"a vibes\" was an article by the first letter); tools/check.ts holds that every id the four keys lists can draw has one. Since K30 (the reviews of 09-26) a band's lines claim a part or a figure only where the program plays it: `{with}` in a line is filled from the band's `with` items whose `needs` fact the program shows (`programFacts`: the drum lanes' events, and the composition trace's selected parts and scene), joined by the band's `joiner`; a part the program does not play is left out, never said. Spark's `noDrums` is its word and lines with no drum event in the theme.",
+  "birds": {
+    "ember": {
+      "cell": "bpm",
+      "big": {
+        "plan": "tempo",
+        "unit": "bpm",
+        "derive": "tempoFamily"
+      },
+      "family": {
+        "noDrums": "no drums",
+        "unmetered": "free",
+        "house": "steady",
+        "techno": "driving",
+        "drumAndBass": "fast"
+      },
+      "sub": "bpm",
+      "reads": [
+        "derive.pulse",
+        "derive.tempoFamily"
+      ],
+      "says": {
+        "noDrums": "The drums are off and the pulse floats free at {bpm} beats a minute.",
+        "unmetered": "The pulse floats free at {bpm} beats a minute, with no kick under it.",
+        "house": "The kick is a steady four at {bpm} beats a minute.",
+        "techno": "The kick drives at {bpm} beats a minute.",
+        "drumAndBass": "The beat runs fast at {bpm} beats a minute."
+      },
+      "short": {
+        "noDrums": "No drums, pulse at {bpm}",
+        "unmetered": "Free pulse at {bpm}",
+        "house": "Steady four at {bpm}",
+        "techno": "Driving kick at {bpm}",
+        "drumAndBass": "Fast beat at {bpm}"
+      }
+    },
+    "spark": {
+      "cell": "figures",
+      "big": {
+        "control": "movement"
+      },
+      "bands": [
+        {
+          "word": "straight",
+          "upTo": {
+            "window": [
+              "percussion",
+              "rolling",
+              "movement",
+              "min"
+            ]
+          },
+          "says": "The beat is straight{with}.",
+          "short": "Straight beat{with}",
+          "lean": {
+            "low": {
+              "short": "Straight beat, hardly moving",
+              "says": "The beat is straight and hardly moving{with}."
+            },
+            "high": {
+              "short": "Straight beat, nearly rolling",
+              "says": "The beat is straight, nearly rolling{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "hands",
+              "says": "hand percussion answering",
+              "short": "percussion answers"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "rolling",
+          "upTo": {
+            "window": [
+              "figure-groove",
+              null,
+              "movement",
+              "min"
+            ]
+          },
+          "says": "The beat is four on the floor{with}.",
+          "short": "Rolling four{with}",
+          "lean": {
+            "low": {
+              "short": "Just rolling four",
+              "says": "The beat is four on the floor, just starting to move{with}."
+            },
+            "high": {
+              "short": "Rolling four, nearly broken",
+              "says": "The beat is four on the floor, nearly broken{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "rolling",
+              "says": "rolling hands",
+              "short": "hands roll"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "broken",
+          "upTo": null,
+          "says": "The beat is broken{with}.",
+          "short": "Broken beat{with}",
+          "lean": {
+            "low": {
+              "short": "Just broken{with}",
+              "says": "The beat is just broken{with}."
+            },
+            "high": {
+              "short": "Deeply broken{with}",
+              "says": "The beat is deeply broken{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "breaks",
+              "says": "the breaks kit",
+              "short": "breaks kit"
+            }
+          ],
+          "joiner": ", on "
+        }
+      ],
+      "sub": "hats",
+      "reads": [
+        "control.movement",
+        "derive.kit",
+        "list.hatMasks",
+        "list.bassMasks",
+        "list.breakMasks"
+      ],
+      "lockedSays": "the hats play {hats}, {hits}, and the bass is {bass}",
+      "noDrums": {
+        "word": "no beat",
+        "says": "No beat plays: the drums are off.",
+        "short": "No beat, drums off"
+      }
+    },
+    "zephyr": {
+      "cell": "timbre",
+      "big": {
+        "plan": "keysPreset"
+      },
+      "sub": "keys",
+      "reads": [
+        "list.leadTimbres",
+        "list.sustainedLeads",
+        "list.stabPartners",
+        "list.padPartners",
+        "list.densities"
+      ],
+      "says": "The keys are {keys}.",
+      "short": "{keys}"
+    },
+    "gleam": {
+      "cell": "key",
+      "big": {
+        "control": "light"
+      },
+      "bands": [
+        {
+          "word": "held",
+          "upTo": {
+            "record": "low"
+          },
+          "says": "The harmony is held{with}.",
+          "short": "Harmony held{with}",
+          "lean": {
+            "low": {
+              "short": "Held deep{with}",
+              "says": "The harmony is held deep{with}."
+            },
+            "high": {
+              "short": "Harmony held, nearly moving",
+              "says": "The harmony is held, nearly moving{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "pedal",
+              "says": "a pedal",
+              "short": "on pedal"
+            }
+          ],
+          "joiner": ", on "
+        },
+        {
+          "word": "moving",
+          "upTo": {
+            "record": "high"
+          },
+          "says": "The harmony moves, chord to chord{with}.",
+          "short": "Harmony moves chord to chord",
+          "lean": {
+            "low": {
+              "short": "Harmony just moving",
+              "says": "The harmony just moves, chord to chord{with}."
+            },
+            "high": {
+              "short": "Harmony moving, nearly lifted",
+              "says": "The harmony moves chord to chord, nearly lifted{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "pedal",
+              "says": "a pedal",
+              "short": "on pedal"
+            }
+          ],
+          "joiner": ", over "
+        },
+        {
+          "word": "lifted",
+          "upTo": null,
+          "says": "The harmony is light{with}.",
+          "short": "Light harmony{with}",
+          "lean": {
+            "low": {
+              "short": "Harmony just lifted",
+              "says": "The harmony is just light{with}."
+            },
+            "high": {
+              "short": "Harmony well lifted{with}",
+              "says": "The harmony is well lifted{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "arches",
+              "says": "arching figures",
+              "short": "arching figures"
+            }
+          ],
+          "joiner": ", with "
+        }
+      ],
+      "sub": "key",
+      "reads": [
+        "control.light",
+        "list.keyRoots",
+        "list.voicingStyles",
+        "control.pedal",
+        "derive.tempoFamily"
+      ],
+      "lockedSays": "the key is {key}{chords}"
+    },
+    "root": {
+      "cell": "preset",
+      "big": {
+        "control": "body"
+      },
+      "bands": [
+        {
+          "word": "thin",
+          "upTo": {
+            "record": "low"
+          },
+          "says": "The bass is thin and the full body rarely plays.",
+          "short": "Thin bass, body rare",
+          "lean": {
+            "low": {
+              "short": "Very thin bass, body rare",
+              "says": "The bass is very thin and the full body rarely plays."
+            },
+            "high": {
+              "short": "Thin bass, nearly full",
+              "says": "The bass is thin, nearly full, and the full body rarely plays."
+            }
+          }
+        },
+        {
+          "word": "full",
+          "upTo": {
+            "record": "high"
+          },
+          "says": "The bass is full and steady.",
+          "short": "Full bass",
+          "lean": {
+            "low": {
+              "short": "Full bass, leaning thin",
+              "says": "The bass is full and steady, leaning thin."
+            },
+            "high": {
+              "short": "Full bass, leaning heavy",
+              "says": "The bass is full and steady, leaning heavy."
+            }
+          }
+        },
+        {
+          "word": "heavy",
+          "upTo": null,
+          "says": "The bass is heavy.",
+          "short": "Heavy bass",
+          "lean": {
+            "low": {
+              "short": "Just heavy bass",
+              "says": "The bass is just heavy."
+            },
+            "high": {
+              "short": "Deep heavy bass",
+              "says": "The bass is deeply heavy."
+            }
+          }
+        }
+      ],
+      "sub": "room",
+      "reads": [
+        "control.body",
+        "list.rooms"
+      ],
+      "lockedSays": "the room is {room}"
+    },
+    "loom": {
+      "cell": "density",
+      "big": {
+        "control": "form"
+      },
+      "bands": [
+        {
+          "word": "loops",
+          "upTo": {
+            "record": "low"
+          },
+          "says": "The form is short loops, with no pedal.",
+          "short": "Short loops, no pedal",
+          "lean": {
+            "low": {
+              "short": "Very short loops, no pedal",
+              "says": "The form is very short loops, with no pedal."
+            },
+            "high": {
+              "short": "Loops, nearly phrases",
+              "says": "The form is loops, nearly phrases, with no pedal."
+            }
+          }
+        },
+        {
+          "word": "phrases",
+          "upTo": {
+            "window": [
+              "bass",
+              "long-pedal",
+              "form",
+              "min"
+            ]
+          },
+          "says": "The form turns phrase by phrase.",
+          "short": "Form turns phrase by phrase",
+          "lean": {
+            "low": {
+              "short": "Phrases, close to loops",
+              "says": "The form turns phrase by phrase, close to loops."
+            },
+            "high": {
+              "short": "Phrases, nearly long form",
+              "says": "The form turns phrase by phrase, nearly long."
+            }
+          }
+        },
+        {
+          "word": "long",
+          "upTo": null,
+          "says": "The form is long{with}.",
+          "short": "Long form{with}",
+          "lean": {
+            "low": {
+              "short": "Just long{with}",
+              "says": "The form is just long{with}."
+            },
+            "high": {
+              "short": "Very long form{with}",
+              "says": "The form is very long{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "longPedal",
+              "says": "eight-bar pedals",
+              "short": "long pedals"
+            },
+            {
+              "needs": "arches",
+              "says": "arches",
+              "short": "arches"
+            }
+          ],
+          "joiner": ", with "
+        }
+      ],
+      "sub": "density",
+      "reads": [
+        "control.form",
+        "list.densities",
+        "list.densityLabels"
+      ],
+      "lockedSays": "the density is {density}"
+    },
+    "tide": {
+      "cell": "wet",
+      "big": {
+        "control": "space"
+      },
+      "bands": [
+        {
+          "word": "near",
+          "upTo": {
+            "window": [
+              "figure-space",
+              "open",
+              "space",
+              "min"
+            ]
+          },
+          "says": "The sound is close and dry{with}.",
+          "short": "Close, dry sound",
+          "lean": {
+            "low": {
+              "short": "Very close, dry sound",
+              "says": "The sound is very close and dry{with}."
+            },
+            "high": {
+              "short": "Close sound, nearly open",
+              "says": "The sound is close, nearly open{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "pulse",
+              "says": "a pulse keeping time",
+              "short": "a pulse"
+            },
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "open",
+          "upTo": {
+            "window": [
+              "receding-backbeat",
+              null,
+              "space",
+              "min"
+            ]
+          },
+          "says": "The sound is open and spacious{with}.",
+          "short": "Open, spacious sound",
+          "lean": {
+            "low": {
+              "short": "Just open sound",
+              "says": "The sound is just open and spacious{with}."
+            },
+            "high": {
+              "short": "Open sound, nearly wide",
+              "says": "The sound is open and spacious, nearly wide{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "pulse",
+              "says": "a pulse keeping time",
+              "short": "a pulse"
+            },
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "distant",
+          "upTo": null,
+          "says": "The sound is wide{with}.",
+          "short": "Wide sound{with}",
+          "lean": {
+            "low": {
+              "short": "Just wide sound{with}",
+              "says": "The sound is just wide{with}."
+            },
+            "high": {
+              "short": "Very wide{with}",
+              "says": "The sound is very wide{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "receding",
+              "says": "the backbeat far back",
+              "short": "backbeat back"
+            },
+            {
+              "needs": "pulse",
+              "says": "a pulse keeping time",
+              "short": "a pulse"
+            },
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            }
+          ],
+          "joiner": ", with "
+        }
+      ],
+      "sub": "sections",
+      "reads": [
+        "control.space",
+        "list.sectionOrders",
+        "derive.drumsOn"
+      ],
+      "lockedSays": "the theme has {sections}"
+    },
+    "veil": {
+      "cell": "fx",
+      "big": {
+        "derive": "changeRate"
+      },
+      "bands": [
+        {
+          "word": "static",
+          "upTo": {
+            "record": "low"
+          },
+          "says": "The texture stands still{with}.",
+          "short": "Still texture{with}",
+          "lean": {
+            "low": {
+              "short": "Very still{with}",
+              "says": "The texture stands very still{with}."
+            },
+            "high": {
+              "short": "Still, nearly steady pace",
+              "says": "The texture stands still, nearly at an even pace{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            },
+            {
+              "needs": "droneBack",
+              "says": "the drone behind",
+              "short": "drone behind"
+            },
+            {
+              "needs": "ornament",
+              "says": "ornaments",
+              "short": "ornaments"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "steady",
+          "upTo": {
+            "record": "high"
+          },
+          "says": "The music changes at an even pace{with}.",
+          "short": "Steady pace",
+          "lean": {
+            "low": {
+              "short": "Steady pace, nearly still",
+              "says": "The music changes at an even pace, nearly still{with}."
+            },
+            "high": {
+              "short": "Steady pace, nearly shifting",
+              "says": "The music changes at an even pace, nearly shifting{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            },
+            {
+              "needs": "droneBack",
+              "says": "the drone behind",
+              "short": "drone behind"
+            },
+            {
+              "needs": "ornament",
+              "says": "ornaments",
+              "short": "ornaments"
+            }
+          ],
+          "joiner": ", with "
+        },
+        {
+          "word": "shifting",
+          "upTo": null,
+          "says": "The music keeps shifting{with}.",
+          "short": "Shifting textures{with}",
+          "lean": {
+            "low": {
+              "short": "Just shifting{with}",
+              "says": "The music just keeps shifting{with}."
+            },
+            "high": {
+              "short": "Always shifting{with}",
+              "says": "The music keeps shifting all the time{with}."
+            }
+          },
+          "with": [
+            {
+              "needs": "ornament",
+              "says": "ornaments",
+              "short": "ornaments"
+            },
+            {
+              "needs": "droneBack",
+              "says": "the drone behind",
+              "short": "drone behind"
+            },
+            {
+              "needs": "droneFront",
+              "says": "the drone up front",
+              "short": "drone forward"
+            }
+          ],
+          "joiner": ", with "
+        }
+      ],
+      "sub": "fx",
+      "reads": [
+        "derive.changeRate",
+        "list.fxPalettes"
+      ],
+      "lockedSays": "the effects are {fx}"
+    }
+  },
+  "timbres": {
+    "brightPiano": "a bright piano",
+    "clavKey": "a clavinet",
+    "ep": "an electric piano",
+    "fmBell": "an FM bell",
+    "fmEp": "an FM electric piano",
+    "fmGlass": "FM glass",
+    "fmPluck": "an FM pluck",
+    "formantPad": "a formant pad",
+    "glass": "glass",
+    "grainPad": "a grain pad",
+    "karplusPluck": "a plucked string",
+    "marimba": "a marimba",
+    "organ": "an organ",
+    "piano": "a piano",
+    "pluck": "a pluck",
+    "pulseLead": "a pulse lead",
+    "reedOrgan": "a reed organ",
+    "rhodes": "a Rhodes",
+    "sawLead": "a saw lead",
+    "sawPad": "a saw pad",
+    "strings": "strings",
+    "supersawPad": "a supersaw pad",
+    "swell": "a swell",
+    "triLead": "a triangle lead",
+    "vibes": "vibes",
+    "wavePad": "a wave pad"
+  }
+}

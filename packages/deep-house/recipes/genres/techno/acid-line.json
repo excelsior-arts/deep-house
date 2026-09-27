@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "techno/acid-line",
+  "revision": 1,
+  "name": "The acid line",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.7,
+            0.65,
+            0.7,
+            0.65
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0.4,
+              0.4
+            ],
+            "leaps": [
+              0.6,
+              0.6
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.23,
+            0.231
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            13,
+            13
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                0,
+                2,
+                0,
+                0,
+                3,
+                0,
+                1,
+                0,
+                2,
+                0
+              ],
+              "beats": [
+                0.25,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.25
+              ],
+              "holds": [
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2,
+                0.2
+              ],
+              "accents": [
+                1,
+                0.5,
+                0.7,
+                1,
+                0.5,
+                0.9,
+                0.5,
+                1,
+                0.6,
+                0.8,
+                1,
+                0.5,
+                0.7
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      125,
+      135
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "acid: a sixteenth-note bass-synth line in the manner of the TB-303 — repeated notes, accents and octave-less steps, a few rests — over the four, with an open hat on the offbeat",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar of sixteenths with three rests, moving between the root, the step above, the third and the fourth, accented on a pattern that does not follow the beat — the accent pattern is most of what makes an acid line. What the style is named after, the resonant filter swept against it and the slides between notes, is not in the kitchen: this is the line on the sub."
+  }
+}

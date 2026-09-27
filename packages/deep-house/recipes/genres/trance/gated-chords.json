@@ -1,0 +1,260 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "trance/gated-chords",
+  "revision": 1,
+  "name": "The gated chords",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.6,
+            0.55,
+            0.6,
+            0.55
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "figure": {
+        "follows": "harmony",
+        "articulation": "sustained",
+        "register": "mid",
+        "families": [
+          "ensemble"
+        ],
+        "properties": {
+          "struck": false,
+          "holdMin": 0.6,
+          "brightnessMin": 1000,
+          "brightnessMax": 2600
+        },
+        "prefer": {
+          "holdMax": 0.75,
+          "brightnessMin": 2400
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.363,
+            0.364
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            11,
+            11
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "beats": [
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.25,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.5
+              ],
+              "holds": [
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25,
+                0.25
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.9,
+                0.7,
+                1,
+                0.8,
+                0.9,
+                0.7,
+                0.9,
+                0.8,
+                0.75
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.45,
+          0.55
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            1,
+            1
+          ]
+        },
+        "behavior": "ostinato",
+        "duration": {
+          "beats": [
+            0.25,
+            0.25
+          ]
+        },
+        "voicings": [
+          [
+            -4,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      130,
+      138
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "trance gate: a held chord chopped into sixteenths by a rhythmic gate — on, on, off, on — the stuttering pad of progressive and vocal trance",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: a triad on the supersaw ensemble struck on a gate pattern of eleven sixteenths in sixteen, each a sixteenth long, which is what a trance gate does to a held pad. The kick, clap and offbeat hats are the plain trance kit."
+  }
+}

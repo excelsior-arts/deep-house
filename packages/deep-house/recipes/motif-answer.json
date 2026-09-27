@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/answer",
+  "interpreter": "v2",
+  "scope": "motif",
+  "applies": "lead",
+  "name": "the answer",
+  "origin": "golden",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "wave",
+      "intervals": {
+        "steps": [
+          0,
+          0.9
+        ],
+        "leaps": [
+          0.1,
+          1
+        ]
+      },
+      "cell": {
+        "beats": [
+          4,
+          8
+        ]
+      },
+      "onGrid": [
+        0.2,
+        0.8
+      ],
+      "range": {
+        "semitones": [
+          5,
+          19
+        ]
+      },
+      "density": [
+        1.5,
+        4
+      ],
+      "returns": {
+        "bars": [
+          8,
+          16
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.7,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "verdicts": [],
+  "provenance": {
+    "from": "authored from production convention, PLAN-MOTIF §3",
+    "degrees": "scale degrees relative to the chord that is sounding; the row names no note and no voice",
+    "calibration": "the twelve authored motifs of src/motif.ts, each of which falls inside one of these boxes",
+    "note": "A question that wanders and comes home: a longer cell, more turns in it, and a reach wide enough to be a phrase rather than a figure. It is the one of the three that wants the grammar — stated, then answered — and the one a build has something to fragment."
+  }
+}

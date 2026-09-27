@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/liquid-roller",
+  "revision": 1,
+  "name": "The liquid roller",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            10,
+            16,
+            26
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            15,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            0.25,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.5,
+            0.25,
+            0.7,
+            0.3,
+            0.5,
+            0.25,
+            0.7,
+            0.3,
+            0.5,
+            0.25,
+            0.7,
+            0.3,
+            0.5,
+            0.25,
+            0.7,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.2,
+            0.12,
+            0.26,
+            0.14,
+            0.2,
+            0.12,
+            0.26,
+            0.14,
+            0.2,
+            0.12,
+            0.26,
+            0.14,
+            0.2,
+            0.12,
+            0.28,
+            0.16
+          ],
+          "families": [
+            "noise"
+          ],
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0.666,
+              0.667
+            ],
+            "leaps": [
+              0.333,
+              0.334
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.4,
+            0.4
+          ],
+          "range": {
+            "semitones": [
+              5,
+              5
+            ]
+          },
+          "density": [
+            2.5,
+            2.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                -1,
+                0,
+                2
+              ],
+              "beats": [
+                2.5,
+                1.5,
+                2.5,
+                1,
+                0.5
+              ],
+              "holds": [
+                2.25,
+                1.25,
+                2.25,
+                0.75,
+                0.5
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.9,
+                0.8,
+                0.7
+              ]
+            }
+          ]
+        }
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "brightnessMin": 1500,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.29,
+          "brightnessMax": 2000
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.5,
+            0.5
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                0
+              ],
+              "beats": [
+                1.5,
+                2.5,
+                1.5,
+                2.5
+              ],
+              "holds": [
+                1.25,
+                2,
+                1.25,
+                2
+              ],
+              "accents": [
+                0.8,
+                0.65,
+                0.75,
+                0.6
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.5,
+          0.58
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            2,
+            2
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -6,
+            -4,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting",
+      "figure": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      170,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "liquid drum and bass: the two-step with softly swung sixteenth hats and shaker, electric-piano seventh chords on the offbeats, a rolling sub",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "The two-step made smooth: the kick is the plain two-step, the snare carries fewer ghosts, the hats are sixteenths with a light swing and the shaker doubles them quietly. The chords are stacked sevenths struck on the one and pushed on the and of two, ringing, the way liquid producers voice a Rhodes. The sub rolls inside a fifth."
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "note": "Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it.",
+  "measuredAt": "2026-09-26",
+  "strategy": "house-v2",
+  "sample": {
+    "seeds": [
+      1,
+      40
+    ],
+    "themes": 3,
+    "n": 120,
+    "windowBars": 8,
+    "sampleRate": 48000
+  },
+  "residual": {
+    "r2": 0.7124,
+    "inSample": 0.618,
+    "crossValidated": 0.6984,
+    "worstHeldOut": 2.0641
+  },
+  "targetLufs": -13,
+  "clampDb": 4,
+  "slopeUp": 0.6433,
+  "slopeDown": 0.6836,
+  "intercept": -14.3199,
+  "coef": {
+    "harmonicHold": 3.84995,
+    "rateBass": -0.09963,
+    "gainPad": 0.13115,
+    "rateHarmonic": 0.05953,
+    "harmonicBright": 0.34246,
+    "sharePad": 0.83433,
+    "velBass": 2.35502,
+    "themeBars": 0.00433,
+    "voicingElevenths": 0.41564,
+    "harmonicStruck": 0.87039,
+    "velKeys": 0.8032
+  },
+  "centre": {
+    "harmonicHold": 0.440392,
+    "rateBass": 3.661458,
+    "gainPad": -1.05,
+    "rateHarmonic": 7.321875,
+    "harmonicBright": 11.028372,
+    "sharePad": 0,
+    "velBass": 0.751765,
+    "themeBars": 101.5,
+    "voicingElevenths": 0,
+    "harmonicStruck": 0.4625,
+    "velKeys": 0.563735
+  },
+  "headroom": {
+    "activeMax": 10,
+    "deepestMax": 8,
+    "marginDb": 1,
+    "residual": {
+      "r2": 0.7601,
+      "inSample": 0.7891,
+      "crossValidated": 0.8584,
+      "worstHeldOut": 3.8837,
+      "n": 120
+    },
+    "intercept": 0.09209,
+    "coef": {
+      "loopBars": 0.39701,
+      "harmonicHold": -3.89491,
+      "rateHarmonic": -0.0623,
+      "harmonicBright": -0.82062,
+      "harmonicEnergyDb": -0.04915,
+      "voicingElevenths": -0.3831,
+      "rateHats": -0.09569,
+      "velKeys": -1.88446,
+      "shareKeys": 0.83598
+    },
+    "centre": {
+      "loopBars": 5.9,
+      "harmonicHold": 0.440392,
+      "rateHarmonic": 7.321875,
+      "harmonicBright": 11.028372,
+      "harmonicEnergyDb": -15.949922,
+      "voicingElevenths": 0,
+      "rateHats": 3.333333,
+      "velKeys": 0.563735,
+      "shareKeys": 0
+    }
+  }
+}

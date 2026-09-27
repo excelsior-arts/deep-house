@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/pump",
+  "interpreter": "v2",
+  "scope": "motif",
+  "applies": "bass",
+  "name": "the pump",
+  "origin": "golden",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "pedal",
+      "intervals": {
+        "steps": [
+          0,
+          1
+        ],
+        "leaps": [
+          0,
+          1
+        ]
+      },
+      "cell": {
+        "beats": [
+          2,
+          4
+        ]
+      },
+      "onGrid": [
+        0.5,
+        1
+      ],
+      "range": {
+        "semitones": [
+          2,
+          12
+        ]
+      },
+      "density": [
+        1.5,
+        4.5
+      ],
+      "returns": {
+        "bars": [
+          2,
+          8
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "verdicts": [],
+  "provenance": {
+    "from": "authored from production convention, PLAN-MOTIF §3",
+    "degrees": "scale degrees relative to the chord that is sounding; the row names no note and no voice",
+    "calibration": "the twelve authored motifs of src/motif.ts, each of which falls inside one of these boxes",
+    "note": "Two notes under a two-chord vamp: the root, and one move away from it and back. It is what the corpus measures as the commonest bass bar in 2966 — one note, then held — with the one neighbour that makes it a figure rather than a drone."
+  }
+}

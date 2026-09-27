@@ -1,0 +1,281 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "garage/2-step",
+  "revision": 1,
+  "name": "The 2-step",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            10,
+            16,
+            23,
+            26
+          ],
+          "accents": [
+            1,
+            0.85,
+            1,
+            0.7,
+            0.85
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            19,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            0.3,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.45,
+            0.35,
+            0.75,
+            0.35,
+            0.45,
+            0.35,
+            0.75,
+            0.35,
+            0.45,
+            0.35,
+            0.75,
+            0.35,
+            0.45,
+            0.35,
+            0.75,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 1,
+          "steps": [
+            3,
+            7,
+            11,
+            15
+          ],
+          "accents": [
+            0.2,
+            0.22,
+            0.2,
+            0.25
+          ],
+          "families": [
+            "noise"
+          ],
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0.333,
+              0.334
+            ],
+            "leaps": [
+              0.666,
+              0.667
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.333,
+            0.334
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            3,
+            3
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                3,
+                0,
+                0,
+                -1
+              ],
+              "beats": [
+                0.5,
+                2,
+                1.5,
+                1.5,
+                1,
+                1.5
+              ],
+              "holds": [
+                0.4,
+                1.75,
+                1.25,
+                1.25,
+                0.75,
+                1.25
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.8,
+                0.95,
+                0.75,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting",
+      "sixteenth": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      130,
+      136
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "UK garage two-step: the kick leaves the second and fourth beat, skipping to the and of three, under a snare on two and four, swung sixteenth hats and a syncopated sub",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: kick one and the and of three, then one, the a of two and the and of three; snare on two and four with a rim-like ghost before the second; sixteenth hats swung hard (0.62, the shuffle) with the offbeat louder; a quiet shaker; a sub that pushes the and of one and answers itself in the second bar, inside a fifth. At 130 under the Tech House key: garage has no key of its own, and 130 is the fast band's top."
+  }
+}

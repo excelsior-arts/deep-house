@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/deep-house",
+  "interpreter": "v1",
+  "scope": "track",
+  "applies": null,
+  "name": "the house",
+  "origin": "golden",
+  "birds": {
+    "ember": [
+      0.365,
+      0.423
+    ],
+    "tide": [
+      0.452,
+      0.664
+    ],
+    "zephyr": [
+      0.305,
+      0.449
+    ],
+    "root": [
+      0.686,
+      0.748
+    ],
+    "gleam": [
+      0.309,
+      0.409
+    ],
+    "veil": [
+      0.404,
+      0.542
+    ],
+    "spark": [
+      0.15,
+      0.4
+    ],
+    "loom": [
+      0.557,
+      0.599
+    ]
+  },
+  "wants": {},
+  "forbids": [],
+  "weight": 1,
+  "provenance": {
+    "from": "the fourteen golden themes of master seeds 1, 92970 and 21323",
+    "centre": "the median of the fourteen, measured",
+    "box": "half the interquartile range of the fourteen, per bird",
+    "anchors": "anchors.json@1e899ba4",
+    "calibration": "notes/analysis/imprint-calibration.md",
+    "note": "The catalogue is two clusters split by the room — Tide, Zephyr, Veil and Spark separate sub from growl with no overlap — so this box is the union of two tighter ones and a roll in the middle of it is a roll between two rooms."
+  }
+}

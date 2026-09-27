@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dub/deep-dubstep",
+  "revision": 1,
+  "name": "Deep dubstep",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            10,
+            16,
+            23,
+            26
+          ],
+          "accents": [
+            1,
+            0.8,
+            1,
+            0.7,
+            0.85
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            8,
+            24
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            3,
+            4,
+            6,
+            7,
+            10,
+            11,
+            14,
+            15
+          ],
+          "accents": [
+            0.45,
+            0.3,
+            0.55,
+            0.45,
+            0.3,
+            0.45,
+            0.3,
+            0.5,
+            0.3
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.2,
+            0.18,
+            0.2,
+            0.22
+          ],
+          "families": [
+            "noise"
+          ],
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "fall",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            1,
+            1
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                -1
+              ],
+              "beats": [
+                6,
+                2
+              ],
+              "holds": [
+                5.5,
+                1.75
+              ],
+              "accents": [
+                1,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      138,
+      142
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "deep dubstep (the early south London sound): half-time snare on three, a kick that skips around it, shuffled sixteenth hats with heavy swing, and a sub that holds low and long",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: the snare on three, the kick on one and skipping to the a of two in the second bar; closed sixteenths swung hard and a quieter shaker under them, the shuffle this sound is known for. The sub holds two long notes a phrase. At 130 under the Dub key."
+  }
+}

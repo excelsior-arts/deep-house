@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "garage/bassline",
+  "revision": 1,
+  "name": "Bassline",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            3,
+            6,
+            7,
+            10,
+            11,
+            14,
+            15
+          ],
+          "accents": [
+            0.7,
+            0.3,
+            0.7,
+            0.3,
+            0.7,
+            0.3,
+            0.7,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.714,
+              0.715
+            ],
+            "leaps": [
+              0.285,
+              0.286
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.444,
+            0.445
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            9,
+            9
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                0,
+                -1,
+                0,
+                3,
+                1,
+                0
+              ],
+              "beats": [
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.5,
+                0.25,
+                0.75,
+                0.5,
+                0.5
+              ],
+              "holds": [
+                0.4,
+                0.2,
+                0.2,
+                0.4,
+                0.4,
+                0.2,
+                0.6,
+                0.4,
+                0.4
+              ],
+              "accents": [
+                0.9,
+                0.6,
+                0.8,
+                1,
+                0.85,
+                0.6,
+                0.95,
+                0.8,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      135,
+      142
+    ],
+    "nearest": [
+      125,
+      130
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "bassline (the Sheffield sound): four on the floor at 135-140 under a busy, bouncing sixteenth bass riff that is the lead, a clap on two and four and shuffled hats",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the riff moves in sixteenths and eighths between the root, the steps either side of it and the fourth, accented against the kick — the bass is the tune in this style. A clap on two and four, closed hats swung. The organ stab that usually answers it is not asked: the organ is declared not struck, so a short chop cannot reach it."
+  }
+}

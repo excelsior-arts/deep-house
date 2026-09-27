@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "bigbeat/riff-bass",
+  "revision": 1,
+  "name": "The riff bass",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            4,
+            8,
+            10,
+            12,
+            16,
+            20,
+            23,
+            24,
+            28
+          ],
+          "accents": [
+            1,
+            0.95,
+            1,
+            0.8,
+            0.95,
+            1,
+            0.95,
+            0.75,
+            1,
+            0.95
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            7,
+            12,
+            15
+          ],
+          "accents": [
+            1,
+            0.35,
+            1,
+            0.35
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.25,
+              0.25
+            ],
+            "leaps": [
+              0.75,
+              0.75
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.5,
+            0.5
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            6,
+            6
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                3,
+                4,
+                0,
+                3
+              ],
+              "beats": [
+                0.75,
+                0.75,
+                0.5,
+                1,
+                0.5,
+                0.5
+              ],
+              "holds": [
+                0.3,
+                0.3,
+                0.3,
+                0.5,
+                0.3,
+                0.25
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.9,
+                1,
+                0.85,
+                0.8
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      120,
+      140
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "big beat's riff bass: a big, syncopated one-bar bass riff with rests, leaping and stabbing against the break, the part a Chemical Brothers or Prodigy track is hummed by",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar of riff: root stabbed twice, a leap up a fourth and a fifth, back to the root, a rest before the bar line — short notes (holds a quarter of their spacing) so the rests talk. The riff of the style jumps an octave; the bass register refuses a recipe line wider than seven semitones on some keys, so the leap is a fifth. Under the break-over-a-four drums. The drive and distortion on it are the gap."
+  }
+}

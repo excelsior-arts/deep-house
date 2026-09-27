@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/jungle-chop",
+  "revision": 1,
+  "name": "The jungle chop",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            10,
+            11,
+            16,
+            18,
+            26
+          ],
+          "accents": [
+            1,
+            0.8,
+            0.95,
+            0.75,
+            1,
+            0.85,
+            0.95
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            7,
+            9,
+            12,
+            15,
+            20,
+            23,
+            25,
+            28,
+            29,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            0.42,
+            0.42,
+            1,
+            0.42,
+            1,
+            0.42,
+            0.42,
+            1,
+            0.42,
+            0.42,
+            0.42
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14
+          ],
+          "accents": [
+            0.8,
+            0.5,
+            0.8,
+            0.5,
+            0.8,
+            0.5,
+            0.8,
+            0.5
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "arch",
+          "intervals": {
+            "steps": [
+              0.333,
+              0.334
+            ],
+            "leaps": [
+              0.666,
+              0.667
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                4,
+                3,
+                0
+              ],
+              "beats": [
+                3,
+                1,
+                2,
+                2
+              ],
+              "holds": [
+                2.75,
+                0.75,
+                1.75,
+                1.75
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.85,
+                0.9
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      160,
+      170
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "jungle: the Amen's first bar answered by a chopped second bar, the snare stuttering into a roll at its end, over a long booming sub that walks root, fifth, fourth, root",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: the first is the break as written, the second is a re-edit (kick one, one-and, three-and, snares on two, two-a, three-e and then a sixteenth roll from four) — the chopping jungle producers did on a sampler, here as steps. The sub notes are long and far apart, which is where jungle leaves the space the break fills."
+  }
+}

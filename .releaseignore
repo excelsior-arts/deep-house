@@ -1,0 +1,14 @@
+# The private tier. Everything here is tracked on `local` and pushed to the
+# private origin, and is stripped by tools/release.ts before master is cut, so
+# it never reaches the public repository. One .gitignore for both tiers; this
+# is the second, tighter list the release applies. Prefixes, one per line.
+notes/
+packages/mining/
+# The per-instrument WAV export (Eugene, 09-22): his, for wave analysis, and
+# never public; and since 09-25 (record-r1) the whole theme as a WAV and the
+# ring as a video, the record row under the ledger's title, never public either.
+# Loaded only behind __PRIVATE_TOOLS__; tools/check-release.ts holds the shipped
+# files to never naming the folder's modules anywhere else and to never carrying
+# the mark each of them stamps into itself.
+packages/deep-house/src/machine/private/
+mining/

@@ -1,12 +1,20 @@
-tmp/
-node_modules/
+__pycache__/
 .DS_Store
-*.wav
-*.mp3
+.playwright-mcp
+.release-build/
 *.aif
 *.aiff
 *.flac
-*.ogg
 *.m4a
+*.mp3
+*.ogg
 *.opus
-.release-build/
+*.wav
+node_modules/
+# The catalog: the sources, the chunks, the runs, the renders and the manifest.
+# Anchored to the root on purpose — an unanchored `mining/` matches a directory
+# of that name at any depth, and `packages/mining/` is the tooling, which is
+# tracked on `local` and stripped from the release by `.releaseignore`.
+/mining/
+/tmp/
+.release-pictures/

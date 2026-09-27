@@ -1,0 +1,380 @@
+{
+  "about": "The machine view's manual: one entry per kind of box the description can draw, keyed as manualKey() in help.tsx keys a node. `text` is one or two paragraphs; `v1` and `v2` are shown only under that engine; `ring` says what the ring's controls do to it, and `aside` is one more line. A `{name}` is filled from the box as it is described now: `label`, `made`, `note`, `instrument`, or `r:<reading>` for one of its readings. tools/check.ts holds that every kind has an entry and every fill names a field the description carries.",
+  "entries": {
+    "lane:drum": {
+      "title": "Source · drum",
+      "text": [
+        "A percussion part: the lane {label}, played now by {instrument}. Its hits go dry to its bus and, per note, to whichever sends the instrument asks for.",
+        "The strip's M and S act on the instrument, so a second lane playing the same one follows them."
+      ],
+      "v1": "Under house-v1 the lane plays the one instrument the style names for it.",
+      "v2": "Under house-v2 the instrument is drawn for each theme from the lane's candidates, so the name here can change at a seam.",
+      "ring": "Under house-v2 the ring's controls can lean which candidate is drawn and move the instrument's own settings; the moved ones are listed in this box's readings. Under house-v1 the ring's controls only read the record."
+    },
+    "lane:noise": {
+      "title": "Source · noise percussion",
+      "text": [
+        "A part made of shaped noise — a hat, a shaker, a ride: the lane {label}, played now by {instrument}. It sits on the drums bus with the other percussion, which is why it is framed with the drums.",
+        "Short and bright, it carries the time more than the level; a mute here is the quickest way to hear what the groove is without it."
+      ],
+      "v1": "Under house-v1 the lane plays the one instrument the style names for it.",
+      "v2": "Under house-v2 the instrument is drawn for each theme from the lane's candidates.",
+      "ring": "Under house-v2 the ring's controls can lean the draw and the instrument's tone; under house-v1 they only read the record."
+    },
+    "lane:bass": {
+      "title": "Source · bass",
+      "text": [
+        "The low part: the lane {label}, played now by {instrument}. It lands on the sub bus, then passes the bass body, the bass compressor and the low duck before it meets the kick.",
+        "Its level is the one most worth checking against the kick: solo the two together to hear the pair the glue treats as one instrument."
+      ],
+      "v1": "Under house-v1 the bass instrument is the style's own.",
+      "v2": "Under house-v2 the bass instrument is drawn per theme from the lane's candidates.",
+      "ring": "Under house-v2 the ring's controls can move the bass instrument's settings; the moved ones are listed in the readings."
+    },
+    "lane:keyboard": {
+      "title": "Source · keyboard",
+      "text": [
+        "A pitched part played as notes and chords: the lane {label}, played now by {instrument}. Keyboard-like instruments land on the keys bus, which passes a shared chorus into the melodic bus; a few land on the melodic bus directly.",
+        "Everything after the melodic bus moves with the kick through the duck."
+      ],
+      "v1": "Under house-v1 the instrument follows the style's timbre die for the theme.",
+      "v2": "Under house-v2 the instrument is drawn per theme from the registered voices that play this lane's layer.",
+      "ring": "Under house-v2 the ring's controls can lean the draw and the instrument's own settings; under house-v1 they only read the record."
+    },
+    "lane:ensemble": {
+      "title": "Source · sustained",
+      "text": [
+        "A held part — a pad or a string-like layer: the lane {label}, played now by {instrument}. It lands on the melodic bus and is the part the duck is most audible on.",
+        "When the rota puts an insert on this lane, the insert box sits on the wire between this row and its bus."
+      ],
+      "v1": "Under house-v1 the instrument follows the style's timbre die for the theme.",
+      "v2": "Under house-v2 the instrument is drawn per theme from the lane's candidates.",
+      "ring": "Under house-v2 the ring's controls can move the instrument's own settings; the moved ones are listed in the readings."
+    },
+    "lane:vocal": {
+      "title": "Source · voice-like",
+      "text": [
+        "A sustained voice-like layer: the lane {label}, played now by {instrument}. It lands on the melodic bus and moves with the duck like the other held parts."
+      ],
+      "v2": "It appears only where a house-v2 theme's parts ask for it."
+    },
+    "lane:effect": {
+      "title": "Source · effect",
+      "text": [
+        "A transition sound — a riser, a sweep, an impact, a swell: the lane {label}, played now by {instrument}. It speaks at section boundaries and is silent most bars, so a dim row here is normal.",
+        "It lands on the melodic bus, so it is ducked under the kick like the held parts."
+      ],
+      "v2": "Under house-v2 the sound is drawn per theme from the lane's candidates."
+    },
+    "lane:other": {
+      "title": "Source",
+      "text": [
+        "The lane {label}, played now by {instrument}. Its family is not one the frames name, so it stands under \"other\"."
+      ]
+    },
+    "insert": {
+      "title": "Lane insert",
+      "text": [
+        "An effect the desk's rota has put on one lane for a stretch of bars: {label}, a {made}. It sits on the lane's own wire, between the source and its bus, and only while the lane is sounding.",
+        "The numbers are the ones the rota rolled for this stretch: rate, depth, mix, amount, stages and how many bars it lasts. Its line in the ledger says when it engaged and when it was released."
+      ],
+      "v1": "Under house-v1 the rota draws from the style's gestures.",
+      "v2": "Under house-v2 the rota can also draw an effect instance from the effect registry."
+    },
+    "bus:kick": {
+      "title": "Bus · kick",
+      "text": [
+        "The floor of the record: every kick note lands here. It never passes the macro filter, and it is the key of the sidechain — both ducks move when this bus hits.",
+        "From here the kick meets the bass in the glue and in the push."
+      ]
+    },
+    "bus:sub": {
+      "title": "Bus · sub",
+      "text": [
+        "The bass bus. After it: the bass body lift, the bass compressor, and the low duck, which pulls the bass down under each kick before the two are glued together."
+      ]
+    },
+    "bus:drums": {
+      "title": "Bus · drums",
+      "text": [
+        "Hats, clap, snare and percussion. It passes the macro filter with the melodic side but is not ducked, so the time keeps its level while the held parts breathe.",
+        "The clap room returns here, and so do the background and immersed spaces where a theme has them."
+      ]
+    },
+    "bus:melodic": {
+      "title": "Bus · melodic",
+      "text": [
+        "Everything the sidechain moves: the held parts, the keys after their chorus and the transition sounds. The delay, reverb and hall returns join them at the duck. From here: the duck, the width, the macro filter."
+      ]
+    },
+    "bus:keys": {
+      "title": "Bus · keys",
+      "text": [
+        "Keyboard parts pass a shared slow chorus here — two short modulated delays, panned apart — and continue into the melodic bus. The chorus is shared so stabs are wide without each note carrying its own delay line."
+      ]
+    },
+    "send:delay": {
+      "title": "Send · delay",
+      "text": [
+        "A single dotted-eighth echo line, {note}. Each repeat is darker than the last. It returns into the duck, so the echoes duck under the kick with the parts that made them.",
+        "A wire into it means that bus may send here; how much is decided per note."
+      ]
+    },
+    "send:reverb": {
+      "title": "Send · reverb",
+      "text": [
+        "A hall reverb, {note}, with a short pre-delay and its low end cut so the wash stays off the bass. It returns into the duck."
+      ]
+    },
+    "send:room": {
+      "title": "Send · room",
+      "text": [
+        "A short bright room for the clap, {note}. It returns to the drums bus, so it is filtered with the drums and not ducked."
+      ]
+    },
+    "send:hall": {
+      "title": "Send · hall",
+      "text": [
+        "The piano's long, dark hall, {note}. It is built the first time a piano asks for it; until then the box is dim and nothing is spent on it. It returns into the duck."
+      ]
+    },
+    "send:background": {
+      "title": "Send · background",
+      "text": [
+        "A dark plate with quiet echoes, {note}. It returns to the drums bus after the sidechain, so a long tail is not reshaped into a breath on every kick."
+      ],
+      "v1": "House-v1 themes do not send here.",
+      "v2": "It exists where a house-v2 theme's parts send to it."
+    },
+    "send:immersed": {
+      "title": "Send · immersed",
+      "text": [
+        "A diffuse tail, {note}. Like the background space it returns after the sidechain and stays still under the kick."
+      ],
+      "v1": "House-v1 themes do not send here.",
+      "v2": "It exists where a house-v2 theme's parts send to it."
+    },
+    "duckLow": {
+      "title": "Stage · low duck",
+      "text": [
+        "A gain on the bass, ramped down on every kick and back up after it — {note}. It makes room for the kick's low end so the two do not add up to a bump.",
+        "Now: {r:gain} dB."
+      ]
+    },
+    "bassBody": {
+      "title": "Stage · bass body",
+      "text": [
+        "A peaking filter on the bass at {r:freq} Hz, {r:gain} dB: the part of the bass that reads on small speakers. It is set by the room."
+      ]
+    },
+    "bassComp": {
+      "title": "Stage · bass compressor",
+      "text": [
+        "A compressor on the bass, before the low duck: it evens the notes so the duck's movement is the only movement. Reduction now: {r:gr} dB."
+      ]
+    },
+    "push": {
+      "title": "Stage · push",
+      "text": [
+        "A hot, saturated copy of the kick and the bass, mixed in under the clean pair. Its level is one of the arrangement's automated moves; at −120 dB it is off.",
+        "Now: {r:gain} dB."
+      ]
+    },
+    "glue": {
+      "title": "Stage · glue",
+      "text": [
+        "A gentle compressor on the kick and the bass together, followed by saturation, so the pair reads as one low instrument. Where the room sets its ratio to 1 it is a plain gain and is drawn as passed through."
+      ]
+    },
+    "duck": {
+      "title": "Stage · duck",
+      "text": [
+        "The sidechain: a gain on the melodic side, {note}. The kick bus is its key — each kick pulls the held parts, the keys and the delay, reverb and hall returns down, and they recover before the next beat.",
+        "Now: {r:gain} dB. This is the movement most people call the pump."
+      ]
+    },
+    "width": {
+      "title": "Stage · width",
+      "text": [
+        "A mid/side stage: the side signal is scaled by a slow oscillator, {note}, so the image breathes rather than sitting wide. Below a low corner the side is removed, which keeps the low end mono."
+      ]
+    },
+    "macro": {
+      "title": "Stage · macro filter",
+      "text": [
+        "A {made} over the melodic side and the drums — not the kick and not the bass. It is the arrangement's one automated knob: it closes in builds and breakdowns and opens at the drops.",
+        "Now: {r:freq} Hz."
+      ]
+    },
+    "themeOut": {
+      "title": "Master · theme trim",
+      "text": [
+        "This theme's loudness trim, worked out when the theme was planned so that rooms do not arrive at different levels. It sits after everything the theme does to itself and before the master every theme shares. Now: {r:gain} dB."
+      ]
+    },
+    "deck:hp": {
+      "title": "Deck · high-pass",
+      "text": [
+        "The deck's own high-pass, used at a hand-over: the outgoing theme's low end is taken away while the arriving one's comes in, so two basses never play at once. Open at {r:freq} Hz when nothing is changing hands."
+      ]
+    },
+    "deck:lp": {
+      "title": "Deck · low-pass",
+      "text": [
+        "The deck's own low-pass, the other half of a hand-over's filter moves. Open at {r:freq} Hz when nothing is changing hands."
+      ]
+    },
+    "deck:fader": {
+      "title": "Deck · fader",
+      "text": [
+        "The deck's level into the sum. At a seam the two decks' faders cross; the rest of the time it stands at {r:gain} dB."
+      ]
+    },
+    "m:dcBlock": {
+      "title": "Master · DC block",
+      "text": [
+        "A wide, gentle high-pass at {r:freq} Hz: it keeps offset and subsonic rumble out of the file. Nothing musical lives below it."
+      ]
+    },
+    "m:lowShelf": {
+      "title": "Master · low shelf",
+      "text": [
+        "A shelf at {r:freq} Hz, {r:gain} dB: it keeps the bass fundamental off the skirt of the low-mid bell above it.",
+        "Press the row to lean it over the room, ±6 dB; a cast returns it to the room."
+      ],
+      "ring": "The room — and so this setting — is the seed's, with the spell where one is cast."
+    },
+    "m:lowMid": {
+      "title": "Master · low mid",
+      "text": [
+        "A bell at {r:freq} Hz, {r:gain} dB: the octave between the kick's body and the bottom of the chords, which a generated mix leaves thin.",
+        "Press the row to lean it over the room."
+      ],
+      "ring": "The room is the seed's, with the spell where one is cast."
+    },
+    "m:mid": {
+      "title": "Master · mid",
+      "text": [
+        "A broad bell at {r:freq} Hz, {r:gain} dB, measured against reference recordings' long-term spectrum. It is deliberately gentle: a filter cannot add parts that are not there.",
+        "Press the row to lean it over the room."
+      ]
+    },
+    "m:presence": {
+      "title": "Master · presence",
+      "text": [
+        "A bell at {r:freq} Hz, {r:gain} dB, in the 2–6 kHz range the references carry and a synthesised mix tends to lack.",
+        "Press the row to lean it over the room."
+      ]
+    },
+    "m:air": {
+      "title": "Master · air",
+      "text": [
+        "A high shelf at {r:freq} Hz, {r:gain} dB: a little top so the hats read as hats.",
+        "Press the row to lean it over the room."
+      ]
+    },
+    "m:master": {
+      "title": "Master · gain",
+      "text": [
+        "The one gain before the ceiling: how hard the whole set is driven into the limiter. Now {r:gain} dB."
+      ]
+    },
+    "m:limiter": {
+      "title": "Master · limiter",
+      "text": [
+        "A look-ahead brick-wall limiter, {made}: nothing after it can pass the ceiling. Its bar shows how far it is pulling the set down right now; more than 3 dB lights it red.",
+        "Where the audio worklet could not load it is a quieter plain gain, drawn amber."
+      ]
+    },
+    "m:clip": {
+      "title": "Master · clip",
+      "text": [
+        "A soft clipper behind the limiter: a true-peak safety that catches the overs between samples and otherwise passes the signal untouched."
+      ]
+    },
+    "m:trim": {
+      "title": "Master · trim",
+      "text": [
+        "The last gain in the chain, after the ceiling, so a change of level never changes what the limiter is doing. Now {r:gain} dB."
+      ]
+    },
+    "m:out": {
+      "title": "Master · out",
+      "text": [
+        "The set's last node. Its meter is the one the peak-out reading and the scene gates read: amber from −1 dBFS, red at full scale — the one meter in the view that can clip, since the buses before the limiter are floating point."
+      ]
+    },
+    "sink": {
+      "title": "Output",
+      "text": [
+        "Where the set leaves the page: {made}. The route, the clock and the buffer are here because a late note or a dropout is decided at this edge, not in the music.",
+        "Amber means the silent route the checks use, or a clock running in a fallback worker; red means the clock fell back to a timer."
+      ],
+      "aside": "The buses before it are floating point and may sum over 0 dBFS without harm; the limiter is the one ceiling, and a clip means this output reached full scale."
+    },
+    "bells": {
+      "title": "Master response",
+      "text": [
+        "The master's frequency response as its five bands stand now — low shelf, low mid, mid, presence, air — drawn from 20 Hz to 20 kHz on a log scale, 0 dB at the middle line. It is a sketch of the sum of the five; the exact numbers are in the rows above.",
+        "It moves when a band is leant from its row, and when a cast walks the master to the arriving seed's room."
+      ]
+    },
+    "meter": {
+      "title": "Bus meter",
+      "text": [
+        "A column of LEDs from −60 dBFS at the foot to full scale at the top; the lit column is the bus's level now, and the one segment lit apart from it is the peak held over the last moment. The M, S and D under the bus's name light when every instrument on the bus is muted, soloed or sent dry.",
+        "Green: the signal is within the bus's headroom. Amber, from −1 dBFS: it is hot — near the master's ceiling or over it. A bus is summed in floating point, so it can read at or over 0 dBFS with nothing cut: the one ceiling is the limiter on the master, and only the output's meter turns red."
+      ],
+      "aside": "A bus that runs over 0 dBFS writes \"ran hot\" in the ledger, not a clip. Late notes are not per bus: they light the output's and the deck's lamps, and the ledger names them."
+    },
+    "key:mute": {
+      "title": "Key · M (mute)",
+      "text": [
+        "Mutes every instrument on this strip or bus: they stop sounding, and the parts they play go on being planned and scheduled, so letting go brings them back in time, mid-phrase. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link.",
+        "Lit red while on, as a desk's mute is. Press it again to let go."
+      ]
+    },
+    "key:solo": {
+      "title": "Key · S (solo)",
+      "text": [
+        "Solos this strip or bus: everything not soloed is muted, so you hear these instruments alone. Solos add up — solo a second strip and you hear both — and a mute wins over a solo. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link.",
+        "Lit amber while on, as a desk's solo is. Press it again to let go."
+      ]
+    },
+    "key:dry": {
+      "title": "Key · sends off",
+      "text": [
+        "Cuts this bus's sends to the returns: every instrument on it keeps playing on its own path, but nothing from it reaches the delay, the reverb, the room or the hall, so you hear the bus dry. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link.",
+        "Press it to hear how much of the bus is its returns. On a strip the key's corner shows a small D while its sends are off."
+      ]
+    },
+    "key:reset": {
+      "title": "Key · reset",
+      "text": [
+        "Puts this strip's or this bus's desk moves back: its level to 100 %, and its mute, solo and sends off let go. The rest of the desk is left as it is; the RESET over the sources puts every strip back and the master at the room.",
+        "Written to the ledger. The plan is untouched throughout: a reset only takes the desk's hand off it."
+      ]
+    },
+    "key:level": {
+      "title": "Fader · level",
+      "text": [
+        "The instrument's level, in percent of the plan's own: 100 % is what the composition asked for, 0 % silence, 200 % twice the gain. − and + move it a step of 1 % for the fine moves a finger cannot make on the slider. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link.",
+        "A strip keeps a thin amber line under its level key while any of its instruments is off 100 %. The manual's page for a source says the raw gain the mix multiplies by."
+      ]
+    },
+    "key:lean": {
+      "title": "Fader · band lean",
+      "text": [
+        "Leans one of the master's five bands over the room this seed plays in, up to 6 dB either way; − and + move it half a decibel. The fader reads the lean and the band's gain it makes.",
+        "A desk move, written to the ledger when the hand lets go; it goes back to the room when the next cast arrives, and when the view closes, and never touches the link."
+      ]
+    },
+    "key:room": {
+      "title": "Key · the room",
+      "text": [
+        "Takes this band's lean off: the band back at the gain the room this seed plays in gives it, which the key names.",
+        "Written to the ledger. The room itself is the plan's and is never changed here."
+      ]
+    }
+  }
+}

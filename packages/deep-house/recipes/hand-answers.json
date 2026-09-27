@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "id": "house/hand-answers",
+  "revision": 2,
+  "kind": "recipe",
+  "name": "Spacious call and answer",
+  "scope": "layer",
+  "applies": "sixteenth",
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "sixteenth": [
+        {
+          "bars": 2,
+          "steps": [
+            2,
+            6,
+            10,
+            14,
+            18,
+            22,
+            26,
+            30
+          ],
+          "accents": [
+            0.1,
+            0.17,
+            0.1,
+            0.14,
+            0.11,
+            0.19,
+            0.1,
+            0.16
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.03,
+            "brightnessMin": 4000,
+            "brightnessMax": 8000
+          },
+          "prefer": {
+            "holdMax": 0.01,
+            "brightnessMin": 5000,
+            "brightnessMax": 7000
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0.008
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.16
+          }
+        },
+        {
+          "bars": 8,
+          "steps": [
+            6,
+            7,
+            11,
+            18,
+            22,
+            23,
+            26,
+            27,
+            57,
+            58,
+            59,
+            62,
+            67,
+            70,
+            75,
+            102,
+            106,
+            107,
+            114,
+            118,
+            123,
+            124,
+            125,
+            126
+          ],
+          "accents": [
+            0.21,
+            0.06,
+            0.18,
+            0.06,
+            0.18,
+            0.12,
+            0.065,
+            0.19,
+            0.06,
+            0.16,
+            0.055,
+            0.22,
+            0.07,
+            0.21,
+            0.18,
+            0.2,
+            0.055,
+            0.13,
+            0.06,
+            0.22,
+            0.05,
+            0.16,
+            0.065,
+            0.13
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.04,
+            "brightnessMin": 1800,
+            "brightnessMax": 3400
+          },
+          "prefer": {
+            "holdMin": 0.015,
+            "holdMax": 0.03,
+            "brightnessMin": 2200,
+            "brightnessMax": 3000
+          },
+          "feel": {
+            "swing": 0.535,
+            "delay": {
+              "beats": 0.008
+            },
+            "timing": {
+              "beats": 0.006
+            },
+            "dynamics": 0.1
+          },
+          "character": "hand-conversation",
+          "strokes": [
+            "low",
+            "touch",
+            "tone",
+            "touch",
+            "tone",
+            "slap",
+            "touch",
+            "tone",
+            "touch",
+            "tone",
+            "touch",
+            "low",
+            "touch",
+            "low",
+            "tone",
+            "tone",
+            "touch",
+            "slap",
+            "touch",
+            "low",
+            "touch",
+            "tone",
+            "touch",
+            "slap"
+          ],
+          "pickup": {
+            "bars": 2,
+            "steps": [
+              6,
+              11,
+              25,
+              26,
+              27,
+              30
+            ],
+            "strokes": [
+              "low",
+              "tone",
+              "touch",
+              "tone",
+              "touch",
+              "low"
+            ],
+            "accents": [
+              0.17,
+              0.15,
+              0.055,
+              0.17,
+              0.06,
+              0.2
+            ]
+          }
+        }
+      ]
+    },
+    "presence": {
+      "sixteenth": "supporting"
+    },
+    "ambience": {
+      "sixteenth": "intimate"
+    }
+  },
+  "forbids": [],
+  "provenance": {
+    "evidence": "hand-phrases-10/answers"
+  },
+  "placement": {
+    "roles": [
+      "sixteenth"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "note": "Program hashes of the rows in programs.ts. Written by --bless only; the commit that blesses says why each moved.",
+  "rows": {
+    "pump/base/3": {
+      "kind": "approved",
+      "sha256": "504d320f32e5b9f31ad72f05adbf212e082aae4c7544a551b21cffaea1deb913"
+    },
+    "lick/base/3": {
+      "kind": "approved",
+      "sha256": "85d61a7187758634a245b7da897dc1898f0daeaea5d19bf9a3f95247e8ccff13"
+    },
+    "answer/base/3": {
+      "kind": "approved",
+      "sha256": "c04d2a79c73a26972b0b463b169368bca799cb3e3726faec598a5e99e891327d"
+    },
+    "pump/auto/4": {
+      "kind": "context",
+      "sha256": "eaa488ac7849d799e6041927ca02750248f588dce6133f16cc366a99862ea1ed"
+    },
+    "calm-piano-01/auto/4": {
+      "kind": "context",
+      "sha256": "a486cba80e5e5089b273429abd184c56ac8a8d22cb0ab898e9d524eba037ce9b"
+    },
+    "calm-piano-01/auto/6": {
+      "kind": "context",
+      "sha256": "4d20c13fde299c335daacd0b7d8ffdcff8943102fd351c79e3564f340aa265a9"
+    },
+    "calm-piano-02/base/6": {
+      "kind": "context",
+      "sha256": "f1125fefc26f691c7fb7daa417398f1405d2b2a24061213a66cf6202791bfb27"
+    },
+    "pump/phrased/4": {
+      "kind": "context",
+      "sha256": "69242ab0ccbecd4aedbf1a7d6567efeacda623e98546c348c4ce0abbb93598ff"
+    },
+    "calm-piano-02/phrased/4": {
+      "kind": "context",
+      "sha256": "4a002ee95fbc52ce3c05e5ce0859849c85b85a6add9d6bba39adc31b1532db74"
+    },
+    "calm-piano-02/shaped/6": {
+      "kind": "context",
+      "sha256": "4aa0b3b6a43dc72ddced79834db4073a175cadfd36f3240716806ab4aeb25f65"
+    },
+    "pump/shaped/4": {
+      "kind": "context",
+      "sha256": "fea0e134b79cb7242f6bdf270fedb46cf97ce8b91949491620ebba581079bc6d"
+    },
+    "calm-piano-02/shaped/4": {
+      "kind": "context",
+      "sha256": "2a39dffdff92e45b121de9a5fb7d819efd9ba8f3ef3ae388eb96b1305a4e8e89"
+    },
+    "calm-piano-02/percussion/6": {
+      "kind": "context",
+      "sha256": "e624fa536407b5c2dc0304576f3c27a268c5deb871226d6f3700a9fd34faa052"
+    },
+    "pump/percussion/4": {
+      "kind": "context",
+      "sha256": "62a51443897cdcfcf8f9d528c0411adefdb30872a6ffb82d8bfaa2df82a5de8e"
+    },
+    "ringing-chords-01/percussion/4": {
+      "kind": "context",
+      "sha256": "4056a218a7c89ee09eaefe6fafdc032a08031975c47b2ed2ea9dd6ee71e952bc"
+    }
+  }
+}

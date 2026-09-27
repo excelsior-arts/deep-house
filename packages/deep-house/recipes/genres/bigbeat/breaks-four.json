@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "bigbeat/breaks-four",
+  "revision": 1,
+  "name": "The break over a four",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            4,
+            8,
+            10,
+            12,
+            16,
+            20,
+            23,
+            24,
+            28
+          ],
+          "accents": [
+            1,
+            0.95,
+            1,
+            0.8,
+            0.95,
+            1,
+            0.95,
+            0.75,
+            1,
+            0.95
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            7,
+            9,
+            12,
+            15,
+            20,
+            22,
+            25,
+            26,
+            28,
+            31
+          ],
+          "accents": [
+            1,
+            0.4,
+            0.4,
+            1,
+            0.4,
+            1,
+            0.4,
+            0.4,
+            1,
+            1,
+            0.4
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35,
+            0.75,
+            0.35,
+            0.55,
+            0.35
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        },
+        {
+          "bars": 2,
+          "steps": [
+            30
+          ],
+          "accents": [
+            0.8
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "held"
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      120,
+      140
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "big beat: a chopped funk break — its syncopated kicks and ghosted snares — played over a hard four-on-the-floor kick, loud, at 120-140",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars. The kick lane carries both drummers: the four on every beat and the break's own pushes (the and of three, the a of two) between them; the snare is the break's, two and four at full weight with the ghosts of a funk drummer, the second bar chopped to a snare on the and of three. Sixteenth hats, swung 0.54, an open hat closing each second bar. The sub holds the root. The distortion the style drives its drums through is not a want a row can make."
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "house/afro-house",
+  "revision": 1,
+  "name": "Afro house",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.55,
+            0.5,
+            0.55,
+            0.5
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.015,
+            "brightnessMin": 5000
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            3,
+            6,
+            10,
+            12,
+            18,
+            20,
+            23,
+            26,
+            28,
+            30
+          ],
+          "accents": [
+            0.6,
+            0.45,
+            0.55,
+            0.5,
+            0.45,
+            0.55,
+            0.6,
+            0.4,
+            0.55,
+            0.45,
+            0.5
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 2000,
+            "brightnessMax": 3600
+          },
+          "prefer": {
+            "holdMax": 0.02
+          },
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        },
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "accents": [
+            0.2,
+            0.14,
+            0.28,
+            0.14,
+            0.2,
+            0.14,
+            0.28,
+            0.14,
+            0.2,
+            0.14,
+            0.28,
+            0.14,
+            0.2,
+            0.14,
+            0.28,
+            0.14
+          ],
+          "families": [
+            "noise"
+          ],
+          "feel": {
+            "swing": 0.56,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.5,
+            0.5
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                -1,
+                0
+              ],
+              "beats": [
+                0.75,
+                1.75,
+                1.5,
+                4
+              ],
+              "holds": [
+                0.5,
+                1.25,
+                1,
+                2.5
+              ],
+              "accents": [
+                0.3,
+                1,
+                0.85,
+                0.9
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting",
+      "sixteenth": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      118,
+      125
+    ]
+  },
+  "sections": [
+    "main",
+    "drop",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "afro house: the four under interlocking hand drums on a twelve-against-four feel, a sixteenth shaker, a soft clap on two and four, an open hat on the offbeat and a sparse, syncopated bass",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars. The hand drums play the three-against-two of the clave family (a son-clave-shaped line in the first bar, its answer in the second) with fills; a sixteenth shaker under them; the clap soft on two and four; an open hat on each and. The bass leaves the one and lands on the a of one and the and of three. Swing 0.56 on the percussion."
+  }
+}
