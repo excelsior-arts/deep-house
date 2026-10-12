@@ -1,0 +1,476 @@
+{
+ "schema": 1,
+ "kind": "tones",
+ "round": "liquid-keys",
+ "note": "Tone profiles for the keys lab, unapproved: each the engine sound rows it layers (`packages/engine/sounds/`), the hands each layer plays and its level, and any insert on the keys before the space (an effect of the kitchen, with its numbers). `gainDb` matches the profiles in loudness on round 1's chord-a-bar writing, near dry; it is MEASURED by the lab page (notes/rounds/liquid-keys.md). `sparseDb` (round 3) holds the match on the sparse writing, where a tone that sustains feeds a long wet tail more than one that falls: a trim per space, MEASURED as each landing's loudness over its first 3 s (BS.1770; the bare motif, 16 bars of i9 to VImaj9), against the mean of the eighteen tones in that space, averaged over the three wetness steps.",
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "felt-grand",
+   "revision": 1,
+   "name": "Felt grand",
+   "says": "A grand with felt between hammer and string: a soft thud, round blooming chords, the top never past 2.6 kHz.",
+   "gainDb": -3.7,
+   "sparseDb": { "hallDeep": 1.39, "dottedIntoHall": 1.24, "slowWideWash": 1.52, "plateSmooth": 1.21, "washFiltered": 1.4, "chorusRoom": 0.04, "widePlateDrift": 0.99, "hallDark": 1.57, "pingQuarterHall": 0.85, "plateDottedQuarter": 0.41, "roomTapeDotted": -0.1, "nearDry": -0.21 },
+   "layers": [
+    {
+     "sound": "pianoFelt",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "dark-upright",
+   "revision": 1,
+   "name": "Dark upright",
+   "says": "A small upright with the lid down: quick first fall, two strings beating slowly, dark and close.",
+   "gainDb": -4.1,
+   "sparseDb": { "hallDeep": 2.87, "dottedIntoHall": 3.14, "slowWideWash": 3.39, "plateSmooth": 2.57, "washFiltered": 3.12, "chorusRoom": 0.81, "widePlateDrift": 3.01, "hallDark": 3.38, "pingQuarterHall": 2.79, "plateDottedQuarter": 2.41, "roomTapeDotted": 0.91, "nearDry": -0.12 },
+   "layers": [
+    {
+     "sound": "pianoUpright",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "suitcase-ep",
+   "revision": 1,
+   "name": "Suitcase electric piano",
+   "says": "A tine electric piano through its own amplifier: warm body, a faint bell at the strike, the stereo tremolo swinging the chord.",
+   "gainDb": -9.1,
+   "sparseDb": { "hallDeep": -1.04, "dottedIntoHall": -1.19, "slowWideWash": -1.64, "plateSmooth": -0.62, "washFiltered": -1.33, "chorusRoom": -0.05, "widePlateDrift": -1.12, "hallDark": -1.09, "pingQuarterHall": -0.79, "plateDottedQuarter": -0.59, "roomTapeDotted": -0.19, "nearDry": -0.06 },
+   "layers": [
+    {
+     "sound": "keysSuitcase",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "reed-ep",
+   "revision": 1,
+   "name": "Reed electric piano",
+   "says": "A reed electric piano: hollow odd harmonics with a nasal lift, a mono tremolo, a little bark when played harder.",
+   "gainDb": -9.6,
+   "sparseDb": { "hallDeep": -0.68, "dottedIntoHall": -0.85, "slowWideWash": -0.46, "plateSmooth": -0.46, "washFiltered": -0.8, "chorusRoom": 1.01, "widePlateDrift": -0.19, "hallDark": -0.61, "pingQuarterHall": -0.54, "plateDottedQuarter": 0.12, "roomTapeDotted": 0.75, "nearDry": 0.98 },
+   "layers": [
+    {
+     "sound": "keysReed",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "fm-ep",
+   "revision": 1,
+   "name": "FM electric piano",
+   "says": "The two-operator electric piano played softly: a clean pitched body, the brightness only in the first half second.",
+   "gainDb": -12.3,
+   "sparseDb": { "hallDeep": -0.71, "dottedIntoHall": -1.2, "slowWideWash": -1.24, "plateSmooth": -0.6, "washFiltered": -0.51, "chorusRoom": 0.59, "widePlateDrift": -0.74, "hallDark": -1.98, "pingQuarterHall": -1.06, "plateDottedQuarter": -1.02, "roomTapeDotted": 0.25, "nearDry": 0.55 },
+   "layers": [
+    {
+     "sound": "fmEpSoft",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "glass-ep",
+   "revision": 1,
+   "name": "Glassy electric piano",
+   "says": "A pure electric piano body under a high glassy tine that rings a moment: clear, wide and long.",
+   "gainDb": -12,
+   "sparseDb": { "hallDeep": -1.57, "dottedIntoHall": -0.99, "slowWideWash": -1.84, "plateSmooth": -1.49, "washFiltered": -1.69, "chorusRoom": 0.6, "widePlateDrift": -1.46, "hallDark": -2.07, "pingQuarterHall": -1.1, "plateDottedQuarter": -1.97, "roomTapeDotted": 0.3, "nearDry": 0.11 },
+   "layers": [
+    {
+     "sound": "fmEpGlass",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "ep-haze",
+   "revision": 1,
+   "name": "Electric piano and haze",
+   "says": "The soft FM electric piano with a dark wavetable haze swelling under the right hand, nine decibels back.",
+   "gainDb": -12.7,
+   "sparseDb": { "hallDeep": -1.29, "dottedIntoHall": -1.7, "slowWideWash": -1.75, "plateSmooth": -1.17, "washFiltered": -1.08, "chorusRoom": 0.16, "widePlateDrift": -1.34, "hallDark": -2.29, "pingQuarterHall": -1.52, "plateDottedQuarter": -1.29, "roomTapeDotted": 0.02, "nearDry": 0.22 },
+   "layers": [
+    {
+     "sound": "fmEpSoft",
+     "hands": "both",
+     "gainDb": 0
+    },
+    {
+     "sound": "padHaze",
+     "hands": "right",
+     "gainDb": -9
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "tape-piano",
+   "revision": 1,
+   "name": "Lo-fi tape piano",
+   "says": "A worn small piano through a tired tape head: the top rolled off at 3 kHz, the pitch wandering slowly.",
+   "gainDb": -3.2,
+   "sparseDb": { "hallDeep": 2.6, "dottedIntoHall": 2.6, "slowWideWash": 2.89, "plateSmooth": 1.94, "washFiltered": 2.72, "chorusRoom": 0.57, "widePlateDrift": 2.31, "hallDark": 2.7, "pingQuarterHall": 2.0, "plateDottedQuarter": 1.52, "roomTapeDotted": 0.34, "nearDry": -0.24 },
+   "layers": [
+    {
+     "sound": "pianoWorn",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "lofi",
+     "params": {
+      "cutoffHz": 3000,
+      "wow": 0.45,
+      "flutter": 0.3,
+      "mix": 1
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "vibes-ep",
+   "revision": 1,
+   "name": "Vibes and electric piano",
+   "says": "The suitcase electric piano doubled in the right hand by a soft-mallet vibraphone, its discs pulsing slowly.",
+   "gainDb": -9.6,
+   "sparseDb": { "hallDeep": -1.33, "dottedIntoHall": -1.54, "slowWideWash": -1.65, "plateSmooth": -0.51, "washFiltered": -1.7, "chorusRoom": -0.31, "widePlateDrift": -0.96, "hallDark": -0.93, "pingQuarterHall": -0.26, "plateDottedQuarter": 0.25, "roomTapeDotted": 0.29, "nearDry": 0.3 },
+   "layers": [
+    {
+     "sound": "keysSuitcase",
+     "hands": "both",
+     "gainDb": -1.5
+    },
+    {
+     "sound": "malletSoft",
+     "hands": "right",
+     "gainDb": -4
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "mellow-grand",
+   "revision": 1,
+   "name": "Mellow bright grand",
+   "says": "A clearer grand: six stretched partials, a soft tick of hammer and a gentle lid at 3.6 kHz, present without glare.",
+   "gainDb": -11.2,
+   "sparseDb": { "hallDeep": -0.24, "dottedIntoHall": -0.48, "slowWideWash": 0.06, "plateSmooth": -1.07, "washFiltered": -0.18, "chorusRoom": -2.02, "widePlateDrift": -0.61, "hallDark": -0.09, "pingQuarterHall": -1.09, "plateDottedQuarter": -0.81, "roomTapeDotted": -1.55, "nearDry": -1.68 },
+   "layers": [
+    {
+     "sound": "pianoMellow",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "close-grand",
+   "revision": 1,
+   "name": "Close soft grand",
+   "says": "An intimate grand heard from just over the strings, played soft: the felt landing, the chord in tune and full, a warm low end.",
+   "gainDb": -4.25,
+   "sparseDb": { "hallDeep": 1.44, "dottedIntoHall": 1.22, "slowWideWash": 1.21, "plateSmooth": 1.01, "washFiltered": 1.29, "chorusRoom": -0.17, "widePlateDrift": 0.83, "hallDark": 1.61, "pingQuarterHall": 0.73, "plateDottedQuarter": 0.53, "roomTapeDotted": -0.33, "nearDry": 0.5 },
+   "layers": [
+    {
+     "sound": "pianoClose",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "eq",
+     "params": {
+      "lowHz": 200,
+      "lowDb": 2,
+      "midHz": 900,
+      "midDb": 0,
+      "midQ": 1.2,
+      "highHz": 6000,
+      "highDb": -2,
+      "mix": 1
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "muted-upright",
+   "revision": 1,
+   "name": "Muted felt upright",
+   "says": "An upright with the practice felt down: a soft thud, the top gone at once, short dark notes with a honky warmth.",
+   "gainDb": -1.6,
+   "sparseDb": { "hallDeep": 3.29, "dottedIntoHall": 3.41, "slowWideWash": 3.88, "plateSmooth": 2.73, "washFiltered": 3.67, "chorusRoom": 0.94, "widePlateDrift": 3.41, "hallDark": 3.83, "pingQuarterHall": 2.94, "plateDottedQuarter": 2.62, "roomTapeDotted": 0.86, "nearDry": -0.33 },
+   "layers": [
+    {
+     "sound": "pianoMute",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": []
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "far-grand",
+   "revision": 1,
+   "name": "Warm grand, far back",
+   "says": "A big warm concert grand heard from the back of the hall: the air takes its top, the room's early reflections soften its strike, a long tail.",
+   "gainDb": -2.35,
+   "sparseDb": { "hallDeep": -0.2, "dottedIntoHall": -0.09, "slowWideWash": -0.64, "plateSmooth": -0.05, "washFiltered": -0.52, "chorusRoom": -0.2, "widePlateDrift": -0.73, "hallDark": -0.35, "pingQuarterHall": -0.73, "plateDottedQuarter": -0.47, "roomTapeDotted": -0.29, "nearDry": -0.02 },
+   "layers": [
+    {
+     "sound": "pianoConcert",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "eq",
+     "params": {
+      "lowHz": 160,
+      "lowDb": 1,
+      "midHz": 900,
+      "midDb": 0,
+      "midQ": 1.2,
+      "highHz": 3000,
+      "highDb": -6,
+      "mix": 1
+     }
+    },
+    {
+     "effect": "reverb",
+     "params": {
+      "mode": 0,
+      "decaySeconds": 1.2,
+      "predelayMs": 0,
+      "lowCutHz": 150,
+      "dampHz": 3200,
+      "level": 1,
+      "mix": 0.4
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "cassette-upright",
+   "revision": 1,
+   "name": "Cassette upright",
+   "says": "A home upright on a worn cassette: the top gone at 2.3 kHz, the tape's wow pulling the pitch well off and back, a little saturation.",
+   "gainDb": -1.65,
+   "sparseDb": { "hallDeep": 2.43, "dottedIntoHall": 2.41, "slowWideWash": 2.75, "plateSmooth": 1.77, "washFiltered": 2.63, "chorusRoom": 0.36, "widePlateDrift": 2.23, "hallDark": 2.65, "pingQuarterHall": 2.04, "plateDottedQuarter": 1.78, "roomTapeDotted": 0.28, "nearDry": -0.17 },
+   "layers": [
+    {
+     "sound": "pianoCassette",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "lofi",
+     "params": {
+      "cutoffHz": 2300,
+      "wow": 0.9,
+      "flutter": 0.55,
+      "mix": 1
+     }
+    },
+    {
+     "effect": "eq",
+     "params": {
+      "lowHz": 150,
+      "lowDb": -3,
+      "midHz": 1200,
+      "midDb": 1.5,
+      "midQ": 0.8,
+      "highHz": 6000,
+      "highDb": 0,
+      "mix": 1
+     }
+    },
+    {
+     "effect": "drive",
+     "params": {
+      "inputDb": -6,
+      "drive": 0.25,
+      "toneHz": 3000,
+      "outputDb": 0,
+      "mix": 0.35
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "electric-grand",
+   "revision": 1,
+   "name": "Electric grand",
+   "says": "An electric grand with a slow chorus: stiff short strings through a pickup, a zing at the strike, a quick plucky fall.",
+   "gainDb": -8.8,
+   "sparseDb": { "hallDeep": -0.3, "dottedIntoHall": -0.22, "slowWideWash": -0.42, "plateSmooth": -1.37, "washFiltered": -0.08, "chorusRoom": -1.89, "widePlateDrift": -0.98, "hallDark": -0.21, "pingQuarterHall": -0.77, "plateDottedQuarter": -1.17, "roomTapeDotted": -1.64, "nearDry": -1.89 },
+   "layers": [
+    {
+     "sound": "pianoElectric",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "chorus",
+     "params": {
+      "rateHz": 0.7,
+      "depthMs": 2.2,
+      "voices": 2,
+      "spread": 0.9,
+      "mix": 0.35
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "dark-tine",
+   "revision": 1,
+   "name": "Dark tine electric piano",
+   "says": "An older, darker tine electric piano: a woody body, a soft bark when the chord is struck and no tremolo, through a warm amplifier.",
+   "gainDb": -14.95,
+   "sparseDb": { "hallDeep": -2.15, "dottedIntoHall": -1.39, "slowWideWash": -2.03, "plateSmooth": -1.75, "washFiltered": -2.38, "chorusRoom": -0.67, "widePlateDrift": -1.81, "hallDark": -2.03, "pingQuarterHall": -0.92, "plateDottedQuarter": -1.01, "roomTapeDotted": -0.56, "nearDry": -0.02 },
+   "layers": [
+    {
+     "sound": "keysTineDark",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "drive",
+     "params": {
+      "inputDb": -6,
+      "drive": 0.2,
+      "toneHz": 2400,
+      "outputDb": 0,
+      "mix": 0.4
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "reed-small-amp",
+   "revision": 1,
+   "name": "Reed piano, small amp",
+   "says": "A mellow reed electric piano through a small amplifier: hollow and boxy, the lows and the top left out by the little speaker, a slow tremolo.",
+   "gainDb": -9.95,
+   "sparseDb": { "hallDeep": -2.71, "dottedIntoHall": -2.45, "slowWideWash": -2.07, "plateSmooth": -1.43, "washFiltered": -2.9, "chorusRoom": -0.65, "widePlateDrift": -1.74, "hallDark": -2.21, "pingQuarterHall": -1.47, "plateDottedQuarter": -0.98, "roomTapeDotted": 0.08, "nearDry": 0.86 },
+   "layers": [
+    {
+     "sound": "keysReedAmp",
+     "hands": "both",
+     "gainDb": 0
+    }
+   ],
+   "inserts": [
+    {
+     "effect": "eq",
+     "params": {
+      "lowHz": 180,
+      "lowDb": -3,
+      "midHz": 1000,
+      "midDb": 2,
+      "midQ": 0.9,
+      "highHz": 4000,
+      "highDb": -6,
+      "mix": 1
+     }
+    },
+    {
+     "effect": "drive",
+     "params": {
+      "inputDb": -4,
+      "drive": 0.25,
+      "toneHz": 2600,
+      "outputDb": 0,
+      "mix": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "tone",
+   "id": "piano-sine",
+   "revision": 1,
+   "name": "Felt grand and sine",
+   "says": "The felt grand doubled by a quiet near-pure sine: the strike is the piano's, and the sine holds the chord round once the strings fall.",
+   "gainDb": -5,
+   "sparseDb": { "hallDeep": -1.78, "dottedIntoHall": -1.91, "slowWideWash": -1.94, "plateSmooth": -0.71, "washFiltered": -1.67, "chorusRoom": 0.88, "widePlateDrift": -1.11, "hallDark": -1.9, "pingQuarterHall": -1.11, "plateDottedQuarter": -0.33, "roomTapeDotted": 0.57, "nearDry": 1.23 },
+   "layers": [
+    {
+     "sound": "pianoFelt",
+     "hands": "both",
+     "gainDb": 0
+    },
+    {
+     "sound": "fmSineLayer",
+     "hands": "both",
+     "gainDb": -15
+    }
+   ],
+   "inserts": []
+  }
+ ]
+}

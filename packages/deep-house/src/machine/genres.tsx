@@ -1,5 +1,12 @@
 // The genre keys: nine presets under the ring, for the engineer (PLAN-GENRES).
 //
+// **One level** (GA8, Eugene, 10-01: *"focus only on a few genres for now, the
+// most abstract; remove sub-views and have only 9 top-level tiles. We keep our
+// recipes in place — it should still be possible to get to a genre by pulling
+// birds"*): Deep House in the centre and eight tiles round it, named and ordered
+// by `grid` in `genres.json`; no tier opens. The families and their sub-styles
+// stay in the table as what is measured and claimed, and are not drawn.
+//
 // Eugene, 09-25: *"add another grid of nine buttons in the machine view, right
 // under the ring, with genres. The middle is reserved for our default bird
 // combo, Deep House; the other eight are target styles."* A key is **a spell and
@@ -29,9 +36,10 @@ import type { Spell } from '../spell.ts';
 import type { Control } from '../control.ts';
 import type { MachineStore } from './store.ts';
 import PRESETS from './genres.json' with { type: 'json' };
+import ROW_PLACES from '../row-places.json' with { type: 'json' };
 
 /**
- * **Two tiers** (M7, Eugene: *"we select top-level genres on the first screen,
+ * **The table** (M7, Eugene: *"we select top-level genres on the first screen,
  * then the selected item becomes the centre and we have eight sub-genres —
  * DnB → Liquid, Jungle, Techstep, Neurofunk…; the matrices of dependencies and
  * control values should be stored in JSON, as we will polish and iterate on
@@ -65,69 +73,139 @@ export interface GenrePreset {
   label: string;
   spell: Partial<Spell>;
   reachable: boolean;
-  /** (M10) whether its spell is tuned: a key that plays an untuned spell is disabled */
+  /**
+   * (M10) whether the key plays: its spell is tuned, or (M23) the recipe rows it
+   * claims have a region, so its spell is their audit key's and a theme in
+   * three under it draws them; a key that plays neither is disabled
+   */
   tuned: boolean;
+  /** (M23) the region key its rows are admitted around, where it plays by its rows */
+  byRows?: string;
   about: string;
-  /** the family it belongs to — its own name for a family's key (M17): with the label, a style's name */
+  /** the family it belongs to (M17): with the label, a style's name */
   of?: string;
-  /** a family, pressed on the first tier, opens its subs */
-  family?: GenreFamily;
+}
+/**
+ * A tile of the grid (GA8), as `genres.json` names it: its word, the family it
+ * stands for, and — where two tiles share one family — the family's styles it
+ * gathers.
+ */
+export interface GenreTile {
+  label: string;
+  family: string;
+  styles?: string[];
+  about?: string;
 }
 
-const TABLE = PRESETS as unknown as { home: string; families: GenreFamily[] };
+const TABLE = PRESETS as unknown as {
+  home: string;
+  grid: { centre: { family: string; style: string }; around: GenreTile[] };
+  families: GenreFamily[];
+};
 export const FAMILIES: readonly GenreFamily[] = TABLE.families;
 /** The family the house belongs to. */
 export const HOME = TABLE.home;
 
-/** A sub as a key: its own spell where tuned, its family's where not. */
-export const subPreset = (f: GenreFamily, s: GenreSub): GenrePreset => ({
-  label: s.label, spell: s.tuned && s.spell ? s.spell : f.spell, reachable: f.reachable, tuned: s.tuned, about: s.about, of: f.label,
-});
-export const familyPreset = (f: GenreFamily): GenrePreset => ({ label: f.label, spell: f.spell, reachable: f.reachable, tuned: f.tuned, about: f.about, family: f, of: f.label });
+/**
+ * **The place a key's rows play at** (M23; since GA5 the composer knows rows
+ * and birds only, `src/row-places.json`, keyed by the rows' own ids): a key's
+ * spell is the birds most of its rows sit at, the first named on a tie; the
+ * house's own place (no bird named) is not a key's. The genre side of the map
+ * stays here, in the machine view.
+ */
+const PLACES = ROW_PLACES as unknown as { rows: Record<string, { birds: Partial<Spell> }> };
+const placeOf = (id: string): string | null => {
+  const p = PLACES.rows[id];
+  return p && Object.keys(p.birds).length ? JSON.stringify(p.birds) : null;
+};
+export function regionOf(rows: readonly string[] | undefined): string | null {
+  const count = new Map<string, number>();
+  for (const id of rows || []) { const k = placeOf(id); if (k) count.set(k, (count.get(k) || 0) + 1); }
+  let best: string | null = null;
+  for (const [k, n] of count) if (!best || n > count.get(best)!) best = k;
+  return best;
+}
+const byRows = (region: string | null) => (region ? { byRows: region, spell: JSON.parse(region) as Partial<Spell> } : null);
+
+/**
+ * A sub as a key: its own spell where tuned, its rows' region where it has one (M23), its family's where not.
+ * **A tuned sub is reached** (the deep review of 10-08): its spell is a place the
+ * ring's controls stand at, so its tooltip never says otherwise; it read its
+ * family's `reachable`, and the Drum & Bass tile, which plays Liquid's measured
+ * spell, said it was not reached by the ring's controls.
+ */
+export const subPreset = (f: GenreFamily, s: GenreSub): GenrePreset => {
+  const mine = !!(s.tuned && s.spell);
+  const own = mine ? null : byRows(regionOf(s.recipes));
+  return { label: s.label, spell: mine ? s.spell! : f.spell, reachable: mine || f.reachable, about: s.about, of: f.label, ...own, tuned: s.tuned || !!own };
+};
+export const familyPreset = (f: GenreFamily): GenrePreset => {
+  // a family's rows are its own and its sub-genres': it plays the region most of them share
+  const own = f.tuned ? null : byRows(regionOf([...(f.recipes || []), ...f.subs.flatMap((x) => x.recipes || [])]));
+  return { label: f.label, spell: f.spell, reachable: f.reachable, about: f.about, of: f.label, ...own, tuned: f.tuned || !!own };
+};
+
+/**
+ * **A tile's preset** (GA8, the brief: *"the family's existing centre preset;
+ * where a family had no single preset, take its first tuned sub-style's"*): a
+ * tile of a whole family plays the family's own key as its tier drew it — its
+ * tuned spell, or the place its rows share (M23) — and, where it has neither,
+ * the family's first tuned style; a tile of some of a family's styles plays the
+ * first of them that is tuned, or the place their rows share. Neither: the tile
+ * is untuned, and disabled. `null` where the table names no such family.
+ */
+export function tilePreset(t: GenreTile): GenrePreset | null {
+  const f = FAMILIES.find((x) => x.label === t.family);
+  if (!f) return null;
+  let base: GenrePreset;
+  if (!t.styles) {
+    base = familyPreset(f);
+    const first = base.tuned ? undefined : f.subs.find((s) => s.tuned && s.spell);
+    if (first) base = subPreset(f, first);
+  } else {
+    const subs = t.styles.map((w) => f.subs.find((s) => s.label === w)).filter((s): s is GenreSub => !!s);
+    const first = subs.find((s) => s.tuned && s.spell);
+    const own = first ? null : byRows(regionOf(subs.flatMap((s) => s.recipes || [])));
+    base = first ? subPreset(f, first) : { label: t.label, spell: f.spell, reachable: f.reachable, about: subs[0]?.about ?? f.about, ...own, tuned: !!own };
+  }
+  return { ...base, label: t.label, about: t.about ?? base.about, of: f.label };
+}
 
 /**
  * **Whether a key presses** (M10, Eugene: *"the tiles we do not support
- * completely need to be disabled and not clickable"*): a family on the first
- * tier always does, since it opens its tier; every other key only where its
- * spell is tuned — as the table says, never the code. Under house-v1 only the
- * centre.
+ * completely need to be disabled and not clickable"*): only where its spell is
+ * tuned — as the table says, never the code. Under house-v1 only the centre.
  */
-export function presses(p: GenrePreset, openTier: boolean, v1: boolean, centre: boolean): boolean {
+export function presses(p: GenrePreset, v1: boolean, centre: boolean): boolean {
   if (v1) return centre;
-  if (!openTier && p.family) return true;
   return p.tuned;
 }
 
 /**
- * **Deep House, the first tier's centre, always** (M8, Eugene: *"with House we
- * make an exception on the root view: Deep House in the centre as the default
- * style, and House as one of the eight tiles; when we go into the House tile
- * it becomes the centre and Deep House is one of its options. This exception
- * is only for Deep House, due to the nature of the project."*): the house's
- * own sub-genre, the one tuned to the house itself. Pressed, it plays the
- * house; it never opens a family.
+ * **Deep House, the centre, always** (M8, Eugene: *"Deep House in the centre as
+ * the default style ... this exception is only for Deep House, due to the
+ * nature of the project"*): the grid's `centre`, the house's own style, the one
+ * tuned to the house itself. Pressed, it plays the house.
  */
-const homeFamily = FAMILIES.find((f) => f.label === HOME) ?? FAMILIES[0];
+const homeFamily = FAMILIES.find((f) => f.label === TABLE.grid.centre.family) ?? FAMILIES.find((f) => f.label === HOME) ?? FAMILIES[0];
 export const DEEP_HOUSE: GenrePreset = subPreset(homeFamily,
-  homeFamily.subs.find((s) => s.tuned && s.spell && !Object.keys(s.spell).length) ?? homeFamily.subs[0]);
+  homeFamily.subs.find((s) => s.label === TABLE.grid.centre.style)
+  ?? homeFamily.subs.find((s) => s.tuned && s.spell && !Object.keys(s.spell).length) ?? homeFamily.subs[0]);
+
+/** The eight tiles round the centre, in reading order; a cell the table names nothing for is `null`. */
+export const TILES: ReadonlyArray<GenrePreset | null> = (() => {
+  const around: Array<GenrePreset | null> = TABLE.grid.around.slice(0, 8).map(tilePreset);
+  while (around.length < 8) around.push(null);
+  return around;
+})();
 
 /**
- * The nine cells of a tier, in reading order, the centre fifth; a cell nothing
- * fills is `null`. The first tier is the eight families round Deep House, the
- * same nine whatever was visited; the second, a family's subs round the family.
+ * **The nine cells, fixed** (GA8, Eugene: *"tiles change position. Fix all
+ * tiles in place, add a green dot to the selected one. Simple UX."*): in
+ * reading order, Deep House always the fifth and the eight always in their
+ * cells; nothing moves when a style is chosen.
  */
-export function tierOf(current: string, open: boolean, centre: GenrePreset = DEEP_HOUSE): Array<GenrePreset | null> {
-  if (!open) {
-    const around: Array<GenrePreset | null> = FAMILIES.slice(0, 8).map(familyPreset);
-    while (around.length < 8) around.push(null);
-    return [...around.slice(0, 4), centre, ...around.slice(4, 8)];
-  }
-  const f = FAMILIES.find((x) => x.label === current) ?? homeFamily;
-  const around: Array<GenrePreset | null> = f.subs.map((s) => subPreset(f, s));
-  while (around.length < 8) around.push(null);
-  // on its own tier the family is a key like its subs: lit by its own spell alone
-  return [...around.slice(0, 4), { ...familyPreset(f), family: undefined }, ...around.slice(4, 8)];
-}
+export const CELLS: ReadonlyArray<GenrePreset | null> = [...TILES.slice(0, 4), DEEP_HOUSE, ...TILES.slice(4, 8)];
 
 /** A key's whole spell, the house under what it names. */
 export const presetSpell = (p: GenrePreset): Spell => asSpell({ ...HOUSE, ...p.spell });
@@ -142,42 +220,32 @@ export function spellGap(a: Partial<Spell> | null | undefined, b: Partial<Spell>
 /** Lit within this of its preset: the one tolerance for the same spell (M14, `SPELL_SAME`). */
 export const NEAR = SPELL_SAME;
 
-/**
- * Whether a key is lit: its spell is the one playing. A family on the first
- * tier is lit as well when one of its tuned subs is — the family holds what is
- * playing, which is how the house's family is lit at the house.
- */
+/** Whether a key is lit: its spell is tuned and is the one playing. */
 export function isLit(p: GenrePreset, playing: Partial<Spell> | null | undefined): boolean {
-  // (M11) an untuned spell says nothing about what plays: a family with none
-  // measured (Trance) would read as the house
-  if (p.tuned && spellGap(playing, presetSpell(p)) <= NEAR) return true;
-  return !!p.family && p.family.subs.some((s) => s.tuned && s.spell && spellGap(playing, presetSpell({ ...p, spell: s.spell })) <= NEAR);
+  // (M11) an untuned spell says nothing about what plays: a tile with none
+  // measured would read as the house
+  return p.tuned && spellGap(playing, presetSpell(p)) <= NEAR;
 }
 
 /**
- * **The root's centre is the style that plays** (M17, Eugene's genre lift: a
- * sub-genre chosen inside a family takes the root's centre, so the root reads
- * eight families round what is playing; Deep House is the centre only by
- * default). Every style a key can play and that is tuned — a family's own
- * spell and its tuned sub-genres, Deep House among them — named by its family
+ * **The selected style** (M17's rule; since GA8 a dot, never a place): Deep
+ * House at the house, or the tile whose spell is playing. Every style a key can
+ * play and that is tuned — Deep House and the tuned tiles — named by its family
  * and its word.
  */
 export const styleKey = (p: GenrePreset): string => `${p.of ?? ''}/${p.label}`;
 export const TUNED_STYLES: readonly GenrePreset[] = [
   DEEP_HOUSE,
-  ...FAMILIES.flatMap((f) => [
-    ...(f.tuned ? [{ ...familyPreset(f), family: undefined }] : []),
-    ...f.subs.filter((x) => x.tuned).map((x) => subPreset(f, x)),
-  ]).filter((p) => styleKey(p) !== styleKey(DEEP_HOUSE)),
+  ...TILES.filter((p): p is GenrePreset => !!p && p.tuned && styleKey(p) !== styleKey(DEEP_HOUSE)),
 ];
 /**
- * Which style stands in the centre: the tuned style the playing spell is
+ * Which style is selected, and carries the dot: the tuned style the playing spell is
  * (within `SPELL_SAME`) — the one last chosen if it is among them — and, where
  * the spell is no tuned style (a bird moved), the one last chosen, unlit; a
  * viewer who never chose one has Deep House, the default, unlit. Never a blank:
- * a centre is a key, and a key plays something.
+ * one key always carries the dot.
  */
-export function centreOf(playing: Partial<Spell> | null | undefined, chosen: string | null): GenrePreset {
+export function selectedOf(playing: Partial<Spell> | null | undefined, chosen: string | null): GenrePreset {
   const same = TUNED_STYLES.filter((p) => spellGap(playing, presetSpell(p)) <= NEAR);
   const kept = chosen ? TUNED_STYLES.find((p) => styleKey(p) === chosen) : undefined;
   if (kept && same.includes(kept)) return kept;
@@ -239,92 +307,94 @@ const KEY: CSSProperties = {
 const LONG_NAME = 15;
 const LAMP_AT: CSSProperties = { position: 'absolute', left: LAMP_INSET, top: '50%', marginTop: -LAMP_SIZE / 2 };
 
-/** The grid itself, mounted under the ring by `view.tsx`. */
 /**
  * **What the grid is today** (M8, Eugene: *"clearly put a label in the centre,
- * like WORK IN PROGRESS, to outline that this is wishful thinking here"*): the
- * sub-genres tuned with spells of their own, counted off the table so the
- * sentence stays true as the table is tuned.
+ * like WORK IN PROGRESS, to outline that this is wishful thinking here"*): which
+ * of the eight play on a measured spell, which by their recipes, and which wait,
+ * counted off the table so the sentence stays true as it is tuned.
  */
-const TUNED = FAMILIES.flatMap((f) => f.subs.filter((s) => s.tuned).map((s) => s.label));
-export const WIP_ABOUT = `Work in progress: ${TUNED.length} sub-genre${TUNED.length === 1 ? ' is' : 's are'} tuned (${TUNED.join(', ')}); every other sub-genre plays its family's spell until it is tuned.`;
+const drawn = TILES.filter((p): p is GenrePreset => !!p);
+const MEASURED = drawn.filter((p) => p.tuned && !p.byRows).map((p) => p.label);
+const BY_ROWS = drawn.filter((p) => p.tuned && p.byRows).map((p) => p.label);
+const WAITING = drawn.filter((p) => !p.tuned).map((p) => p.label);
+export const WIP_ABOUT = `Work in progress: ${MEASURED.length + BY_ROWS.length} of the ${drawn.length} genres play`
+  + `${MEASURED.length ? ` — ${MEASURED.join(', ')} on a measured spell` : ''}`
+  + `${BY_ROWS.length ? `${MEASURED.length ? ',' : ' —'} ${BY_ROWS.join(', ')} by their recipes` : ''}`
+  + `${WAITING.length ? `; ${WAITING.join(', ')} ${WAITING.length === 1 ? 'is' : 'are'} disabled until tuned` : ''}.`;
+
+/** The grid itself, mounted under the ring by `view.tsx`. */
 
 export function GenreKeys({ store, control }: { store: MachineStore; control: Control }) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const playing = snap.spell;
-  // which family is in the centre, and whether its subs are open around it
-  const [current, setCurrent] = useState(HOME);  // the family open, when one is
-  const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<string | null>(readChosen);
   // **house-v1 reads no spell** (M6, Eugene: *"just keeping the central Deep
-  // House is fine"*): under it the grid is the first tier's centre alone, the
-  // house, lit; the other eight dim and do nothing, and nothing opens
+  // House is fine"*): under it the grid is the centre alone, the house, lit;
+  // the other eight dim and do nothing
   const v1 = snap.strategy === 'house-v1';
-  const centre = v1 ? DEEP_HOUSE : centreOf(playing, chosen);
-  const cells = tierOf(current, open && !v1, centre);
+  const selected = v1 ? DEEP_HOUSE : selectedOf(playing, chosen);
+  // the spell a hand-over is on its way to, where it is not yet playing
+  const asked = v1 ? null : snap.asked;
   const press = (p: GenrePreset, i: number) => {
     if (v1) { if (i === 4) applyGenre(control, p); return; }
-    // on the first tier a family opens; its centre and its subs play
-    if (!open && p.family) { setCurrent(p.family.label); setOpen(true); return; }
     applyGenre(control, p);
-    // the style played is the one the root's centre now stands for (M17)
+    // the style played is the one that now carries the dot (M17)
     if (p.tuned) { const k = styleKey(p); keepChosen(k); setChosen(k); }
   };
-  // the tier's name as its tiles say it, in proper case (M17)
-  const caption = v1 ? 'house-v1 is the house: the other eight steer house-v2 only' : open ? current : 'Families';
   return (
     <section className="genre-block" aria-label="genre presets">
-      {/* its own header, like the other blocks (M6); the tier it is on, and the way back (M7) */}
+      {/* its own header, like the other blocks (M6); one level, so no tier and no way back (GA8) */}
       <h2 className="genre-head">
-        <span className="title">genres<span className="caption" data-tier={open ? 'sub' : 'family'}>{caption}</span></span>
+        <span className="title">genres{v1 ? <span className="caption">house-v1 is the house: the other eight steer house-v2 only</span> : null}</span>
         <span className="wip" data-wip="" title={WIP_ABOUT}>work in progress</span>
-        <span className="keys">
-          {open && !v1 ? (
-            <button type="button" className="pane-key" aria-label="Back to the genre families" title="Back to the families" onClick={() => setOpen(false)}>back</button>
-          ) : null}
-        </span>
       </h2>
-      <div className="genres" role="group" aria-label={open ? `${current}: its sub-genres, a spell each` : 'genre families'} style={GRID}>
-        {cells.map((p, i) => {
+      <div className="genres" role="group" aria-label="genre presets, a spell each" style={GRID}>
+        {CELLS.map((p, i) => {
           if (!p) return <div key={`empty${i}`} className="genre empty" style={{ ...KEY, cursor: 'default' }} aria-hidden="true" />;
           const centre = i === 4;
-          const off = !presses(p, open && !v1, v1, centre);
-          // **the lamp is the centre's alone** (M17): the one style that plays
-          // a disabled key has no lamp: it can say nothing about what plays
-          const lit = off ? false : v1 ? centre : isLit(p, playing);
+          const off = !presses(p, v1, centre);
+          // **the dot is the selected key's alone** (GA8): green while its
+          // spell plays, dark once a bird has moved off it; a disabled key
+          // never carries it: it can say nothing about what plays
+          const dot = !off && styleKey(p) === styleKey(selected);
+          const lit = dot && (v1 || isLit(p, playing));
+          // **arriving** (the deep review of 10-08): the key whose spell a
+          // hand-over is bringing, amber until it plays, as an engine arriving is
+          const arriving = !off && !lit && !!asked && isLit(p, asked);
           return (
             <button
               type="button"
-              key={`${open ? 'sub' : 'fam'}:${i}:${p.label}`}
-              className={`genre${lit ? ' on' : ''}${centre ? ' home' : ''}${p.reachable ? '' : ' far'}`}
+              key={`${i}:${p.label}`}
+              className={`genre${lit ? ' on' : ''}${arriving ? ' arriving' : ''}${centre ? ' home' : ''}${p.reachable ? '' : ' far'}`}
               data-genre={p.label}
-              data-opens={!open && p.family && !v1 ? '' : undefined}
               aria-pressed={lit}
               // under v1 the outer keys are shut (M6); an untuned key stays a
               // key its tooltip can be read on, and presses nothing (M10)
               disabled={v1 && !centre}
               aria-disabled={off}
               data-untuned={!v1 && off ? '' : undefined}
-              title={!open && p.family && !v1 ? `${p.about} Press to see its sub-genres.`
+              title={!v1 && !off && p.byRows ? `${p.label}: plays its recipes on a turn.`
                 : !v1 && off ? `${p.about.replace(/ — plays the family's spell\.?$/, '.')} Disabled until it is tuned.`
                 : p.reachable ? p.about : `${p.about}${/ring's controls/.test(p.about) ? '' : ' Not reached by the ring\'s controls: this is the nearest spell to it.'}`}
               onClick={() => { if (!off) press(p, i); }}
               style={{
                 ...KEY,
-                ...(centre ? null : { padding: `7px ${LAMP_INSET}px 8px` }),
                 // (M18) a long name a step smaller and a hair less inset, so the
-                // merged families' names stand whole on a third of the column
-                ...(p.label.length > LONG_NAME ? { fontSize: 8.5, letterSpacing: 0, paddingLeft: centre ? LAMP_INSET + LAMP_SIZE + SPACE.hair : SPACE.hair, paddingRight: SPACE.hair } : null),
+                // longest names stand whole on a third of the column
+                ...(p.label.length > LONG_NAME ? { fontSize: 8.5, letterSpacing: 0, paddingLeft: LAMP_INSET + LAMP_SIZE + SPACE.hair, paddingRight: SPACE.hair } : null),
                 ...(lit ? { background: INK.panel, color: INK.bright } : null),
+                // arriving: the engine row's amber, until it plays (10-08)
+                ...(arriving ? { color: INK.amber } : null),
                 ...(off ? { opacity: 0.35, cursor: 'default' } : null),
               }}
             >
-              {centre ? (
-                <svg width={LAMP_SIZE} height={LAMP_SIZE} aria-hidden="true" style={LAMP_AT} data-lamp="">
-                  <circle cx={LAMP_SIZE / 2} cy={LAMP_SIZE / 2} r={2.5} fill={lit ? INK.green : INK.line} />
+              {dot || arriving ? (
+                <svg width={LAMP_SIZE} height={LAMP_SIZE} aria-hidden="true" style={LAMP_AT} data-lamp={dot ? '' : undefined} data-arriving={arriving ? '' : undefined}>
+                  <circle cx={LAMP_SIZE / 2} cy={LAMP_SIZE / 2} r={2.5} fill={lit ? INK.green : arriving ? INK.amber : INK.line} />
                 </svg>
               ) : null}
               <span>{p.label}</span>
+              {arriving ? <span className="vh">, arriving at the next phrase line</span> : null}
             </button>
           );
         })}

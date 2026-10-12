@@ -1,4 +1,4 @@
-// Marimba and vibes: a click, and a tuned thing that rings after it.
+// The mallet topology: a click, and a tuned thing that rings after it.
 //
 // The kitchen has percussion that is struck (round K3) and keyboards that are
 // pitched (rounds K2 and this one), and a mallet is the one instrument that is
@@ -27,34 +27,65 @@
 //              *resonator* and not on the note; the attack goes through
 //              untouched and only the ring pulses. One line of routing, and it
 //              is the sound.
+//
+// Round R2 made the two one topology and two rows (`sounds/keyboard/
+// marimba.json`, `vibes.json`): the discs are the row's — a depth of nought is
+// a bar with none, and none is built — and so are the two sends a note that
+// states none is played with, which were a branch on which bar it was.
 
 import { midiToHz, route, panner, startTime, noiseSource, MIN_RELEASE } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams, TimbreFacts, VoiceCost, VoiceRenderer } from './descriptor.ts';
+import type { NoteParams, VoiceRenderer } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, list, num, HZ, LEVEL, LFO_HZ, SECONDS, SEND, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
 
 /**
- * The settings block one mallet is made out of. The two tremolo numbers are the
- * vibraphone's alone — a marimba has no discs under its bars — so they are the
- * optional half of it.
+ * What a row of this topology carries: exactly these, each in its range
+ * (`schema.ts`). The partials are `[ratio, decay, level]`, the fundamental
+ * first, each an oscillator: a bounded bank.
  */
-type MalletSettings = Settings['marimba'] & Partial<Settings['vibes']>;
+const PARAMETERS = contract({
+  /** `[ratio, decay, level]` of each partial, the fundamental first */
+  partials: list(list(num(0, 64), 3), 1, 16),
+  attack: SECONDS,
+  release: SECONDS,
+  /** the resonator: how much of the fundamental the tube holds on */
+  ringLevel: LEVEL,
+  /** the discs in the tubes: a rate, and how deep they pulse the ring; a depth of nought is none */
+  tremoloHz: LFO_HZ,
+  tremoloDepth: UNIT,
+  /** the mallet's head, as a band of noise */
+  malletHz: HZ,
+  malletLevel: LEVEL,
+  malletTime: SECONDS,
+  spread: UNIT,
+  trim: LEVEL,
+  /** the two sends a note that states none is played with */
+  delay: SEND,
+  reverb: SEND,
+}, (m) => m.partials.flatMap(([ratio, decay], i) => [
+  ...(ratio > 0 ? [] : [`partials[${i}] has no ratio`]),
+  ...(decay > 0 && decay <= 60 ? [] : [`partials[${i}]'s decay ${decay} is not a length of time`]),
+]));
 
-/**
- * One struck bar: the partials, the mallet, and the resonator.
- * @param metal whether the ring is pulsed by the resonator's discs
- */
+/** What a row of this topology carries, as its contract types it. */
+export type MalletPatch = PatchOf<typeof PARAMETERS.fields>;
+
+/** One struck bar: the partials, the mallet, and the resonator. */
 function bar(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
-  p: NoteParams,
-  S: MalletSettings,
-  metal: boolean,
+  p: NoteParams = {},
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
+  const S = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const vel = p.vel ?? 1;
   const peak = vel * (p.gain ?? 1) * S.trim;
@@ -122,15 +153,15 @@ function bar(
   bp.connect(ng);
   ng.connect(dry);
 
-  if (metal) {
+  if (S.tremoloDepth > 0) {
     // The discs. **On the resonator and not on the note**: the attack is not
     // pulsed, only what the tube is holding, which is what a vibraphone's motor
     // actually does. A cosine from full, so the first stroke is not a dip.
     const lfo = ctx.createOscillator();
     lfo.type = 'sine';
-    lfo.frequency.value = S.tremoloHz!;
+    lfo.frequency.value = S.tremoloHz;
     const depth = ctx.createGain();
-    depth.gain.value = S.ringLevel * S.tremoloDepth!;
+    depth.gain.value = S.ringLevel * S.tremoloDepth;
     lfo.connect(depth);
     depth.connect(ring.gain);
     lfo.start(time);
@@ -138,52 +169,15 @@ function bar(
   }
 
   const tail = insert(ctx, p, g, time, end, settings);
-  route(ctx, tail, out, { dry: 1, delay: p.delay ?? 0.14, reverb: p.reverb ?? (metal ? 0.42 : 0.24) });
+  route(ctx, tail, out, { dry: 1, delay: p.delay ?? S.delay, reverb: p.reverb ?? S.reverb });
   return end;
 }
 
-export function marimba(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
-  return bar(ctx, out, time, p, settings.marimba, false, settings);
-}
-
-export function vibes(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
-  return bar(ctx, out, time, p, settings.vibes, true, settings);
-}
-
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const MARIMBA_TIMBRES = {
-  marimba: { family: 'harmonic', struck: true, hold: 0.05, brightnessHz: 3000, loudnessDb: -12 },
-};
-export const VIBES_TIMBRES = {
-  vibes: { family: 'harmonic', struck: true, hold: 0.35, brightnessHz: 4200, loudnessDb: -11.4 },
+export const MALLET: Topology = {
+  id: 'mallet',
+  cost: 'dear',
+  parameters: PARAMETERS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => bar(row, ctx, out, time, p, settings),
 };
 
-const mallet = (
-  name: string,
-  cost: VoiceCost,
-  render: VoiceRenderer,
-  timbres: Record<string, TimbreFacts>,
-): Descriptor => ({
-  name,
-  cost,
-  family: 'keyboard',
-  roles: ['figure', 'melody'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render,
-  timbres,
-  dispatches: [],
-  mood: [],
-});
-
-export const marimbaDescriptor = mallet('marimba', 'dear', marimba, MARIMBA_TIMBRES);
-export const vibesDescriptor = mallet('vibes', 'dear', vibes, VIBES_TIMBRES);
-
-export const descriptors: Descriptor[] = [marimbaDescriptor, vibesDescriptor];
-export default descriptors;
+export default MALLET;

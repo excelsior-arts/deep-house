@@ -3,6 +3,7 @@
 //   node tools/genres.ts --points ../../tmp/genres/r1.json --out tmp/genres/r1 --site tmp/genres/site
 //   ... --shard 0/2 --port 7295        two at a time, under nice 18, and no more
 //   ... --resume                       skip what is already there
+//   a point may carry `library: []`: the key alone, the library's turn out of reach
 //
 // PLAN-GENRES' render half; `genres.py` is the reading half. A point is
 // `{ name, group, seed, theme, spell, strategy? }` (house-v2 unless named); its
@@ -41,7 +42,9 @@ console.log(`  ${browser.label}; ${list.length} points, ${BARS} bars, site ${SIT
 for (const p of list) {
   const dir = path.join(OUT, p.name);
   if (flag('resume') && fs.existsSync(path.join(dir, 'meta.json'))) continue;
-  const opts = { strategy: p.strategy, spell: asSpell(p.spell) };
+  // `library: []` holds the library's turn out of reach (round GA2), so a point
+  // can be the key alone on the very theme a turn would draw a row on.
+  const opts = { strategy: p.strategy, spell: asSpell(p.spell), ...(p.library !== undefined ? { library: p.library } : {}) };
   const track = planTheme(p.seed, p.theme, opts);
   const w = loudnessWindow(track, BARS);
   const began = Date.now();
@@ -52,7 +55,7 @@ for (const p of list) {
   const d = derive(asSpell(p.spell));
   fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({
     ...p, spell: asSpell(p.spell), bpm: track.bpm, preset: track.preset, density: track.density,
-    scene: sceneOfDice(track.dice) ?? null, texture: textureOfDice(track.dice) ?? null,
+    scene: sceneOfDice(track.dice) ?? null, texture: textureOfDice(track.dice) ?? null, library: track.dice.library ?? null,
     tempoFamily: d.tempoFamily, kit: d.kit, drumsOn: d.drumsOn, window: w, seconds: r.seconds, peak: r.peak,
   }, null, 1));
   console.log(`  ${p.name.padEnd(22)} ${String(track.bpm).padStart(5)} BPM ${d.tempoFamily}/${d.kit}${d.drumsOn ? '' : '/no drums'} ${String(sceneOfDice(track.dice)).padEnd(14)} ${((Date.now() - began) / 1000).toFixed(0)} s`);

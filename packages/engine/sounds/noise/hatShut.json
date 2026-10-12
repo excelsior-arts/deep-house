@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatShut",
+  "revision": 2,
+  "topology": "kit-hat",
+  "dice": 53.3,
+  "parameters": {
+    "ratios": [
+      1,
+      1.5,
+      2.08,
+      2.72,
+      3.4,
+      4.11
+    ],
+    "base": 700,
+    "detune": 10,
+    "metal": 0.2125,
+    "hp": 4000,
+    "peakHz": 6500,
+    "q": 0.3,
+    "tilt": 3,
+    "lidHz": 10000,
+    "t10": 0.01888,
+    "seconds": 0.35,
+    "variants": 3,
+    "variantCents": 30,
+    "attack": 0.0015,
+    "trim": 1.22,
+    "rateSpread": 0.035,
+    "gainSpread": 0.09,
+    "decaySpread": 0.12,
+    "panSpread": 0.07,
+    "velBright": 0.35,
+    "velDecay": 0.2,
+    "pan": 0.1,
+    "room": 0,
+    "delay": 0,
+    "top": 0,
+    "air": 0,
+    "airHz": 8000,
+    "tail": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "hatShut": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 9000,
+        "loudnessDb": -22.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-4",
+    "module": "hats-kit.ts",
+    "note": "The closed hat of the fast broken beat: the tight hat's ladder at a quarter of the hat where it had six tenths, so the hat is a burst of noise more than a ring of metal, -10 dB at 16 ms, its peak at 9 kHz. Read in the mix the tight hat's metal held a tone the harmonic half of an HPSS split keeps, the eighths ringing through it as an echo off the beat; source 8's two-step hats read 35 ms to -12 dB and no such tone."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

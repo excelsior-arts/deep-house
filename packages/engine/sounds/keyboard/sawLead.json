@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sawLead",
+  "revision": 1,
+  "topology": "saw-lead",
+  "block": "sawLead",
+  "parameters": {
+    "attack": 0.006,
+    "decay": 0.22,
+    "sustain": 0.55,
+    "release": 0.12,
+    "detuneCents": 12,
+    "pwmWidth": 0.42,
+    "pwmDepth": 0.3,
+    "pwmHz": 0.17,
+    "pwmMix": 0.85,
+    "cutoff": 1500,
+    "envMult": 3.4,
+    "envTime": 0.18,
+    "q": 6.5,
+    "veloOpen": 0.55,
+    "hpHz": 130,
+    "spread": 0.5,
+    "trim": 0.5
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "melody",
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "sawLead": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.55,
+        "brightnessHz": 1500,
+        "loudnessDb": -11.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "saw-lead.ts",
+    "note": "A saw lead: the plainest thing in the set and the one a melody is most likely to be played on. Two saws a fifth of a semitone apart, combed by a delay whose time wanders — which is what a pulse width is, since a saw less the same saw a moment later *is* a pulse of that width — and a resonant lowpass that falls onto its corner over the first fifth of a second.",
+    "notes": {
+      "detuneCents": "The pair. Twelve cents is about a fifth of a semitone: wide enough to beat at a couple of Hertz in this register and narrow enough that the line still has one pitch.",
+      "pwmWidth": "The width, as a pulse: the comb's delay is this fraction of the note's own period, so the notch tracks the pitch instead of sitting at a fixed frequency and turning into a formant. It wanders at `pwmHz` by `pwmDepth` of itself, which is the movement a PWM lead has.",
+      "cutoff": "The filter, and the pluck in it. A lead's envelope is most of its character: it starts `envMult` over the corner and falls onto it over `envTime`, and velocity opens the corner itself."
+    }
+  }
+}

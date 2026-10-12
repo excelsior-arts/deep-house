@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/build",
+  "revision": 1,
+  "name": "build",
+  "scope": "section",
+  "applies": "build",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      },
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      }
+    ],
+    "admits": {
+      "fill": "last",
+      "drop-out": "last"
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "the kit under the pad and the bass, the keys in for the last phrase and the sixteenths never; a build is a filter sweep in 64-83 % of the measured cases, so the riser is not its own; it may fill its last bar, or drop it out into a drop or a breakdown",
+    "from": "src/styles/deep-house.ts sections.kinds.build (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move"
+  }
+}

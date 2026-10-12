@@ -1,0 +1,5 @@
+{
+  "note": "Voices by what the composer's rules take them for, as data (the review of 10-08, A4: names out of code). bottoms: the bass voices that are only the bottom, the sub itself, soft or triangular; any other voice on the bassline (a reese, the 303 line, the pluck) is a bass with its own grit in front of the bottom (`subStepOf`, lane-level.ts), and a place's roles row turns only a line drawn on one of these (`turnRoles`, roles.ts). kitKicks: the kit's kicks a place's roles row may swap, the room-voiced one and the kitchen's two. Every name is a voice the engine has, checked at load.",
+  "bottoms": ["sub", "subSoft", "subTri"],
+  "kitKicks": ["kick", "kickLong", "kickPunch"]
+}

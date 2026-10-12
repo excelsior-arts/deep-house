@@ -1,0 +1,56 @@
+{
+ "schema": 1,
+ "kind": "keys-wetness",
+ "round": "liquid-keys",
+ "revision": 1,
+ "note": "Three steps of wetness over any space: `send` scales every send's level from the space row's own, `dry` its dry. A step holds the loudness: `underDb` is each space's return alone under the whole at its own levels (measured: i9 to VImaj9 on the close grand, keys alone, 16 bars and a 4 s tail, BS.1770), so its share of the energy is w = 10^(-underDb/10), and a step is trimmed by -10 log10((1 - w) dry^2 + w send^2), plus its own `trimDb`.",
+ "underDb": {
+  "chorusRoom": 13.5,
+  "dottedIntoHall": 2.3,
+  "hallDark": 6.2,
+  "hallDeep": 0.9,
+  "nearDry": 16.1,
+  "pingQuarterHall": 9.4,
+  "plateDottedQuarter": 9.1,
+  "plateSmooth": 7.4,
+  "roomTapeDotted": 11.1,
+  "slowWideWash": 4.7,
+  "washFiltered": 3.1,
+  "widePlateDrift": 7.5
+ },
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-wet",
+   "id": "wet",
+   "revision": 1,
+   "name": "Wet",
+   "send": 1,
+   "dry": 1,
+   "trimDb": 0,
+   "says": "The space as its row has it."
+  },
+  {
+   "schema": 1,
+   "kind": "keys-wet",
+   "id": "wetter",
+   "revision": 1,
+   "name": "Wetter",
+   "send": 1.6,
+   "dry": 0.75,
+   "trimDb": 0,
+   "says": "The sends half again and more, the dry down a quarter."
+  },
+  {
+   "schema": 1,
+   "kind": "keys-wet",
+   "id": "wettest",
+   "revision": 1,
+   "name": "Wettest",
+   "send": 2.4,
+   "dry": 0.5,
+   "trimDb": 0,
+   "says": "The sends well over double, the dry halved: the keys mostly room."
+  }
+ ]
+}

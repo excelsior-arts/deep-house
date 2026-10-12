@@ -41,7 +41,8 @@ import { DRUM_SCENES } from './audition-drums.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Round K3's own port, beside K2's 7045 and 7046 and the engine suite's 7023 —
 // and never 6975, which is Eugene's. The gate and this share it, because the
 // two of them never run at the same time.

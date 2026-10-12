@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoMute",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.006,
+    "decayFast": 0.22,
+    "sustainLevel": 0.2,
+    "decaySlow": 2.8,
+    "ring": 0.6,
+    "partialLevel": 0.3,
+    "partialDecay": 1.6,
+    "stretchCents": 3.5,
+    "unisonCents": 7,
+    "unisonLevel": 0.8,
+    "hammerLevel": 0.18,
+    "hammerHz": 350,
+    "brightMin": 350,
+    "brightMax": 1100,
+    "hpHz": 75,
+    "spread": 0.25,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "An upright with its practice felt down between hammer and strings: a soft thud before the pitch, the top gone almost at once, a short note and two strings seven cents apart, a dark muffled warmth.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

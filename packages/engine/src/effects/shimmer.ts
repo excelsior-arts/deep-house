@@ -90,11 +90,13 @@ function rampBuffer(ctx: BaseAudioContext, len: number, phase: number): AudioBuf
 }
 
 /**
- * A pitch shifter, as two delay lines and their windows.
+ * A pitch shifter, as two delay lines and their windows. Exported for the
+ * shimmer voice (`voices/shimmer-pad.ts`), which runs the same loop as an
+ * instrument; nothing here changes for it.
  * @param keep somewhere to put the nodes
  * @param semitones how far up
  */
-function shifter(
+export function shifter(
   ctx: BaseAudioContext,
   keep: (n: AudioNode) => void,
   keepSource: (s: AudioScheduledSourceNode) => void,

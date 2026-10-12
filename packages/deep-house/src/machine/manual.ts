@@ -17,9 +17,12 @@ export const ENTRIES = (MANUAL as unknown as { entries: Record<string, Entry> })
 
 /**
  * **The desk's keys that have pages** (M8): the popovers' M, S, sends off,
- * reset, the level and lean faders with their − and +, and the room.
+ * reset, the level and lean faders with their − and +, and the room; a device
+ * line's fader and the row's key (D1; the device itself is the level's page
+ * since DESK-UX1 took its key away); a stage line's fader and its room key
+ * (D2); the SCENES block's save, recall and delete (D3).
  */
-export const KEY_PAGES = ['key:mute', 'key:solo', 'key:dry', 'key:reset', 'key:level', 'key:lean', 'key:room'] as const;
+export const KEY_PAGES = ['key:mute', 'key:solo', 'key:dry', 'key:reset', 'key:level', 'key:lean', 'key:room', 'key:param', 'key:row', 'key:stageparam', 'key:stageroom', 'key:save', 'key:recall', 'key:delete'] as const;
 
 /** The families a source frame knows by an entry of its own. */
 const FAMILIES = ['drum', 'noise', 'bass', 'keyboard', 'ensemble', 'vocal', 'effect'];

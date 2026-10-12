@@ -266,7 +266,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -300,6 +300,12 @@
   "provenance": {
     "pattern": "afro house: the four under interlocking hand drums on a twelve-against-four feel, a sixteenth shaker, a soft clap on two and four, an open hat on the offbeat and a sparse, syncopated bass",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars. The hand drums play the three-against-two of the clave family (a son-clave-shaped line in the first bar, its answer in the second) with fills; a sixteenth shaker under them; the clap soft on two and four; an open hat on each and. The bass leaves the one and lands on the a of one and the and of three. Swing 0.56 on the percussion."
+    "note": "Two bars. The hand drums play the three-against-two of the clave family (a son-clave-shaped line in the first bar, its answer in the second) with fills; a sixteenth shaker under them; the clap soft on two and four; an open hat on each and. The bass leaves the one and lands on the a of one and the and of three. Swing 0.56 on the percussion.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.8,
+      "syncopationZ": -0.7,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

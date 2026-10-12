@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "widePlateDrift",
+  "revision": 2,
+  "name": "Wide plate, slow drift",
+  "says": "The image opened a third wider and drifting slowly, into a 4.5 s plate cut under 350 Hz: wide and airy, no repeats.",
+  "dry": 1,
+  "trimDb": 1.55,
+  "inserts": [
+    {
+      "effect": "width",
+      "params": {
+        "width": 1.35,
+        "depth": 0.12,
+        "rateHz": 0.08,
+        "mix": 1
+      }
+    }
+  ],
+  "sends": [
+    {
+      "id": "plate",
+      "level": 0.65,
+      "effect": "reverb",
+      "params": {
+        "mode": 2,
+        "decaySeconds": 4.5,
+        "predelayMs": 35,
+        "lowCutHz": 350,
+        "dampHz": 4400,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet.",
+    "sparse": "liquid-space round 1: trimDb 1.3 -> 1.55 (+0.25 dB), the sparse-writing match the keys lab's round 3 left open: its level on the sparse writing (keys alone, the close grand, i9 to VImaj9, the mean of its three wetness steps) brought to the three very wet spaces' mean, -26.65 LUFS"
+  }
+}

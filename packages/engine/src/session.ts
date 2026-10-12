@@ -64,6 +64,16 @@ export interface MixState {
   next: ThemeInfo | null;
   incoming: ThemeInfo | null;
   elapsed: number;
+  /**
+   * **A start's lead is still running** (K42): the set is up and its record
+   * has not reached its first moment on the clock yet. `elapsed` is the deck's
+   * own arithmetic all the same — the second it was started from, less the
+   * lead still to run — so a face that draws the position holds it instead.
+   * A session made before it does not carry it.
+   */
+  leading?: boolean;
+  /** and the second of the theme the record starts at, which is where that face holds */
+  leadFrom?: number;
   themeSeconds: number;
   /**
    * **What a beat costs on the set's own grid, now**, in seconds.
@@ -84,6 +94,17 @@ export interface MixState {
    * draw the whole of a tempo's arrival and not only the seam (round K12c).
    */
   settleIn?: number;
+  /**
+   * **The hand-over in flight, as one wait** (round MIX-X1): when it was asked
+   * for, when the low end changes hands — where a die, a key, a room is heard
+   * — and when the tempo is fully heard, the ride before the blend and the
+   * glide after it included, all on the context's clock. `plan` moves only
+   * when those instants do — a second ask joining the hand-over, a landing
+   * that missed its line, a seek — so a face that draws the wait can tell a
+   * re-plan from the clock running. `laid` is false while the landing is
+   * being built and the instants are the line's own arithmetic.
+   */
+  wait?: MixWait | null;
   /** how far through a hand-over, nought to one, and nought when there is none */
   transition: number;
   /**
@@ -95,6 +116,16 @@ export interface MixState {
   casting?: boolean;
   /** notes the scheduler reached after their time, and by how much */
   late: { count: number; last: number; at: number; cause: string | null };
+}
+
+/** The hand-over in flight as a wait: see `MixState.wait`. */
+export interface MixWait {
+  askedAt: number;
+  swapAt: number;
+  heardAt: number;
+  plan: number;
+  kind: 'skip' | 'back' | 'cast' | 'spell' | 'engine' | 'seam';
+  laid: boolean;
 }
 
 /** What a skip, a back or an arriving seam answers with. */

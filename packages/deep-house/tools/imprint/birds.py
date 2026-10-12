@@ -79,8 +79,16 @@ def _butter_env(y, lo, hi, smooth=0.005):
 
 # --- the grid ---------------------------------------------------------------
 
-def find_grid(y, onset_env):
+def find_grid(y, onset_env, declared=None):
     """Tempo, beat phase and how much of a grid there is at all.
+
+    `declared` is a tempo somebody stated — the catalog's own for a cut, a
+    render's from its plan — and where there is one it **holds**: the beats are
+    tracked at that tempo and nothing folds it (round DNB-2). Without one the
+    tracker starts at 110 and folds into 70-185, and at a drum and bass tempo
+    that is a fold to the half: 172 read as 86, a 'sixteenth' that is the
+    music's eighth, and a syncopation read off the wrong grid (the readings of
+    DNB-1's `readings.py` hold the tempo they are given for the same reason).
 
     The strength is the normalised autocorrelation of the onset envelope at the
     beat lag: it is Spark's confidence and the gate on every feature that needs
@@ -96,15 +104,20 @@ def find_grid(y, onset_env):
     """
     if len(onset_env) < 16:
         return {'bpm': None, 'beats': np.array([]), 'strength': 0.0}
-    bpm, beats = librosa.beat.beat_track(
-        onset_envelope=onset_env, sr=SR, hop_length=HOP, start_bpm=110.0, trim=False, units='frames')
-    bpm = float(np.atleast_1d(bpm)[0]) if bpm is not None else 0.0
+    if declared:
+        bpm = float(declared)
+        _, beats = librosa.beat.beat_track(
+            onset_envelope=onset_env, sr=SR, hop_length=HOP, bpm=bpm, trim=False, units='frames')
+    else:
+        bpm, beats = librosa.beat.beat_track(
+            onset_envelope=onset_env, sr=SR, hop_length=HOP, start_bpm=110.0, trim=False, units='frames')
+        bpm = float(np.atleast_1d(bpm)[0]) if bpm is not None else 0.0
     # Fold into the range a human would call the tempo. The mining checked the
     # metrical level three ways and found 103 BPM real, so the fold is a range
-    # and not a doubling rule.
-    while bpm and bpm < 70:
+    # and not a doubling rule. A declared tempo is not folded.
+    while bpm and bpm < 70 and not declared:
         bpm *= 2
-    while bpm and bpm > 185:
+    while bpm and bpm > 185 and not declared:
         bpm /= 2
     strength = 0.0
     if bpm:
@@ -258,7 +271,7 @@ def _peak_spacing(curve, seconds_per_step):
 
 # --- one window -------------------------------------------------------------
 
-def window_features(y, grid=None, track=None):
+def window_features(y, grid=None, track=None, declared=None):
     """Every raw feature of one window of audio, with what is unmeasurable in it.
 
     `grid` is the window's own grid unless one is handed in; `track` carries the
@@ -282,7 +295,7 @@ def window_features(y, grid=None, track=None):
                                         units='frames', backtrack=False)
     onsets = np.atleast_1d(onsets)
     if grid is None:
-        grid = find_grid(y, onset_env)
+        grid = find_grid(y, onset_env, declared)
     has_grid = bool(grid['bpm']) and grid['strength'] >= 0.05 and len(grid['beats']) >= 4
     out['grid'] = {'bpm': grid['bpm'], 'strength': grid['strength'], 'hasGrid': has_grid}
     out['onsets'] = int(len(onsets))
@@ -480,7 +493,7 @@ def window_features(y, grid=None, track=None):
     return out
 
 
-def track_features(y, grid=None):
+def track_features(y, grid=None, declared=None):
     """The features whose scope is the whole piece: Loom's phrase and section span.
 
     Measured on contiguous audio only, over four-bar blocks, as the median
@@ -496,7 +509,7 @@ def track_features(y, grid=None):
     power = S ** 2
     onset_env = librosa.onset.onset_strength(S=librosa.amplitude_to_db(S, ref=np.max), sr=SR, hop_length=HOP)
     if grid is None:
-        grid = find_grid(y, onset_env)
+        grid = find_grid(y, onset_env, declared)
     # Four-bar blocks, stepped two bars at a time. The block is the scale the
     # question is asked at — a phrase — and the half-block hop is what lets a
     # minute and a bit of audio carry enough of a curve to have peaks in it at

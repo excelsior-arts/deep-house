@@ -7,6 +7,18 @@ import { HOUSE } from '../src/spell.ts';
 import { familyOf, insideBox } from '../src/motif.ts';
 import { createJournal } from '../src/journal.ts';
 import { BY_NAME } from '@deep-house/engine/voices';
+import { SECTION_LIBRARY, TREATMENT_LIBRARY, LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY } from '../src/recipes.ts';
+import { RIFF_ROWS, PHRASED_ROWS } from '../src/glide.ts';
+import { KIT_ROWS } from '../src/kit.ts';
+import { unperformed } from '../src/recipe-request.ts';
+import { PLAYED_KINDS } from '../src/treatment.ts';
+import { drawSectionRows } from '../src/sections.ts';
+import { settleDrums } from '../src/library-draw.ts';
+import { definitionOf, generationOf } from '../src/generation.ts';
+import { generate } from '../src/generator.ts';
+import { style as v2 } from '../src/styles/deep-house-v2.ts';
+import { STRATEGIES } from '../src/strategies/index.ts';
+import ROW_PLACES from '../src/row-places.json' with { type: 'json' };
 
 const spell = Object.entries(HOUSE).map(([b,v]) => `${b}:${v}`).join(',');
 
@@ -53,11 +65,16 @@ test('motif comparisons retain drums, harmony, tempo and non-target bass events'
 
 test('unsupported or impossible explicit requests cannot masquerade as played recipes', () => {
   const row = MOTIF_LIBRARY[0];
-  for (const scope of ['section','layer','seam','treatment']) {
+  for (const scope of ['layer','seam']) {
     const recipe={...row,scope} as any;
     assert.throws(()=>recipesFor({spell:HOUSE,recipe}),/playback is not implemented/);
     assert.throws(()=>planTheme('1',0,{strategy:'house-v2',recipe}),/playback is not implemented/);
   }
+  // A treatment row is played since round T1 (`src/treatment.ts`) and a section row since T2 (`src/sections.ts`);
+  // a motif row relabelled either carries no figure, no section block, and says so.
+  assert.throws(()=>recipesFor({spell:HOUSE,recipe:{...row,scope:'treatment'} as any}),/needs a figure/);
+  assert.throws(()=>recipesFor({spell:HOUSE,recipe:{...row,scope:'section'} as any}),/needs a section block/);
+  assert.throws(()=>planTheme('1',0,{strategy:'house-v2',recipe:{...row,scope:'section'} as any}),/needs a section block/);
   assert.throws(()=>recipeRequest({...row,wants:{motif:{}}}),/wants.motif/);
   assert.throws(()=>recipeRequest({...row,birds:{root:[.1,.3]}}),/scoped placement/);
   assert.throws(()=>planTheme('1',0,{strategy:'house-v1',recipe:row}),/no enabled/);
@@ -74,4 +91,103 @@ test('journal restore distinguishes a different selected recipe at the same seed
   assert.equal(createJournal({store}).load(place),true);
   assert.equal(createJournal({store}).load({...place,recipe:'house/answer'}),false);
   assert.equal(createJournal({store}).load({...place,recipe:undefined}),false);
+});
+
+// --- the executable recipe contract (round CX-C, the review of 10-03) -------
+
+test('R01: a travelled row\'s ghosts are thinned over its mains and drops alone, and the settle says what it reached', () => {
+  // Four bars of main, eight hits a bar (half of them ghosts), against a place at four: the same main settles
+  // the same whether or not a quiet outro of a hundred ghosts follows it.
+  const hit = (t: number, vel: number) => ({ t, voice: 'clap', layer: 'clap', p: { vel } });
+  const fixture = (events: any[]) => ({ barSeconds: 1, arrangement: { sections: [{ kind: 'main', startBar: 0, bars: 4 }, { kind: 'outro', startBar: 4, bars: 100 }] }, events });
+  const mains = () => Array.from({ length: 32 }, (_, i) => hit(i / 8, i % 2 === 0 ? 1 : .2));
+  const place = fixture(Array.from({ length: 16 }, (_, i) => hit(i / 4, 1)));
+  const alone = fixture(mains()), outro = fixture([...mains(), ...Array.from({ length: 100 }, (_, i) => hit(4 + i, .2))]);
+  const a = settleDrums(alone as any, place as any, 1, v2)!, b = settleDrums(outro as any, place as any, 1, v2)!;
+  const inMain = (row: any) => row.events.filter((e: any) => e.t < 4);
+  assert.deepEqual(inMain(alone), inMain(outro), 'the outro moved the main');
+  assert.equal(inMain(alone).length / 4, 4);
+  for (const k of ['rowRate', 'placeRate', 'asked', 'achieved', 'dropped', 'levelDb', 'kickDb'] as const) assert.equal(a[k], b[k], `${k} read the outro`);
+  assert.equal(a.asked, 4); assert.equal(a.achieved, 4);
+  // the other sections take the mains' share and are counted apart
+  assert.equal(a.elsewhere, 0); assert.equal(b.elsewhere, 100);
+});
+
+test('R02: a pinned section row is laid over the grammar by its definition, not its id, and one identity says so everywhere', () => {
+  const main = SECTION_LIBRARY.find((r) => r.applies === 'main')!;
+  const shipped = planTheme('44', 0, { strategy: 'house-v2', spell: HOUSE, recipe: main });
+  assert.equal(shipped.sectionPin?.applied, false, 'the shipped row is the grammar\'s own');
+  assert.equal(shipped.sectionPin?.asked, shipped.sectionPin?.grammar);
+  const revised = { ...main, revision: (main.revision ?? 1) + 1, section: { ...main.section!, phrases: main.section!.phrases.map((p) => ({ ...p, on: [] })) } };
+  const trace: any[] = [];
+  const over = drawSectionRows(1, SECTION_LIBRARY, v2.sections, null, revised, trace);
+  assert.equal(over.get('main'), revised);
+  assert.equal(trace[0].applied, true); assert.notEqual(trace[0].asked, trace[0].grammar);
+  const plan = planTheme('44', 0, { strategy: 'house-v2', spell: HOUSE, recipe: revised });
+  assert.notEqual(JSON.stringify(plan.events), JSON.stringify(shipped.events), 'the new revision was not heard');
+  // one identity for a row everywhere: the same id at another revision or content is another definition
+  assert.equal(definitionOf(main), definitionOf({ ...main }));
+  assert.notEqual(definitionOf(main), definitionOf(revised));
+  assert.notEqual(definitionOf(main), definitionOf({ ...main, name: `${main.name} ` }));
+});
+
+test('R04: a section or treatment row refuses the fields its player does not perform, with the reason', () => {
+  const treatment = TREATMENT_LIBRARY.find((r) => r.applies === 'drop-out')!;
+  const section = SECTION_LIBRARY.find((r) => r.applies === 'main')!;
+  for (const row of [treatment, section]) {
+    assert.doesNotThrow(() => recipeRequest(row));
+    assert.throws(() => recipeRequest({ ...row, forbids: ['kick'] }), /cannot audition forbids \(a local exclusion/);
+    assert.throws(() => planTheme('44', 0, { strategy: 'house-v2', spell: HOUSE, recipe: { ...row, forbids: ['kick'] } }), /cannot audition forbids/);
+    assert.throws(() => recipeRequest({ ...row, wants: { tone: { bassline: 'full' } } } as any), /cannot audition wants/);
+  }
+  assert.throws(() => recipeRequest({ ...section, birds: { root: [.1, .3] } } as any), /cannot audition birds/);
+  // every played row of both scopes carries only what is performed
+  for (const row of [...TREATMENT_LIBRARY, ...SECTION_LIBRARY].filter((r) => r.scope === 'section' || (PLAYED_KINDS as readonly string[]).includes(r.applies ?? '')))
+    assert.deepEqual(unperformed(row), [], row.id);
+});
+
+test('the September faults: a place\'s swap of a lane\'s sound passes the recipe\'s forbids and explicit tone, refused on the plan', () => {
+  const probe = (wants: any, forbids: string[]) => ({ schema: 1, id: 'probe/contract', scope: 'track', applies: null, name: 'Contract probe', origin: 'listener', birds: {}, wants, forbids }) as any;
+  const spellOf = (s: Record<string, number>) => ({ ...HOUSE, ...s });
+  // forbids: the place's held layer would be a keyboard voice
+  const kb = generate({ style: v2, seed: 1, bars: 64, bpm: 140, spell: spellOf({ ember: .88, root: .6, zephyr: .5, veil: .6 }), recipe: probe({}, ['keyboard']) }) as any;
+  assert.equal(kb.events.filter((e: any) => BY_NAME[e.voice]?.family === 'keyboard').length, 0);
+  assert.ok(kb.admission?.some((a: any) => a.at === 'lane sound' && a.why === 'the recipe forbids keyboard'));
+  // tone: the place's bass would be a voice without the character's controls, so the lane keeps one with them
+  const heard = ['full', 'defined'].map((tone) => generate({ style: v2, seed: 1, bars: 64, bpm: 128,
+    spell: spellOf({ ember: .75, root: .6, zephyr: .5, veil: .6 }), recipe: probe({ tone: { bassline: tone } }, []) }) as any);
+  for (const t of heard) assert.ok(t.admission?.some((a: any) => a.at === 'bass sound' && /tone/.test(a.why)));
+  const bass = (t: any) => JSON.stringify(t.events.filter((e: any) => e.layer === 'bass'));
+  assert.notEqual(bass(heard[0]), bass(heard[1]), 'an explicit tone was dropped');
+  // with no recipe nothing is read and nothing is written
+  assert.equal((generate({ style: v2, seed: 1, bars: 64, bpm: 140, spell: spellOf({ ember: .88, root: .6, zephyr: .5, veil: .6 }) }) as any).admission, undefined);
+});
+
+test('the generation stamp reads the library\'s weights, the place table and every row\'s content, the place tables\' rows too', () => {
+  const before = generationOf(v2);
+  const row = LIBRARY.find((r) => r.scope !== 'track') ?? LIBRARY[0];
+  const was = row.weight;
+  try { (row as any).weight = (Number.isFinite(was) ? was! : 1) + 1; assert.notEqual(generationOf(v2), before, 'a library weight'); }
+  finally { (row as any).weight = was; if (was === undefined) delete (row as any).weight; }
+  const near = ROW_PLACES.near;
+  try { (ROW_PLACES as any).near = near + .01; assert.notEqual(generationOf(v2), before, 'row-places.json'); }
+  finally { (ROW_PLACES as any).near = near; }
+  assert.equal(generationOf(v2), before);
+  // a row's content, revision or none: a library row's, and each place-table row's (review of 10-08, A4)
+  const content = (label: string, edit: () => () => void) => {
+    const undo = edit();
+    try { assert.notEqual(generationOf(v2), before, label); } finally { undo(); }
+    assert.equal(generationOf(v2), before, `${label}: undone`);
+  };
+  const touch = (o: any, key: string, value: unknown) => () => { const was = o[key]; o[key] = value; return () => { o[key] = was; }; };
+  content('a library row\'s content', touch(row, 'name', `${row.name} (edited)`));
+  content('a riff row\'s content', touch((RIFF_ROWS[0] as any).wants.riff, 'moveP', (RIFF_ROWS[0] as any).wants.riff.moveP + 0.01));
+  content('the phrased row\'s content', touch((PHRASED_ROWS[0] as any).wants.phrased.outro, 'restBars', (PHRASED_ROWS[0] as any).wants.phrased.outro.restBars + 1));
+  content('a kit row\'s content', touch((KIT_ROWS[0] as any).wants.kit, 'minP', (KIT_ROWS[0] as any).wants.kit.minP + 0.01));
+  content('a glide row\'s content', touch((GLIDE_LIBRARY[0] as any).wants.motif.glide, 'pedal', !(GLIDE_LIBRARY[0] as any).wants.motif.glide.pedal));
+  content('a form row\'s content', touch(FORM_LIBRARY[0] as any, 'name', `${FORM_LIBRARY[0].name} (edited)`));
+  // the record draws from neither, and its stamp does not read them
+  const v1 = generationOf(STRATEGIES['house-v1'].style);
+  try { (row as any).weight = 99; assert.equal(generationOf(STRATEGIES['house-v1'].style), v1); }
+  finally { (row as any).weight = was; if (was === undefined) delete (row as any).weight; }
 });

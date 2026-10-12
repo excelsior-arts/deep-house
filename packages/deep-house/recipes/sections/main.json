@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/main",
+  "revision": 2,
+  "name": "main groove",
+  "scope": "section",
+  "applies": "main",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 16,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      }
+    ],
+    "admits": {
+      "switch-up": "span",
+      "turnaround": "groups",
+      "drop-out": [
+        "lines",
+        "last"
+      ],
+      "fill": "last",
+      "variation": "halves"
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "every lane on through every phrase; the small things inside it are the sub-sections: a switch-up over a span, a turnaround on the four-bar groups, a drop-out at the sixteen-bar lines and on the bar into a drop or a breakdown, a fill on its last bar",
+    "from": "src/styles/deep-house.ts sections.kinds.main (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move; round M1 (2026-10-02): it admits a variation over the second half of a sixteen-bar phrase (the hats)"
+  }
+}

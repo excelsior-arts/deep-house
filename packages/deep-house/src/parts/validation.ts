@@ -35,6 +35,20 @@ export function motifWants(box: any, say: (m: string) => void): void {
   span(box.density, 'wants.motif.density', 0, 16);
   if (!box.returns || typeof box.returns !== 'object') say('wants.motif.returns is not an object');
   else span(box.returns.bars, 'wants.motif.returns.bars', 1, 64);
+  if (box.glide !== undefined) glideProblems(box.glide).forEach(m => say(`wants.motif.glide${m}`));
+}
+
+/**
+ * **A bass family's glide line** (round DNB-7, `src/glide.ts`), held exactly: since
+ * the phrased cells and the riff's phrase play the line, a glide row says only
+ * `pedal`, whether its home is the key's note under every chord or each chord's
+ * root (the grammar beyond it, read by nothing since the review of 10-08, was
+ * taken out on riff-trim, 10-10). No note.
+ */
+export function glideProblems(glide: any): string[] {
+  if (!glide || typeof glide !== 'object' || Array.isArray(glide)) return [' is not an object'];
+  if (Object.keys(glide).join() !== 'pedal') return [' must say exactly pedal'];
+  return typeof glide.pedal === 'boolean' ? [] : ['.pedal is not true or false'];
 }
 
 /** A held root or a generated bass family, expressed in musical properties. */

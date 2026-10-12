@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "snareGhost",
+  "revision": 1,
+  "topology": "snare",
+  "dice": 41.9,
+  "parameters": {
+    "shellHz": 468.401,
+    "shellFifth": 1.24372,
+    "shellLevel": 1.21856,
+    "shellDecay": 0.05782,
+    "drop": 1.05,
+    "dropTime": 0.015,
+    "wireHp": 441.0,
+    "wireHz": 2029.069,
+    "wireQ": 0.5,
+    "wireLevel": 0.144,
+    "crackHz": 3000,
+    "crackQ": 0.8,
+    "crackDecay": 0.015,
+    "crackLevel": 0.3,
+    "lidHz": 12000,
+    "t10": 0.0348,
+    "seconds": 0.4,
+    "variants": 3,
+    "variantCents": 22,
+    "attack": 0.004,
+    "trim": 1.4,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.18,
+    "velDecay": 0.3,
+    "pan": -0.05,
+    "room": 0.02
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "snareGhost": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 3000,
+        "loudnessDb": -22.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "hands-on 10-06",
+    "module": "none",
+    "note": "the ghost a sixteenth before the soft backbeat, fitted to source 9 (10-06)"
+  },
+  "measured": {
+    "clickStep": 0,
+    "snareDryGhost": {
+      "loudnessDb": -24.8,
+      "clickStep": 0
+    }
+  }
+}

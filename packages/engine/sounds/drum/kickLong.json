@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kickLong",
+  "revision": 1,
+  "topology": "kit-kick",
+  "block": "kickLong",
+  "dice": 157.3,
+  "parameters": {
+    "hz": 46,
+    "drop": 3.8,
+    "dropTime": 0.06,
+    "bodyLevel": 0.92,
+    "bodyLp": 220,
+    "drive": 0,
+    "clickHz": 240,
+    "clickQ": 0.8,
+    "clickDecay": 0.004,
+    "clickLevel": 0.22,
+    "t10": 0.3,
+    "seconds": 1.4,
+    "variants": 2,
+    "variantCents": 6,
+    "attack": 0.003,
+    "trim": 0.8,
+    "rateSpread": 0.012,
+    "gainSpread": 0.05,
+    "decaySpread": 0.07,
+    "velBright": 0.06,
+    "velDecay": 0.25,
+    "skinHz": null,
+    "skinLevel": null,
+    "skinDecay": null,
+    "holdS": null,
+    "releaseS": null,
+    "wobbleCents": null,
+    "harmonics": null
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": null,
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "kickLong": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.04,
+        "brightnessHz": 120,
+        "loudnessDb": -9.6
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "kicks-alt.ts",
+    "note": "the long drop: a sine from two octaves over the fundamental falling onto it over sixty milliseconds, ringing for the best part of a second, a click so low it is felt"
+  },
+  "measured": {
+    "clickStep": 0.0006
+  }
+}

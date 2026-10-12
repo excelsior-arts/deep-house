@@ -27,15 +27,29 @@
 // Registered and reachable by nothing: no candidate list of any style names
 // either of them and `plays` is null, so no arrangement gates them.
 
-import { strike, warmDrums, drumNoise, filter, tuned, transient } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { contract, list, num, CENTS, DB, HZ, LEVEL, Q, RATIO, SECONDS, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 
 /** The settings block one cymbal is made out of: the ride's or the crash's. */
-type CymbalSettings = Settings['ride'] | Settings['crash'];
+/**
+ * What a row of this topology carries, each in its range (`schema.ts`). The
+ * ratios' level is shared among them, so there is at least one; a ping is
+ * built only where its level is above nought, and then it needs a pitch.
+ */
+const PARAMETERS = contract({
+  ratios: list(RATIO, 1, 16),
+  base: HZ, detune: CENTS, metal: UNIT, hp: HZ, peakHz: HZ, q: Q, tilt: DB, lidHz: HZ,
+  pingHz: num(0, 24000), pingLevel: LEVEL, pingDecay: SECONDS,
+  bellPing: LEVEL, bellWash: LEVEL, bellRing: RATIO,
+  t10: KIT.t10, seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents, attack: KIT.attack,
+  trim: KIT.trim, rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread, decaySpread: KIT.decaySpread,
+  panSpread: KIT.panSpread, velBright: KIT.velBright, velDecay: KIT.velDecay, pan: KIT.pan, room: KIT.room,
+}, (c) => ((c.pingLevel > 0 || c.pingLevel * c.bellPing > 0) && !(c.pingHz > 0) ? [`a ping at ${c.pingLevel} with no pitch (pingHz ${c.pingHz})`] : []));
+type CymbalSettings = PatchOf<typeof PARAMETERS.fields>;
 
 function cymbalSpec(C: CymbalSettings, p: NoteParams): DrumSpec {
   const bell = p.hit === 'bell';
@@ -133,87 +147,17 @@ function cymbalBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: n
   }
 }
 
-const RIDE: DrumInstrument = {
-  id: 'ride',
-  seed: 83.5,
-  spec: (p: NoteParams, settings: Settings) => cymbalSpec(settings.ride, p),
+/**
+ * The cymbal topology: the ladder with a ping and a bell, struck through the
+ * kit (`sounds/noise/ride.json`, `crash.json` since round R2).
+ */
+export const CYMBAL = kitTopology({
+  id: 'cymbal',
+  cost: 'mid',
+  parameters: PARAMETERS,
+  spec: cymbalSpec,
   variant: cymbalVariant,
   build: cymbalBody,
-};
+});
 
-const CRASH: DrumInstrument = {
-  id: 'crash',
-  seed: 97.7,
-  spec: (p: NoteParams, settings: Settings) => cymbalSpec(settings.crash, p),
-  variant: cymbalVariant,
-  build: cymbalBody,
-};
-
-const INSTS = { ride: RIDE, crash: CRASH };
-
-export const prepareCymbals = (ctx: BaseAudioContext, settings: Settings, events: ProgramEvent[]): Promise<void> =>
-  warmDrums(ctx, settings, events, INSTS);
-
-export function ride(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, RIDE, settings, at);
-}
-
-export function crash(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, CRASH, settings, at);
-}
-
-/** MEASURED, both, and written by `tools/test-drums.ts --bless`. */
-export const CYMBAL_MEASURED = {
-  ride: { loudnessDb: -10, clickStep: 0.2145 },
-  rideBell: { loudnessDb: -13, clickStep: 0.1568 },
-  crash: { loudnessDb: -10.9, clickStep: 0 },
-};
-
-/** What they are worth to a meter. A cymbal is the one struck thing that holds. */
-export const CYMBAL_TIMBRES = {
-  ride: { family: 'noise', struck: true, hold: 0.08, brightnessHz: 5200, loudnessDb: CYMBAL_MEASURED.ride.loudnessDb },
-  crash: { family: 'noise', struck: true, hold: 0.22, brightnessHz: 7000, loudnessDb: CYMBAL_MEASURED.crash.loudnessDb },
-};
-
-export const descriptors: Descriptor[] = [
-  {
-    name: 'ride',
-    cost: 'mid',
-    family: 'noise',
-    roles: ['offbeat'],
-    bus: 'drums',
-    level: 'hatOpen',
-    layer: 'hats',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareCymbals,
-    render: ride,
-    timbres: { ride: CYMBAL_TIMBRES.ride },
-    dispatches: [],
-    mood: [],
-  },
-  {
-    // The one `texture` instrument of the kitchen, and the role is the reason
-    // its layer and its level are the seam glue's: what a crash does is mark a
-    // section, which is the F lane's own job, and the F lane reads the fx
-    // layer. A crash on the hats layer would put that layer in two lanes.
-    name: 'crash',
-    cost: 'cheap',
-    family: 'noise',
-    roles: ['texture'],
-    bus: 'drums',
-    level: 'fx',
-    layer: 'fx',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareCymbals,
-    render: crash,
-    timbres: { crash: CYMBAL_TIMBRES.crash },
-    dispatches: [],
-    mood: [],
-  },
-];
+export default CYMBAL;

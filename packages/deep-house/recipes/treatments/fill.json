@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/fill",
+  "revision": 1,
+  "name": "fill",
+  "scope": "treatment",
+  "applies": "fill",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "clear": 12,
+        "roll": {
+          "from": 12,
+          "base": 0.45,
+          "rise": 0.5
+        }
+      },
+      "kick": {
+        "clear": 13
+      }
+    },
+    "without": {
+      "backbeat": {
+        "lanes": {
+          "kick": {
+            "clear": 12
+          }
+        }
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:225+63, 8:1683+96, 8:2355+113",
+    "kind": "fill",
+    "reading": "the bar before a line varies on 0.74 of the half-time lines and 0.86 of the breakdowns' against 0.42 elsewhere; the breakdown of cut 3 rolls its snare into the drop",
+    "from": "src/subsections.ts FILLS fill (round DNB-1, 2026-10-02): a snare roll through the last beat climbing to 0.95, the kick standing aside a step later; where the room plays no backbeat, the kick's last beat left out",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

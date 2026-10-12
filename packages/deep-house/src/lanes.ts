@@ -177,6 +177,37 @@ export const familyOf = (voice: string): string => (BY_NAME[voice] || { family: 
 export const withdrawnFrom = (lane: Lane, scene: string | undefined): Set<string> =>
   new Set(scene ? (lane.withdraw || []).filter((w) => w.scene === scene).flatMap((w) => w.families) : []);
 
+/**
+ * A style's lanes as read at a tempo: every candidate of a family the lane
+ * withdraws there weighs nought (10-02, the hand drums off the sixteenth lane
+ * above 125 BPM). The three readers of a lane's candidates — the lane draw,
+ * the composition's parts and the development's players — read this one.
+ */
+export function lanesAtTempo<S extends { lanes: readonly Lane[] }>(style: S, bpm: number, spell?: Readonly<Record<string, number>>): S {
+  let moved = false;
+  const lanes = style.lanes.map((l) => {
+    const gone = withdrawnAtTempo(l, bpm, spell);
+    if (!gone.size || !l.voices) return l;
+    const voices = l.voices.map((v) => (v.w > 0 && gone.has(familyOf(String(v.v))) ? { ...v, w: 0 } : v));
+    if (voices.every((v, i) => v === l.voices![i])) return l;
+    moved = true;
+    return { ...l, voices };
+  });
+  return moved ? { ...style, lanes } : style;
+}
+
+/**
+ * The families a lane withdraws at a tempo and under a spell: its `withdraw`
+ * entries with no scene whose band the tempo falls in and whose `controls`
+ * (a bird's span, `min` inclusive, `max` exclusive, the house's value where
+ * the spell leaves a bird out) the spell satisfies.
+ */
+export const withdrawnAtTempo = (lane: Lane, bpm: number, spell?: Readonly<Record<string, number>>): Set<string> =>
+  new Set((lane.withdraw || []).filter((w) => !w.scene && (w.tempoFrom != null || w.tempoTo != null)
+    && (w.tempoFrom == null || bpm >= w.tempoFrom) && (w.tempoTo == null || bpm < w.tempoTo)
+    && Object.entries(w.controls || {}).every(([bird, span]) => { const v = spell?.[bird] ?? 0.5; return (span.min === undefined || v >= span.min) && (span.max === undefined || v < span.max); }))
+    .flatMap((w) => w.families));
+
 /** The gates of the lanes the withdrawal leaves with no live candidate at all: held off in the plan. */
 export function silencedBy(style: Style, bias: Bias, withdrawn: LaneWithdrawal | undefined): string[] {
   if (!withdrawn) return [];

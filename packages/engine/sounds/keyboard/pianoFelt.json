@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoFelt",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.008,
+    "decayFast": 0.5,
+    "sustainLevel": 0.34,
+    "decaySlow": 6,
+    "ring": 1.8,
+    "partialLevel": 0.3,
+    "partialDecay": 0.9,
+    "stretchCents": 1.6,
+    "unisonCents": 2.5,
+    "unisonLevel": 0.6,
+    "hammerLevel": 0.05,
+    "hammerHz": 900,
+    "brightMin": 700,
+    "brightMax": 2600,
+    "hpHz": 60,
+    "spread": 0.4,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "A felt-damped grand: a soft hammer low in the band, the brightness held under 2.6 kHz, a long two-stage fall and a second string barely detuned, so a chord blooms and stays round.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

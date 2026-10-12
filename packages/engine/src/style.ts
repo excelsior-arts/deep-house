@@ -28,9 +28,12 @@
 // requires of a style.
 
 import type { BackgroundSpaceSettings } from './background-space.ts';
+import type { SpaceRow } from './effects/space.ts';
 import type { Settings } from './settings.ts';
 import type { KeyboardPatches } from './voices/keys-patches.ts';
+import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge } from './voices/grain.ts';
 export type { KeyboardPatches } from './voices/keys-patches.ts';
+export type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge } from './voices/grain.ts';
 
 /** A weighted entry, the shape `Rng.weighted` reads. */
 export interface Weighted<T> { v: T; w: number; }
@@ -57,6 +60,13 @@ export interface StyleTable {
   keyboardPatches?: KeyboardPatches;
   /** Optional independent returns. Absent only on legacy compiled programs. */
   backgroundSpaces?: { background: BackgroundSpaceSettings; immersed: BackgroundSpaceSettings };
+  /**
+   * **A part's own space** (liquid-space round 1): a space row (`effects/space.ts`)
+   * a theme's part plays through wholly — its notes ask with `p.partSpace` — built
+   * once per theme's graph, the first time a note asks. The composer writes it
+   * into a theme's overrides where a part asks for one; absent, nothing is built.
+   */
+  partSpace?: SpaceRow;
   /** the tempo family, and the die that chooses between its two halves */
   tempo: { def: number; slowMin: number; slowMax: number; fastMin: number; fastMax: number; slowChance: number };
   /** the offbeat eighth as a fraction of the beat, and the hats' own lead, in seconds */
@@ -92,7 +102,26 @@ export interface StyleTable {
     buildBars: number; dropBars: number; dropLevel: number; buildLevel: number; markLevel: number;
   };
   /** the sidechain, as `duckShape` reads it */
-  sidechain: { depthDb: number; lowDepthDb: number; attack: number; minimumAt: number; recoverBy: number };
+  sidechain: {
+    depthDb: number; lowDepthDb: number; attack: number; minimumAt: number; recoverBy: number;
+    /**
+     * Where the first leg of the way back ends, in beats (60 % of the way up):
+     * absent, 0.45, which is every room's. A short duck (round DNB-1: the fast
+     * broken beat's sub is back within an eighth note) writes a smaller one
+     * and a `recoverBy` over it.
+     */
+    firstLeg?: number;
+    /**
+     * The struck voices' depth (round PIANO-2, `struckDuckShape` in
+     * `program.ts`): the piano, the plucks, the stabs, any voice whose timbre
+     * its descriptor declares struck, duck this far and no further, after the
+     * strike. Absent, they take the pads' `depthDb` and shape, as everything
+     * melodic did before the round.
+     */
+    struckDepthDb?: number;
+    /** how long the struck voices' dip holds off after the kick, in seconds (absent, `STRUCK_AFTER`) */
+    struckAfter?: number;
+  };
   /** the master chain, end to end */
   master: {
     gain: number;
@@ -120,6 +149,24 @@ export interface StyleTable {
     clipKnee: number; clipDrive: number;
     filterOpen: number; filterClosed: number;
     glue: { threshold: number; knee: number; ratio: number; attack: number; release: number; drive: number };
+    /**
+     * The drums' clip (round DNB-4): the drums' bus and the kick's each through
+     * a soft clipper — `driveDb` into the curve and back out of it, so a signal
+     * under `knee` (of full scale, after the drive) passes untouched; `curve`
+     * is the curve's own drive past the knee. `low`, where given, clips the
+     * kick and the bass together where they sum, at its own numbers, in place
+     * of the kick alone. Absent or a drive of nought, nothing is built.
+     */
+    drumClip?: { driveDb: number; knee?: number; curve?: number; low?: { driveDb: number; knee?: number; curve?: number } };
+    /** The theme's own sum through a soft clipper after its trim (round DNB-4), as `drumClip`'s numbers; absent, nothing is built. */
+    mixClip?: { driveDb: number; knee?: number; curve?: number; makeupDb?: number };
+    /**
+     * A gentle compressor on the theme's own sum after its trim (round DNB-5),
+     * before any `mixClip` and the master every deck shares: the level from
+     * the balance and a decibel or two of glue, where a clip took it before.
+     * Absent, or a ratio of one, nothing is built.
+     */
+    busComp?: { threshold: number; knee: number; ratio: number; attack: number; release: number };
     airHz: number; airDb: number;
     presenceHz: number; presenceDb: number; presenceQ: number;
     lowMidHz: number; lowMidDb: number; lowMidQ: number;
@@ -139,6 +186,11 @@ export interface StyleTable {
   /** the loudness model, fitted on this style's own material */
   loudness: {
     targetLufs: number; clampDb: number; slopeUp: number; slopeDown: number;
+    /**
+     * the most a theme whose trim window has no kick is lifted, in dB, where
+     * it is under `clampDb`; absent, the one clamp both ways
+     */
+    clampUpNoKickDb?: number;
     intercept: number;
     coef: Record<string, number>;
     centre: Record<string, number>;
@@ -157,6 +209,24 @@ export interface StyleTable {
       coef: Record<string, number>;
       centre: Record<string, number>;
     };
+    /**
+     * the model's reach: a model of its own, fitted on its own windows, for a
+     * window the house's sample never held (`drumless`: no kick in it; `drop`:
+     * the loudest drop of a form with no main); the slopes, the target, the
+     * clamps and the margin stay the block's, and so does the target, unless
+     * the family names its own (`targetLufs`, round LOUD-2: set by hand, a
+     * level for the family's windows and not a fit)
+     */
+    families?: Record<string, {
+      targetLufs?: number;
+      /** what a decibel of trim gives back in this family's windows, each way, where it is not the block's (round DNB-4: a place's clips) */
+      slopeUp?: number;
+      slopeDown?: number;
+      intercept: number;
+      coef: Record<string, number>;
+      centre: Record<string, number>;
+      headroom?: { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+    }>;
   };
   /** the chances that make a groove this groove */
   groove: {
@@ -181,7 +251,60 @@ export interface StyleTable {
  * `src/params.ts`'s instruments spread into it, in the order the one table was
  * always written in.
  */
-export type Table = StyleTable & Instruments;
+/**
+ * **The bass bus's parallel drive** (round B1, `effects/bass-drive.ts`): the
+ * knobs of that effect, which `buildGraph` builds between the bass bus and
+ * the body filter when they are there and `blend` is above nought. It is
+ * never in a table — no base carries it and no room — only in a theme's own
+ * `paramOverrides`, written by the composer's place table for the themes
+ * that ask; so a theme at the house resolves to the settings it always had,
+ * to the byte, and the hash over them stands.
+ */
+export interface BassParallel {
+  blend: number;
+  drive?: number;
+  preHz?: number;
+  floorHz?: number;
+  toneHz?: number;
+  /** the wobble on the copy's corner: its period in beats (0 is none), its depth as a fraction of the corner, its phase in turns at the bar line */
+  wobbleBeats?: number;
+  wobbleDepth?: number;
+  wobblePhase?: number;
+  /** what the copy is fed (round DUB-4): 0 or absent the bus, 1 the side door alone, which the reese's ride notes play into */
+  side?: number;
+}
+
+/**
+ * **The presence bell on the harmonic bus** (round EQ-2): a peaking filter on
+ * the melodic sum — the pads, the keys through their chorus and the leads,
+ * never the kick, the sub or the drums — between its seam gain and the duck,
+ * so it lifts the notes themselves and not the rooms their sends return
+ * from. Like `BassParallel`, never in a table: only in a theme's own
+ * `paramOverrides`, written by the composer's place table where `db` is not
+ * nought, so a theme the table leaves alone builds the graph it always did.
+ */
+export interface HarmonicBell {
+  hz: number;
+  /** Web Audio's peaking Q (linear, the bell's width) */
+  q: number;
+  db: number;
+}
+
+/**
+ * **The grain** (round SPARK-1, `voices/grain.ts`): the keyboard's edge, the
+ * ensemble's breath, the piano's hammer and body, and the parallel stage on
+ * the harmonic bus. Like `BassParallel`, never in a table: only in a theme's
+ * own `paramOverrides`, written by the composer's place table, so a theme the
+ * table leaves alone resolves to the settings it always had.
+ */
+export type Table = StyleTable & Instruments & {
+  bass: { parallel?: BassParallel };
+  harmonicBell?: HarmonicBell;
+  keys: { edge?: KeysEdge };
+  strings: { breath?: StringsBreath };
+  piano: { grain?: PianoGrain };
+  harmonicEdge?: HarmonicEdge;
+};
 
 /**
  * One frozen candidate list, as the completeness gate walks it. The lists
@@ -276,7 +399,12 @@ export interface Lane {
    * pace, stands beside the drone (the composer says what a scene is; the
    * machine only carries the word). A family, never an instrument.
    */
-  withdraw?: ReadonlyArray<{ scene: string; families: readonly string[] }>;
+  /**
+   * The families a lane does not draw: under a named scene (the drone in
+   * front), or in a tempo band (`tempoFrom`, inclusive, in BPM — a hand drum
+   * on sixteenths at a half-time's pace is a rattle, 10-02), or both.
+   */
+  withdraw?: ReadonlyArray<{ scene?: string; tempoFrom?: number; tempoTo?: number; controls?: Readonly<Record<string, { min?: number; max?: number }>>; families: readonly string[] }>;
   /**
    * A level this lane's candidates take under a named scene, by what they
    * were measured to be: a candidate with at least `midFrom` per cent of its
@@ -285,6 +413,18 @@ export interface Lane {
    * the word for the scene.
    */
   presence?: ReadonlyArray<{ scene: string; midFrom: number; db: number }>;
+  /**
+   * What this lane plays where the composition says the drone in front stands
+   * on a floor (a soft grid under it, the composer's `floor`): `db` under its
+   * level, `knobs` set on each of its notes (in the voice's own declared
+   * units), only the candidates whose measured ring reaches `ringFrom`
+   * milliseconds (the style's ring table; where none of the lane's live
+   * candidates does, the lane draws as it would), `mask`, the sixteen-step
+   * figure its source plays in place of the one it drew (on the source's
+   * first lane), or `off`, held off in the plan. Measured properties, levels
+   * and a figure, never an instrument.
+   */
+  floor?: Readonly<{ db?: number; knobs?: Readonly<Record<string, number>>; ringFrom?: number; mask?: string; off?: boolean }>;
 }
 
 /** A room: a set of overrides on the table, plus the figures it was measured with. */
@@ -327,6 +467,13 @@ export interface SetRules {
    */
   themeTrim?: number;
   themeTrimBars?: [number, number];
+  /**
+   * A theme's length is minutes from the derived state, not bars (round L1,
+   * `packages/deep-house/src/length.ts`): the seed's place on
+   * `themeBarPercentiles` says where in the band, and the bars follow from the
+   * tempo. Absent is the bar table, which is the record's.
+   */
+  themeMinutes?: boolean;
   shortBlendChance: number;
   shortBlendBars: Weighted<number>[];
   longBlendBars: Weighted<number>[];
@@ -339,11 +486,19 @@ export interface SetRules {
   seamSumTrimDb: number;
   swapAfterBars: number;
   tempoGlideBars: number;
+  /**
+   * How far the set's slow drift may take its tempo, as a share of the tempo
+   * the set drew (house-v2's since the deep review of 10-08, B15): the drift
+   * climbs as it always has and stops there. Absent is the record's, which
+   * climbs for as long as the set runs.
+   */
+  driftMost?: number;
+  /** whether the next theme's key is drawn as a step from the last (house-v2 since round MIX-X2); off is the record's any root */
   harmonicMixing: boolean;
   /** the two hand-over groups a seam cuts holes in */
   swapGroup: string;
   bassGroup: string;
-  /** only read when `harmonicMixing` is on, which it is not */
+  /** only read when `harmonicMixing` is on: the steps round the wheel, in semitones of the minor root that sounds the key's notes (`planKey`) */
   keySteps: Weighted<number>[];
   /** the earliest a theme may hand over, as a fraction of its own length */
   seamFloor: number;
@@ -354,6 +509,30 @@ export interface SetRules {
    * has no field and steps back, as it always did.
    */
   seamLineInside?: boolean;
+  /**
+   * **The harmonic cross is short, the rhythmic cross is long** (round MIX-X2).
+   * Where two themes' keys share fewer than `related` notes of seven, the
+   * outgoing theme's pads and keys fade out over the `fadeBars` before the low
+   * end changes hands and the arriving ones fade in over the `crossBars` before
+   * it, so two harmonies are never stacked for more than that; the drums, the
+   * hats and the bass hole cross over the whole blend as they always have.
+   * The outgoing harmony is filtered as it fades (round MIX-X4): its low-pass
+   * closes from open at the fade's start to `lpHz` at the swap. Related keys
+   * keep the blend as it is. Absent is the record: every layer crosses on the
+   * deck's one fader.
+   */
+  harmonicCross?: { fadeBars: number; crossBars: number; related: number; lpHz: number };
+  /**
+   * **The hand's hand-over is a budget in seconds** (round MIX-X3): a seam a
+   * hand asked for — a bird moved, an engine switched, a cast — changes the low
+   * end about `swapSeconds` in, fades the outgoing harmony over the
+   * `fadeSeconds` before that and brings the arriving one in over the
+   * `crossSeconds` before it, each converted to bars at the tempo the blend
+   * is played at and rounded to the bar (`handSeamBars`), the blend twice the
+   * swap. A planned seam keeps `swapAfterBars`, `harmonicCross` and the
+   * record's blend, in bars. Absent, the hand's seam is the planned one's.
+   */
+  handSeam?: { swapSeconds: number; fadeSeconds: number; crossSeconds: number };
 }
 
 /** A treatment's own numbers: what it multiplies, and over how many bars. */

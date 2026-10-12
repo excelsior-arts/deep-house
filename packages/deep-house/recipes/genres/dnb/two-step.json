@@ -222,7 +222,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -255,6 +255,12 @@
   "provenance": {
     "pattern": "the drum and bass two-step: kick on one and on the and of three, snare on two and four, ghosted snares between, a rolling sub under it",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars. The kick answers itself across the bar line (one, the and of three; one, the and of three and its a), the snare is the backbeat at full weight with ghosts a sixteenth before and after, the eighth hats lean on the offbeat and a quiet sixteenth shaker fills the rest. The sub rolls on the root with a step below and a third above, inside a fifth so it fits every key the bass register holds."
+    "note": "Two bars. The kick answers itself across the bar line (one, the and of three; one, the and of three and its a), the snare is the backbeat at full weight with ghosts a sixteenth before and after, the eighth hats lean on the offbeat and a quiet sixteenth shaker fills the rest. The sub rolls on the root with a step below and a third above, inside a fifth so it fits every key the bass register holds.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 1.2,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "shaker",
+  "revision": 2,
+  "topology": "hat-ladder",
+  "dice": 61.3,
+  "parameters": {
+    "base": 1.31,
+    "detune": 20,
+    "metal": 0.18,
+    "hp": 3200,
+    "peakHz": 5800,
+    "q": 0.3,
+    "tilt": 2,
+    "lidHz": "lidHz",
+    "room": 0.7,
+    "delay": 0,
+    "t10": "shakerT10",
+    "ring": null,
+    "drift": false,
+    "top": 0,
+    "air": "shakerAir",
+    "airHz": 8000,
+    "tail": "shakerTail",
+    "beads": "shakerBeads"
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": "sixteenths",
+    "mono": false,
+    "treat": false,
+    "cost": "dear",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats.ts",
+    "note": "The sixteenth layer: a shaker, so it is a different timbre from the hat rather than a quieter copy of it, and the one of the three with a room send — seven tenths of the room's hat send.",
+    "notes": {
+      "grain": "SPARK-2: the shaker's own grain in the room's `hats` block (`shakerAir`, `shakerTail`, `shakerBeads`, nought in every table; `hat-grain.ts`): air past the lid, the tail after -10 dB, and beads in place of a share of the hiss. No upper ladder: a shaker is not metal."
+    }
+  }
+}

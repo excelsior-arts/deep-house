@@ -28,6 +28,10 @@ import type { V1Graph, V1Master } from './graph.ts';
 import type { Deck } from './deck.ts';
 import type { Settings } from './settings.ts';
 import { DEFAULT_SPACES } from './background-space.ts';
+import { ECHO_SEND } from './master.ts';
+import { STRUCK_AFTER } from './program.ts';
+import { HARMONIC_EDGE_AT_NOUGHT } from './voices/grain.ts';
+import { liveArmed } from './voices/live.ts';
 
 /** What a number in this description is in. `''` is a bare count or a ratio. */
 export type Unit = '' | 'db' | 'hz' | 'ratio' | 's' | 'ms' | 'x' | 'ch';
@@ -304,7 +308,7 @@ export function describeGraph(graph: V1Graph | null, settings: Settings, returns
       : `dotted eighth, fb ${r2(S.sends.delayFeedback)}`],
     ['reverb', 'REVERB', S.sends.reverbLevel, 'duck', `${r2(S.sends.reverbSeconds)} s hall, ${Math.round(S.sends.reverbLowHz)}–${Math.round(S.sends.reverbToneHz)} Hz`],
     ['room', 'ROOM', S.sends.roomLevel, 'bus:drums', `${r2(S.sends.roomSeconds)} s, ${Math.round(S.sends.roomPreDelay * 1000)} ms pre`],
-    ['hall', 'HALL', S.sends.hallLevel, 'duck', `${r2(S.sends.hallSeconds)} s, built on the first piano`],
+    ['hall', 'HALL', S.sends.hallLevel, 'duck', `${r2(S.sends.hallSeconds)} s, built on the first piano; a struck note's returns with the struck duck`],
   ];
   // **The two spatial returns are the program's, not the built graph's** (R56):
   // a theme whose events send to them has them whether or not there is a node
@@ -313,25 +317,30 @@ export function describeGraph(graph: V1Graph | null, settings: Settings, returns
   // the program asks for (`returnsOf`); with a graph, the graph built them for
   // exactly that program (`prepareReturns`).
   const wants = new Set(returns);
-  const hasReturn = (name: 'background' | 'immersed') => (graph
-    ? (name === 'background' ? graph.hasBackground() : graph.hasImmersed()) || wants.has(name)
+  const hasReturn = (name: 'background' | 'immersed' | 'echo') => (graph
+    ? (name === 'background' ? graph.hasBackground() : name === 'echo' ? graph.hasEcho() : graph.hasImmersed()) || wants.has(name)
     : wants.has(name));
   if (hasReturn('background')) SENDS.push(['background', 'BACKGROUND', BACKGROUND_SPACE.plateLevel, 'bus:drums',
     `${BACKGROUND_SPACE.seconds} s dark plate plus quiet echoes, ${BACKGROUND_SPACE.lowHz}–${BACKGROUND_SPACE.highHz} Hz; independent of kick ducking`]);
   if (hasReturn('immersed')) SENDS.push(['immersed', 'IMMERSED', IMMERSED_SPACE.plateLevel, 'bus:drums',
     `${IMMERSED_SPACE.seconds} s diffuse tail, ${IMMERSED_SPACE.lowHz}–${IMMERSED_SPACE.highHz} Hz; ${IMMERSED_SPACE.diffuseOnly ? 'echoes feed the convolver only' : 'echoes also reach the output'}; independent of kick ducking`]);
+  // The echo (round KV1): a part's own repeats, drawn where a program sends
+  // to it and nowhere else, like the two spaces above.
+  if (hasReturn('echo')) SENDS.push(['echo', 'ECHO', ECHO_SEND.level, 'duck', graph
+    ? `tape delay, ${Math.round(ECHO_SEND.timeBeats * graph.beat * 1000)} ms, fb ${r2(ECHO_SEND.feedback)}, ${ECHO_SEND.highpassHz}–${ECHO_SEND.lowpassHz} Hz in the loop`
+    : `tape delay, ${ECHO_SEND.timeBeats} beats, fb ${r2(ECHO_SEND.feedback)}`]);
   for (const [name, label, level, back, note] of SENDS) {
     nodes.push({
       id: `send:${name}`,
       label,
       kind: 'send',
       stage: 'sends',
-      made: graph ? (name === 'delay' ? 'delay line' : ['background', 'immersed'].includes(name) ? 'delay + convolver' : 'convolver') : '—',
+      made: graph ? (name === 'delay' ? 'delay line' : name === 'echo' ? 'tape delay' : ['background', 'immersed'].includes(name) ? 'delay + convolver' : 'convolver') : '—',
       readings: graph ? (name === 'background'
         ? [{ name: 'plate', value: db(level), unit: 'db' }, { name: 'echo', value: db(BACKGROUND_SPACE.echoLevel), unit: 'db' }]
         : [{ name: 'return', value: db(level), unit: 'db' }]) : [],
       state: !graph ? 'idle' : name === 'hall' && !hallOn ? 'gated'
-        : (name === 'background' && !graph.hasBackground()) || (name === 'immersed' && !graph.hasImmersed()) ? 'gated' : 'live',
+        : (name === 'background' && !graph.hasBackground()) || (name === 'immersed' && !graph.hasImmersed()) || (name === 'echo' && !graph.hasEcho()) ? 'gated' : 'live',
       // What it is, and that the level on it is the return's: a voice's send
       // amount is per note and is not a property of this box.
       note,
@@ -358,6 +367,17 @@ export function describeGraph(graph: V1Graph | null, settings: Settings, returns
   nodes.push(box('duckLow', 'DUCK LOW', 'stage', 'stage', g && g.duckLow, {
     note: `the bass under the kick, ${r2(S.sidechain.lowDepthDb ?? S.sidechain.depthDb)} dB`,
   }));
+  // The bass drive in parallel (round B1): a box only where the theme asks
+  // for one — the house's machine is the machine it was, box for box — read
+  // off the graph when there is one and off the settings when there is not.
+  const parallel = g ? !!g.bassDrive : !!(S.bass.parallel && S.bass.parallel.blend > 0);
+  if (parallel) {
+    const blend = S.bass.parallel?.blend ?? 0;
+    nodes.push(box('bassDrive', 'BASS DRIVE', 'stage', 'stage', g ? g.bassDrive!.input : null, {
+      note: `a driven copy of the bass under the clean one, at ${r2(20 * Math.log10(Math.max(1e-6, blend)))} dB`,
+      state: 'live',
+    }));
+  }
   nodes.push(box('bassBody', 'BASS BODY', 'stage', 'stage', g && g.push.body));
   nodes.push(box('bassComp', 'BASS COMP', 'stage', 'stage', g && g.bassComp));
   nodes.push(box('push', 'PUSH', 'stage', 'stage', g && g.push.wet, {
@@ -367,8 +387,37 @@ export function describeGraph(graph: V1Graph | null, settings: Settings, returns
     state: !g ? 'idle' : madeOf(g.glue) === 'gain' ? 'bypassed' : 'live',
     note: 'kick and bass as one instrument',
   }));
+  // The edge on the harmonic bus (round SPARK-1, a box since DESK-EDGE): a
+  // driven copy of the notes summed under them, read as the bass drive's is —
+  // a box where the graph built one, which while the desk is up is every
+  // theme (at nought where the room writes none), and off the settings where
+  // nothing is built. Its reading is the copy's level, the blend's own gain.
+  const edge = g ? !!g.harmonicEdge : (S.harmonicEdge?.blend ?? 0) > 0 || liveArmed();
+  if (edge) {
+    const E = S.harmonicEdge ?? HARMONIC_EDGE_AT_NOUGHT;
+    const at = E.blend > 0 ? `at ${r2(20 * Math.log10(E.blend))} dB` : 'at nought, built while the desk is up for a hand to bring in';
+    nodes.push(box('harmonicEdge', 'BUS EDGE', 'stage', 'stage', g ? g.harmonicEdge!.blend : null, {
+      note: `a driven copy of the notes under the clean bus, its harmonics kept between ${Math.round(E.floorHz)} and ${Math.round(E.toneHz)} Hz, ${at}`,
+      state: 'live',
+    }));
+  }
+  // The presence bell on the harmonic bus (round EQ-2): a box only where the
+  // theme asks for one, read as the bass drive's is.
+  const bell = g ? !!g.harmonicBell : !!(S.harmonicBell && S.harmonicBell.db);
+  if (bell) {
+    nodes.push(box('harmonicBell', 'BUS BELL', 'stage', 'stage', g ? g.harmonicBell : null, {
+      note: `the notes' presence, up to ${r2(S.harmonicBell?.db ?? 0)} dB at ${Math.round(S.harmonicBell?.hz ?? 0)} Hz as the bed leaves room, before the duck`,
+      state: 'live',
+    }));
+  }
   nodes.push(box('duck', 'DUCK', 'stage', 'stage', g && g.duck, {
-    note: `one ramp per kick, ${r2(S.sidechain.depthDb)} dB, minimum at ${Math.round(S.sidechain.minimumAt * 1000)} ms`,
+    // The struck voices' duck (round PIANO-2) is this box's second half: the
+    // same kick, a shallower dip after the strike, drawn as words and not as a
+    // box of its own, so the machine is the machine it was.
+    note: `one ramp per kick, ${r2(S.sidechain.depthDb)} dB, minimum at ${Math.round(S.sidechain.minimumAt * 1000)} ms`
+      + (S.sidechain.struckDepthDb != null
+        ? `; struck notes ${r2(S.sidechain.struckDepthDb)} dB, from ${Math.round((S.sidechain.struckAfter ?? STRUCK_AFTER) * 1000)} ms`
+        : ''),
   }));
   nodes.push(box('width', 'WIDTH', 'stage', 'stage', g && g.width, {
     note: `mid/side, breathing at ${r3(S.space.widthRateHz)} Hz`,
@@ -382,12 +431,19 @@ export function describeGraph(graph: V1Graph | null, settings: Settings, returns
 
   // ...and the wires, which are the connections `buildGraph` makes.
   edges.push({ from: 'bus:keys', to: 'bus:melodic', kind: 'signal', label: 'chorus' });
-  edges.push({ from: 'bus:melodic', to: 'duck', kind: 'signal' });
+  // the harmonic bus, through the edge and the bell where each is built, into the duck
+  const harmonicChain = ['bus:melodic', ...(edge ? ['harmonicEdge'] : []), ...(bell ? ['harmonicBell'] : []), 'duck'];
+  for (let i = 1; i < harmonicChain.length; i++) edges.push({ from: harmonicChain[i - 1]!, to: harmonicChain[i]!, kind: 'signal' });
   edges.push({ from: 'duck', to: 'width', kind: 'signal' });
   edges.push({ from: 'width', to: 'macro', kind: 'signal' });
   edges.push({ from: 'bus:drums', to: 'macro', kind: 'signal' });
   edges.push({ from: 'macro', to: 'themeOut', kind: 'signal', label: 'M/S low' });
-  edges.push({ from: 'bus:sub', to: 'bassBody', kind: 'signal' });
+  if (parallel) {
+    edges.push({ from: 'bus:sub', to: 'bassDrive', kind: 'signal' });
+    edges.push({ from: 'bassDrive', to: 'bassBody', kind: 'signal' });
+  } else {
+    edges.push({ from: 'bus:sub', to: 'bassBody', kind: 'signal' });
+  }
   edges.push({ from: 'bassBody', to: 'bassComp', kind: 'signal' });
   edges.push({ from: 'bassComp', to: 'duckLow', kind: 'signal' });
   edges.push({ from: 'duckLow', to: 'glue', kind: 'signal', label: 'HP' });

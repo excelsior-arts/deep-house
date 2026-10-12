@@ -225,7 +225,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -258,6 +258,12 @@
   "provenance": {
     "pattern": "Detroit techno: a minor-ninth chord stab struck on a syncopated pattern over the four, sixteenth hats, a clap on two and four — the soulful, string-and-keys side of techno",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars of stabs: struck on one, the a of one, three-and, then two-and and four in the second bar, voiced as a stacked ninth on a warm electric keyboard that rings a little. Sixteenth hats with the offbeat lifted. The strings that often double the stabs are the composer's own pad."
+    "note": "Two bars of stabs: struck on one, the a of one, three-and, then two-and and four in the second bar, voiced as a stacked ninth on a warm electric keyboard that rings a little. Sixteenth hats with the offbeat lifted. The strings that often double the stabs are the composer's own pad.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 2.6,
+      "syncopationZ": 2.2,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

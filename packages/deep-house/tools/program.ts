@@ -86,6 +86,7 @@ import { planTheme, scheduleTransition, MIX_DEFAULTS, STRATEGIES, DEFAULT_STRATE
 import { scheduleLine, paramOf } from '@deep-house/engine/master';
 import { compilePerformance, programOf } from '../src/performance.ts';
 import { settingsOf } from '@deep-house/engine/settings';
+import { ROWS, rowsThrough, soundLine } from '@deep-house/engine/voices';
 import { setLayout } from './setplan.ts';
 import { MASTERS, THEMES, SECTION, sectionOf, withSection } from './golden-plan.ts';
 
@@ -195,6 +196,10 @@ function recordingGraph(beat, sink) {
     },
     duck: { gain: recorder('duck.gain', sink) },
     duckLow: { gain: recorder('duckLow.gain', sink) },
+    // The struck voices' duck (round PIANO-2), beside the pads'.
+    struckDuck: { gain: recorder('struckDuck.gain', sink) },
+    // The harmonic bus's bell, keyed per section to the bed (round EQ-5).
+    harmonicBell: { gain: recorder('harmonicBell.gain', sink) },
     // The melodic bus's sweep stages (house-v2's `busSweeps`).
     sweep: Object.fromEntries(['hp', 'lp'].map((s) => [s, {
       cutoffHz: recorder(`sweep.${s}.cutoffHz`, sink),
@@ -258,6 +263,7 @@ function programOfTheme(master, n, strategy = DEFAULT_STRATEGY) {
 
   const onsets = events.map((e) => e.onset);
   settingsOfTheme.set(`${strategy}|${master}|${n}`, settingsHash(program));
+  soundsOfTheme.set(`${strategy}|${master}|${n}`, soundsHash(program));
   return {
     master,
     index: n,
@@ -313,6 +319,31 @@ const settingsOfTheme = new Map();
 export const settingsHash = (program) =>
   sha(exact({ settings: program.settings, duckShape: program.duckShape, development: program.development }));
 
+// **The sounds** (round R1): a voice that is a row over a topology
+// (`packages/engine/src/voices/sound.ts`) renders from the row's numbers — from
+// the settings' copy of them where the row names a block, which the line above
+// already hashes, and from the row alone where it does not, which nothing
+// hashed. So every theme carries a `sounds` line beside `settings`: the rows
+// its events name, each as its id, topology, revision, block and parameters,
+// hashed exactly. A changed row — a number, or its revision — moves it, as a
+// changed module's numbers moved `settings`. Beside `hash` and `settings` and
+// inside neither, so adding it moved no theme's hash; a section carries it from
+// the bless that adds it, and the diff reads it only where the saved line has it.
+//
+// **The rows an event renders through** (round SOUNDS-R3): its own, and where
+// its voice dispatches by timbre (`pad`, `keys`), the row its timbre names —
+// so a changed strings row or keyboard patch moves the themes that play it,
+// and only those. Sorted by id, as the voices' names were: a theme of voices
+// that do not dispatch hashes the list it always did.
+const soundsOfTheme = new Map();
+/** The `sounds` line of a theme: the rows its events render through, hashed exactly. */
+export const soundsHash = (program) => {
+  const ids = new Set();
+  for (const e of program.events) for (const r of rowsThrough(e.voice, e.p)) ids.add(r.id);
+  const rows = [...ids].sort().map((id) => soundLine(ROWS[id]));
+  return sha(exact(rows));
+};
+
 // --- one set's seams ---------------------------------------------------------
 //
 // The curves a hand-over writes are not a property of either theme: they are
@@ -344,7 +375,10 @@ export function seamProgram(master, themes, strategy = DEFAULT_STRATEGY, extra =
     clock: L.clock,
     startBeat: L.clock.beatAt(L.starts[i]),
     perBeat: L.perBeats[i],
-    graph: { buses: { sub: { dry: { gain: recorder(`deck${i}.sub.dry.gain`, sink) } } } },
+    // ...and, since round MIX-X2, the harmonic sum's seam gain, which the
+    // harmonic cross writes on both decks of a hand-over between unrelated
+    // keys, and since MIX-X4 the close it writes on the outgoing one.
+    graph: { buses: { sub: { dry: { gain: recorder(`deck${i}.sub.dry.gain`, sink) } } }, harmonic: { gain: recorder(`deck${i}.harmonic.gain`, sink) }, harmonicLp: { frequency: recorder(`deck${i}.harmonicLp.frequency`, sink) } },
     hp: { frequency: recorder(`deck${i}.hp.frequency`, sink) },
     lp: { frequency: recorder(`deck${i}.lp.frequency`, sink) },
     fader: { gain: recorder(`deck${i}.fader.gain`, sink) },
@@ -469,7 +503,7 @@ function digestOf(fresh, strategy = DEFAULT_STRATEGY) {
       firstOnset: p.counts.firstOnset,
       lastOnset: p.counts.lastOnset,
       hash: sha(canonical(p)),
-      ...(SETTINGS_LOCKED.includes(strategy) ? { settings: settingsOfTheme.get(`${strategy}|${m}|${p.index}`) } : {}),
+      ...(SETTINGS_LOCKED.includes(strategy) ? { settings: settingsOfTheme.get(`${strategy}|${m}|${p.index}`), sounds: soundsOfTheme.get(`${strategy}|${m}|${p.index}`) } : {}),
     }));
     const s = fresh.sets[m];
     sets[m] = { seams: s.counts.seams, points: s.counts.points, hash: sha(canonical(s)) };
@@ -480,7 +514,8 @@ function digestOf(fresh, strategy = DEFAULT_STRATEGY) {
       'every automation point the graph is given, the sidechain, the trim and the routing — plus one line per set for the seam curves. ' +
       '`masters` and `sets` are the default strategy, house-v1, which is the record; every other strategy is a section of its own under `strategies`. ' +
       'Written by tools/program.ts --bless; checked by --check. The golden digest locks the plan; this locks what the plan becomes.' +
-      (SETTINGS_LOCKED.includes(strategy) ? ' `settings`: a SHA-256 of what the voices render with — the resolved settings, the duck shape and the stage\'s rows — beside `hash` and not in it.' : ''),
+      (SETTINGS_LOCKED.includes(strategy) ? ' `settings`: a SHA-256 of what the voices render with — the resolved settings, the duck shape and the stage\'s rows — beside `hash` and not in it.' : '') +
+      (SETTINGS_LOCKED.includes(strategy) ? ' `sounds`: a SHA-256 of the sound rows the theme\'s voices render from — id, topology, revision, block and parameters — beside both.' : ''),
     strategy,
     masters,
     sets,
@@ -537,7 +572,8 @@ function digestDiff(saved, fresh) {
     if (!a[m]) return `master seed ${m} is not in the digest at all`;
     if (a[m].length !== b[m].length) return `master seed ${m}: ${a[m].length} themes in the digest, ${b[m].length} now`;
     for (let i = 0; i < b[m].length; i++) {
-      for (const k of ['seed', 'events', 'automation', 'duck', 'trimDb', 'firstOnset', 'lastOnset', 'hash', ...('settings' in b[m][i] ? ['settings'] : [])]) {
+      // `sounds` is read where the saved line carries it: a section carries it from the bless that adds it (round R1).
+      for (const k of ['seed', 'events', 'automation', 'duck', 'trimDb', 'firstOnset', 'lastOnset', 'hash', ...('settings' in b[m][i] ? ['settings'] : []), ...('sounds' in a[m][i] ? ['sounds'] : [])]) {
         if (a[m][i][k] !== b[m][i][k])
           return `master seed ${m}, theme ${i}: ${k} ${JSON.stringify(a[m][i][k])} -> ${JSON.stringify(b[m][i][k])}`;
       }
@@ -576,6 +612,26 @@ function firstDiff(a, b, at = '') {
     if (d) return d;
   }
   return null;
+}
+
+// How much of the digest moved, as a count a bless can state (V1-1, 10-02:
+// house-v1's section is blessed with its counts like house-v2's, so the first
+// line that moved is not enough on its own): the theme programs and the sets
+// whose hash is not the saved one, or which the saved section does not hold.
+function movedCount(saved, fresh) {
+  const a = (saved && saved.masters) || {}, sa = (saved && saved.sets) || {};
+  let moved = 0, total = 0, setsMoved = 0, sets = 0;
+  for (const m of Object.keys(fresh.masters)) {
+    fresh.masters[m].forEach((p, i) => {
+      total++;
+      if (!a[m] || !a[m][i] || a[m][i].hash !== p.hash) moved++;
+    });
+  }
+  for (const m of Object.keys(fresh.sets)) {
+    sets++;
+    if (!sa[m] || sa[m].hash !== fresh.sets[m].hash) setsMoved++;
+  }
+  return `${moved} of ${total} theme programs, ${setsMoved} of ${sets} sets`;
 }
 
 const totals = (x) => {
@@ -649,12 +705,15 @@ if (mode === '--check') {
     console.error('Restore it from git, or run `node tools/program.ts --bless` if the sound is where Eugene wants it.');
     process.exit(2);
   }
-  const digest = digestDiff(sectionOf(JSON.parse(fs.readFileSync(DIGEST, 'utf8')), wanted), digestOf(fresh, wanted));
+  const section = sectionOf(JSON.parse(fs.readFileSync(DIGEST, 'utf8')), wanted);
+  const digestNow = digestOf(fresh, wanted);
+  const digest = digestDiff(section, digestNow);
   // The full program is a scratch file and may not be here. When it is, it
   // turns "the hash moved" into the event and the field that moved.
   const detail = fs.existsSync(FILE) ? firstDiff(JSON.parse(fs.readFileSync(FILE, 'utf8')), fresh, 'program') : null;
   if (digest || detail) {
     console.error(`the program has moved:\n  ${digest || 'the digest agrees, but the full program does not'}`);
+    if (digest) console.error(`  moved: ${movedCount(section, digestNow)}`);
     if (detail) console.error(`  ${detail}`);
     else if (digest) console.error('  (no full program under tmp/golden/; --bless one on a known-good checkout to read the field that moved)');
     console.error('\nIf that is a deliberate sound change and Eugene has heard it: node tools/program.ts --bless');

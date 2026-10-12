@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/swung-sixteenths",
+  "revision": 1,
+  "name": "Swung sixteenths over the two-step",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            10,
+            16,
+            26
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            3,
+            4,
+            6,
+            8,
+            9,
+            10,
+            12,
+            14,
+            15,
+            16,
+            18,
+            19,
+            20,
+            22,
+            23,
+            24,
+            25,
+            26,
+            28,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            0.3
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.62,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              1,
+              1
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.333,
+            0.334
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            1.5,
+            1.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                4
+              ],
+              "beats": [
+                3.25,
+                3.5,
+                1.25
+              ],
+              "holds": [
+                3,
+                3.25,
+                1
+              ],
+              "accents": [
+                1,
+                0.9,
+                0.7
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.75,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:706+84",
+    "bars": "4\u201360",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "drum beat",
+    "pattern": "the two-step under sixteenth hats swung hard (0.62), ghost hats on the a of each beat, a plain snare on two and four, the sub held for most of a bar with a pop to the fifth at its end (the cut pops the octave, past the register)",
+    "note": "The one swung tune of the mix and its lightest (more air, -10.4 LUFS); a one-bar drop-out every sixteen bars (bars 19, 35, 51), which the form plays as a sub-section.",
+    "gap": "none for the beat; the drop-out every sixteen is the fast broken place's `drop-out` at the sixteen-bar lines",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -0.6,
+      "syncopationZ": -2.1,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    },
+    "admitted": "admitted 2026-10-02 on the review of the mined links (round R1, part 4) at the weight its audited standing gives",
+    "weighed": "round DNB-3 (2026-10-05): 0.5 -> 0.75, liquid first at the fast broken places"
+  }
+}

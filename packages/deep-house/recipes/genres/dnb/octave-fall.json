@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/octave-fall",
+  "revision": 4,
+  "name": "The fall from the octave",
+  "scope": "motif",
+  "applies": "bass",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "fall",
+      "intervals": {
+        "steps": [
+          0.2,
+          0.2
+        ],
+        "leaps": [
+          0.8,
+          0.8
+        ]
+      },
+      "cell": {
+        "beats": [
+          8,
+          8
+        ]
+      },
+      "onGrid": [
+        1,
+        1
+      ],
+      "range": {
+        "semitones": [
+          15,
+          15
+        ]
+      },
+      "density": [
+        3,
+        3
+      ],
+      "returns": {
+        "bars": [
+          2,
+          2
+        ]
+      },
+      "paths": [
+        {
+          "degrees": [
+            0,
+            9,
+            7,
+            6,
+            4,
+            0
+          ],
+          "beats": [
+            3,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "holds": [
+            2.75,
+            0.75,
+            0.75,
+            0.75,
+            0.75,
+            0.75
+          ],
+          "accents": [
+            1,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85
+          ]
+        }
+      ]
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:790+135",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "bass riff",
+    "note": "Up an octave and a third and back to the root by steps of the scale, once in two bars, over a held root. Revision 4 (round DNB-7): revision 1 again — round DNB-6 had given it a riff grammar a place played the bass by; the place now plays a glide line (dnb/glide-*), and the row waits among the candidates as it did.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.1,
+      "syncopationZ": -1.6,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md §5); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    }
+  }
+}

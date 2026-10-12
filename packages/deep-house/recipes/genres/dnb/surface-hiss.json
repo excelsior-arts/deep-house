@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/surface-hiss",
+  "revision": 1,
+  "name": "A thin hiss under the exposed passages",
+  "scope": "surface",
+  "applies": "texture",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "surface": {
+      "voice": "vinylBed",
+      "present": {
+        "exposed": -3,
+        "intro": -7,
+        "outro": -9
+      },
+      "segmentBars": 8,
+      "leastBars": 8,
+      "level": [
+        [
+          0,
+          -6
+        ],
+        [
+          0.5,
+          0
+        ],
+        [
+          1,
+          -6
+        ]
+      ],
+      "bright": [
+        [
+          0,
+          0.8
+        ],
+        [
+          0.5,
+          1.2
+        ],
+        [
+          1,
+          0.8
+        ]
+      ],
+      "tailS": 2.5,
+      "midi": 72,
+      "vel": 0.7,
+      "reverb": 0.25,
+      "note": "The vinyl bed itself, brighter and thinner than the dark air, a little lower, its arc flatter: a surface more than a space. Under the exposed passages, lower under an intro and an outro, absent in every full passage; events of eight bars laid end to end."
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's N1 on the vinyl bed's own row: a thinner, brighter surface."
+  }
+}

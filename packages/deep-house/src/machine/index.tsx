@@ -32,6 +32,7 @@ import type { MachineStore } from './store.ts';
 import { SHEET } from './look.ts';
 import { note } from '../ledger.ts';
 import { deskFor } from './desk.ts';
+import { armLive } from '@deep-house/engine/device';
 import type { Control } from '../control.ts';
 
 /** What the page holds on to while the view is open. */
@@ -78,6 +79,10 @@ export function openMachineView(control: Control, exit?: () => void): MachineVie
   const homeBefore = stage ? stage.nextSibling : null;
 
   const store = makeStore(control);
+  // The desk is up (PLAN-DESK D1b): a voice builds at nought a layer its row
+  // leaves out (the strings' breath), so a hand bringing it in is heard on the
+  // chord that is sounding. Away from the view nothing is built for it.
+  armLive(true);
   const root: Root = createRoot(host);
 
   // Everything the open put on the page, taken off again: the close, and the
@@ -93,6 +98,7 @@ export function openMachineView(control: Control, exit?: () => void): MachineVie
     // What was set in the view goes with it: the set plays on clean, and the
     // master at the room.
     deskFor(control).release();
+    armLive(false);
     control.resetSources();
     // The ring goes home before React unmounts the panel it is standing in,
     // or React would take the sigil away with the panel.
@@ -128,6 +134,8 @@ export function openMachineView(control: Control, exit?: () => void): MachineVie
   }
   // The private tier's CAPTURE block, into the left column's slot above ENGINE (`./private/record-tools.tsx`): a dev or preview build only, and nothing at all in a release.
   if (typeof __PRIVATE_TOOLS__ !== 'undefined' && __PRIVATE_TOOLS__) for (const load of Object.values(import.meta.glob<{ mountRecordTools(c: Control, host: HTMLElement): void }>('./private/record-tools.tsx'))) void load().then((m) => m.mountRecordTools(control, host));
+  // and its DRAW block, under it (`./private/draw-tools.tsx`, round D1): the reach of the library draw, the same guard.
+  if (typeof __PRIVATE_TOOLS__ !== 'undefined' && __PRIVATE_TOOLS__) for (const load of Object.values(import.meta.glob<{ mountDrawTools(c: Control, host: HTMLElement): void }>('./private/draw-tools.tsx'))) void load().then((m) => m.mountDrawTools(control, host));
   const facts = store.facts();
   note('transport', 'the machine view was opened', {
     fps: facts.fps, taps: facts.taps, reduced: facts.reduced, coarse: facts.coarse,

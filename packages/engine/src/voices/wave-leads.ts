@@ -31,13 +31,18 @@ import type { VoiceOut } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, num, CENTS, DB, HZ, LEVEL, LFO_HZ, RATIO, SECONDS, UNIT, WAIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 /**
  * The pulse: a sawtooth pair through a comb whose delay is a fraction of the
  * note's own period, so the notch tracks the pitch rather than standing still
  * as a formant. `saw-lead.ts` carries the arithmetic in full.
  */
-export function pulseLead(
+function pulseLead(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -45,7 +50,7 @@ export function pulseLead(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.pulseLead;
+  const S = patchOf(settings, row, PULSE);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.05, p.dur ?? 0.3);
   const vel = p.vel ?? 1;
@@ -129,7 +134,8 @@ export function pulseLead(
  * The triangle: odd harmonics at 1/n², a fold that puts some back when a note
  * is played hard, and a vibrato that arrives.
  */
-export function triLead(
+function triLead(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -137,7 +143,7 @@ export function triLead(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.triLead;
+  const S = patchOf(settings, row, TRI);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.05, p.dur ?? 0.4);
   const vel = p.vel ?? 1;
@@ -228,51 +234,68 @@ function foldCurve(n = 4096): Float32Array<ArrayBuffer> {
   return c;
 }
 
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const PULSE_LEAD_TIMBRES = {
-  pulseLead: { family: 'harmonic', struck: false, hold: 0.5, brightnessHz: 1800, loudnessDb: -12 },
-};
-export const TRI_LEAD_TIMBRES = {
-  triLead: { family: 'harmonic', struck: false, hold: 0.6, brightnessHz: 2400, loudnessDb: -12 },
-};
+/** What a pulse lead row carries: exactly these, each in its range (`schema.ts`). */
+const PULSE = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  detuneCents: CENTS,
+  pwmWidth: UNIT,
+  pwmDepth: UNIT,
+  pwmHz: LFO_HZ,
+  pwmMix: UNIT,
+  cutoff: HZ,
+  envMult: RATIO,
+  envTime: SECONDS,
+  q: DB,
+  veloOpen: num(0, 8),
+  hpHz: HZ,
+  subLevel: LEVEL,
+  spread: UNIT,
+  trim: LEVEL,
+});
 
-export const pulseLeadDescriptor: Descriptor = {
-  name: 'pulseLead',
+/**
+ * The pulse lead topology: a saw pair each combed by its own delay at a
+ * fraction of the note's period, the width wandering, and a square an octave
+ * under it (`sounds/keyboard/pulseLead.json` since round R2).
+ */
+export const PULSE_LEAD: Topology = {
+  id: 'pulse-lead',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['melody', 'figure'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: pulseLead,
-  timbres: PULSE_LEAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PULSE,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => pulseLead(row, ctx, out, time, p, settings),
 };
 
-export const triLeadDescriptor: Descriptor = {
-  name: 'triLead',
+/** What a triangle lead row carries: exactly these, each in its range (`schema.ts`). */
+const TRI = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  detuneCents: CENTS,
+  cutoff: HZ,
+  q: DB,
+  veloOpen: num(0, 8),
+  /** how hard the folder is driven, over one, per unit of velocity */
+  fold: num(0, 16),
+  vibHz: LFO_HZ,
+  vibCents: CENTS,
+  vibDelay: WAIT,
+  vibRise: SECONDS,
+  spread: UNIT,
+  trim: LEVEL,
+});
+
+/**
+ * The triangle lead topology: a triangle pair into a wave folder that puts
+ * harmonics back on a hard note, and a vibrato that arrives
+ * (`sounds/keyboard/triLead.json` since round R2).
+ */
+export const TRI_LEAD: Topology = {
+  id: 'tri-lead',
   cost: 'mid',
-  family: 'keyboard',
-  roles: ['melody', 'figure'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: triLead,
-  timbres: TRI_LEAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: TRI,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => triLead(row, ctx, out, time, p, settings),
 };
-
-export const descriptors: Descriptor[] = [pulseLeadDescriptor, triLeadDescriptor];
-export default descriptors;

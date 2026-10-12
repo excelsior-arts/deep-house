@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "clap",
+  "revision": 2,
+  "topology": "clap",
+  "block": "clap",
+  "parameters": {
+    "on": true,
+    "t20": 0.036,
+    "attack": 0.004,
+    "lidHz": 12000,
+    "crack": 0,
+    "crackHz": 3200,
+    "crackDecay": 0.0015
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": "clap",
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "clap": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.015,
+        "brightnessHz": 2200,
+        "loudnessDb": -15.8
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "clap.ts",
+    "notes": {
+      "t20": "MEASURED: -20 dB in 36 ms",
+      "attack": "A clap opens in a few milliseconds, not in one. Under 3 ms the ear stops hearing an attack and starts hearing an edge.",
+      "crack": "SPARK-2: each hand's slap, band-passed at `crackHz` and falling an e-fold in `crackDecay`, at `crack` of the hand. The references' claps stand a decibel over their body in the first 6 ms, ours stood three under. Nought here builds nothing; a place voices the block."
+    }
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

@@ -76,6 +76,8 @@
 
 import { INSTRUMENTS } from '@deep-house/engine/params';
 import { CORPUS } from '../corpus.ts';
+import { SECTION_LIBRARY } from '../recipes.ts';
+import { grammarFromRows } from '../sections.ts';
 import signatures from './deep-house-signatures.json' with { type: 'json' };
 import { resolveSettings } from '@deep-house/engine/settings';
 import {
@@ -83,6 +85,32 @@ import {
 } from '../catalogue.ts';
 
 import type { Lane, Style, Table } from '@deep-house/engine/style';
+import type { EqProfile } from '@deep-house/engine/master';
+
+// --- the master's tone, stated as a profile ---------------------------------
+//
+// **house-v1's own EQ** (round E1, Eugene 10-01: *"extract EQ as a parameter
+// to the engine; apply to v1 explicitly"*). The five gains of the master's tone
+// stages (`EqProfile`, packages/engine/src/master.ts) exactly as the record has
+// played them since the balance passes: the provenance of each number is the
+// comment at its field in `base.master` below, which reads it from here. The
+// corners and widths beside them there are the range and are not a profile's.
+export const EQ_V1: Readonly<EqProfile> = Object.freeze({
+  lowShelfDb: -2.0,
+  lowMidDb: 7.5,
+  midDb: 5.5,
+  presenceDb: 5.5,
+  airDb: 1.8,
+});
+/**
+ * ...and the two measured rooms' own, which move presence and air and leave
+ * the other three at the base's: each is what its benchmark minute measured
+ * (the rooms below carry them as their `master` block).
+ */
+export const EQ_V1_ROOMS: Readonly<Record<'sub' | 'growl', Readonly<Partial<EqProfile>>>> = Object.freeze({
+  sub: Object.freeze({ presenceDb: 4.2, airDb: 1.0 }),
+  growl: Object.freeze({ presenceDb: 4.2, airDb: 1.5 }),
+});
 
 // --- the table a room is resolved against -----------------------------------
 //
@@ -317,6 +345,13 @@ export const base = {
     attack: 0.005,
     minimumAt: 0.054,
     recoverBy: 0.95, // fraction of a beat
+    // The struck voices' own (round PIANO-2): the duck's depth follows the
+    // voice's envelope. A held chord pumps; a piano note, a pluck, a stab
+    // takes three decibels, after its hammer -- on the pads' depth a sparse
+    // struck motif came out five to six decibels apart note to note by where
+    // in the bar it fell, which is heard as a fault and not as a groove.
+    struckDepthDb: -3.0,
+    struckAfter: 0.018,
   },
 
   master: {
@@ -430,12 +465,17 @@ export const base = {
     // Chromium managed with it in. Two decibels of glue is not worth a click
     // on every beat in a third of browsers.
     glue: { threshold: -10, knee: 10, ratio: 1, attack: 0.025, release: 0.35, drive: 0 },
-    airHz: 8500, // a high shelf on the master so the hats read as hats
-    airDb: 1.8,
+    // A high shelf on the master so the hats read as hats. Round EQ-3 moved its
+    // corner from 8500 to 12000 with the hats' lids (`notes/rounds/eq-3.md`):
+    // at 8.5 kHz it lifted the band the lids (7.8-9.5 kHz) had already taken
+    // off, and the long takes read 0.00-0.6 % above 8 kHz. The corner is the
+    // shared mix; each engine's gain is its own profile's (`EQ_V1`, `EQ_V2`).
+    airHz: 12000,
+    airDb: EQ_V1.airDb,
     // A presence lift where the reference sets carry more energy than a
     // synthesised mix naturally does: hats, clap body, chord harmonics.
     presenceHz: 2600,
-    presenceDb: 5.5,
+    presenceDb: EQ_V1.presenceDb,
     presenceQ: 0.6, // wide: the hole runs from 1.6 kHz to 4 kHz, not one spot
     // A broad lift where the generator has least to say. MEASURED against the
     // three sets' long-term spectrum: 120-250 Hz sat 10 dB under them, because
@@ -444,7 +484,7 @@ export const base = {
     // The sources there are thin by construction, so this is the one place a
     // broad master EQ is the honest tool rather than a patch.
     lowMidHz: 160,
-    lowMidDb: 7.5,
+    lowMidDb: EQ_V1.lowMidDb,
     lowMidQ: 0.62,
     // ...and the shelf that keeps the sub off it. A peaking filter has skirts:
     // +7.5 dB at 160 Hz with Q 0.62 is still +2.7 dB at 62 Hz and +1.2 dB at
@@ -459,7 +499,7 @@ export const base = {
     // a tenth of a decibel, and the sub band comes back to where it sat before
     // the bell was widened.
     lowShelfHz: 70,
-    lowShelfDb: -2.0,
+    lowShelfDb: EQ_V1.lowShelfDb,
     // The hole this round measured. Against the three sets' long-term
     // spectrum, averaged over five 32-bar windows in three themes, 500 Hz to
     // 2 kHz sits 15-22 dB under them and 2.5 kHz 8 dB under, while 4-8 kHz is
@@ -473,7 +513,7 @@ export const base = {
     // third theme went 6 dB *over* the sets there. Higher and a little
     // narrower puts the lift where every theme measured short.
     midHz: 1100,
-    midDb: 5.5,
+    midDb: EQ_V1.midDb,
     midQ: 0.55,
     // MEASURED: a breakdown lifts the pad and midrange by +1 to +1.4 dB.
     breakdownLiftDb: 1.4,
@@ -689,11 +729,13 @@ export const rooms = {
         // the -11.0 dB of 80-160 Hz the minute measures.
         bass: { drive: 0.14, cutoff: 250, triangle: 0.015, octave: 0.035, even: 0.1, bodyDb: 2.0 },
         register: { subCenter: 31 },
-        hats: { closedT10: 0.085, shakerT10: 0.09, metalClosed: 0.45, lidHz: 7800 },
+        // The lid 7800 -> 11000 (round EQ-3: every hat lid times 1.41, the room
+        // keeping its step under the base's).
+        hats: { closedT10: 0.085, shakerT10: 0.09, metalClosed: 0.45, lidHz: 11000 },
         clap: { on: false },
         sidechain: { depthDb: -19.5, minimumAt: 0.055, recoverBy: 0.94 },
-        levels: { sub: -11.0, hatClosed: -8.0, shaker: -4.0, clap: -60, keys: -14.5, pad: -9.5, piano: -11.5 },
-        master: { presenceDb: 4.2, airDb: 1.0 },
+        levels: { sub: -11.0, hatClosed: -8.0, shaker: -4.0, clap: -60, keys: -14.5, pad: -9.5, piano: -15.5 },
+        master: { ...EQ_V1_ROOMS.sub },
         groove: { openHatChance: 0 },
       },
       shape: {
@@ -738,11 +780,12 @@ export const rooms = {
         // shade richer than `sub` and nowhere near reedy.
         bass: { drive: 0.2, cutoff: 420, triangle: 0.025, octave: 0.045, even: 0.15, bodyDb: 2.5 },
         register: { subCenter: 28 },
-        hats: { closedT10: 0.021, metalClosed: 0.6, lidHz: 8200 },
+        // The lid 8200 -> 11600 (round EQ-3).
+        hats: { closedT10: 0.021, metalClosed: 0.6, lidHz: 11600 },
         clap: { on: true, t20: 0.036 },
         sidechain: { depthDb: -15.1, minimumAt: 0.054, recoverBy: 0.97 },
-        levels: { sub: -12.0, hatClosed: -3.5, shaker: -60, clap: -11.5, keys: -9.5, pad: -6.0, piano: -8.5 },
-        master: { presenceDb: 4.2, airDb: 1.5 },
+        levels: { sub: -12.0, hatClosed: -3.5, shaker: -60, clap: -11.5, keys: -9.5, pad: -6.0, piano: -12.5 },
+        master: { ...EQ_V1_ROOMS.growl },
         groove: { openHatChance: 0 },
       },
       shape: {
@@ -833,78 +876,34 @@ export const lanes: Lane[] = [
 // has a grammar with two keys in it.
 const GATES = lanes.filter((l): l is Lane & { gate: string } => !!l.gate).map((l) => l.gate);
 
-const FULL = Object.fromEntries(GATES.map((l) => [l, true] as const));
-const NONE = Object.fromEntries(GATES.map((l) => [l, false] as const));
+// **Since round T2 the kinds are rows** (`recipes/sections/`, one per kind at
+// the house; `src/sections.ts` is the mechanism, PLAN-TREATMENTS §3 step 4):
+// the layer pattern by phrase, the floor, what the kind admits and its glue
+// flags are each row's, and what stays here is what a row may not name — the
+// kind's word, and its macro filter in hertz — and the map from the corpus's
+// labels to the kinds. The grammar is built from the rows once, here; a theme
+// away from the house may play another row of a kind where its place prefers
+// one (`deep-house-places.ts` `SECTIONS`, drawn in `generator.ts`).
+const SECTION_WORDS: Readonly<Record<string, { label: string; filter: number[] }>> = Object.freeze({
+  intro: { label: 'intro', filter: [700, 5000] },
+  // MEASURED: a build is a filter sweep in 64-83% of cases; the high band
+  // rises in only half of them, so the noise riser is optional here.
+  build: { label: 'build', filter: [2600, 15000] },
+  main: { label: 'main groove', filter: [15000, 15000] },
+  breakdown: { label: 'breakdown', filter: [900, 11000] },
+  drop: { label: 'drop', filter: [15000, 15000] },
+  outro: { label: 'outro', filter: [14000, 800] },
+});
 
-function L(over: Record<string, boolean>) {
-  return { ...NONE, ...over };
-}
-
-export const sections = {
-  // Layers per phrase within a section. `i` is the phrase index inside the
-  // section, `n` how many phrases it has.
-  kinds: {
-    intro: {
-      label: 'intro',
-      layers: (i: number, n: number) =>
-        i === 0 && n > 1
-          ? L({ kick: true, hatClosed: true })
-          : L({ kick: true, hatClosed: true, hatOpen: true, clap: true, pad: true }),
-      filter: [700, 5000],
-    },
-    build: {
-      label: 'build',
-      // MEASURED: a build is a filter sweep in 64-83% of cases; the high band
-      // rises in only half of them, so the noise riser is optional here.
-      layers: (i: number, n: number) =>
-        i < n - 1
-          ? L({ kick: true, hatClosed: true, hatOpen: true, clap: true, bass: true, pad: true })
-          : L({ ...FULL, sixteenths: false }),
-      filter: [2600, 15000],
-      riserLast: 0,
-    },
-    main: {
-      label: 'main groove',
-      layers: () => L(FULL),
-      filter: [15000, 15000],
-    },
-    breakdown: {
-      label: 'breakdown',
-      layers: (i: number, n: number) =>
-        i === 0
-          ? L({ pad: true, keys: true, hatClosed: true })
-          : L({ pad: true, keys: true, hatClosed: true, sixteenths: true, bass: true }),
-      filter: [900, 11000],
-      sweepFirst: true,
-      riserLast: 4,
-      // MEASURED: the harmonic layer gets louder when the kick leaves.
-      lift: true,
-    },
-    drop: {
-      label: 'drop',
-      layers: () => L(FULL),
-      filter: [15000, 15000],
-      impactFirst: true,
-    },
-    outro: {
-      label: 'outro',
-      layers: (i: number, n: number) =>
-        i < n - 1
-          ? L({ kick: true, hatClosed: true, hatOpen: true, clap: true, bass: true, pad: true })
-          : L({ kick: true, hatClosed: true, pad: true }),
-      filter: [14000, 800],
-    },
-  },
-
-  labelToKind: {
-    intro: 'intro',
-    groove: 'main',
-    build: 'build',
-    breakdown: 'breakdown',
-    drop: 'drop',
-    outro: 'outro',
-  },
-};
+// the whole library: the grammar takes each kind's one row at a weight (the rows at nought are the places' to prefer)
+export const sections = grammarFromRows(SECTION_LIBRARY, SECTION_WORDS, GATES, {
+  intro: 'intro',
+  groove: 'main',
+  build: 'build',
+  breakdown: 'breakdown',
+  drop: 'drop',
+  outro: 'outro',
+});
 
 // --- the sound stage --------------------------------------------------------
 //
@@ -1167,6 +1166,44 @@ export const set = {
   tempoGlideBars: 16,
   // Optional and off: the references do not mix in key.
   harmonicMixing: false,
+  // **The harmonic cross is short, the rhythmic cross is long** (round MIX-X2,
+  // Eugene 10-02: *"on mixing tracks that change the key ... for a significant
+  // time — 4–6 s — users may experience overlaid voices from different
+  // keys"*): between two keys that share fewer than six notes of seven, the
+  // outgoing pads and keys fade over the four bars before the swap and the
+  // arriving ones come in over the bar before it; related keys — a fifth
+  // either way, the same root in the other mode — keep the record's blend.
+  // The curves are `seamCurves` in `src/set-plan.ts`; the gain they move is
+  // the engine's `harmonic.gain`, after the melodic bus. It is mixing, not
+  // composition, so it is both engines' (Eugene 10-02: *"v1 was only locked
+  // for general compose and sound; mixing and other improvements could go to
+  // both engines"*), and house-v1's seam locks were re-blessed for it.
+  // `lpHz` (round MIX-X4): the outgoing harmony's low-pass closes from open
+  // at the fade's start to this where the cross begins, so the pads lose
+  // their top as they lose their level and are dull when the new chords come
+  // in; it is the close the record's own deck filter makes over its last two
+  // bars (`outgoingLpHz`, 520), a little higher, on the harmony alone and
+  // bars sooner.
+  harmonicCross: { fadeBars: 4, crossBars: 1, related: 6, lpHz: 700 },
+  // **The hand's hand-over in seconds** (round MIX-X3; Eugene 10-02: a
+  // planned seam may blend for a minute on the slow side — *"a feature as long
+  // as mixing is done right"* — but a bird move is a reply to a hand, and there
+  // the wait is UX). `swapAfterBars` and `harmonicCross` above are bars of the
+  // outgoing theme, and at 49 BPM eight bars is 39 s to the swap and a four-bar
+  // fade is 20 s; at 104 the same bars are 18 s and 9 s. A seam a hand asked
+  // for takes these instead, converted to bars at the tempo the blend is
+  // played at and rounded to the bar (`handSeamBars` in performance.ts), never
+  // under a bar for the swap and the cross, the blend twice the swap and never
+  // under two bars; planned seams and the tempo rules stay in bars.
+  //
+  //   BPM   bar     swap        fade       cross     blend
+  //    49   4.90 s  3 = 14.7 s  2 = 9.8 s  1 = 4.9 s  6 = 29 s
+  //    60   4.00 s  4 = 16.0 s  2 = 8.0 s  1 = 4.0 s  8 = 32 s
+  //    88   2.73 s  5 = 13.6 s  3 = 8.2 s  1 = 2.7 s  10 = 27 s
+  //   104   2.31 s  6 = 13.8 s  3 = 6.9 s  1 = 2.3 s  12 = 28 s
+  //   126   1.90 s  7 = 13.3 s  4 = 7.6 s  1 = 1.9 s  14 = 27 s
+  //   169   1.42 s  10 = 14.2 s 6 = 8.5 s  1 = 1.4 s  20 = 28 s
+  handSeam: { swapSeconds: 14, fadeSeconds: 8, crossSeconds: 2 },
   // Which hand-over groups a seam cuts holes in. They are the names the
   // *program* puts on an event — `pe.gap`, which a voice gets from the bus its
   // descriptor lands it on — so the rule is stated once, here, where the rest

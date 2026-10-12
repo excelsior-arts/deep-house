@@ -11,7 +11,7 @@ import { resolveSettings } from '../src/settings.ts';
 import { makeEffect, BY_ID } from '../src/effects/index.ts';
 import { insert } from '../src/voices/treat.ts';
 import { holdStrings } from '../src/voices/strings.ts';
-import { formantPad } from '../src/voices/formant-pad.ts';
+import { BY_NAME } from '../src/voices/index.ts';
 import { knobScale } from '../src/voices/descriptor.ts';
 import { tailFor } from '../src/effects/tape-delay.ts';
 import { gateCurve, gateCurves } from '../src/effects/gate.ts';
@@ -118,7 +118,7 @@ test('a formant pad note with a tilt outside its table plays, and does not throw
   for (const tilt of [5, 0, -1, NaN, null]) {
     const ctx = standin();
     const out = { dry: ctx.createGain(), delay: ctx.createGain(), reverb: ctx.createGain(), room: ctx.createGain() };
-    assert.doesNotThrow(() => formantPad(ctx as unknown as BaseAudioContext, out as never, 0.1, { midi: 60, dur: 1, sourceTilt: tilt }, settings));
+    assert.doesNotThrow(() => BY_NAME.formantPad.render(ctx as unknown as BaseAudioContext, out as never, 0.1, { midi: 60, dur: 1, sourceTilt: tilt }, settings));
   }
 });
 
@@ -188,7 +188,7 @@ function tapsGraph(level: number, settings: unknown) {
   };
   const out = { ...node(), context: ctx };
   const buses = Object.fromEntries(['kick', 'sub', 'drums', 'melodic', 'keys'].map((k) => [k, { dry: node() }]));
-  const graph = { out, buses, nodes: { chain: { out: node(), limiterPort: null, settings } } };
+  const graph = { out, buses, hasStruck: () => false, nodes: { chain: { out: node(), limiterPort: null, settings } } };
   return { graph, connected };
 }
 
@@ -207,4 +207,3 @@ test('a failed attach leaves no analyser hung on the graph (R86)', () => {
   assert.throws(() => attachTaps(graph as never));
   assert.equal(connected.size, 0, `${connected.size} analysers left connected`);
 });
-

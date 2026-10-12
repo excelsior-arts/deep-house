@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/broken-half-time",
+  "revision": 1,
+  "name": "Broken half time",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            2,
+            4,
+            6,
+            10,
+            14,
+            16,
+            20,
+            22,
+            24,
+            26
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            2,
+            4,
+            8,
+            11,
+            14,
+            16,
+            18,
+            20,
+            24,
+            26,
+            29,
+            30
+          ],
+          "accents": [
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            25,
+            26,
+            28,
+            30
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "arch",
+          "intervals": {
+            "steps": [
+              0.666,
+              0.667
+            ],
+            "leaps": [
+              0.333,
+              0.334
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.25,
+            0.25
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                1,
+                0,
+                -3
+              ],
+              "beats": [
+                2.5,
+                1.25,
+                1.75,
+                2.5
+              ],
+              "holds": [
+                2.25,
+                1,
+                1.5,
+                2.25
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.85,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:1683+96",
+    "bars": "24\u201368",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "drum beat",
+    "pattern": "half time broken up: the snare on three with a ghosted one-and and four-and, kicks in the gaps on one-and, two, two-and and three-and, swung eighth hats",
+    "note": "The cut's beat changes nearly every bar (13.9 in 16): a broken half time is a figure that never settles.",
+    "gap": "none for the cell; the bar-to-bar change is the sub-sections' at the fast broken place",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -1.0,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    }
+  }
+}

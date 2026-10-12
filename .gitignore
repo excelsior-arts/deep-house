@@ -2,6 +2,7 @@ __pycache__/
 .DS_Store
 .playwright-mcp
 .release-build/
+.release-pictures/
 *.aif
 *.aiff
 *.flac
@@ -10,11 +11,6 @@ __pycache__/
 *.ogg
 *.opus
 *.wav
+mining/
 node_modules/
-# The catalog: the sources, the chunks, the runs, the renders and the manifest.
-# Anchored to the root on purpose — an unanchored `mining/` matches a directory
-# of that name at any depth, and `packages/mining/` is the tooling, which is
-# tracked on `local` and stripped from the release by `.releaseignore`.
-/mining/
-/tmp/
-.release-pictures/
+tmp/

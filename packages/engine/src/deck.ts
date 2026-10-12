@@ -13,11 +13,13 @@
 // Everything below either builds a node, writes to one or throws one away.
 
 import { renderHead } from './dsp.ts';
+import { releaseNotes } from './note-scope.ts';
 import { relayLine, paramOf } from './master.ts';
 import { makeV1Graph } from './graph.ts';
 import { fireEvent, prepareReturns, scheduleAutomation } from './scheduler.ts';
 import { BY_NAME } from './voices/index.ts';
-import { schedule, firstEvent, visitOrder, sameVisitOrder } from './schedule.ts';
+import { contourElapsed, contoursOnGrid } from './voices/contour-time.ts';
+import { schedule, firstEvent, inGap, visitOrder, sameVisitOrder } from './schedule.ts';
 import { line, writePoints } from './ramp.ts';
 import type { Line, Rampable } from './ramp.ts';
 import type { Grid, Gap } from './schedule.ts';
@@ -74,6 +76,8 @@ export interface Deck extends DeckTime {
   program: Program;
   settings: Settings;
   graph: V1Graph;
+  /** whether its graph was built ahead (`deckGraph`) rather than with the deck */
+  builtAhead?: boolean;
   hp: BiquadFilterNode;
   lp: BiquadFilterNode;
   fader: GainNode;
@@ -95,6 +99,13 @@ export interface Deck extends DeckTime {
   pumpedTo?: number;
   /** the instant its curves were laid from, which a relay reads them back from */
   laidFrom?: number;
+  /**
+   * where a start inside the theme put it, in theme seconds, until its first
+   * fill sounds what was sounding there (`spanning`); `null` once it has
+   */
+  spanFrom?: number | null;
+  /** how many notes that start sounded: the ones spanning the point, re-timed to it */
+  spanned?: number;
   done: boolean;
   failed?: number;
   seamAt?: number;
@@ -148,14 +159,25 @@ export function lineAfter(deck: DeckTime, t: number, unit: number): number {
  *
  * @param track the plan, carried and never read: `any` for the reason
  *   `Deck.track` is.
+ * @param graphSettings what the graph alone is built from, where a caller
+ *   lays something over the program's own room (the desk's stage moves,
+ *   PLAN-DESK D2: `withStage`); absent, the program's. The deck's `settings`
+ *   stay the program's either way — its voices, its curves and its room are
+ *   the plan's, and only the stage's nodes are built from the other.
  */
-export function makeDeck(ctx: BaseAudioContext, track: any, program: Program, mixOut: AudioNode,
-  master: V1Master, clock: SetClock, atTime: number | null = null, perBeat = 1): Deck {
-  // This deck's own performance, compiled once by whoever planned the theme and
-  // carried on the deck: the sound stage bar by bar, every note with the
-  // parameters it will be played with, the curves, the sidechain — and the room
-  // all of it was worked out under.
-  const settings = program.settings;
+/**
+ * **A deck's graph, built on its own** (the engine review of 10-08, F4): the
+ * room a deck plays in — about sixty nodes, two convolvers and the returns its
+ * program sends to — with everything it was built from, so that a transport
+ * can build the arriving deck's graph in an idle slot before a seam and hand
+ * it to `makeDeck`, which takes it only where every one of those is what it
+ * would have built with itself (`fits`), and otherwise lets it go and builds
+ * its own. Nothing in a graph depends on when it was built: its LFOs start at
+ * `when`, the deck's first bar line, and are silent before it.
+ */
+export interface DeckGraph { graph: V1Graph; program: Program; settings: Settings; master: V1Master; bpm: number; when: number }
+export function deckGraph(ctx: BaseAudioContext, program: Program, master: V1Master, clock: SetClock | null,
+  atTime: number | null = null, perBeat = 1, graphSettings: Settings | null = null): DeckGraph {
   // The graph's tempo-synced parts — the dotted-eighth delay above all — are
   // built on the grid this deck will actually be played on, which through a
   // seam is the outgoing theme's and not this theme's target. The glide
@@ -163,12 +185,34 @@ export function makeDeck(ctx: BaseAudioContext, track: any, program: Program, mi
   // millisecond on a dotted eighth: below what a delay line can show.
   const when = atTime == null ? ctx.currentTime : atTime;
   const bpm = clock ? (60 / clock.spbAt(clock.beatAt(when))) * perBeat : program.bpm;
+  const settings = graphSettings ?? program.settings;
   const graph = makeV1Graph(ctx, settings, {
-    bpm, widthPhase: ((program.index ?? 0) % 7) * 0.9, master, trimDb: program.trimDb,
+    bpm, widthPhase: ((program.index ?? 0) % 7) * 0.9, master, trimDb: program.trimDb, at: when,
   });
   // The returns this theme sends to, built with the deck and not on the tick
   // its first sending note is scheduled (src/scheduler.ts).
   prepareReturns(graph, program);
+  return { graph, program, settings, master, bpm, when };
+}
+// the same plan, room and master by identity; the grid's tempo and the first bar line to a nanosecond's rounding
+const fits = (built: DeckGraph, program: Program, settings: Settings, master: V1Master, bpm: number, when: number): boolean =>
+  built.program === program && built.settings === settings && built.master === master
+  && Math.abs(built.bpm - bpm) <= 1e-9 * bpm && Math.abs(built.when - when) <= 1e-9;
+
+export function makeDeck(ctx: BaseAudioContext, track: any, program: Program, mixOut: AudioNode,
+  master: V1Master, clock: SetClock, atTime: number | null = null, perBeat = 1, graphSettings: Settings | null = null,
+  built: DeckGraph | null = null): Deck {
+  // This deck's own performance, compiled once by whoever planned the theme and
+  // carried on the deck: the sound stage bar by bar, every note with the
+  // parameters it will be played with, the curves, the sidechain — and the room
+  // all of it was worked out under.
+  const settings = program.settings;
+  // A graph built ahead is this deck's only if it is the graph the deck would build now (`deckGraph`).
+  const when = atTime == null ? ctx.currentTime : atTime;
+  const bpm = clock ? (60 / clock.spbAt(clock.beatAt(when))) * perBeat : program.bpm;
+  const ahead = !!built && fits(built, program, graphSettings ?? settings, master, bpm, when);
+  if (built && !ahead) built.graph.dispose();
+  const graph = ahead ? built!.graph : deckGraph(ctx, program, master, clock, when, perBeat, graphSettings).graph;
   // Each deck gets its own filters and fader, so the transition can drive the
   // two independently without touching either theme's own automation.
   const hp = ctx.createBiquadFilter();
@@ -188,7 +232,7 @@ export function makeDeck(ctx: BaseAudioContext, track: any, program: Program, mi
   const channel = { hp, lp, fader };
   const lines = new Map<string, Line>();
   const deck: Deck = {
-    track, program, settings, graph, hp, lp, fader, clock, perBeat,
+    track, program, settings, graph, builtAhead: ahead, hp, lp, fader, clock, perBeat,
     gaps: null, index: 0, startBeat: 0, done: false,
     // Its own channel first, then its graph: `fader.gain` is the deck's and
     // `buses.sub.dry.gain` is the graph's, and a caller names either the same
@@ -260,7 +304,92 @@ export function heldOnGrid(deck: Deck, pe: ProgramEvent): ProgramEvent {
   if (!(typeof dur === 'number' && dur > 0 && Number.isFinite(dur)) || !holdsOnGrid(pe.voice)) return pe;
   const held = deckContextTime(deck, pe.onset + dur) - deckContextTime(deck, pe.onset);
   if (!(held > 0) || Math.abs(held - dur) < 1e-9) return pe;
-  return { ...pe, p: { ...pe.p, dur: held } };
+  // Its musical contours — the bend, the level, the pair, the dips — ride the same grid (`contour-time.ts`,
+  // liquid-fix): each knot lands where the grid puts its theme time, counted from the note's own start (a
+  // resumed note's start is `elapsed` before this copy's), so a note started inside itself is as far into them
+  // as it was, and a held note's knots keep their bars. Its physical controls keep their seconds.
+  const from = pe.onset - contourElapsed(pe.p), zero = deckContextTime(deck, from);
+  return { ...pe, p: { ...contoursOnGrid(pe.p, (s) => deckContextTime(deck, from + s) - zero), dur: held } };
+}
+
+/**
+ * **Whether a voice's note is sounded again at a start inside it** (PLAN-DESK
+ * D1b): a held note with a length — a pad, a bass, keys, a lead, a vocal —
+ * and not a hit with its own envelope (the drum and noise families), not the
+ * seam's and the section's glue (a riser started again from its foot is not
+ * the riser that was rising), not a sound rendered ahead and keyed by its
+ * length (a `prepare` hook: the piano's strings, the plucks), and not one that
+ * starts before its own arrival (`anticipates`).
+ */
+const spansStart = new Map<string, boolean>();
+export function spansAStart(voice: string): boolean {
+  let got = spansStart.get(voice);
+  if (got === undefined) {
+    const d = BY_NAME[voice];
+    got = !!d && !d.prepare && !d.anticipates && d.family !== 'drum' && d.family !== 'noise' && d.family !== 'effect';
+    spansStart.set(voice, got);
+  }
+  return got;
+}
+
+/**
+ * **The notes sounding at a point inside a theme** (PLAN-DESK D1b), each as a
+ * copy that begins there: every event with `t < from < t + dur` of a voice
+ * that `spansAStart`, its `t` and `onset` the point, its `dur` what was left,
+ * its `lead` what the compiler would give the copy (nought: nothing that
+ * anticipates is sounded again). A copy with less left than a sixteenth of a
+ * beat is not made: an attack and nothing after it is a click, not a note.
+ *
+ * A start used to begin at the first event at or after the point, so the pad
+ * chord, the held bass and the drone that were sounding there were silent
+ * until their next event — a pause and a play inside a drop was a drop
+ * without its bass for a bar (Eugene, 10-04: *"even that doesn't start all
+ * instruments"*). The note now begins at the point with its own attack, which
+ * is the honest sound of a start inside a note. **The program is not
+ * touched**: the copies are new objects, and `firstEvent` never visits an
+ * event whose onset is before the point, so no event is played twice.
+ */
+export function spanning(program: Program, from: number): ProgramEvent[] {
+  const out: ProgramEvent[] = [];
+  if (!(from > 0)) return out;
+  const least = program.beat / 4;
+  for (const pe of program.events) {
+    if (!(pe.t < from)) continue;
+    const dur = pe.p ? pe.p.dur : undefined;
+    if (!(typeof dur === 'number' && dur > 0 && Number.isFinite(dur))) continue;
+    const rest = pe.t + dur - from;
+    if (!(rest >= least) || !spansAStart(pe.voice)) continue;
+    const p: ProgramEvent['p'] = { ...pe.p, dur: rest };
+    // Resuming a held note is not a new phrase entrance. Keep this optional
+    // transient silent; the original program remains untouched.
+    if (p.subEntryLevel !== undefined) p.subEntryLevel = 0;
+    const d = BY_NAME[pe.voice];
+    const lead = d && d.anticipates ? d.anticipates(p) : 0;
+    out.push({ ...pe, t: from, onset: from - lead, lead, p });
+  }
+  return out;
+}
+
+// The notes a start inside the theme found sounding, fired once, on the
+// deck's first fill — after a hand-over has cut its holes, so a bass the seam
+// holds out stays out — at the instant the point lands on.
+function sounding(ctx: BaseAudioContext, deck: Deck): void {
+  const from = deck.spanFrom;
+  deck.spanFrom = null;
+  if (from == null) return;
+  const gaps = deck.grid.gaps;
+  let n = 0;
+  for (const pe of spanning(deck.program, from)) {
+    if (pe.gap && gaps && inGap(gaps[pe.gap], pe.t)) continue;
+    try {
+      fireDeckEvent(ctx, deck, pe, deck.grid.at(pe.onset));
+      n++;
+    } catch (err) {
+      deck.failed = (deck.failed || 0) + 1;
+      if (deck.failed <= 3) console.error('deck event failed', pe, err);
+    }
+  }
+  deck.spanned = n;
 }
 
 /** Lay a deck out: where its first bar sits, where its cursor starts, its curves. */
@@ -269,6 +398,10 @@ export function startDeck(ctx: BaseAudioContext, deck: Deck, when: number, fromT
   // deck — its events, its curves, its gaps — is read off that.
   deck.startBeat = deck.clock.beatAt(when) - fromTime / gridBeat(deck);
   deck.index = firstEvent(deck.program, fromTime);
+  // A start inside the theme sounds what is sounding there (D1b), on the
+  // first fill: a seek is a start at a point, and so is a play at the needle.
+  deck.spanFrom = fromTime > 0 ? fromTime : null;
+  deck.spanned = 0;
   // The program's curves are laid out on the grid as it stands now — every
   // line of it, whichever parameters this theme's arrangement writes to. A
   // glide after the seam moves them by a fifth of a percent against the notes,
@@ -447,6 +580,10 @@ export function seasonDeck(deck: Deck, knobs: Record<string, Record<string, numb
   return n;
 }
 
+/** How late a short note may come in after a stall, in seconds, and what counts as short. */
+export const LATE_SHORT_S = 0.25;
+export const SHORT_NOTE_S = 0.3;
+
 /** Fill a deck up to a horizon on the context's clock. */
 export function pumpDeck(ctx: BaseAudioContext, deck: Deck, horizonTime: number): void {
   // Nothing to put back before the events go out: every one of them is fired
@@ -454,6 +591,7 @@ export function pumpDeck(ctx: BaseAudioContext, deck: Deck, horizonTime: number)
   //
   // Which events those are is the one scheduling contract's answer, and the
   // same call an offline render makes over a whole theme.
+  if (deck.spanFrom != null) sounding(ctx, deck);
   const run = schedule(deck.program, deck.grid, deck.index, horizonTime);
   // How far this deck has been filled, in context time: a cut has to land
   // beyond it, or a kick already posted would play under the new theme.
@@ -463,8 +601,12 @@ export function pumpDeck(ctx: BaseAudioContext, deck: Deck, horizonTime: number)
   // not late, it is gone.
   const head = renderHead(ctx);
   const stale = head - deck.program.beat * 4;
+  // ...and a short note a quarter of a second behind is gone too (the performance review of 10-06): a hit
+  // that late is a flam, not the beat, and building every one of them on the tick after a stall is the burst
+  // that keeps a phone behind. A held note still comes in late, since most of it is still to be heard.
+  const staleShort = head - LATE_SHORT_S;
   for (const s of run.events) {
-    if (s.at < stale) {
+    if (s.at < stale || (s.at < staleShort && (s.pe.p?.dur ?? 0) <= SHORT_NOTE_S)) {
       dropped += 1;
       droppedLast = head - s.at;
       droppedAt = ctx.currentTime;
@@ -502,7 +644,9 @@ export function pumpDeck(ctx: BaseAudioContext, deck: Deck, horizonTime: number)
  */
 export function pourDeck(ctx: BaseAudioContext, deck: Deck, to = Infinity): void {
   // From where `startDeck` put the deck's cursor: its first event, or the
-  // first at the second it was started at (a theme entering mid-way).
+  // first at the second it was started at (a theme entering mid-way), with
+  // what was sounding at that second sounded first.
+  if (deck.spanFrom != null) sounding(ctx, deck);
   for (const s of schedule(deck.program, deck.grid, deck.index, to).events) {
     fireDeckEvent(ctx, deck, s.pe, s.at);
   }
@@ -514,9 +658,10 @@ export function pourDeck(ctx: BaseAudioContext, deck: Deck, to = Infinity): void
 // `ramp.ts`, which is where the fold of everything before `from` into one
 // value lives — a seam's curves are functions of the time since it began, and a
 // set resumed in the middle of one joins them where they had reached. A deck's
-// own parameters go through their `Line`, which makes the same calls and keeps
-// them; the recording stand-in the program digest locks a seam with has none,
-// and is written the same way.
+// own parameters go through their `Line`, which first cuts the parameter at
+// `from` (the curve replaces whatever the line had scheduled after it, E03 of
+// 10-03), then makes the same calls and keeps them; the recording stand-in
+// the program digest locks a seam with has none, and is written the same way.
 function writeLine(param: AutomationTarget | null, pts: CurveStep[], from: number, track: Line | null = null): void {
   if (!param || !pts.length) return;
   if (track) track.write(pts, from);
@@ -590,7 +735,13 @@ export function writeSeam(from: Deck, to: Deck, plan: SeamWrite, sum: unknown = 
 
 // --- letting go -------------------------------------------------------------
 
-/** Disconnect a deck and stop what would keep its graph alive. */
+/**
+ * Disconnect a deck and stop what would keep its graph alive: its own LFOs
+ * (`graph.dispose`) and, since the engine review of 10-08 (F6), the notes
+ * already fired into it — a held pad, a drone, the sources scheduled ahead —
+ * whose doors are let go at once rather than half a minute later
+ * (`releaseNotes`). The deck is off the sum before anything is stopped.
+ */
 export function teardown(deck: Deck): void {
   if (!deck) return;
   try {
@@ -598,6 +749,8 @@ export function teardown(deck: Deck): void {
   } catch (e) {
     /* already gone */
   }
+  // (a stand-in deck in the node checks has no context, and no notes noted against it)
+  releaseNotes(deck.graph, deck.fader.context ? deck.fader.context.currentTime : 0);
   deck.graph.dispose();
 }
 
@@ -648,6 +801,15 @@ export function claim(ctx: BaseAudioContext, deck: Deck, seconds = 0.08, lowPath
     }
   };
   to('fader.gain', 1);
+  // The harmonic cross (round MIX-X2): an arriving theme's pads and keys are
+  // held down until the swap, and a deck claimed before it would otherwise
+  // play on without them.
+  to('harmonic.gain', 1);
+  // And the close the same cross wrote on the record's harmony (round MIX-X4),
+  // where this deck was handed one: a hand-over abandoned before its swap
+  // leaves the record with its pads on their way to 700 Hz otherwise. Asked
+  // of the graph and not read by path, since a read would build the filter.
+  if (deck.graph.hasHarmonicLp()) to('harmonicLp.frequency', 20000);
   // Which bus the low end changed hands on is the seam's to say, and a seam is
   // the composer's: the caller names the path it wrote, the way every other
   // line of a hand-over names one.

@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "brightPiano",
+  "revision": 1,
+  "topology": "bright-piano",
+  "block": "brightPiano",
+  "parameters": {
+    "partials": 6,
+    "inharmonicity": 0.0009,
+    "attack": 0.003,
+    "decay": 1.1,
+    "partialDecay": 0.62,
+    "tilt": 0.62,
+    "upper": 0.1,
+    "release": 0.25,
+    "lpHz": 7000,
+    "veloOpen": 0.5,
+    "hammerHz": 3400,
+    "hammerLevel": 0.28,
+    "hammerTime": 0.004,
+    "spread": 0.3,
+    "trim": 1.208
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 900,
+        "default": 7000,
+        "max": 15000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 7.3e-06
+      },
+      "hold": {
+        "unit": "seconds",
+        "min": 0.25,
+        "default": 1.1,
+        "max": 3.2,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 2.1
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.001,
+        "default": 0.003,
+        "max": 0.16,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": 26.9
+      }
+    },
+    "returns": [
+      "hall"
+    ],
+    "timbres": {
+      "brightPiano": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.1,
+        "brightnessHz": 6000,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "keys-2.ts",
+    "note": "A bright piano register: six stiff partials rather than twenty rendered ones, with the inharmonicity that tells a piano from an organ.",
+    "notes": {
+      "inharmonicity": "A real string is stiff, so its nth partial is at n*f*sqrt(1 + B*n^2). B is about 0.0004 in the middle of a piano and rises towards the top.",
+      "partialDecay": "How much faster each partial dies than the one below it. The ratio *is* the decay of a piano.",
+      "upper": "What velocity adds to the partials from the fourth up: a piano hit harder is brighter and not merely louder."
+    }
+  }
+}

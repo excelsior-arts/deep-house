@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/drop-out-pickup",
+  "revision": 2,
+  "name": "one bar out",
+  "scope": "treatment",
+  "applies": "drop-out",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "tempo": {
+    "bpm": [
+      160,
+      176
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "kick": {
+        "clear": 0
+      },
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "..............X."
+        ]
+      },
+      "offbeat": {
+        "clear": 0
+      },
+      "sixteenth": {
+        "clear": 0
+      }
+    },
+    "stroke": {
+      "level": 0.85
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:590+116 (bar 19), 8:706+84 (bars 19, 35, 51), 8:102+123 (86-87)",
+    "kind": "drop-out",
+    "where": "a sixteen-bar line inside a drop, and the bar into a drop or a breakdown",
+    "reading": "104 drop-outs in the mix, 82 of them one bar; the snare on four-and at the backbeat's own level; the bar after carries a crash or a riser's end a third of the time",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; revision 2 (the review of 10-08, B14): boxed to the fast broken places' tempo, 160-176 BPM, as the place's pattern rows are; with no box it was drawn at the house too",
+    "note": "A row of the library since 2026-10-02: drawn by its weight among the rows of its kind wherever the place table draws the kind (notes/rounds/treat-t1.md).",
+    "admitted": "admitted 2026-10-02 on the review of the links, at 0.5 beside the code's figure of its kind"
+  }
+}

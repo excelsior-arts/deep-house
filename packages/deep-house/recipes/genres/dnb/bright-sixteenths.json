@@ -1,0 +1,317 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/bright-sixteenths",
+  "revision": 1,
+  "name": "Bright sixteenths and a busy bass",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            6,
+            8,
+            10,
+            16,
+            26,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            7,
+            12,
+            14,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.65,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.65,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            0.3
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.54,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "arch",
+          "intervals": {
+            "steps": [
+              0.833,
+              0.834
+            ],
+            "leaps": [
+              0.166,
+              0.167
+            ]
+          },
+          "cell": {
+            "beats": [
+              5,
+              5
+            ]
+          },
+          "onGrid": [
+            0.375,
+            0.375
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            6.4,
+            6.4
+          ],
+          "returns": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                2,
+                4,
+                3,
+                2,
+                1
+              ],
+              "beats": [
+                0.5,
+                0.75,
+                0.75,
+                0.5,
+                0.5,
+                0.75,
+                0.75,
+                0.5
+              ],
+              "holds": [
+                0.5,
+                0.5,
+                0.5,
+                0.25,
+                0.25,
+                0.5,
+                0.5,
+                0.5
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:925+137",
+    "bars": "0\u201398",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "drum beat",
+    "pattern": "the kick pushing on two-and, three and three-and, sixteenth hats with the beat's eighths accented, a busy bass walking up to the fifth and back",
+    "note": "The brightest drop of the mix (presence 11 dB under the level where the drops sit at 18), four bass notes a bar, the beat varying nearly every bar.",
+    "gap": "a bass at four notes a bar and more is a row's: the place's budget caps the break's bass at two",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -1.4,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/hat-lift",
+  "revision": 1,
+  "name": "open hats",
+  "scope": "treatment",
+  "applies": "switch-up",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "open": {
+        "mask": [
+          "..x...x...x...x."
+        ]
+      },
+      "sixteenth": {
+        "clear": 0
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ],
+    "kit": "four",
+    "bars": [
+      8,
+      16
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "switch-up",
+    "where": "a phrase or two inside a main or a drop, a phrase in from its first bar",
+    "reading": "the top band up or down on 1.0 bars in 16 of the reference mains and the hats doubled or thinned on 3.1 (the mains pass's readings), against 0.1-0.6 on three of the house's own mains rendered and read the same way",
+    "idiom": "the open hat on every and, the sixteenths leaving: the house's lift inside a groove without a new instrument",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02: a row of the house's mains, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

@@ -43,8 +43,13 @@ import type { VoiceOut } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, num, CENTS, DB, HZ, LEVEL, LFO_HZ, RATIO, SECONDS, UNIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-export function sawLead(
+function sawLead(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -52,7 +57,7 @@ export function sawLead(
   settings: Settings,
 ): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const S = settings.sawLead;
+  const S = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.06, p.dur ?? 0.4);
   const vel = p.vel ?? 1;
@@ -142,51 +147,36 @@ export function sawLead(
   return end;
 }
 
-/**
- * What this instrument is worth to a meter, declared the way every other
- * family declares it. `loudnessDb` is **MEASURED** and written by the gate that
- * measures it, never typed: the voice alone through the real graph, eight bars
- * of its role's figure under `tools/fixture.ts`'s table, integrated, less the
- * level that table gave it (`tools/test-voices.ts --bless`). `hold` is the
- * envelope's own sustain fraction and `brightnessHz` its filter's corner, so
- * neither can drift from the sound.
- */
-export const SAW_LEAD_TIMBRES = {
-  sawLead: { family: 'harmonic', struck: false, hold: 0.55, brightnessHz: 1500, loudnessDb: -11.1 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  detuneCents: CENTS,
+  pwmWidth: UNIT,
+  pwmDepth: UNIT,
+  pwmHz: LFO_HZ,
+  pwmMix: UNIT,
+  cutoff: HZ,
+  envMult: RATIO,
+  envTime: SECONDS,
+  q: DB,
+  veloOpen: num(0, 8),
+  hpHz: HZ,
+  spread: UNIT,
+  trim: LEVEL,
+});
 
 /**
- * The saw lead, as it describes itself.
- *
- * **Two roles and one lane.** `melody` and `figure` are both drawn by the rim's
- * S lane (`LANE_ROLES` in the composer's `control.ts`), so a voice claiming
- * both puts its layer in one lane and the gate that holds the lanes to covering
- * every event layer exactly once is satisfied. Round G's plucked mid bass could
- * not have two because its second role was in another lane; this one can, and
- * the difference is the lanes and not the instruments.
- *
- * `level: 'keys'` — a level of its own is a key in the settings' level table
- * and therefore a number in the program digest, which is a re-bless (round G's
- * first finding). `plays: null`: nothing in any arrangement gates it, and no
- * candidate list of any style names it, so no die can draw it.
+ * The saw lead topology: two detuned saws through a comb that wanders (the
+ * pulse-width movement), a filter with a pluck in it and a lead's glide
+ * (`sounds/keyboard/sawLead.json` since round R2). `melody` and `figure` are
+ * both drawn by the S lane, so a row claiming both puts its layer in one lane.
  */
-export const descriptor: Descriptor = {
-  name: 'sawLead',
+export const SAW_LEAD: Topology = {
+  id: 'saw-lead',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['melody', 'figure'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: sawLead,
-  timbres: SAW_LEAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => sawLead(row, ctx, out, time, p, settings),
 };
-
-export default sawLead;

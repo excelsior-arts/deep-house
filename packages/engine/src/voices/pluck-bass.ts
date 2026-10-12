@@ -18,7 +18,7 @@
 // The shape, and where each piece of it comes from:
 //
 //   the note    one sine at the fundamental, through nothing but the body
-//               filter. `bass.ts` learned this twice over from Eugene's ear —
+//               filter. `bass.ts` learned this twice over by ear —
 //               a sine driven through a tanh is a sine plus everything — and
 //               the lesson is the same an octave up: whatever the rest of the
 //               chain does, the pitch of this line stays a clean tone.
@@ -53,6 +53,47 @@ import type { VoiceOut } from '../dsp.ts';
 import type { Descriptor, NoteParams, PrepareOptions } from './descriptor.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, num, pos, CENTS, DB, HZ, LEVEL, OVERSAMPLE, Q, RATIO, SECONDS, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
+
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  cutoff: HZ,
+  openMult: RATIO,
+  openCeiling: HZ,
+  openTime: SECONDS,
+  q: DB,
+  body: LEVEL,
+  square: LEVEL,
+  detuneCents: CENTS,
+  /** the saturation's amount (`saturationCurve`): nought is clean */
+  drive: num(0, 8),
+  /** the even shaper's bend (`evenCurve`): past a half either way the curve folds back on itself */
+  even: num(-0.5, 0.5),
+  oversample: OVERSAMPLE,
+  trim: LEVEL,
+  pickLevel: LEVEL,
+  /** the pick's fall, in seconds: the pick buffer is six of these long, so a second is its ceiling */
+  pickDecay: pos(1),
+  /** the one-pole that takes the bottom out of the pick's noise: a coefficient, nought to one */
+  pickTilt: UNIT,
+  pickHz: HZ,
+  pickQ: Q,
+  hpHz: HZ,
+});
+
+/** What a row of this topology carries, as its contract types it. */
+export type PluckBassPatch = PatchOf<typeof PARAMETERS.fields>;
+
+/** The rows of this topology, by event name, as the registry admitted them. */
+const ROWS = new Map<string, SoundRow>();
 
 // The pick, rendered once per context and per shape rather than per note.
 //
@@ -68,7 +109,7 @@ const picks = new WeakMap<BaseAudioContext, Map<string, AudioBuffer>>();
  * the same pick and neither has a side.
  * @param P the settings' `pluckBass` block
  */
-export function pickBuffer(ctx: BaseAudioContext, P: Settings['pluckBass']): AudioBuffer {
+export function pickBuffer(ctx: BaseAudioContext, P: PluckBassPatch): AudioBuffer {
   let per = picks.get(ctx);
   if (!per) {
     per = new Map();
@@ -112,13 +153,24 @@ export function preparePluckBass(
   _opts: PrepareOptions = {},
 ): Promise<void> {
   if (!events || !events.length) return Promise.resolve();
-  pickBuffer(ctx, settings.pluckBass);
+  // Each event's own row, resolved as the note will resolve it (E06 of the
+  // outside review of 10-03): this read `settings.pluckBass` whatever row the
+  // event named, so a variant with numbers of its own was warmed as the
+  // incumbent and built its pick on the play path. `pickBuffer` is keyed by
+  // what it computes, so two rows with one pick share it.
+  const seen = new Set<string>();
+  for (const e of events) {
+    const row = ROWS.get(e.voice);
+    if (!row || seen.has(row.id)) continue;
+    seen.add(row.id);
+    pickBuffer(ctx, patchOf(settings, row, PARAMETERS));
+  }
   return Promise.resolve();
 }
 
-export function pluckBass(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function pluckBass(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const B = settings.pluckBass;
+  const B = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.06, p.dur ?? 0.3);
   const vel = p.vel ?? 1;
@@ -179,10 +231,10 @@ export function pluckBass(ctx: BaseAudioContext, out: VoiceOut, time: number, p:
   body.gain.value = B.body;
   const sat = ctx.createWaveShaper();
   sat.curve = saturationCurve(p.drive ?? B.drive);
-  sat.oversample = B.oversample;
+  sat.oversample = B.oversample as OverSampleType;
   const even = ctx.createWaveShaper();
   even.curve = evenCurve(B.even);
-  even.oversample = B.oversample;
+  even.oversample = B.oversample as OverSampleType;
   body.connect(sat);
   sat.connect(even);
   even.connect(hp);
@@ -233,60 +285,15 @@ export function pluckBass(ctx: BaseAudioContext, out: VoiceOut, time: number, p:
 }
 
 /**
- * What this instrument is worth to a meter, declared the way every other
- * harmonic family declares it. `loudnessDb` is **MEASURED** and written by the
- * gate that measures it, never typed: the voice alone through the real graph,
- * eight bars of the audition figure at 120 BPM under `tools/fixture.ts`'s
- * table, integrated, less the level that table gave it
- * (`tools/test.ts`, "the plucked mid bass on its own"). `hold` is the
- * envelope's own sustain fraction and `brightnessHz` its body filter's corner,
- * so neither can drift from the sound.
+ * The plucked mid bass topology: a saw and a square under a plucked filter
+ * with a pre-rendered pick on the front (`sounds/bass/pluckBass.json` since
+ * round R2).
  */
-export const PLUCK_BASS_TIMBRES = {
-  pluckBass: { family: 'bass', struck: true, hold: 0.18, brightnessHz: 900, loudnessDb: -14.8 },
-};
-
-/**
- * The second bass register, as it describes itself. `bus: 'melodic'` and not
- * `sub`, because the bottom is one instrument's: this one plays an octave up,
- * ducks with the rest of the melodic material and passes the macro filter,
- * which is what the rule "kick and bass mono, and neither passes the macro
- * filter" is written about and this is not. `level: 'keys'` — it sits under the
- * keys, at the keys' level, and a level of its own would be a key in the table
- * every style carries and therefore a number in the program digest.
- * `layer: 'bass'` puts its events on the lane the bass is metered on, and
- * `plays: null` says the arrangement does not gate it: nothing schedules this
- * voice but a fixture.
- *
- * **One role, and it is `bassline`.** This instrument plays a figure as
- * readily as a line, and the brief for round G asked for both roles; it may
- * not have both today. The ring's seven lanes are roles (`LANE_ROLES` in the
- * composer's `control.ts`) and the registry answers each with its members'
- * layers, so a voice claiming `bassline` *and* `figure` puts the `bass` layer
- * in two lanes at once: `lanesOf` would count this layer's events into the
- * keys lane, and the gate that holds the lanes to covering every event layer
- * exactly once says so. That is an interface change to v1 and round G changes
- * nothing in v1, so the second role waits for the part/role split the design
- * review describes (§5: instrument, patch, role, instance), where a role is an
- * allocation and not a property of the instrument.
- */
-export const descriptor: Descriptor = {
-  name: 'pluckBass',
+export const PLUCK_BASS: Topology = {
+  id: 'pluck-bass',
   cost: 'dear',
-  family: 'bass',
-  roles: ['bassline'],
-  bus: 'melodic',
-  level: 'keys',
-  layer: 'bass',
-  plays: null,
-  mono: true,
-  treat: true,
-  anticipates: null,
+  parameters: PARAMETERS,
   prepare: preparePluckBass,
-  render: pluckBass,
-  timbres: PLUCK_BASS_TIMBRES,
-  dispatches: [],
-  mood: [],
+  rows: ROWS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => pluckBass(row, ctx, out, time, p, settings),
 };
-
-export default pluckBass;

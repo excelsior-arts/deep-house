@@ -42,7 +42,9 @@
 // number to nought. A re-measurement is a measurement of an untrimmed tree; a
 // re-reading is what `--read` is for.
 //
-// One headless Chromium, one render at a time, reniced, on port 7057 and
+// One headless Chromium, reniced, one render at a time for now (the standing
+// rule since 10-04 is six pages inside the browser, as tools/loudness-fit.ts
+// does; this tool has not been given --pages yet — notes/TODO.md), on port 7057 and
 // never 6975.
 
 import fs from 'node:fs';

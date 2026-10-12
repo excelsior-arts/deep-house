@@ -28,6 +28,8 @@
 import { clone, merge } from './params.ts';
 import type { Table } from './style.ts';
 import { validateKeyboardPatches } from './voices/keys-patches.ts';
+import { admitBlocks } from './voices/index.ts';
+import { admitGrain } from './voices/grain.ts';
 
 /**
  * Deeply read-only. Arrays are left as they are rather than widened to
@@ -108,7 +110,13 @@ export function resolveSettings({ base, room = null, overrides = null, bypass = 
   // whatever the preset ended up with.
   const cap = base.levels.sub + base.levels.subCeilingOverBaseDb;
   if (out.levels.sub > cap) out.levels.sub = cap;
-  return deepFreeze(out) as Settings;
+  const done = deepFreeze(out) as Settings;
+  // Every row's block, as the room left it, held to its topology's contract:
+  // a room may voice a sound, and may not voice it into a NaN (E04).
+  admitBlocks(done as unknown as Record<string, unknown>);
+  // And every grain a place wrote (round SPARK-1), held to its fields the same way.
+  admitGrain(done as unknown as Record<string, unknown>);
+  return done;
 }
 
 /**

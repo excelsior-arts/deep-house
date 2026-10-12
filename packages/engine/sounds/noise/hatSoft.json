@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatSoft",
+  "revision": 1,
+  "topology": "kit-hat",
+  "dice": 53.3,
+  "parameters": {
+    "ratios": [
+      1,
+      1.5,
+      2.08,
+      2.72,
+      3.4,
+      4.11
+    ],
+    "base": 1156.4,
+    "detune": 10,
+    "metal": 0.42,
+    "hp": 3220.0,
+    "peakHz": 8200,
+    "q": 0.21,
+    "tilt": 4.2,
+    "lidHz": 13400,
+    "t10": 0.02,
+    "seconds": 0.35,
+    "variants": 3,
+    "variantCents": 30,
+    "attack": 0.0015,
+    "trim": 1.22,
+    "rateSpread": 0.035,
+    "gainSpread": 0.09,
+    "decaySpread": 0.12,
+    "panSpread": 0.07,
+    "velBright": 0.35,
+    "velDecay": 0.2,
+    "pan": 0.1,
+    "room": 0,
+    "delay": 0,
+    "top": 0,
+    "air": 0,
+    "airHz": 8000,
+    "tail": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "hatSoft": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 8200,
+        "loudnessDb": -22.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-3",
+    "module": "hats-kit.ts",
+    "note": "the soft closed hat of the liquid kit (10-06): the tight hat refitted to the reference drop's soft hat (its ladder lower and less metal, a wider band, more tilt), a row of its own so the house keeps its tight hat"
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

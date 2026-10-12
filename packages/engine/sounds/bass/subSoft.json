@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "subSoft",
+  "revision": 1,
+  "topology": "bottom",
+  "block": "subSoft",
+  "parameters": {
+    "attack": 0.008,
+    "release": 0.05,
+    "squareLevel": 0.5,
+    "sineLevel": 0.55,
+    "triLevel": 0,
+    "octaveLevel": 0,
+    "octaveAboveHz": null,
+    "harmonics": 4,
+    "veloOpen": 0.5,
+    "q": 0.8,
+    "trim": 0.167
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "mid",
+    "timbres": {
+      "subSoft": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.25,
+        "brightnessHz": 400,
+        "loudnessDb": -11.4
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "subs.ts",
+    "note": "A soft square sub: the odd harmonics at 1/n with the corners taken off by a lid four harmonics up, plus a sine at the fundamental because a square's own is only 4/pi of its peak.",
+    "notes": {
+      "harmonics": "The lid, in harmonics and not in hertz: what makes a bottom a bottom is how many harmonics it has and not where they are."
+    }
+  }
+}

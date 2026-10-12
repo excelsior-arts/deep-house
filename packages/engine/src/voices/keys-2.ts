@@ -34,29 +34,13 @@ import { insert } from './treat.ts';
 import { knobScale } from './descriptor.ts';
 import type { Descriptor, Knobs, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, int, num, pos, DB, HZ, LEVEL, LFO_HZ, Q, SECONDS, UNIT, CENTS } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-/**
- * **The lead's three ranges** (PLAN-MODULATION M1), every default straight off
- * `INSTRUMENTS.brightPiano`, and the one voice of the six that carries the
- * melody on a reference seed (master 21323, theme 2).
- *
- * `hold` is in **seconds** — the fundamental's own decay — because this voice
- * has no sustain at all: its envelope is a per-partial fall with the upper
- * partials dying first, and *that ratio is the decay of a piano*. The knob
- * scales the decay and the release together, so the ratio between the partials
- * is untouched and what changes is how long the string rings.
- *
- * `reedOrgan`, beside it, declares none: no candidate list names it and it is
- * drawn on no reference seed, so a range measured on it is a range nobody can
- * hear. M2 is where the rest of the catalogue declares.
- */
-export const BRIGHT_PIANO_KNOBS: Knobs = {
-  brightnessHz: { unit: 'hz', min: 900, default: 7000, max: 15000, bird: 'zephyr', sense: 1, slopeDb: 0.0000073 },
-  hold: { unit: 'seconds', min: 0.25, default: 1.1, max: 3.2, bird: 'tide', sense: 1, slopeDb: 2.1 },
-  attack: { unit: 'seconds', min: 0.001, default: 0.003, max: 0.16, bird: 'ember', sense: -1, slopeDb: 26.9 },
-};
-
-export function brightPiano(
+function brightPiano(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -64,16 +48,16 @@ export function brightPiano(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.brightPiano;
+  const S = patchOf(settings, row, BRIGHT);
   const hz = midiToHz(p.midi);
   const vel = p.vel ?? 1;
   const dur = Math.max(0.05, p.dur ?? 0.3);
   const peak = vel * (p.gain ?? 1) * S.trim;
   // The three knobs, as factors against the block's own numbers: exactly 1 with
   // nothing asked for, and `x * 1 === x` for every finite double.
-  const kBright = knobScale(p, BRIGHT_PIANO_KNOBS, 'brightnessHz');
-  const kHold = knobScale(p, BRIGHT_PIANO_KNOBS, 'hold');
-  const attack = S.attack * knobScale(p, BRIGHT_PIANO_KNOBS, 'attack');
+  const kBright = knobScale(p, row.descriptor.knobs, 'brightnessHz');
+  const kHold = knobScale(p, row.descriptor.knobs, 'hold');
+  const attack = S.attack * knobScale(p, row.descriptor.knobs, 'attack');
   const release = S.release * kHold;
   const end = time + Math.max(dur, 0.12) + release;
 
@@ -137,7 +121,8 @@ export function brightPiano(
   return end;
 }
 
-export function reedOrgan(
+function reedOrgan(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -145,7 +130,7 @@ export function reedOrgan(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.reedOrgan;
+  const S = patchOf(settings, row, REED);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.08, p.dur ?? 1.2);
   const vel = p.vel ?? 0.8;
@@ -234,55 +219,71 @@ export function reedOrgan(
   return end;
 }
 
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const BRIGHT_PIANO_TIMBRES = {
-  brightPiano: { family: 'harmonic', struck: true, hold: 0.1, brightnessHz: 6000, loudnessDb: -12 },
-};
-export const REED_ORGAN_TIMBRES = {
-  reedOrgan: { family: 'harmonic', struck: false, hold: 0.8, brightnessHz: 3200, loudnessDb: -12 },
-};
+/** What a bright piano row carries: exactly these, each in its range (`schema.ts`). */
+const BRIGHT = contract({
+  /** how many partials, each an oscillator: a bounded bank */
+  partials: int(1, 32),
+  inharmonicity: num(0, 0.1),
+  attack: SECONDS,
+  decay: SECONDS,
+  /** how much faster each partial falls than the one under it: a factor per partial */
+  partialDecay: pos(2),
+  /** each partial's level against the one under it */
+  tilt: num(0, 2),
+  upper: LEVEL,
+  release: SECONDS,
+  lpHz: HZ,
+  veloOpen: num(0, 8),
+  hammerHz: HZ,
+  hammerLevel: LEVEL,
+  hammerTime: SECONDS,
+  spread: UNIT,
+  trim: LEVEL,
+});
 
-export const brightPianoDescriptor: Descriptor = {
-  name: 'brightPiano',
+/**
+ * The bright piano topology: six stiff partials with the inharmonicity that
+ * tells a piano from an organ (`sounds/keyboard/brightPiano.json` since round
+ * R2). `hold` is in seconds — the fundamental's own decay — because this voice
+ * has no sustain: the knob scales the decay and the release together, so the
+ * ratio between the partials is untouched.
+ */
+export const BRIGHT_PIANO: Topology = {
+  id: 'bright-piano',
   cost: 'dear',
-  returns: ['hall'],
-  knobs: BRIGHT_PIANO_KNOBS,
-  family: 'keyboard',
-  roles: ['figure', 'melody'],
-  // The piano's own bus and the piano's own level: a new key under `levels`
-  // reaches the program digest, which is a re-bless (round G).
-  bus: 'melodic',
-  level: 'piano',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: brightPiano,
-  timbres: BRIGHT_PIANO_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: BRIGHT,
+  knobOf: { brightnessHz: 'lpHz', hold: 'decay', attack: 'attack' },
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => brightPiano(row, ctx, out, time, p, settings),
 };
 
-export const reedOrganDescriptor: Descriptor = {
-  name: 'reedOrgan',
+/** What a reed organ row carries: exactly these, each in its range (`schema.ts`). */
+const REED = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  beatCents: CENTS,
+  formantHz: HZ,
+  formantQ: Q,
+  formantDb: DB,
+  lpHz: HZ,
+  hpHz: HZ,
+  bellowsHz: LFO_HZ,
+  bellowsDepth: UNIT,
+  breathLevel: LEVEL,
+  breathTime: SECONDS,
+  spread: UNIT,
+  trim: LEVEL,
+});
+
+/**
+ * The reed organ topology: beating reeds through a formant, with the
+ * bellows breathing under them (`sounds/keyboard/reedOrgan.json` since round
+ * R2).
+ */
+export const REED_ORGAN: Topology = {
+  id: 'reed-organ',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['figure', 'melody'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: reedOrgan,
-  timbres: REED_ORGAN_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: REED,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => reedOrgan(row, ctx, out, time, p, settings),
 };
-
-export const descriptors: Descriptor[] = [brightPianoDescriptor, reedOrganDescriptor];
-export default descriptors;

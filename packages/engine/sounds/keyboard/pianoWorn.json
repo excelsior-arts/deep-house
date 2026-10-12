@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoWorn",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.006,
+    "decayFast": 0.35,
+    "sustainLevel": 0.3,
+    "decaySlow": 4.5,
+    "ring": 1.4,
+    "partialLevel": 0.3,
+    "partialDecay": 0.75,
+    "stretchCents": 2.4,
+    "unisonCents": 5,
+    "unisonLevel": 0.75,
+    "hammerLevel": 0.08,
+    "hammerHz": 1600,
+    "brightMin": 900,
+    "brightMax": 3000,
+    "hpHz": 90,
+    "spread": 0.35,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "A worn small piano for a tape treatment: a little out of unison, the low end thinned so a tape head can carry it, the top already soft.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

@@ -5,7 +5,7 @@
 //   node tools/test-drums.ts --also         the articulations as well
 //   node tools/test-drums.ts --bless        write the measured loudness and
 //                                            the measured click bound into the
-//                                            modules (only with Eugene's say-so)
+//                                            rows (only when the change is approved)
 //
 // Round K3 of PLAN-KITCHEN. It is round K2's per-instrument scene again, in a
 // file of its own for the same reason that one is: `test.ts` is the machine's
@@ -56,13 +56,8 @@ import { fileURLToPath } from 'node:url';
 import { playwright, launchOptions, renice, finish } from './harness.ts';
 import { DRUM_SCENES, missingDrumScenes } from './audition-drums.ts';
 import { COVERED, coverage } from './tables.ts';
-import { CONGA_MEASURED } from '../src/voices/congas.ts';
-import { SNARE_MEASURED } from '../src/voices/snare.ts';
-import { HATS_KIT_MEASURED } from '../src/voices/hats-kit.ts';
-import { CYMBAL_MEASURED } from '../src/voices/cymbals.ts';
-import { TOM_MEASURED } from '../src/voices/toms.ts';
-import { PERC_MEASURED } from '../src/voices/perc.ts';
-import { ALT_KICK_MEASURED } from '../src/voices/kicks-alt.ts';
+import { REGISTRY } from '../src/voices/index.ts';
+import { updateRow } from './rows.ts';
 import type { PlaywrightFound } from './harness.ts';
 import type { ProgramEvent } from '../src/program.ts';
 import type { Audition } from './audition.ts';
@@ -77,25 +72,34 @@ interface Declared {
 }
 
 // What every playable articulation of the kitchen declares about itself, off
-// the modules that make the sound. One row per row of the scene table, and the
-// gate below holds that to be true in both directions: a module here that the
-// table does not play is as much a fault as a scene with nothing declared.
-const MODULES: Record<string, Record<string, Declared>> = {
-  'congas.ts': CONGA_MEASURED,
-  'snare.ts': SNARE_MEASURED,
-  'hats-kit.ts': HATS_KIT_MEASURED,
-  'cymbals.ts': CYMBAL_MEASURED,
-  'toms.ts': TOM_MEASURED,
-  'perc.ts': PERC_MEASURED,
-  'kicks-alt.ts': ALT_KICK_MEASURED,
-};
-const DECLARED: Record<string, Declared> = Object.assign({}, ...Object.values(MODULES));
+// the rows that are the sounds (rounds R1 and R2). One row per row of the scene
+// table, and the gate below holds that to be true in both directions: a row
+// here that the table does not play is as much a fault as a scene with nothing
+// declared. The loudness is the row's timbre fact and the click bound its
+// `measured.clickStep`; an articulation of it (`congaSlap`) is
+// `measured[<its scene>]`, both numbers. `OWNER` is which row an articulation
+// is written back into.
+const ROWS: Record<string, Declared> = {};
+const OWNER: Record<string, string> = {};
+for (const d of REGISTRY) {
+  const m = d.row?.measured;
+  if (!m || typeof m.clickStep !== 'number') continue;
+  ROWS[d.name] = { loudnessDb: d.timbres[d.name].loudnessDb, clickStep: m.clickStep };
+  OWNER[d.name] = d.name;
+  for (const [k, v] of Object.entries(m)) {
+    if (typeof v === 'number') continue;
+    ROWS[k] = { loudnessDb: v.loudnessDb, clickStep: v.clickStep };
+    OWNER[k] = d.name;
+  }
+}
+const DECLARED: Record<string, Declared> = ROWS;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Above the suites' 6977, beside the engine suite's 7023, the ear's 7024 and
-// round K2's 7045 and 7046 — and never 6975, which is Eugene's.
+// round K2's 7045 and 7046 — and never 6975, the dev server.
 const PORT = 7047;
 
 const arg = (k: string, d: string | null = null): string | null => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
@@ -160,7 +164,7 @@ must(
   must(
     !noRow.length && !noScene.length,
     `the declared numbers and the scene table disagree: ${[...noRow.map((i) => `${i} declares nothing`), ...noScene.map((i) => `${i} is declared and never played`)].join(', ')}`,
-    `every playable articulation declares a loudness and a click bound, and every declared row is played: ${Object.keys(DECLARED).length} rows over ${Object.keys(MODULES).length} modules`
+    `every playable articulation declares a loudness and a click bound, and every declared row is played: ${Object.keys(DECLARED).length} rows over ${new Set(Object.values(OWNER)).size} sound rows`
   );
 }
 
@@ -443,19 +447,13 @@ server.close();
 // itself before it says the transient has grown.
 if (BLESS) {
   console.log('\nblessing');
-  // Written back into the module the sound is in, beside the code that makes
-  // it, by the one regular expression the declared table's shape allows: one
-  // row a line, two numbers on it.
+  // Written back into the row the sound is.
   const bless = (id: string, loudnessDb: number, clickStep: number) => {
-    for (const [name, rows] of Object.entries(MODULES)) {
-      if (!(id in rows)) continue;
-      const file = path.join(SRC, 'voices', name);
-      const text = fs.readFileSync(file, 'utf8');
-      const re = new RegExp(`(\\n  ${id}: \\{ loudnessDb: )(-?[0-9.]+)(, clickStep: )([0-9.]+)`);
-      const had = text.match(re);
-      if (!had) return { loudnessDb: null, clickStep: null };
-      fs.writeFileSync(file, text.replace(re, `$1${loudnessDb}$3${clickStep}`));
-      return { loudnessDb: had[2], clickStep: had[4] };
+    if (id in ROWS) {
+      const was = { loudnessDb: String(ROWS[id].loudnessDb), clickStep: String(ROWS[id].clickStep) };
+      if (OWNER[id] === id) updateRow(id, (r) => { r.descriptor.timbres[id].loudnessDb = loudnessDb; r.measured.clickStep = clickStep; });
+      else updateRow(OWNER[id], (r) => { r.measured[id] = { loudnessDb, clickStep }; });
+      return was;
     }
     return { loudnessDb: null, clickStep: null };
   };

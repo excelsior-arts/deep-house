@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoUpright",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.004,
+    "decayFast": 0.28,
+    "sustainLevel": 0.22,
+    "decaySlow": 3.8,
+    "ring": 1,
+    "partialLevel": 0.34,
+    "partialDecay": 1.1,
+    "stretchCents": 3.2,
+    "unisonCents": 6,
+    "unisonLevel": 0.85,
+    "hammerLevel": 0.12,
+    "hammerHz": 1300,
+    "brightMin": 600,
+    "brightMax": 1900,
+    "hpHz": 70,
+    "spread": 0.3,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "A dark upright: shorter strings, so a faster first fall and more stretch; two strings six cents apart beating under a lid that keeps the top under 1.9 kHz.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

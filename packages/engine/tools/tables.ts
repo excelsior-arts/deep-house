@@ -19,6 +19,7 @@
 import { SCENES } from './audition-voices.ts';
 import { DRUM_SCENES } from './audition-drums.ts';
 import { SCENES_2 } from './audition-voices-2.ts';
+import { SCENES_3 } from './audition-voices-3.ts';
 import { REGISTRY, BY_NAME } from '../src/voices/index.ts';
 
 /** One fixture table: where it lives, whose round wrote it, and what it plays. */
@@ -39,6 +40,7 @@ export const TABLES: SceneTable[] = [
   { file: 'tools/audition-voices.ts', round: 'K2', rows: SCENES },
   { file: 'tools/audition-drums.ts', round: 'K3', rows: DRUM_SCENES },
   { file: 'tools/audition-voices-2.ts', round: 'K4', rows: SCENES_2 },
+  { file: 'tools/audition-voices-3.ts', round: 'KV1', rows: SCENES_3 },
 ];
 
 /** Every registered voice any table plays, in the tables' own order. */

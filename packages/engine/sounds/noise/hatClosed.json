@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatClosed",
+  "revision": 2,
+  "topology": "hat-ladder",
+  "dice": 0,
+  "parameters": {
+    "base": 1,
+    "detune": 8,
+    "metal": "metalClosed",
+    "hp": 3800,
+    "peakHz": 7200,
+    "q": 0.3,
+    "tilt": 2,
+    "lidHz": "lidHz",
+    "room": null,
+    "delay": 0,
+    "t10": "closedT10",
+    "ring": [
+      0.82,
+      0.36
+    ],
+    "drift": false,
+    "top": "top",
+    "air": "air",
+    "airHz": 8000,
+    "tail": "tail",
+    "beads": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": "hatClosed",
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats.ts",
+    "note": "The record's closed hat: the ladder at the room's own base, its metal share and its ring the room's (`hats.metalClosed`, `hats.closedT10`), the ring longer on a harder hit. No room send: it used to declare a reverb the hat never routed, and routing one now would put a send on it the band balance was never measured with.",
+    "notes": {
+      "grain": "SPARK-2: the grain the room's `hats` block holds (`top`, `air`, `tail`, nought in every table; `hat-grain.ts`): metal above 8 kHz, air past the lid from `airHz`, the tail after -10 dB. A place writes them; nought builds nothing."
+    }
+  }
+}

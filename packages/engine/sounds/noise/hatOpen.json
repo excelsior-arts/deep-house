@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatOpen",
+  "revision": 2,
+  "topology": "hat-ladder",
+  "dice": 31.7,
+  "parameters": {
+    "base": 0.97,
+    "detune": 14,
+    "metal": "metalOpen",
+    "hp": 3400,
+    "peakHz": 6600,
+    "q": 0.3,
+    "tilt": 2,
+    "lidHz": "lidHz",
+    "room": null,
+    "delay": 0.07,
+    "t10": "openT10",
+    "ring": null,
+    "drift": true,
+    "top": "top",
+    "air": "air",
+    "airHz": 8000,
+    "tail": "tail",
+    "beads": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatOpen",
+    "layer": "hats",
+    "plays": "hatOpen",
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats.ts",
+    "note": "GENRE: an open hat rings 200-400 ms, and that ring is most of what makes a house loop breathe. Its ring drifts over about twenty-four bars, phased off the room's own hat numbers, so sixteen bars of a loop are not sixteen bars of one sample; the delay send is real.",
+    "notes": {
+      "grain": "SPARK-2: the grain the room's `hats` block holds (`top`, `air`, `tail`, nought in every table; `hat-grain.ts`): metal above 8 kHz, air past the lid from `airHz`, the tail after -10 dB. A place writes them; nought builds nothing."
+    }
+  }
+}

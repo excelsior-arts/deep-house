@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/crash-on-the-one",
+  "revision": 1,
+  "name": "crash on the one",
+  "scope": "treatment",
+  "applies": "lead-in",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "glue": {
+      "slot": "impact",
+      "level": 0.65
+    }
+  },
+  "place": {
+    "sections": [
+      "drop"
+    ]
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:102+123 (bar 6), 8:524+66 (bar 36), 8:2105+104",
+    "kind": "FX",
+    "where": "a drop's first bar, the bar after a drop-out",
+    "reading": "the line bar carries a crash 0.09-0.28 of the time against 0.06-0.16 elsewhere",
+    "plays": "by place today: deep-house-places.ts GLUE_SOUND puts the crash on the impact lane at the fast broken place, and small/drop-out lands it after a drop-out; a lead-in row is PLAN-TREATMENTS section 3, step 5",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear",
+    "note": "A candidate at nought: pinnable by link and drawn by nothing until the ear admits it (notes/rounds/treat-t1.md)."
+  }
+}

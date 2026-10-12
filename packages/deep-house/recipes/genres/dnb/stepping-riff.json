@@ -1,0 +1,285 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/stepping-riff",
+  "revision": 1,
+  "name": "The stepping riff",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            8,
+            10,
+            14,
+            16,
+            26,
+            30
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            20,
+            28,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            0.3
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.52,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            24,
+            26,
+            28,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0.3
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.52,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.625,
+            0.625
+          ],
+          "range": {
+            "semitones": [
+              3,
+              3
+            ]
+          },
+          "density": [
+            4,
+            4
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                1,
+                0,
+                1,
+                2,
+                1,
+                0
+              ],
+              "beats": [
+                1.5,
+                1.5,
+                0.75,
+                0.25,
+                1,
+                1,
+                0.75,
+                1.25
+              ],
+              "holds": [
+                1.25,
+                1.25,
+                0.5,
+                0.25,
+                0.75,
+                0.75,
+                0.5,
+                1
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:1462+113",
+    "bars": "24\u201380",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "bass riff",
+    "pattern": "a mid-register riff stepping up and down a second at a time and never leaping, over eighth hats and a kick on one, three, three-and and four-and",
+    "note": "Ninety per cent of the cut's bass moves are a tone or less, all inside C2-D2; the sub is 9 dB down in the mix, the riff is the bass.",
+    "gap": "a mid-register bass line: the deep reese is a sub; at a lower Root the place plays the reese, which is this riff's sound",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.0,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    }
+  }
+}

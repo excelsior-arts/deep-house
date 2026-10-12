@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "tracks/bright-eighths",
+  "revision": 1,
+  "name": "Bright eighths: four on the floor, eighth hats, a bright mix",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.241,
+      0.403
+    ],
+    "tide": [
+      0.429,
+      0.72
+    ],
+    "zephyr": [
+      0.421,
+      0.739
+    ],
+    "root": [
+      0.556,
+      0.738
+    ],
+    "gleam": [
+      0.296,
+      0.548
+    ],
+    "veil": [
+      0.628,
+      0.837
+    ],
+    "spark": [
+      0.424,
+      0.722
+    ],
+    "loom": [
+      0.301,
+      0.492
+    ]
+  },
+  "wants": {
+    "rates": {
+      "figure": {
+        "perBar": 4.625,
+        "min": 3.688,
+        "max": 4.969
+      },
+      "offbeat": {
+        "perBar": 5.969,
+        "min": 5.25,
+        "max": 6.985
+      }
+    },
+    "timbres": {
+      "lead": {
+        "brightnessClass": "bright"
+      },
+      "pad": {
+        "brightnessClass": "bright"
+      },
+      "stab": {
+        "brightnessClass": "bright"
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.478,
+  "score": {
+    "chef": 2,
+    "likes": 0
+  },
+  "verdicts": [
+    {
+      "seed": "67",
+      "verdict": "hit",
+      "at": "2026-09-19T15:08:15.980Z",
+      "by": "review:mined",
+      "theme": 1,
+      "bar": 78,
+      "note": "genrally good, just some touch up sounds out of stylistic coherence, I guess it's cowbell sound, it just too noticable."
+    }
+  ],
+  "provenance": {
+    "tool": "packages/deep-house/tools/imprint/mine-v2.ts",
+    "reading": "packages/deep-house/tools/imprint/mine_sources.py",
+    "date": "2026-09-19",
+    "anchors": "anchors.json@1e899ba4",
+    "sources": {
+      "1": "sha256:bd44e7431c7c52da05d9100140bd4ee5",
+      "2": "sha256:db5f7babce1c66231d854ac09734a0de",
+      "3": "sha256:c074ae92426c703bb83a27b0e3db77d1"
+    },
+    "segmentation": "key-stability segments >=150 s from a 20 s/45 s chroma key track; up to two 96 s groove chunks per track",
+    "segmentationNote": "v1's own coherent stretches, reused and not re-cut (CORPUS.md: a key segment is not guaranteed to be one track \u2014 two tracks in the same key back to back merge into one entry and a track that modulates splits into two).",
+    "medoidSet": 1,
+    "medoidStart": 2080,
+    "medoidDuration": 765,
+    "medoidWindowFrom": 2080,
+    "medoidWindowSeconds": 765,
+    "medoidBars": null,
+    "members": 22,
+    "pool": 46,
+    "box": "the members' 2.5th to 97.5th percentile on every bird \u2014 the middle half widened symmetrically until at least 50% of the members sit inside on all eight birds at once \u2014 then stretched to include the medoid; the coverage is in reading.coverage",
+    "rates": "onsets per bar in three bands \u2014 40-120 Hz, 300-2000 Hz, 6-11 kHz \u2014 keyed by the role each band stands in for. They are band proxies and not source separation: a bassline that moves inside the low band is a low-band onset and a clap is a mid-band one.",
+    "words": "every class word is a tercile of the corpus itself; the cut points are in notes/analysis/mining-v2.md",
+    "name": "the class words at least half the members agree on, and the medoid's own where they do not \u2014 so a name may describe the medoid where `wants` stays silent, which is the honest way round: a name is a description and a want is an instruction.",
+    "note": "A candidate, not a row of the library. Only `score` and `verdicts` are the listener's own, and no tool writes them.",
+    "scopeOf": "track",
+    "k": 2,
+    "silhouette": 0.101,
+    "stability": 0.547,
+    "unit": "one coherent stretch, taken as the median of its own eight-bar windows",
+    "identity": "mined:track@set1:2080+765",
+    "mined": {
+      "id": "mined/track-02-four-on-the-floor-hats-on-the-eighths-a-bright-mix-ful",
+      "name": "four on the floor, hats on the eighths, a bright mix, full low end, decaying tails, a centred stage",
+      "interpreter": "v1",
+      "wants": {
+        "rates": {
+          "kick": {
+            "perBar": 5.125,
+            "min": 4.5,
+            "max": 5.485
+          },
+          "figure": {
+            "perBar": 4.625,
+            "min": 3.688,
+            "max": 4.969
+          },
+          "offbeat": {
+            "perBar": 5.969,
+            "min": 5.25,
+            "max": 6.985
+          }
+        },
+        "figures": {
+          "hatDensity": "eighths",
+          "brightness": "bright",
+          "lowMass": "full"
+        },
+        "mix": {
+          "width": "centred"
+        }
+      }
+    },
+    "port": {
+      "round": "genres GA2, 2026-09-26 (notes/rounds/genres-ga2.md)",
+      "read": "rates.figure and rates.offbeat lean the stab and hat masks (and the figure rate the density budget); figures.brightness and figures.sustain are class words, a tercile of the list each leans (brightness on the lead, pad and stab lists, sustain on the lead and stab)",
+      "lost": [
+        "rates.kick {\"perBar\":5.125,\"min\":4.5,\"max\":5.485}: the 40-120 Hz band is the kick and the bass together, and a four-floor kick is four a bar",
+        "figures.hatDensity eighths: said again by rates.offbeat, the number the word was cut from",
+        "figures.lowMass full: the corpus's middle third, where the house already sits",
+        "mix {\"width\":\"centred\"}: the stage's width, which no want reaches"
+      ],
+      "admitted": "by its family key's region (House / Deep House, the house spell +/- 0.15 on every bird); the mined box is readings and is never held against dice",
+      "placement": "GA5: the mined sets are four on the floor with the drums in; a drumless theme (Ember under 0.18) is not one, so the row places only where the drums play"
+    }
+  },
+  "reading": {
+    "confidence": {
+      "ember": 1,
+      "tide": 0.5,
+      "zephyr": 1,
+      "root": 1,
+      "gleam": 0.623,
+      "veil": 1,
+      "spark": 1,
+      "loom": 1
+    },
+    "coverage": {
+      "quantile": 0.025,
+      "members": {
+        "inside": 13,
+        "of": 22
+      },
+      "pool": {
+        "inside": 15,
+        "of": 46
+      },
+      "every": {
+        "inside": 15,
+        "of": 51
+      },
+      "medoidInside": true
+    },
+    "centre": {
+      "ember": 0.369,
+      "tide": 0.514,
+      "zephyr": 0.638,
+      "root": 0.674,
+      "gleam": 0.436,
+      "veil": 0.755,
+      "spark": 0.602,
+      "loom": 0.361
+    },
+    "medoid": {
+      "birds": {
+        "ember": 0.3355,
+        "tide": 0.5095,
+        "zephyr": 0.6129,
+        "root": 0.6988,
+        "gleam": 0.3839,
+        "veil": 0.7998,
+        "spark": 0.6134,
+        "loom": 0.3929
+      },
+      "confidence": {
+        "ember": 1,
+        "tide": 0.5,
+        "zephyr": 1,
+        "root": 1,
+        "gleam": 1,
+        "veil": 1,
+        "spark": 1,
+        "loom": 1
+      },
+      "note": "one member of the cluster, the nearest to its middle \u2014 not an average"
+    }
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "offbeat"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true
+  }
+}

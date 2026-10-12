@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "siren",
+  "revision": 1,
+  "topology": "siren",
+  "parameters": {
+    "trim": 0.5,
+    "attack": 0.012,
+    "release": 0.15,
+    "span": 2,
+    "glide": 0.5,
+    "brightnessHz": 2400,
+    "edge": 0.33,
+    "detuneCents": 6,
+    "spread": 0.4,
+    "hpHz": 120
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "mid",
+    "knobs": {
+      "span": {
+        "unit": "ratio",
+        "min": 1.12,
+        "default": 2,
+        "max": 4,
+        "bird": "spark",
+        "sense": 1,
+        "slopeDb": 0.301
+      },
+      "glide": {
+        "unit": "ratio",
+        "min": 0.1,
+        "default": 0.5,
+        "max": 1,
+        "bird": "loom",
+        "sense": 1,
+        "slopeDb": -0.473
+      },
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 800,
+        "default": 2400,
+        "max": 6000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 0.000643
+      }
+    },
+    "controls": {
+      "down": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      }
+    },
+    "timbres": {
+      "siren": {
+        "family": "effect",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 2400,
+        "loudnessDb": -12.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "siren.ts"
+  }
+}

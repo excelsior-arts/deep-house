@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kickKnock",
+  "revision": 1,
+  "topology": "kit-kick",
+  "dice": 173.9,
+  "parameters": {
+    "hz": 60,
+    "drop": 2.5,
+    "dropTime": 0.02,
+    "bodyLevel": 0.85,
+    "bodyLp": 220,
+    "drive": 0.3,
+    "clickHz": 3200,
+    "clickQ": 0.9,
+    "clickDecay": 0.004,
+    "clickLevel": 0.8,
+    "t10": 0.035,
+    "seconds": 0.25,
+    "variants": 2,
+    "variantCents": 6,
+    "attack": 0.0015,
+    "trim": 0.75,
+    "rateSpread": 0.012,
+    "gainSpread": 0.05,
+    "decaySpread": 0.07,
+    "velBright": 0.1,
+    "velDecay": 0.2,
+    "skinHz": null,
+    "skinLevel": null,
+    "skinDecay": null,
+    "holdS": null,
+    "releaseS": null,
+    "wobbleCents": null,
+    "harmonics": null
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": null,
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "kickKnock": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 220,
+        "loudnessDb": -16.7
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dub-1",
+    "module": "none",
+    "note": "a kick that is the rhythm and not the sub, for the deep half-time place where the bass line carries the low end: the short kick's drop onto 60 Hz, the body open to 220 Hz so its punch sits over the bass's fundamental, -10 dB at 35 ms and -34 dB by 120 (the room's kick it replaces is 54 -> 46 Hz under a 130 Hz lid, -34 dB only after 270 ms), and a click at 3.2 kHz near the body's level so the hit reads on a phone speaker (through the phone model the kick reads 2-5 dB over the room's); its trim between the short kick's and the punch's, the drum in front of the line and not under it",
+    "notes": {
+      "loudnessDb": "MEASURED in round DUB-1 by the drum gate (`tools/test-drums.ts --only kickKnock`, no bless): -16.65 at 44.1 and 48 kHz in Chromium and Firefox at trim 0.75 (a trim of 1 took its peak 3 dB over the room's kick and the limiter with it)"
+    }
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

@@ -78,3 +78,25 @@ test('a lane that shares an instrument lights for its own gate and never for the
   }
   assert.ok(quietWhileShared>0,'no bar of seed 5 has the open-hat lane shut while the closed hat plays, so this proves nothing');
 });
+test('a voice the plan gave a lane plays that lane: the liquid sine on the bassline, no loose strip; the house gives none',()=>{
+  // his screenshot of the liquid link (10-07): a greyed bassline strip and a loose reeseSub beside it
+  const spell={...HOUSE,ember:.95,tide:.45,zephyr:.6,root:.75,veil:.6,spark:.85,loom:.85};
+  const t=planTheme('1',0,{strategy:'house-v2',spell});
+  assert.deepEqual(t.sound.lanes?.bassline,['reeseSub']);
+  const rows=lanesOfTheme({track:t,bar:82} as any);
+  assert.deepEqual(rows.find(r=>r.id==='bassline')?.playing,['reeseSub']);
+  assert.equal(rows.find(r=>r.id==='reeseSub'),undefined);
+  assert.equal(rows.filter(r=>r.playing.includes('reeseSub')).length,1);
+  // the liquid kit's own hats and ghost snare play their group's first lane, on their own layer (liquid-desk-2, 10-08)
+  assert.deepEqual([...(t.sound.lanes?.offbeat??[])].sort(),['hatShut','hatSoft']);
+  // the kit's open hat is the open hat's own voice: a lane lists it, so the plan gives it none, and it shows on the
+  // hats' layer as the house's open hat does, beside the closed ones (the review of 10-08, B5)
+  assert.deepEqual([...rows.find(r=>r.id==='offbeat')!.playing].sort(),['hatOpen','hatShut','hatSoft']);
+  assert.ok(rows.find(r=>r.id==='offbeat')!.on&&rows.find(r=>r.id==='offbeat')!.firing>0,'the offbeat lane lit by the kit\'s hats in a drop bar');
+  assert.ok(rows.find(r=>r.id==='backbeat')!.playing.includes('snareGhost'));
+  for(const v of ['hatShut','hatSoft','snareGhost'])assert.equal(rows.filter(r=>r.playing.includes(v)).length,1,`${v} on one strip`);
+  assert.ok(lanesOfTheme({track:t,bar:121} as any).find(r=>r.id==='offbeatOpen')!.firing>0,'the kit\'s open hat fires on the open hat\'s lane');
+  assert.equal(rows.find(r=>r.id===r.playing[0]&&r.playing.length===1&&r.family!=null&&['hatShut','hatSoft','snareGhost'].includes(r.id)),undefined,'no loose kit strip');
+  const house=planTheme('1',0,{strategy:'house-v2'});
+  assert.equal(house.sound.lanes,undefined);
+});

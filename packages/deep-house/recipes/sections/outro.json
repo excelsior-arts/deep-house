@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/outro",
+  "revision": 1,
+  "name": "outro",
+  "scope": "section",
+  "applies": "outro",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 4,
+    "phrases": [
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "pad"
+        ]
+      },
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      }
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "the kit under the pad and the bass, thinning to the kick, the closed hat and the pad for the last phrase; an outro of one phrase is its ending; it takes no small thing",
+    "from": "src/styles/deep-house.ts sections.kinds.outro (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move"
+  }
+}

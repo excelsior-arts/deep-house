@@ -221,7 +221,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -253,6 +253,12 @@
   "provenance": {
     "pattern": "techno: a driving kick on every beat, an open hat on every offbeat (where a record has the ride), closed sixteenths, a clap on two and four, and a rolling sub on the sixteenths after each kick",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar. The ride of a Berlin or Detroit record is an open hat here: the ride is registered and weighs nought on the offbeat lane. The sub rolls — the second and fourth sixteenth of each beat, the kick's own sixteenth left to the kick — which is the rumble a techno low end moves on."
+    "note": "One bar. The ride of a Berlin or Detroit record is an open hat here: the ride is registered and weighs nought on the offbeat lane. The sub rolls — the second and fourth sixteenth of each beat, the kick's own sixteenth left to the kick — which is the rumble a techno low end moves on.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 3.2,
+      "syncopationZ": 2.1,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

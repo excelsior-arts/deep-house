@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sawPad",
+  "revision": 1,
+  "topology": "saw-pad",
+  "block": "sawPad",
+  "parameters": {
+    "voiceLevel": 0.38,
+    "attack": 0.5,
+    "decay": 1.2,
+    "sustain": 0.75,
+    "release": 0.9,
+    "cutoff": 900,
+    "openTo": 3400,
+    "swellTime": 0.45,
+    "settleTime": 2.2,
+    "q": 1.6,
+    "veloOpen": 0.6,
+    "hpHz": 100,
+    "driftHz": 0.09,
+    "driftCents": 5,
+    "spread": 0.8,
+    "trim": 1.098
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "mid",
+    "timbres": {
+      "sawPad": {
+        "family": "sustained",
+        "struck": false,
+        "hold": 0.85,
+        "brightnessHz": 1100,
+        "loudnessDb": -11
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "saw-pad.ts",
+    "note": "A second saw pad, and the supersaw's opposite: three voices and not seven, an octave in the stack instead of a wider detune, and a filter that opens and falls back rather than opening over four seconds.",
+    "notes": {
+      "swellTime": "The swell: up over `swellTime`, back down over `settleTime`. Seconds, not milliseconds — on a pad whose note is four bars long this is the arrangement and not the attack."
+    }
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pad",
+  "revision": 1,
+  "topology": "dispatch",
+  "parameters": {
+    "by": "timbre",
+    "none": "strings",
+    "otherwise": "rhodes",
+    "timbres": {
+      "strings": {
+        "row": "stringsPad",
+        "sustain": false
+      },
+      "swell": {
+        "row": "stringsSwell",
+        "sustain": false
+      },
+      "rhodes": {
+        "row": "keysRhodes",
+        "sustain": true
+      },
+      "glass": {
+        "row": "keysGlass",
+        "sustain": true
+      },
+      "ep": {
+        "row": "keysEp",
+        "sustain": true
+      },
+      "organ": {
+        "row": "keysOrgan",
+        "sustain": true
+      },
+      "pluck": {
+        "row": "keysPluck",
+        "sustain": true
+      }
+    }
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": "pad",
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 650,
+        "default": 1200,
+        "max": 3600,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.00000662
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.12,
+        "default": 0.52,
+        "max": 0.95,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 14.1
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.004,
+        "default": 0.025,
+        "max": 0.5,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -0.88
+      },
+      "grain": {
+        "unit": "ratio",
+        "min": 0,
+        "default": 1,
+        "max": 2.5,
+        "bird": "spark",
+        "sense": 1,
+        "slopeDb": 0.005
+      }
+    },
+    "controls": {
+      "attack": {
+        "unit": "seconds",
+        "min": 0.003,
+        "max": 2,
+        "default": null
+      },
+      "release": {
+        "unit": "seconds",
+        "min": 0.03,
+        "max": 3,
+        "default": null
+      },
+      "open": {
+        "unit": "hz",
+        "min": 300,
+        "max": 8000,
+        "default": null
+      },
+      "motion": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": 1
+      },
+      "fadeCurve": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      }
+    },
+    "timbres": {
+      "strings": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.52,
+        "brightnessHz": 1200,
+        "loudnessDb": -8
+      },
+      "swell": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.32,
+        "brightnessHz": 1200,
+        "loudnessDb": -10.7
+      }
+    },
+    "dispatches": [
+      "strings",
+      "swell",
+      "rhodes",
+      "organ"
+    ],
+    "mood": []
+  },
+  "provenance": {
+    "module": "pad.ts",
+    "round": "sounds-r3",
+    "note": "The sustained role, one event name for four families that `p.timbre` chooses between: the strings (the default, and MEASURED the biggest sustained family, 31% of 52 tracks: a fast-attack chord held long and drowned in reverb), the swell (the same body with the slow attack back, 4%), the organ (drawbars, which hold flatter through the bar than anything else, about one theme in ten) and the rhodes (a tine held rather than struck, the study's keys blend, 8%). The two strings families render through their own rows; the two keyboards are the keys' rows held — and so is any patch a note names, as the module handed any name to the keys.",
+    "notes": {
+      "timbres": "Timbre to row. `sustain` is a keyboard patch held rather than struck: the note crosses with `sustain` set, its `preset` the timbre, and its knobs re-expressed against the patch's own, so what crosses is the factor.",
+      "controls": "What a part may write on a sustained note, taken by every row it renders through. The entrance, the tail and the corner have no single default: they are the timbre's own (a swell's attack is not the strings'), so a note that does not say plays the timbre. `motion` scales the note's own drift, chorus and tremolo (1 is the room's), and `fadeCurve` is the raised-cosine envelope switch.",
+      "knobs": "The sustained role's ranges (PLAN-MODULATION M1), the pad's as they always were: every default is the strings family's own measured number — the 25 ms median attack, the 0.52 still sounding at the bar line, the 1.2 kHz corner that landed the centroid at 620 Hz — and what a knob moves is a factor on whichever sustained timbre is holding, including the keyboard patches the pad holds, which take it re-expressed against their own. A swell's own 0.55 s attack is a swell's; the knob makes it half again or a tenth of itself, and it is still a swell. The ceiling on brightness is well under the engine's limit for a measured reason: not one track in 52 closes a filter inside a note and 21% brighten, and five saws at a 6 kHz corner is a saw pad, which this instrument is written not to be. The grain (round SPARK-1) is a factor on the breath a place writes under the ensemble, one at the house; its measured slope is the pad alone under the house's breath against none, seeds 1 and 29 theme two, +0.004 and +0.007 LU (notes/rounds/spark-1.md)."
+    }
+  }
+}

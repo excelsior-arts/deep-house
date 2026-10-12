@@ -18,14 +18,16 @@ import { style } from '../src/styles/deep-house-v2.ts';
 import { style as v1 } from '../src/styles/deep-house.ts';
 import { HOUSE, biasFor, musicalControls, type Spell } from '../src/spell.ts';
 import { recipeById, PART_LIBRARY } from '../src/recipes.ts';
-import { withdrawnFrom } from '../src/lanes.ts';
+import { withdrawnFrom, withdrawnAtTempo } from '../src/lanes.ts';
 import { themeSeed } from '../src/set-plan.ts';
 import { maskSteps } from '../src/patterns.ts';
 import { BY_NAME, FAMILIES, TIMBRES } from '@deep-house/engine/voices';
 import { BENCHMARK_SEED, BENCHMARK_SPELL, BENCHMARK_THEMES, blessedLine, themeHash } from './link-digest.ts';
 import { linkWrite } from '../src/link.ts';
 
-const opts = { strategy: 'house-v2', spell: HOUSE } as const;
+// The scene's rules are the composer's; the library's turn (GA1) is held out of
+// reach here, so every theme below is the composer's own draw.
+const opts = { strategy: 'house-v2', spell: HOUSE, library: [] } as const;
 const policy = (style as typeof style & { composition: CompositionPolicy }).composition;
 const scene = policy.scene!;
 const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1);
@@ -40,7 +42,7 @@ const noRule = {
   lanes: style.lanes.map(({ withdraw: _, presence: __, ...l }) => l),
   composition: { ...policy, scene: undefined },
 };
-const plans = SEEDS.map(seed => ({ seed, t: planTheme(seed, 0, opts), was: planTheme(seed, 0, { style: noRule as typeof style, spell: HOUSE }) }));
+const plans = SEEDS.map(seed => ({ seed, t: planTheme(seed, 0, opts), was: planTheme(seed, 0, { style: noRule as typeof style, spell: HOUSE, library: [] }) }));
 const at = (seed: number) => plans[seed - 1].t;
 /** The held sets the style puts in front whatever the coin (`ScenePolicy.always`). */
 const endless = (t: Plan) => {
@@ -120,7 +122,9 @@ test('the real-world class is a pace: a hit with no pitch always, a tone only wh
 test('a lane puts descriptor families to the question, never names, and only the sixteenth lane does', () => {
   for (const lane of style.lanes) for (const w of lane.withdraw ?? []) {
     assert.ok(w.families.every(f => (FAMILIES as readonly string[]).includes(f)), `${lane.id}: ${w.families} is not a descriptor family`);
-    assert.equal(w.scene, 'drone-forward');
+    // A withdrawal is the drone in front, or a tempo band (10-02: the hand drums above 125 BPM), never both and never neither.
+    if (w.scene !== undefined) { assert.equal(w.scene, 'drone-forward'); assert.equal(w.tempoFrom, undefined); }
+    else assert.ok(w.tempoFrom !== undefined || w.tempoTo !== undefined, `${lane.id}: a withdrawal with no scene and no tempo band`);
   }
   assert.deepEqual(style.lanes.filter(l => l.withdraw?.length).map(l => l.id), ['sixteenth']);
   const sixteenth = style.lanes.find(l => l.id === 'sixteenth')!;
@@ -128,6 +132,10 @@ test('a lane puts descriptor families to the question, never names, and only the
   assert.ok(live.every(v => withdrawnFrom(sixteenth, 'drone-forward').has(BY_NAME[v].family)), 'every live sixteenth is put to the question');
   assert.equal(withdrawnFrom(sixteenth, 'drone-back').size, 0);
   assert.equal(withdrawnFrom(sixteenth, undefined).size, 0);
+  // The tempo band: the drum family is withdrawn at a half-time's pace and not at the house's.
+  assert.deepEqual([...withdrawnAtTempo(sixteenth, 137, { spark: 0.10 })], ['drum']);
+  assert.equal(withdrawnAtTempo(sixteenth, 137, { spark: 0.50 }).size, 0, 'the fast four-floor with a beat keeps its hands');
+  assert.equal(withdrawnAtTempo(sixteenth, 100, { spark: 0.10 }).size, 0);
 });
 
 test('over seeds 1-200 every theme has a scene, air exactly where the texture is air, and where there is a coin the drone is in front about half the time', () => {
@@ -158,7 +166,7 @@ test('drone + body is the drone in front on every seed, at the house and at both
   for (const spell of spells) {
     let n = 0;
     for (const seed of SEEDS) {
-      const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell });
+      const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] });
       if (!endless(t)) continue;
       n++;
       assert.equal(sceneOfDice(t.dice), 'drone-forward', `seed ${seed} at drone ${musicalControls(spell, style)!.drone}: drone + body behind`);
@@ -170,7 +178,7 @@ test('drone + body is the drone in front on every seed, at the house and at both
   const coinOnly = { ...style, composition: { ...policy, scene: { ...scene, always: [] } } };
   for (const { seed, t } of plans.slice(0, 120)) {
     if (endless(t)) continue;
-    assert.deepEqual(t.events, planTheme(seed, 0, { style: coinOnly as typeof style, spell: HOUSE }).events, `seed ${seed}: a coin theme moved`);
+    assert.deepEqual(t.events, planTheme(seed, 0, { style: coinOnly as typeof style, spell: HOUSE, library: [] }).events, `seed ${seed}: a coin theme moved`);
   }
 });
 
@@ -178,7 +186,7 @@ test('the coin is still reachable for every other held set, both ways, at the ho
   for (const spell of [HOUSE, { ...HOUSE, tide: .75, veil: .3, loom: .72 }, { ...HOUSE, tide: .4, veil: .62, loom: .45 }] as Spell[]) {
     const seen: Record<string, Set<string>> = {};
     for (const seed of SEEDS) {
-      const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell });
+      const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] });
       const s = sceneOfDice(t.dice);
       if (s === 'air' || endless(t)) continue;
       (seen[s!] ??= new Set()).add(JSON.parse(String(t.dice.composition)).texture.held.join('+'));
@@ -223,7 +231,7 @@ test('a drone in front of a grid keeps its pad at the style\'s level: the ringin
   for (const { seed, t } of plans) {
     if (sceneOfDice(t.dice) !== 'drone-forward' || !JSON.parse(String(t.dice.composition)).selected['ringing-keys']) continue;
     ringing++;
-    const want = planTheme(seed, 0, { style: inFront as typeof style, spell: HOUSE });
+    const want = planTheme(seed, 0, { style: inFront as typeof style, spell: HOUSE, library: [] });
     const pad = t.events.filter(e => e.layer === 'pad'), was = want.events.filter(e => e.layer === 'pad');
     assert.ok(pad.length, `seed ${seed}: a forward theme with no pad`);
     assert.deepEqual(pad.map(e => e.p.gain), was.map(e => e.p.gain), `seed ${seed}: the drone in front plays behind the ringing keys`);
@@ -310,7 +318,7 @@ test('the birds lean the scene and never gate it', () => {
   const share = (spell: Spell) => {
     let f = 0, s = 0;
     for (const seed of SEEDS) {
-      const x = sceneOfDice(planTheme(seed, 0, { strategy: 'house-v2', spell }).dice);
+      const x = sceneOfDice(planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] }).dice);
       if (x === 'drone-forward') f++;
       if (x !== 'air') s++;
     }
@@ -371,7 +379,7 @@ test('one scene per theme: the developments bring nothing withdrawn in and do no
         assert.equal(t.dice.rhythmDevelopment, undefined, `seed ${seed}: the percussion palette under a drone in front`);
       }
       if (s === 'drone-back') {
-        const was = planTheme(seed, 0, { style: noRule as typeof style, spell: HOUSE, development });
+        const was = planTheme(seed, 0, { style: noRule as typeof style, spell: HOUSE, library: [], development });
         const pad = t.events.filter(e => e.layer === 'pad'), before = was.events.filter(e => e.layer === 'pad');
         pad.forEach((e, i) => assert.ok((e.p.gain ?? 1) <= (before[i].p.gain ?? 1) + 1e-12, `seed ${seed} ${development}: the pad came forward`));
       }
@@ -396,7 +404,12 @@ test("Eugene's ambient fixture: seed 27191 at his spell plays exactly what it di
     const t = planTheme(27191, n, { strategy: 'house-v2', spell });
     const link = linkWrite({ seed: BENCHMARK_SEED, theme: n, strategy: 'house-v2', spell });
     assert.equal(themeHash(t), blessedLine(link).hash, `theme ${n}: 27191 at its spell is not the program blessed for ${link}`);
-    const was = planTheme(27191, n, { style: noRule as typeof style, spell });
+    // Since GA5 27191's spell stands nearest the Ambient key, so its library
+    // turns (themes 2 and 5 of the set) play the ambient slow chords — the
+    // library's, held by the digest's own line above; every other theme is
+    // the composer's, and exactly what it was.
+    if (t.dice.library) { assert.match(String(t.dice.library), /^ambient\//, `theme ${n}`); continue; }
+    const was = planTheme(27191, n, { style: noRule as typeof style, spell, library: [] });
     assert.equal(sceneOfDice(t.dice), n < 3 ? 'drone-forward' : 'air', `theme ${n}`);
     assert.deepEqual(t.events, was.events, `theme ${n}`);
     for (const e of t.events) if (TIMBRES[String(e.p.preset ?? e.voice)]?.struck) struck.add(String(e.p.preset ?? e.voice));
@@ -438,11 +451,11 @@ test('R35: the drone in front\'s redraw drops families and never adds one the pa
   const gained: string[] = [];
   let forward = 0;
   for (const seed of SEEDS) {
-    const t = planTheme(seed, 0, { strategy: 'house-v2', spell });
+    const t = planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] });
     const c = JSON.parse(String(t.dice.composition));
     if (c.scene !== 'drone-forward') continue;
     forward++;
-    const whole = JSON.parse(String(planTheme(seed, 0, { style: noRule as typeof style, spell }).dice.composition));
+    const whole = JSON.parse(String(planTheme(seed, 0, { style: noRule as typeof style, spell, library: [] }).dice.composition));
     const added = Object.keys(c.selected).filter(f => !(f in whole.selected));
     if (added.length) gained.push(`${seed}: ${added.join(', ')}`);
   }

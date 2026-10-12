@@ -244,7 +244,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -268,10 +268,6 @@
     "bpm": [
       70,
       90
-    ],
-    "nearest": [
-      95,
-      105
     ]
   },
   "sections": [
@@ -279,8 +275,14 @@
     "breakdown"
   ],
   "provenance": {
-    "pattern": "lo-fi hip-hop: a lazy boom-bap — kick one and three-and, snare two and four — played behind the beat with heavy swing, under electric-piano seventh chords and a soft sub",
+    "pattern": "lo-fi hip-hop: a lazy boom-bap \u2014 kick one and three-and, snare two and four \u2014 played behind the beat with heavy swing, under electric-piano seventh chords and a soft sub",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: kick one, three-and; one, two-a, three-and; the snare on two and four; eighth hats swung to 0.62 and late by a thirtieth of a beat with loose dynamics — the drunk feel the style is known for. The chords are stacked sevenths on a warm electric keyboard, one per bar, held; the sub holds the root. The vinyl crackle is the composer's own texture (vinylBed) and cannot be asked for by a row."
+    "note": "Two bars: kick one, three-and; one, two-a, three-and; the snare on two and four; eighth hats swung to 0.62 and late by a thirtieth of a beat with loose dynamics \u2014 the drunk feel the style is known for. The chords are stacked sevenths on a warm electric keyboard, one per bar, held; the sub holds the root. The vinyl crackle is the composer's own texture (vinylBed) and cannot be asked for by a row.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.7,
+      "syncopationZ": -2.8,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

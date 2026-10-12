@@ -176,7 +176,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -208,6 +208,12 @@
   "provenance": {
     "pattern": "big beat: a chopped funk break — its syncopated kicks and ghosted snares — played over a hard four-on-the-floor kick, loud, at 120-140",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars. The kick lane carries both drummers: the four on every beat and the break's own pushes (the and of three, the a of two) between them; the snare is the break's, two and four at full weight with the ghosts of a funk drummer, the second bar chopped to a snare on the and of three. Sixteenth hats, swung 0.54, an open hat closing each second bar. The sub holds the root. The distortion the style drives its drums through is not a want a row can make."
+    "note": "Two bars. The kick lane carries both drummers: the four on every beat and the break's own pushes (the and of three, the a of two) between them; the snare is the break's, two and four at full weight with the ghosts of a funk drummer, the second bar chopped to a snare on the and of three. Sixteenth hats, swung 0.54, an open hat closing each second bar. The sub holds the root. The distortion the style drives its drums through is not a want a row can make.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": 0.2,
+      "syncopationZ": -0.1,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

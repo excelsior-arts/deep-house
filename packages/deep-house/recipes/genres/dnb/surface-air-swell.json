@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/surface-air-swell",
+  "revision": 1,
+  "name": "An air swell that breathes with the passage",
+  "scope": "surface",
+  "applies": "texture",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "surface": {
+      "voice": "airBed",
+      "present": {
+        "exposed": 0,
+        "intro": -6
+      },
+      "segmentBars": 4,
+      "leastBars": 8,
+      "level": [
+        [
+          0,
+          -14
+        ],
+        [
+          0.6,
+          0
+        ],
+        [
+          1,
+          -12
+        ]
+      ],
+      "bright": [
+        [
+          0,
+          0.3
+        ],
+        [
+          0.6,
+          1.3
+        ],
+        [
+          1,
+          0.35
+        ]
+      ],
+      "tailS": 2.5,
+      "midi": 60,
+      "vel": 0.7,
+      "reverb": 0.25,
+      "note": "The manual's N4: the dark air in shorter events whose level and brightness follow one wide arc over the passage, opening toward its crest and closing before the return; nothing under the outro."
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's N4 (an air swell, one wide arc a passage) on the dark air row (packages/engine/sounds/noise/airBed.json)."
+  }
+}

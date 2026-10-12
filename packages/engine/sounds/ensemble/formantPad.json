@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "formantPad",
+  "revision": 1,
+  "topology": "formant-pad",
+  "block": "formantPad",
+  "parameters": {
+    "vowels": {
+      "ah": [
+        720,
+        1240,
+        2540
+      ],
+      "oh": [
+        460,
+        820,
+        2620
+      ],
+      "ee": [
+        320,
+        2200,
+        2960
+      ],
+      "uh": [
+        500,
+        1480,
+        2480
+      ]
+    },
+    "vowel": "ah",
+    "vowelTo": "oh",
+    "driftHz": 0.045,
+    "q": [
+      6.5,
+      8.5,
+      11
+    ],
+    "formantLevel": [
+      1,
+      0.5,
+      0.26
+    ],
+    "detuneCents": 9,
+    "noise": 0.16,
+    "voiceLevel": 1.2,
+    "attack": 0.85,
+    "decay": 1.4,
+    "sustain": 0.74,
+    "release": 0.8,
+    "hpHz": 120,
+    "lpHz": 4600,
+    "spread": 0.75,
+    "trim": 0.8
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "attack": {
+        "unit": "seconds",
+        "min": 0.003,
+        "max": 3,
+        "default": 0.85
+      },
+      "release": {
+        "unit": "seconds",
+        "min": 0.03,
+        "max": 3,
+        "default": 0.8
+      }
+    },
+    "timbres": {
+      "formantPad": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.74,
+        "brightnessHz": 4600,
+        "loudnessDb": -11.2
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "formant-pad.ts",
+    "note": "A formant pad: a breathy, vocal-ish sustained voice. Two saws and a little noise through three parallel bandpasses parked where a vowel's formants are, and the vowel drifts from one to another and back over about twenty seconds. It is the sustained role for music that is not made of chords on a keyboard, and it holds as well as it plays a note.",
+    "notes": {
+      "vowels": "Two vowels and the slow walk between them. The three numbers are the formant centres in Hz; the pad sits between `vowel` and `vowelTo` and wanders across at `driftHz`.",
+      "q": "The three bandpasses: how sharp each is and how loud. The first formant carries the body and the third is the breath on top of it.",
+      "detuneCents": "What goes into them: two saws a few cents apart, and the breath."
+    }
+  }
+}

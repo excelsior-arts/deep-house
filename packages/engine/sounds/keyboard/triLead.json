@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "triLead",
+  "revision": 1,
+  "topology": "tri-lead",
+  "block": "triLead",
+  "parameters": {
+    "attack": 0.012,
+    "decay": 0.3,
+    "sustain": 0.7,
+    "release": 0.18,
+    "detuneCents": 6,
+    "cutoff": 2600,
+    "q": 1.4,
+    "veloOpen": 0.5,
+    "fold": 1.6,
+    "vibHz": 5.2,
+    "vibCents": 9,
+    "vibDelay": 0.18,
+    "vibRise": 0.25,
+    "spread": 0.35,
+    "trim": 0.911
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "melody",
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "mid",
+    "timbres": {
+      "triLead": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.6,
+        "brightnessHz": 2400,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "wave-leads.ts",
+    "note": "A triangle: odd harmonics at 1/n squared, so the fifth is 28 dB down where a square's is 14. The fold is what puts them back when a note is hit hard.",
+    "notes": {
+      "fold": "How hard a full-velocity note is driven into the folder. Under 1 the curve is a straight line and a quiet note is a plain triangle.",
+      "vibHz": "The vibrato arrives rather than starting: nothing for `vibDelay`, then a ramp into it over `vibRise`."
+    }
+  }
+}

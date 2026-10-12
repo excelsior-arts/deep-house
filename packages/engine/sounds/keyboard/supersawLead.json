@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "supersawLead",
+  "revision": 1,
+  "topology": "supersaw-lead",
+  "parameters": {
+    "trim": 0.6,
+    "attack": 0.035,
+    "release": 0.28,
+    "detune": 0.22,
+    "spread": 0.8,
+    "cutoffHz": 3600,
+    "closed": 0.3,
+    "open": 1.2,
+    "resonanceDb": 2,
+    "hpHz": 180
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "detune": {
+        "unit": "ratio",
+        "min": 0.06,
+        "default": 0.22,
+        "max": 0.45,
+        "bird": "gleam",
+        "sense": 1,
+        "slopeDb": 5.29
+      },
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 1200,
+        "default": 3600,
+        "max": 4800,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 0.00099
+      },
+      "open": {
+        "unit": "seconds",
+        "min": 0.6,
+        "default": 1.2,
+        "max": 4,
+        "bird": "loom",
+        "sense": 1,
+        "slopeDb": -0.256
+      }
+    },
+    "timbres": {
+      "supersawLead": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 3600,
+        "loudnessDb": -12.6
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "supersaw-lead.ts"
+  }
+}

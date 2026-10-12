@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "swell",
+  "revision": 1,
+  "topology": "reverse-swell",
+  "parameters": {
+    "dur": 1.6,
+    "bandHz": 2600,
+    "q": 1.4,
+    "gain": 0.4,
+    "release": 0.03,
+    "dry": 0.6,
+    "reverb": 0.6
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fx.ts",
+    "note": "A reverse-ish swell: noise through a narrow band rising into the hit, half of it in the room, gone 30 ms after the arrival unless the note says."
+  }
+}

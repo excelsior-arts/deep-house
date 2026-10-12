@@ -1,0 +1,466 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/bass-answers-liquid",
+  "revision": 1,
+  "name": "The bass's answers: a rest, a glide across the gap, a half-time sentence",
+  "scope": "bass-answers",
+  "applies": "bass",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "bass": {
+      "rest": [
+        {
+          "id": "rest-last-quarter",
+          "w": 3,
+          "step": 12
+        },
+        {
+          "id": "rest-last-half",
+          "w": 1,
+          "step": 8
+        }
+      ],
+      "glide": [
+        {
+          "id": "up-a-fourth",
+          "w": 3,
+          "fromStep": 8,
+          "semis": 5
+        },
+        {
+          "id": "up-a-fifth",
+          "w": 2,
+          "fromStep": 8,
+          "semis": 7
+        },
+        {
+          "id": "up-a-third",
+          "w": 1,
+          "fromStep": 10,
+          "semis": 3
+        }
+      ],
+      "halfTime": [
+        {
+          "id": "travel-to-the-fifth",
+          "w": 3,
+          "phrase": {
+            "bars": 2,
+            "knobs": {
+              "scoop": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "swell": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "pairOnHold": {
+                "unit": "x",
+                "min": 0,
+                "max": 2,
+                "default": 1
+              },
+              "edge": {
+                "unit": "x",
+                "min": 0,
+                "max": 3,
+                "default": 1
+              },
+              "pressDb": {
+                "unit": "db",
+                "min": -18,
+                "max": 0,
+                "default": -8
+              }
+            },
+            "runs": [
+              {
+                "step": 0,
+                "len": 14,
+                "anchors": [
+                  [
+                    0,
+                    "home"
+                  ],
+                  [
+                    14,
+                    "home"
+                  ]
+                ],
+                "pitch": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    3,
+                    0
+                  ],
+                  [
+                    8,
+                    7
+                  ],
+                  [
+                    9.5,
+                    7
+                  ],
+                  [
+                    11,
+                    0
+                  ],
+                  [
+                    14,
+                    0
+                  ]
+                ],
+                "level": [
+                  [
+                    0,
+                    0.95
+                  ],
+                  [
+                    8,
+                    1.05
+                  ],
+                  [
+                    11,
+                    0.95
+                  ],
+                  [
+                    14,
+                    0.9
+                  ]
+                ],
+                "pair": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    14,
+                    0
+                  ]
+                ]
+              },
+              {
+                "step": 16,
+                "len": 10,
+                "anchors": [
+                  [
+                    0,
+                    "home"
+                  ],
+                  [
+                    10,
+                    "home"
+                  ]
+                ],
+                "pitch": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    6,
+                    0
+                  ],
+                  [
+                    8,
+                    -2
+                  ],
+                  [
+                    10,
+                    -2
+                  ]
+                ],
+                "level": [
+                  [
+                    0,
+                    0.9
+                  ],
+                  [
+                    10,
+                    0.8
+                  ]
+                ],
+                "pair": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    10,
+                    0
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "held-and-answered",
+          "w": 2,
+          "phrase": {
+            "bars": 2,
+            "knobs": {
+              "scoop": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "swell": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "pairOnHold": {
+                "unit": "x",
+                "min": 0,
+                "max": 2,
+                "default": 1
+              },
+              "edge": {
+                "unit": "x",
+                "min": 0,
+                "max": 3,
+                "default": 1
+              },
+              "pressDb": {
+                "unit": "db",
+                "min": -18,
+                "max": 0,
+                "default": -8
+              }
+            },
+            "runs": [
+              {
+                "step": 0,
+                "len": 20,
+                "anchors": [
+                  [
+                    0,
+                    "home"
+                  ],
+                  [
+                    20,
+                    "home"
+                  ]
+                ],
+                "pitch": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    6,
+                    0
+                  ],
+                  [
+                    8,
+                    3
+                  ],
+                  [
+                    12,
+                    3
+                  ],
+                  [
+                    14,
+                    0
+                  ],
+                  [
+                    20,
+                    0
+                  ]
+                ],
+                "level": [
+                  [
+                    0,
+                    0.95
+                  ],
+                  [
+                    8,
+                    1.0
+                  ],
+                  [
+                    20,
+                    0.85
+                  ]
+                ],
+                "pair": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    20,
+                    0
+                  ]
+                ]
+              },
+              {
+                "step": 24,
+                "len": 6,
+                "anchors": [
+                  [
+                    0,
+                    "home"
+                  ],
+                  [
+                    6,
+                    "home"
+                  ]
+                ],
+                "pitch": [
+                  [
+                    0,
+                    7
+                  ],
+                  [
+                    2,
+                    7
+                  ],
+                  [
+                    6,
+                    0
+                  ]
+                ],
+                "level": [
+                  [
+                    0,
+                    0.85
+                  ],
+                  [
+                    6,
+                    0.8
+                  ]
+                ],
+                "pair": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    6,
+                    0
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "one-long-note",
+          "w": 1,
+          "phrase": {
+            "bars": 2,
+            "knobs": {
+              "scoop": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "swell": {
+                "unit": "x",
+                "min": 0,
+                "max": 1.5,
+                "default": 1
+              },
+              "pairOnHold": {
+                "unit": "x",
+                "min": 0,
+                "max": 2,
+                "default": 1
+              },
+              "edge": {
+                "unit": "x",
+                "min": 0,
+                "max": 3,
+                "default": 1
+              },
+              "pressDb": {
+                "unit": "db",
+                "min": -18,
+                "max": 0,
+                "default": -8
+              }
+            },
+            "runs": [
+              {
+                "step": 0,
+                "len": 28,
+                "anchors": [
+                  [
+                    0,
+                    "home"
+                  ],
+                  [
+                    28,
+                    "home"
+                  ]
+                ],
+                "pitch": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    20,
+                    0
+                  ],
+                  [
+                    24,
+                    -2
+                  ],
+                  [
+                    28,
+                    -2
+                  ]
+                ],
+                "level": [
+                  [
+                    0,
+                    0.95
+                  ],
+                  [
+                    8,
+                    1.0
+                  ],
+                  [
+                    28,
+                    0.8
+                  ]
+                ],
+                "pair": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    28,
+                    0
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "note": "Played on whatever riff the theme drew, by its runs, never its notes, each drawn among its variants by weight: rest (once a phrase) — when the drums get busy at a phrase's end (a pickup, a fill) the run held there ends on the variant's step of the last bar and the line rests to the next phrase, which enters fresh; glide (once a phrase) — when the drums open the end the run held there rises the variant's semitones from its step to the phrase's end, across the gap. halfTime (once a track): the sentence the line plays in a half-time phrase, two bars on the riff's own voice and register — a long travel up a fifth into the middle backbeat and a short falling answer; a note held into a third and answered from the fifth; one long note that falls a tone at its end."
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's B1, B5, B6 and B7; the voice's body, slides and timbre untouched, the slide-continuity rule kept (a rest ends a run, the next run enters fresh)."
+  }
+}

@@ -12,7 +12,7 @@ export interface SoundCharacters {
   rhythm?: Record<string, RhythmCharacter>;
   phrases?: Record<string, { requires: string[]; params: Record<string, [number,number,number]>; beats: Record<string, [number,number,number]>; treatment?: 'none' }>;
   presence: { backgroundDb: number };
-  ambience: Record<'intimate' | 'spacious' | 'distant', { room: number; reverb: number; delay: number; background?: number }>;
+  ambience: Record<'intimate' | 'spacious' | 'distant' | 'echo', { room: number; reverb: number; delay: number; background?: number; echo?: number }>;
   tone: Record<string, Record<string, { requires: string[]; params: NoteParams }>>;
   pulse: { register: [number, number]; articulation: NoteParams; space: Record<'distant' | 'immersed', NoteParams> };
   /**

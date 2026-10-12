@@ -87,7 +87,16 @@ export function treat({ style, S, parts, characters, events, upperEvents, phrase
     for (const e of events.filter(e => BY_NAME[e.voice].roles.includes(role as any))) {
       const controls = BY_NAME[e.voice].noteControls || [];
       const profile = characters?.tone[role]?.[parts.tone[role as keyof typeof parts.tone]!];
-      if (!profile || !profile.requires.every(k => controls.includes(k))) throw new Error(`musical tone: ${role} has no supported character`);
+      if (!profile) throw new Error(`musical tone: ${role} has no supported character`);
+      // A voice a place swapped onto the lane (GA6: the resonant line on the
+      // bass) that does not declare the character's controls keeps its own
+      // sound; the character is the lane's incumbent's, not the swap's. That
+      // skip is for a style's own preference only: a tone a recipe asks for
+      // explicitly is admitted against the voice that plays before this pass
+      // (the generator's post-selection admission refuses the swap, and
+      // refuses the request with its reason where no voice of the lane can
+      // carry it), so it never reaches this line unheard.
+      if (!profile.requires.every(k => controls.includes(k))) continue;
       e.p = { ...e.p, ...profile.params };
     }
   }

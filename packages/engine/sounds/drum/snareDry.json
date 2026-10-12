@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "snareDry",
+  "revision": 3,
+  "topology": "snare",
+  "dice": 41.9,
+  "parameters": {
+    "shellHz": 200,
+    "shellFifth": 1.5,
+    "shellLevel": 1.0,
+    "shellDecay": 0.075,
+    "drop": 1.12,
+    "dropTime": 0.02,
+    "wireHp": 420,
+    "wireHz": 1900,
+    "wireQ": 0.8,
+    "wireLevel": 0.42,
+    "crackHz": 3200,
+    "crackQ": 1.4,
+    "crackDecay": 0.012,
+    "crackLevel": 0.4,
+    "lidHz": 11000,
+    "t10": 0.035,
+    "seconds": 0.4,
+    "variants": 3,
+    "variantCents": 22,
+    "attack": 0.004,
+    "trim": 1.4,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.18,
+    "velDecay": 0.3,
+    "pan": -0.05,
+    "room": 0.06
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "snareDry": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 1900,
+        "loudnessDb": -22.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-2",
+    "module": "none",
+    "note": "the snare drier for the fast broken beat: the same shell, wires and crack, -10 dB at 55 ms where the snare's is 70, the shell gone in 80 ms and a third of its room; alone at the place it reads 43-50 ms to -12 dB where the snare read 52-65 (source 8's two-step, in the mix, 70-100); round DNB-4: tighter still — -10 dB at 35 ms, the shell gone in 50 ms, half that room again — since in the mix it carried the 800 Hz-3 kHz band 4 dB over source 8's two-step drops, its tail reading 104 ms where theirs read 70",
+    "notes": {
+      "room": "a third of the snare's: on a dry two-step the snare's room is the part a mix hears as wet"
+    }
+  },
+  "measured": {
+    "clickStep": 0,
+    "snareDryGhost": {
+      "loudnessDb": -24.8,
+      "clickStep": 0
+    }
+  }
+}

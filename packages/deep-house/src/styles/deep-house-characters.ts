@@ -89,6 +89,12 @@ export const characters: SoundCharacters = {
     intimate: { room: .12, reverb: .12, delay: 0 },
     spacious: { room: .12, reverb: .85, delay: .12 },
     distant: { room: .06, reverb: 0, delay: 0, background: .8 },
+    // **The part's echo** (round GA6): a part sent into the kitchen's echo
+    // return (a dotted eighth fed back long and dark, `ECHO_SEND` in master.ts)
+    // in place of the stage's shared delay — a dub chord's motion. The return
+    // is dear and lazy, so it counts against the composition's spatial
+    // returns (`partUsage`) as the background and the immersed spaces do.
+    echo: { room: .06, reverb: .18, delay: 0, echo: .62 },
   },
   tone: {
     kick: { rounded: { requires: ['bodyLp', 'partialLevel'], params: { bodyLp: 110, partialLevel: .025, startHz: 58, endHz: 40 } } },

@@ -336,7 +336,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -369,6 +369,12 @@
   "provenance": {
     "pattern": "disco house (French touch, filter disco): the four, a clap on two and four, the open hat on every and that disco is named by, sixteenth closed hats, a bouncing root-and-fifth bass and chopped chord stabs on the offbeats",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar of drums and two of chords. Disco's octave bass is out of reach — the bass register refuses a recipe line wider than seven semitones on some keys — so the bounce is root and fifth. The stabs are a bright struck keyboard on the and of two and the and of four, the filtered-sample loop of the style played as notes; the filter sweep across them is the stage's, which a row cannot ask for."
+    "note": "One bar of drums and two of chords. Disco's octave bass is out of reach — the bass register refuses a recipe line wider than seven semitones on some keys — so the bounce is root and fifth. The stabs are a bright struck keyboard on the and of two and the and of four, the filtered-sample loop of the style played as notes; the filter sweep across them is the stage's, which a row cannot ask for.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.2,
+      "syncopationZ": 2.4,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

@@ -1,9 +1,8 @@
 // Three short noise bursts a few milliseconds apart plus a longer body, which
 // is what makes a clap read as a room of hands rather than one.
 //
-// Eugene, on a desktop recording: "some kind of high-frequency clap sound
-// following the drum, but it's so abrupt that it sounds like a track
-// clipping." It was. Measured against the growl benchmark's clap, which is
+// Heard on a desktop recording: a high-frequency clap following the drum, so
+// abrupt that it sounded like the track clipping. It was. Measured against the growl benchmark's clap, which is
 // down 20 dB in 36 ms, this one opened in 0.8 ms and was 20 dB down in 2.6 —
 // a 5 kHz noise burst that appears and disappears inside three milliseconds is
 // an edge, and an edge is what a clipped sample sounds like. Two things were
@@ -22,10 +21,14 @@
 // A lid at 9.5 kHz on top, like the hats have, because nothing else in this
 // music is brighter than that.
 
-import { noiseSource, percEnv, route, panner, startTime} from '../dsp.ts';
+import { noiseBuffer, noiseSource, percEnv, route, panner, startTime} from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, bool, num, HZ, SECONDS } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 // `percEnv` falls from the peak to 0.0001 over its decay. The measurement is
 // the time to -20 dB, so this is the decay that puts -20 dB exactly there.
@@ -35,11 +38,11 @@ function decayForT20(peak: number, t20: number): number {
   return Math.max(0.01, t20 * (total / twenty));
 }
 
-export function clap(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function clap(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
   time = startTime(ctx, time); // never in the past: a step if it is
   const vel = p.vel ?? 1;
   const gain = (p.gain ?? 1) * vel;
-  const C = settings.clap;
+  const C = patchOf(settings, row, PARAMETERS);
 
   const band = ctx.createBiquadFilter();
   band.type = 'bandpass';
@@ -87,6 +90,40 @@ export function clap(ctx: BaseAudioContext, out: VoiceOut, time: number, p: Note
     g.connect(i === 0 ? band : band2);
   });
 
+  // The crack (round SPARK-2, `notes/rounds/spark-2.md`): each hand's first
+  // couple of milliseconds, the slap itself, band-passed where the
+  // references' claps crack and let past the shelf and the lid. Their first
+  // 6 ms stand a decibel over the 34 after (median, 2061 claps of the
+  // catalogue's deep house); ours stood three under, every hand opening in
+  // 4 ms. Nought builds nothing.
+  if (C.crack > 0) {
+    const crackBand = ctx.createBiquadFilter();
+    crackBand.type = 'bandpass';
+    crackBand.frequency.value = C.crackHz;
+    crackBand.Q.value = 0.8;
+    // through the hands' own shelf and lid, so the slap is coloured as they are
+    crackBand.connect(shelf);
+    offsets.forEach((off: number, i: number) => {
+      // its own stretch of the noise, never the hand's: the same noise through
+      // two band-passes side by side sums out of phase
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer(ctx);
+      src.loop = true;
+      src.start(time + off, ((time + off) * 7.13 + src.buffer.duration / 2) % src.buffer.duration);
+      src.stop(time + off + C.crackDecay * 8 + 0.002);
+      const g = ctx.createGain();
+      const lvl = C.crack * (1 - i * 0.2);
+      g.gain.value = 0;
+      g.gain.setValueAtTime(0, time + off);
+      g.gain.linearRampToValueAtTime(lvl, time + off + 0.0004);
+      g.gain.exponentialRampToValueAtTime(lvl * 0.001, time + off + 0.0004 + C.crackDecay * 6.9);
+      g.gain.linearRampToValueAtTime(0, time + off + 0.0004 + C.crackDecay * 6.9 + 0.001);
+      end = Math.max(end, time + off + 0.0004 + C.crackDecay * 6.9 + 0.001);
+      src.connect(g);
+      g.connect(crackBand);
+    });
+  }
+
   // The body: the tail of the last hand, long enough to smear the three.
   const bodyPeak = 0.5;
   const bodySrc = noiseSource(ctx, time + spread * 1.3, t20 * 7);
@@ -107,27 +144,28 @@ export function clap(ctx: BaseAudioContext, out: VoiceOut, time: number, p: Note
   return end;
 }
 
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  /** the clap is there at all: a room that wants none says so */
+  on: bool(),
+  t20: SECONDS,
+  attack: SECONDS,
+  lidHz: HZ,
+  /** the crack (round SPARK-2): each hand's slap, its level against the hand (nought builds none), its band and its fall (an e-fold) */
+  crack: num(0, 2),
+  crackHz: HZ,
+  crackDecay: SECONDS,
+});
 
 /**
- * Two and four, into the short bright room.
+ * The clap topology: three hands and a body of noise through two bands under
+ * a shelf and a lid (`sounds/drum/clap.json` since round R2: two and four,
+ * into the short bright room). Its measured loudness is the row's timbre fact
+ * and its click bound `measured.clickStep`.
  */
-export const descriptor: Descriptor = {
-  name: 'clap',
+export const CLAP: Topology = {
+  id: 'clap',
   cost: 'mid',
-  family: 'drum',
-  roles: ['backbeat'],
-  bus: 'drums',
-  level: 'clap',
-  layer: 'clap',
-  plays: 'clap',
-  mono: false,
-  treat: false,
-  anticipates: null,
-  prepare: null,
-  render: clap,
-  timbres: {},
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => clap(row, ctx, out, time, p, settings),
 };
-
-export default clap;

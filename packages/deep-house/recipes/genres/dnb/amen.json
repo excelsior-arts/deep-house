@@ -157,7 +157,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.25,
   "score": {
     "chef": 0,
     "likes": 0
@@ -189,6 +189,13 @@
   "provenance": {
     "pattern": "the Amen break as drummers write it out: four bars of eighth cymbals over kick one, one-and, three-and, three-a and snares on two, two-a, three-e, four, four-a, the third bar dropping a hit and the fourth pushing the kick late",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Four bars, the break's own shape: bars one and two identical, bar three leaves the snare off four for four-and, bar four starts the kick on the one-and and adds a snare on the one-e. The ghosted snares are the break's quieter strokes. The break's cymbal is a ride in the record; the kit here has one but it is not enabled on the offbeat lane, so the eighths are closed hats. The sub is held on the root under each chord, as the classic jungle and drum and bass tracks built on this break mostly did."
+    "note": "Four bars, the break's own shape: bars one and two identical, bar three leaves the snare off four for four-and, bar four starts the kick on the one-and and adds a snare on the one-e. The ghosted snares are the break's quieter strokes. The break's cymbal is a ride in the record; the kit here has one but it is not enabled on the offbeat lane, so the eighths are closed hats. The sub is held on the root under each chord, as the classic jungle and drum and bass tracks built on this break mostly did.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -1.0,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    },
+    "weighed": "round DNB-3 (2026-10-05): 0.75 -> 0.25, reachable, not dominant: liquid is the territory's first character"
   }
 }

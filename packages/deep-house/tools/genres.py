@@ -45,12 +45,16 @@ RAW = ['percShare', 'syncIndex', 'offGridShare', 'eventRate', 'kickPresenceDb', 
 OCT = [63, 125, 250, 500, 1000, 2000, 4000, 8000]
 
 
-def imprint(x):
-    """The eight birds and their raw features, median over eight-bar windows."""
+def imprint(x, declared=None):
+    """The eight birds and their raw features, median over eight-bar windows.
+
+    `declared` is the tempo the catalog or the render's plan states, and the
+    grid holds it (round DNB-2: unheld, 170 was read as 85 and the syncopation
+    off a grid whose sixteenth was the music's eighth)."""
     mono = librosa.resample(np.atleast_2d(x).mean(axis=0), orig_sr=M.SR, target_sr=B.SR)
     probe = mono[: int(60 * B.SR)]
     env = librosa.onset.onset_strength(y=probe, sr=B.SR, hop_length=B.HOP)
-    grid = B.find_grid(probe, env)
+    grid = B.find_grid(probe, env, declared)
     bpm = grid['bpm'] if grid['strength'] >= 0.05 else None
     win = 8 * 4 * 60.0 / bpm if bpm else 16.0
     track = B.track_features(mono, grid if bpm else None)
@@ -60,7 +64,7 @@ def imprint(x):
         y = mono[int(i * win * B.SR): int((i + 1) * win * B.SR)]
         if len(y) < 4 * B.SR:
             continue
-        w = B.window_features(y, track=track)
+        w = B.window_features(y, track=track, declared=declared)
         if w.get('missing') == ['silence']:
             continue
         f = w['features']
@@ -83,7 +87,7 @@ def imprint(x):
 def features(x, bpm=None):
     """Everything the distance reads, flat."""
     s = M.read_signal(x, hp_list=(350.0,))
-    im = imprint(x)
+    im = imprint(x, bpm)
     f = {}
     for c in OCT:
         f[f'ltas{c}'] = s['thirds'][M.THIRDS.index(c)]
@@ -118,12 +122,34 @@ GENRES = {
                 'drop': ('log2bpm', 'syncIndex'),
                 'why': "the catalogue's 'ambient' is its slowest band (69-90 BPM, a kick under it): its spectra, with no kick, few low onsets and long tails, tempo free"},
     # rule targets: tempo band and the defining features, spectra borrowed
-    'Drum and Bass': {'label': 'tech house', 'need': {'tempoFamily': ('drumAndBass',), 'kit': ('breaks',)}, 'rule': {'log2bpm': (np.log2(172), 0.03), 'syncIndex': ('high', None)},
-                      'why': 'no DnB window in the catalogue: 170-176 BPM, a broken kit, spectra of the hot sets'},
+    # Round DNB-2: the syncopation and the event rate are source 8's own,
+    # measured — its 29 cuts with a beat (event rate over 2.5 a second) read by
+    # this file's imprint with the grid held at the tempo `readings.py` found
+    # (the DNB-2 imprint reading kept in the mining catalog's attempts): syncopation 0.31
+    # (p25-p75 0.25-0.38, sd 0.08), events 6.2 a second (sd 1.1). The "high"
+    # syncopation this rule asked for before (0.41) was the fold: unheld, the
+    # same cuts read 0.43-0.46 at a heard 86, 112 or 117 BPM, a grid whose
+    # sixteenth is not the music's.
+    'Drum and Bass': {'label': 'tech house', 'need': {'tempoFamily': ('drumAndBass',), 'kit': ('breaks',)},
+                      'rule': {'log2bpm': (np.log2(172), 0.03), 'syncIndex': (0.31, 0.08), 'eventRate': (6.2, 1.1)},
+                      'why': 'no DnB window in the catalogue: 170-176 BPM, a broken kit, spectra of the hot sets, syncopation and event rate measured on source 8 at its own tempo'},
     'Breaks': {'label': 'tech house', 'need': {'kit': ('breaks',), 'drumsOn': (True,), 'tempoFamily': ('house', 'techno')}, 'rule': {'log2bpm': (np.log2(130), 0.04), 'syncIndex': ('high', None)},
                'why': 'no breaks or garage window: 125-135 BPM on a broken kit, spectra of the hot sets'},
     'Dub Techno': {'label': 'techno', 'need': {'tempoFamily': ('techno',), 'kit': ('fourFloor',)}, 'rule': {'log2bpm': (np.log2(122), 0.03), 'decayDbPerSec': ('high', None), 'tilt': ('low', None)},
                    'why': 'no dub window: 118-126 BPM four to the floor, long tails (slow decay), darker than techno'},
+    # round G4: the three tiles that had no target of their own (dubstep and
+    # trance were read against the Dub Techno rule and the techno windows,
+    # trip hop against the downtempo windows at 96) get a rule each, so a spell
+    # can be chosen by the measure and not by the nearest neighbour's
+    'Trip Hop': {'label': 'downtempo', 'need': {'tempoFamily': ('house',), 'kit': ('breaks',), 'drumsOn': (True,)},
+                 'rule': {'log2bpm': (np.log2(90), 0.05), 'syncIndex': ('high', None), 'kickPresenceDb': ('high', None), 'tilt': ('low', None)},
+                 'why': "no trip hop window: 85-95 BPM on a broken kit, the kick forward, syncopated, darker than the catalogue's downtempo (whose spectra it borrows)"},
+    'Dubstep': {'label': 'techno', 'need': {'tempoFamily': ('techno',), 'drumsOn': (True,)},
+                'rule': {'log2bpm': (np.log2(140), 0.03), 'on_low': ('low', None), 'kickPresenceDb': ('high', None), 'decayDbPerSec': ('high', None), 'tilt': ('low', None)},
+                'why': 'no dubstep window: 138-142 BPM felt at half time (few low onsets), the kick forward, long sub tails, dark; spectra of the techno windows'},
+    'Trance': {'label': 'techno', 'need': {'tempoFamily': ('techno',), 'kit': ('fourFloor',)},
+               'rule': {'log2bpm': (np.log2(138), 0.03), 'sustain300Db': ('high', None), 'decayDbPerSec': ('high', None), 'on_mid': ('high', None)},
+               'why': 'no trance window: 136-140 BPM four to the floor, a held lead over it (sustained mids, long tails, busy mids); spectra of the techno windows'},
 }
 FLOOR = {'log2bpm': 0.03, 'phone': 1.0, 'tilt': 2.0, 'on_low': 0.8, 'on_mid': 0.8, 'on_high': 0.8}
 

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/form-rolling",
+  "revision": 1,
+  "name": "The roller: one long roll that changes by fills and subtractions",
+  "scope": "track",
+  "applies": null,
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "form": {
+    "order": [
+      "intro",
+      "build",
+      "drop",
+      "groove",
+      "outro"
+    ],
+    "bars": [
+      32,
+      16,
+      16,
+      64,
+      32
+    ],
+    "stretch": [
+      "groove"
+    ],
+    "fits": [
+      96,
+      480
+    ],
+    "prefers": {
+      "dnb/dnb-mix-intro": 4
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "dnb-6",
+    "knowledge": "authored: the territory's conventions (phrases of sixteen and thirty-two bars, a drop on a sixteen-bar line, a second drop that switches its bassline) and the form of source 8's first tune read four bars at a time (score-8.py read_form, notes/rounds/dnb-5.md and dnb-6.md); no record's arrangement copied",
+    "note": "No breakdown: a 32-bar intro the drums lead, a 16-bar build, the drop, and one groove that rolls the rest of the theme, changing every eight bars by the place's subtractions and the small things' fills; a 32-bar outro.",
+    "plays": "drawn by the fast broken places among the form rows whose window holds the theme's length (deep-house-places.ts FORM rows), off the theme's own stream; at nought nowhere else"
+  }
+}

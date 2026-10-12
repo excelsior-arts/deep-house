@@ -1,0 +1,227 @@
+{
+ "note": "T1: the treatment rows' audit points (tools/treatments.ts): each playable row pinned under the fast broken key, where every kind draws; the two unpinned themes are the house and the key as the draw plays them. T2: the section rows pinned the same way, each played for its kind on the key's theme and on the house's. M1: the mains pass's nine rows pinned at the house, seed 1, theme 1 (their box is the house and its near places); the late clap and the ride-in on seed 2's third theme, which has a clap and a bright enough cast for the glue's noise. The hats' four (his word on seed 1) at the house's seed 1, theme 1.",
+ "keys": {
+  "dnb": {
+   "spell": "em:0.95,sp:0.85,ze:0.60,ro:0.75,ve:0.60,ti:0.45"
+  },
+  "house": {
+   "spell": ""
+  }
+ },
+ "themes": {
+  "house-1": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house",
+   "t": 60
+  },
+  "dnb-1": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb",
+   "t": 50
+  }
+ },
+ "rows": {
+  "small/switch-rolling-snare": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/switch-doubled-snare": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/switch-kick-push": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/switch-stepper": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/switch-half-time": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/turn-double-kick": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/turn-ghost-pickup": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/turn-hat-gap": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/fill": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/half-bar-fill": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "small/drop-out": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/fill-snare-roll": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/fill-half-bar": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/turnaround-double-kick": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/turnaround-ghost-pickup": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/turnaround-hat-gap": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/drop-out-pickup": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/intro": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/build": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/main": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/breakdown": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/drop": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "sections/outro": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/dnb-intro": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/dnb-main": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/dnb-breakdown": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/dnb-outro": {
+   "seed": "1",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "mains/hat-lift": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/stab-in": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/stabs-out": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/pad-swap": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/half-time-kick": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/late-clap": {
+   "seed": "2",
+   "theme": 3,
+   "key": "house"
+  },
+  "mains/bass-out": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/breath": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/ride-in": {
+   "seed": "2",
+   "theme": 3,
+   "key": "house"
+  },
+  "mains/hats-quarters": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/hats-open-and": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/hats-skip": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  },
+  "mains/hats-rest": {
+   "seed": "1",
+   "theme": 1,
+   "key": "house"
+  }
+ }
+}

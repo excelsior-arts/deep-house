@@ -19,12 +19,17 @@
 // buffers exist; `prepareHats` is awaited by the mix and the render paths, so
 // that is only the first hits of a classic-page start.
 
-import { noiseBuffer, route, panner, MIN_RELEASE, startTime, Offline, GAIN_FLOOR } from '../dsp.ts';
+import { noiseBuffer, route, panner, MIN_RELEASE, startTime, GAIN_FLOOR } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Settings } from '../settings.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
-import { cached } from './render-cache.ts';
+import type { NoteParams, VoiceRenderer } from './descriptor.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { provePatch, rowPatch } from './sound.ts';
+import { bool, contract, either, list, maybe, num, word, CENTS, DB, HZ, Q, RATIO, SEND, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import { cached, bound, offline } from './render-cache.ts';
 import { strikeDice, variantK } from './drumkit.ts';
+import { airPath, beadNoise, makeUp, meanSquare, ringOf, tailFor, swapDb, swapShelf, tailRamps, topLadder, topLevel, SWAP_K } from './hat-grain.ts';
 
 /**
  * Everything that is fixed about one hat: where it sits in the stream of dice,
@@ -44,6 +49,12 @@ interface HatSpec {
   lidHz: number;
   room?: number;
   delay: number;
+  /** the grain (round SPARK-2, `hat-grain.ts`): the upper ladder's share of the metal, the air past the lid and its floor, the tail, the beads; nought builds nothing */
+  top: number;
+  air: number;
+  airHz: number;
+  tail: number;
+  beads: number;
 }
 
 /** One strike's own: a hat, with the ring this hit was given. */
@@ -107,20 +118,24 @@ const METAL_SECONDS = 2; // longer than any hat: the open hat rings 0.6 s
 const cache = new WeakMap<BaseAudioContext, Map<string, AudioBuffer | Promise<AudioBuffer>>>();
 
 const toneKey = (spec: HatSpec): string => `${spec.hp}:${spec.peakHz}:${spec.q}:${spec.tilt}:${spec.lidHz}`;
+// The grain's part of a key: empty where there is none, so the record's keys are the record's.
+const grainKey = (spec: HatSpec, which: 'metal' | 'noise'): string => (which === 'metal'
+  ? (spec.top > 0 ? `:top${spec.top}` : '')
+  : `${spec.top > 0 ? `:swap${spec.top}` : ''}${spec.air > 0 ? `:air${spec.air}@${spec.airHz}` : ''}${spec.beads > 0 ? `:beads${spec.beads}` : ''}`);
 
 
 // The six squares through the tone, from phase zero, at the level the hat
 // mixes them in at — so a hit needs no gain of its own.
 function renderMetal(ctx: BaseAudioContext, spec: HatSpec): Promise<AudioBuffer> {
-  const rate = ctx.sampleRate;
-  const off = new (Offline())(1, Math.ceil(METAL_SECONDS * rate), rate);
-  const t = tone(off, spec);
-  const at = off.createGain();
-  at.gain.value = spec.metal;
-  metallic(off, 0, METAL_SECONDS, spec.base, spec.detune).connect(at);
-  at.connect(t.input);
-  t.output.connect(off.destination);
-  return off.startRendering();
+  return offline(ctx, 1, Math.ceil(METAL_SECONDS * ctx.sampleRate), (off) => {
+    const t = tone(off, spec);
+    const at = off.createGain();
+    at.gain.value = spec.metal;
+    metallic(off, 0, METAL_SECONDS, spec.base, spec.detune).connect(at);
+    if (spec.top > 0) topLadder(off, RATIOS, spec.base, spec.detune, topLevel(spec.top, spec.metal, SWAP_K.ladder), at, 0, METAL_SECONDS);
+    at.connect(t.input);
+    t.output.connect(off.destination);
+  });
 }
 
 // The two seconds of noise every hit reads a different stretch of, through
@@ -128,21 +143,36 @@ function renderMetal(ctx: BaseAudioContext, spec: HatSpec): Promise<AudioBuffer>
 // the noise before the stretch in them, which is a few hundred microseconds
 // of ringing under an attack that is still at -80 dB.
 function renderNoise(ctx: BaseAudioContext, spec: HatSpec): Promise<AudioBuffer> {
-  const src0 = noiseBuffer(ctx);
-  const off = new (Offline())(2, src0.length, ctx.sampleRate);
-  const buf = off.createBuffer(2, src0.length, ctx.sampleRate);
-  buf.copyToChannel(src0.getChannelData(0), 0);
-  buf.copyToChannel(src0.getChannelData(1), 1);
-  const src = off.createBufferSource();
-  src.buffer = buf;
-  const t = tone(off, spec);
-  const at = off.createGain();
-  at.gain.value = 1 - spec.metal;
-  src.connect(at);
-  at.connect(t.input);
-  t.output.connect(off.destination);
-  src.start(0);
-  return off.startRendering();
+  const src0 = spec.beads > 0 ? beadNoise(ctx, noiseBuffer(ctx), spec.beads) : noiseBuffer(ctx);
+  return offline(ctx, 2, src0.length, (off) => {
+    const buf = off.createBuffer(2, src0.length, ctx.sampleRate);
+    buf.copyToChannel(src0.getChannelData(0), 0);
+    buf.copyToChannel(src0.getChannelData(1), 1);
+    const src = off.createBufferSource();
+    src.buffer = buf;
+    const t = tone(off, spec);
+    const at = off.createGain();
+    at.gain.value = 1 - spec.metal;
+    src.connect(at);
+    if (spec.top > 0) {
+      const shelf = swapShelf(off, swapDb(spec.top));
+      at.connect(shelf);
+      shelf.connect(t.input);
+    } else at.connect(t.input);
+    t.output.connect(off.destination);
+    if (spec.air > 0) {
+      // the air's own noise: the same buffer read half a length on, looped
+      const own = off.createBufferSource();
+      own.buffer = buf;
+      own.loop = true;
+      const ownAt = off.createGain();
+      ownAt.gain.value = 1 - spec.metal;
+      own.connect(ownAt);
+      airPath(off, ownAt, spec.airHz, spec.air, off.destination);
+      own.start(0, buf.duration / 2);
+    }
+    src.start(0);
+  });
 }
 
 // The shared render cache (`render-cache.ts`, R30 of the reconciled review of
@@ -151,18 +181,37 @@ function renderNoise(ctx: BaseAudioContext, spec: HatSpec): Promise<AudioBuffer>
 // context and every later hit built itself live; and every render is a job,
 // rationed with the piano's and the drums', and started off the tick when a
 // hit (`defer`) rather than the preparation asked for it.
+//
+// And it is bounded (the performance review of 10-06): every distinct hat tone a
+// set walks through — each place's rows, each spark's grain — kept its two
+// seconds of metal and of noise for the life of the context, about a megabyte a
+// tone. A read refreshes an entry's place, so the hats a theme strikes are never
+// the oldest, and the drums' own pattern (`DRUM_BODIES`) trims the rest.
+export const HAT_RENDERS = 16;
 function rendered(ctx: BaseAudioContext, key: string, make: () => Promise<AudioBuffer>, defer: boolean): AudioBuffer | Promise<AudioBuffer> {
   let per = cache.get(ctx);
   if (!per) {
     per = new Map();
     cache.set(ctx, per);
   }
-  return cached(per, ctx, key, make, defer);
+  const hit = per.get(key);
+  if (hit !== undefined) {
+    per.delete(key);
+    per.set(key, hit);
+    return hit;
+  }
+  const got = cached(per, ctx, key, make, defer);
+  bound(per, HAT_RENDERS);
+  return got;
 }
 
+/** The same hat without its grain: what the level of a grained hit is held to. */
+const hasGrain = (spec: HatSpec): boolean => spec.top > 0 || spec.air > 0 || spec.tail > 0 || spec.beads > 0;
+const plainOf = <T extends HatSpec>(spec: T): T => ({ ...spec, top: 0, air: 0, tail: 0, beads: 0 });
+
 function buffersFor(ctx: BaseAudioContext, spec: HatSpec, defer = false) {
-  const metal = rendered(ctx, `metal:${spec.base}:${spec.detune}:${spec.metal}:${toneKey(spec)}`, () => renderMetal(ctx, spec), defer);
-  const noise = rendered(ctx, `noise:${spec.metal}:${toneKey(spec)}`, () => renderNoise(ctx, spec), defer);
+  const metal = rendered(ctx, `metal:${spec.base}:${spec.detune}:${spec.metal}:${toneKey(spec)}${grainKey(spec, 'metal')}`, () => renderMetal(ctx, spec), defer);
+  const noise = rendered(ctx, `noise:${spec.metal}:${toneKey(spec)}${grainKey(spec, 'noise')}`, () => renderNoise(ctx, spec), defer);
   return { metal, noise };
 }
 
@@ -172,11 +221,14 @@ export function prepareHats(ctx: BaseAudioContext, settings: Settings): Promise<
   const waits: Promise<AudioBuffer>[] = [];
   const H = settings.hats;
   const n = Math.max(1, Math.round(H.variants ?? 1));
-  for (const make of Object.values(SPECS)) {
+  for (const row of ROWS) {
     for (let i = 0; i < n; i++) {
-      const { metal, noise } = buffersFor(ctx, variantOf(make(H, settings.sends), i, H));
-      if (metal instanceof Promise) waits.push(metal);
-      if (noise instanceof Promise) waits.push(noise);
+      const spec = variantOf(specOf(row, H, settings.sends), i, H);
+      for (const s of hasGrain(spec) ? [spec, plainOf(spec)] : [spec]) {
+        const { metal, noise } = buffersFor(ctx, s);
+        if (metal instanceof Promise) waits.push(metal);
+        if (noise instanceof Promise) waits.push(noise);
+      }
     }
   }
   return Promise.all(waits).then(() => undefined);
@@ -184,7 +236,7 @@ export function prepareHats(ctx: BaseAudioContext, settings: Settings): Promise<
 
 // --- what varies from hit to hit ------------------------------------------
 //
-// Eugene: "a fairly monotone flavour to them". A hat is a pre-rendered buffer,
+// A hat played the same every time is monotone. A hat is a pre-rendered buffer,
 // so nothing here may build a filter: the variation is which of two renders a
 // hit reads, how fast it reads it, how loud it is and how long it rings. None
 // of it can move a hit in time, change which hats play, or cost a node — the
@@ -246,7 +298,9 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
     (1 + (H.rateSpread ?? 0) * (2 * rRate - 1)) * (1 + (H.velBright ?? 0) * (vel - 0.9))));
 
   const t10 = spec.t10 * (1 + (H.decaySpread ?? 0) * (2 * rDecay - 1));
-  const dur = t10 * 3.4 + 0.02;
+  const tail = tailFor(spec.tail, spec.t10);
+  const ring = ringOf(tail);
+  const dur = t10 * ring + 0.02;
 
   const g = ctx.createGain();
 
@@ -269,8 +323,8 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
     // that looped over the join put a broadband edge into an otherwise smooth
     // signal. Unfiltered white noise, which is what this was before it was
     // pre-rendered, has no such join to hear — every sample is already a step
-    // that size. Eugene heard the result as "high-pitch dits-dits following
-    // the drum, so it sounds like the drum beat is clipping", on the one hit
+    // that size. It was heard as high-pitched dits following the drum, as if
+    // the beat were clipping, on the one hit
     // in ten whose offset landed near the end. The read now always fits.
     const n = ctx.createBufferSource();
     n.buffer = noise;
@@ -285,6 +339,7 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
     const metalGain = ctx.createGain();
     metalGain.gain.value = spec.metal;
     metallic(ctx, time, dur, spec.base, spec.detune).connect(metalGain);
+    if (spec.top > 0) topLadder(ctx, RATIOS, spec.base, spec.detune, topLevel(spec.top, spec.metal, SWAP_K.ladder), metalGain, time, dur + 0.02);
     const noiseGain = ctx.createGain();
     noiseGain.gain.value = 1 - spec.metal;
     const n = ctx.createBufferSource();
@@ -297,8 +352,23 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
     n.connect(noiseGain);
     const t = tone(ctx, spec);
     metalGain.connect(t.input);
-    noiseGain.connect(t.input);
+    if (spec.top > 0) {
+      const shelf = swapShelf(ctx, swapDb(spec.top));
+      noiseGain.connect(shelf);
+      shelf.connect(t.input);
+    } else noiseGain.connect(t.input);
     t.output.connect(g);
+    if (spec.air > 0) {
+      const own = ctx.createBufferSource();
+      own.buffer = n.buffer;
+      own.loop = true;
+      own.start(time, (((at ?? time) * 7.13) + n.buffer!.duration / 2) % n.buffer!.duration);
+      own.stop(time + dur);
+      const ownAt = ctx.createGain();
+      ownAt.gain.value = 1 - spec.metal;
+      own.connect(ownAt);
+      airPath(ctx, ownAt, spec.airHz, spec.air, g);
+    }
   }
 
   // The benchmark states hat decay as the time to fall 10 dB, so that is the
@@ -308,7 +378,14 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
   // table because every measured preset writes its own `levels.hatClosed` and
   // `levels.shaker` and would not have seen it there. `gainSpread` is this
   // hit's own: under a decibel, which is a drummer and not a fader.
-  const peak = Math.max(GAIN_FLOOR, vel * (p.gain ?? 1)
+  // A grained hit at its grainless energy (round SPARK-2, `hat-grain.ts`).
+  let held = 1;
+  if (ready && hasGrain(spec)) {
+    const plain = buffersFor(ctx, plainOf(spec), true);
+    if (!(plain.metal instanceof Promise) && !(plain.noise instanceof Promise))
+      held = makeUp(meanSquare(plain.metal) + meanSquare(plain.noise), meanSquare(metal as AudioBuffer) + meanSquare(noise as AudioBuffer), t10, tail, 0.0025);
+  }
+  const peak = Math.max(GAIN_FLOOR, vel * (p.gain ?? 1) * held
     * Math.pow(10, (H.trimDb ?? 0) / 20)
     * (1 + (H.gainSpread ?? 0) * (2 * rGain - 1)));
   // A *linear* attack from true zero, the kick's contract. The old curve was
@@ -318,10 +395,11 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
   g.gain.value = 0;
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(peak, time + 0.0025);
-  g.gain.exponentialRampToValueAtTime(peak * 0.3162, time + t10);
-  g.gain.exponentialRampToValueAtTime(GAIN_FLOOR, time + t10 * 3.4);
-  g.gain.linearRampToValueAtTime(0, time + t10 * 3.4 + MIN_RELEASE);
-  const end = time + t10 * 3.4 + MIN_RELEASE;
+  // -10 dB at t10, then the record's dive to the floor at 3.4 t10 — or, with a
+  // `tail` (round SPARK-2), the same slope on to -20 dB before the dive.
+  const floorAt = tailRamps(g.gain, time, peak, t10, tail, GAIN_FLOOR);
+  g.gain.linearRampToValueAtTime(0, floorAt + MIN_RELEASE);
+  const end = floorAt + MIN_RELEASE;
 
   // MEASURED: the hats are the most decorrelated transient layer in the mix
   // (side -3.4 dB, L/R correlation 0.37). A pan plus a few milliseconds of
@@ -348,149 +426,130 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
   return end;
 }
 
-// The three hats, as what is fixed about each: everything but the decay,
-// which a hit sets from its velocity.
-const SPECS = {
-  closed: (H: Settings['hats']): HatSpec => ({
-    tag: 'closed',
-    seed: 0,
-    base: H.base,
-    detune: 8,
-    metal: H.metalClosed,
-    hp: 3800,
-    peakHz: 7200,
-    q: 0.3,
-    tilt: 2,
-    lidHz: H.lidHz,
-    // No `room`, so this hat has no reverb send. It used to declare
-    // `reverb: 0.05`, which `hat()` never read — it routes `room` — so the
-    // number was a comment that looked like a control. Routing it now would
-    // put a send on the closed hat that the band balance was never measured
-    // with; if the hats should have a room it is a `room:` here and a
-    // measurement to set it, not a key that was already there.
-    delay: 0,
-  }),
-  // MEASURED nothing here; GENRE: an open hat rings 200-400 ms, and that ring
-  // is most of what makes a house loop breathe.
-  open: (H: Settings['hats']): HatSpec => ({
-    tag: 'open',
-    seed: 31.7,
-    base: H.base * 0.97,
-    detune: 14,
-    metal: H.metalOpen,
-    hp: 3400,
-    peakHz: 6600,
-    q: 0.3,
-    tilt: 2,
-    lidHz: H.lidHz,
-    // As above: declared a reverb this voice does not route. The open hat's
-    // length is its character here, and the delay send below is real.
-    delay: 0.07,
-  }),
-  // The sixteenth layer: a shaker, so it is a different timbre from the hat
-  // rather than a quieter copy of it.
-  // The only one of the three that reaches past `hats` for a number, so it is
-  // the only one handed the send table as well.
-  shaker: (H: Settings['hats'], sends: Settings['sends']): HatSpec => ({
-    tag: 'shaker',
-    seed: 61.3,
-    base: H.base * 1.31,
-    detune: 20,
-    metal: 0.18,
-    hp: 3200,
-    peakHz: 5800,
-    q: 0.3,
-    tilt: 2,
-    lidHz: H.lidHz,
-    room: sends.hatReverb * 0.7,
-    delay: 0,
-  }),
+// --- the hats as rows ---------------------------------------------------------
+//
+// Round R2: the three hats are rows over this topology (`sounds/noise/
+// hatClosed.json`, `hatOpen.json`, `shaker.json`), and what was a table of
+// three functions here is their parameters. The numbers the room voices stay
+// in the room's `hats` block — the base of the ladder, the metal share, the
+// lid, the rings, the dice spreads — and a row names the field it reads where
+// it reads one (`metal: "metalClosed"`, `t10: "openT10"`), so a room that
+// writes `hats.metalClosed` still moves the closed hat and nothing else. What
+// is the hat's own is a number: its ladder against the room's base, its
+// detune, its tone, its sends.
+
+/**
+ * What a row of this topology carries: exactly these, each in its range
+ * (`schema.ts`). Where a field is the room's — the metal, the lid, the ring —
+ * the row names the field of the room's `hats` block that holds it, out of the
+ * ones that block has.
+ */
+const PARAMETERS = contract({
+  /** the ladder's base, as a ratio of the room's `hats.base` */
+  base: RATIO,
+  detune: CENTS,
+  /** the share of the hat that is metal: a number, or the room's field that holds it */
+  metal: either(UNIT, word('metalClosed', 'metalOpen')),
+  hp: HZ,
+  peakHz: HZ,
+  q: Q,
+  tilt: DB,
+  /** the lid: a number, or the room's field that holds it */
+  lidHz: either(HZ, word('lidHz')),
+  /** the room send, as a share of the room's `sends.hatReverb`; null is none */
+  room: maybe(SEND),
+  delay: SEND,
+  /** the room's field that holds this hat's ring, ten decibels down */
+  t10: word('closedT10', 'openT10', 'shakerT10'),
+  /** a harder hit rings longer: the ring times `ring[0] + ring[1] * vel`; null is a ring that velocity does not move */
+  ring: maybe(list(num(0, 8), 2)),
+  /** whether the ring breathes over about twenty-four bars (`driftSeconds`, `driftAmount`) */
+  drift: bool(),
+  // The grain (round SPARK-2, `hat-grain.ts`): each a number, or the room's
+  // field that holds it, so a place voices the closed and open hats together
+  // and the shaker on its own; nought in every row and every table.
+  /** the share of the hat's power over 7.5 kHz that is the upper ladder's metal rather than noise */
+  top: either(num(0, 0.9), word('top')),
+  /** the air past the lid, against the noise */
+  air: either(UNIT, word('air', 'shakerAir')),
+  /** the air's floor: two high-passes */
+  airHz: HZ,
+  /** the tail after -10 dB: 0 the record's choke, 1 one slope to -20 dB */
+  tail: either(UNIT, word('tail', 'shakerTail')),
+  /** the share of the noise that is beads */
+  beads: either(UNIT, word('shakerBeads')),
+});
+
+/** What a row of this topology carries, as its contract types it. */
+export type HatPatch = PatchOf<typeof PARAMETERS.fields>;
+
+/** The rows this topology has rendered, in the registry's order: `prepareHats` warms every one of them. */
+const ROWS: SoundRow[] = [];
+
+const field = (H: Settings['hats'], v: number | string): number =>
+  (typeof v === 'number' ? v : (H as unknown as Record<string, number>)[v]);
+/** A grain number as the voice takes it: nought where a room has none, and never past one. */
+const clampUnit = (v: number | undefined): number => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0);
+
+/** Everything fixed about one hat but its ring, off its row and the room. */
+function specOf(row: SoundRow, H: Settings['hats'], sends: Settings['sends']): HatSpec {
+  // through the desk's door (D1): the row's own numbers, or a copy with a hand's moves on them
+  const P = rowPatch(row, PARAMETERS);
+  return {
+    tag: row.id,
+    seed: row.dice as number,
+    base: H.base * P.base,
+    detune: P.detune,
+    metal: field(H, P.metal),
+    hp: P.hp,
+    peakHz: P.peakHz,
+    q: P.q,
+    tilt: P.tilt,
+    lidHz: field(H, P.lidHz),
+    ...(P.room === null ? {} : { room: sends.hatReverb * P.room }),
+    delay: P.delay,
+    top: Math.min(0.9, clampUnit(field(H, P.top))),
+    air: clampUnit(field(H, P.air)),
+    airHz: P.airHz,
+    tail: clampUnit(field(H, P.tail)),
+    beads: clampUnit(field(H, P.beads)),
+  };
+}
+
+function render(row: SoundRow): VoiceRenderer {
+  ROWS.push(row);
+  provePatch(row.parameters, PARAMETERS, row.id);
+  return (ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number => {
+    const P = rowPatch(row, PARAMETERS);
+    const H = settings.hats;
+    let t10 = p.t10 ?? field(H, P.t10);
+    if (P.ring) t10 *= P.ring[0] + P.ring[1] * (p.vel ?? 1);
+    if (P.drift) {
+      // The open hat is the one hit long enough for its ring to be a
+      // character, so its ring is the one thing that moves slowly rather than
+      // hit by hit: a sine about twenty-four bars long over the decay, phased
+      // off the room's own hat numbers so two rooms do not breathe together.
+      const period = Math.max(4, H.driftSeconds ?? 55);
+      const phase = (H.base * 0.017 + field(H, P.t10) * 11) % (2 * Math.PI);
+      t10 *= 1 + (H.driftAmount ?? 0) * Math.sin((2 * Math.PI * time) / period + phase);
+    }
+    return hat(ctx, out, time, p, { ...specOf(row, H, settings.sends), t10 }, settings, at);
+  };
+}
+
+/**
+ * The hat ladder topology: six inharmonic squares beating under a
+ * band-passed noise bed, both pre-rendered per room and variant and read back
+ * per hit. Every row shares `prepareHats`, which warms every row's beds, and
+ * all of them are the `noise` family for the same reason.
+ */
+export const HAT_LADDER: Topology = {
+  id: 'hat-ladder',
+  cost: 'mid',
+  parameters: PARAMETERS,
+  render,
+  prepare: (ctx, settings) => prepareHats(ctx, settings),
+  check: (row) => (Number.isFinite(row.dice) ? [] : [`${row.id}: a hat carries its offset in the strike dice as \`dice\``]),
 };
 
-export function hatClosed(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  const H = settings.hats;
-  return hat(ctx, out, time, p, {
-    ...SPECS.closed(H),
-    t10: (p.t10 ?? H.closedT10) * (0.82 + 0.36 * (p.vel ?? 1)),
-  }, settings, at);
-}
-
-// The open hat is the one hit long enough for its ring to be a character, so
-// its ring is the one thing that moves slowly rather than hit by hit: a sine
-// about twenty-four bars long over the decay, phased off the preset's own hat
-// numbers so two presets do not breathe together. Sixteen bars of a loop are
-// still sixteen bars of the same loop; this is what keeps them from being
-// sixteen bars of the same *sample*.
-export function hatOpen(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  const H = settings.hats;
-  const period = Math.max(4, H.driftSeconds ?? 55);
-  const phase = (H.base * 0.017 + H.openT10 * 11) % (2 * Math.PI);
-  const drift = 1 + (H.driftAmount ?? 0) * Math.sin((2 * Math.PI * time) / period + phase);
-  return hat(ctx, out, time, p, { ...SPECS.open(H), t10: (p.t10 ?? H.openT10) * drift }, settings, at);
-}
-
-export function shaker(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  const H = settings.hats;
-  return hat(ctx, out, time, p, { ...SPECS.shaker(H, settings.sends), t10: p.t10 ?? H.shakerT10 }, settings, at);
-}
-
-// The three the hat engine makes, in the order the registry holds them. They
-// share `prepareHats`, because they share the rendered metal and noise beds it
-// warms, and they are the `noise` family for the same reason: six inharmonic
-// squares beating under a band-passed noise bed is what all three are.
-export const descriptors: Descriptor[] = [
-  {
-    name: 'hatClosed',
-    cost: 'mid',
-    family: 'noise',
-    roles: ['offbeat'],
-    bus: 'drums',
-    level: 'hatClosed',
-    layer: 'hats',
-    plays: 'hatClosed',
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareHats,
-    render: hatClosed,
-    timbres: {},
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'hatOpen',
-    cost: 'mid',
-    family: 'noise',
-    roles: ['offbeat'],
-    bus: 'drums',
-    level: 'hatOpen',
-    layer: 'hats',
-    plays: 'hatOpen',
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareHats,
-    render: hatOpen,
-    timbres: {},
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'shaker',
-    cost: 'dear',
-    family: 'noise',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: 'sixteenths',
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareHats,
-    render: shaker,
-    timbres: {},
-    dispatches: [],
-    mood: [],
-  },
-];
+export default HAT_LADDER;

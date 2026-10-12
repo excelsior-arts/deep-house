@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "slowWideWash",
+  "revision": 1,
+  "name": "Slow wide wash",
+  "says": "The image opened half again and drifting very slowly, into an eight-second hall that swells in over 90 ms, its return slowly chorused across the sides and low-passed at 2.4 kHz: a wide, moving wash.",
+  "dry": 1,
+  "trimDb": 1.5,
+  "inserts": [
+    {
+      "effect": "width",
+      "params": {
+        "width": 1.5,
+        "depth": 0.18,
+        "rateHz": 0.05,
+        "mix": 1
+      }
+    }
+  ],
+  "sends": [
+    {
+      "id": "wash",
+      "level": 0.7,
+      "effect": "reverb",
+      "params": {
+        "mode": 1,
+        "decaySeconds": 8,
+        "predelayMs": 90,
+        "lowCutHz": 380,
+        "dampHz": 3000,
+        "level": 1.6,
+        "mix": 1
+      },
+      "after": [
+        {
+          "effect": "chorus",
+          "params": {
+            "rateHz": 0.12,
+            "depthMs": 6,
+            "voices": 3,
+            "spread": 1,
+            "mix": 0.5
+          }
+        },
+        {
+          "effect": "filter",
+          "params": {
+            "mode": 0,
+            "cutoffHz": 2400,
+            "resonanceDb": 0,
+            "drive": 0,
+            "level": 1,
+            "mix": 1
+          }
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab, round 3 (very wet): a candidate for his pick, read by no part yet."
+  }
+}

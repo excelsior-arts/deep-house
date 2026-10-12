@@ -1,18 +1,35 @@
-// Legacy keyboard patches and the optional voicing a style places over them.
-// Defaults are unchanged; a captured program without overrides plays the same patch.
+// The voicing a style places over the keyboard patches, and its check.
+//
+// The five patches themselves were a table here (`KEYBOARD_PRESETS`) until
+// round SOUNDS-R3; they are rows now (`sounds/keyboard/keys*.json`), which the
+// `keys` dispatcher names by timbre. What stays is the style's side: a partial
+// of one patch's tone (`keyboardPatches.<name>` in the settings), which the
+// keys topology writes over that row (`voicedBy`), and the check a settings
+// value is held to where it is resolved. A captured program without one plays
+// the row.
 
-/**
- * One keyboard patch. Every field below the first five is a patch's own: a
- * modulator ratio belongs to the FM families and a drawbar flag to the organ,
- * so they are optional here and the branch that reads one has already asked
- * whether this is that instrument.
- */
+import keysRow from '../../sounds/keyboard/keys.json' with { type: 'json' };
+import keysRhodesRow from '../../sounds/keyboard/keysRhodes.json' with { type: 'json' };
+import keysGlassRow from '../../sounds/keyboard/keysGlass.json' with { type: 'json' };
+import keysEpRow from '../../sounds/keyboard/keysEp.json' with { type: 'json' };
+import keysOrganRow from '../../sounds/keyboard/keysOrgan.json' with { type: 'json' };
+import keysPluckRow from '../../sounds/keyboard/keysPluck.json' with { type: 'json' };
+
+/** One patch's family, as its row states it: what the check below asks of the patch a voicing lands on. */
+interface PatchFacts { tine: number | null; organ: boolean; pluck: boolean }
+
+/** The patches by the timbre that names them, off the `keys` dispatcher's table and the rows it names. */
+const BY_ID: Record<string, PatchFacts> = Object.fromEntries(
+  [keysRhodesRow, keysGlassRow, keysEpRow, keysOrganRow, keysPluckRow].map((r) => [r.id, r.parameters as PatchFacts]),
+);
+const PATCHES: Record<string, PatchFacts> = Object.fromEntries(
+  Object.entries(keysRow.parameters.timbres).map(([name, t]) => [name, BY_ID[(t as { row: string }).row]]),
+);
+
+/** One patch's tone, as a style may voice it. */
 export interface KeyboardPreset {
   cutoff: number;
   det: number;
-  attack: number;
-  decay: number;
-  sustain: number;
   formant: [number, number];
   ratio?: number;
   index?: [number, number];
@@ -21,41 +38,10 @@ export interface KeyboardPreset {
   tineIndex?: [number, number];
   tineDecay?: number;
   tremolo?: boolean;
-  rotary?: boolean;
-  organ?: boolean;
-  pluck?: boolean;
 }
 
-export const KEYBOARD_PRESETS: Readonly<Record<string, KeyboardPreset>> = {
-  // attack / decay / sustain fraction: the measured level at 300 ms and at the
-  // bar line, turned into an envelope.
-  rhodes: {
-    ratio: 2, index: [1.4, 1.8], indexDecay: 0.2, cutoff: 1900, det: 5,
-    attack: 0.03, decay: 0.42, sustain: 0.3, formant: [2600, 4.0],
-  },
-  glass: {
-    ratio: 3.5, index: [2.0, 2.6], indexDecay: 0.42, cutoff: 2600, det: 9,
-    attack: 0.022, decay: 0.4, sustain: 0.32, formant: [3300, 4.5],
-  },
-  ep: {
-    ratio: 1, tine: 14, index: [0.9, 1.1], tineIndex: [2.2, 3.4], tineDecay: 0.12,
-    indexDecay: 0.5, cutoff: 1800, det: 6,
-    attack: 0.024, decay: 0.3, sustain: 0.37, formant: [3612, 7.2], tremolo: true,
-  },
-  organ: {
-    organ: true, cutoff: 2500, det: 3,
-    attack: 0.009, decay: 0.25, sustain: 0.72, formant: [2444, 3.0], rotary: true,
-  },
-  pluck: {
-    pluck: true, cutoff: 2000, det: 12,
-    attack: 0.011, decay: 0.3, sustain: 0.048, formant: [3100, 5.0],
-  },
-};
-
 /** Sonic character only: a style cannot switch a keyboard's synthesis family. */
-export type KeyboardPatch = Partial<Pick<KeyboardPreset,
-  'cutoff' | 'det' | 'formant' | 'ratio' | 'index' | 'indexDecay' |
-  'tine' | 'tineIndex' | 'tineDecay' | 'tremolo'>>;
+export type KeyboardPatch = Partial<KeyboardPreset>;
 export type KeyboardPatches = Record<string, KeyboardPatch>;
 
 const RANGES: Record<string, readonly [number, number]> = {
@@ -69,8 +55,8 @@ const bounded = (n: unknown, lo: number, hi: number): boolean =>
 export function validateKeyboardPatches(patches: KeyboardPatches): void {
   if (!patches || typeof patches !== 'object' || Array.isArray(patches)) throw new Error('invalid keyboard patches');
   for (const [name, patch] of Object.entries(patches)) {
-    const base = KEYBOARD_PRESETS[name];
-    if (!Object.hasOwn(KEYBOARD_PRESETS, name) || !patch || typeof patch !== 'object' || Array.isArray(patch))
+    const base = PATCHES[name];
+    if (!Object.hasOwn(PATCHES, name) || !patch || typeof patch !== 'object' || Array.isArray(patch))
       throw new Error(`invalid keyboard patch: ${name}`);
     for (const [key, value] of Object.entries(patch)) {
       let valid = false;
@@ -79,15 +65,8 @@ export function validateKeyboardPatches(patches: KeyboardPatches): void {
       else if (key === 'index' || key === 'tineIndex') valid = Array.isArray(value) && value.length === 2 && bounded(value[0], .001, 32) && bounded(value[1], 0, 32);
       else if (Object.hasOwn(RANGES, key)) valid = bounded(value, ...RANGES[key]);
       if (['ratio', 'index', 'indexDecay', 'tine', 'tineIndex', 'tineDecay'].includes(key) && (base.organ || base.pluck)) valid = false;
-      if (['tine', 'tineIndex', 'tineDecay'].includes(key) && base.tine === undefined) valid = false;
+      if (['tine', 'tineIndex', 'tineDecay'].includes(key) && base.tine === null) valid = false;
       if (!valid) throw new Error(`invalid keyboard patch ${name}.${key}`);
     }
   }
-}
-
-/** No override means the exact legacy object, including its optional fields. */
-export function keyboardPreset(name: string, patches?: KeyboardPatches): KeyboardPreset {
-  const key = Object.hasOwn(KEYBOARD_PRESETS, name) ? name : 'rhodes';
-  const base = KEYBOARD_PRESETS[key], patch = patches?.[key];
-  return patch ? { ...base, ...patch } : base;
 }

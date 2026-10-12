@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "subTri",
+  "revision": 1,
+  "topology": "bottom",
+  "block": "subTri",
+  "parameters": {
+    "attack": 0.01,
+    "release": 0.06,
+    "squareLevel": 0,
+    "sineLevel": 0,
+    "triLevel": 0.85,
+    "octaveLevel": 0.28,
+    "octaveAboveHz": 55,
+    "harmonics": 5,
+    "veloOpen": 0.4,
+    "q": 0.8,
+    "trim": 0.244
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "cheap",
+    "timbres": {
+      "subTri": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.3,
+        "brightnessHz": 260,
+        "loudnessDb": -11.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "subs.ts",
+    "note": "A triangle sub, with a sine an octave under it where there is room.",
+    "notes": {
+      "octaveAboveHz": "Under this the sub-octave is not built at all: an octave below 55 Hz is a rumble nothing can reproduce and everything has to make room for."
+    }
+  }
+}

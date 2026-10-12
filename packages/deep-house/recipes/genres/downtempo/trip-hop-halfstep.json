@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "downtempo/trip-hop-halfstep",
+  "revision": 1,
+  "name": "Half-step",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            6,
+            16,
+            22,
+            29
+          ],
+          "accents": [
+            1,
+            0.6,
+            1,
+            0.6,
+            0.5
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            8,
+            24
+          ],
+          "accents": [
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.45,
+            0.4,
+            0.5,
+            0.4
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0.03
+            },
+            "timing": {
+              "beats": 0.012
+            },
+            "dynamics": 0.14
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "held"
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "brightnessMin": 1500,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.29,
+          "brightnessMax": 2000
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            0.5,
+            0.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0
+              ],
+              "beats": [
+                8
+              ],
+              "holds": [
+                7
+              ],
+              "accents": [
+                0.65
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.4,
+          0.5
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            2,
+            2
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -7,
+            -5,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      80,
+      100
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "trip-hop at half time: the kick on one with a pickup on two-and, the snare on three alone, open-ish hats on the ands, a held sub, and a long dark chord every two bars",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: kick one, two-and; one, two-and, four-a as a pickup into the next one; the snare on three only, so a bar of four is felt as two slow beats; the loose hat on every and, swung and late. The bass is held on the root under the harmony; a dark struck keyboard chord sounds on one every two bars and rings most of the way. Played under the Trip Hop tile's spell at 85-95 (round G4).",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -3.5,
+      "syncopationZ": -4.9,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
+  }
+}

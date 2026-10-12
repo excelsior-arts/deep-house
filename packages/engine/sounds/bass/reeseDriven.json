@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "reeseDriven",
+  "revision": 1,
+  "topology": "reese",
+  "parameters": {
+    "trim": 0.165,
+    "attack": 0.008,
+    "release": 0.09,
+    "detune": 0.14,
+    "middle": 0.7,
+    "saws": 2.4,
+    "cutoffHz": 1700,
+    "resonanceDb": 4,
+    "movementHz": 0.22,
+    "movementDepth": 0.2,
+    "cutoffDepth": 0.25,
+    "levelDepth": 0,
+    "sub": 0.8,
+    "sawFloor": 1.6,
+    "hpHz": 24,
+    "clip": {
+      "drive": 0.95,
+      "out": 1.6,
+      "hardness": 3,
+      "bend": 0.25
+    },
+    "subHarmonics": null,
+    "pair": null,
+    "entry": null,
+    "dipRecovery": 0.08
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "detune": {
+        "unit": "ratio",
+        "min": 0.04,
+        "default": 0.14,
+        "max": 0.32,
+        "bird": "gleam",
+        "sense": 1,
+        "slopeDb": 2.75
+      },
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 600,
+        "default": 1700,
+        "max": 4400,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 3.36e-05
+      },
+      "movement": {
+        "unit": "hz",
+        "min": 0.05,
+        "default": 0.22,
+        "max": 1.2,
+        "bird": "veil",
+        "sense": 1,
+        "slopeDb": 0.0222
+      },
+      "mass": {
+        "unit": "ratio",
+        "min": 0.2,
+        "default": 0.8,
+        "max": 1.4,
+        "bird": "root",
+        "sense": 1,
+        "slopeDb": 7.33
+      }
+    },
+    "timbres": {
+      "reeseDriven": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 1700,
+        "loudnessDb": -12.5
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "reese-driven.ts",
+    "note": "the reese with a soft clip in front of the filter and its corner at twice the reese's (1700 Hz, which was 850 x drivenCorner 2), for a harder, denser riff; its own measured knobs"
+  }
+}

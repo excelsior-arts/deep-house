@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmPluck",
+  "revision": 1,
+  "topology": "fm-key",
+  "block": "fmPluck",
+  "parameters": {
+    "ratio": 7,
+    "index": [
+      0.5,
+      3.4
+    ],
+    "indexDecay": 0.05,
+    "indexFloor": 0.01,
+    "modulator2": null,
+    "tine": null,
+    "attack": 0.002,
+    "decay": 0.2,
+    "sustain": 0.02,
+    "release": 0.12,
+    "lpHz": 8500,
+    "hpHz": 220,
+    "detuneCents": 6,
+    "spread": 0.55,
+    "trim": 1.846,
+    "dur": 0.18,
+    "minDur": 0.05,
+    "delay": 0.3,
+    "reverb": 0.28
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 1200,
+        "default": 8500,
+        "max": 14000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -5.39e-05
+      },
+      "hold": {
+        "unit": "seconds",
+        "min": 0.03,
+        "default": 0.12,
+        "max": 0.9,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 8.23
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.0008,
+        "default": 0.002,
+        "max": 0.12,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": 28.3
+      }
+    },
+    "timbres": {
+      "fmPluck": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.04,
+        "brightnessHz": 7000,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fm-keys.ts",
+    "note": "The same two operators with everything gone inside a fifth of a second, at a ratio far enough out that the attack is a click with a pitch in it."
+  }
+}

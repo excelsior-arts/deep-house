@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "dottedIntoHall",
+  "revision": 1,
+  "name": "Dotted eighth into a long hall",
+  "says": "A dark dotted-eighth echo, its repeats held to 420 Hz-1.8 kHz and crossing sides, nearly all of it falling into a six-and-a-half-second hall low-passed at 2.2 kHz: the motif's notes trail and blur.",
+  "dry": 1,
+  "trimDb": 0.25,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "echo",
+      "level": 0.22,
+      "effect": "tapeDelay",
+      "params": {
+        "timeBeats": 0.75,
+        "feedback": 0.42,
+        "lowpassHz": 1800,
+        "highpassHz": 420,
+        "wow": 0.2,
+        "pingPong": 1,
+        "mix": 1
+      },
+      "into": {
+        "hall": 0.8
+      }
+    },
+    {
+      "id": "hall",
+      "level": 0.52,
+      "effect": "reverb",
+      "params": {
+        "mode": 1,
+        "decaySeconds": 6.5,
+        "predelayMs": 40,
+        "lowCutHz": 320,
+        "dampHz": 2600,
+        "level": 1.6,
+        "mix": 1
+      },
+      "after": [
+        {
+          "effect": "filter",
+          "params": {
+            "mode": 0,
+            "cutoffHz": 2200,
+            "resonanceDb": 0,
+            "drive": 0,
+            "level": 1,
+            "mix": 1
+          }
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab, round 3 (very wet): a candidate for his pick, read by no part yet."
+  }
+}

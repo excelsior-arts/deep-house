@@ -63,7 +63,8 @@ export function offsetGrid(offset = 0, gaps: Record<string, Gap[]> | null = null
   return { at: (t) => t + offset, time: (t) => t - offset, gaps };
 }
 
-const inGap = (gaps: Gap[] | undefined, t: number) => {
+/** Whether an instant of a theme is inside one of the holes a hand-over has cut (`Grid.gaps`). */
+export const inGap = (gaps: Gap[] | undefined, t: number) => {
   if (!gaps) return false;
   for (const g of gaps) if (t >= g[0] && t < g[1]) return true;
   return false;

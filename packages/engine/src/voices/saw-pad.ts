@@ -31,6 +31,11 @@ import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import { centsOf, liveOf, side } from './live.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, num, CENTS, DB, HZ, LEVEL, LFO_HZ, SECONDS, UNIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 /** The stack: [octave, cents, level, pan]. Unevenly spaced on purpose. */
 const STACK: number[][] = [
@@ -39,9 +44,9 @@ const STACK: number[][] = [
   [1, 2, 0.45, 0],
 ];
 
-export function sawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function sawPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
   time = startTime(ctx, time);
-  const S = settings.sawPad;
+  const S = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.3, p.dur ?? 3.5);
   const vel = p.vel ?? 0.7;
@@ -83,6 +88,7 @@ export function sawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p: No
   drift.stop(end + 0.05);
 
   const spread = (p.spread ?? S.spread) * (p.spreadMul ?? 1);
+  const layers: Array<{ lvl: GainNode; pn: StereoPannerNode; level: number; pan: number }> = [];
   STACK.forEach(([octave, cents, level, pan]: number[], i: number) => {
     const o = ctx.createOscillator();
     o.type = 'sawtooth';
@@ -97,35 +103,64 @@ export function sawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p: No
     pn.connect(hp);
     o.start(time);
     o.stop(end + 0.05);
+    layers.push({ lvl, pn, level, pan });
   });
+
+  // **What this chord can still take** (PLAN-DESK D1b): the corner it
+  // settles at, as a `detune` on the filter (the swell under way kept, scaled
+  // as the note scales it), the Q, the floor, the drift, the spread and the
+  // level against the trim it was built at. How far the swell opens and when,
+  // and the envelope, are the build's.
+  const live = liveOf(ctx);
+  if (live) {
+    const cur = { voiceLevel: S.voiceLevel, trim: S.trim };
+    const lvls = () => layers.map(({ lvl, level }) => [lvl.gain, level * cur.voiceLevel * (S.trim > 0 ? cur.trim / S.trim : 1)] as [AudioParam, number]);
+    live
+      .on('cutoff', (v) => [[lp.detune, centsOf(Math.max(120, v * (p.cutoffMul ?? 1)), settle)]])
+      .on('q', (v) => [[lp.Q, v]])
+      .on('hpHz', (v) => [[hp.frequency, v]])
+      .on('driftHz', (v) => [[drift.frequency, v]])
+      .on('driftCents', (v) => [[driftDepth.gain, v]])
+      .on('spread', (v) => (p.spread != null ? [] : layers.map(({ pn, pan }) => [pn.pan, side(pan * v * (p.spreadMul ?? 1))] as [AudioParam, number])))
+      .on('voiceLevel', (v) => { cur.voiceLevel = v; return lvls(); })
+      .on('trim', (v) => { if (!(S.trim > 0)) return []; cur.trim = v; return lvls(); })
+      .keep(row.id, row, settings, end + 0.05);
+  }
 
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: 1, delay: p.delay ?? 0.1, reverb: p.reverb ?? 0.6 });
   return end;
 }
 
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const SAW_PAD_TIMBRES = {
-  sawPad: { family: 'sustained', struck: false, hold: 0.85, brightnessHz: 1100, loudnessDb: -11 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  voiceLevel: LEVEL,
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  cutoff: HZ,
+  openTo: HZ,
+  swellTime: SECONDS,
+  settleTime: SECONDS,
+  q: DB,
+  veloOpen: num(0, 8),
+  hpHz: HZ,
+  driftHz: LFO_HZ,
+  driftCents: CENTS,
+  spread: UNIT,
+  trim: LEVEL,
+});
 
-export const descriptor: Descriptor = {
-  name: 'sawPad',
+/**
+ * The saw pad topology: detuned saws under a filter that swells open and
+ * settles (`sounds/ensemble/sawPad.json` since round R2).
+ */
+export const SAW_PAD: Topology = {
+  id: 'saw-pad',
   cost: 'mid',
-  family: 'ensemble',
-  roles: ['sustained'],
-  bus: 'melodic',
-  level: 'pad',
-  layer: 'pad',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: sawPad,
-  timbres: SAW_PAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  // D1b: the corner it settles at, the Q, the floor, the drift, the spread and the level; the swell's opening and times and the envelope are the build's
+  live: { cutoff: 'hz', q: 'db', hpHz: 'hz', driftHz: 'hz', driftCents: 'cents', spread: 'ratio', voiceLevel: 'level', trim: 'level' },
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => sawPad(row, ctx, out, time, p, settings),
 };
-
-export default sawPad;

@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/drop",
+  "revision": 1,
+  "name": "drop",
+  "scope": "section",
+  "applies": "drop",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "sixteenths",
+          "clap",
+          "bass",
+          "keys",
+          "pad"
+        ]
+      }
+    ],
+    "admits": {
+      "switch-up": "span",
+      "turnaround": "groups",
+      "drop-out": [
+        "lines",
+        "last"
+      ],
+      "fill": "last"
+    },
+    "flags": {
+      "impactFirst": true
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "every lane on, the impact on its first bar; it takes the small things a main takes",
+    "from": "src/styles/deep-house.ts sections.kinds.drop (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move"
+  }
+}

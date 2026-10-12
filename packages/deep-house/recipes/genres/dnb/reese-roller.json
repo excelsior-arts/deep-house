@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/reese-roller",
+  "revision": 1,
+  "name": "The reese roller",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            1,
+            10,
+            16,
+            26,
+            30
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            14,
+            20,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            0.3,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.53,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            23,
+            24,
+            26,
+            28,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            0.3,
+            1,
+            1,
+            0.3
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.53,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.714,
+              0.715
+            ],
+            "leaps": [
+              0.285,
+              0.286
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.5,
+            0.5
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            4,
+            4
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                1,
+                0,
+                1,
+                4,
+                3,
+                2,
+                0
+              ],
+              "beats": [
+                1.25,
+                0.75,
+                1,
+                1,
+                1.75,
+                0.75,
+                1.25,
+                0.25
+              ],
+              "holds": [
+                1,
+                0.5,
+                0.75,
+                0.75,
+                1.5,
+                0.5,
+                1,
+                0.25
+              ],
+              "accents": [
+                1,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85,
+                0.85
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:790+135",
+    "bars": "8\u201396",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "bass riff",
+    "pattern": "a moving mid bass stepping up and down a second from the root, then a fall from the fifth back to the root by steps (the cut falls from the octave and a third: `dnb/octave-fall` is that line as a motif); a double kick on the one every other bar",
+    "note": "The bass of the cut swings 11 dB in its body and steps by seconds (74 % of its moves); its sub is ducked 12 dB under every kick, the deepest duck of the mix.",
+    "gap": "the step a semitone is the minor second the scale holds only on the fifth; under a minor key the row asks it as a scale step and the composer plays the nearest the key has",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.7,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    },
+    "admitted": "admitted 2026-10-02 on the review of the mined links (round R1, part 4) at the weight its audited standing gives",
+    "weighed": "round DNB-3 (2026-10-05): 0.75 -> 0.5, reachable, not dominant: liquid is the territory's first character"
+  }
+}

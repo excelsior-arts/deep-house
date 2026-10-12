@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kickPunch",
+  "revision": 1,
+  "topology": "kit-kick",
+  "block": "kickPunch",
+  "dice": 167.9,
+  "parameters": {
+    "hz": 52,
+    "drop": 2.6,
+    "dropTime": 0.028,
+    "bodyLevel": 0.85,
+    "bodyLp": 420,
+    "drive": 0.3,
+    "clickHz": 2600,
+    "clickQ": 0.9,
+    "clickDecay": 0.0035,
+    "clickLevel": 0.3,
+    "t10": 0.1,
+    "seconds": 0.6,
+    "variants": 2,
+    "variantCents": 6,
+    "attack": 0.0022,
+    "trim": 0.8,
+    "rateSpread": 0.012,
+    "gainSpread": 0.05,
+    "decaySpread": 0.07,
+    "velBright": 0.1,
+    "velDecay": 0.2,
+    "skinHz": null,
+    "skinLevel": null,
+    "skinDecay": null,
+    "holdS": null,
+    "releaseS": null,
+    "wobbleCents": null,
+    "harmonics": null
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": null,
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "kickPunch": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 220,
+        "loudnessDb": -13.4
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "kicks-alt.ts",
+    "note": "the short one: a third of the drop over half the time, a tenth of the ring, a real click in the 2-4 kHz a small speaker lives in, a touch of drive on the body"
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

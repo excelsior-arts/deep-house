@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "reeseSub",
+  "revision": 8,
+  "topology": "reese",
+  "parameters": {
+    "trim": 0.17867848219637417,
+    "attack": 0.006,
+    "release": 0.03,
+    "detune": 0.0,
+    "middle": 0.7,
+    "saws": 0.005,
+    "cutoffHz": 176.0,
+    "resonanceDb": 2,
+    "movementHz": 5.8,
+    "movementDepth": 0,
+    "cutoffDepth": 0,
+    "levelDepth": 0,
+    "sub": 1.3,
+    "sawFloor": 3.125,
+    "hpHz": 26,
+    "clip": null,
+    "subHarmonics": [
+      0.0018,
+      0.1,
+      0.0,
+      0.003
+    ],
+    "pair": {
+      "hz": 6.59,
+      "level": 0.33
+    },
+    "entry": {
+      "level": 0.5,
+      "cents": 700,
+      "seconds": 0.18
+    },
+    "dipRecovery": 0.04
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "movementHz": {
+        "unit": "hz",
+        "min": 0.05,
+        "max": 8,
+        "default": 5.8
+      },
+      "movementPhase": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": null
+      },
+      "glide": {
+        "unit": "seconds",
+        "min": 0,
+        "max": 0.4,
+        "default": null
+      },
+      "pitchCents": {
+        "unit": "cents",
+        "min": 0,
+        "max": 100,
+        "default": null
+      },
+      "subBeatHz": {
+        "unit": "hz",
+        "min": 0,
+        "max": 12,
+        "default": null
+      },
+      "subBeatLevel": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 0.75,
+        "default": null
+      },
+      "subBeatPhase": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      },
+      "subBodyFollow": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 1
+      },
+      "subEntryLevel": {
+        "unit": "level",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      },
+      "subEntryCents": {
+        "unit": "cents",
+        "min": 0,
+        "max": 1200,
+        "default": null
+      },
+      "subEntrySeconds": {
+        "unit": "seconds",
+        "min": 0.03,
+        "max": 0.25,
+        "default": null
+      },
+      "dipRecovery": {
+        "unit": "seconds",
+        "min": 0.005,
+        "max": 0.2,
+        "default": null
+      }
+    },
+    "timbres": {
+      "reeseSub": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 480,
+        "loudnessDb": -7.7
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-5; the liquid bass rounds 10-06/07",
+    "module": "none",
+    "note": "the reese turned to its sine, for the fast broken beat's line as source 8's first tune plays it (read in memory, `notes/rounds/dnb-5.md`): a sine carrying the note, gliding into the next (`glide`) and wobbling its pitch on the eighths (`pitchCents`). Revision 2 (his ear on revision 1, 10-05: the bass all sub, where source 8's has a rounded body across the range): the recording's harmonics, each read against the floor between them, stand at -32 dB for the third and a level shelf of -41 to -48 from the fourth to the ninth (170-420 Hz), where revision 1's fell from -47 to -62; so the saws come up (0.12 to 0.2), high-passed off the second harmonic (`sawFloor` 3.6) under a resonant corner at the shelf's top (480 Hz, 10 dB) that hardly sweeps (0.2), and they all but stop drifting (`detune` 0.08 to 0.02): on notes a sixteenth to a beat long, three saws eight cents apart start in phase and cancel within a beat, so the body rang at the attack and fell 9-12 dB by 300 ms while the sine held, where the recording's body holds through the note. Its harmonics k3-k12 now stand within 3 dB of the recording's on the mean (revision 1: 9). Its loudness is the deep reese's until the voice gate measures it. Revisions 3-8 (the liquid bass rounds, 10-06/07, notes/rounds/liquid-v.md): an unequal pair — a second pure sine 6.59 Hz above the note at 0.33 of its level (subBeatHz, subBeatLevel), its phase kept on the theme's clock across runs (subBeatPhase) and its level a curve a note may write (subBeatCurve) — both sines on one audio-rate pitch signal, so their spacing holds through a bend; the third harmonic 0.10 and following the pair's phase and envelope (subBodyFollow); the old level LFO off (levelDepth 0, the trim 0.2 to 0.1787 to keep its mean level); an optional low entrance of its own (subEntryLevel, subEntryCents, subEntrySeconds; nought unless a note asks, and silent when a held note is resumed); and the dips back in 40 ms (dipRecovery). A note's bend and pair curve resume where a seek finds it held (curveDuration). The liquid knobs (10-07, the sound unchanged): V's numbers stand in the row's own parameters, each a desk line in a declared range, where they were the controls' defaults — the pair (pair.hz 6.59, pair.level 0.33), the third harmonic (subHarmonics[1] 0.10), the entrance's level, cents and seconds (entry: 0.5, 700, 0.18) and the dips' recovery (dipRecovery 0.04); a note may still write its own, and a pair curve or an entrance a note writes is heard scaled by the desk's move over the row's number (exactly one at rest)."
+  }
+}

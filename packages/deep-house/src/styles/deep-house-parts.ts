@@ -10,6 +10,11 @@ import { HOUSE } from '../spell.ts';
 import conversation from '../../recipes/hand-conversation.json' with { type: 'json' };
 import rolling from '../../recipes/hand-rolling.json' with { type: 'json' };
 import answers from '../../recipes/hand-answers.json' with { type: 'json' };
+import anthemRow from '../../recipes/genres/trance/supersaw-anthem.json' with { type: 'json' };
+import arpRow from '../../recipes/genres/house/progressive-house.json' with { type: 'json' };
+import stabSirenRow from '../../recipes/genres/bigbeat/stab-siren.json' with { type: 'json' };
+import echoChordRow from '../../recipes/genres/dub/dub-techno-chord.json' with { type: 'json' };
+import slowChordsRow from '../../recipes/genres/ambient/slow-chords.json' with { type: 'json' };
 import type { PulseTexture } from '../parts/texture.ts';
 
 export const controls: Record<string, BirdResponse> = {
@@ -88,6 +93,130 @@ const pulse: PulseTexture = {
   properties: { struck: true, holdMin: .05, holdMax: .12, brightnessMin: 2000, brightnessMax: 8000 },
   strength: [.38, .52], spacing: { bars: [4, 4] }, entry: { beats: [.5, 2.5] }, duration: { beats: [.25, .75] }, ambience: 'immersed',
 };
+/**
+ * **The held mid part of the fast band** (round GA4: at 116 BPM and over the
+ * record's measured references hold far more mid-range than the composer:
+ * held mid -2.6 spreads, mid onsets -1.5). A chord that holds: a seventh on a keyboard that rings, struck on a
+ * syncopated two-bar pattern — the one, the and of two, the and of four —
+ * and held a beat to a beat and a half, far back in the room. It is the
+ * struck-chord pattern row's stab slowed to what a groove carries under it,
+ * written as a family so the fast band plays it on the composer's own themes,
+ * not only on a library turn.
+ */
+const heldMid: StruckFigure = {
+  follows: 'harmony', articulation: 'struck', register: 'mid', families: ['keyboard'],
+  properties: { struck: true, holdMin: .25, holdMax: .6, brightnessMin: 1200, brightnessMax: 3500 },
+  prefer: { brightnessMax: 2500 },
+  motif: { contour: 'pedal', intervals: { steps: [0, 0], leaps: [0, 0] }, cell: { beats: [8, 8] }, onGrid: [.3, .4],
+    range: { semitones: [0, 0] }, density: [1.5, 1.5], returns: { bars: [2, 2] },
+    paths: [{ degrees: [0, 0, 0], beats: [1.5, 2, 4.5], holds: [1, 1.5, 1.25], accents: [.85, .7, .8] }] } as StruckFigure['motif'],
+  strength: [.42, .52], entry: { beats: [0, 0] }, spacing: { bars: [2, 2] }, duration: { beats: [1, 1.5] },
+  behavior: 'ostinato', voicings: [[-6, -4, -2, 0]],
+};
+/**
+ * **The fast band's percussion loop** (round GA4: event rate -3.6 spreads,
+ * syncopation -2.5 against the fast references). A two-bar loop on the
+ * sixteenth lane that talks: a shaker's shuffled sixteenths with the offbeat
+ * sixteenths leaned on, and a clicky hand drum answering off the beat — the
+ * loop a fast four carries, written from public knowledge as the pattern rows
+ * are, swung 0.56, at the style's level on the lane.
+ */
+const percLoop = [
+  { bars: 1, steps: [2, 3, 6, 7, 10, 11, 14, 15], accents: [.34, .2, .38, .2, .34, .2, .4, .22],
+    families: ['noise'], properties: { struck: true, holdMax: .03, brightnessMin: 4000 },
+    feel: { swing: .56, delay: { beats: 0 }, timing: { beats: .004 }, dynamics: .1 } },
+  { bars: 2, steps: [3, 6, 10, 13, 19, 22, 27, 30], accents: [.5, .42, .55, .4, .5, .45, .52, .4],
+    families: ['drum'], properties: { struck: true, brightnessMin: 1500, brightnessMax: 4000 }, prefer: { holdMax: .02 },
+    feel: { swing: .56, delay: { beats: 0 }, timing: { beats: .004 }, dynamics: .08 } },
+];
+/**
+ * **The slow band's lazy kit** (round GA4: syncopation -2.9, event rate -2.6
+ * against the slow references). A snare on two and four with ghosts
+ * dragged behind the beat, and a shaker in lazy swung sixteenths — a late,
+ * loose feel from public knowledge — at 94 BPM and under, where nothing of
+ * the house's 95-105 reaches.
+ */
+const lazyKit = {
+  backbeat: [{ bars: 2, steps: [4, 7, 12, 15, 20, 23, 28, 30], accents: [1, .22, 1, .3, 1, .2, 1, .28],
+    families: ['drum'], properties: { struck: true },
+    feel: { swing: .6, delay: { beats: .02 }, timing: { beats: .012 }, dynamics: .12 } }],
+  sixteenth: [{ bars: 1, steps: [0, 2, 3, 4, 6, 8, 10, 11, 12, 14], accents: [.3, .22, .14, .28, .2, .3, .22, .14, .28, .2],
+    families: ['noise'], properties: { struck: true, holdMax: .03 },
+    feel: { swing: .6, delay: { beats: .02 }, timing: { beats: .012 }, dynamics: .14 } }],
+};
+/**
+ * **The broken kit's ghosts** (round GA4: syncopation -4.0, event rate -4.3
+ * against the broken references). The snare's two and four with the ghost
+ * notes a funk break carries around them and a pickup into the next bar, swung
+ * 0.56: what the authored break is played with, on the backbeat lane, where the
+ * spell asks for the broken kit.
+ */
+// `holdMax` under the clap's declared hold (GA3): a broken kit's backbeat is
+// a snare or a rim, never the record's clap.
+const breakGhosts = [{ bars: 1, steps: [4, 7, 9, 12, 14, 15], accents: [1, .22, .28, 1, .25, .35],
+  families: ['drum'], properties: { struck: true, holdMax: .012 },
+  feel: { swing: .56, delay: { beats: 0 }, timing: { beats: .006 }, dynamics: .1 } }];
+/**
+ * **The fast broken beat's snare** (round DNB-4): the funk break's ghosts are
+ * a slower kit's; over 150 BPM the two-step's snare talks on the second half
+ * of each beat — a struck note after the second beat and before the fourth,
+ * between the ghosts — so the backbeat reads four to five snares a bar and two
+ * ghosts, as the mix's two-step drops do (4.3-4.7 and 2.0), where the funk
+ * cell read two and three. Straight, not swung: the drops swing 0.52.
+ */
+const twoStepGhosts = [{ bars: 1, steps: [4, 7, 9, 10, 12, 14, 15], accents: [1, .3, .6, .25, 1, .3, .55],
+  families: ['drum'], properties: { struck: true, holdMax: .012 },
+  feel: { swing: .51, delay: { beats: 0 }, timing: { beats: .004 }, dynamics: .1 } }];
+/**
+ * **The fast broken beat's eighths** (round DNB-1, source 8 read bar by bar,
+ * `notes/rounds/dnb-1.md` §2): the hats of the two-step drops are eighths in a
+ * two-bar figure — the first bar leaves out the eighth under the three-and kick,
+ * the second adds a sixteenth on four-a as a pickup into the line (cuts 2, 4,
+ * 7, 9 and 25), the and louder than the beat, 7.2 a bar, swing 0.53 and a few
+ * milliseconds early. Where the fast broken kit plays, on the offbeat lane, in
+ * place of the house's offbeat mask.
+ */
+const brokenEighths = [{ bars: 2, steps: [0, 2, 4, 6, 8, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 31],
+  accents: [.85, 1, .85, 1, .85, .85, 1, .85, 1, .85, 1, .85, 1, .85, 1, .7],
+  families: ['noise'], properties: { struck: true, holdMax: .05, brightnessMin: 6000 },
+  feel: { swing: .51, delay: { beats: 0 }, timing: { beats: .004 }, dynamics: .08 } }];
+/**
+ * **The bright stab** (round GA4: event rate -3.7, mid onsets -3.5 against
+ * the bright four-floor references). A bright chord stabbed short on the one, the and of two and the and
+ * of four after the one — the house piano and organ stab, from
+ * public knowledge — where the House key's brightness asks for it (the `air`
+ * control over 0.55: the house itself is 0.377).
+ */
+const brightStab: StruckFigure = {
+  follows: 'harmony', articulation: 'struck', register: 'mid', families: ['keyboard'],
+  properties: { struck: true, holdMax: .4, brightnessMin: 2000, brightnessMax: 7000 },
+  prefer: { brightnessMin: 3000 },
+  motif: { contour: 'pedal', intervals: { steps: [0, 0], leaps: [0, 0] }, cell: { beats: [4, 4] }, onGrid: [.3, .4],
+    range: { semitones: [0, 0] }, density: [3, 3], returns: { bars: [1, 1] },
+    paths: [{ degrees: [0, 0, 0], beats: [1.5, 2, .5], holds: [.25, .25, .25], accents: [.8, .9, .6] }] } as StruckFigure['motif'],
+  strength: [.45, .55], entry: { beats: [0, 0] }, spacing: { bars: [1, 1] },
+  behavior: 'ostinato', voicings: [[-4, -2, 0]],
+};
+/**
+ * **The mids and highs away from the house** (round GA6): the pattern rows'
+ * own pitched parts, lifted into families so the composer's themes carry them
+ * where the birds and the tempo stand near the rows — not only on a library
+ * turn. Each is named for what it plays; each window is birds and tempo.
+ */
+const figureOf = (row: unknown, i = 0): StruckFigure => {
+  const f = (row as { wants: { figures: { figure: StruckFigure | StruckFigure[] } } }).wants.figures.figure;
+  return Array.isArray(f) ? f[i] : f;
+};
+/** A sustained line over the chords (a lead that holds). */
+const leadLine = figureOf(anthemRow);
+/** A sixteenth pluck climbing the chord. */
+const arpLine = figureOf(arpRow);
+/** A bright struck triad on the phrase line, and a two-tone held line over it. */
+const brightStruck = figureOf(stabSirenRow, 0), twoTone = figureOf(stabSirenRow, 1);
+/** A minor seventh stabbed short and sent into the echo. */
+const echoChord = figureOf(echoChordRow);
+/** Wide chords on a held ensemble, four bars each. */
+const wideChords = figureOf(slowChordsRow);
 const families: PartFamily[] = [
   { id: 'bass', chance: 'bass', when: fourFloor, variants: [
     // A form of short loops (Loom in its `loops` band, the record's lowest
@@ -108,7 +237,7 @@ const families: PartFamily[] = [
   // which variant is the `body` control's band — the ring's own three words for
   // Root, at the ring's own thresholds (`bandsOf`: the record's lowest and
   // highest Root, house -/+ HOUSE_OUTER, through the `body` control, 0.434 and
-  // 0.566; `tools/check-composer.ts` holds the two to each other) —
+  // 0.566; `tools/check-composer-*.ts` holds the two to each other) —
   //   thin  (Root under 0.615): no figure; the base mask's sparse pedal
   //         plays, as it always did, and the sub is lighter by its mass;
   //   full  (0.615 to 0.819): the base mask too, at the sub's own weight —
@@ -162,6 +291,12 @@ const families: PartFamily[] = [
   // The quick struck phrases need a rhythmic partner under a pulled broken
   // kit. Preserve the offbeat anchors; two eighth pickups add motion while
   // the downbeats stay empty, leaving room under the fast pitched part.
+  // The fast broken beat's eighths (DNB-1): every broken-kit theme over 150 BPM
+  // carries them on the offbeat lane; listed before the figure's groove, which
+  // takes the same lane under the slower broken kits.
+  { id: 'broken-eighths', chance: 1, when: { drums: true, kits: ['breaks'], bpm: { above: 150 } }, variants: [
+    { id: 'two-bar', weight: 1, request: { rhythm: { offbeat: brokenEighths as any } } },
+  ] },
   // This replaces the hat role, so it does not add another parallel kit.
   { id: 'figure-groove', chance: 1, requires: ['figure'], when: { drums: true, kits: ['breaks'], controls: { movement: { min: .45 } } }, variants: [
     { id: 'eighth-pickups', weight: 1, request: { rhythm: { offbeat: [{ bars: 1,
@@ -183,6 +318,59 @@ const families: PartFamily[] = [
   { id: 'ringing-keys', chance: .24, excludes: ['figure'], variants: [
     { id: 'half-notes', weight: 'movement', request: { struckFigures: [ringingKeys(2)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
     { id: 'whole-notes', weight: 1, request: { struckFigures: [ringingKeys(4)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+  ] },
+  // **GA6's mids and highs**, before GA4's fills so a place's own line wins
+  // the figure's space and GA4's held chord and stab fill it where none does.
+  // Rules inside their windows (chance 1), claiming by the figure's space.
+  { id: 'lead-line', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 133 } }, variants: [
+    { id: 'held-lead', weight: 1, request: { struckFigures: [leadLine], ambience: { figure: 'spacious' } } },
+  ] },
+  { id: 'arp-line', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115, atMost: 133 }, controls: { air: { min: .55 } } }, variants: [
+    { id: 'climbing-pluck', weight: 1, request: { struckFigures: [arpLine], ambience: { figure: 'intimate' } } },
+  ] },
+  { id: 'stab-and-two-tone', chance: 1, when: { drums: true, kits: ['breaks'], bpm: { above: 115 } }, variants: [
+    { id: 'stab-over-two-tone', weight: 1, request: { struckFigures: [brightStruck, twoTone], ambience: { figure: 'spacious' } } },
+  ] },
+  { id: 'echo-chord', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 }, controls: { space: { min: .75 } } }, variants: [
+    { id: 'into-the-echo', weight: 1, request: { struckFigures: [echoChord], ambience: { figure: 'echo' } } },
+  ] },
+  { id: 'wide-chords', chance: 1, when: { drums: false, controls: { space: { min: .75 }, air: { min: .75 } } }, variants: [
+    { id: 'four-bar-chords', weight: 1, request: { struckFigures: [wideChords], ambience: { figure: 'spacious' } } },
+  ] },
+  // The fast band's held mid part (GA4): a rule, not a coin — a fast four-floor
+  // theme whose figure family drew nothing (the `figure` control's own coin)
+  // and that rang no keys carries the held chord, so the fast band is never
+  // without a mid part. Last on the list: its stream is its own and every
+  // family before it draws what it drew. **The claims are the parts', not a
+  // list of names**: each GA4 family asks for a role an earlier family already
+  // holds when it has drawn — the figure's space (`ambience.figure`, which the
+  // figure's own space, the ringing keys and the held chord all write), the
+  // sixteenth lane, the backbeat — and a role taken is a skip, so no family
+  // here names another (a style that drops one keeps the rest valid).
+  { id: 'held-mid', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 } }, variants: [
+    { id: 'offbeat-chords', weight: 1, request: { struckFigures: [heldMid], ambience: { figure: 'spacious' } } },
+  ] },
+  // The fast band's percussion loop (GA4): a rule — a fast four-floor theme
+  // whose hands did not answer (they play up to 130 BPM) carries the loop, so
+  // the fast band's sixteenth lane always talks.
+  { id: 'perc-loop', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 } }, variants: [
+    { id: 'shuffle', weight: 1, request: { rhythm: { sixteenth: percLoop as any }, presence: { sixteenth: 'supporting' } } },
+  ] },
+  // The slow band's lazy kit (GA4): every drummed theme at 94 BPM or under
+  // carries it — the band GA3 opened, where the house never stands.
+  { id: 'lazy-kit', chance: 1, when: { drums: true, bpm: { atMost: 94 } }, variants: [
+    { id: 'behind', weight: 1, request: { rhythm: lazyKit as any, presence: { backbeat: 'supporting', sixteenth: 'supporting' } } },
+  ] },
+  // The broken kit's ghosts (GA4): every broken-kit theme carries them on the
+  // backbeat, beside whatever the offbeat lane plays.
+  { id: 'ghost-backbeat', chance: 1, when: { drums: true, kits: ['breaks'] }, variants: [
+    { id: 'funk', weight: 1, when: { bpm: { atMost: 150 } }, request: { rhythm: { backbeat: breakGhosts as any }, presence: { backbeat: 'supporting' } } },
+    { id: 'two-step', weight: 1, when: { bpm: { above: 150 } }, request: { rhythm: { backbeat: twoStepGhosts as any }, presence: { backbeat: 'supporting' } } },
+  ] },
+  // The bright stab (GA4): a four-floor theme under a bright spell whose figure
+  // family drew nothing carries it — a bright spell's colour, never the house's.
+  { id: 'bright-stab', chance: 1, when: { drums: true, kits: ['fourFloor'], controls: { air: { min: .55 } } }, variants: [
+    { id: 'offbeat-stabs', weight: 1, request: { struckFigures: [brightStab], ambience: { figure: 'intimate' } } },
   ] },
 ];
 export const composition: CompositionPolicy = {
@@ -221,6 +409,16 @@ export const composition: CompositionPolicy = {
   // synth drone, and the pad nine decibels down did not make it a floor, so
   // `drone` + `body` draws no coin and hears no bird. Every other sustained
   // set keeps the coin.
-  scene: { forward: 'drone', always: [['drone', 'body']], realWorld: { holdBelow: .5, sparseSeconds: 1.5, ringCovers: .75 } },
+  //
+  // **The drone in front on a soft floor** (Eugene, 10-01, round GA7): on the
+  // slow side of Ember — the drums on, the tempo centre under 95, where the
+  // curve's slow labels end and the house's window begins — a drone may stay
+  // the foreground with a soft four-floor kick and loose hats under it. The
+  // four-floor kit only: a broken kit's own table carries its snare and its
+  // figure, and is what it was. Below the drums line (27191) and at the house
+  // (centre 100) there is no floor. What each lane plays on it is the lane's
+  // (`Lane.floor`, house-v2's lane table).
+  scene: { forward: 'drone', always: [['drone', 'body']], realWorld: { holdBelow: .5, sparseSeconds: 1.5, ringCovers: .75 },
+    floor: { centreBelow: 95, kits: ['fourFloor'] } },
   families,
 };

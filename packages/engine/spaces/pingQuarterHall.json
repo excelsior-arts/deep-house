@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "pingQuarterHall",
+  "revision": 1,
+  "name": "Ping-pong quarter into a hall",
+  "says": "Quarter-note repeats crossing left and right, dark and thin, each falling into a 3.8 s hall that the dry chord shares.",
+  "dry": 1,
+  "trimDb": 1.2,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "echo",
+      "level": 0.2,
+      "effect": "tapeDelay",
+      "params": {
+        "timeBeats": 1,
+        "feedback": 0.32,
+        "lowpassHz": 2600,
+        "highpassHz": 420,
+        "wow": 0.15,
+        "pingPong": 1,
+        "mix": 1
+      },
+      "into": {
+        "hall": 0.5
+      }
+    },
+    {
+      "id": "hall",
+      "level": 0.32,
+      "effect": "reverb",
+      "params": {
+        "mode": 1,
+        "decaySeconds": 3.8,
+        "predelayMs": 30,
+        "lowCutHz": 300,
+        "dampHz": 4200,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet."
+  }
+}

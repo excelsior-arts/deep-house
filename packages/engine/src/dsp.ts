@@ -453,7 +453,7 @@ export function adsrEnv(gain: GainNode, when: number, peak: number, { attack, de
  * of the reconciled review of 09-24 (D37); a bus (`master.ts` `Bus`) has a
  * node under each of these names.
  */
-export const SEND_NAMES = ['dry', 'delay', 'reverb', 'room', 'hall', 'background', 'immersed'] as const;
+export const SEND_NAMES = ['dry', 'delay', 'reverb', 'room', 'hall', 'background', 'immersed', 'echo', 'partSpace'] as const;
 export type SendName = typeof SEND_NAMES[number];
 export type VoiceOut = { [K in SendName]?: AudioNode };
 
@@ -469,6 +469,10 @@ export interface SendAmounts {
   hall?: number;
   background?: number;
   immersed?: number;
+  /** the echo: a tape delay a note is sent into for its own repeats (`ECHO_SEND` in master.ts) */
+  echo?: number;
+  /** the part's own space (`withPartSpace`): read there and never by `route`, which leaves it alone */
+  partSpace?: number;
 }
 
 /** The most any send may be: a gain, 6 dB over unity. */
@@ -495,6 +499,7 @@ export function route(ctx: BaseAudioContext, node: AudioNode, out: VoiceOut, amo
   const hall = send(amounts.hall, 0);
   const background = send(amounts.background, 0);
   const immersed = send(amounts.immersed, 0);
+  const echo = send(amounts.echo, 0);
   if (dry === 1 && out.dry) {
     node.connect(out.dry);
   } else if (dry > 0 && out.dry) {
@@ -541,6 +546,94 @@ export function route(ctx: BaseAudioContext, node: AudioNode, out: VoiceOut, amo
     node.connect(g);
     g.connect(out.immersed);
   }
+  // The echo is built the first time something asks for it, like the hall.
+  if (echo > 0 && out.echo) {
+    const g = ctx.createGain();
+    g.gain.value = echo;
+    node.connect(g);
+    g.connect(out.echo);
+  }
+}
+
+/**
+ * **A note's echo, whatever the voice** (round KV1). The echo is a send a
+ * *part* asks for — `p.echo`, an amount like any send's — and not one an
+ * instrument chooses, so it is not left to each voice's own `route()` call to
+ * remember it: a note that asks has its dry path tapped here, on the way in,
+ * and the tap sends `echo` of what goes dry into the bus's echo return. A note
+ * that does not ask is handed the very `out` it always was, so every program
+ * that never names an echo plays through the graph it always did.
+ *
+ * The other sends are handed through as getters, so a lazy return stays lazy.
+ */
+export function withEcho(ctx: BaseAudioContext, out: VoiceOut, p: { echo?: unknown } | null | undefined): VoiceOut {
+  const amount = p && typeof p.echo === 'number' && Number.isFinite(p.echo) ? Math.min(SEND_MAX, Math.max(0, p.echo)) : 0;
+  if (!(amount > 0) || !out.dry) return out;
+  const echoOut = out.echo;
+  if (!echoOut) return out;
+  const tap = ctx.createGain();
+  tap.connect(out.dry);
+  const send = ctx.createGain();
+  send.gain.value = amount;
+  tap.connect(send);
+  send.connect(echoOut);
+  const tapped: VoiceOut = {};
+  for (const name of SEND_NAMES) {
+    if (name === 'dry') { tapped.dry = tap; continue; }
+    Object.defineProperty(tapped, name, { get: () => out[name], enumerable: true });
+  }
+  return tapped;
+}
+
+/**
+ * **A note into its part's own space** (liquid-space round 1). A part that
+ * plays through a space of its own — the sparse keys' far grand into the deep
+ * hall — asks for it by amount, `p.partSpace`, and its whole dry path goes there
+ * instead of to the bus: the space carries its own dry beside its sends
+ * (`effects/space.ts`), so the note is heard once, through the room it was
+ * chosen with. One space per theme's graph, built from the theme's settings
+ * (`partSpace`, a space row), so every note of the part shares one return and
+ * no note builds a reverb of its own. The other sends pass through as getters,
+ * so a lazy return stays lazy; a note that does not ask, or a graph whose theme
+ * names no space, is handed the very `out` it always was.
+ */
+export function withPartSpace(ctx: BaseAudioContext, out: VoiceOut, p: { partSpace?: unknown } | null | undefined): VoiceOut {
+  const amount = p && typeof p.partSpace === 'number' && Number.isFinite(p.partSpace) ? Math.min(SEND_MAX, Math.max(0, p.partSpace)) : 0;
+  if (!(amount > 0)) return out;
+  const door = out.partSpace;
+  if (!door) return out;
+  const into = ctx.createGain();
+  into.gain.value = amount;
+  into.connect(door);
+  const moved: VoiceOut = {};
+  for (const name of SEND_NAMES) {
+    if (name === 'dry') { moved.dry = into; continue; }
+    Object.defineProperty(moved, name, { get: () => out[name], enumerable: true });
+  }
+  return moved;
+}
+
+/**
+ * **A sine with harmonics, as one wave per context** (the performance review of
+ * 10-06): the liquid kick's head and the clean sine line's sub carry a row's
+ * harmonic levels, and every hit built its own PeriodicWave — WebKit builds all
+ * of a wave's band-limited tables when it is made, about thirty-six inverse
+ * FFTs on the main thread, so two or three hits a second were megabytes a
+ * second of garbage on a phone. The same levels are the same wave: built once
+ * per context by its numbers, as `phasedLfo`'s are.
+ */
+const harmonicWaves = new WeakMap<BaseAudioContext, Map<string, PeriodicWave>>();
+export function harmonicWave(ctx: BaseAudioContext, harmonics: readonly number[]): PeriodicWave {
+  let per = harmonicWaves.get(ctx);
+  if (!per) harmonicWaves.set(ctx, (per = new Map()));
+  const key = harmonics.join(',');
+  let wave = per.get(key);
+  if (!wave) {
+    const hs = [0, 1, ...harmonics];
+    wave = ctx.createPeriodicWave(new Float32Array(hs.length), Float32Array.from(hs), { disableNormalization: true });
+    per.set(key, wave);
+  }
+  return wave;
 }
 
 // An LFO whose phase is set, so a seeded track starts its movement in the same

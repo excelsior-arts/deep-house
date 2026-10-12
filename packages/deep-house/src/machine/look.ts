@@ -231,8 +231,52 @@ export const SHEET = `
 #machine .ring-tools .pane-key { white-space: nowrap; height: ${TOOL_KEY_H}px; }
 #machine .view.rack .engine-block { flex: 0 0 auto; }
 #machine .engine-block { border-top: 1px solid ${INK.line}; }
+/* **The SCENES block** (D3): a name and SAVE, then the kept scenes, newest
+   first, each with RECALL and a delete; keys a finger's size (28 px, the
+   CAPTURE block's), the armed scene edged green and amber once the desk has
+   moved since, a scene's lines the theme playing cannot use counted dim. No
+   colour of its own. */
+#machine .scene-block { border-top: 1px solid ${INK.line}; }
+#machine .view.rack .scene-block { flex: 0 0 auto; }
+#machine .scene-save { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: ${SPACE.s}px; padding: ${SPACE.s}px 10px 0; margin: 0; }
+#machine .scene-name { font: inherit; font-size: 11px; height: 28px; min-width: 0; box-sizing: border-box; padding: 0 ${SPACE.s}px; color: ${INK.value}; background: ${INK.sunken}; border: 1px solid ${INK.edge}; border-radius: 2px; }
+#machine .scene-name::placeholder { color: ${INK.dim}; }
+#machine .scene-name:focus { border-color: ${INK.bright}; outline: none; }
+#machine .scene-key { height: 28px; }
+#machine .scene-key:disabled { opacity: ${REST}; cursor: default; }
+#machine .scene-key:disabled:hover { border-color: ${INK.edge}; }
+#machine .scene-key.sure { color: ${INK.ground}; background: ${INK.amber}; border-color: ${INK.amber}; }
+#machine .scene-line { padding: ${SPACE.hair}px 10px; color: ${INK.dim}; font-size: 10px; height: 14px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#machine .scene-list { list-style: none; margin: 0; padding: 0 10px ${SPACE.s}px; display: grid; gap: ${SPACE.hair}px; }
+#machine .view.rack .scene-list { max-height: 204px; overflow: auto; }
+#machine .scene { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: ${SPACE.s}px; row-gap: 1px; padding: ${SPACE.hair}px ${SPACE.s}px; background: ${INK.sunken}; border: 1px solid ${INK.line}; border-radius: 2px; }
+#machine .scene.armed { border-color: ${INK.green}; }
+#machine .scene.armed.dirty { border-color: ${INK.amber}; }
+#machine .scene-head { grid-column: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+#machine .scene-lamp { flex: 0 0 auto; }
+#machine .scene-lamp .lamp { fill: ${INK.line}; }
+#machine .scene-lamp .lamp.armed { fill: ${INK.green}; }
+#machine .scene-lamp .lamp.dirty { fill: ${INK.amber}; }
+#machine .scene-title { color: ${INK.value}; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#machine .scene-mark { color: ${INK.green}; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+#machine .scene.dirty .scene-mark { color: ${INK.amber}; }
+#machine .scene-facts, #machine .scene-where { grid-column: 1; font-size: 10px; line-height: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#machine .scene-facts { color: ${INK.note}; }
+#machine .scene-where, #machine .scene-out { color: ${INK.dim}; }
+#machine .scene.away .scene-title, #machine .scene.away .scene-facts { opacity: ${REST}; }
+#machine .scene-keys { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; justify-content: center; gap: ${SPACE.hair}px; }
+@media (pointer: coarse) {
+  #machine .scene-name { font-size: 16px; height: 32px; }
+  #machine .scene-key { height: 32px; }
+}
 #machine .view.rack .facts { flex: 1 1 auto; min-height: 0; overflow: auto; }
-#machine .pane.graph { grid-area: graph; overflow: auto; }
+/* the pane is the canvas's ground, not a panel: with the ledger put away the
+   drawing ends a key's width short of the pane's edge to keep the log key's
+   corner clear (M20), and under that strip, and under a drawing shorter than
+   its pane, the panel tone read as a gap of another colour (Eugene, 10-05:
+   *"the dark background doesn't go to the right end of the page and there is
+   a strange gap of a lighter colour"*) */
+#machine .pane.graph { grid-area: graph; overflow: auto; background: ${INK.ground}; }
 /* the ledger put away (M6): the graph takes its column */
 /* put away (M20, Eugene: "closed ledger looks trashy, side panel for no
    reason"): no rail and no panel, the graph the whole width, and one key
@@ -254,15 +298,13 @@ export const SHEET = `
 #machine h2 .caption { text-transform: none; letter-spacing: 0.02em; color: ${INK.note}; font-size: 10px; margin-left: ${SPACE.s}px; }
 #machine .genre-block { flex: 0 0 auto; }
 /* The GENRES header (M8; M13, Eugene: WORK IN PROGRESS on the title's line at
-   every width): the title and the tier on the left, the keys on the right, and
-   the tag centred in the room between them — one line, never wrapped; on a
-   phone the tag's size and tracking come down a step to fit beside the longest
-   tier's name and BACK. */
-/* (M18) a long family's name gives way before the tag does: the title is the
-   one column that may shrink, and ends in an ellipsis; its tile says it whole */
-#machine h2.genre-head { display: grid; grid-template-columns: minmax(0, max-content) 1fr auto; align-items: center; gap: ${SPACE.s}px; }
+   every width): the title on the left and the tag centred in the room beside
+   it — one line, never wrapped; on a phone the tag's size and tracking come
+   down a step. One level since GA8: no tier's name and no BACK. */
+/* (M18) the title is the one column that may shrink, and ends in an ellipsis
+   (under house-v1 it carries a caption) */
+#machine h2.genre-head { display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: center; gap: ${SPACE.s}px; }
 #machine h2.genre-head > .title { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-#machine h2.genre-head > .keys { display: flex; justify-content: flex-end; gap: ${SPACE.hair}px; }
 #machine h2.genre-head > .wip { justify-self: center; font-size: 8px; letter-spacing: 0.16em; color: ${INK.note}; white-space: nowrap; }
 #machine .view.scrolling h2.genre-head > .wip { font-size: 7px; letter-spacing: 0.08em; }
 #machine h2.with-key { display: flex; align-items: center; justify-content: space-between; gap: ${SPACE.s}px; }
@@ -279,14 +321,55 @@ export const SHEET = `
 #machine [role="button"]:focus-visible > rect,
 #machine .desk-strip [role="button"]:focus-visible rect,
 #machine .desk-strip [role="button"]:hover > rect { stroke: ${INK.bright}; stroke-width: 1; }
-#machine .desk-pop { position: fixed; z-index: 20; width: min(272px, calc(100vw - 16px)); padding: ${SPACE.m}px; border: 1px solid ${INK.edge}; background: ${INK.panel}; color: ${INK.type}; font: inherit; box-shadow: 0 4px 16px #0008; }
+#machine .desk-pop { position: fixed; z-index: 20; width: min(272px, calc(100vw - 16px)); max-height: calc((100vh - 16px) / var(--t, 1)); overflow-y: auto; box-sizing: border-box; padding: ${SPACE.m}px; border: 1px solid ${INK.edge}; background: ${INK.panel}; color: ${INK.type}; font: inherit; box-shadow: 0 4px 16px #0008; }
+/* (the popover is zoomed with the type, so a height in the viewport's units is
+   laid out zoom times too tall unless divided by it — as its place is). The
+   height here holds only until the box is placed: placed once at open
+   (DESK-UX1), it takes the room on its side, capped at 80 % of the visual
+   viewport, written on the box, and never moves when it grows */
+/* **The device** (D0): the row's numbers as a table, one parameter a line —
+   the name, the value in its unit, the range, and the knob or control over it.
+   A knob's line carries the amber of a moved thing; a control's the dim ink of
+   a part's own. Tabular figures, so a column of values reads as a column. */
+#machine .desk-device { border-top: 1px solid ${INK.line}; margin-top: 8px; padding-top: 8px; }
+/* a dispatcher's routing table, folded under the row it plays (one sound first) */
+#machine .desk-device-fold { border-top: 1px solid ${INK.line}; margin-top: 8px; padding-top: 8px; }
+#machine .desk-device-fold > summary { cursor: pointer; list-style: none; font-size: 10px; }
+#machine .desk-device-fold > summary::-webkit-details-marker { display: none; }
+#machine .desk-device-fold > summary::before { content: '▸ '; color: ${INK.dim}; }
+#machine .desk-device-fold[open] > summary::before { content: '▾ '; }
+#machine .desk-device-fold > .desk-device { border-top: 0; margin-top: 4px; padding-top: 0; }
+#machine .desk-device-head { display: grid; gap: 2px; margin-bottom: 6px; }
+#machine .desk-device-facts { color: ${INK.dim}; font-size: 10px; overflow-wrap: anywhere; }
+#machine .desk-device-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10px; font-variant-numeric: tabular-nums; }
+#machine .desk-device-table th { width: 44%; text-align: left; font-weight: 400; color: ${INK.type}; padding: 1px 4px 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#machine .desk-device-table td { padding: 1px 0 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#machine .desk-device-table td.v { color: ${INK.value}; text-align: right; }
+#machine .desk-device-table td.v .m { color: ${INK.dim}; }
+#machine .desk-device-table tr.knob td.v .m { color: ${INK.amber}; }
+#machine .desk-device-table tr.knob th { color: ${INK.bright}; }
+/* D1: a number of the row is a setter — pressable, and amber where a hand has moved it, underlined as the level key is */
+#machine .desk-device-table tr.set { cursor: pointer; }
+#machine .desk-device-table tr.set:hover th, #machine .desk-device-table tr.set:focus-visible th, #machine .desk-device-table tr.open th { color: ${INK.bright}; }
+#machine .desk-device-table tr.set:focus-visible { outline: 1px solid ${INK.bright}; outline-offset: -1px; }
+#machine .desk-device-table tr.moved td.v { color: ${INK.amber}; box-shadow: inset 0 -2px 0 ${INK.amber}; }
+#machine .desk-device-table tr.desk-device-set td { white-space: normal; overflow: visible; padding: 0 0 6px; }
+#machine .desk-device-table tr.desk-device-set .desk-row { margin: 4px 0; }
+#machine .desk-device-table tr.desk-device-set .desk-keys { margin: 4px 0 0; }
+/* D2: a stage line whose move waits — for the next theme, for a theme without the arrangement's line on it, for a theme that builds the box — says so in its mark and under its fader, in the type's own ink */
+#machine .desk-device-table tr.waits td.v .m { font-style: italic; }
+#machine .desk-pop p.desk-waits { color: ${INK.type}; margin: 4px 0 0; }
 #machine .desk-pop-title { color: ${INK.label}; text-transform: uppercase; letter-spacing: .8px; padding-bottom: 6px; border-bottom: 1px solid ${INK.line}; }
 #machine .desk-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 10px 0; }
 #machine .desk-row output { color: ${INK.value}; }
+/* a fader opened under a device's line has no head (DESK-UX1): the line is its label and its readout */
+#machine .desk-row.bare { grid-template-columns: 1fr; }
 #machine .desk-fader { grid-column: 1 / -1; display: grid; grid-template-columns: 32px 1fr 32px; gap: 8px; align-items: center; }
 #machine .desk-fader input { width: 100%; margin: 0; accent-color: ${INK.type}; cursor: pointer; }
 #machine .desk-fader { grid-template-columns: ${KEY.w}px 1fr ${KEY.w}px; }
-#machine .desk-keys { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+#machine .desk-keys { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 4px; }
+/* the reset under a fader stands centred under its slider (DESK-UX1) */
+#machine .desk-keys.desk-under { justify-content: center; }
 /* **The popover's keys are the strips' keys** (M6): the same 20 high and at
    least 24 wide, the same face, size and capitals, the same ink and the same
    lit colours, a word key as wide as its word */
@@ -296,9 +379,17 @@ export const SHEET = `
 #machine .desk-pop .desk-toggle.on { background: ${INK.bright}; color: ${INK.ground}; border-color: ${INK.bright}; font-weight: 700; }
 #machine .desk-pop .desk-toggle.mute.on { background: ${INK.red}; border-color: ${INK.red}; }
 #machine .desk-pop .desk-toggle.solo.on { background: ${INK.amber}; border-color: ${INK.amber}; }
-#machine .desk-tools { border-top: 1px solid ${INK.line}; margin-top: 8px; padding-top: 8px; display: grid; gap: 6px; }
+/* **A reset is a peripheral** (DESK-UX1, Eugene 10-05): one step smaller than a
+   working key and in the dim ink until a hand is on it, when it takes the
+   ordinary key's — every reset in a popover alike: under a fader, a strip's, a
+   bus's, a device's and a stage box's "all", a band's */
+#machine .desk-pop .desk-reset { height: ${KEY.h - 4}px; font-size: ${KEY.font - 0.5}px; color: ${INK.dim}; border-color: ${INK.dim}; }
+/* the tools on one line: the name at the left, the key at the right, the status under them only while there is one */
+#machine .desk-tools { border-top: 1px solid ${INK.line}; margin-top: 8px; padding-top: 8px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
 #machine .desk-name { color: ${INK.label}; }
 #machine .desk-status { color: ${INK.dim}; overflow-wrap: anywhere; }
+#machine .desk-tools .desk-status { grid-column: 1 / -1; }
+#machine .desk-tools .desk-status:empty { display: none; }
 #machine .desk-pop p { color: ${INK.dim}; margin: 8px 0 0; font-size: 10px; }
 
 /* **The page-scroll mode**: one long page in the order the document is in —
@@ -386,15 +477,15 @@ export const SHEET = `
 #machine .fact.wrap .v { white-space: normal; overflow: visible; }
 /* The spell tile (M8, Eugene: *"the alignment of the SPELL label and the inner
    values looks off — need to uniform the paddings"*): a tile like any other —
-   the same padding, its name where every tile's name is, the swatch inline
-   after it at the name's cap height — and the eight cells one row of equal
+   the same padding, its name where every tile's name is, the spell's colour a
+   line under the name the width of the cells (10-05) — and the eight cells one row of equal
    columns from the name's left edge at every width, a phone's too (M8: *"on
    mobile, where we need compression, these wrap onto a new line and steal
    vertical space"*), each a name over a value with a tile's own line gap. */
 #machine .fact.spell { flex-direction: column; align-items: stretch; gap: ${SPACE.hair}px; }
 #machine .spell-head { display: flex; align-items: center; gap: ${SPACE.s}px; line-height: 1; }
 #machine .fact.wide .spell-head .k { width: auto; }
-#machine .spell-head .swatch { width: 7px; height: 7px; margin: 0; border: 0; }
+#machine .fact.spell .swatch { display: block; width: 100%; height: 2px; margin: 0; border: 0; }
 #machine .spell-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); column-gap: ${SPACE.hair}px; row-gap: ${SPACE.s}px; }
 #machine .spell-grid .cell { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
 #machine .fact.wide .spell-grid .cell .k { width: auto; opacity: .7; }
@@ -412,6 +503,7 @@ export const SHEET = `
 #machine .view.scrolling .fact.wide { padding: ${SPACE.hair}px ${SPACE.s}px; }
 #machine .view.scrolling .spell-grid .cell { flex-direction: row; align-items: baseline; gap: 2px; }
 #machine .view.scrolling .spell-grid .cell .v { font-size: 11px; }
+#machine .view.scrolling .spell-grid .cell .k .notch { display: none; }
 #machine .fact .v.warn { color: ${INK.amber}; }
 #machine .fact .v.bad { color: ${INK.red}; }
 #machine .swatch {
@@ -506,6 +598,8 @@ export const SHEET = `
 #machine .engine .row .id { letter-spacing: 0.1em; overflow: hidden; text-overflow: ellipsis; }
 #machine .engine .row.on { background: ${INK.panel}; color: ${INK.bright}; }
 #machine .engine .row.arriving { color: ${INK.amber}; }
+/* words a screen reader is told and the drawing shows another way (a lamp's colour) */
+#machine .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 #machine svg { display: block; }
 

@@ -121,19 +121,22 @@ interface Tap {
   name: string;
   analyser: AnalyserNode;
   from: AudioNode;
+  /** the other doors into the same meter (a harmonic bus's struck door) */
+  also: AudioNode[];
   buf: Float32Array;
   /** the last second of peaks, so the hold is a second and not a frame */
   recent: number[];
 }
 
-function makeTap(ctx: BaseAudioContext, name: string, from: AudioNode, size: number): Tap {
+function makeTap(ctx: BaseAudioContext, name: string, from: AudioNode, size: number, also: AudioNode[] = []): Tap {
   const analyser = ctx.createAnalyser();
   analyser.fftSize = size;
   // Nothing is smoothed: a meter that smooths is a meter that lies about a
   // peak, and the peak is the reading a red LED is for.
   analyser.smoothingTimeConstant = 0;
   from.connect(analyser);
-  return { name, analyser, from, buf: new Float32Array(size), recent: [] };
+  for (const n of also) n.connect(analyser);
+  return { name, analyser, from, also, buf: new Float32Array(size), recent: [] };
 }
 
 /**
@@ -193,11 +196,16 @@ export function attachTaps(graph: V1Graph, master: V1Master | null = null, { per
   const taps: Tap[] = [];
   let out: Tap;
   try {
-    for (const name of Object.keys(graph.buses)) taps.push(makeTap(ctx, name, graph.buses[name].dry, size));
+    // A harmonic bus's meter reads its struck door too (round PIANO-2), so
+    // the piano is on the melodic bus's meter where it always was.
+    const struckOf = (name: string): AudioNode[] => (graph.hasStruck() && graph.struckBus(name) ? [graph.struckBus(name)!.dry] : []);
+    for (const name of Object.keys(graph.buses)) taps.push(makeTap(ctx, name, graph.buses[name].dry, size, struckOf(name)));
     out = makeTap(ctx, 'out', outNode, size);
   } catch (e) {
     for (const tap of taps) {
-      try { tap.from.disconnect(tap.analyser); } catch (err) { /* never connected */ }
+      for (const n of [tap.from, ...tap.also]) {
+        try { n.disconnect(tap.analyser); } catch (err) { /* never connected */ }
+      }
     }
     throw e;
   }
@@ -255,7 +263,9 @@ export function attachTaps(graph: V1Graph, master: V1Master | null = null, { per
       if (gone) return;
       gone = true;
       for (const tap of taps) {
-        try { tap.from.disconnect(tap.analyser); } catch (e) { /* the graph went first */ }
+        for (const n of [tap.from, ...tap.also]) {
+          try { n.disconnect(tap.analyser); } catch (e) { /* the graph went first */ }
+        }
         try { tap.analyser.disconnect(); } catch (e) { /* never connected onward */ }
       }
       try { outNode.disconnect(out.analyser); } catch (e) { /* gone */ }

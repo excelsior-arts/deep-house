@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "shimmerPad",
+  "revision": 1,
+  "topology": "shimmer",
+  "parameters": {
+    "trim": 0.8,
+    "attack": 0.5,
+    "release": 0.6,
+    "octaveLevel": 0.7,
+    "twoOctaveLevel": 0.45,
+    "detuneCents": 7,
+    "spread": 0.7,
+    "ring": 0.11,
+    "ringRatio": 1.17,
+    "feedback": 0.55,
+    "shift": 0.6,
+    "brightnessHz": 7000,
+    "early": 0.6,
+    "floorHz": 1800
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "shift": {
+        "unit": "ratio",
+        "min": 0.1,
+        "default": 0.6,
+        "max": 1,
+        "bird": "gleam",
+        "sense": 1,
+        "slopeDb": 0.665
+      },
+      "feedback": {
+        "unit": "ratio",
+        "min": 0.15,
+        "default": 0.55,
+        "max": 0.66,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 1.33
+      },
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 3500,
+        "default": 7000,
+        "max": 12000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 0.0000526
+      }
+    },
+    "timbres": {
+      "shimmerPad": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.95,
+        "brightnessHz": 7000,
+        "loudnessDb": -12.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "shimmer-pad.ts"
+  }
+}

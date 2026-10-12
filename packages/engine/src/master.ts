@@ -33,6 +33,14 @@ import { backgroundSpace, DEFAULT_SPACES, type BackgroundSpace } from './backgro
 import type { Settings } from './settings.ts';
 import type { AutomationLine, CurvePoint, DuckPoint } from './program.ts';
 import { qFor } from './effects/filter.ts';
+import { build as tapeDelay } from './effects/tape-delay.ts';
+import { build as bassDrive } from './effects/bass-drive.ts';
+import { buildHarmonicEdge, type HarmonicEdgeStage } from './effects/harmonic-edge.ts';
+import { HARMONIC_EDGE_AT_NOUGHT } from './voices/grain.ts';
+import { liveArmed } from './voices/live.ts';
+import { isOffline } from './effects/shell.ts';
+import type { EffectInstance } from './effects/contract.ts';
+import { asSpace, buildSpace, type SpaceInstance } from './effects/space.ts';
 
 // Everything in this file is handed the settings it is to build under, as its
 // second argument, and reads nothing else (PLAN-V1-NEXT round C). That
@@ -57,6 +65,48 @@ export interface AutomationTarget {
   exponentialRampToValueAtTime(value: number, at: number): unknown;
   cancelScheduledValues(at: number): unknown;
 }
+
+/**
+ * **The master's tone as a profile** (round E1, Eugene 10-01: *"extract EQ as
+ * a parameter to the engine; apply to v1 explicitly, apply to v2 explicitly;
+ * assume it may be adjusted on birds change"*). The five gains of the five
+ * tone stages, as one vector: the low shelf, the low-mid bell, the mid bell,
+ * the presence bell and the air shelf. The stages' corners and widths are the
+ * **range** and stay where the style put them -- a profile moves how much each
+ * band is lifted or cut, never where the band is, so the sub keeps its octave
+ * whatever its level.
+ *
+ * A style states it in `master` (the five `…Db` fields, `eqProfileOf` reads
+ * them), so a theme's settings carry its profile and the program's settings
+ * hash locks it.
+ */
+export interface EqProfile {
+  lowShelfDb: number;
+  lowMidDb: number;
+  midDb: number;
+  presenceDb: number;
+  airDb: number;
+}
+
+/** Each gain of a profile and the stage of the chain it is the gain of, in signal order. */
+export const EQ_STAGES: Readonly<Record<keyof EqProfile, 'lowShelf' | 'lowMid' | 'mid' | 'presence' | 'air'>> = Object.freeze({
+  lowShelfDb: 'lowShelf', lowMidDb: 'lowMid', midDb: 'mid', presenceDb: 'presence', airDb: 'air',
+});
+/** The five, in signal order. */
+export const EQ_BANDS = Object.freeze(Object.keys(EQ_STAGES) as Array<keyof EqProfile>);
+
+/** A settings' `master` block's profile: its five gains, and nothing else of it. */
+export function eqProfileOf(master: Readonly<EqProfile>): EqProfile {
+  return { lowShelfDb: master.lowShelfDb, lowMidDb: master.lowMidDb, midDb: master.midDb, presenceDb: master.presenceDb, airDb: master.airDb };
+}
+
+/**
+ * **How long a profile takes to arrive**, when the caller names no time: a
+ * linear walk of each gain over this many seconds, which is long enough that
+ * no step is heard in a shelf under a held sub and short enough to land inside
+ * the bar it was asked at. A set names a bar of the arriving theme instead.
+ */
+export const EQ_RAMP_S = 2;
 
 /**
  * The master chain as `buildMaster` builds it: every node of it, in the order
@@ -85,6 +135,26 @@ export interface MasterChain {
   trim: GainNode;
   limiterIsWorklet: boolean;
   settings: Settings;
+  /**
+   * **Walk the five tone gains to `profile`**, starting at `at` and landing
+   * `over` seconds later (`EQ_RAMP_S` when unnamed). Each gain is moved along
+   * its own written line (`src/ramp.ts`), so a second move asked before the
+   * first has landed starts from where the first had got to and never jumps.
+   * The corners and the widths are not touched.
+   * @returns the instant the profile lands
+   */
+  setProfile(profile: EqProfile, at: number, over?: number): number;
+  /**
+   * **A hand's lean on one band** (the machine view's desk): an offset in dB
+   * over the profile, walked to through the same line, and kept -- the next
+   * `setProfile` lands at the profile plus the lean, so a theme's boundary
+   * never steps a band a hand is holding. Nought lets it go.
+   */
+  lean(band: keyof EqProfile, offset: number, at: number, over?: number): number;
+  /** the profile last asked for, without a hand's lean on it */
+  profile(): EqProfile;
+  /** the five gains as they will stand at `t`, by everything written, lean and all */
+  profileAt(t: number): EqProfile;
 }
 
 /**
@@ -101,6 +171,19 @@ export interface Bus {
   readonly hall: GainNode;
   readonly background: GainNode;
   readonly immersed: GainNode;
+  /** the echo: a note's own repeats, built the first time one asks (`ECHO_SEND`) */
+  readonly echo: GainNode;
+  /**
+   * the part's own space (`settings.partSpace`), one per theme's graph and shared
+   * by every bus, built the first time a note asks (`withPartSpace` in dsp.ts);
+   * undefined where the theme's settings name none, so nothing is ever built there
+   */
+  readonly partSpace?: GainNode;
+  /**
+   * the bass drive's side door, on the sub bus where the theme's copy is built
+   * (round DUB-4): a note played here is driven and never heard clean
+   */
+  readonly ride?: AudioNode;
 }
 
 /**
@@ -162,12 +245,68 @@ export interface ThemeGraph {
   macro: BiquadFilterNode;
   duck: GainNode;
   duckLow: GainNode;
+  /** the struck voices' duck (round PIANO-2): beside `duck`, a shallow dip after the strike */
+  struckDuck: GainNode;
+  /**
+   * The struck door of a harmonic bus (round PIANO-2) — `melodic` or `keys`,
+   * the same sends as the bus and a dry into the struck path, which ends on
+   * `struckDuck` — built the first time it is asked for; `null` for a bus
+   * with none.
+   */
+  struckBus(name: string): Bus | null;
+  /** whether the struck path has been built; looking never builds one */
+  hasStruck(): boolean;
+  /** an automation target by the path a program's line names: a path the two harmonic paths share answers with both */
+  param(path: string): AutomationTarget | null;
   melodic: GainNode;
+  /** the harmonic sum's seam gain, after `melodic` and before the duck: at one unless a hand-over moves it (`harmonic.gain`) */
+  harmonic: GainNode;
+  /**
+   * **The outgoing harmony's close** (round MIX-X4): a low-pass on the harmonic
+   * sum after its seam gain, which a hand-over between unrelated keys closes
+   * on the deck that is leaving (`harmonicLp.frequency`) while that gain
+   * fades. **Built the first time a path into it is read**, like the sweep, so
+   * a deck whose seam never names it plays through the graph it always did;
+   * built, it stands open at 20 kHz and flat (Butterworth) until a line moves it.
+   */
+  readonly harmonicLp: BiquadFilterNode;
+  /** whether the close has been built; looking never builds one */
+  hasHarmonicLp(): boolean;
   air: BiquadFilterNode;
   presence: BiquadFilterNode;
   glue: DynamicsCompressorNode | GainNode;
   bassComp: DynamicsCompressorNode;
   push: { wet: GainNode; body: BiquadFilterNode; sub: GainNode };
+  /**
+   * The bass drive in parallel (round B1): the driven copy summed under the
+   * clean bass between the bus and the body filter, or `null` where the
+   * theme's settings ask for none, which is the house.
+   */
+  bassDrive: EffectInstance | null;
+  /** the presence bell on the harmonic bus (round EQ-2), or `null` where the theme's settings ask for none */
+  harmonicBell: BiquadFilterNode | null;
+  /**
+   * The harmonic bus's edge in parallel (round SPARK-1), the held path's, or
+   * `null` where none was built: where the theme's settings ask for none and
+   * the desk was not up when the graph was built (DESK-EDGE: while it is, a
+   * graph on a playing context builds one at nought).
+   */
+  harmonicEdge: HarmonicEdgeStage | null;
+  /**
+   * **The parameters a stage line moves** (PLAN-DESK D2), by the target its
+   * declaration names (`stage.ts`): the node's own where the handle has it, and
+   * the two this graph keeps to itself — the width's breathing depth and rate —
+   * and both bells where the struck path has one. Empty where the graph has no
+   * such parameter (a glue built as a gain). Only `V1Graph.stage` asks.
+   */
+  stageParams(target: string): AudioParam[];
+  /**
+   * **The setters a stage line moves** (DESK-EDGE), by target: where one
+   * number is several parameters at different values — the bus edge's drive,
+   * its drive gain and its make-up — one setter per path that has the stage.
+   * Empty where none was built.
+   */
+  stageSetters(target: string): Array<(v: number, at: number, over: number) => void>;
   /**
    * The melodic bus's section sweeps (house-v2's `busSweeps`): a high-pass and
    * a low-pass, each the kitchen filter's core between a dry and a wet gain. **Built the first time a path into it is read**, which only an
@@ -191,7 +330,8 @@ export interface ThemeGraph {
   buses: Buses;
   level(name: string): number;
   /**
-   * Whether the piano's hall has been built.
+   * Whether the piano's hall has been built: either path's, or (round
+   * PIANO-2) the one named — `held` the bus's own, `struck` the struck door's.
    *
    * It exists because asking the question any other way *answers it wrongly*:
    * `bus.hall` is a getter that builds a four-second convolver the first time
@@ -199,9 +339,18 @@ export interface ThemeGraph {
    * would be the thing that put it there. A theme with no piano in it never
    * pays for that convolver, and nothing that only looks may make it.
    */
-  hasHall(): boolean;
+  hasHall(which?: 'held' | 'struck'): boolean;
   hasBackground(): boolean;
   hasImmersed(): boolean;
+  hasEcho(): boolean;
+  /** whether the part's own space has been built; looking never builds one */
+  hasPartSpace(): boolean;
+  /**
+   * The part's own space (`settings.partSpace`), built on this read: what an automation
+   * line names by path (`partSpace.levels.dry.gain`, `partSpace.levels.sends.<id>.gain`).
+   * Null where the settings name none.
+   */
+  readonly partSpace: SpaceInstance | null;
   disposeBackground(): void;
 }
 
@@ -214,6 +363,12 @@ export interface ThemeGraph {
 export interface GraphOptions {
   /** the grid this theme is actually being played on, not its own target */
   bpm?: number;
+  /**
+   * the instant the theme begins on the context's clock — the deck's first
+   * bar line — for anything in the graph with a phase on the bar (the bass
+   * drive's wobble). Absent is nought, which offline *is* a bar line.
+   */
+  at?: number;
   /** `track.trimDb`, worked out at plan time; 0 dB without one */
   trimDb?: number;
   /**
@@ -293,6 +448,9 @@ export function prepareLimiter(ctx: BaseAudioContext, settings: Settings | null 
  */
 export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterChain {
   const P = settings;
+  // The tone the chain opens at: the settings' own profile. Its corners and
+  // widths are read below beside it, and stay.
+  const eq = eqProfileOf(P.master);
 
   const out = ctx.createGain();
   out.gain.value = 1;
@@ -366,7 +524,7 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   const air = ctx.createBiquadFilter();
   air.type = 'highshelf';
   air.frequency.value = P.master.airHz;
-  air.gain.value = P.master.airDb;
+  air.gain.value = eq.airDb;
   air.connect(master);
 
   // Presence: the 2-6 kHz band the reference sets carry and a synthesised mix
@@ -374,7 +532,7 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   const presence = ctx.createBiquadFilter();
   presence.type = 'peaking';
   presence.frequency.value = P.master.presenceHz;
-  presence.gain.value = P.master.presenceDb;
+  presence.gain.value = eq.presenceDb;
   presence.Q.value = P.master.presenceQ;
   presence.connect(air);
 
@@ -387,7 +545,7 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   const mid = ctx.createBiquadFilter();
   mid.type = 'peaking';
   mid.frequency.value = P.master.midHz;
-  mid.gain.value = P.master.midDb;
+  mid.gain.value = eq.midDb;
   mid.Q.value = P.master.midQ;
   mid.connect(presence);
 
@@ -396,7 +554,7 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   const lowMid = ctx.createBiquadFilter();
   lowMid.type = 'peaking';
   lowMid.frequency.value = P.master.lowMidHz;
-  lowMid.gain.value = P.master.lowMidDb;
+  lowMid.gain.value = eq.lowMidDb;
   lowMid.Q.value = P.master.lowMidQ;
   lowMid.connect(mid);
 
@@ -408,7 +566,7 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   const lowShelf = ctx.createBiquadFilter();
   lowShelf.type = 'lowshelf';
   lowShelf.frequency.value = P.master.lowShelfHz;
-  lowShelf.gain.value = P.master.lowShelfDb;
+  lowShelf.gain.value = eq.lowShelfDb;
   lowShelf.connect(lowMid);
 
   // A wide, gentle high-pass keeps DC and subsonic rumble out of the file.
@@ -418,7 +576,42 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
   dcBlock.Q.value = P.master.dcQ;
   dcBlock.connect(lowShelf);
 
-  return { ctx, input: dcBlock, out, dcBlock, lowShelf, lowMid, mid, presence, air, master, limiter, limiterPort, clip, trim, limiterIsWorklet: haveWorklet, settings };
+  // Each tone gain's written line, made the first time the profile moves, so
+  // a chain that never moves writes nothing on its parameters.
+  const stages = { lowShelf, lowMid, mid, presence, air };
+  const lines = new Map<keyof EqProfile, Line>();
+  const lineOf = (band: keyof EqProfile): Line => {
+    let l = lines.get(band);
+    if (!l) { const g = stages[EQ_STAGES[band]].gain; l = line(ctx, g, g.value); lines.set(band, l); }
+    return l;
+  };
+  // What was asked, and a hand's offsets over it: a band stands at the sum.
+  let asked: EqProfile = { ...eq };
+  const leans: Partial<Record<keyof EqProfile, number>> = {};
+  function setProfile(profile: EqProfile, at: number, over: number = EQ_RAMP_S): number {
+    let lands = at;
+    for (const band of EQ_BANDS) {
+      const v = profile[band];
+      if (!Number.isFinite(v)) continue;
+      asked = { ...asked, [band]: v };
+      lands = Math.max(lands, lineOf(band).to(v + (leans[band] ?? 0), at, over));
+    }
+    return lands;
+  }
+  function lean(band: keyof EqProfile, offset: number, at: number, over: number = EQ_RAMP_S): number {
+    if (offset) leans[band] = offset; else delete leans[band];
+    return lineOf(band).to(asked[band] + offset, at, over);
+  }
+  function profileAt(t: number): EqProfile {
+    const then = {} as EqProfile;
+    for (const band of EQ_BANDS) {
+      const l = lines.get(band);
+      then[band] = l ? l.at(t) : stages[EQ_STAGES[band]].gain.value;
+    }
+    return then;
+  }
+
+  return { ctx, input: dcBlock, out, dcBlock, lowShelf, lowMid, mid, presence, air, master, limiter, limiterPort, clip, trim, limiterIsWorklet: haveWorklet, settings, setProfile, lean, profile: () => ({ ...asked }), profileAt };
 }
 
 // One theme's graph: its buses, its sends, its sidechain, its width and its
@@ -429,6 +622,19 @@ export function buildMaster(ctx: BaseAudioContext, settings: Settings): MasterCh
  * @param settings this theme's own, resolved once and owned by the
  *   deck, the player or the render that built this graph
  */
+/**
+ * **The two impulse responses every graph of this room builds**, its reverb
+ * and its room, computed now and cached for the context (`impulseResponse`),
+ * so that a graph built later — a hand's hand-over into another room, on the
+ * tick that lays it — finds them made (the engine review of 10-08, F4: 5 to
+ * 14 ms of a cast's seam). The same arguments `buildGraph` passes, below.
+ */
+export function warmRoom(ctx: BaseAudioContext, settings: Settings): void {
+  const P = settings;
+  impulseResponse(ctx, P.sends.reverbSeconds, 3.1, 'hall', P.sends.reverbCorr);
+  impulseResponse(ctx, P.sends.roomSeconds, 5.5, 'room', P.sends.roomCorr);
+}
+
 export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions = {}): ThemeGraph {
   // Anything whose only path to the destination is through an AudioParam can
   // be collected while it is still meant to be running. Hold on to them.
@@ -451,9 +657,53 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   const themeOut = ctx.createGain();
   themeOut.gain.value = dbToGain(opts.trimDb || 0);
 
+  // **A soft clip on the theme's own sum** (round DNB-4, `master.mixClip`),
+  // after its trim and before the master every deck shares: what the drums'
+  // clip leaves — the kick, the snare, the bass and the bed landing on one
+  // instant — is rounded where it stands, so the limiter after it holds a
+  // ceiling and does not pull the whole mix down for a beat. Absent, the trim
+  // is the theme's last node, as it always was.
+  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number }, into: AudioNode, mono: boolean): AudioNode => {
+    const pre = ctx.createGain();
+    pre.gain.value = dbToGain(C.driveDb);
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = softClipCurve(C.curve ?? 2, C.knee ?? 0.6);
+    shaper.oversample = P.master.oversample;
+    const post = ctx.createGain();
+    // the drive back down, and the clip's make-up where a room asks one (10-06, hands-on: a master pushed into the limiter, as source 9's is)
+    post.gain.value = dbToGain(-C.driveDb + (C.makeupDb ?? 0));
+    if (mono) for (const n of [pre, shaper, post]) { n.channelCount = 1; n.channelCountMode = 'explicit'; }
+    pre.connect(shaper);
+    shaper.connect(post);
+    post.connect(into);
+    return pre;
+  };
+  let themeTail: GainNode = themeOut;
+  // **A gentle compressor on the theme's own sum** (round DNB-5,
+  // `master.busComp`): after the trim, so it works on the level the theme
+  // plays at, and before the clip and the master. Absent, nothing is built.
+  const BC = P.master.busComp;
+  if (BC && BC.ratio > 1) {
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = BC.threshold;
+    comp.knee.value = BC.knee;
+    comp.ratio.value = BC.ratio;
+    comp.attack.value = BC.attack;
+    comp.release.value = BC.release;
+    const after = ctx.createGain();
+    themeTail.connect(comp);
+    comp.connect(after);
+    themeTail = after;
+  }
+  const MC = P.master.mixClip;
+  if (MC && MC.driveDb > 0) {
+    const after = ctx.createGain();
+    themeTail.connect(clipNodes(MC, after, false));
+    themeTail = after;
+  }
   const chain = opts.master || buildMaster(ctx, settings);
-  const out = opts.master ? themeOut : chain.out;
-  if (!opts.master) themeOut.connect(chain.input);
+  const out = opts.master ? themeTail : chain.out;
+  if (!opts.master) themeTail.connect(chain.input);
   // What the theme's stages end on. It was called `dcBlock`, the name of the
   // master's high-pass, which it is not: it is the theme's output gain, and the
   // DC block is in the chain behind it (R80).
@@ -567,7 +817,9 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   widthDepth.gain.value = P.space.widthDepth;
   widthLfo.connect(widthDepth);
   widthDepth.connect(width.gain);
-  widthLfo.start(0);
+  // From the deck's first bar line (`opts.at`, nought offline), as the bass drive's wobble is: its
+  // phase is the theme's, whenever the graph was built (a graph may be built ahead of its seam).
+  widthLfo.start(opts.at ?? 0);
   keepAlive.push(widthLfo, widthDepth);
 
   const widthNeg = ctx.createGain();
@@ -583,13 +835,132 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   duck.connect(msSplit);
   msMerge.connect(macro);
 
-  const melodic = ctx.createGain();
-  melodic.gain.value = 1;
-  melodic.connect(duck);
+  // **The struck voices' duck** (round PIANO-2): beside `duck`, into the same
+  // width stage, for the notes that arrive as a hit (`strikes` in the voice
+  // registry). The kick writes both on every beat — the pads' pump on `duck`,
+  // a shallow dip after the strike on this one (`struckDuckShape`,
+  // `program.ts`) — so a held chord breathes with the kick and a piano note
+  // struck on it keeps its hammer. Nothing reaches it until a struck note is
+  // played: the struck harmonic path below is built for a program that has
+  // one, and a gain at one with nothing into it is silence.
+  const struckDuck = ctx.createGain();
+  struckDuck.gain.value = 1;
+  struckDuck.connect(msSplit);
+
+  // **One harmonic path**: the bus's own gain, the seam gain, the edge, the
+  // bell, into the duck it ends on — and, built on the first read of a path
+  // into them, the close and the sweep (below). The bus has one for the held
+  // voices, ending on `duck`, and (round PIANO-2) one for the struck voices,
+  // ending on `struckDuck`, so that two notes on one bus can take two ducks.
+  // Two and not one with two ducks after it, because everything on the path
+  // before the duck is the notes' own and the edge is a clipper: a sum can be
+  // split by nothing after it, and a duck moved before the clipper would be
+  // read by the clip as a quieter chord. The struck path's parameters follow
+  // the held path's (`twins`, below), so an automation line written on one is
+  // written on both, and neither its edge nor its bell nor a seam is a
+  // different sound for a struck note than for a held one.
+  interface HarmonicPath {
+    melodic: GainNode;
+    harmonic: GainNode;
+    bell: BiquadFilterNode | null;
+    /** the edge in parallel, where it was built */
+    edge: HarmonicEdgeStage | null;
+    /** the path's end and what it feeds, as the close and the sweep splice in */
+    tail: AudioNode;
+    into: AudioNode;
+    /** the duck it ends on */
+    end: AudioNode;
+    lp: BiquadFilterNode | null;
+    sweep: BusSweep | null;
+  }
+  // whether the desk is up over a playing context, read once for the graph so both paths are built alike (DESK-EDGE)
+  const armedHere = liveArmed() && !isOffline(ctx);
+  const harmonicPath = (end: AudioNode): HarmonicPath => {
+    const melodic = ctx.createGain();
+    melodic.gain.value = 1;
+    // **The harmonic sum's seam gain** (round MIX-X2). `melodic.gain` is the
+    // theme's own — its arrangement writes a line on it (`melodicGain`) — and a
+    // hand-over that fades the harmony out before the swap and in after it
+    // needs a parameter nothing else writes, because two writers on one
+    // AudioParam is the fault `ramp.ts` exists to prevent. So the sum passes
+    // through one more gain at unity, which only a seam ever moves
+    // (`harmonic.gain` by path): a multiply by one is the signal to the sample,
+    // and a theme whose seam never names it plays through the graph it always
+    // did. The sends' returns join after it at the duck, so what it fades is the
+    // pads and the keys themselves and not their rooms.
+    const harmonic = ctx.createGain();
+    harmonic.gain.value = 1;
+    melodic.connect(harmonic);
+    // **The harmonic bus's edge in parallel** (round SPARK-1,
+    // `effects/harmonic-edge.ts`): the bass drive's topology on the bus that has
+    // notes, its copy kept over a floor near two kilohertz, so what it adds is
+    // the chords' own harmonics and nothing at their register. After the seam
+    // gain and before the bell and the duck, so it takes the pads, the keys and
+    // the leads and never a return. Built only where a theme's settings carry
+    // it with a blend above nought; otherwise the bus is wired as it always was
+    // — but for the desk (DESK-EDGE, D1b's pattern for the strings' breath):
+    // while it is up, a graph on a playing context builds the edge at nought,
+    // from the room's numbers or the place table's where the room has none
+    // (`HARMONIC_EDGE_AT_NOUGHT`), so a hand bringing it in is heard on the
+    // chord that is sounding. A blend of nought into the sum is the bus to the
+    // sample; away from the desk, and in a render, nothing is built for it.
+    const edgeSpec = P.harmonicEdge;
+    const edgeAt = edgeSpec && edgeSpec.blend > 0 ? edgeSpec
+      : armedHere ? { ...(edgeSpec ?? HARMONIC_EDGE_AT_NOUGHT), blend: 0 } : null;
+    let harmonicOut: AudioNode = harmonic;
+    let edge: HarmonicEdgeStage | null = null;
+    if (edgeAt) {
+      edge = buildHarmonicEdge(ctx, edgeAt);
+      harmonic.connect(edge.input);
+      harmonicOut = edge.output;
+    }
+    // **The presence bell on the harmonic bus** (round EQ-2, `harmonicBell`):
+    // the notes' own 1.1 kHz lifted on the bus that has notes, where the
+    // master's mid bell lifts a band the house's grooves leave nearly empty.
+    // Before the duck, not after it: the duck is where the sends' returns join,
+    // so here the bell shapes the pads, the keys and the leads and leaves their
+    // reverb and echo as they were — a brighter chord, not a brighter wash.
+    // Built only where a theme's settings carry one with a gain, so a theme
+    // that asks for none plays through the graph it always did.
+    const bellSpec = P.harmonicBell;
+    let bell: BiquadFilterNode | null = null;
+    if (bellSpec && bellSpec.db) {
+      bell = ctx.createBiquadFilter();
+      bell.type = 'peaking';
+      bell.frequency.value = bellSpec.hz;
+      bell.Q.value = bellSpec.q;
+      bell.gain.value = bellSpec.db;
+      harmonicOut.connect(bell);
+      bell.connect(end);
+    } else {
+      harmonicOut.connect(end);
+    }
+    // The harmonic path's end and what it feeds, as either is rebuilt: the
+    // close below puts a filter after `harmonic` (after the bell, where there
+    // is one), the sweep puts its stages before the duck, and whichever is
+    // built second has to splice into what the first left.
+    return { melodic, harmonic, bell, edge, tail: bell ?? harmonicOut, into: end, end, lp: null, sweep: null };
+  };
+  const held = harmonicPath(duck);
+  const melodic = held.melodic;
+  const harmonic = held.harmonic;
+  const harmonicBell = held.bell;
 
   const drums = ctx.createGain();
   drums.gain.value = 1;
-  drums.connect(macro);
+  // **The drums' clip** (round DNB-4, `master.drumClip`): where a room asks
+  // for one, the drums' bus and the kick's each pass through a soft clipper
+  // before anything sums them — the drive up, the curve, the drive back down,
+  // so everything under the knee is a wire and only a hit's first peak is
+  // rounded. A clip has no memory: it takes a transient's top off where it
+  // stands and moves nothing after it, which a limiter downstream, pulling the
+  // whole mix down for a beat after every snare, cannot say of itself. Absent
+  // (every room until this round) nothing is built and the bus is the bus.
+  const clipOf = (into: AudioNode, mono: boolean, own?: { driveDb: number; knee?: number; curve?: number }): AudioNode => {
+    const C = own ?? P.master.drumClip;
+    return C && C.driveDb > 0 ? clipNodes(C, into, mono) : into;
+  };
+  drums.connect(clipOf(macro, false));
 
   // The kick and the bass share one bus and one compressor, so they read as
   // one instrument rather than two things that happen at the same time.
@@ -643,9 +1014,9 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   lowHp.connect(glue);
 
   // The push: a hot saturation of the low end in parallel with the clean one,
-  // blended in by the arrangement for a few bars at a time. Parallel, so the
-  // fundamental is never touched — the drive adds harmonics on top of a bass
-  // that stays clean underneath.
+  // blended in by the arrangement for a few bars at a time. The clean path
+  // remains, but the saturated copy adds fundamental as well as harmonics;
+  // its amount changes the shared kick/bass weight, not just its brightness.
   const pushSat = ctx.createWaveShaper();
   pushSat.curve = saturationCurve(P.push.satDrive);
   pushSat.oversample = P.master.oversample;
@@ -657,11 +1028,13 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
 
   const lowSum = ctx.createGain();
   lowSum.gain.value = 1;
-  lowSum.connect(lowHp);
+  // The low sum's own clip, where the room asks for the kick and the bass to be
+  // rounded together (`drumClip.low`); else the kick's alone, below.
+  lowSum.connect(P.master.drumClip?.low ? clipOf(lowHp, true, P.master.drumClip.low) : lowHp);
 
   const kickBus = ctx.createGain();
   kickBus.gain.value = 1;
-  kickBus.connect(lowSum);
+  kickBus.connect(P.master.drumClip?.low ? lowSum : clipOf(lowSum, true));
 
   // "Kick and bass mono" is the first rule in the file, and it was an
   // assumption about the voices rather than a property of the bus. It is now
@@ -722,7 +1095,25 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   subBus.gain.value = 1;
   subBus.channelCount = 1;
   subBus.channelCountMode = 'explicit';
-  subBus.connect(subPush);
+  // **The bass drive in parallel** (round B1, `effects/bass-drive.ts`): a
+  // driven copy of the bass summed under the clean one, between the bus and
+  // the body filter, so the body, the compressor and the duck read the pair
+  // as the one bass they are. Built only where the theme's own settings carry
+  // it with a blend above nought (`bass.parallel`, the composer's place table
+  // writes it): a theme at the house wires the bus to the push as it always
+  // did, node for node, and no bypassed shell stands in the sub's way.
+  const parallel = P.bass.parallel;
+  let bassDriveFx: EffectInstance | null = null;
+  if (parallel && parallel.blend > 0) {
+    // The beat it is played on, for the wobble's period, and the instant the
+    // theme begins (`opts.at`: the deck's first bar line; nought offline,
+    // where a render starts on one), for the wobble's phase.
+    bassDriveFx = bassDrive(ctx, settings, { ...parallel, beat: beatSeconds }, opts.at ?? 0);
+    subBus.connect(bassDriveFx.input);
+    bassDriveFx.output.connect(subPush);
+  } else {
+    subBus.connect(subPush);
+  }
 
   // --- delay send: dotted eighth, one line (not a ping-pong: below) ---
   const beat = 60 / bpm;
@@ -764,7 +1155,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   rvbTop.type = 'lowpass';
   rvbTop.frequency.value = P.sends.reverbToneHz;
   const conv = ctx.createConvolver();
-  conv.buffer = impulseResponse(ctx, P.sends.reverbSeconds, 3.1, 'hall', P.sends.reverbCorr);
+  conv.buffer = impulseResponse(ctx, P.sends.reverbSeconds, 3.1, 'hall', P.sends.reverbCorr); // as `warmRoom` asks
   const reverbOut = ctx.createGain();
   reverbOut.gain.value = P.sends.reverbLevel;
 
@@ -776,34 +1167,40 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   reverbOut.connect(duck);
 
   // --- a slow chorus, shared by the keys, so stabs are wide without each
-  // note carrying its own delay line ---
-  const keysIn = ctx.createGain();
-  keysIn.gain.value = 1;
-  const chorusDry = ctx.createGain();
-  chorusDry.gain.value = 0.7;
-  keysIn.connect(chorusDry);
-  chorusDry.connect(melodic);
-  [[0.012, 0.18, -0.6], [0.0175, 0.23, 0.6]].forEach(([base, rate, pan]) => {
-    const dl = ctx.createDelay(0.1);
-    dl.delayTime.value = base;
-    const lfo = ctx.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.value = rate;
-    const depth = ctx.createGain();
-    depth.gain.value = 0.0035;
-    lfo.connect(depth);
-    depth.connect(dl.delayTime);
-    lfo.start(0);
-    keepAlive.push(lfo, depth);
-    const pn = ctx.createStereoPanner();
-    pn.pan.value = pan;
-    const wet = ctx.createGain();
-    wet.gain.value = 0.42;
-    keysIn.connect(dl);
-    dl.connect(pn);
-    pn.connect(wet);
-    wet.connect(melodic);
-  });
+  // note carrying its own delay line --- one for each harmonic path's keys
+  // (round PIANO-2), on the same two lines started at the same instant, so a
+  // struck stab is as wide as a held one and as wide as it was.
+  const chorusInto = (into: AudioNode): GainNode => {
+    const keysIn = ctx.createGain();
+    keysIn.gain.value = 1;
+    const chorusDry = ctx.createGain();
+    chorusDry.gain.value = 0.7;
+    keysIn.connect(chorusDry);
+    chorusDry.connect(into);
+    [[0.012, 0.18, -0.6], [0.0175, 0.23, 0.6]].forEach(([base, rate, pan]) => {
+      const dl = ctx.createDelay(0.1);
+      dl.delayTime.value = base;
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = rate;
+      const depth = ctx.createGain();
+      depth.gain.value = 0.0035;
+      lfo.connect(depth);
+      depth.connect(dl.delayTime);
+      lfo.start(opts.at ?? 0);
+      keepAlive.push(lfo, depth);
+      const pn = ctx.createStereoPanner();
+      pn.pan.value = pan;
+      const wet = ctx.createGain();
+      wet.gain.value = 0.42;
+      keysIn.connect(dl);
+      dl.connect(pn);
+      pn.connect(wet);
+      wet.connect(into);
+    });
+    return keysIn;
+  };
+  const keysIn = chorusInto(melodic);
 
   // --- the clap room: short, bright, and behind a real pre-delay ---
   const roomIn = ctx.createGain();
@@ -814,7 +1211,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   roomHp.type = 'highpass';
   roomHp.frequency.value = P.sends.roomLowHz;
   const roomConv = ctx.createConvolver();
-  roomConv.buffer = impulseResponse(ctx, P.sends.roomSeconds, 5.5, 'room', P.sends.roomCorr);
+  roomConv.buffer = impulseResponse(ctx, P.sends.roomSeconds, 5.5, 'room', P.sends.roomCorr); // as `warmRoom` asks
   const roomLp = ctx.createBiquadFilter();
   roomLp.type = 'lowpass';
   roomLp.frequency.value = P.sends.roomHighHz;
@@ -834,10 +1231,21 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // a program that sends to it (`prepareReturns`, src/scheduler.ts), so the
   // impulse is not computed on the tick a note is scheduled; `route()` checks
   // the send amount before it touches this getter.
-  let hallIn: GainNode | null = null;
-  const hall = (): GainNode => {
-    if (hallIn) return hallIn;
-    hallIn = ctx.createGain();
+  //
+  // **One for each harmonic path** (round PIANO-2): the hall is the pianos'
+  // room, and a piano's tail is mostly its hall — on the pads' duck the ring
+  // of a struck note dipped eleven decibels at every kick between strikes,
+  // which is the hole in the sustain the struck duck exists to close. So a
+  // struck note's hall returns into `struckDuck` and a held note's into
+  // `duck`; each is built the first time a note of its kind sends to it (the
+  // impulse is one computation, cached), and a theme whose hall is the
+  // piano's alone builds one, as it always did.
+  const halls: { held: GainNode | null; struck: GainNode | null } = { held: null, struck: null };
+  const hall = (which: 'held' | 'struck'): GainNode => {
+    const had = halls[which];
+    if (had) return had;
+    const hallIn = ctx.createGain();
+    halls[which] = hallIn;
     hallIn.gain.value = 1;
     const pre = ctx.createDelay(0.5);
     pre.delayTime.value = P.sends.hallPreDelay;
@@ -856,7 +1264,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     hp.connect(conv);
     conv.connect(lp);
     lp.connect(level);
-    level.connect(duck);
+    level.connect(which === 'struck' ? struckDuck : duck);
     return hallIn;
   };
 
@@ -880,9 +1288,8 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // the sub or the drums, which are the floor and the grid and which the macro
   // filter already leaves the kick and the sub out of. The sends' returns join
   // after it, so a filtered chord keeps its room. Built on the first read.
-  let sweepStages: BusSweep | null = null;
-  const sweepOf = (): BusSweep => {
-    if (sweepStages) return sweepStages;
+  const sweepIn = (path: HarmonicPath): BusSweep => {
+    if (path.sweep) return path.sweep;
     const stage = (type: BiquadFilterType, openHz: number, into: AudioNode): { input: GainNode; stage: SweepStage } => {
       const input = ctx.createGain();
       const dry = ctx.createGain();
@@ -900,27 +1307,173 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
       wet.connect(into);
       return { input, stage: { cutoffHz: filter.frequency, dry, wet, filter } };
     };
-    const lp = stage('lowpass', SWEEP_FILTER.lpOpenHz, duck);
+    const lp = stage('lowpass', SWEEP_FILTER.lpOpenHz, path.end);
     const hp = stage('highpass', SWEEP_FILTER.hpOpenHz, lp.input);
-    melodic.disconnect(duck);
-    melodic.connect(hp.input);
-    sweepStages = { hp: hp.stage, lp: lp.stage };
-    return sweepStages;
+    path.tail.disconnect(path.into);
+    path.tail.connect(hp.input);
+    path.into = hp.input;
+    path.sweep = { hp: hp.stage, lp: lp.stage };
+    return path.sweep;
+  };
+  const sweepOf = (): BusSweep => {
+    if (held.sweep) return held.sweep;
+    const made = sweepIn(held);
+    if (struck) twinSweep(made, sweepIn(struck.path));
+    return made;
   };
 
-  const bus = (dry: GainNode): Bus => ({
+  // **The outgoing harmony's close** (round MIX-X4; Eugene, 10-02, on the
+  // harmonic cross: a fade alone reads plain). One low-pass after the seam
+  // gain, which a hand-over between unrelated keys closes on the deck that is
+  // leaving as that gain fades (`seamCurves`, `harmonicLp.frequency`), so the
+  // outgoing pads lose their top before they lose their level and the arriving
+  // chords come in over a dull bed and not a bright one. Butterworth
+  // (`Q = -3.01` dB, the units note above): flat when open, no peak at the
+  // corner as it closes. Built on the first read, like the sweep; the sends'
+  // returns join after it, so a closing chord keeps its room.
+  const closeIn = (path: HarmonicPath): BiquadFilterNode => {
+    if (path.lp) return path.lp;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 20000;
+    f.Q.value = -3.01;
+    path.tail.disconnect(path.into);
+    path.tail.connect(f);
+    f.connect(path.into);
+    path.tail = f;
+    path.lp = f;
+    return f;
+  };
+  const harmonicLpOf = (): BiquadFilterNode => {
+    if (held.lp) return held.lp;
+    const made = closeIn(held);
+    if (struck) twin('harmonicLp.frequency', made.frequency, closeIn(struck.path).frequency);
+    return made;
+  };
+
+  // **The struck path** (round PIANO-2): the second harmonic path, ending on
+  // `struckDuck`, with a door for each harmonic bus — the melodic bus's own
+  // gain, and the keys' chorus in front of it. Built the first time a struck
+  // note's door is asked for, which a deck does when it is made, for a program
+  // that has one (`prepareReturns`), and so before any automation line is laid
+  // on the held path: from then on every line written on a path the two share
+  // is written on both (`twin`), so the struck path is the held one, parameter
+  // for parameter, with a different duck at its end. A theme with no struck
+  // note never builds it.
+  //
+  // `twins` is what `param()` answers with for a path the two share: one
+  // target per path, the same object on every ask, because a line (`ramp.ts`)
+  // and the duck's writer keep their history by target.
+  const twins = new Map<string, AutomationTarget>();
+  const twin = (path: string, a: AudioParam, b: AudioParam): void => {
+    // Whatever was written on the held one before the struck path existed is
+    // not replayed; it starts where the held one stands.
+    b.value = a.value;
+    const both: Record<string, unknown> = {
+      get value() { return a.value; },
+      set value(v: number) { a.value = v; b.value = v; },
+      get defaultValue() { return a.defaultValue; },
+      get minValue() { return a.minValue; },
+      get maxValue() { return a.maxValue; },
+      setValueAtTime(v: number, t: number) { b.setValueAtTime(v, t); return a.setValueAtTime(v, t); },
+      linearRampToValueAtTime(v: number, t: number) { b.linearRampToValueAtTime(v, t); return a.linearRampToValueAtTime(v, t); },
+      exponentialRampToValueAtTime(v: number, t: number) { b.exponentialRampToValueAtTime(v, t); return a.exponentialRampToValueAtTime(v, t); },
+      setTargetAtTime(v: number, t: number, c: number) { b.setTargetAtTime(v, t, c); return a.setTargetAtTime(v, t, c); },
+      setValueCurveAtTime(v: Float32Array | number[], t: number, d: number) { b.setValueCurveAtTime(v, t, d); return a.setValueCurveAtTime(v, t, d); },
+      cancelScheduledValues(t: number) { b.cancelScheduledValues(t); return a.cancelScheduledValues(t); },
+    };
+    // Firefox has no `cancelAndHoldAtTime`, and a writer asks whether it is
+    // there before it uses it: the pair has it where the parameter does.
+    const hold = (a as AudioParam & { cancelAndHoldAtTime?: (t: number) => AudioParam }).cancelAndHoldAtTime;
+    if (typeof hold === 'function') {
+      both.cancelAndHoldAtTime = (t: number) => {
+        (b as AudioParam & { cancelAndHoldAtTime: (t: number) => AudioParam }).cancelAndHoldAtTime(t);
+        return hold.call(a, t);
+      };
+    }
+    twins.set(path, both as unknown as AutomationTarget);
+  };
+  const twinSweep = (a: BusSweep, b: BusSweep): void => {
+    for (const s of ['hp', 'lp'] as const) {
+      twin(`sweep.${s}.cutoffHz`, a[s].cutoffHz, b[s].cutoffHz);
+      twin(`sweep.${s}.wet.gain`, a[s].wet.gain, b[s].wet.gain);
+      twin(`sweep.${s}.dry.gain`, a[s].dry.gain, b[s].dry.gain);
+    }
+  };
+  let struck: { path: HarmonicPath; buses: Buses } | null = null;
+  const struckOf = (): { path: HarmonicPath; buses: Buses } => {
+    if (struck) return struck;
+    const path = harmonicPath(struckDuck);
+    const keys = chorusInto(path.melodic);
+    struck = { path, buses: { melodic: bus(path.melodic, 'struck'), keys: bus(keys, 'struck') } };
+    twin('melodic.gain', melodic.gain, path.melodic.gain);
+    twin('harmonic.gain', harmonic.gain, path.harmonic.gain);
+    if (harmonicBell && path.bell) twin('harmonicBell.gain', harmonicBell.gain, path.bell.gain);
+    // The edge has no automation line; a desk move made on the held one
+    // before the struck path existed (DESK-EDGE) is where the struck one starts.
+    if (held.edge && path.edge) {
+      for (const k of ['blend', 'preHz', 'floorHz', 'toneHz'] as const)
+        path.edge.params[k].forEach((q, i) => { const v = held.edge!.params[k][i]!.value; if (q.value !== v) q.value = v; });
+      if (path.edge.driveNow() !== held.edge.driveNow()) path.edge.drive(held.edge.driveNow(), ctx.currentTime, 0);
+    }
+    // A close or a sweep already built on the held path (a program whose door
+    // was asked late) is built here too, from where it stands.
+    if (held.lp) twin('harmonicLp.frequency', held.lp.frequency, closeIn(path).frequency);
+    if (held.sweep) twinSweep(held.sweep, sweepIn(path));
+    return struck;
+  };
+
+  // **The echo** (round KV1): the kitchen's tape delay (`effects/tape-delay.ts`)
+  // as a send a note asks for by amount — `p.echo` — so a part can have its own
+  // repeats, long and dark, where the dotted-eighth line above is the whole
+  // record's and stays short. Built the first time a note asks, like the hall,
+  // so a program that never sends here never pays for it; timed to this
+  // graph's beat; returned into the duck with the delay line, so its repeats
+  // breathe with the kick too.
+  let echo: EffectInstance | null = null;
+  const echoInput = (): GainNode => {
+    if (echo) return echo.input as GainNode;
+    const { level, ...params } = ECHO_SEND;
+    echo = tapeDelay(ctx, settings, { ...params, beat: beatSeconds }, opts.at ?? 0);
+    const back = ctx.createGain();
+    back.gain.value = level;
+    echo.output.connect(back);
+    back.connect(duck);
+    return echo.input as GainNode;
+  };
+
+  // **A part's own space** (liquid-space round 1, `settings.partSpace`): a space
+  // row the theme's composer chose for one part — the sparse keys' tone inserts
+  // and their hall — built once for the graph, the first time a note asks
+  // (`withPartSpace`), and never where the settings name none. A struck part's
+  // room, so it returns into the struck voices' shallow duck, as the piano's own
+  // struck hall does; its tail rings out on `disposeBackground`.
+  let partSpace: SpaceInstance | null = null;
+  const partSpaceInput = (): GainNode | undefined => {
+    if (!P.partSpace) return undefined;
+    if (!partSpace) {
+      partSpace = buildSpace(ctx, settings, asSpace(P.partSpace), { beat: beatSeconds, at: opts.at ?? 0 });
+      partSpace.output.connect(struckDuck);
+    }
+    return partSpace.input as GainNode;
+  };
+
+  const bus = (dry: GainNode, which: 'held' | 'struck' = 'held', ride?: AudioNode): Bus => ({
     dry,
+    ...(ride ? { ride } : {}),
     delay: delayIn,
     reverb: reverbIn,
     room: roomIn,
     get hall() {
-      return hall();
+      return hall(which);
     },
     get background() { return backgroundInput(); },
     get immersed() { return immersedInput(); },
+    get echo() { return echoInput(); },
+    get partSpace() { return partSpaceInput(); },
   });
 
-  return {
+  const made: ThemeGraph = {
     ctx,
     out,
     themeOut,
@@ -929,13 +1482,51 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     macro,
     duck,
     duckLow,
+    struckDuck,
+    struckBus: (name: string) => (name === 'melodic' || name === 'keys' ? struckOf().buses[name] : null),
+    hasStruck: () => struck !== null,
+    // A path the two harmonic paths share answers with the pair; any other
+    // walks the graph, as `paramOf` always has.
+    param: (path: string) => {
+      // The close and the sweep are built on the first read of a path into
+      // them, and the pair with them: build first, so the first line written
+      // is written on both.
+      const head = path.split('.')[0];
+      if (head === 'sweep') sweepOf();
+      else if (head === 'harmonicLp') harmonicLpOf();
+      return twins.get(path) ?? walkTo(made, path);
+    },
     melodic,
+    harmonic,
     air: chain.air,
     presence: chain.presence,
     glue,
     bassComp,
     push: { wet: pushWet, body: bassBody, sub: subPush },
+    bassDrive: bassDriveFx,
+    harmonicBell,
+    harmonicEdge: held.edge,
+    stageParams: (target: string): AudioParam[] => {
+      if (target === 'widthDepth.gain') return [widthDepth.gain];
+      if (target === 'widthLfo.frequency') return [widthLfo.frequency];
+      if (target.startsWith('harmonicBell.')) {
+        const k = target.slice('harmonicBell.'.length) as 'frequency' | 'Q' | 'gain';
+        return [held.bell, struck ? struck.path.bell : null].filter((b): b is BiquadFilterNode => !!b).map((b) => b[k]);
+      }
+      // the bus edge's blend and corners, on both paths where the struck one is built (DESK-EDGE)
+      if (target.startsWith('harmonicEdge.')) {
+        const k = target.slice('harmonicEdge.'.length) as keyof HarmonicEdgeStage['params'];
+        return [held.edge, struck ? struck.path.edge : null].flatMap((e) => (e && e.params[k] ? e.params[k] : []));
+      }
+      const p = walkTo(made, target) as unknown;
+      return p && typeof (p as AudioParam).setValueAtTime === 'function' ? [p as AudioParam] : [];
+    },
+    stageSetters: (target: string) => {
+      if (target !== 'harmonicEdge.drive') return [];
+      return [held.edge, struck ? struck.path.edge : null].filter((e): e is HarmonicEdgeStage => !!e).map((e) => e.drive);
+    },
     get sweep() { return sweepOf(); },
+    get harmonicLp() { return harmonicLpOf(); },
     // The dotted-eighth line's time, by path: a tempo glide moves the grid
     // under a deck that is already playing, and its echoes move with it.
     echo: { time: dL.delayTime },
@@ -950,7 +1541,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     duckShape: duckShape(settings, beatSeconds),
     buses: {
       kick: bus(kickBus),
-      sub: bus(subBus),
+      sub: bus(subBus, 'held', bassDriveFx?.side),
       drums: bus(drums),
       melodic: bus(melodic),
       keys: bus(keysIn),
@@ -961,11 +1552,16 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     level: (name: string) => dbToGain((P.levels as Record<string, number>)[name] ?? -12),
     // Looking is not asking: this reads the same variable the getter assigns
     // and never calls `hall()`.
-    hasHall: () => hallIn !== null,
+    hasHall: (which?: 'held' | 'struck') => (which ? halls[which] !== null : halls.held !== null || halls.struck !== null),
+    hasHarmonicLp: () => held.lp !== null,
     hasBackground: () => background !== null,
     hasImmersed: () => immersed !== null,
-    disposeBackground: () => { background?.dispose(); immersed?.dispose(); },
+    hasEcho: () => echo !== null,
+    hasPartSpace: () => partSpace !== null,
+    get partSpace() { partSpaceInput(); return partSpace; },
+    disposeBackground: () => { background?.dispose(); immersed?.dispose(); echo?.dispose(); bassDriveFx?.dispose(); partSpace?.dispose(); },
   };
+  return made;
 }
 
 // One AudioParam of a graph by the name the program calls it: a path and never
@@ -985,6 +1581,11 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
 export function paramOf(graph: unknown, path: string): AutomationTarget | null {
   const answering = graph as { param?: (path: string) => AutomationTarget | null } | null;
   if (answering && typeof answering.param === 'function') return answering.param(path);
+  return walkTo(graph, path);
+}
+
+/** The walk itself, for a graph that answers for some paths and not others. */
+function walkTo(graph: unknown, path: string): AutomationTarget | null {
   let node: unknown = graph;
   for (const k of path.split('.')) {
     if (!node) return null;
@@ -1038,11 +1639,33 @@ const STILL = { currentTime: 0 };
  * once per theme, whatever sends to it. MEASURED by `tools/budget.ts` and
  * written by its `--bless`, never typed.
  */
-export const RETURN_COST: Record<'hall' | 'background' | 'immersed', 'cheap' | 'mid' | 'dear'> = {
+export const RETURN_COST: Record<'hall' | 'background' | 'immersed' | 'echo', 'cheap' | 'mid' | 'dear'> = {
   hall: 'mid',
   background: 'dear',
   immersed: 'dear',
+  echo: 'dear',
 };
+
+/**
+ * **The echo send's tape delay** (round KV1): a dotted eighth, fed back hard
+ * and darkened on every pass — a lowpass in the loop at 1.8 kHz and a
+ * highpass at 280 Hz, so a chord's repeats thin and dull as they go and the
+ * bottom never queues up — with the head wandering a little more than the
+ * kitchen's default, and returned at `level`. Constants and not a settings
+ * block: the settings are hashed into the program lock, and a return nothing
+ * sends to must not move it. The tape delay's own tail (`tailFor`) is what
+ * the instance's `dispose` waits for.
+ */
+export const ECHO_SEND = Object.freeze({
+  timeBeats: 0.75,
+  feedback: 0.58,
+  lowpassHz: 1800,
+  highpassHz: 280,
+  wow: 0.35,
+  pingPong: 0,
+  mix: 1,
+  level: 0.7,
+});
 
 // One automation line of a program, written onto the parameter it names. The
 // values are resolved already — the push's three destinations were three

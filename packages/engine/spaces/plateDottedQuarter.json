@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "plateDottedQuarter",
+  "revision": 1,
+  "name": "Plate and a dotted-quarter echo",
+  "says": "A 2.8 s plate and one long dark echo on the dotted quarter, every repeat lower and softer, half of it falling into the plate.",
+  "dry": 1,
+  "trimDb": 1.3,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "echo",
+      "level": 0.18,
+      "effect": "tapeDelay",
+      "params": {
+        "timeBeats": 1.5,
+        "feedback": 0.35,
+        "lowpassHz": 1800,
+        "highpassHz": 320,
+        "wow": 0.3,
+        "pingPong": 0,
+        "mix": 1
+      },
+      "into": {
+        "plate": 0.4
+      }
+    },
+    {
+      "id": "plate",
+      "level": 0.5,
+      "effect": "reverb",
+      "params": {
+        "mode": 2,
+        "decaySeconds": 2.8,
+        "predelayMs": 18,
+        "lowCutHz": 300,
+        "dampHz": 5000,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet."
+  }
+}

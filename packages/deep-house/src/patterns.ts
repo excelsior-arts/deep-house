@@ -117,9 +117,17 @@ export function maskSteps(mask: string): number[] {
 // Draw by count, but flattened: the corpus is very top-heavy (one stab mask is
 // 434 of 2966 bars) and a generator that always picks the mode is a generator
 // with one idea. The exponent keeps the ranking and widens the tail.
-function draw<T extends { c: number }>(rng: Rng, list: T[], power = 0.6): T {
-  return rng.weighted(list.map((t) => ({ v: t, w: Math.pow(t.c, power) })));
+function draw<T extends { c: number }>(rng: Rng, list: T[], power = 0.6, lean?: (t: T) => number): T {
+  return rng.weighted(list.map((t) => ({ v: t, w: Math.pow(t.c, power) * (lean ? lean(t) : 1) })));
 }
+
+/** A mask's hits a bar: its onsets, over its length in sixteenths. */
+export const maskPerBar = (mask: string): number => (maskSteps(mask).length * 16) / mask.length;
+/**
+ * A row's lean on a mask draw (round GA2), by the mask's hits a bar; absent is
+ * no lean, and the draw is the one it always was: one number off the stream.
+ */
+export type MaskLean = (perBar: number) => number;
 
 // ---------------------------------------------------------------- drums ---
 
@@ -208,9 +216,9 @@ export function breakHits(rng: Rng, mask: string, { ghost, wobble }: { ghost: nu
 // A hat figure is one of the mined masks, drawn once per track. The mask
 // carries a level per step, so the velocity shape is the corpus's, not mine.
 // The offbeat eighths are hats; anything between them is the shaker layer.
-export function pickHatMask(rng: Rng, corpus: FigureCorpus): MaskRow {
+export function pickHatMask(rng: Rng, corpus: FigureCorpus, lean?: MaskLean): MaskRow {
   const usable = corpus.hats.filter((h) => h.m.includes('x'));
-  return draw(rng, usable);
+  return draw(rng, usable, 0.6, lean && ((h) => lean(maskPerBar(h.m))));
 }
 
 // A hit carries the **slot** it belongs to and not the instrument playing it
@@ -483,9 +491,9 @@ export function bassNote(chord: Chord, change: BassChange, settings: Settings): 
 // commonest stab figure by a distance; the rest of the table is where the
 // variety lives.
 
-export function pickStabMask(rng: Rng, corpus: FigureCorpus): MaskRow {
+export function pickStabMask(rng: Rng, corpus: FigureCorpus, lean?: MaskLean): MaskRow {
   const usable = corpus.stabs.filter((t) => t.m.includes('x'));
-  return draw(rng, usable);
+  return draw(rng, usable, 0.6, lean && ((t) => lean(maskPerBar(t.m))));
 }
 
 export function stabsFromMask(rng: Rng, template: MaskRow): Stab[] {

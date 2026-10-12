@@ -14,6 +14,9 @@ export const development: DevelopmentPolicy = {
     layers: () => ({ kick: false, hatClosed: true, hatOpen: false, sixteenths: false,
       clap: false, bass: false, keys: false, pad: true, fx: false }),
     filter: [6500, 11000],
+    // A bridge's last bar may fill, as every drummed section's but an intro's
+    // and an outro's could before the kinds were rows (round T2).
+    admits: { fill: ['last'] },
   },
   bridgeBars: 4,
   withdrawGates: ['hatOpen', 'sixteenths', 'clap'],

@@ -47,8 +47,8 @@ export type VoiceBus = typeof BUSES[number];
  */
 export type VoiceCost = 'cheap' | 'mid' | 'dear';
 
-/** The three sends whose return is built only when something uses it. */
-export const LAZY_RETURNS = ['hall', 'background', 'immersed'] as const;
+/** The four sends whose return is built only when something uses it. */
+export const LAZY_RETURNS = ['hall', 'background', 'immersed', 'echo'] as const;
 export type LazyReturn = typeof LAZY_RETURNS[number];
 
 /**
@@ -441,6 +441,12 @@ export interface Descriptor {
    * words have a home that is not a switch statement.
    */
   mood: string[];
+  /**
+   * The row this descriptor was built from, where the sound is a row over a
+   * topology (`sound.ts`, round R1) and not a module: the program lock hashes
+   * it, and a gate that measures the sound writes into it.
+   */
+  row?: import('./sound.ts').SoundRow;
 }
 
 /**

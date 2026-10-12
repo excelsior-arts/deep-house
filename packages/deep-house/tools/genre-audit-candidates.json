@@ -1,0 +1,45 @@
+{
+ "note": "DNB-1: the mined candidates' audit points (tools/genre-recipes.ts --audit), under the Drum & Bass key; since R1 part 4 the nine not yet admitted",
+ "keys": {
+  "dnb": {
+   "spell": "em:0.95,sp:0.85,ze:0.60,ro:0.75,ve:0.60,ti:0.45"
+  }
+ },
+ "rows": {
+  "dnb/bright-sixteenths": {
+   "seed": "111",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/stepping-riff": {
+   "seed": "113",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/broken-half-time": {
+   "seed": "115",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/hatless-riff": {
+   "seed": "119",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/semitone-lean": {
+   "seed": "122",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/octave-fall": {
+   "seed": "123",
+   "theme": 1,
+   "key": "dnb"
+  },
+  "dnb/walk-down": {
+   "seed": "124",
+   "theme": 1,
+   "key": "dnb"
+  }
+ }
+}

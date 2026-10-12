@@ -48,7 +48,9 @@ export const COARSE_FRAME_MS = 1000 / 6;
 function stateOf(control: Control, r: Readout): string {
   const s = control.state;
   return [
-    r.playing, r.seed, r.strategy, r.mix.themeNumber, r.bar, r.section, r.chord,
+    // the whole second too (M21): COPY AT's clock (M16) is a reading, and a seek
+    // inside one bar with the set stopped is a change the view must draw
+    r.playing, r.seed, r.strategy, r.mix.themeNumber, r.bar, Math.floor(r.seconds), r.section, r.chord,
     r.mix.cutting, r.mix.cutKind, r.recipe, spellQuery(r.spell as never) || 'house',
     s.castTo, s.strategyTo, s.render ? s.render.note : '', JSON.stringify(control.sourceMix),
   ].join('|');
@@ -230,7 +232,9 @@ export function makeStore(control: Control): MachineStore {
       unsubscribe = control.subscribe((r) => {
         delivered = r;
         if (!reduced) return;
-        const now = stateOf(control, r);
+        // the desk's leans and moves with it: a band dragged under reduced
+        // motion is a state that changed, and asks for its frame (10-08)
+        const now = `${stateOf(control, r)}|${JSON.stringify(deskFor(control).state())}`;
         if (now === lastState) return;
         lastState = now;
         request();

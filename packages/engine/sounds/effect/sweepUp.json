@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sweepUp",
+  "revision": 1,
+  "topology": "noise-sweep",
+  "block": "sweepUp",
+  "parameters": {
+    "release": 0.12,
+    "fromHz": 700,
+    "toHz": 11000,
+    "hpHz": 300,
+    "hpToHz": 2600,
+    "lpHz": 12000,
+    "q": 1.4,
+    "trim": 0.453
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "sweepUp": {
+        "family": "noise",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 6000,
+        "loudnessDb": -12.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "texture.ts",
+    "note": "The second riser, and it rises in **brightness** where `fx.ts`'s rises in pitch. The floor climbs behind the lid, which is what makes room for a drop."
+  }
+}

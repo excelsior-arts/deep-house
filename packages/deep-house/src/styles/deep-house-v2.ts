@@ -8,13 +8,19 @@
 // deep-house-characters.ts owns articulation and spatial treatment settings.
 // Recipes and ordinary rolls reach the same parts resolver and players.
 //
-// These extensions deliberately change ordinary v2 seeds. The v1 style and
-// its plan/program locks remain unchanged. See notes/HANDOFF.md, *Composition
-// contracts*, for preservation and calibration revision boundaries.
+// These extensions deliberately change ordinary v2 seeds. The v1 style keeps
+// its own composing rules and its own EQ (`EQ_V1`); since V1-1 (10-02) it is a
+// composing preset and not a byte lock, so the mix, the engine, the transport
+// and the loudness and lane-level machinery are one path for both, and the
+// record's locks move with that path, blessed with their counts. See
+// notes/HANDOFF.md, *Composition contracts*, and `notes/rounds/v1-1.md` for the
+// table of what is the record's and what tags along.
 
 import {
   base, rooms as roomsV1, sections, lanes as lanesV1, stage as stageV1, set as setV1, figures, loudness, style as houseV1,
+  EQ_V1,
 } from './deep-house.ts';
+import { EQ_BANDS, type EqProfile } from '@deep-house/engine/master';
 import { development } from './deep-house-development.ts';
 import type { DevelopmentPolicy } from '../development.ts';
 import {
@@ -32,6 +38,8 @@ import { resolveSettings } from '@deep-house/engine/settings';
 import type { Lane, Room, Style } from '@deep-house/engine/style';
 import { MOTIF_RECIPES } from '../recipe.ts';
 import type { LayerTable } from '../spell.ts';
+import { places, EQ_V2 } from './deep-house-places.ts';
+import { placesFaults, type StylePlaces } from '../places.ts';
 import { controls, composition } from './deep-house-parts.ts';
 import type { BirdResponse } from '../composition-policy.ts';
 import { characters, keyboardPatches } from './deep-house-characters.ts';
@@ -57,6 +65,10 @@ export type StrategyStyle = Style & {
   ringMs: Readonly<Record<string, number>>;
   /** round S14: each offbeat hat's measured centroid, read by `glueGates` */
   hatCentroid: Readonly<Record<string, number>>;
+  /** round GA6: what the music does away from the house, by place (`src/places.ts`) */
+  places: StylePlaces;
+  /** round EQ-3: a room that writes no sixteenths takes the lane at these densities, this far under its offbeat hat (`src/generator.ts`) */
+  sixteenthsLean?: Readonly<{ densities: readonly string[]; underHatDb: number }>;
 };
 
 // --- the switches ------------------------------------------------------------
@@ -363,17 +375,10 @@ export const switches = Object.freeze({
    * house-v1 carries no switches and the record never asks.
    */
   glueGates: true,
-  /**
-   * **A room's "off" is about its own voice** — round S18, the recipes'
-   * audit: the sub room's clap at -60 silenced a broken kit's snare, and the
-   * growl room's shaker at -60 the cabasa, the congas, the tom and the rest of
-   * the sixteenth lane, since they read the same level word. On, a voice that
-   * is not the one the room turned off reads the style's base level for the
-   * word (`src/lane-level.ts`); the room's own clap and shaker stay off.
-   *
-   * house-v1 carries no switches and the record never asks.
-   */
-  laneFloors: true,
+  // `laneFloors` (round S18: a room's "off" is about its own voice) was a
+  // switch here until V1-1 (10-02); it is the lane-level rule itself now,
+  // `src/lane-level.ts`, read by every style — the record draws only the
+  // voice a room's word names, so it plays as it did.
   /**
    * **Nothing in the middle of a theme is ever fully silent** — round S21,
    * Eugene on `?seed=41475&v=2&theme=3&t=88`: a breakdown's first phrase left
@@ -385,6 +390,65 @@ export const switches = Object.freeze({
    * house-v1 carries no switches and the record never asks.
    */
   neverSilent: true,
+  /**
+   * **The library reaches the draw** — round GA1, Eugene 09-26: *"we go all in
+   * on styles … diversity is the priority. We need to wire the new recipes."*
+   * On, one theme in three of a set is the library's turn (`libraryTurn`), and
+   * a turn draws one row of the shipped library that the spell admits and the
+   * theme can place, playing it exactly as its pin (`src/library-draw.ts`). With
+   * nothing lifted off weight 0 the pool is empty and no plan moves.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  libraryDraw: true,
+  /**
+   * **Away from the house, the harmony, the form, the effects and the bass
+   * sound follow the birds and the tempo** — round GA6, Eugene 09-27: *"we
+   * need everything else too now"*. On, the tables of
+   * `deep-house-places.ts` are read by place (`src/places.ts`): the entry
+   * nearest the playing birds and tempo plays, the house's own place
+   * competing, so the house is untouched.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  placeTables: true,
+  /**
+   * **No main beside a main alike** — round S25, Eugene 10-01 of 27191's third
+   * theme: *"the solo comes at the very end, after two main segments one after
+   * another"*. On, a main directly after a main of the same texture (L2's: the
+   * sustained layer held or away, the figure on or not) — a repeat with no
+   * relief — gets a breakdown between them at its floor (a build where a drop
+   * follows), its bars off the longer main, or the two merge where neither
+   * can give; two mains of different textures are a progression and stay
+   * (`mainsApart`, `src/arrangement.ts`). Where the open main lands is the
+   * draw's, as before. The house moves too, on purpose.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  mainsApart: true,
+  /**
+   * **The master's tone follows the theme** (round E1, Eugene 10-01: *"assume
+   * it may be adjusted on birds change"*). On, each theme's settings carry its
+   * own EQ profile -- its room's, moved by the nearest row of the places' EQ
+   * table (`deep-house-places.ts`) -- and the set walks the master to it over
+   * a bar at the theme's boundary, so a bird moved mid-play reaches the tone
+   * with the theme it plans. Off, the master is the set's room for the night.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  eqByTheme: true,
+  /**
+   * **The small things inside a section** — round DNB-1, Eugene 10-02: *"the
+   * track has to be alive … sub-segments inside the mains, timed."* On, a
+   * theme with drums draws switch-ups, turnarounds, fills and drop-outs inside
+   * its sections by the nearest place's rates (`deep-house-places.ts`
+   * `SUBSECTIONS`; `src/subsections.ts`), each off a stream of its own, and the
+   * ring names the one a bar is in. The fast broken beat draws a lot, the
+   * house some, the drone places none. The house moves, on purpose.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  subSections: true,
 });
 
 /**
@@ -442,7 +506,27 @@ function roomsUnder(source: Record<string, Room>, flags: Record<string, boolean>
   return out;
 }
 
-export const rooms = roomsUnder(roomsV1, switches);
+/**
+ * **The rooms' own tone, carried onto v2's** (round E1). A measured room leans
+ * the master its own way -- `sub` sits 1.3 dB under the base's presence and
+ * 0.8 under its air -- and that lean is the room's, whichever base it is
+ * leaning from: each gain a room names is moved by however far v2's profile
+ * stands from v1's at that band, so a v2 room is v1's room over v2's tone and
+ * its own lean survives (the listening draft of 09-28 did the same, by hand).
+ */
+function roomsOverProfile(source: Record<string, Room>, from: Readonly<EqProfile>, to: Readonly<EqProfile>): Record<string, Room> {
+  const out: Record<string, Room> = {};
+  for (const [id, room] of Object.entries(source)) {
+    const master = (room.params as { master?: Record<string, number> } | undefined)?.master;
+    if (!master) { out[id] = room; continue; }
+    const moved: Record<string, number> = { ...master };
+    for (const b of EQ_BANDS) if (typeof master[b] === 'number') moved[b] = +(master[b] + to[b] - from[b]).toFixed(3);
+    out[id] = { ...room, params: { ...room.params, master: moved } };
+  }
+  return out;
+}
+
+export const rooms = roomsOverProfile(roomsUnder(roomsV1, switches), EQ_V1, EQ_V2);
 
 // --- the lanes ---------------------------------------------------------------
 //
@@ -525,9 +609,42 @@ function withMid<T extends { v: string }>(list: readonly T[], laneId: string): r
 // was; with the drone in front it is held off anyway.
 const SIXTEENTH_PRESENCE = Object.freeze([{ scene: 'drone-back', midFrom: 50, db: -14 }]);
 
+// **The floor under a drone in front** (Eugene, 10-01, round GA7: on the slow
+// side of Ember *a drone may stay the foreground and a soft four-floor kick
+// plus hats may play under it*; where the floor is, is the composition's
+// `scene.floor`). What each lane of the grid plays on it, as levels, knob
+// settings and measured rings:
+//
+//   the kick     six decibels under its level, its fall held to 0.36 s
+//                against the benchmark's 0.17 and its attack eased to 12 ms
+//                against 4: the same voice toward the round, long end of its
+//                own declared range (`KICK_KNOBS`, 0.42 s and 18 ms), not a
+//                new one. Past where the birds alone lean it on the slow side
+//                (Tide .8 and Ember .27 ask 0.31 s and 8 ms), since a note's
+//                own setting stands over the theme's seasoning
+//   the hats     only the hats whose measured ring (`HAT_RING_MS`) reaches
+//                150 ms — the loose and the open, which wash; never the
+//                closed or the tight tick, nor the sizzle. On the offbeat lane
+//                that is the loose hat alone; the open slot keeps its own. The
+//                figure is the floor's own, a hat on the and of every beat, in
+//                place of the mined mask (a mined mask on the sixteenths
+//                between the offbeats leaves the lane silent in house-v2, where
+//                the sixteenths are a lane of their own); the open hat still
+//                takes one of them by the record's chance. At a beat's spacing
+//                the loose hat's 212 ms is a third of the gap at the floor's
+//                fastest tempo, under the ring rule of S6
+//   the backbeat held off: no clap, no snare, no rim under the drone
+//
+// The sixteenths are already withdrawn under any drone in front; the floor
+// leaves them so.
+const FLOOR_KICK = Object.freeze({ db: -6, knobs: Object.freeze({ hold: 0.36, attack: 0.012 }) });
+const FLOOR_HATS = Object.freeze({ ringFrom: 150, mask: '..x...x...x...x.' });
+const FLOOR_OFF = Object.freeze({ off: true });
+
 const LANE_KITCHEN: Readonly<Record<string, Partial<Lane>>> = Object.freeze({
-  offbeat: { list: 'offbeatVoices', voices: withTrims(OFFBEAT_VOICES, 'offbeat'), incumbent: 'hatClosed' },
-  offbeatOpen: { list: 'offbeatVoices', voices: withTrims(OFFBEAT_VOICES, 'offbeatOpen'), incumbent: 'hatOpen' },
+  kick: { floor: FLOOR_KICK },
+  offbeat: { list: 'offbeatVoices', voices: withTrims(OFFBEAT_VOICES, 'offbeat'), incumbent: 'hatClosed', floor: FLOOR_HATS },
+  offbeatOpen: { list: 'offbeatVoices', voices: withTrims(OFFBEAT_VOICES, 'offbeatOpen'), incumbent: 'hatOpen', floor: FLOOR_HATS },
   // The one row whose **figure** moves as well as its candidates: a sixteenth
   // lane that took the hat mask's leftovers was silent in 173 of 200 rolled
   // themes (`notes/archive/2026-09-kitchen/rounds/k5b.md` §8), because a mined mask whose hits all land
@@ -540,8 +657,14 @@ const LANE_KITCHEN: Readonly<Record<string, Partial<Lane>>> = Object.freeze({
   // at a sixteenth mask's pace every one of them is withdrawn, so the lane is
   // held off. Behind the drone, or on air, it draws as it always did.
   sixteenth: { list: 'sixteenthVoices', voices: withMid(withTrims(SIXTEENTH_VOICES, 'sixteenth'), 'sixteenth'), figure: 'sixteenthMask',
-    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }], presence: SIXTEENTH_PRESENCE },
-  backbeat: { list: 'backbeatVoices', voices: withTrims(BACKBEAT_VOICES, 'backbeat') },
+    // And the hand drums leave a fast, straight beat (10-02, seed 6 at the
+    // deep half-time: the bongo on sixteenths at 137 BPM under a beat with
+    // few hits, the woodblock's cousin): above 125 BPM with Spark under a
+    // quarter the `drum` family is withdrawn from this lane and the
+    // shaker-type players remain; the fast four-floor's own percussion loop
+    // (GA4, Spark about a half) keeps its hands.
+    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }, { tempoFrom: 125, controls: { spark: { max: 0.25 } }, families: ['drum'] }], presence: SIXTEENTH_PRESENCE },
+  backbeat: { list: 'backbeatVoices', voices: withTrims(BACKBEAT_VOICES, 'backbeat'), floor: FLOOR_OFF },
   glueImpact: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'impact' },
   glueSwell: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'swell' },
   glueSweep: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'sweepDown' },
@@ -659,6 +782,15 @@ const PLACEMENT: Readonly<Record<string, { lanes?: string[]; moments?: string[];
   'fx:width': { lanes: ['pad'], moments: ['main', 'breakdown'] },
   'fx:haas': { lanes: ['keys'], moments: ['main', 'drop'] },
   'fx:mono': { lanes: ['bus:sub', 'kick'], moments: ['intro', 'build', 'main', 'breakdown', 'drop', 'outro', 'seam'] },
+
+  // round KV1: where each goes once a part admits it. Until then neither is on
+  // the rota at all (`AWAITING` in catalogue-v2.ts), so these rows place nothing.
+  'fx:drive': { lanes: ['bus:drums'], moments: ['main', 'drop'], note: 'a soft clip with input and output trims: the drums bus first' },
+  'fx:lofi': { lanes: ['keys', 'pad'], moments: ['main', 'breakdown'], note: 'a low-pass and a wandering head: a worn chord, a wavering key' },
+  // round B1: the bass bus, for the life of a theme, where the places' table
+  // asks (`deep-house-places.ts`, `BASS_DRIVE`) -- a theme's own setting and
+  // never a rota draw, so this row places nothing either
+  'fx:bassDrive': { lanes: ['bus:sub'], moments: ['intro', 'build', 'main', 'breakdown', 'drop', 'outro'], note: 'a driven copy of the bass under the clean one: the fast, bass-forward places\', by place' },
 });
 
 const FAMILY_OF = Object.fromEntries(EFFECTS.map((d) => [`fx:${d.id}`, d.family]));
@@ -728,6 +860,17 @@ export const stage = Object.freeze({
   // terms, the mid range moves 0.04 dB, and the limiter works a little less.
   // Every one of those is under half the trim, so -2 is the hint and not -1.
   bassBusDb: -2,
+  // **A figure carries the middle when the stage puts it in front** (the
+  // midrange listening draft of 09-28, which Eugene heard and liked; round E1
+  // lands it): the keys' front target 2 dB up, 2.5 -> 4.5. The background level
+  // and the hand-over ramps are v1's, and a sustained chord gets no blanket
+  // lift -- it is the foreground role that moves, whatever voice holds it.
+  level: { ...stageV1.level, keys: { ...stageV1.level.keys, front: stageV1.level.keys.front + 2 } },
+  // **...and its attacks read through their returns** (the separation draft of
+  // the same day): the front role's reverb, hall and delay sends scaled .82 ->
+  // .70, at most 1.37 dB less return. The background's depth and a part's own
+  // wetness are untouched.
+  frontWet: 0.70,
   treatments: liveOf(TREATMENT_ROTA),
   palette,
 });
@@ -752,12 +895,34 @@ export const stage = Object.freeze({
 // and wrote the file. It is JSON beside the style for the reason
 // `deep-house-signatures.json` is: nothing in it was reasoned.
 //
-// **The target and the clamp are the record's** — -13.0 LUFS and ±4 dB — because
-// levelling a palette against itself and moving where a record sits are two
-// decisions and only the first one is this round's.
+// **The target is the record's** — -13.0 LUFS — because levelling a palette
+// against itself and moving where a record sits are two decisions, and only the
+// first one is this block's. **The clamp is v2's own: ±6 dB where the record's is
+// ±4** (round N1, 10-01). E1's lift (the master's EQ profile and the keys' louder
+// foreground) raised the loudest mains' input into the limiter by up to 3.3 dB.
+// A decibel cut there gives back only 0.47 at the meter, so a main at -10.2 LUFS
+// on a 4 dB clamp stopped 1.2 LU above the target. The trim sits ahead of the
+// limiter, so a wider clamp brings those mains to the target and takes the
+// limiter's work off exactly them; every theme the old clamp did not stop keeps
+// the trim it had. It is reasoned and not measured, so it is written here; the
+// JSON carries the same number so a refit (`--clamp` defaults to the style's)
+// writes it back.
+const CLAMP_DB_V2 = 6;
 //
-// This, keyboard character and the saw-lead defaults are v2's own blocks.
-// Every other base field still shares v1's data; its record remains untouched.
+// **A theme with no kick is lifted 2 dB at most** (round LOUD-1, 10-03). The
+// held drone is the case: 27191's first theme measures -16.55 LUFS at nought
+// with 6.6 dB of headroom under the 15 % rule, and a model that reads it right
+// (the refit, taught on the drone's own windows) lifts it to the +6 clamp. On
+// a groove the limiter's work hides under the kicks; a drone has no transient
+// to hide it under, so the 15 % of its blocks over the ceiling would be the
+// drone itself held down, and its quiet opening is the composition's, not a
+// level fault. Its cuts are the model's as before. Reasoned and not measured,
+// so it is written here and not in the JSON.
+const CLAMP_UP_NO_KICK_DB_V2 = 2;
+//
+// This, keyboard character, the saw-lead defaults, the master's EQ profile
+// (`EQ_V2`, round E1) and the present piano (round E1) are v2's own blocks. Every other base field still shares
+// v1's data; its record remains untouched.
 //
 // **And the trim is fitted for the loudest main, not the first, and never past
 // the headroom that window has** (09-22, seed 20). The window rule is this
@@ -765,11 +930,24 @@ export const stage = Object.freeze({
 // and not in the JSON; the headroom model is measured, and is the JSON's, beside
 // the coefficients it was fitted with. `src/loudness.ts` (`trimWindow`,
 // `headroomDb`) says why each is there.
-const { targetLufs, clampDb, slopeUp, slopeDown, intercept, coef, centre, headroom: h } = loudnessFit as typeof loudnessFit & {
+type FittedModel = { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+const { targetLufs, slopeUp, slopeDown, intercept, coef, centre, headroom: h, families: fams } = loudnessFit as unknown as {
+  targetLufs: number; slopeUp: number; slopeDown: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>;
   headroom?: { activeMax: number; deepestMax: number; marginDb: number; intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+  families?: Record<string, FittedModel & { targetLufs?: number; headroom?: FittedModel }>;
 };
+// The model's reach (round LOUD-1): a model per family of windows the house's
+// sample never held, each fitted on its own measured windows (`src/loudness.ts`,
+// `loudnessFamily`). A family may name a target of its own (round LOUD-2, the
+// drop's, set by hand in the JSON's `families.<fam>.targetLufs`); absent, the
+// block's.
+const families = fams && Object.freeze(Object.fromEntries(Object.entries(fams).map(([k, m]) => [k, Object.freeze({
+  ...(Number.isFinite(m.targetLufs) ? { targetLufs: m.targetLufs } : {}),
+  intercept: m.intercept, coef: m.coef, centre: m.centre,
+  ...(m.headroom ? { headroom: Object.freeze({ intercept: m.headroom.intercept, coef: m.headroom.coef, centre: m.headroom.centre }) } : {}),
+})])));
 const headroom = h && Object.freeze({ activeMax: h.activeMax, deepestMax: h.deepestMax, marginDb: h.marginDb, intercept: h.intercept, coef: h.coef, centre: h.centre });
-const loudnessV2 = Object.freeze({ targetLufs, clampDb, slopeUp, slopeDown, intercept, coef, centre, window: 'loudest' as const, ...(headroom ? { headroom } : {}) });
+const loudnessV2 = Object.freeze({ targetLufs, clampDb: CLAMP_DB_V2, clampUpNoKickDb: CLAMP_UP_NO_KICK_DB_V2, slopeUp, slopeDown, intercept, coef, centre, window: 'loudest' as const, ...(headroom ? { headroom } : {}), ...(families ? { families } : {}) });
 
 // Ordinary-roll feedback, 09-21: the filter's pronounced opening and resonant
 // peak make chord stabs too assertive at home. This is a style voicing of the
@@ -779,8 +957,20 @@ const smoothSaw = Object.freeze({ ...base.sawLead,
   attack: .018, cutoff: 1200, envMult: 1.6, q: 1.5, pwmDepth: .12, trim: .25,
 });
 
+/**
+ * **The present piano** (the midrange listening draft of 09-28, heard and liked;
+ * round E1 lands it): a little more of the struck body beside its hall -- dry
+ * .70 -> .85, sustain .26 -> .32 -- and the upper partials let go more slowly,
+ * decay .55 -> .40, which fills out a soft note without adding hammer noise.
+ * A phrase character's own envelope still overrides the envelope; the dry
+ * balance is the instrument's, every v2 piano included.
+ */
+const presentPiano = Object.freeze({ ...base.piano,
+  dryLevel: .85, sustainLevel: .32, partialDecay: .40,
+});
+
 /** Shared foundation with v2's loudness and authored instrument characters. */
-export const baseV2 = Object.freeze({ ...base, loudness: loudnessV2, sawLead: smoothSaw, keyboardPatches });
+export const baseV2 = Object.freeze({ ...base, master: { ...base.master, ...EQ_V2 }, loudness: loudnessV2, sawLead: smoothSaw, piano: presentPiano, keyboardPatches });
 
 /** That table resolved once, the way every style resolves its own. */
 export const settings = resolveSettings({ base: baseV2 });
@@ -1038,6 +1228,50 @@ const set = Object.freeze({
   // (`cutMainsFirst`, `src/arrangement.ts`).
   themeTrim: 0.85,
   themeTrimBars: [44, 176] as [number, number],
+  // **Minutes from the birds** (round L1, Eugene 10-01: *"fast beat tracks
+  // tend to be too short, sometimes under 2 minutes; the length must not come
+  // only from bars count and speed"*): the length is a band in minutes the
+  // derived state asks for (`src/length.ts`, whose `LENGTH` table is the
+  // knobs), the seed rolls inside it on the ladder above, and the bars follow
+  // from the tempo the theme plays at. The cut above stays and still decides
+  // which bars come off; `themeBarsMin`, `themeBarsMax` and `themeTrimBars` are
+  // not read on this path.
+  themeMinutes: true,
+  // The harmonic cross (round MIX-X2) is the record's as well since 10-02:
+  // `harmonicCross` in `deep-house.ts`, inherited here.
+  // **The set mixes in key** (round MIX-X2, the same ask). The record's next
+  // theme takes any root, and MEASURED over seeds 1–40 that is 23 % of seams
+  // between related keys. house-v2 draws the next key as a step on the wheel
+  // (`planKey`, `src/set-plan.ts`): the same place or a fifth either way
+  // (six or seven notes of seven in common, the blend the record plays). The
+  // weights are the table; the draws and the modes are the ones they were.
+  // The whole-tone steps are gone since 10-02 (Eugene: *"drastic changes of
+  // key on throwing the dice, and we have support for mixing that too; but on
+  // the same seed all following tracks are a family, so we have smoother
+  // mixing"*): a planned seam is the same key or a fifth either way, six or
+  // seven notes of seven in common, and the harmonic cross is for a cast and
+  // for the record.
+  harmonicMixing: true,
+  // **The drift stops at two per cent** (the deep review of 10-08, B15): the
+  // record's tenth of a BPM a minute climbs as long as the set runs, and
+  // faster the slower the tempo (27191's set 49 to 54.6 BPM over twenty
+  // themes). Here it climbs the same way and holds at 2 % over the tempo the
+  // set drew: 104 holds at 106.1 from its sixteenth theme, 49 at 50 from its
+  // fifth, 174 does not reach it in twenty.
+  driftMost: 0.02,
+  // **How far a library turn's row leaks beyond its place** (round D1,
+  // 10-02: one number for how far the places overlap, to find a setting that
+  // stays predictable and still crosses): 0 is the rows within half a step of
+  // the nearest, 1 every row everywhere by its own weight, between an
+  // exponential fall with distance (`reachFactor`, `src/library-draw.ts`).
+  // Nought until a setting is chosen; the private tier's `reach=` and the
+  // machine view's slider move it for a session.
+  reach: 0,
+  keySteps: [
+    { v: 0, w: 2 },
+    { v: 7, w: 3 },
+    { v: 5, w: 3 },
+  ],
 });
 
 export const style = {
@@ -1070,6 +1304,24 @@ export const style = {
   // These are independent chances, not weights over whole reference recipes.
   characters,
   composition, controls,
+  // Round GA6: what the music does away from the house, by place.
+  places,
+  // Round EQ-3: a room that writes no sixteenths (growl) takes the lane where
+  // the density die rolled medium or busy, 11 dB under its offbeat hat
+  // (`src/generator.ts`, `notes/rounds/eq-3.md`). v1 has no field: its rooms
+  // are as measured.
+  sixteenthsLean: Object.freeze({ densities: Object.freeze(['medium', 'busy']), underHatDb: -11 }),
 } satisfies StrategyStyle;
+
+{
+  // the place tables read once, at load, against the words this style uses (review of 10-08, A4): a typo refuses the app by its entry's id
+  const rota = (candidates as Array<{ id: string; list: () => unknown[] }>).find((c) => c.id === 'treatmentRota')?.list() ?? [];
+  const bad = placesFaults(places, {
+    families: composition.families.map((f) => f.id),
+    roles: lanes.map((l) => l.role),
+    treatments: rota.map((e) => String((e as { v?: unknown }).v ?? e)),
+  });
+  if (bad.length) throw new Error(`the place tables: ${bad.join('; ')}`);
+}
 
 export default style;

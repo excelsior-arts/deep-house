@@ -28,18 +28,31 @@
 // one, `plays` is null so no arrangement gates them, and the levels are the
 // two the hat family already has.
 
-import { strike, warmDrums, drumNoise, filter } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams, VoiceCost } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import { kitTopology, drumNoise, filter, KIT } from './drumkit.ts';
+import { contract, list, num, CENTS, DB, HZ, Q, RATIO, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
 import type { Settings } from '../settings.ts';
+import { airPath, swapDb, swapShelf, topLadder, topLevel, SWAP_K } from './hat-grain.ts';
 
 /** The three of them, as the settings name them and as they are named here. */
 type HatName = 'hatTight' | 'hatLoose' | 'hatSizzle';
 
-/** One hat's own block: three sets of the same numbers, which is the shelf. */
-type HatSettings = Settings[HatName];
+/** What a row of this topology carries, each in its range (`schema.ts`): one hat's own numbers, three sets of which are the shelf. */
+const PARAMETERS = contract({
+  ratios: list(RATIO, 1, 16),
+  base: HZ, detune: CENTS, metal: UNIT, hp: HZ, peakHz: HZ, q: Q, tilt: DB, lidHz: HZ,
+  t10: KIT.t10, seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents, attack: KIT.attack,
+  trim: KIT.trim, rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread, decaySpread: KIT.decaySpread,
+  panSpread: KIT.panSpread, velBright: KIT.velBright, velDecay: KIT.velDecay, pan: KIT.pan, room: KIT.room, delay: KIT.delay,
+  // The grain (round SPARK-2, `hat-grain.ts`): the upper ladder's share of the
+  // metal, the air past the lid from `airHz`, the tail after -10 dB. Nought in
+  // every row, which builds nothing; a place voices the block.
+  top: num(0, 0.9), air: UNIT, airHz: HZ, tail: UNIT,
+});
+
+/** One hat's own patch. */
+type HatSettings = PatchOf<typeof PARAMETERS.fields>;
 
 /** Everything fixed about one hat of this shelf, out of its own block. */
 function hatSpec(H: HatSettings): DrumSpec {
@@ -70,6 +83,10 @@ function hatSpec(H: HatSettings): DrumSpec {
     pan: H.pan,
     room: H.room,
     delay: H.delay,
+    top: H.top,
+    air: H.air,
+    airHz: H.airHz,
+    tail: H.tail,
   };
 }
 
@@ -105,6 +122,7 @@ function hatBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: numb
   const metal = ac.createGain();
   metal.gain.value = spec.metal / spec.ratios.length;
   metal.connect(high);
+  if (spec.top > 0) topLadder(ac, spec.ratios, spec.base, spec.detune, topLevel(spec.top, spec.metal, SWAP_K.kit) * spec.ratios.length, metal, at, spec.seconds);
   for (let i = 0; i < spec.ratios.length; i++) {
     const o = ac.createOscillator();
     o.type = 'square';
@@ -117,107 +135,42 @@ function hatBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: numb
 
   const hiss = ac.createGain();
   hiss.gain.value = 1 - spec.metal;
-  hiss.connect(high);
+  if (spec.top > 0) {
+    const shelf = swapShelf(ac, swapDb(spec.top));
+    hiss.connect(shelf);
+    shelf.connect(high);
+  } else hiss.connect(high);
+
   const n = drumNoise(ac, spec.seconds + 0.05, 31337 + Math.round(spec.peakHz));
   n.connect(hiss);
   n.start(at);
   n.stop(at + spec.seconds);
+  if (spec.air > 0) {
+    // the air's own noise, never the hiss's (`hat-grain.ts` says why)
+    const own = drumNoise(ac, spec.seconds + 0.05, 7919 + Math.round(spec.peakHz));
+    const ownAt = ac.createGain();
+    ownAt.gain.value = 1 - spec.metal;
+    own.connect(ownAt);
+    airPath(ac, ownAt, spec.airHz, spec.air, dest);
+    own.start(at);
+    own.stop(at + spec.seconds);
+  }
 }
 
-const inst = (id: string, seed: number, block: HatName): DrumInstrument => ({
-  id,
-  seed,
-  spec: (p: NoteParams, settings: Settings) => hatSpec(settings[block]),
+/**
+ * The kit hat topology: a ladder of six squares under a noise bed, struck
+ * through the kit (`sounds/noise/hatTight.json`, `hatLoose.json`,
+ * `hatSizzle.json` since round R2). All three are the `noise` family for
+ * `hats.ts`'s reason and play the H lane's `offbeat`, the lane that already
+ * reads the hats layer; the loose one is trimmed at the open hat's level.
+ */
+export const KIT_HAT = kitTopology({
+  id: 'kit-hat',
+  cost: 'cheap',
+  parameters: PARAMETERS,
+  spec: (H) => hatSpec(H),
   variant: hatVariant,
   build: hatBody,
 });
 
-const TIGHT = inst('hatTight', 53.3, 'hatTight');
-const LOOSE = inst('hatLoose', 67.9, 'hatLoose');
-const SIZZLE = inst('hatSizzle', 71.1, 'hatSizzle');
-const INSTS = { hatTight: TIGHT, hatLoose: LOOSE, hatSizzle: SIZZLE };
-
-export const prepareHatsKit = (
-  ctx: BaseAudioContext,
-  settings: Settings,
-  events: ProgramEvent[],
-): Promise<void> => warmDrums(ctx, settings, events, INSTS);
-
-export function hatTight(
-  ctx: BaseAudioContext,
-  out: VoiceOut,
-  time: number,
-  p: NoteParams = {},
-  settings: Settings,
-  at?: number,
-): number {
-  return strike(ctx, out, time, p, TIGHT, settings, at);
-}
-export function hatLoose(
-  ctx: BaseAudioContext,
-  out: VoiceOut,
-  time: number,
-  p: NoteParams = {},
-  settings: Settings,
-  at?: number,
-): number {
-  return strike(ctx, out, time, p, LOOSE, settings, at);
-}
-export function hatSizzle(
-  ctx: BaseAudioContext,
-  out: VoiceOut,
-  time: number,
-  p: NoteParams = {},
-  settings: Settings,
-  at?: number,
-): number {
-  return strike(ctx, out, time, p, SIZZLE, settings, at);
-}
-
-/** MEASURED, all three, and written by `tools/test-drums.ts --bless`. */
-export const HATS_KIT_MEASURED = {
-  hatTight: { loudnessDb: -22.9, clickStep: 0 },
-  hatLoose: { loudnessDb: -12.9, clickStep: 0.0049 },
-  hatSizzle: { loudnessDb: -20.1, clickStep: 0 },
-};
-
-/** What they are worth to a meter. `hold` is nought: a hat is gone by the beat. */
-export const HATS_KIT_TIMBRES = {
-  hatTight: { family: 'noise', struck: true, hold: 0, brightnessHz: 8200, loudnessDb: HATS_KIT_MEASURED.hatTight.loudnessDb },
-  hatLoose: { family: 'noise', struck: true, hold: 0.02, brightnessHz: 6600, loudnessDb: HATS_KIT_MEASURED.hatLoose.loudnessDb },
-  hatSizzle: { family: 'noise', struck: true, hold: 0.01, brightnessHz: 9500, loudnessDb: HATS_KIT_MEASURED.hatSizzle.loudnessDb },
-};
-
-/**
- * The three, in the order they are heard from shortest to longest. All of them
- * are the `noise` family for `hats.ts`'s reason — six inharmonic squares under
- * a band-passed noise bed is what every hat in this engine is — and all of
- * them play the H lane's `offbeat`, which is the lane that already reads the
- * hats layer.
- */
-/**
- * MEASURED by `tools/budget.ts`. The three are built from one list, so their
- * cost is a small table beside the list rather than a word inside it — which is
- * how `HATS_KIT_TIMBRES` above already works, and for the same reason: a number
- * measured per instrument belongs per instrument.
- */
-export const HATS_KIT_COST: Record<HatName, VoiceCost> = { hatTight: 'cheap', hatLoose: 'mid', hatSizzle: 'cheap' };
-
-export const descriptors: Descriptor[] = (['hatTight', 'hatLoose', 'hatSizzle'] as const).map((name): Descriptor => ({
-  name,
-  cost: HATS_KIT_COST[name],
-  family: 'noise',
-  roles: ['offbeat'],
-  bus: 'drums',
-  level: name === 'hatLoose' ? 'hatOpen' : 'hatClosed',
-  layer: 'hats',
-  plays: null,
-  mono: false,
-  treat: false,
-  anticipates: null,
-  prepare: prepareHatsKit,
-  render: { hatTight, hatLoose, hatSizzle }[name],
-  timbres: { [name]: HATS_KIT_TIMBRES[name] },
-  dispatches: [],
-  mood: [],
-}));
+export default KIT_HAT;

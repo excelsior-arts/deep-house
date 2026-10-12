@@ -11,8 +11,8 @@
 // fx voice whose own family is noise and which is not a held bed) — asks two
 // gates before the section does, as S1's swells and S2's sweeps do:
 //
-//   **The spell** admits a driving or a fast kick (Ember's techno and drum and
-//     bass families), a broken beat (Spark's `broken` band) or a lifted light
+//   **The spell** admits a driving or a fast kick (Ember's driving, high and
+//     fast bands), a broken beat (Spark's `broken` band) or a lifted light
 //     (Gleam's `lifted` band); it refuses the slow side (drums off or a free
 //     pulse) and a held light under a steady kick (Gleam's `held` band); in
 //     between — the house — it says nothing, and the cast decides.
@@ -36,7 +36,7 @@ import { TIMBRES, GLUE_SHAPES } from '@deep-house/engine/voices';
 import type { Style } from '@deep-house/engine/style';
 import { derive, asSpell } from './spell.ts';
 import type { Spell } from './spell.ts';
-import { bandAt } from './bird-labels.ts';
+import { bandWordOf } from './bird-labels.ts';
 
 /** How bright a keys instrument must read alone (the per-layer Zephyr) to count as a bright synth. */
 export const BRIGHT_KEYS = 0.45;
@@ -51,9 +51,6 @@ type Ev = { layer: string; voice: string; role?: string; p: Record<string, any> 
 export const isNoiseGlue = (voice: string): boolean =>
   voice in GLUE_SHAPES || (TIMBRES[voice]?.family === 'noise' && (TIMBRES[voice]?.hold ?? 1) < 1);
 
-const word = (bird: 'spark' | 'gleam', spell: Partial<Spell> | null | undefined, style: Style): string | null => {
-  try { return bandAt(bird, spell, style)?.word ?? null; } catch { return null; }
-};
 
 export interface GlueVerdict { spell: 'admit' | 'refuse' | 'neutral'; cast: 'admit' | 'refuse'; keep: boolean; why: string }
 
@@ -61,13 +58,14 @@ export function glueVerdict(input: { style: Style; spell: Partial<Spell> | null 
   brightness: Record<string, number>; hatCentroid: Record<string, number> }): GlueVerdict {
   const { style, spell, events, kit, brightness, hatCentroid } = input;
   const d = derive(asSpell(spell));
-  const gleam = word('gleam', spell, style), spark = word('spark', spell, style);
+  const gleam = bandWordOf('gleam', spell, style), spark = bandWordOf('spark', spell, style);
   const why: string[] = [];
   let sv: GlueVerdict['spell'] = 'neutral';
-  if (d.drumsOn && (d.tempoFamily === 'techno' || d.tempoFamily === 'drumAndBass')) { sv = 'admit'; why.push(`Ember: ${d.tempoFamily}`); }
+  // the tempo's own band words (the ring's), never a genre's
+  if (d.drumsOn && (d.tempoBand === 'driving' || d.tempoBand === 'high' || d.tempoBand === 'fast')) { sv = 'admit'; why.push(`Ember: a ${d.tempoBand} kick`); }
   else if (spark === 'broken') { sv = 'admit'; why.push('Spark: broken'); }
   else if (gleam === 'lifted') { sv = 'admit'; why.push('Gleam: lifted'); }
-  else if (!d.drumsOn || d.tempoFamily === 'unmetered') { sv = 'refuse'; why.push('Ember: no drums or a free pulse'); }
+  else if (!d.drumsOn || d.tempoBand === 'free') { sv = 'refuse'; why.push('Ember: no drums or a free pulse'); }
   else if (gleam === 'held') { sv = 'refuse'; why.push('Gleam: held under a steady kick'); }
   // the cast
   const keys = [...new Set(events.filter((e) => e.layer === 'keys' && e.role !== 'texture').map((e) => e.p.timbre ?? e.p.preset ?? e.voice))];

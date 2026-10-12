@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "stringsPad",
+  "revision": 1,
+  "topology": "strings",
+  "voicedBy": [
+    "strings"
+  ],
+  "parameters": {
+    "voices": 5,
+    "detuneCents": 10,
+    "octaveLevel": 0.22,
+    "voiceLevel": 0.25,
+    "attack": 0.025,
+    "swellAttack": 0.55,
+    "decay": 1.1,
+    "sustain": 0.52,
+    "swellSustain": 0.32,
+    "release": 0.45,
+    "cutoffHz": 2200,
+    "q": 0.9,
+    "hpHz": 90,
+    "chorus": [
+      [
+        17,
+        0.21,
+        -1
+      ],
+      [
+        27,
+        0.29,
+        1
+      ]
+    ],
+    "ensembleDry": 0.62,
+    "ensembleWet": 0.5,
+    "vibratoHz": 5,
+    "vibratoCents": 4,
+    "vibratoHold": 0.18,
+    "vibratoRise": 0.5,
+    "spread": 0.8,
+    "breath": {
+      "level": 0,
+      "loHz": 6000,
+      "hiHz": 14000
+    },
+    "shape": {
+      "attack": "attack",
+      "sustain": "sustain",
+      "opens": false
+    }
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 650,
+        "default": 1200,
+        "max": 3600,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.00000662
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.12,
+        "default": 0.52,
+        "max": 0.95,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 14.1
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.004,
+        "default": 0.025,
+        "max": 0.5,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -0.88
+      },
+      "grain": {
+        "unit": "ratio",
+        "min": 0,
+        "default": 1,
+        "max": 2.5,
+        "bird": "spark",
+        "sense": 1,
+        "slopeDb": 0.005
+      }
+    },
+    "timbres": {
+      "strings": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.52,
+        "brightnessHz": 1200,
+        "loudnessDb": -8
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "strings.ts",
+    "round": "sounds-r3",
+    "note": "The strings pad: a fast-attack chord held long and drowned in reverb (MEASURED, timbres.md, 16 of 52 tracks: attack 25 ms, 8.8 dB down at the bar line, the wettest family in the study). The sustained role's default timbre. Its body is the ensemble the swell shares, voiced by the room's `strings` block; its shape, the plain envelope and a parked filter, is its own. Its timbre's corner stays 1200 Hz, where the loudness fit measured it, though EQ-2 opened the filter to 2200.",
+    "notes": {
+      "voices": "MEASURED: 2-3 saws per chord note, 6-8 across a chord.",
+      "detuneCents": "MEASURED: +-7-12 cents, which beats at the measured 0.3 Hz.",
+      "octaveLevel": "The desk above: brightness, not a second chord.",
+      "voiceLevel": "MEASURED against the ratings log's overflowing growl scenes: the harmonic bus alone, ceiling bypassed, the strings pad read 7.2 dB over a rhodes pad at the same level in both peak and RMS — a plain level offset, not a crest problem — so six decibels came off, which brings the strings within about a decibel of the others.",
+      "attack": "MEASURED median: 25 ms; only 21% of all 52 tracks attack slower than 30 ms.",
+      "swellAttack": "The synth swell family, 4% of the study, rolled rarely.",
+      "sustain": "MEASURED: -8.8 dB at the bar line, before the reverb.",
+      "swellSustain": "MEASURED: the swell family dies by the bar line.",
+      "cutoffHz": "MEASURED: 1200 Hz landed the family's centroid at 620 Hz and its 85% rolloff at 851. Round EQ-2 opened the lid and left the pitch: the same two poles and Q, the corner at 2200, measured on the pads alone (seeds 1, 7, 29 and 31 at the house) as the centroid 570-660 -> 780-900 Hz and the rolloff 980-1100 -> 1400-1580 Hz. The drones keep 1200 (the places' bed writes it).",
+      "q": "Gentle: a resonant peak in a held chord is a whistle.",
+      "hpHz": "Low enough that the chord layer reaches into 120-250 Hz.",
+      "chorus": "MEASURED: chorus at 0.2-0.3 Hz; 15-30 ms is what an ensemble is. Each line is [ms, rate, pan].",
+      "vibratoHold": "Nothing until the note has spoken.",
+      "breath": "Round SPARK-1: filtered noise under the saws, fed to the ensemble beside them so it takes the section's chorus and width and the chord's envelope; a place writes it (the house's row: 0.03 over 6-14 kHz; the drones take none). At rest the row's level is nought, which builds nothing, over the band the house writes, so a hand that raises it on the desk hears the house's air.",
+      "shape": "Reads the plain attack and sustain of the body, and its filter stays parked: not one track in 52 closes a filter inside a note.",
+      "knobs": "The sustained role's ranges (PLAN-MODULATION M1), the pad's as they always were: every default is the strings family's own measured number — the 25 ms median attack, the 0.52 still sounding at the bar line, the 1.2 kHz corner that landed the centroid at 620 Hz — and what a knob moves is a factor on whichever sustained timbre is holding, including the keyboard patches the pad holds, which take it re-expressed against their own. A swell's own 0.55 s attack is a swell's; the knob makes it half again or a tenth of itself, and it is still a swell. The ceiling on brightness is well under the engine's limit for a measured reason: not one track in 52 closes a filter inside a note and 21% brighten, and five saws at a 6 kHz corner is a saw pad, which this instrument is written not to be. The grain (round SPARK-1) is a factor on the breath a place writes under the ensemble, one at the house; its measured slope is the pad alone under the house's breath against none, seeds 1 and 29 theme two, +0.004 and +0.007 LU (notes/rounds/spark-1.md)."
+    }
+  }
+}

@@ -34,9 +34,12 @@
 // to these committed hashes, where it used to compare the code with itself.
 //
 // It is checked by `tools/check-link.ts` (so by `npm run check`) and by the
-// release. **house-v2's rows move only by a deliberate `--bless` with the
-// reason stated**, which the file keeps; at the v2 release the grid freezes
-// with the engine. house-v1's rows never move: they are the record's links.
+// release. **A row moves only by a deliberate `--bless` with the reason
+// stated**, which the file keeps, and at a release the grid freezes with the
+// engine. Both strategies' rows are held the same way: house-v1 is a
+// composing preset and not a byte lock since V1-1 (Eugene, 10-02: *"drop the
+// byte-identical"*), so a shared mixing path that moves the record's rows is
+// blessed and counted like any other's.
 //
 // **The freeze is read off the last cut** (Eugene's question 6 of the
 // reconciled review of 09-24: bless it now as what every v2 link plays today,
@@ -46,10 +49,10 @@
 // link a listener was given plays what it played, and no reason re-opens it —
 // and rows that differ from the cut's with no blessing added since, which is
 // a digest moved without a `--reason`. A bless refuses to move a shipped row
-// the same way it refuses house-v1's. Until a cut carries the file (v1.0.0
-// does not) there is nothing to freeze against, and the first cut to carry it
-// is the v2 release: what it ships is frozen from then on. The release runs
-// `--check`, so it stops on either.
+// outside a stated window (`WINDOW`, below). Until a cut carries the file
+// (v1.0.0 does not) there is nothing to freeze against, and the first cut to
+// carry it is the v2 release: what it ships is frozen from then on. The
+// release runs `--check`, so it stops on either.
 //
 // A fixture recipe (`tools/fixtures/`) is not here: no link can name one, and
 // `fixtures/programs.json` already hashes them.
@@ -85,6 +88,8 @@ const MIXED: Partial<Spell>[] = [
   { zephyr: 0.9, loom: 0.15, veil: 0.1, tide: 0.25 },
 ];
 const MODES = ['base', 'phrased', 'shaped', 'percussion'] as const;
+/** The Drum & Bass tile's spell (the Liquid key), where the riff table plays V alone. */
+const LIQUID_TILE: Partial<Spell> = Object.freeze({ ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.60, spark: 0.85, loom: 0.85 });
 
 const written = (s: LinkState) => linkWrite(s);
 
@@ -126,6 +131,13 @@ export function grid(): GridRow[] {
   for (const development of ['phrased', 'shaped'] as const) add('recipes', { seed: '3', theme: 0, strategy: 'house-v2', recipe: hand, accompaniment: 'auto', development });
   add('sets', { seed: '3', theme: 0, strategy: 'house-v2', recipe: 'auto' }, 3);
   add('sets', { seed: '3', theme: 0, strategy: 'house-v2', recipe: hand, accompaniment: 'auto' }, 3);
+  // The riffs he approved (liquid-riffs-2, 10-08; the review of 10-08, A4): the Drum & Bass tile's own spell, where V
+  // plays alone, and the tile moved toward each adopted riff's corner — Tide to 0.80 (held), Spark and Loom to 1.00
+  // (stairs) — on seed 1, whose first theme draws that corner's riff; each a theme and a set of two.
+  for (const spell of [LIQUID_TILE, { ...LIQUID_TILE, tide: 0.80 }, { ...LIQUID_TILE, spark: 1.00, loom: 1.00 }]) {
+    add('riffs', { seed: '1', theme: 0, strategy: 'house-v2', spell });
+    add('riffs', { seed: '1', theme: 0, strategy: 'house-v2', spell }, 2);
+  }
   return rows;
 }
 
@@ -215,24 +227,99 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
 }
 
 /**
+ * **A stated window in the freeze.** Eugene, 09-26 evening, on the genres
+ * phase that follows the v2.0.0 cut: *"forget about golden track locks for the
+ * next turn, go for it"* — and his standing policy that a link promises the
+ * settings, not the byte, with house-v2 re-blessed routinely and counted (v3 is
+ * only for a new engine, and the genres rounds are not one). So, from
+ * 2026-09-27, **the house-v2 links the v2.0.0 cut shipped may move until the
+ * next cut**: a moved one is not refused, and is **never silent** — the newest
+ * blessing states how many shipped rows play otherwise
+ * (`shipped rows moved since the cut: N`), and the round note names them.
+ *
+ * The window is the cut's and no other's: it opens only while the last cut is
+ * `cut` (master 152c1bd, the v2.0.0 cut re-cut with the README only). The next cut ships its own digest and closes it by
+ * itself; this statement is then removed. A shipped row dropped from the grid
+ * is refused inside the window as outside.
+ *
+ * **It covers both strategies** since V1-1 (10-02). It was house-v2's alone,
+ * with house-v1's rows held by name as the record's links; house-v1 is a
+ * composing preset now and not a byte lock (Eugene: *"drop the
+ * byte-identical … mixing and other improvements could go to both engines"*),
+ * so a shared mixing path that moves a record row inside the window is
+ * counted in the same line as any other's.
+ */
+export interface FreezeWindow { cut: string; since: string; reason: string }
+export const WINDOW: FreezeWindow = Object.freeze({
+  cut: '152c1bdf4b01635440d89b90d21dd777fa6682f5',
+  since: '2026-09-27',
+  reason: 'Eugene, 09-26: "forget about golden track locks for the next turn, go for it" — the genres phase (GA1-GA4) moves house-v2 links between the v2.0.0 cut and the next; a link promises the settings, not the byte; v3 is only for a new engine. Since 10-02 the record\'s rows move in it as any other\'s: house-v1 is a composing preset, not a byte lock',
+});
+/** The window, where the last cut is the one it was stated for; null outside it. */
+export function openWindow(ref = 'refs/heads/master'): FreezeWindow | null {
+  try {
+    const at = execFileSync('git', ['rev-parse', ref], { cwd: HERE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return at === WINDOW.cut ? WINDOW : null;
+  } catch {
+    return null;
+  }
+}
+/** The count a blessing inside the window states. */
+export const shippedMovedWords = (n: number): string => `shipped rows moved since the cut: ${n}`;
+/**
+ * A blessing written before V1-1 (the last of 10-02's merge, 38a6859) counted
+ * house-v2's shipped rows in that line and the record's in a second one
+ * (`record rows moved since the cut: N`, with `--record`). The two were one
+ * window's moves all along, so until the next bless rewrites the line they
+ * are read as their sum; a blessing written since states the one count.
+ */
+const countedBefore = (blessing: string): number => {
+  const a = blessing.match(/shipped rows moved since the cut: (\d+)/);
+  const b = blessing.match(/record rows moved since the cut: (\d+)/);
+  return a && b ? Number(a[1]) + Number(b[1]) : -1;
+};
+
+/**
  * **What the freeze refuses**, in words: every row the cut shipped still plays
  * the program it shipped with, and a digest that differs from the cut's has a
  * blessing (a stated `--reason`) the cut did not have. Nothing, with no cut.
+ * Inside a stated window (`WINDOW`) a shipped row of either strategy may play
+ * otherwise, so long as the newest blessing states how many do.
  */
-export function sinceCut(cut: Saved | null, now: Saved): string[] {
+export function sinceCut(cut: Saved | null, now: Saved, window: FreezeWindow | null = null): string[] {
   if (!cut) return [];
   const faults: string[] = [];
   const at = new Map(now.rows.map((r) => [keyOf(r), r]));
+  let windowed = 0;
   for (const r of cut.rows) {
     const is = at.get(keyOf(r));
     const name = `${r.link}${'themes' in r ? ` (${r.themes} themes)` : ''}`;
     if (!is) faults.push(`frozen: ${name} was shipped and is no longer in the digest`);
-    else if (is.hash !== r.hash) faults.push(`frozen: ${name} was shipped as ${r.hash.slice(0, 12)} and plays ${is.hash.slice(0, 12)}`);
+    else if (is.hash !== r.hash) {
+      if (window) windowed++;
+      else faults.push(`frozen: ${name} was shipped as ${r.hash.slice(0, 12)} and plays ${is.hash.slice(0, 12)}`);
+    }
   }
+  if (windowed && !(now.blessings.at(-1) ?? '').includes(shippedMovedWords(windowed)) && countedBefore(now.blessings.at(-1) ?? '') !== windowed)
+    faults.push(`inside the window of ${window!.since} ${windowed} shipped rows play otherwise, and the newest blessing does not say "${shippedMovedWords(windowed)}"`);
   const differs = JSON.stringify(cut.rows) !== JSON.stringify(now.rows);
   const reasoned = now.blessings.length > cut.blessings.length && cut.blessings.every((b, i) => now.blessings[i] === b);
   if (differs && !reasoned) faults.push('the digest differs from the last cut\'s and no blessing was added since: a bless states its reason (--bless --reason)');
   return faults;
+}
+
+/**
+ * **Why a bless would be refused**, asked before anything is written (the
+ * review of 10-08, A4: `bless.ts` asks this first, so a refusal leaves every
+ * lock as it was): the shipped rows a bless would move outside a stated
+ * window, in words, or null where it may go ahead.
+ */
+export function blessRefusal(rows: Line[] = grid().map(lineOf)): string | null {
+  const window = openWindow();
+  const cut = lastCut();
+  const fixed = new Map((window ? [] : (cut?.rows ?? [])).map((r) => [keyOf(r), r.hash]));
+  const movedFixed = rows.filter((r) => fixed.has(keyOf(r)) && fixed.get(keyOf(r)) !== r.hash);
+  return movedFixed.length ? `a bless cannot move a shipped link outside a stated window: ${movedFixed.map((r) => r.link).join(', ')}` : null;
 }
 
 function text(d: Saved): string {
@@ -246,7 +333,7 @@ const NOTE = 'What a written link plays, for a grid of links: both engines on th
   + 'every bird at 0.1 and 0.9 and three mixed pulls, every development mode under each accompaniment, recipe=auto and every shipped row in its mode, '
   + 'and eight sets. Each key is the page\'s own writer\'s output; each hash is of the whole program the page plays off it (read, cast, planned and compiled '
   + 'as the page does) with the plan\'s knobs, every number exact, or of a set\'s seam program. Written by tools/link-digest.ts --bless --reason; '
-  + 'checked by tools/check-link.ts and at release. house-v1\'s rows never move; house-v2\'s move only by a stated re-bless, and freeze at its release.';
+  + 'checked by tools/check-link.ts and at release. A row moves only by a stated re-bless, and a shipped row freezes at its cut; both strategies alike (house-v1 is a composing preset, not a byte lock, since 10-02).';
 
 function main(): void {
   const argv = process.argv.slice(2);
@@ -260,11 +347,11 @@ function main(): void {
     const { moved, rows } = verify();
     if (moved.length) {
       console.error(`what a link plays has moved: ${moved.length} of ${rows} rows\n${moved.slice(0, 12).map((m) => `  ${m}`).join('\n')}`);
-      console.error('\nIf that is a deliberate re-bless of house-v2 that Eugene has heard: node tools/link-digest.ts --bless --reason "<why>"');
+      console.error('\nIf that is a deliberate re-bless that Eugene has heard: node tools/link-digest.ts --bless --reason "<why>"');
       process.exit(1);
     }
     const cut = lastCut();
-    const faults = sinceCut(cut, saved());
+    const faults = sinceCut(cut, saved(), openWindow());
     if (faults.length) {
       console.error(`the link digest has moved since the last cut: ${faults.length}\n${faults.slice(0, 12).map((m) => `  ${m}`).join('\n')}`);
       console.error('\nA row a release shipped is frozen: a link a listener was given keeps its sound. A new sound is a new engine token.');
@@ -279,15 +366,21 @@ function main(): void {
   if (!reason) { console.error('a bless states its reason: --reason "<why the rows move>"'); process.exit(2); }
   const was: Saved | null = fs.existsSync(FILE) ? saved() : null;
   const rows = grid().map(lineOf);
-  // house-v1's rows are the record's links, and a row the last cut shipped is
-  // a link a listener was given: a bless that would move one stops.
-  const fixed = new Map([
-    ...(was?.rows.filter((r) => r.strategy === 'house-v1') ?? []),
-    ...(lastCut()?.rows ?? []),
-  ].map((r) => [keyOf(r), r.hash]));
-  const movedFixed = rows.filter((r) => fixed.has(keyOf(r)) && fixed.get(keyOf(r)) !== r.hash);
-  if (movedFixed.length) { console.error(`a bless cannot move the record's links or a shipped one: ${movedFixed.map((r) => r.link).join(', ')}`); process.exit(1); }
-  fs.writeFileSync(FILE, text({ note: NOTE, blessings: [...(was?.blessings ?? []), reason], rows }));
+  // A row the last cut shipped is a link a listener was given: a bless that
+  // would move one stops — outside the stated window. Inside it a shipped row
+  // of either strategy may move, and the blessing says how many shipped rows
+  // now play otherwise (never silent).
+  const refused = blessRefusal(rows);
+  if (refused) { console.error(refused); process.exit(1); }
+  const window = openWindow();
+  const cut = lastCut();
+  const shipped = new Map((cut?.rows ?? []).map((r) => [keyOf(r), r.hash]));
+  const windowed = window ? rows.filter((r) => shipped.has(keyOf(r)) && shipped.get(keyOf(r)) !== r.hash) : [];
+  const named = (rs: Line[]) => rs.map((r) => r.link + ('themes' in r ? ` (${r.themes} themes)` : '')).join('; ');
+  let said = reason;
+  if (windowed.length) said += ` [${shippedMovedWords(windowed.length)}, in the window of ${window!.since}: ${named(windowed)}]`;
+  fs.writeFileSync(FILE, text({ note: NOTE, blessings: [...(was?.blessings ?? []), said], rows }));
+  if (windowed.length) console.log(`inside the freeze's window of ${window!.since}: ${windowed.length} shipped rows play otherwise, named in the blessing`);
   console.log(`wrote ${path.relative(process.cwd(), FILE)}: ${rows.length} written links`);
 }
 

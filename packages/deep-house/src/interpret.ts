@@ -96,6 +96,10 @@ import { ambienceProblems, presenceProblems, figureCandidates, type Ambience, ty
 // Such a want is now reported unsupported, as it was before v2.x admitted it.
 // It also admits `prefer` on a rhythm or pitched part: a narrower property
 // profile inside `properties` that the draw leans toward, never a gate.
+// Round DNB-6 admitted, additively, `wants.motif.riff` on a bass motif row; round
+// DNB-7 retires it for `wants.motif.glide`, a glide line's grammar (`src/glide.ts`)
+// a place table plays the bass by (no row was ever drawn by it but that table's); a row without it, and
+// every pinned motif, reads as it did, so this line does not move.
 export const INTERPRETER = 'v2.25';
 
 /**
@@ -136,6 +140,8 @@ export const STAGE_COST = Object.freeze({
   frontMustMatch: false,
   treatmentNotInSource: 0.25,
   phaserWhereSourceHadNone: 1.5,
+  /** the treatment `phaserWhereSourceHadNone` prices: any rota entry whose name holds it, where the source had none */
+  pricedTreatment: 'phaser',
 });
 
 /** One line of the report: which block, how it went, and in what words. */
@@ -159,6 +165,8 @@ export interface Wanted extends MusicalParts {
   resolvedFrom: string | null;
   /** true when nothing was changed at all */
   identity: boolean;
+  /** the rates a row leans the mined masks by (round GA2), where it names any and the masks are drawn */
+  masks?: { hats?: RateWindow; stabs?: RateWindow };
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
@@ -203,9 +211,10 @@ function voicesOf(style: Style, row: { id: string; of: string; list: () => any[]
  * wide band the verdicts could not support narrowing, and `struckRequired` is
  * false on every row the encoder writes because the hit changed it.
  */
-function timbrePenalty(want: any, timbre: string): number {
+function timbrePenalty(want: any, timbre: string, list: readonly string[] = []): number {
   const got: any = (TIMBRES as any)[timbre];
   if (!got || !want) return 0;
+  want = { ...classWindows(want, list), ...want };
   let p = 0;
   if (Number.isFinite(want.holdMin) && got.hold < want.holdMin) p += (want.holdMin - got.hold) / want.holdMin;
   if (Number.isFinite(want.holdMax) && got.hold > want.holdMax) p += (got.hold - want.holdMax) / want.holdMax;
@@ -233,6 +242,58 @@ function timbrePenalty(want: any, timbre: string): number {
  * weight on a list nobody draws for that reason would be a rule pretending to
  * be a measurement.
  */
+/**
+ * **A class word is a third of the list it leans** (round GA2): the mined rows
+ * say `dark`, `bright`, `decaying` — terciles of the corpus they were cut from
+ * (`notes/analysis/mining-v2.md`) — and a row reads them here as terciles of
+ * the candidates' own declared property, so the word names no number the
+ * engine owns and means the same thing when the list grows. `brightnessClass`
+ * reads `brightnessHz` (dark / warm / bright), `holdClass` reads `hold`
+ * (short / decaying / held). A window the row states itself wins.
+ */
+const CLASS_WORDS: Readonly<Record<string, { prop: string; min: string; max: string; words: readonly [string, string, string] }>> = Object.freeze({
+  brightnessClass: { prop: 'brightnessHz', min: 'brightnessMin', max: 'brightnessMax', words: ['dark', 'warm', 'bright'] as const },
+  holdClass: { prop: 'hold', min: 'holdMin', max: 'holdMax', words: ['short', 'decaying', 'held'] as const },
+});
+const quantile = (sorted: number[], q: number): number => {
+  const at = (sorted.length - 1) * q, lo = Math.floor(at), hi = Math.ceil(at);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo);
+};
+function classWindows(want: any, list: readonly string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, c] of Object.entries(CLASS_WORDS)) {
+    const word = want?.[key];
+    if (typeof word !== 'string' || !list.length) continue;
+    const i = c.words.indexOf(word);
+    if (i < 0) continue;
+    const values = list.map(t => (TIMBRES as any)[t]?.[c.prop]).filter((v: unknown) => Number.isFinite(v)).sort((a: number, b: number) => a - b);
+    if (values.length < 3) continue;
+    const lower = quantile(values, 1 / 3), upper = quantile(values, 2 / 3);
+    if (i > 0) out[c.min] = i === 1 ? lower : upper;
+    if (i < 2) out[c.max] = i === 0 ? lower : upper;
+  }
+  return out;
+}
+/** Whether a want names a class word this interpreter does not know. */
+const badClass = (want: any): string | null => {
+  for (const [key, c] of Object.entries(CLASS_WORDS))
+    if (want?.[key] !== undefined && !c.words.includes(want[key])) return `${key} ${JSON.stringify(want[key])} is not one of ${c.words.join(', ')}`;
+  return null;
+};
+
+/**
+ * **A rate reaches a mined mask** (round GA2): the stab mask plays the
+ * figure's onsets a bar and the hat mask the offbeat's, so a row's rate leans
+ * the mask's draw toward masks whose hits a bar sit in its window — the same
+ * lean as every want, one tolerance out being the pool's floor. Only where the
+ * masks are drawn (`maskDice`); a style that fixes them has nothing to lean.
+ */
+export const RATE_ROLE_MASK: Readonly<Record<string, 'stabs' | 'hats'>> = Object.freeze({ figure: 'stabs', offbeat: 'hats' });
+export interface RateWindow { perBar: number; min: number; max: number }
+/** The lean a rate puts on a mask: its weight's multiplier for a mask of `perBar` hits a bar. */
+export const maskLean = (w: RateWindow, perBar: number): number =>
+  leanOf(perBar < w.min ? (w.min - perBar) / w.perBar : perBar > w.max ? (perBar - w.max) / w.perBar : 0);
+
 const RATE_ROLE_BUDGET: Readonly<Record<string, string>> = Object.freeze({
   bassline: 'bassNotes',
   figure: 'maxStabs',
@@ -342,8 +403,10 @@ export function interpretWants(
       if (!row) { notes.push({ block: `timbres.${slot}`, state: 'unsupported', say: `this style fills no ${slot} slot` }); continue; }
       const entries = row.list().map((e: any) => String(e.v ?? e));
       let moved = 0;
+      const bad = badClass(wants.timbres[slot]);
+      if (bad) { notes.push({ block: `timbres.${slot}`, state: 'unsupported', say: bad }); continue; }
       entries.forEach((t, i) => {
-        const p = timbrePenalty(wants.timbres[slot], t);
+        const p = timbrePenalty(wants.timbres[slot], t, entries);
         if (p > 0) { lean(listId, i, p); moved++; }
       });
       said.push(`${slot} leans ${moved} of ${entries.length}`);
@@ -383,6 +446,8 @@ export function interpretWants(
   }
 
   // --- wants.rates: the two budgets a die really sets ------------------------
+  const masks: { hats?: RateWindow; stabs?: RateWindow } = {};
+  const leaned: string[] = [];
   if (wants.rates && typeof wants.rates === 'object') {
     const table: any = (style.settings as any)?.density || {};
     const row = byId.get('densities');
@@ -391,6 +456,12 @@ export function interpretWants(
     for (const role of Object.keys(wants.rates)) {
       const budget = RATE_ROLE_BUDGET[role];
       const want = wants.rates[role];
+      const mask = RATE_ROLE_MASK[role];
+      if (mask && switchOn(style, 'maskDice') && want && Number.isFinite(want.perBar)) {
+        masks[mask] = { perBar: want.perBar, min: Number.isFinite(want.min) ? want.min : want.perBar, max: Number.isFinite(want.max) ? want.max : want.perBar };
+        leaned.push(`the ${mask === 'hats' ? 'hat' : 'stab'} mask on ${role} ${want.perBar}/bar`);
+        if (!budget) continue;
+      }
       if (!budget || !row || !table[budget] || !want || !Number.isFinite(want.perBar)) { unsupported.push(role); continue; }
       const entries = row.list().map((e: any) => String(e.v ?? e));
       entries.forEach((word, i) => {
@@ -404,6 +475,7 @@ export function interpretWants(
       used.push(`${role} ${want.perBar}/bar`);
     }
     if (used.length) notes.push({ block: 'rates', state: 'applied', say: `the density budget leans on ${used.join(', ')}` });
+    if (leaned.length) notes.push({ block: 'rates', state: 'applied', say: `${leaned.join(', ')} (a mined mask's hits a bar)` });
     if (unsupported.length) notes.push({
       block: 'rates', state: 'unsupported',
       say: `${unsupported.join(', ')}: no die in this composer sets that rate — the floor, the mined masks and the phrase do`,
@@ -445,10 +517,11 @@ export function interpretWants(
       let moved = 0;
       entries.forEach((t, i) => {
         if (had.has(t)) return;
-        // The one treatment the verdicts price differently, and it is named on
-        // the row rather than in a branch about an effect: `phaser` is the
-        // stage's own gesture and the only one ever named in a complaint.
-        const cost = /phaser/i.test(t) && !had.has('phaser') ? pol.phaserWhereSourceHadNone : pol.treatmentNotInSource;
+        // The one treatment the verdicts price differently, and it is named in
+        // the policy (`pricedTreatment`) rather than in a branch about an effect:
+        // the phaser is the stage's own gesture and the only one ever named in a complaint.
+        const priced = String(pol.pricedTreatment ?? '').toLowerCase();
+        const cost = priced && t.toLowerCase().includes(priced) && !had.has(priced) ? pol.phaserWhereSourceHadNone : pol.treatmentNotInSource;
         lean('treatmentRota', i, cost);
         moved++;
       });
@@ -507,7 +580,7 @@ export function interpretWants(
   }
 
   const ids = Object.keys(mul);
-  const changed = !!texture || Object.keys(tone).length > 0 || heldBass || !!bassMotif || struckFigures.length > 0 || Object.keys(ambience).length > 0 || Object.keys(presence).length > 0 || pedalHarmony || rhythm.lanes.length > 0 || ids.some((id) => mul[id].some((m) => m !== 1)) || silent.length > 0;
+  const changed = Object.keys(masks).length > 0 || !!texture || Object.keys(tone).length > 0 || heldBass || !!bassMotif || struckFigures.length > 0 || Object.keys(ambience).length > 0 || Object.keys(presence).length > 0 || pedalHarmony || rhythm.lanes.length > 0 || ids.some((id) => mul[id].some((m) => m !== 1)) || silent.length > 0;
   const resolvedFrom = recipe.interpreter && recipe.interpreter !== INTERPRETER ? recipe.interpreter : null;
   if (resolvedFrom && opts.log) {
     opts.log(`recipe: ${recipe.id} was captured under interpreter ${resolvedFrom} and is resolved by ${INTERPRETER}`);
@@ -533,6 +606,7 @@ export function interpretWants(
   return {
     bias: { ...bias, weights, house: false },
     silent, notes, interpreter: INTERPRETER, resolvedFrom, identity: false,
+    ...(Object.keys(masks).length ? { masks } : {}),
     ...resolved.parts,
   };
 }

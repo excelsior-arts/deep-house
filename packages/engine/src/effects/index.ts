@@ -45,6 +45,9 @@ import { descriptor as ringMod } from './ring-mod.ts';
 import { descriptor as width } from './width.ts';
 import { descriptor as haas } from './haas.ts';
 import { descriptor as mono } from './mono.ts';
+import { descriptor as drive } from './drive.ts';
+import { descriptor as lofi } from './lofi.ts';
+import { descriptor as bassDrive } from './bass-drive.ts';
 
 export {
   FAMILIES, SCOPES, COSTS, RATES, UNITS, FIELDS, COST_BANDS, COST_UNITS, COST_REFERENCE,
@@ -55,7 +58,7 @@ export {
 // naming an effect names it from here and has no business reaching past the
 // registry for the shape of one.
 export type {
-  EffectBuilder, EffectCost, EffectDescriptor, EffectFamily, EffectInstance, EffectParam,
+  EffectBuilder, EffectCost, EffectDescriptor, EffectFamily, EffectInstance, EffectKnob, EffectParam,
   EffectParams, EffectScope, FieldKind, ParamRate, ParamSetter, ParamSpec, ParamUnit,
 } from './contract.ts';
 
@@ -71,6 +74,12 @@ export const REGISTRY: EffectDescriptor[] = [
   filter, ladder, eq, autoWah, formant,
   phaser, autoPan, lfoParam, ringMod,
   width, haas, mono,
+  // round KV1: a bus drive with its trims and a tone, and a worn-tape low-pass
+  // with a wandering head
+  drive, lofi,
+  // round B1 of the bass: a driven copy of the bass summed under the clean
+  // one, a bus insert the composer's places ask for
+  bassDrive,
 ];
 
 /** Every descriptor by its id. */

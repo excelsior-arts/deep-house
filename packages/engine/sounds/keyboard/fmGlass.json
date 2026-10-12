@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmGlass",
+  "revision": 1,
+  "topology": "fm-key",
+  "block": "fmGlass",
+  "parameters": {
+    "ratio": 4.27,
+    "index": [
+      0.8,
+      2.6
+    ],
+    "indexDecay": 0.34,
+    "indexFloor": 0.02,
+    "modulator2": {
+      "ratio": 1.71,
+      "index": [
+        0.4,
+        1.4
+      ],
+      "decay": 0.12
+    },
+    "tine": null,
+    "attack": 0.003,
+    "decay": 1.1,
+    "sustain": 0.1,
+    "release": 0.7,
+    "lpHz": 9000,
+    "hpHz": 200,
+    "detuneCents": 5,
+    "spread": 0.45,
+    "trim": 1.006,
+    "dur": 0.7,
+    "minDur": 0.08,
+    "delay": 0.28,
+    "reverb": 0.42
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "melody",
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "fmGlass": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.12,
+        "brightnessHz": 8000,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fm-keys.ts",
+    "note": "Three operators: a second modulator on the first, which makes partials at every sum and difference of two inharmonic series instead of one. The haze is why the index has to fall faster than the bell's."
+  }
+}

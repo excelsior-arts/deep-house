@@ -187,6 +187,105 @@ export const FLAGGED: ReadonlyArray<{ id: string; kind: string; why: string; sin
 
 const FLAGGED_IDS = new Set<string>(FLAGGED.map((f) => String(f.id)));
 
+/**
+ * **What is registered and admitted by no part yet** — round KV1 of the
+ * kitchen (2026-09-27): voices and treatments for the middle and the top of
+ * the record. The kitchen builds the voice or the treatment, registers it and
+ * measures it; the composer admits it where a part asks for that sound. Until
+ * one does, it stands here: a voice here is **left out** of every list the
+ * registry would otherwise widen it into (at nought it would still be a
+ * timbre the lists name, and a named timbre is read by the ring's words, the
+ * loudness fit and the recipes' class windows — MEASURED: the shimmer at
+ * nought in the lead lists moved 21323 theme 2's trim), and a treatment here
+ * (named `fx:<id>`) is on no row of the rota, for the same reason one step
+ * further out (`TREATMENT_ROTA` says it). Not flagged —
+ * nothing is wrong with it, and a side table may draw it, which `FLAGGED`
+ * forbids — only not the house's.
+ *
+ * It is a list by name for the reason `INCUMBENTS` is: *which* instruments the
+ * house does not play is a fact about the record and not a property any
+ * descriptor states. An entry leaves it in the commit that admits it, and that
+ * commit is a re-bless of house-v2 and says so.
+ */
+export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }> = Object.freeze([
+  { id: 'siren', since: '2026-09-27', for: 'a tone that glides up or down by a stated interval over a share of its note' },
+  { id: 'organStab', since: '2026-09-27', for: 'a struck organ: drawbars, a key click and a short stab' },
+  { id: 'fx:drive', since: '2026-09-27', for: 'a soft clip on a bus, the drums first, with input and output trims and a tone' },
+  { id: 'fx:lofi', since: '2026-09-27', for: 'a worn-tape treatment: a low-pass and a wandering head' },
+  // Round B1: a bus insert the places ask for (`BASS_DRIVE`, written into a
+  // theme's settings), never a rota draw -- the rota treats the harmonic
+  // lanes, and the sub never takes a treatment. Here so the rota stays the
+  // thirty-two rows it is.
+  { id: 'fx:bassDrive', since: '2026-10-02', for: 'a driven copy of the bass summed under the clean one, on the bass bus where a place asks' },
+  // Round LIQUID-KEYS: ten soft keyboards for a backdrop and a haze to layer
+  // under one, his to pick on the keys lab page (notes/rounds/liquid-keys.md);
+  // a part admits the picks in a later round.
+  { id: 'pianoUpright', since: '2026-10-10', for: 'a dark upright for held chords under a backdrop' },
+  { id: 'pianoWorn', since: '2026-10-10', for: 'a worn small piano for a tape treatment' },
+  { id: 'pianoMellow', since: '2026-10-10', for: 'a mellow bright grand for held chords' },
+  { id: 'keysReed', since: '2026-10-10', for: 'a reed electric piano with an amplifier tremolo' },
+  { id: 'malletSoft', since: '2026-10-10', for: 'a soft-mallet vibraphone to layer with a keyboard' },
+  { id: 'padHaze', since: '2026-10-10', for: 'a dark haze to layer under a keyboard' },
+  // Its second round (10-10): eight more, the same way.
+  { id: 'pianoMute', since: '2026-10-10', for: 'a muted felt upright for held chords' },
+  { id: 'pianoCassette', since: '2026-10-10', for: 'an upright for a cassette treatment' },
+  { id: 'pianoElectric', since: '2026-10-10', for: 'an electric grand with a pickup zing' },
+  { id: 'keysReedAmp', since: '2026-10-10', for: 'a mellow reed electric piano for a small amplifier' },
+  { id: 'fmSineLayer', since: '2026-10-10', for: 'a near-pure sine to double a piano' },
+].map((e) => Object.freeze(e)));
+
+/**
+ * **What a place admits and no list does** — round GA6 (2026-09-27): the
+ * kitchen's voices that left `AWAITING` because a place table names them
+ * (`style.places`, `src/styles/deep-house-places.ts`): the bass lane's three
+ * sounds and the held and struck layers' three, each a swap on a lane that
+ * already plays a voice as dear. Admitted, so a place may play them; still kept
+ * out of every list the registry widens, for `AWAITING`'s own measured reason —
+ * a timbre a list names is read at any weight, and a list widened by rule 2
+ * would open them at the house's own birds.
+ */
+export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }> = Object.freeze([
+  { id: 'reeseBass', since: '2026-09-27', for: 'the bass at a fast broken beat, rolling in the mid-range' },
+  { id: 'reeseDriven', since: '2026-09-27', for: 'the bass at a broken beat at a driving tempo, a denser riff' },
+  { id: 'line303', since: '2026-09-27', for: 'the bass at a driving four, a resonant swept line' },
+  { id: 'shimmerPad', since: '2026-09-27', for: 'the held layer where the pulse floats, octaves climbing above 2 kHz' },
+  { id: 'supersawLead', since: '2026-09-27', for: 'the held layer at the high four, wide and opening as it holds' },
+  { id: 'organStab', since: '2026-09-27', for: 'the struck layer at the bright four, drawbars and a key click' },
+  { id: 'reeseDeep', since: '2026-10-02', for: 'the bass at a fast broken beat with the weight up, a sine under the roll (round DNB-1)' },
+  { id: 'kickTight', since: '2026-10-02', for: 'the kick at a fast broken beat, short so the sub owns the low band after the hit (round DNB-2)' },
+  { id: 'snareDry', since: '2026-10-02', for: 'the snare at a fast broken beat, dry: half the decay and a quarter of the room (round DNB-2)' },
+  { id: 'kickPunchHigh', since: '2026-10-05', for: 'the kick at a fast broken beat, its punch at 100 Hz over the line\'s sub (round DNB-7)' },
+  { id: 'snareGhost', since: '2026-10-06', for: 'the ghost before the soft backbeat at a fast broken beat (hands-on)' },
+  { id: 'snareCrack', since: '2026-10-05', for: 'the snare at a fast broken beat, its crack over a shell at 400 Hz (round DNB-7)' },
+  { id: 'hatShut', since: '2026-10-05', for: 'the closed hat at a fast broken beat, noise more than metal (round DNB-4)' },
+  { id: 'hatSoft', since: '2026-10-06', for: 'the soft closed hat of the liquid kit, its own row so the house keeps its tight hat' },
+  { id: 'kickKnock', since: '2026-10-04', for: 'the kick at the deep half-time place, a punch over the bass line rather than the sub under it (round DUB-1)' },
+  { id: 'reeseWobble', since: '2026-10-04', for: 'the bass at the deep half-time place, a sine carrying the low end under saws swept on the grid (round DUB-1)' },
+  { id: 'reeseSub', since: '2026-10-05', for: 'the line at a fast broken beat, a sine that glides and wobbles on the eighths under a faint swept pair of saws (round DNB-5)' },
+  // liquid-space round 1: the warm pianos and electric pianos of the keys lab, the sparse keys part's tones at the
+  // fast broken places (`KEYS`, `recipes/keys/draw.json`), each the voice of a tone row
+  { id: 'pianoClose', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: an intimate close soft grand for held chords' },
+  { id: 'pianoConcert', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a warm concert grand to sit far back' },
+  { id: 'fmEpSoft', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a two-operator electric piano played soft' },
+  { id: 'fmEpGlass', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a glassy electric piano with a high tine' },
+  { id: 'pianoFelt', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a felt-damped grand for held chords under a backdrop' },
+  { id: 'keysSuitcase', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a tine electric piano with a stereo tremolo' },
+  { id: 'keysTineDark', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a darker tine electric piano with a soft bark' },
+  { id: 'airBed', since: '2026-10-11', for: 'the dark air the fast places lay under their exposed passages, their surface row (liquid-space)' },
+].map((e) => Object.freeze(e)));
+
+const AWAITING_IDS = new Set<string>(AWAITING.map((a) => a.id));
+/** Kept out of the registry's widened lists: the awaiting, and what only a place admits. */
+const UNLISTED_IDS = new Set<string>([...AWAITING_IDS, ...BY_PLACE.map((a) => a.id)]);
+
+/** The awaiting treatments, as the rota would name them: registered and on no row of it. */
+export const AWAITING_TREATMENTS: readonly string[] = Object.freeze(AWAITING.map((a) => a.id).filter((id) => id.startsWith('fx:')));
+
+/** Why an entry opens at nought before any arithmetic is done, or null when nothing says so. */
+const closedBy = (id: string): Dropped | null => (FLAGGED_IDS.has(id) ? { by: 'rule 3', why: reasonFlagged(id) }
+  : AWAITING_IDS.has(id) ? { by: 'awaiting', why: `registered and admitted by no part yet: ${(AWAITING.find((a) => a.id === id) as { for: string }).for}` }
+    : null);
+
 /** The mean weight of what a list already holds, which is rule 2's denominator. */
 const meanWeight = (entries: readonly { w: number }[]): number =>
   entries.length ? entries.reduce((s, e) => s + e.w, 0) / entries.length : 1;
@@ -197,7 +296,7 @@ const meanWeight = (entries: readonly { w: number }[]): number =>
  * and nobody is going to argue about the third one.
  */
 function openingWeight(id: string, incumbents: readonly { w: number }[], kind: 'voice' | 'treatment'): number {
-  if (FLAGGED_IDS.has(id)) return 0;
+  if (closedBy(id) || (kind === 'treatment' && closedBy(`fx:${id}`))) return 0;
   return +(meanWeight(incumbents) * OPENING_SHARE[kind]).toFixed(2);
 }
 
@@ -229,7 +328,7 @@ function widen(
   for (const v of newcomers) {
     if (have.has(v)) continue;
     const opened = openingWeight(v, incumbents, kind);
-    const off = opened > 0 ? dropped(v) : { by: 'rule 3', why: reasonFlagged(v) };
+    const off = opened > 0 ? dropped(v) : closedBy(v) || { by: 'rule 3', why: reasonFlagged(v) };
     out.push(off ? { v, w: 0, opened, dropped: Object.freeze(off) } : { v, w: opened, opened });
   }
   return Object.freeze(out.map((e) => Object.freeze(e)));
@@ -250,6 +349,10 @@ function timbresByRole(...roles: VoiceRole[]): string[] {
   const out: string[] = [];
   for (const d of REGISTRY) {
     if (!roles.some((r) => d.roles.includes(r))) continue;
+    // An awaiting voice is in no list the registry widens into: at nought it
+    // would still be a timbre the lists name, and a named timbre is read by the
+    // ring's words, the loudness fit and the recipes' class windows.
+    if (UNLISTED_IDS.has(d.name)) continue;
     // The harmonic half only: a drum's "timbre" is the name of a drum and a
     // lead list that could draw a cowbell is a lead list nobody meant.
     if (d.family !== 'keyboard' && d.family !== 'ensemble') continue;
@@ -260,7 +363,7 @@ function timbresByRole(...roles: VoiceRole[]): string[] {
 
 /** Every registered voice that declares a role, in registry order. */
 const voicesByRole = (role: VoiceRole): string[] =>
-  REGISTRY.filter((d) => d.roles.includes(role)).map((d) => d.name);
+  REGISTRY.filter((d) => d.roles.includes(role) && !UNLISTED_IDS.has(d.name)).map((d) => d.name);
 
 // --- the lanes the record already plays --------------------------------------
 
@@ -464,7 +567,7 @@ const CEILING_SAYS = admitUnderCeiling(OPENED_ROTA.filter((e) => e.opened > 0).m
  */
 export const DROPPED_FOR_COST: ReadonlyArray<{ id: string; units: number; why: string }> = Object.freeze([...CEILING_SAYS.dropped.entries()]
   .map(([id, d]) => Object.freeze({ id: `fx:${id}`, units: d.units, why: d.why }))
-  .sort((a, b) => b.units - a.units || a.id.localeCompare(b.id)));
+  .sort((a, b) => b.units - a.units || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)));
 
 /**
  * The rota, widened with one instance of every registered effect, by family, in
@@ -480,11 +583,16 @@ export const DROPPED_FOR_COST: ReadonlyArray<{ id: string; units: number; why: s
  */
 export const TREATMENT_ROTA: readonly RotaEntry[] = Object.freeze([
   ...INCUMBENT_ROTA,
-  ...EFFECTS.map((d) => {
+  // An awaiting treatment is not on the rota at all, as an awaiting voice is
+  // in no list: the rota is the stage's palette, the palette is part of the
+  // stage every program carries, and the program lock hashes it (MEASURED: two
+  // rows at nought moved house-v2's settings line, and a row left off the
+  // palette alone misaligned every recipe's lean on it).
+  ...EFFECTS.filter((d) => !AWAITING_IDS.has(`fx:${d.id}`)).map((d) => {
     const opened = openingWeight(d.id, INCUMBENT_ROTA, 'treatment');
     const off = opened > 0
       ? CEILING_SAYS.dropped.get(d.id) || null
-      : { by: 'rule 3', why: reasonFlagged(d.id) };
+      : closedBy(d.id) || closedBy(`fx:${d.id}`) || { by: 'rule 3', why: reasonFlagged(d.id) };
     return Object.freeze({
       v: `fx:${d.id}`,
       w: off ? 0 : opened,

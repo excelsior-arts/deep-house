@@ -1,0 +1,348 @@
+{
+ "schema": 1,
+ "kind": "keys-motifs",
+ "round": "liquid-keys",
+ "revision": 1,
+ "note": "The motif round a landing: pre notes (a pickup in the last bar or two before a chord lands, leading into its top or an inner voice) and post notes (an answer after the strike, in the chord's bars 1-3, softer, left for the delay to repeat). A grammar, drawn by a seed per landing (in the loop, a seed per 16-bar cycle), so no lick repeats; the rows say how dense a motif is. Times are sixteenths from the landing's downbeat (negative before it); `steps` are steps of the arriving chord's scale from the target note; velocities are fractions of the chord's top note, so the motif sits under it; `lateMs` is how far behind the grid each note is played, drawn per note.",
+ "grammar": {
+  "pre": {
+   "windowSteps": 32,
+   "counts": {
+    "2": 3,
+    "3": 4,
+    "4": 2,
+    "5": 1
+   },
+   "cells": {
+    "2": [
+     {
+      "at": [-4, -2],
+      "weight": 2
+     },
+     {
+      "at": [-6, -3],
+      "weight": 1
+     },
+     {
+      "at": [-10, -6],
+      "weight": 1
+     },
+     {
+      "at": [-3, -1],
+      "weight": 1
+     },
+     {
+      "at": [-8, -2],
+      "weight": 1
+     },
+     {
+      "at": [-5, -2],
+      "weight": 1
+     }
+    ],
+    "3": [
+     {
+      "at": [-6, -4, -2],
+      "weight": 2
+     },
+     {
+      "at": [-8, -5, -2],
+      "weight": 2
+     },
+     {
+      "at": [-12, -8, -3],
+      "weight": 1
+     },
+     {
+      "at": [-7, -4, -1],
+      "weight": 1
+     },
+     {
+      "at": [-10, -6, -3],
+      "weight": 1
+     },
+     {
+      "at": [-14, -6, -2],
+      "weight": 1
+     }
+    ],
+    "4": [
+     {
+      "at": [-14, -10, -6, -2],
+      "weight": 2
+     },
+     {
+      "at": [-12, -9, -6, -2],
+      "weight": 1
+     },
+     {
+      "at": [-16, -11, -6, -3],
+      "weight": 1
+     },
+     {
+      "at": [-22, -16, -10, -4],
+      "weight": 1
+     },
+     {
+      "at": [-10, -7, -4, -1],
+      "weight": 1
+     }
+    ],
+    "5": [
+     {
+      "at": [-28, -22, -14, -8, -2],
+      "weight": 1
+     },
+     {
+      "at": [-16, -12, -8, -5, -2],
+      "weight": 1
+     },
+     {
+      "at": [-30, -24, -18, -10, -4],
+      "weight": 1
+     },
+     {
+      "at": [-20, -16, -11, -6, -3],
+      "weight": 1
+     }
+    ]
+   },
+   "contours": {
+    "rise": {
+     "weight": 3,
+     "says": "a rise by step into the target",
+     "steps": {
+      "2": [-2, -1],
+      "3": [-3, -2, -1],
+      "4": [-4, -3, -2, -1],
+      "5": [-5, -4, -3, -2, -1]
+     }
+    },
+    "fall": {
+     "weight": 3,
+     "says": "a fall by step onto the target",
+     "steps": {
+      "2": [2, 1],
+      "3": [3, 2, 1],
+      "4": [4, 3, 2, 1],
+      "5": [5, 4, 3, 2, 1]
+     }
+    },
+    "turn": {
+     "weight": 2,
+     "says": "a neighbour turn round the target",
+     "steps": {
+      "2": [1, -1],
+      "3": [0, 1, -1],
+      "4": [-1, 0, 1, -1],
+      "5": [2, 1, 0, 1, -1]
+     }
+    },
+    "leap": {
+     "weight": 2,
+     "says": "a fourth leap, then steps in",
+     "steps": {
+      "2": [-4, -1],
+      "3": [-5, -2, -1],
+      "4": [-2, 1, 2, 1],
+      "5": [-3, 0, 1, 2, 1]
+     }
+    },
+    "arch": {
+     "weight": 1,
+     "says": "up past the target and down onto it",
+     "steps": {
+      "2": [-1, 1],
+      "3": [-2, 0, 1],
+      "4": [-3, -1, 1, 2],
+      "5": [-2, 0, 1, 3, 2]
+     }
+    }
+   },
+   "targets": [
+    {
+     "voice": "top",
+     "weight": 3
+    },
+    {
+     "voice": "inner",
+     "weight": 1
+    }
+   ],
+   "vel": [0.6, 0.78],
+   "lateMs": [10, 34],
+   "legato": 1.15
+  },
+  "post": {
+   "windowSteps": [4, 48],
+   "shapes": [
+    {
+     "id": "step-up-back",
+     "steps": [1, 0],
+     "weight": 2
+    },
+    {
+     "id": "step-down-back",
+     "steps": [-1, 0],
+     "weight": 2
+    },
+    {
+     "id": "neighbour",
+     "steps": [1, -1, 0],
+     "weight": 1
+    },
+    {
+     "id": "sigh",
+     "steps": [2, 1],
+     "weight": 1
+    },
+    {
+     "id": "echo",
+     "steps": [0],
+     "weight": 1
+    },
+    {
+     "id": "lift",
+     "steps": [1],
+     "weight": 1
+    },
+    {
+     "id": "turn-down",
+     "steps": [-1, 1, 0],
+     "weight": 1
+    },
+    {
+     "id": "settle",
+     "steps": [2, 1, 0],
+     "weight": 1
+    }
+   ],
+   "cells": {
+    "1": [
+     {
+      "at": [6],
+      "weight": 1
+     },
+     {
+      "at": [10],
+      "weight": 1
+     },
+     {
+      "at": [14],
+      "weight": 1
+     },
+     {
+      "at": [22],
+      "weight": 1
+     },
+     {
+      "at": [26],
+      "weight": 1
+     },
+     {
+      "at": [18],
+      "weight": 1
+     }
+    ],
+    "2": [
+     {
+      "at": [6, 10],
+      "weight": 1
+     },
+     {
+      "at": [10, 14],
+      "weight": 1
+     },
+     {
+      "at": [12, 20],
+      "weight": 1
+     },
+     {
+      "at": [22, 26],
+      "weight": 1
+     },
+     {
+      "at": [8, 18],
+      "weight": 1
+     },
+     {
+      "at": [14, 30],
+      "weight": 1
+     }
+    ],
+    "3": [
+     {
+      "at": [6, 10, 14],
+      "weight": 1
+     },
+     {
+      "at": [10, 14, 22],
+      "weight": 1
+     },
+     {
+      "at": [12, 18, 26],
+      "weight": 1
+     },
+     {
+      "at": [20, 26, 34],
+      "weight": 1
+     },
+     {
+      "at": [8, 12, 30],
+      "weight": 1
+     }
+    ]
+   },
+   "vel": [0.42, 0.58],
+   "lateMs": [14, 40],
+   "beats": 1.5
+  }
+ },
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-motif",
+   "id": "pickup-answer",
+   "revision": 1,
+   "name": "Pickup and answer",
+   "density": "pre-post",
+   "bare": 0.15,
+   "says": "Before most landings a pickup of two to five notes leading into the chord, and after the strike an answer of one to three softer notes; about one landing in seven bare."
+  },
+  {
+   "schema": 1,
+   "kind": "keys-motif",
+   "id": "pickup",
+   "revision": 1,
+   "name": "Pickup only",
+   "density": "pre",
+   "bare": 0.15,
+   "says": "A pickup into most landings and nothing after: the chord rings alone once it lands."
+  },
+  {
+   "schema": 1,
+   "kind": "keys-motif",
+   "id": "sparing",
+   "revision": 1,
+   "name": "Sparing",
+   "density": "pre-post",
+   "bare": 0.5,
+   "counts": {
+    "2": 3,
+    "3": 2
+   },
+   "says": "Half the landings bare; the others a short pickup of two or three notes and sometimes an answer.",
+   "postChance": 0.5
+  },
+  {
+   "schema": 1,
+   "kind": "keys-motif",
+   "id": "bare",
+   "revision": 1,
+   "name": "No motif",
+   "density": "none",
+   "bare": 1,
+   "says": "The chords alone, struck where they land."
+  }
+ ]
+}

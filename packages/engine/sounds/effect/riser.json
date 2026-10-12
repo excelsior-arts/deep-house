@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "riser",
+  "revision": 1,
+  "topology": "noise-rise",
+  "parameters": {
+    "dur": 4,
+    "fromHz": 320,
+    "topHz": 7000,
+    "q": 2.2,
+    "gain": 0.7,
+    "rise": 0.92,
+    "release": 0.08,
+    "reverb": 0.3,
+    "delay": 0.1
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fx.ts",
+    "note": "A riser into a drop: noise through a band that climbs from 320 Hz over the note, its level rising over the first 92 per cent of it and falling after the line in 80 ms unless the note says."
+  }
+}

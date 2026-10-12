@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "karplusPluck",
+  "revision": 1,
+  "topology": "karplus",
+  "block": "karplusPluck",
+  "parameters": {
+    "burst": 0.006,
+    "damp": 0.56,
+    "dampVel": 0.13,
+    "decay": 1.9,
+    "maxSeconds": 1.7,
+    "ringLevel": 0.3,
+    "peakCeiling": 3.2,
+    "detuneCents": 5,
+    "spread": 0.7,
+    "attack": 0.0015,
+    "release": 0.09,
+    "cutoff": 3200,
+    "veloOpen": 0.7,
+    "hpHz": 160,
+    "cacheLimit": 48,
+    "trim": 1.4
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "karplusPluck": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.22,
+        "brightnessHz": 3200,
+        "loudnessDb": -13.2
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "karplus-pluck.ts",
+    "note": "A Karplus-Strong string: six milliseconds of noise into a delay line a period long with a lowpass in the loop, which is the oldest cheap string there is and still the most convincing one. **It is computed into a buffer and not built out of nodes, and that is a measurement about this engine rather than a preference.** A cycle through a DelayNode is quantised to a render quantum — 128 samples, 2.9 ms at 44.1 kHz — so a feedback delay cannot be shorter than that, and a string tuned by one cannot play above about 345 Hz. This instrument exists for the octaves *above* middle C, so the loop is arithmetic: a few thousand multiplies per pitch, done once and cached per context the way the pick and the piano's strings are.",
+    "notes": {
+      "burst": "The excitation: white noise, high-passed by the loop itself, this long.",
+      "damp": "The loop filter, as the weight on the newer of its two taps. 0.5 is the classic averager; nearer 1 is brighter and rings longer. Velocity moves it, which is a string plucked harder near the bridge.",
+      "decay": "How long the string takes to fall 60 dB, and how much of that is worth keeping in a buffer. A note's own envelope cuts it; this is the ceiling.",
+      "ringLevel": "What the *ring* is normalised to, and how far over it the pluck is allowed to stand. See the note at the head of the module: normalising a plucked string on its own attack transient put it seventeen decibels under every other instrument at the same level.",
+      "detuneCents": "The pair: the same string played twice, a few cents apart and to opposite sides. It is one buffer at two playback rates, so the width costs a multiply rather than a second string.",
+      "cutoff": "The body, outside the loop: velocity opens this and the string's own damping stays where it is, so a hard note is brighter without the cache needing a second copy of every pitch.",
+      "cacheLimit": "How many strings one context keeps. A buffer is a second and a half of one channel — about 300 kB at 48 kHz — and a theme plays a couple of octaves, so this is the ceiling and not the usual cost."
+    }
+  }
+}

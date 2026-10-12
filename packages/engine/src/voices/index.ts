@@ -24,45 +24,145 @@ import { VOICE_COST_UNITS as VOICE_COST_UNITS_TABLE, knobFaults as knobFaultsOf,
 import type {
   Descriptor, Knobs, LazyReturn, NoteParams, PrepareHook, PrepareOptions, TimbreFacts, VoiceBus, VoiceRenderer,
 } from './descriptor.ts';
-import { INSTRUMENTS } from '../params.ts';
+import { BLOCKS, INSTRUMENTS } from '../params.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
-import { kick, descriptor as kickDescriptor } from './kick.ts';
-import { hatClosed, hatOpen, shaker, descriptors as hatDescriptors } from './hats.ts';
-import { clap, descriptor as clapDescriptor } from './clap.ts';
-import { sub, descriptor as subDescriptor } from './bass.ts';
-import { keys, KEYS_TIMBRES, descriptor as keysDescriptor } from './keys.ts';
-import { STRINGS_TIMBRES, holdStrings, stringsAttack } from './strings.ts';
-import { pad, descriptor as padDescriptor } from './pad.ts';
-import { piano, pianoCacheStats, PIANO_TIMBRES, descriptor as pianoDescriptor } from './piano.ts';
-import { riser, sweepDown, swell, impact, GLUE_SHAPES, descriptors as fxDescriptors } from './fx.ts';
-import { pluckBass, pickCacheSize, PLUCK_BASS_TIMBRES, descriptor as pluckBassDescriptor } from './pluck-bass.ts';
-import { sawLead, SAW_LEAD_TIMBRES, descriptor as sawLeadDescriptor } from './saw-lead.ts';
-import { fmBell, FM_BELL_TIMBRES, descriptor as fmBellDescriptor } from './fm-bell.ts';
-import { karplusPluck, stringCacheSize, KARPLUS_TIMBRES, descriptor as karplusPluckDescriptor } from './karplus-pluck.ts';
-import { formantPad, holdFormantPad, FORMANT_PAD_TIMBRES, descriptor as formantPadDescriptor } from './formant-pad.ts';
-import { clavKey, CLAV_KEY_TIMBRES, descriptor as clavKeyDescriptor } from './clav-key.ts';
-import { supersawPad, holdSupersawPad, SUPERSAW_PAD_TIMBRES, descriptor as supersawPadDescriptor } from './supersaw-pad.ts';
-import { conga, bongo, CONGA_TIMBRES, descriptors as congaDescriptors } from './congas.ts';
-import { snare, rimshot, SNARE_TIMBRES, descriptors as snareDescriptors } from './snare.ts';
-import { hatTight, hatLoose, hatSizzle, HATS_KIT_TIMBRES, descriptors as hatsKitDescriptors } from './hats-kit.ts';
-import { ride, crash, CYMBAL_TIMBRES, descriptors as cymbalDescriptors } from './cymbals.ts';
-import { tom, TOM_TIMBRES, descriptor as tomDescriptor } from './toms.ts';
-import { cabasa, tambourine, cowbell, woodblock, PERC_TIMBRES, descriptors as percDescriptors } from './perc.ts';
-import { kickLong, kickPunch, ALT_KICK_TIMBRES, descriptors as altKickDescriptors } from './kicks-alt.ts';
-import { pulseLead, triLead, PULSE_LEAD_TIMBRES, TRI_LEAD_TIMBRES, descriptors as waveLeadDescriptors } from './wave-leads.ts';
-import { subSoft, subTri, SUB_SOFT_TIMBRES, SUB_TRI_TIMBRES, descriptors as subDescriptors } from './subs.ts';
-import { sawPad, SAW_PAD_TIMBRES, descriptor as sawPadDescriptor } from './saw-pad.ts';
-import { fmGlass, fmEp, fmPluck, FM_GLASS_TIMBRES, FM_EP_TIMBRES, FM_PLUCK_TIMBRES, descriptors as fmKeyDescriptors } from './fm-keys.ts';
-import { marimba, vibes, MARIMBA_TIMBRES, VIBES_TIMBRES, descriptors as malletDescriptors } from './mallets.ts';
-import { brightPiano, reedOrgan, BRIGHT_PIANO_TIMBRES, REED_ORGAN_TIMBRES, descriptors as keys2Descriptors } from './keys-2.ts';
-import { vinylBed, grainPad, holdGrainPad, sweepUp, VINYL_BED_TIMBRES, GRAIN_PAD_TIMBRES, SWEEP_UP_TIMBRES, descriptors as textureDescriptors } from './texture.ts';
-import { wavePad, holdWavePad, WAVE_PAD_TIMBRES, descriptor as wavePadDescriptor } from './wave-pad.ts';
-import { descriptor as wordlessVocalDescriptor } from './wordless-vocal.ts';
+import { holdStrings, stringsAttack } from './strings.ts';
+import { pianoCacheStats } from './piano.ts';
+import { pickCacheSize } from './pluck-bass.ts';
+import { stringCacheSize } from './karplus-pluck.ts';
+import { holdFormantPad } from './formant-pad.ts';
+import { holdSupersawPad } from './supersaw-pad.ts';
+import { holdGrainPad } from './texture.ts';
+import { holdWavePad } from './wave-pad.ts';
+import { asSound, admittedOf, provePatch, soundDescriptor, voicedPatch } from './sound.ts';
+import type { SoundRow } from './sound.ts';
+import { TOPOLOGIES } from './topologies.ts';
+import { targetOf, timbreOf } from './dispatch.ts';
+// The sounds that are rows (round R1): read here where their modules were
+// imported, and standing in `REGISTRY` where those stood.
+import kickRow from '../../sounds/drum/kick.json' with { type: 'json' };
+import kickLongRow from '../../sounds/drum/kickLong.json' with { type: 'json' };
+import kickPunchRow from '../../sounds/drum/kickPunch.json' with { type: 'json' };
+import subRow from '../../sounds/bass/sub.json' with { type: 'json' };
+import reeseBassRow from '../../sounds/bass/reeseBass.json' with { type: 'json' };
+import reeseDrivenRow from '../../sounds/bass/reeseDriven.json' with { type: 'json' };
+import reeseDeepRow from '../../sounds/bass/reeseDeep.json' with { type: 'json' };
+import kickTightRow from '../../sounds/drum/kickTight.json' with { type: 'json' };
+import snareDryRow from '../../sounds/drum/snareDry.json' with { type: 'json' };
+import kickPunchHighRow from '../../sounds/drum/kickPunchHigh.json' with { type: 'json' };
+import snareCrackRow from '../../sounds/drum/snareCrack.json' with { type: 'json' };
+import snareGhostRow from '../../sounds/drum/snareGhost.json' with { type: 'json' };
+import hatShutRow from '../../sounds/noise/hatShut.json' with { type: 'json' };
+import hatSoftRow from '../../sounds/noise/hatSoft.json' with { type: 'json' };
+import kickKnockRow from '../../sounds/drum/kickKnock.json' with { type: 'json' };
+import reeseWobbleRow from '../../sounds/bass/reeseWobble.json' with { type: 'json' };
+import reeseSubRow from '../../sounds/bass/reeseSub.json' with { type: 'json' };
+import line303Row from '../../sounds/bass/line303.json' with { type: 'json' };
+import congaRow from '../../sounds/drum/conga.json' with { type: 'json' };
+import bongoRow from '../../sounds/drum/bongo.json' with { type: 'json' };
+import snareRow from '../../sounds/drum/snare.json' with { type: 'json' };
+import rimshotRow from '../../sounds/drum/rimshot.json' with { type: 'json' };
+import hatTightRow from '../../sounds/noise/hatTight.json' with { type: 'json' };
+import hatLooseRow from '../../sounds/noise/hatLoose.json' with { type: 'json' };
+import hatSizzleRow from '../../sounds/noise/hatSizzle.json' with { type: 'json' };
+import rideRow from '../../sounds/noise/ride.json' with { type: 'json' };
+import crashRow from '../../sounds/noise/crash.json' with { type: 'json' };
+import tomRow from '../../sounds/drum/tom.json' with { type: 'json' };
+import cabasaRow from '../../sounds/noise/cabasa.json' with { type: 'json' };
+import tambourineRow from '../../sounds/noise/tambourine.json' with { type: 'json' };
+import cowbellRow from '../../sounds/drum/cowbell.json' with { type: 'json' };
+import woodblockRow from '../../sounds/drum/woodblock.json' with { type: 'json' };
+import clapRow from '../../sounds/drum/clap.json' with { type: 'json' };
+import pluckBassRow from '../../sounds/bass/pluckBass.json' with { type: 'json' };
+import sawLeadRow from '../../sounds/keyboard/sawLead.json' with { type: 'json' };
+import fmBellRow from '../../sounds/keyboard/fmBell.json' with { type: 'json' };
+import karplusPluckRow from '../../sounds/keyboard/karplusPluck.json' with { type: 'json' };
+import formantPadRow from '../../sounds/ensemble/formantPad.json' with { type: 'json' };
+import clavKeyRow from '../../sounds/keyboard/clavKey.json' with { type: 'json' };
+import supersawPadRow from '../../sounds/ensemble/supersawPad.json' with { type: 'json' };
+import sawPadRow from '../../sounds/ensemble/sawPad.json' with { type: 'json' };
+import brightPianoRow from '../../sounds/keyboard/brightPiano.json' with { type: 'json' };
+import reedOrganRow from '../../sounds/keyboard/reedOrgan.json' with { type: 'json' };
+import wavePadRow from '../../sounds/ensemble/wavePad.json' with { type: 'json' };
+import shimmerPadRow from '../../sounds/ensemble/shimmerPad.json' with { type: 'json' };
+import supersawLeadRow from '../../sounds/keyboard/supersawLead.json' with { type: 'json' };
+import sirenRow from '../../sounds/effect/siren.json' with { type: 'json' };
+import organStabRow from '../../sounds/keyboard/organStab.json' with { type: 'json' };
+import pulseLeadRow from '../../sounds/keyboard/pulseLead.json' with { type: 'json' };
+import triLeadRow from '../../sounds/keyboard/triLead.json' with { type: 'json' };
+import vinylBedRow from '../../sounds/noise/vinylBed.json' with { type: 'json' };
+import grainPadRow from '../../sounds/ensemble/grainPad.json' with { type: 'json' };
+import sweepUpRow from '../../sounds/effect/sweepUp.json' with { type: 'json' };
+import hatClosedRow from '../../sounds/noise/hatClosed.json' with { type: 'json' };
+import hatOpenRow from '../../sounds/noise/hatOpen.json' with { type: 'json' };
+import shakerRow from '../../sounds/noise/shaker.json' with { type: 'json' };
+import fmGlassRow from '../../sounds/keyboard/fmGlass.json' with { type: 'json' };
+import fmEpRow from '../../sounds/keyboard/fmEp.json' with { type: 'json' };
+import fmPluckRow from '../../sounds/keyboard/fmPluck.json' with { type: 'json' };
+import marimbaRow from '../../sounds/keyboard/marimba.json' with { type: 'json' };
+import vibesRow from '../../sounds/keyboard/vibes.json' with { type: 'json' };
+import subSoftRow from '../../sounds/bass/subSoft.json' with { type: 'json' };
+import subTriRow from '../../sounds/bass/subTri.json' with { type: 'json' };
+import riserRow from '../../sounds/effect/riser.json' with { type: 'json' };
+import sweepDownRow from '../../sounds/effect/sweepDown.json' with { type: 'json' };
+import swellRow from '../../sounds/effect/swell.json' with { type: 'json' };
+import impactRow from '../../sounds/effect/impact.json' with { type: 'json' };
+// ...and round SOUNDS-R3's: the record's own roles, the last four that were
+// modules — two of them dispatchers over the rows their timbres render through.
+import padRow from '../../sounds/ensemble/pad.json' with { type: 'json' };
+import keysRow from '../../sounds/keyboard/keys.json' with { type: 'json' };
+import pianoRow from '../../sounds/keyboard/piano.json' with { type: 'json' };
+import wordlessVocalRow from '../../sounds/vocal/wordlessVocal.json' with { type: 'json' };
+import stringsPadRow from '../../sounds/ensemble/stringsPad.json' with { type: 'json' };
+import stringsSwellRow from '../../sounds/ensemble/stringsSwell.json' with { type: 'json' };
+import keysRhodesRow from '../../sounds/keyboard/keysRhodes.json' with { type: 'json' };
+import keysGlassRow from '../../sounds/keyboard/keysGlass.json' with { type: 'json' };
+import keysEpRow from '../../sounds/keyboard/keysEp.json' with { type: 'json' };
+import keysOrganRow from '../../sounds/keyboard/keysOrgan.json' with { type: 'json' };
+import keysPluckRow from '../../sounds/keyboard/keysPluck.json' with { type: 'json' };
+// ...and round LIQUID-KEYS's: soft keyboards for a backdrop (and a haze to layer
+// under one), candidates for his pick on the keys lab page, admitted by no part yet.
+import pianoFeltRow from '../../sounds/keyboard/pianoFelt.json' with { type: 'json' };
+import pianoUprightRow from '../../sounds/keyboard/pianoUpright.json' with { type: 'json' };
+import pianoWornRow from '../../sounds/keyboard/pianoWorn.json' with { type: 'json' };
+import pianoMellowRow from '../../sounds/keyboard/pianoMellow.json' with { type: 'json' };
+import keysSuitcaseRow from '../../sounds/keyboard/keysSuitcase.json' with { type: 'json' };
+import keysReedRow from '../../sounds/keyboard/keysReed.json' with { type: 'json' };
+import fmEpSoftRow from '../../sounds/keyboard/fmEpSoft.json' with { type: 'json' };
+import fmEpGlassRow from '../../sounds/keyboard/fmEpGlass.json' with { type: 'json' };
+import malletSoftRow from '../../sounds/keyboard/malletSoft.json' with { type: 'json' };
+import padHazeRow from '../../sounds/ensemble/padHaze.json' with { type: 'json' };
+// ...and its second round's eight: more pianos and electric pianos to pick from,
+// and a sine to double a piano with, admitted by no part yet.
+import pianoCloseRow from '../../sounds/keyboard/pianoClose.json' with { type: 'json' };
+import pianoMuteRow from '../../sounds/keyboard/pianoMute.json' with { type: 'json' };
+import pianoConcertRow from '../../sounds/keyboard/pianoConcert.json' with { type: 'json' };
+import pianoCassetteRow from '../../sounds/keyboard/pianoCassette.json' with { type: 'json' };
+import pianoElectricRow from '../../sounds/keyboard/pianoElectric.json' with { type: 'json' };
+import keysTineDarkRow from '../../sounds/keyboard/keysTineDark.json' with { type: 'json' };
+import keysReedAmpRow from '../../sounds/keyboard/keysReedAmp.json' with { type: 'json' };
+import fmSineLayerRow from '../../sounds/keyboard/fmSineLayer.json' with { type: 'json' };
+// liquid-space (10-11): the dark air the surface row lays under the exposed passages, the vinyl topology on a narrow band.
+import airBedRow from '../../sounds/noise/airBed.json' with { type: 'json' };
 
 export { FAMILIES, ROLES, BUSES, FIELDS, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from './descriptor.ts';
 export { KNOB_UNITS, KNOB_BIRDS, knobFaults, knobScale, knobsOf } from './descriptor.ts';
 export { CONTROL_UNITS, SEND_CONTROL, controlFaults, noteControl, withControls } from './descriptor.ts';
+export { asSound, soundDescriptor, soundFaults, soundLine, patchOf, rowBase, admittedOf } from './sound.ts';
+export type { SoundRow, SoundDescriptor, Topology } from './sound.ts';
+export { TOPOLOGIES } from './topologies.ts';
+
+/**
+ * A sound row as a registry entry: read off its JSON, held to its topology,
+ * and the descriptor built from the two (`sound.ts`). Every row stands in
+ * `REGISTRY` below where its module used to, so the order every derived table
+ * comes out in is the order it was.
+ */
+export const sound = (raw: unknown): Descriptor => {
+  const row: SoundRow = asSound(raw);
+  return soundDescriptor(row, TOPOLOGIES[row.topology]);
+};
 
 // The contract's own types, out of the same door as its values: a consumer
 // naming a voice names it from here and has no business reaching past the
@@ -110,6 +210,26 @@ export function prepareVoices(
 
 export { pianoCacheStats };
 
+// --- the rows a dispatcher renders through -----------------------------------
+//
+// Round SOUNDS-R3: the sustained role (`pad`) and the rhythmic one (`keys`) are
+// event names that stand for several sounds, each a row of its own (the two
+// strings families, the five keyboard patches), which the dispatcher renders a
+// note through by its timbre (`dispatch.ts`). These are rows and not event
+// names: admitted here, held to their topologies like every row, each with its
+// device, and in no table below — no die and no lane can draw one, no lock
+// names one but through the event that renders through it. Admitted before the
+// registry, because a dispatcher's own admission asks that its table's rows be.
+export const TIMBRE_ROWS: Descriptor[] = [
+  sound(stringsPadRow),
+  sound(stringsSwellRow),
+  sound(keysRhodesRow),
+  sound(keysGlassRow),
+  sound(keysEpRow),
+  sound(keysOrganRow),
+  sound(keysPluckRow),
+];
+
 // --- the registry -----------------------------------------------------------
 //
 // The order is the order every derived table below comes out in, and it is the
@@ -117,14 +237,19 @@ export { pianoCacheStats };
 // then the two harmonic roles and the piano, then the glue. Where a consumer
 // needs a lane order, this is where it comes from.
 export const REGISTRY: Descriptor[] = [
-  kickDescriptor,
-  ...hatDescriptors,
-  clapDescriptor,
-  subDescriptor,
-  keysDescriptor,
-  padDescriptor,
-  pianoDescriptor,
-  ...fxDescriptors,
+  sound(kickRow),
+  sound(hatClosedRow),
+  sound(hatOpenRow),
+  sound(shakerRow),
+  sound(clapRow),
+  sound(subRow),
+  sound(keysRow),
+  sound(padRow),
+  sound(pianoRow),
+  sound(riserRow),
+  sound(sweepDownRow),
+  sound(swellRow),
+  sound(impactRow),
   // ...and then the audition instruments, after everything the record is made
   // of.
   //
@@ -141,7 +266,7 @@ export const REGISTRY: Descriptor[] = [
   // locks were checked either side of the commit that put it here. It is last
   // because the order above is the order the record is heard in and an
   // instrument nothing plays does not belong in the middle of it.
-  pluckBassDescriptor,
+  sound(pluckBassRow),
   // ...and round K2's six above middle C (PLAN-KITCHEN): a saw lead, an FM
   // bell, a Karplus string, a formant pad, a clavinet and a supersaw pad. They
   // are here for the same reason and under the same rule as the one above
@@ -151,12 +276,12 @@ export const REGISTRY: Descriptor[] = [
   // put them here and neither moved. The order among them is the order they
   // were written and has no meaning beyond that; what matters is that all
   // seven auditions stand after everything the record is actually made of.
-  sawLeadDescriptor,
-  fmBellDescriptor,
-  karplusPluckDescriptor,
-  formantPadDescriptor,
-  clavKeyDescriptor,
-  supersawPadDescriptor,
+  sound(sawLeadRow),
+  sound(fmBellRow),
+  sound(karplusPluckRow),
+  sound(formantPadRow),
+  sound(clavKeyRow),
+  sound(supersawPadRow),
   // ...and round K3's drum kitchen (PLAN-KITCHEN), under the same rule again:
   // sixteen percussion instruments, every one of them registered so the
   // completeness gate sees it and a fixture can play it, named by no candidate
@@ -165,13 +290,22 @@ export const REGISTRY: Descriptor[] = [
   // moved. They stand after the harmonic auditions because the order above is
   // the order the record is heard in; the order among them is the order they
   // were written, family by family, and means nothing else.
-  ...congaDescriptors,
-  ...snareDescriptors,
-  ...hatsKitDescriptors,
-  ...cymbalDescriptors,
-  tomDescriptor,
-  ...percDescriptors,
-  ...altKickDescriptors,
+  sound(congaRow),
+  sound(bongoRow),
+  sound(snareRow),
+  sound(rimshotRow),
+  sound(hatTightRow),
+  sound(hatLooseRow),
+  sound(hatSizzleRow),
+  sound(rideRow),
+  sound(crashRow),
+  sound(tomRow),
+  sound(cabasaRow),
+  sound(tambourineRow),
+  sound(cowbellRow),
+  sound(woodblockRow),
+  sound(kickLongRow),
+  sound(kickPunchRow),
   // ...and round K4's sixteen (PLAN-KITCHEN), under the same rule for the third
   // time: two leads, two subs, a second saw pad, three FM voices, two mallets,
   // a bright piano register and a reed organ, three textures and a wavetable
@@ -181,20 +315,191 @@ export const REGISTRY: Descriptor[] = [
   // no seed moves. Both locks were checked either side of every commit that put
   // them here and neither moved. The order among them is the order they were
   // written, family by family.
-  ...waveLeadDescriptors,
-  ...subDescriptors,
-  sawPadDescriptor,
-  ...fmKeyDescriptors,
-  ...malletDescriptors,
-  ...keys2Descriptors,
-  ...textureDescriptors,
-  wavePadDescriptor,
-  wordlessVocalDescriptor,
+  sound(pulseLeadRow),
+  sound(triLeadRow),
+  sound(subSoftRow),
+  sound(subTriRow),
+  sound(sawPadRow),
+  sound(fmGlassRow),
+  sound(fmEpRow),
+  sound(fmPluckRow),
+  sound(marimbaRow),
+  sound(vibesRow),
+  sound(brightPianoRow),
+  sound(reedOrganRow),
+  sound(vinylBedRow),
+  sound(grainPadRow),
+  sound(sweepUpRow),
+  sound(wavePadRow),
+  sound(wordlessVocalRow),
+  // ...and round KV1's, sounds the catalogue had none of — a bass that rolls
+  // in the mid-range, a resonant line that glides, and more for the middle
+  // and the top of the record — under the rule every round of the kitchen has kept: registered so
+  // the completeness gate sees them and a fixture can play them, every `plays`
+  // null and every `level` a key the table already had, and held at nought in
+  // house-v2 by name (`AWAITING`, or `BY_PLACE` once a place table admits
+  // one, `packages/deep-house/src/catalogue-v2.ts`) — so no house lane and no house rota row
+  // draws them, and both locks and every fixture are byte-identical either
+  // side of the commits that put them here.
+  sound(reeseBassRow),
+  sound(reeseDrivenRow),
+  sound(line303Row),
+  sound(shimmerPadRow),
+  sound(supersawLeadRow),
+  sound(sirenRow),
+  sound(organStabRow),
+  // ...and round DNB-1's: the reese with its sine carrying the note, for the
+  // fast broken beat's sub-led bass (a row of the reese topology since round
+  // R1), held at nought in house-v2 by name (`BY_PLACE`) and swapped onto the
+  // bass lane only where a place table names it.
+  sound(reeseDeepRow),
+  // ...and round DNB-2's: the short kick and the dry snare a place swaps in
+  // for the kick and the snare the kit drew (the fast broken beat, where the
+  // sub owns the low band after the hit and the snare stops with the stick),
+  // held at nought by name (`BY_PLACE`) like the deep reese.
+  sound(kickTightRow),
+  sound(snareDryRow),
+  // ...and round DNB-7's classic beat at the fast broken place: a kick whose punch sits
+  // at 100 Hz over the line's sub, and a snare that is its crack (held at nought by name)
+  sound(kickPunchHighRow),
+  sound(snareCrackRow),
+  sound(snareGhostRow),
+  // ...and round DUB-1's: the roles turned round at the deep half-time place —
+  // a kick that is the rhythm and not the sub, and a reese whose sine carries
+  // the low end with the wobble on its own filter — swapped in only by that
+  // place's roles row and held at nought by name (`BY_PLACE`) like the rest.
+  sound(kickKnockRow),
+  sound(reeseWobbleRow),
+  // ...and round DNB-4's closed hat at the fast broken beat, noise more than
+  // metal, swapped in by that place's drums row and held at nought the same way.
+  sound(hatShutRow),
+  sound(hatSoftRow),
+  // ...and round DNB-5's line at the fast broken beat: the reese turned all the
+  // way to its sine, gliding and wobbling on the eighths, swapped in by that
+  // place's bass row and held at nought the same way.
+  sound(reeseSubRow),
+  // ...and round DNB-6's mid line over it: the reese's saws without the sine, a
+  // part of its own at 90-260 Hz, written beside the riff by that place's bass row.
+  // ...and round LIQUID-KEYS's ten, under the kitchen's rule: registered so the
+  // completeness gate sees them and the keys lab can play them by name, every
+  // `plays` null, no timbre declared and every `level` a key the table already
+  // had, held at nought in house-v2 by name (`AWAITING`), so no lane draws one
+  // and no seed moves.
+  sound(pianoFeltRow),
+  sound(pianoUprightRow),
+  sound(pianoWornRow),
+  sound(pianoMellowRow),
+  sound(keysSuitcaseRow),
+  sound(keysReedRow),
+  sound(fmEpSoftRow),
+  sound(fmEpGlassRow),
+  sound(malletSoftRow),
+  sound(padHazeRow),
+  // ...and its second round's eight, under the same rule.
+  sound(pianoCloseRow),
+  sound(pianoMuteRow),
+  sound(pianoConcertRow),
+  sound(pianoCassetteRow),
+  sound(pianoElectricRow),
+  sound(keysTineDarkRow),
+  sound(keysReedAmpRow),
+  sound(fmSineLayerRow),
+  // liquid-space (10-11): the surface row's dark air, named by no lane (`plays: null`), written by the composer's surface pass.
+  sound(airBedRow),
 ];
+
+/**
+ * **What of each glue gesture's envelope a note may write**, by sound: the
+ * rows whose topology declares it (`glue`, `voices/fx.ts`), in the registry's
+ * order. The composer asks this table and never the voices' names.
+ */
+export const GLUE_SHAPES: Record<string, { attack?: true; release?: true; top?: true }> = Object.fromEntries(REGISTRY
+  .filter((d) => d.row && TOPOLOGIES[d.row.topology].glue)
+  .map((d) => [d.name, { ...TOPOLOGIES[d.row!.topology].glue }]));
 
 /** Every descriptor by its event name. */
 export const BY_NAME: Record<string, Descriptor> =
   Object.fromEntries(REGISTRY.map((d): [string, Descriptor] => [d.name, d]));
+
+/**
+ * **Every row**, by its id: the registered voices' and the rows the
+ * dispatchers render through. A row that is not an event name is reached only
+ * through one that is.
+ */
+export const ROWS: Record<string, SoundRow> = Object.fromEntries(
+  [...TIMBRE_ROWS, ...REGISTRY].filter((d) => d.row).map((d): [string, SoundRow] => [d.row!.id, d.row!]),
+);
+
+/** Whether this event name dispatches by timbre (`pad`, `keys`). */
+export const dispatches = (voice: string): boolean => BY_NAME[voice]?.row?.topology === 'dispatch';
+
+/**
+ * **The timbre a note of a dispatching voice plays**, as its table resolves it
+ * (`p.timbre` for the pad, `p.preset` for the keys, the table's own where the
+ * note names none or one it has not); `null` for a voice that does not
+ * dispatch.
+ */
+export function timbreOfNote(voice: string, p: NoteParams | null | undefined): string | null {
+  const row = BY_NAME[voice]?.row;
+  return row && row.topology === 'dispatch' ? timbreOf(row, p) : null;
+}
+
+/** The row a timbre of a dispatching voice renders through, by its id; `null` for none. */
+export function rowOfTimbre(voice: string, timbre: string): string | null {
+  const row = BY_NAME[voice]?.row;
+  if (!row || row.topology !== 'dispatch') return null;
+  const t = (row.parameters.timbres as Record<string, { row: string }>)[timbre];
+  return t ? t.row : null;
+}
+
+/**
+ * **The rows an event renders through**: its own, and where it dispatches, the
+ * row its timbre names. What the program lock's `sounds` line hashes of a
+ * theme, so a changed timbre row moves the themes that play it.
+ */
+export function rowsThrough(voice: string, p: NoteParams | null | undefined): SoundRow[] {
+  const row = BY_NAME[voice]?.row;
+  if (!row) return [];
+  if (row.topology !== 'dispatch') return [row];
+  const target = admittedOf(targetOf(row, p))?.row;
+  return target ? [row, target] : [row];
+}
+
+/**
+ * **A settings value's sound blocks, admitted** (E04, E05 of the outside review
+ * of 10-03): every block a row owns (`BLOCKS` in `params.ts`) held to that
+ * row's topology's contract, where the value carries it — the room's copy of a
+ * row is the row's patch as much as the row is, and a room can voice it out of
+ * range. A block of the table may carry fields of its own beside the row's
+ * (the `bass` block's bus half). Asked once, where a settings value is
+ * resolved; a voice handed one then reads it without asking again (`patchOf`).
+ * Throws naming every block that fails.
+ */
+export function admitBlocks(settings: Readonly<Record<string, unknown>>): void {
+  const bad: string[] = [];
+  for (const [block, id] of Object.entries(BLOCKS)) {
+    const v = settings[block];
+    const row = BY_NAME[id]?.row;
+    if (v === undefined || !row) continue;
+    try {
+      provePatch(v, TOPOLOGIES[row.topology].parameters, `the settings' ${block} block (${id})`, true);
+    } catch (e) {
+      bad.push((e as Error).message);
+    }
+  }
+  // ...and every voiced row as this room voices it (round SOUNDS-R3): the
+  // ensemble's body, the amplifier and a style's keyboard voicing are the
+  // room's word on rows, and may not voice one out of its contract either.
+  for (const row of Object.values(ROWS)) {
+    if (!row.voicedBy) continue;
+    try {
+      provePatch(voicedPatch(settings as unknown as Settings, row), TOPOLOGIES[row.topology].parameters, `${row.id}, as the room voices it (${row.voicedBy.join(', ')})`);
+    } catch (e) {
+      bad.push((e as Error).message);
+    }
+  }
+  if (bad.length) throw new Error(`a settings value is not a sound: ${bad.join('; ')}`);
+}
 
 // The pre-render hooks, each with the voices that declared it, in registry
 // order. Two of them: the hats' three tones share one preparation because they
@@ -300,6 +605,31 @@ export function costOfVoices(names: string[]): number {
 }
 
 /**
+ * **Whether a note arrives as a hit** (round PIANO-2), which is what decides
+ * which duck it takes on the harmonic bus: a struck note a shallow dip after
+ * the strike (`struckDuck`), a held one the pads' pump (`duck`). Read off the
+ * descriptor and never off a name: the timbre the note plays (`p.timbre`,
+ * `p.preset`, or the voice's one timbre) and that timbre's own `struck` fact —
+ * the one the loudness fit has always read — so the piano, the keys' rhodes,
+ * glass, ep and pluck, the clav, the mallets, the bells, the plucks and the
+ * organ stab are struck, and the pads, the strings, the leads that hold, the
+ * keys' organ and a keys patch held by the pad (`p.sustain`) are not. A voice
+ * with no timbre (the seam's effects) is held. A bass is never struck here,
+ * whatever its envelope: under the kick a bass is the low end's hand-over and
+ * not a note's, and the pluck bass on this bus keeps the duck it had. Only the
+ * two harmonic buses have a struck door; anywhere else the answer is no.
+ */
+export function strikes(voice: string, p: NoteParams | null | undefined): boolean {
+  const d = BY_NAME[voice];
+  if (!d || (d.bus !== 'melodic' && d.bus !== 'keys') || d.family === 'bass') return false;
+  if (p && p.sustain) return false;
+  const named = p ? (p.timbre ?? p.preset) : undefined;
+  const own = Object.keys(d.timbres);
+  const facts = (typeof named === 'string' && d.timbres[named]) || (own.length === 1 ? d.timbres[own[0]] : undefined);
+  return !!(facts && facts.struck);
+}
+
+/**
  * Which lazy returns a program's events will send to, in the order they are
  * built. A return is a convolver whose impulse response is computed when it is
  * built — 4 to 14 ms on this Mac, several times that on a phone — so a deck
@@ -390,16 +720,6 @@ export function voicePlaying(role: string, timbre: string): string {
   return (playing[0] || REGISTRY[0]).name;
 }
 
-export { kick, hatClosed, hatOpen, shaker, clap, sub, keys, pad, piano, riser, sweepDown, swell, impact, pluckBass };
-export { sawLead, fmBell, karplusPluck, formantPad, clavKey, supersawPad };
-export { conga, bongo, snare, rimshot, hatTight, hatLoose, hatSizzle, ride, crash, tom, cabasa, tambourine, cowbell, woodblock, kickLong, kickPunch };
-export { pulseLead, triLead, subSoft, subTri, sawPad, fmGlass, fmEp, fmPluck, marimba, vibes, brightPiano, reedOrgan, vinylBed, grainPad, sweepUp, wavePad };
-export { KEYS_TIMBRES, STRINGS_TIMBRES, PIANO_TIMBRES, PLUCK_BASS_TIMBRES };
-export { CONGA_TIMBRES, SNARE_TIMBRES, HATS_KIT_TIMBRES, CYMBAL_TIMBRES, TOM_TIMBRES, PERC_TIMBRES, ALT_KICK_TIMBRES };
-export { SAW_LEAD_TIMBRES, FM_BELL_TIMBRES, KARPLUS_TIMBRES, FORMANT_PAD_TIMBRES, CLAV_KEY_TIMBRES, SUPERSAW_PAD_TIMBRES };
-export { PULSE_LEAD_TIMBRES, TRI_LEAD_TIMBRES, SUB_SOFT_TIMBRES, SUB_TRI_TIMBRES, SAW_PAD_TIMBRES };
-export { FM_GLASS_TIMBRES, FM_EP_TIMBRES, FM_PLUCK_TIMBRES, MARIMBA_TIMBRES, VIBES_TIMBRES };
-export { BRIGHT_PIANO_TIMBRES, REED_ORGAN_TIMBRES, VINYL_BED_TIMBRES, GRAIN_PAD_TIMBRES, SWEEP_UP_TIMBRES, WAVE_PAD_TIMBRES };
 // The one voice that also holds. `holdStrings` is the sustained family's second
 // entry point — the same ensemble with nothing scheduled to stop it, against
 // the contract in `voice-contract.ts` — and it stands beside the one-shot
@@ -407,7 +727,7 @@ export { BRIGHT_PIANO_TIMBRES, REED_ORGAN_TIMBRES, VINYL_BED_TIMBRES, GRAIN_PAD_
 // `strings` is byte-identical to what it was. It is not a field of any
 // descriptor yet, because what a held voice is *for* is a v2 role allocation
 // and not a property of an instrument; round G's fixtures name it directly.
-export { holdStrings, GLUE_SHAPES };
+export { holdStrings };
 // ...and round K2's two, which are held voices by design rather than a second
 // entry point onto a note: a formant pad and a supersaw pad, both against the
 // same contract, both with the arithmetic of holding in `held.ts` rather than
@@ -445,8 +765,14 @@ export function entranceOf(voice: string, p: NoteParams = {}, settings: Settings
   const table = settings as unknown as Record<string, Record<string, unknown> | undefined>;
   const timbre = typeof p.timbre === 'string' ? p.timbre : undefined;
   if (voice === 'pad') {
-    const t = timbre ?? 'strings';
-    if (t in STRINGS_TIMBRES) return stringsAttack(t, table.strings ?? {});
+    // The timbre's row: a strings row reads the attack its shape names off the
+    // room's `strings` block. A held keyboard patch reads `keys.attack` off the
+    // room, as this always has — the amplifier block carries none, so it is
+    // nought — and the composer's swells were laid against that answer, so it
+    // stands until a round that means to move it (round SOUNDS-R3).
+    const pad = BY_NAME.pad.row!;
+    const target = ROWS[(pad.parameters.timbres as Record<string, { row: string }>)[timbre ?? (pad.parameters.none as string)]?.row ?? ''];
+    if (target && target.topology === 'strings') return stringsAttack(target, table.strings ?? {});
     const k = table.keys?.attack;
     return typeof k === 'number' ? k : 0;
   }

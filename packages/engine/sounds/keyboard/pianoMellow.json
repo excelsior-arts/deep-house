@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoMellow",
+  "revision": 1,
+  "topology": "bright-piano",
+  "parameters": {
+    "partials": 6,
+    "inharmonicity": 0.0006,
+    "attack": 0.004,
+    "decay": 2.4,
+    "partialDecay": 0.62,
+    "tilt": 0.45,
+    "upper": 0.04,
+    "release": 0.5,
+    "lpHz": 3600,
+    "veloOpen": 0.4,
+    "hammerHz": 2400,
+    "hammerLevel": 0.08,
+    "hammerTime": 0.004,
+    "spread": 0.35,
+    "trim": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys-2.ts",
+    "round": "liquid-keys",
+    "note": "A mellow bright grand: six stretched partials with a gentle tilt and a lid at 3.6 kHz, clear in the middle and never glassy, the hammer a short soft tick.",
+    "notes": {
+      "copiedFrom": "brightPiano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

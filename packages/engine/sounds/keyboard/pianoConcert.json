@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoConcert",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.006,
+    "decayFast": 0.8,
+    "sustainLevel": 0.5,
+    "decaySlow": 12,
+    "ring": 4,
+    "partialLevel": 0.36,
+    "partialDecay": 0.6,
+    "stretchCents": 2,
+    "unisonCents": 3,
+    "unisonLevel": 0.7,
+    "hammerLevel": 0.06,
+    "hammerHz": 1200,
+    "brightMin": 800,
+    "brightMax": 2900,
+    "hpHz": 40,
+    "spread": 0.5,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "A big warm concert grand: long strings, so a slow first fall and a nine-second tail, the partials lingering and the bass full; meant to be heard from the back of the room.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

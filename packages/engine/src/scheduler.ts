@@ -11,13 +11,15 @@
 // This was *a look-ahead scheduler for one theme* as well until round K6 took
 // `Player` out; the note where it stood says why and where it is.
 
-import { VOICES, prepareVoices, returnsOf } from './voices/index.ts';
+import { VOICES, prepareVoices, returnsOf, strikes } from './voices/index.ts';
 import { scheduleLine, writeDuck, prepareLimiter } from './master.ts';
 import { makeV1Graph } from './graph.ts';
-import { resolveStart, Offline } from './dsp.ts';
+import { resolveStart, Offline, withEcho, withPartSpace } from './dsp.ts';
+import { playScoped } from './note-scope.ts';
 import { schedule, offsetGrid } from './schedule.ts';
 import type { V1Graph } from './graph.ts';
 import type { Program, ProgramEvent } from './program.ts';
+import { duckFor } from './program.ts';
 import type { SourceMix } from './source-mix.ts';
 
 // One event of a program, into a graph. Everything that used to be worked out
@@ -46,8 +48,13 @@ export function fireEvent(ctx: BaseAudioContext, graph: V1Graph, program: Progra
   // The event's own theme time, for a voice whose dice are off the strike
   // (R74): the context's clock differs live, rendered and sliced, and a seek
   // moves it; the theme's does not.
-  voice(ctx, graph.sourceOutput(pe.voice, pe.bus), when, pe.p, program.settings, pe.t);
-  if (pe.duck) writeDuck(graph, graph.duckShape, when, ctx);
+  // A struck note takes its bus's struck door, and so the shallow duck (round
+  // PIANO-2); the descriptor says which notes are struck (`strikes`).
+  // On a playing context the note is handed doors of its own into the buses, let go when it has finished
+  // (`note-scope.ts`); a render is handed the buses themselves.
+  playScoped(ctx, graph.sourceOutput(pe.voice, pe.bus, strikes(pe.voice, pe.p)), !!pe.p?.fx,
+    (out) => voice(ctx, withEcho(ctx, withPartSpace(ctx, out, pe.p), pe.p), when, pe.p, program.settings, pe.t), graph);
+  if (pe.duck) writeDuck(graph, duckFor(graph.duckShape, pe.p), when, ctx);
 }
 
 /**
@@ -60,7 +67,21 @@ export function fireEvent(ctx: BaseAudioContext, graph: V1Graph, program: Progra
  * its first note, so the returns a program does not use are still never built.
  */
 export function prepareReturns(graph: V1Graph, program: Program): void {
-  for (const r of returnsOf(program.events)) void graph.buses.melodic[r];
+  // The struck notes go in at their bus's struck door (round PIANO-2), whose
+  // hall is a hall of its own; the background, the immersed space and the echo
+  // are one each whichever door asks. The struck path itself is built here for
+  // a program with a struck note: a harmonic path is a dozen nodes, and it has
+  // to be standing before the first automation line is laid so the lines are
+  // written on it as well.
+  const struck = program.events.filter((e) => strikes(e.voice, e.p));
+  const held = struck.length ? program.events.filter((e) => !strikes(e.voice, e.p)) : program.events;
+  for (const r of returnsOf(held)) void graph.buses.melodic[r];
+  if (struck.length) {
+    const door = graph.struckBus('melodic')!;
+    for (const r of returnsOf(struck)) void door[r];
+  }
+  // A part's own space (`settings.partSpace`): one for the graph, built here where a note asks for it.
+  if (program.events.some((e) => typeof e.p?.partSpace === 'number' && e.p.partSpace > 0)) void graph.buses.melodic.partSpace;
 }
 
 // A program's curves, every line of them, written onto a graph: the one place
@@ -109,9 +130,15 @@ export function doorsOf(graph: V1Graph): AudioNode[] {
   const doors = new Set<AudioNode>();
   for (const bus of Object.values(graph.buses)) {
     doors.add(bus.dry).add(bus.delay).add(bus.reverb).add(bus.room);
-    if (graph.hasHall()) doors.add(bus.hall);
+    if (graph.hasHall('held')) doors.add(bus.hall);
     if (graph.hasBackground()) doors.add(bus.background);
     if (graph.hasImmersed()) doors.add(bus.immersed);
+    if (graph.hasEcho()) doors.add(bus.echo);
+    if (graph.hasPartSpace()) doors.add(bus.partSpace!);
+  }
+  if (graph.hasStruck()) {
+    for (const name of ['melodic', 'keys']) doors.add(graph.struckBus(name)!.dry);
+    if (graph.hasHall('struck')) doors.add(graph.struckBus('melodic')!.hall);
   }
   return [...doors];
 }

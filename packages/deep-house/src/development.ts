@@ -5,6 +5,7 @@ import { sectionsFrom, type Arrangement } from './arrangement.ts';
 import type { MusicalParts } from './parts/types.ts';
 import type { Conditions } from './composition-policy.ts';
 import { shapeProblems, type ShapePolicy } from './development-shape.ts';
+import type { Admits } from './sections.ts';
 import { rhythmDevelopmentProblems, type RhythmDevelopmentPolicy } from './development-rhythm.ts';
 
 export type Development = 'base' | 'phrased' | 'shaped' | 'percussion';
@@ -15,7 +16,8 @@ export interface DevelopmentPolicy {
   maxSectionBars: number;
   phraseBars: number;
   bridgeKind: string;
-  bridge: SectionKind;
+  /** the bridge's own kind: the policy's, not a row's, with what it admits of the small things (`src/sections.ts`) */
+  bridge: SectionKind & { admits?: Admits };
   bridgeBars: number;
   withdrawGates: string[];
   shape?: ShapePolicy;

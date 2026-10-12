@@ -105,6 +105,23 @@ export function fillSilence(events: Ev[], sections: readonly Section[], bars: nu
       filled.push({ from, bars: n, layer });
       break;
     }
+    // **No window a whole loop away sounds all through** (round GA5: a drawn
+    // row's own arrangement, the ambient slow chords, whose chord part plays
+    // once a section): the last chord of the bed before the gap is held across
+    // it, the drone the style already is at that pace. Only where the loop
+    // found nothing, so every gap the rule filled before is filled as it was.
+    if (filled.length && filled[filled.length - 1].from === from) continue;
+    for (const layer of BED_LAYERS) {
+      const before = events.filter((e) => e.layer === layer && e.t < a);
+      if (!before.length) continue;
+      const last = Math.max(...before.map((e) => e.t));
+      const chord = before.filter((e) => Math.abs(e.t - last) < 1e-6);
+      events.push(...chord.map((e) => ({ ...e, t: a, bar: from, p: { ...e.p, dur: b - a } })));
+      events.sort((x, y) => x.t - y.t);
+      if (timeline) for (let i = from; i < from + n; i++) if (timeline[i] && !timeline[i].layers.includes(layer)) timeline[i].layers = [...timeline[i].layers, layer];
+      filled.push({ from, bars: n, layer });
+      break;
+    }
   }
   return filled;
 }

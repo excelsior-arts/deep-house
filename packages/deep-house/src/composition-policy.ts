@@ -79,11 +79,22 @@ export type Scene = typeof SCENES[number];
  *              says: a texture holding every word of one of them has no
  *              choice to draw and no bird to lean it. A pin still puts the
  *              drone behind it, and with no grid it is in front anyway
+ *   floor      where the drone in front stands on a soft grid rather than
+ *              beside a club's (Eugene, 10-01, of the slow side of Ember: *a
+ *              drone may stay the foreground and a soft four-floor kick plus
+ *              hats may play under it*): with the drums on, a kit in `kits`
+ *              and the tempo centre the birds put on Ember's curve under
+ *              `centreBelow`. The lanes say what they play on it
+ *              (`Lane.floor`); the real-world class beside the drone is the
+ *              class it was. A box of the birds, never a name: at the house
+ *              (centre 100) and with no drums (the ambient side, 27191) there
+ *              is no floor
  */
 export interface ScenePolicy {
   forward: ControlValue;
   always?: ReadonlyArray<readonly string[]>;
   realWorld: { holdBelow: number; sparseSeconds: number; ringCovers: number };
+  floor?: { centreBelow: number; kits: readonly string[] };
 }
 /** What the timbre dice say about the harmonic layer, as properties, never names. */
 export interface TextureBed {

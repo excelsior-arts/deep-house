@@ -34,9 +34,15 @@ import { heldVoice } from './held.ts';
 import { withControls } from './descriptor.ts';
 import type { Controls, Descriptor, NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
+import { patchOf, provePatch, withDesk } from './sound.ts';
+import { liveOf, side } from './live.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import type { PatchOf } from './schema.ts';
+import { contract, list, map, name, names, CENTS, HZ, LEVEL, LFO_HZ, Q, SECONDS, UNIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-/** The settings' own `formantPad` block, which is the table of vowels and the body's numbers. */
-type FormantSettings = Settings['formantPad'];
+/** A formant pad's patch, which is the table of vowels and the body's numbers (its contract, below). */
+type FormantSettings = PatchOf<typeof PARAMETERS.fields>;
 /** One vowel: the three formant centres, in Hz. */
 type Vowel = number[];
 /** A vowel's name, as the table holds them. */
@@ -120,7 +126,7 @@ export function formantBody(
   src.gain.value = F.voiceLevel;
   nodes.push(src);
 
-  const bands: { bp: BiquadFilterNode; from: number; to: number }[] = [];
+  const bands: { bp: BiquadFilterNode; from: number; to: number; pan: StereoPannerNode; side: number }[] = [];
   const pans = [-0.55, 0.1, 0.5];
   for (let i = 0; i < 3; i++) {
     const bp = ctx.createBiquadFilter();
@@ -146,7 +152,7 @@ export function formantBody(
     lvl.connect(pan);
     pan.connect(hp);
     nodes.push(bp, depth, lvl, pan);
-    bands.push({ bp, from: va[i], to: vb[i] });
+    bands.push({ bp, from: va[i], to: vb[i], pan, side: pans[i] });
   }
 
   // Optional delayed pitch motion belongs to the note, leaving the old pad's
@@ -163,6 +169,7 @@ export function formantBody(
     osc.connect(vibrato);osc.start(time);sources.push(osc);nodes.push(vibrato);
   }
   // Two saws, and the breath under them.
+  const voices: Array<{ o: OscillatorNode; side: number }> = [];
   for (const side of [-1, 1]) {
     const o = ctx.createOscillator();
     o.type = 'sawtooth';
@@ -178,15 +185,16 @@ export function formantBody(
     o.connect(src);
     o.start(time);
     sources.push(o);
+    voices.push({ o, side });
   }
 
-  return { lp, hp, src, bands, nodes, sources };
+  return { lp, hp, src, bands, nodes, sources, lfo, voices };
 }
 
-export function formantPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
-  p = withControls(p, FORMANT_PAD_CONTROLS);
+function formantPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+  p = withControls(p, row.descriptor.controls ?? {});
   time = startTime(ctx, time); // never in the past: a step if it is
-  const F = settings.formantPad;
+  const F = patchOf(settings, row, PARAMETERS);
   const dur = Math.max(0.3, p.dur ?? 2);
   const vel = p.vel ?? 0.8;
   const attack = Math.min(p.attack ?? F.attack, dur * 0.5);
@@ -216,6 +224,28 @@ export function formantPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p
     if (typeof s.stop === 'function') s.stop(end + 0.05);
   }
 
+  // **What this chord can still take** (PLAN-DESK D1b): the lid and the
+  // floor, the vowel's drift rate, the source's detune, the breath of noise
+  // under it, the spread, and the source's level against the trim it was
+  // built at. The vowels and their walk, the formants' table and the envelope
+  // are the build's.
+  const live = liveOf(ctx);
+  if (live) {
+    const cur = { voiceLevel: F.voiceLevel, trim: F.trim };
+    const src = (): [AudioParam, number] => [built.src.gain, cur.voiceLevel * (F.trim > 0 ? cur.trim / F.trim : 1)];
+    live
+      .on('lpHz', (v) => (p.open != null ? [] : [[built.lp.frequency, Math.min(12000, v * (p.cutoffMul ?? 1))]]))
+      .on('hpHz', (v) => [[built.hp.frequency, v]])
+      .on('driftHz', (v) => (built.lfo ? [[built.lfo.frequency, v]] : []))
+      .on('detuneCents', (v) => built.voices.map(({ o, side }) => [o.detune, side * v * 0.5] as [AudioParam, number]))
+      .on('noise', (v) => [[ng.gain, v]])
+      .on('spread', (v) => (p.spread != null ? [] : built.bands.map(({ pan, side: at }) => [pan.pan, side(at * v * (p.spreadMul ?? 1))] as [AudioParam, number])))
+      .on('voiceLevel', (v) => { cur.voiceLevel = v; return [src()]; })
+      // the noise goes in at the source too, so the trim scales it with the voices, as the note's level does
+      .on('trim', (v) => { if (!(F.trim > 0)) return []; cur.trim = v; return [src()]; })
+      .keep(row.id, row, settings, end + 0.05);
+  }
+
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: 1, reverb: p.reverb ?? 0.55, delay: p.delay ?? 0.12 });
   return end;
@@ -234,7 +264,8 @@ export function formantPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p
  *   tail      `settings.formantPad.release`, stated before anybody asks.
  */
 export function holdFormantPad(ctx: BaseAudioContext, out: VoiceOut, at: number, p: NoteParams = {}, settings: Settings): HeldVoice {
-  const F = settings.formantPad;
+  // the held drone is the record's own `formantPad`, the room's copy of its row
+  const F = withDesk('formantPad', provePatch(settings.formantPad, PARAMETERS, 'the settings\' formantPad block', true), PARAMETERS, 'the settings\' formantPad block', true);
   const time = startTime(ctx, at);
   const level = (p.vel ?? 0.8) * (p.gain ?? 1) * F.trim;
   const attack = p.attack ?? F.attack;
@@ -281,39 +312,49 @@ export function holdFormantPad(ctx: BaseAudioContext, out: VoiceOut, at: number,
     },
     sources: built.sources,
     nodes: built.nodes,
+    // D1b: the row's lid is this drone's brightness, and its trim its level
+    live: { voice: 'formantPad', settings, paths: {
+      lpHz: (v) => (p.open != null ? [] : [['brightness', Math.min(12000, v * (p.cutoffMul ?? 1))]]),
+      trim: (v) => [['gain', (p.vel ?? 0.8) * (p.gain ?? 1) * v]],
+    } },
   });
 }
 
-/** MEASURED by the gate (`tools/test-voices.ts --bless`). */
-export const FORMANT_PAD_TIMBRES = {
-  formantPad: { family: 'harmonic', struck: false, hold: 0.74, brightnessHz: 4600, loudnessDb: -11.2 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  /** the table of vowels, each three formant centres; `vowel` and `vowelTo` name the two a note walks between */
+  vowels: map(list(HZ, 3), 1, 16),
+  vowel: name(),
+  vowelTo: name(),
+  driftHz: LFO_HZ,
+  /** the three formants' quality and level */
+  q: list(Q, 3),
+  formantLevel: list(LEVEL, 3),
+  detuneCents: CENTS,
+  noise: LEVEL,
+  voiceLevel: LEVEL,
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  hpHz: HZ,
+  lpHz: HZ,
+  spread: UNIT,
+  trim: LEVEL,
+}, (f) => [...names(f, 'vowel', 'vowels'), ...names(f, 'vowelTo', 'vowels')]);
 
-/** What a part may write on a formant pad note: its entrance and its tail. The defaults are the formant pad block's. */
-export const FORMANT_PAD_CONTROLS: Controls = {
-  attack: { unit: 'seconds', min: 0.003, max: 3, default: 0.85 },
-  release: { unit: 'seconds', min: 0.03, max: 3, default: 0.8 },
-};
-
-export const descriptor: Descriptor = {
-  name: 'formantPad',
+/**
+ * The formant pad topology: a vocal source through vowel formants that walk
+ * (`sounds/ensemble/formantPad.json` since round R2). Its two controls default
+ * to the row's own attack and release; its held entry, `holdFormantPad`,
+ * reads the same block.
+ */
+export const FORMANT_PAD: Topology = {
+  id: 'formant-pad',
   cost: 'dear',
-  family: 'ensemble',
-  controls: FORMANT_PAD_CONTROLS,
-  noteControls: Object.keys(FORMANT_PAD_CONTROLS),
-  roles: ['sustained'],
-  bus: 'melodic',
-  level: 'pad',
-  layer: 'pad',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: formantPad,
-  timbres: FORMANT_PAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  controlOf: { attack: 'attack', release: 'release' },
+  // D1b: the lid, the floor, the drift's rate, the detune, the noise, the spread and the level; the vowels, their walk and the envelope are the build's
+  live: { lpHz: 'hz', hpHz: 'hz', driftHz: 'hz', detuneCents: 'cents', noise: 'level', spread: 'ratio', voiceLevel: 'level', trim: 'level' },
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => formantPad(row, ctx, out, time, p, settings),
 };
-
-export default formantPad;

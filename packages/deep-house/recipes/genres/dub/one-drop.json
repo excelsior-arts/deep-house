@@ -300,7 +300,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -326,8 +326,8 @@
       80
     ],
     "nearest": [
-      95,
-      100
+      85,
+      85
     ]
   },
   "sections": [
@@ -335,8 +335,14 @@
     "breakdown"
   ],
   "provenance": {
-    "pattern": "roots reggae and dub: the one drop — kick and rim together on the third beat and nothing on the one — with the skank chopping the chord on two and four and a bass line that walks around the root",
+    "pattern": "roots reggae and dub: the one drop \u2014 kick and rim together on the third beat and nothing on the one \u2014 with the skank chopping the chord on two and four and a bass line that walks around the root",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar: the kick and a cross-stick land together on beat three (step 8), the hats tick the eighths with the offbeat lighter, the skank is a short triad on two and four. The bass is a two-bar melodic line inside a fifth that leaves the one empty, as roots bass lines do. Played under the Downtempo key, whose band is the slowest with drums (95-105): a one drop wants 70-80, where no band is."
+    "note": "One bar: the kick and a cross-stick land together on beat three (step 8), the hats tick the eighths with the offbeat lighter, the skank is a short triad on two and four. The bass is a two-bar melodic line inside a fifth that leaves the one empty, as roots bass lines do. Played under the Downtempo key, whose band is the slowest with drums (95-105): a one drop wants 70-80, where no band is.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.7,
+      "syncopationZ": -4.2,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

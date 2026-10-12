@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "organStab",
+  "revision": 1,
+  "topology": "organ-stab",
+  "parameters": {
+    "trim": 1.8,
+    "attack": 0.002,
+    "decay": 0.1,
+    "hold": 0.3,
+    "release": 0.06,
+    "bars": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        0.8
+      ],
+      [
+        3,
+        0.55
+      ],
+      [
+        4,
+        0.45
+      ],
+      [
+        6,
+        0.25
+      ],
+      [
+        8,
+        0.2
+      ]
+    ],
+    "brightnessHz": 5000,
+    "click": 1.2,
+    "clickHz": 2500,
+    "clickSeconds": 0.004
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 1500,
+        "default": 5000,
+        "max": 10000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": 0.000115
+      },
+      "click": {
+        "unit": "ratio",
+        "min": 0.1,
+        "default": 1.2,
+        "max": 3,
+        "bird": "ember",
+        "sense": 1,
+        "slopeDb": 0.237
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.08,
+        "default": 0.3,
+        "max": 0.8,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 11.6
+      }
+    },
+    "timbres": {
+      "organStab": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.3,
+        "brightnessHz": 5000,
+        "loudnessDb": -12.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "organ-stab.ts"
+  }
+}

@@ -22,8 +22,13 @@ import type { Development } from './development.ts';
  *   `bypass`  a mixing stage taken out for listening (`readBypass` in
  *             `set-plan.ts`). It changes what is heard and never what is
  *             planned; kept as given, never written by the page.
+ *   `private` a private-tier hand on the plan for experiments (round D1's
+ *             `reach`): read only by a dev or preview build
+ *             (`__PRIVATE_TOOLS__`), so a release build plays a link carrying
+ *             it as though it were not there; kept as given, never written by
+ *             the page's own writer, and never a sound row of a shared link.
  */
-export type LinkClass = 'sound' | 'place' | 'view' | 'bypass';
+export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private';
 
 /** One parameter the page reads. */
 export interface LinkRow {
@@ -35,7 +40,7 @@ export interface LinkRow {
   written: string;
 }
 
-export const BYPASS_NAMES = ['all', 'kickdrive', 'body', 'push', 'limiter', 'clip', 'glue', 'basscomp', 'duck', 'sub'] as const;
+export const BYPASS_NAMES = ['all', 'kickdrive', 'body', 'push', 'limiter', 'clip', 'glue', 'basscomp', 'bassdrive', 'duck', 'duckdb', 'struckduckdb', 'strings', 'sub', 'spark', 'sparkkeys', 'sparkpad', 'sparkpiano', 'sparkbus', 'sparkdrums', 'sparkhats', 'sparkshaker', 'sparkclap', 'roles'] as const;
 
 /** **The table.** Every parameter the page reads, once, in the order a written link names them. */
 export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
@@ -48,12 +53,17 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'development', class: 'sound', absent: 'base', written: 'when it is not base' },
   { name: 'bar', class: 'place', absent: 'the start of the theme (a reload resumes at the second saved in this browser)', written: 'never: a shared link starts the track from its beginning' },
   // K32 (Eugene: "a link with the time"): a start position, not a sound row
-  { name: 't', class: 'place', absent: 'the start of the theme', written: 'only by the time link (`linkWithTime`, the machine view\'s key): integer seconds into the theme, never on the canonical link, a digest row or the address the page keeps — read once at the open, the set starting at the bar line at or before it, and dropped from the address at once, so a reload plays from the top' },
+  { name: 't', class: 'place', absent: 'the start of the theme', written: 'only by the time link (`linkWithTime`, the machine view\'s key): integer seconds into the theme, never on the canonical link, a digest row or the address the page keeps — read once at the open, the set starting on that second (a time past where the theme plays at its last phrase line), so a copy made there writes the same `t` back, and dropped from the address at once, so a reload plays from the top' },
   { name: 'lock', class: 'view', absent: 'the engine switch is free', written: 'never; `lock=engine` is kept as given' },
   { name: 'view', class: 'view', absent: 'the ring', written: '`view=machine` while the machine view is open, removed when it closes (K21); a stored place carries it' },
   { name: 'out', class: 'view', absent: 'a media element on an Apple phone, straight out elsewhere', written: 'never; kept as given' },
   { name: 'latency', class: 'view', absent: 'the playback hint', written: 'never; kept as given' },
   ...BYPASS_NAMES.map((name) => ({ name, class: 'bypass' as const, absent: 'the stage in the chain', written: 'never; kept as given' })),
+  // D1: how far a library turn's row leaks beyond its place, 0..1 (`src/library-draw.ts`)
+  // DNB-CLEAN: a listening link's desk, the machine view's solo and mute by layer or instrument (`control.ts`)
+  { name: 'solo', class: 'private', absent: 'nothing soloed', written: 'never; kept as given, read once as the page opens (the private tier only)' },
+  { name: 'mute', class: 'private', absent: 'nothing muted', written: 'never; kept as given, read once as the page opens (the private tier only)' },
+  { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
 ]);
 
 export const ROW: Record<string, LinkRow> = Object.fromEntries(LINK_ROWS.map((r) => [r.name, r]));

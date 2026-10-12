@@ -13,7 +13,7 @@
 // two 17 ms apart — which is the kick that used to be dropped, leaving the
 // incoming theme's first 559 ms with no bottom at all. When the outgoing deck
 // is gone the grid glides to the incoming theme's own tempo, linear in BPM, the
-// way a pitch fader moves. Nothing ever jumps.
+// way a pitch fader moves. Nothing jumps but a seek, which is a jump already.
 //
 // How far and when is the composer's seam rule and not the clock's
 // (`seamTempo` in `performance.ts`, the fault pass of 09-24): a drift glides
@@ -53,6 +53,20 @@ export interface SetClock {
   barSecondsAt(beat: number): number;
   pin(beat: number): number;
   glide(beat: number, toBeatSeconds: number, overBeats: number): void;
+  /**
+   * From this beat the grid runs at the stated beat, at once: a pin whose open
+   * segment takes the new tempo, and any glide laid past the beat is gone. A
+   * seek is a jump in the record, and its clock jumps with it (the deep review
+   * of 10-08, B12); nothing that leans uses it.
+   */
+  jump(beat: number, toBeatSeconds: number): void;
+  /**
+   * The instant from which the grid no longer changes: the end of the last
+   * glide laid on it, or `-Infinity` when the grid is already standing still.
+   * A face reads the whole of a tempo's arrival off this one number, so the
+   * clock answers it without handing out its segments (round MIX-X1).
+   */
+  steadyAt(): number;
   readonly segments: Segment[];
 }
 
@@ -139,6 +153,17 @@ export function makeSetClock(beatSeconds: number, atTime = 0): SetClock {
         spb1: toBeatSeconds,
         beats: Infinity,
       });
+    },
+    jump(beat, toBeatSeconds) {
+      clock.pin(beat);
+      const open = segs[segs.length - 1];
+      open.spb0 = toBeatSeconds;
+      open.spb1 = toBeatSeconds;
+    },
+    steadyAt() {
+      const open = segs[segs.length - 1];
+      const prev = segs[segs.length - 2];
+      return prev && !straight(prev) ? open.t0 : -Infinity;
     },
     get segments() {
       return segs.map((s) => ({ ...s }));

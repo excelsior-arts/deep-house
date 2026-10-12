@@ -105,6 +105,8 @@ def main():
                     help='take this many windows spread across the piece instead of reading it through')
     ap.add_argument('--max-seconds', type=float, default=900.0,
                     help='the most audio one run will analyse before it samples instead')
+    ap.add_argument('--bpm', type=float, default=None,
+                    help='a tempo the catalog states (or a render its plan): the grid holds it and does not fold it')
     ap.add_argument('--anchors', default=None)
     ap.add_argument('--raw', action='store_true', help='keep every raw feature on every window')
     ap.add_argument('--quiet', action='store_true')
@@ -130,7 +132,7 @@ def main():
     probe_seconds = min(60.0, info.duration)
     probe, _ = librosa.load(args.audio, sr=SR, mono=True, offset=0.0, duration=probe_seconds)
     probe_env = librosa.onset.onset_strength(y=probe, sr=SR, hop_length=512)
-    probe_grid = find_grid(probe, probe_env)
+    probe_grid = find_grid(probe, probe_env, args.bpm)
     heard_bpm = probe_grid['bpm'] if probe_grid['strength'] >= 0.05 else None
     if args.window:
         window_seconds = args.window
@@ -151,7 +153,7 @@ def main():
     if contiguous:
         whole, _ = librosa.load(args.audio, sr=SR, mono=True,
                                 duration=min(info.duration, args.max_seconds))
-        track = track_features(whole, probe_grid if heard_bpm else None)
+        track = track_features(whole, probe_grid if heard_bpm else None, args.bpm)
         span_note = track.get('why')
         del whole
     else:
@@ -162,7 +164,7 @@ def main():
     bpms = []
     for i, (t0, dur) in enumerate(spans):
         y, _ = librosa.load(args.audio, sr=SR, mono=True, offset=t0, duration=dur)
-        w = window_features(y, track=track)
+        w = window_features(y, track=track, declared=args.bpm)
         if w.get('missing') == ['silence']:
             say(f'    window {i}: silent, skipped')
             continue

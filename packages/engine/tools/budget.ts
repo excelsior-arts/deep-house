@@ -78,13 +78,16 @@ import { REGISTRY, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from '../s
 import { RETURN_COST } from '../src/master.ts';
 import { SCENES } from './audition-voices.ts';
 import { SCENES_2 } from './audition-voices-2.ts';
+import { SCENES_3 } from './audition-voices-3.ts';
 import { DRUM_SCENES } from './audition-drums.ts';
 import type { PlaywrightThing } from './harness.ts';
 import type { VoiceCost } from '../src/voices/index.ts';
+import { updateRow } from './rows.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Beside the other gates', and never 6975, which is Eugene's.
 const PORT = Number(process.env.ENGINE_BUDGET_PORT) || 7050;
 
@@ -148,6 +151,7 @@ const ROWS = [
   ...SCENES.map((s) => ({ id: s.id, voice: s.voice, table: 'K2' })),
   ...DRUM_SCENES.filter((s) => !s.also).map((s) => ({ id: s.id, voice: s.voice, table: 'K3' })),
   ...SCENES_2.map((s) => ({ id: s.id, voice: s.voice, table: 'K4' })),
+  ...SCENES_3.map((s) => ({ id: s.id, voice: s.voice, table: 'KV1' })),
 ].filter((r) => !ONLY || r.id === ONLY || r.voice === ONLY);
 
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.ts': 'text/javascript', '.json': 'application/json' };
@@ -192,7 +196,7 @@ interface Reading { ms: number; bytes: number; first: number }
 
 const RUN = async (job: Job) => {
   const S = job.base;
-  const [G, MA, VO, SC, PL, AU, AU2, AD, FXR, DSP] = await Promise.all([
+  const [G, MA, VO, SC, PL, AU, AU2, AD, FXR, DSP, AU3] = await Promise.all([
     import(`${S}src/graph.ts`),
     import(`${S}src/master.ts`),
     import(`${S}src/voices/index.ts`),
@@ -203,6 +207,7 @@ const RUN = async (job: Job) => {
     import(`${S}tools/audition-drums.ts`),
     import(`${S}src/effects/index.ts`),
     import(`${S}src/dsp.ts`),
+    import(`${S}tools/audition-voices-3.ts`),
   ]);
   const rate = job.rate;
   const COUNTERS = ['createGain', 'createBiquadFilter', 'createOscillator', 'createWaveShaper',
@@ -255,6 +260,7 @@ const RUN = async (job: Job) => {
   // voice and blamed on whichever one was being asked about.
   if (job.kind === 'voice') {
     const aud = job.table === 'K3' ? AD.drumAudition(job.id)
+      : job.table === 'KV1' ? AU3.voiceAudition3(job.id)
       : job.table === 'K4' ? AU2.voiceAudition2(job.id)
         : AU.voiceAudition(job.id);
     const prog = aud.program;
@@ -595,6 +601,13 @@ if (BLESS) {
   let written = 0;
   for (const [voice, band] of byVoice) {
     let done = false;
+    // A sound that is a row (round R1) is written in its row, beside its numbers.
+    let wasRow: string | undefined;
+    if (updateRow(voice, (row) => { wasRow = row.descriptor.cost ?? 'nothing'; row.descriptor.cost = band; })) {
+      console.log(`  ${voice}: ${wasRow} -> cost: '${band}'  (${voice}.json)`);
+      written++;
+      continue;
+    }
     for (const f of files) {
       const file = path.join(SRC, 'voices', f);
       const text = fs.readFileSync(file, 'utf8');

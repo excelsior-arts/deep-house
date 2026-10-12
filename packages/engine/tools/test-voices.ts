@@ -4,7 +4,7 @@
 //   node tools/test-voices.ts --only sawLead  one of them, for a fast loop
 //   node tools/test-voices.ts --ab            the shaper's oversample, per engine
 //   node tools/test-voices.ts --bless         write the measured loudness into
-//                                              the modules (only with Eugene's say-so)
+//                                              the rows (only when the change is approved)
 //   node tools/test-voices.ts --knobs         PLAN-MODULATION M1's own pass: every
 //                                              declared knob at its two ends, in both
 //                                              engines and at both rates
@@ -61,8 +61,8 @@ import { INSTRUMENTS } from '../src/params.ts';
 import { stringBuffer } from '../src/voices/karplus-pluck.ts';
 import { midiToHz } from '../src/dsp.ts';
 import { K2, missingScenes } from './audition-voices.ts';
-import { REGISTRY, VOICE_KNOBS, knobFaultsOfAll, knobReadout, controlFaultsOfAll } from '../src/voices/index.ts';
-import { PIANO_MEASURED } from '../src/voices/piano.ts';
+import { BY_NAME, REGISTRY, VOICE_KNOBS, knobFaultsOfAll, knobReadout, controlFaultsOfAll } from '../src/voices/index.ts';
+import { updateRow } from './rows.ts';
 import type { KnobSpec } from '../src/voices/descriptor.ts';
 import { COVERED, coverage } from './tables.ts';
 import type { PlaywrightFound } from './harness.ts';
@@ -73,9 +73,10 @@ import type { HeldVoice } from '../src/voices/voice-contract.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Above the suites' 6977 and beside the engine suite's 7023 and the ear's 7024,
-// and never 6975, which is Eugene's.
+// and never 6975, the dev server.
 const PORT = 7045;
 
 const arg = (k: string, d: string | null = null): string | null => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
@@ -97,7 +98,8 @@ const RATES = (arg('rates') || '44100,48000').split(',').map(Number);
 // fixture through the real graph, in both engines at both rates.
 const GATED = [...K2, 'piano', 'wordlessVocal'];
 /** A scene held to a number of its own rather than to the timbre's `loudnessDb`. */
-const SCENE_DECLARED: Record<string, number> = { piano: PIANO_MEASURED.piano.sceneDb };
+// the piano's scene, as its row carries it (`measured`, round SOUNDS-R3)
+const SCENE_DECLARED: Record<string, number> = { piano: (BY_NAME.piano.row!.measured!.piano as Record<string, number>).sceneDb };
 /** ...and the field `--bless` writes it into. */
 const BLESS_FIELD: Record<string, string> = { piano: 'sceneDb' };
 const WANT = GATED.filter((id) => !ONLY || id === ONLY);
@@ -323,7 +325,7 @@ interface RunJob {
   values?: string[];
   /** the knob pass's own three: which fixture table the scene is in, and the
    * settings to put on every note of it */
-  table?: 'K2' | 'K3' | 'K4';
+  table?: 'K2' | 'K3' | 'K4' | 'KV1';
   knobs?: Record<string, number>;
   /** the controls' pass: parameters written straight onto every note */
   params?: Record<string, number>;
@@ -336,7 +338,7 @@ interface RunJob {
 // file serves.
 const RUN = async (job: RunJob) => {
   const S = job.base;
-  const [G, MA, VO, SC, PL, AU, AU2, ME, AD] = await Promise.all([
+  const [G, MA, VO, SC, PL, AU, AU2, ME, AD, AU3] = await Promise.all([
     import(`${S}src/graph.ts`),
     import(`${S}src/master.ts`),
     import(`${S}src/voices/index.ts`),
@@ -346,6 +348,7 @@ const RUN = async (job: RunJob) => {
     import(`${S}tools/audition-voices-2.ts`),
     import(`${S}tools/meter.ts`),
     import(`${S}tools/audition-drums.ts`),
+    import(`${S}tools/audition-voices-3.ts`),
   ]);
   const rate = job.rate || 44100;
   const began = performance.now();
@@ -442,9 +445,9 @@ const RUN = async (job: RunJob) => {
   // on its own figure, two bars of pre-roll thrown away, eight bars read. What
   // is different is one line — a `knobs` table on every note of the program —
   // so what the two renders differ by is the seasoning and nothing else.
-  const auditionOf = (id: string, table?: string) => (table === 'K4' ? AU2.voiceAudition2(id)
+  const auditionOf = (id: string, table?: string) => (table === 'KV1' ? AU3.voiceAudition3(id) : table === 'K4' ? AU2.voiceAudition2(id)
     : table === 'K3' ? AD.drumAudition(id) : AU.voiceAudition(id));
-  const voiceOf = (id: string, table?: string) => (table === 'K4' ? AU2.scene2Of(id)
+  const voiceOf = (id: string, table?: string) => (table === 'KV1' ? AU3.scene3Of(id) : table === 'K4' ? AU2.scene2Of(id)
     : table === 'K3' ? AD.drumSceneOf(id) : AU.sceneOf(id)).voice;
   // A knob table on every note, or (the controls' pass) parameters written
   // onto every note as they are; nothing else about the fixture moves.
@@ -639,7 +642,7 @@ const measured: Record<string, Reading[]> = {};
  * under every end of that voice: the vocal's vowel only walks, and its vibrato
  * only has a rate and a delay, while the gesture is asked for.
  */
-const CONTROL_SCENES: Array<{ voice: string; scene: string; table: 'K2' | 'K3' | 'K4'; with?: Record<string, number> }> = [
+const CONTROL_SCENES: Array<{ voice: string; scene: string; table: 'K2' | 'K3' | 'K4' | 'KV1'; with?: Record<string, number> }> = [
   { voice: 'kick', scene: 'kick', table: 'K2' },
   { voice: 'sub', scene: 'sub', table: 'K2' },
   { voice: 'pad', scene: 'pad:strings', table: 'K2' },
@@ -649,15 +652,30 @@ const CONTROL_SCENES: Array<{ voice: string; scene: string; table: 'K2' | 'K3' |
   { voice: 'wordlessVocal', scene: 'wordlessVocal', table: 'K2', with: { vowelSeconds: 0.3 } },
   { voice: 'conga', scene: 'conga', table: 'K3' },
   { voice: 'bongo', scene: 'bongo', table: 'K3' },
+  { voice: 'line303', scene: 'line303', table: 'KV1' },
+  { voice: 'siren', scene: 'siren', table: 'KV1' },
 ];
 
-const KNOB_SCENES: Array<{ voice: string; scene: string; table: 'K2' | 'K4'; module: string }> = [
-  { voice: 'kick', scene: 'kick', table: 'K2', module: 'kick.ts' },
-  { voice: 'sub', scene: 'sub', table: 'K2', module: 'bass.ts' },
-  { voice: 'keys', scene: 'keys:ep', table: 'K2', module: 'keys.ts' },
-  { voice: 'pad', scene: 'pad:strings', table: 'K2', module: 'strings.ts' },
-  { voice: 'fmPluck', scene: 'fmPluck', table: 'K4', module: 'fm-keys.ts' },
-  { voice: 'brightPiano', scene: 'brightPiano', table: 'K4', module: 'keys-2.ts' },
+const KNOB_SCENES: Array<{ voice: string; scene: string; table: 'K2' | 'K4' | 'KV1'; module: string | null }> = [
+  // a sound that is a row (round R1) writes its slopes into the row
+  { voice: 'kick', scene: 'kick', table: 'K2', module: null },
+  { voice: 'sub', scene: 'sub', table: 'K2', module: null },
+  // the two dispatchers (round SOUNDS-R3): a slope is the role's, and is
+  // written into its row and every row it renders through as it is
+  { voice: 'keys', scene: 'keys:ep', table: 'K2', module: null },
+  { voice: 'pad', scene: 'pad:strings', table: 'K2', module: null },
+  { voice: 'fmPluck', scene: 'fmPluck', table: 'K4', module: null },
+  { voice: 'brightPiano', scene: 'brightPiano', table: 'K4', module: null },
+  // round KV1's, each on its own row of the fifth table
+  { voice: 'reeseBass', scene: 'reeseBass', table: 'KV1', module: null },
+  { voice: 'reeseDriven', scene: 'reeseDriven', table: 'KV1', module: null },
+  { voice: 'line303', scene: 'line303', table: 'KV1', module: null },
+  { voice: 'shimmerPad', scene: 'shimmerPad', table: 'KV1', module: null },
+  { voice: 'supersawLead', scene: 'supersawLead', table: 'KV1', module: null },
+  { voice: 'siren', scene: 'siren', table: 'KV1', module: null },
+  { voice: 'organStab', scene: 'organStab', table: 'KV1', module: null },
+  // round DNB-2: the deep reese's mass, on its own row of the same table
+  { voice: 'reeseDeep', scene: 'reeseDeep', table: 'KV1', module: null },
 ];
 
 /** One end of one knob, as the page read it. */
@@ -934,32 +952,42 @@ if (KNOBS) {
   if (BLESS) {
     console.log('\nblessing the slopes');
     for (const row of KNOB_SCENES.filter((r) => !KNOB_ONLY || r.voice === KNOB_ONLY)) {
-      const file = path.join(SRC, 'voices', row.module);
-      let text = fs.readFileSync(file, 'utf8');
+      // A sound that is a row (round R1) carries its knob table in the row.
+      const file = row.module === null ? null : path.join(SRC, 'voices', row.module);
+      let text = file ? fs.readFileSync(file, 'utf8') : '';
       for (const knob of Object.keys(VOICE_KNOBS[row.voice])) {
         const rows = knobRead[`${row.voice}/${knob}`] || [];
         if (rows.length < 3) { console.log(`  ${row.voice}/${knob}: ${rows.length} readings, not blessed`); continue; }
         const slope = slopeOf(rows.map((r) => ({ x: r.setting, y: r.loudnessDb })));
         if (!Number.isFinite(slope)) { console.log(`  ${row.voice}/${knob}: no slope`); continue; }
         const now = Number(slope.toPrecision(3));
+        if (!file) {
+          let was: number | undefined;
+          if (!updateRow(row.voice, (r) => { was = r.descriptor.knobs[knob].slopeDb; r.descriptor.knobs[knob].slopeDb = now; })) { console.log(`  ${row.voice}/${knob}: no row`); continue; }
+          // a dispatcher's knobs are the knobs of the rows it hands a note to as it is
+          const table = BY_NAME[row.voice].row?.topology === 'dispatch' ? BY_NAME[row.voice].row!.parameters.timbres as Record<string, { row: string; sustain: boolean }> : {};
+          for (const e of Object.values(table)) if (!e.sustain) updateRow(e.row, (r) => { r.descriptor.knobs[knob].slopeDb = now; });
+          console.log(`  ${row.voice}/${knob}: ${was} -> ${now} dB/${(VOICE_KNOBS[row.voice][knob] as KnobSpec).unit}  (${row.voice}.json)`);
+          continue;
+        }
         const re = new RegExp(`(${knob}: \\{[^}]*slopeDb: )(-?[0-9.eE+-]+)`);
         if (!re.test(text)) { console.log(`  ${row.voice}/${knob}: no slopeDb found in ${row.module}`); continue; }
         const was = text.match(re)![2];
         text = text.replace(re, `$1${now}`);
         console.log(`  ${row.voice}/${knob}: ${was} -> ${now} dB/${(VOICE_KNOBS[row.voice][knob] as KnobSpec).unit}`);
       }
-      fs.writeFileSync(file, text);
+      if (file) fs.writeFileSync(file, text);
     }
     console.log('\nre-run without --bless to check the declared slopes against the readings.');
     process.exit(failed ? 1 : 0);
   }
 }
 
-const MODULES: Record<string, string> = {
-  sawLead: 'saw-lead.ts', fmBell: 'fm-bell.ts', karplusPluck: 'karplus-pluck.ts',
-  formantPad: 'formant-pad.ts', clavKey: 'clav-key.ts', supersawPad: 'supersaw-pad.ts',
-  piano: 'piano.ts', wordlessVocal: 'wordless-vocal.ts',
-};
+// Every voice is a row since round SOUNDS-R3 and declares its loudness in the
+// row; the piano's gate is its scene's own number, which the row carries in
+// its `measured` (the loudness fit's input, `timbres.piano.loudnessDb`, is left
+// where the fit was blessed: piano.ts says why).
+const MODULES: Record<string, string> = {};
 if (BLESS) {
   console.log('\nblessing');
   for (const id of WANT) {
@@ -969,6 +997,18 @@ if (BLESS) {
     // does not, and `WANT` is voices.
     const mean = rows.reduce((a: number, r: Reading) => a + r.loudnessDb!, 0) / rows.length;
     const now = Math.round(mean * 10) / 10;
+    if (BLESS_FIELD[id]) {
+      let was: number | undefined;
+      if (!updateRow(id, (r) => { was = r.measured[id][BLESS_FIELD[id]]; r.measured[id][BLESS_FIELD[id]] = now; })) { console.log(`  ${id}: no row`); continue; }
+      console.log(`  ${id}: ${was} -> ${now}  (${id}.json measured; ${rows.map((r: Reading) => `${r.engine}@${r.rate! / 1000}k ${r.loudnessDb}`).join(', ')})`);
+      continue;
+    }
+    if (!MODULES[id]) {
+      let was: number | undefined;
+      if (!updateRow(id, (r) => { was = r.descriptor.timbres[id].loudnessDb; r.descriptor.timbres[id].loudnessDb = now; })) { console.log(`  ${id}: no module and no row`); continue; }
+      console.log(`  ${id}: ${was} -> ${now}  (${id}.json; ${rows.map((r: Reading) => `${r.engine}@${r.rate! / 1000}k ${r.loudnessDb}`).join(', ')})`);
+      continue;
+    }
     const file = path.join(SRC, 'voices', MODULES[id]);
     const text = fs.readFileSync(file, 'utf8');
     const re = new RegExp(`(${id}: \\{[^}]*${BLESS_FIELD[id] || 'loudnessDb'}: )(-?[0-9.]+)`);

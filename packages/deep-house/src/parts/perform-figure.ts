@@ -115,6 +115,28 @@ export function recipeFigureSource({ seed, UPPERS, FIGURE, streamFor, progressio
       }
       const cellSteps = shaped.cell.reduce((sum, n) => sum + n, 0);
       const repeats = part.behavior === 'ostinato' ? Math.max(1, 16 / cellSteps) : 1;
+      // the bar's step of a note of the phrase on a repeat, or null where it does not play in this bar
+      const stepOf = (i: number, repeat: number): number | null => {
+        const position = part.entry + repeat * cellSteps + onsets[i];
+        if (position < offset || position >= offset + 16 || position >= part.spacing * 16) return null;
+        const step = position - offset;
+        if (part.rests) {
+          const beatInCycle = (c.bar % part.rests.bars) * 4 + step / 4;
+          if (part.rests.beats.some(([from,to])=>beatInCycle>=from&&beatInCycle<to)) return null;
+        }
+        return step;
+      };
+      if (!part.voicings && FIGURE!.fold !== 'statement') {
+        // A phrase folded bar by bar whose notes in this bar would leave the register moves a whole
+        // octave, as the statement fold and a voiced phrase do, rather than throwing mid-theme (the
+        // review of 10-08, A4: a row without paths is developed by moves that can carry it off the
+        // register's edge). A bar that fits keeps the base it had, so nothing that played moves.
+        const heard: number[] = [];
+        for (let repeat = 0; repeat < repeats; repeat++) shaped.degrees.forEach((degree, i) => {
+          if (stepOf(i, repeat) !== null) heard.push(scaleNote(progression.root, progression.scale, c.chord.degree + degree) - home);
+        });
+        if (heard.some((r) => base + r < low || base + r > high)) base = placeInRegister(base, heard, low, high) ?? base;
+      }
       // Once for the group and not once per lane of it (the fault pass of
       // 09-24). The phrase is the part's own: its instrument is the one the
       // part drew off the palette (`part.voice`; a figure lane has no list,
@@ -131,13 +153,9 @@ export function recipeFigureSource({ seed, UPPERS, FIGURE, streamFor, progressio
       // lanes on; both styles have one figure lane.
       for (let repeat = 0; repeat < repeats; repeat++) {
         shaped.degrees.forEach((degree, i) => {
+          const step = stepOf(i, repeat);
+          if (step === null) return;
           const position = part.entry + repeat * cellSteps + onsets[i];
-          if (position < offset || position >= offset + 16 || position >= part.spacing * 16) return;
-          const step = position - offset;
-          if (part.rests) {
-            const beatInCycle = (c.bar % part.rests.bars) * 4 + step / 4;
-            if (part.rests.beats.some(([from,to])=>beatInCycle>=from&&beatInCycle<to)) return;
-          }
           const midi = base + scaleNote(progression.root, progression.scale, c.chord.degree + degree) - home;
           if (midi < low || midi > high) throw new Error('recipe struck phrase does not fit its register');
           const remaining = Math.min(shaped.cell[i], part.spacing * 16 - position, 16 - step);

@@ -1,6 +1,6 @@
 {
-  "note": "Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it.",
-  "measuredAt": "2026-09-26",
+  "note": "Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it. Except, by hand and carried over from the blessed file: families.drop.targetLufs -11.5 (round LOUD-2: a family's own target in place of the block's).",
+  "measuredAt": "2026-10-04",
   "strategy": "house-v2",
   "sample": {
     "seeds": [
@@ -10,78 +10,236 @@
     "themes": 3,
     "n": 120,
     "windowBars": 8,
-    "sampleRate": 48000
+    "sampleRate": 48000,
+    "with": [
+      {
+        "tag": "drone",
+        "spell": "em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seeds": [
+          1,
+          20
+        ],
+        "themes": 3,
+        "n": 60
+      },
+      {
+        "tag": "dubstep",
+        "spell": "em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80",
+        "seeds": [
+          1,
+          20
+        ],
+        "themes": 3,
+        "n": 60
+      },
+      {
+        "tag": "b27191",
+        "spell": "em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seeds": [
+          27191,
+          27191
+        ],
+        "themes": 5,
+        "n": 5
+      }
+    ]
   },
   "residual": {
-    "r2": 0.7124,
-    "inSample": 0.618,
-    "crossValidated": 0.6984,
-    "worstHeldOut": 2.0641
+    "r2": 0.8181,
+    "inSample": 0.7528,
+    "crossValidated": 0.8317,
+    "worstHeldOut": 2.3114
   },
   "targetLufs": -13,
-  "clampDb": 4,
-  "slopeUp": 0.6433,
-  "slopeDown": 0.6836,
-  "intercept": -14.3199,
+  "clampDb": 6,
+  "slopeUp": 0.6638,
+  "slopeDown": 0.5002,
+  "intercept": -13.36424,
   "coef": {
-    "harmonicHold": 3.84995,
-    "rateBass": -0.09963,
-    "gainPad": 0.13115,
-    "rateHarmonic": 0.05953,
-    "harmonicBright": 0.34246,
-    "sharePad": 0.83433,
-    "velBass": 2.35502,
-    "themeBars": 0.00433,
-    "voicingElevenths": 0.41564,
-    "harmonicStruck": 0.87039,
-    "velKeys": 0.8032
+    "harmonicEnergyDb": 0.09258,
+    "rateKeys": 0.03216,
+    "harmonicHold": 3.93427,
+    "wetHarmonic": -2.99783,
+    "gainPad": 0.2134,
+    "rateBass": -0.2039,
+    "lvPad": 0.72223,
+    "loopBars": 0.35149,
+    "shareKeys": 1.52194,
+    "themeBars": 0.00777,
+    "wetKeys": 1.02628,
+    "wetPad": 1.34103,
+    "voicingElevenths": 0.30222
   },
   "centre": {
-    "harmonicHold": 0.440392,
-    "rateBass": 3.661458,
-    "gainPad": -1.05,
-    "rateHarmonic": 7.321875,
-    "harmonicBright": 11.028372,
-    "sharePad": 0,
-    "velBass": 0.751765,
-    "themeBars": 101.5,
-    "voicingElevenths": 0,
-    "harmonicStruck": 0.4625,
-    "velKeys": 0.563735
+    "harmonicEnergyDb": -14.664398,
+    "rateKeys": 6.954167,
+    "harmonicHold": 0.458391,
+    "wetHarmonic": 0.539548,
+    "gainPad": -1.425,
+    "rateBass": 3.440625,
+    "lvPad": -7.22425,
+    "loopBars": 5.9,
+    "shareKeys": 0.961458,
+    "themeBars": 115.1,
+    "wetKeys": 0.574904,
+    "wetPad": 0.445741,
+    "voicingElevenths": 0
   },
   "headroom": {
-    "activeMax": 10,
+    "activeMax": 15,
     "deepestMax": 8,
-    "marginDb": 1,
+    "marginDb": 1.5,
     "residual": {
-      "r2": 0.7601,
-      "inSample": 0.7891,
-      "crossValidated": 0.8584,
-      "worstHeldOut": 3.8837,
+      "r2": 0.7073,
+      "inSample": 1.1861,
+      "crossValidated": 1.3045,
+      "worstHeldOut": 3.5656,
       "n": 120
     },
-    "intercept": 0.09209,
+    "intercept": 0.17189,
     "coef": {
-      "loopBars": 0.39701,
-      "harmonicHold": -3.89491,
-      "rateHarmonic": -0.0623,
-      "harmonicBright": -0.82062,
-      "harmonicEnergyDb": -0.04915,
-      "voicingElevenths": -0.3831,
-      "rateHats": -0.09569,
-      "velKeys": -1.88446,
-      "shareKeys": 0.83598
+      "lvKeys": -1.02773,
+      "rateKeys": -0.12909,
+      "layers": 0.76548,
+      "shareKeys": -2.17351,
+      "gainKeys": -0.24923,
+      "wetKeys": 1.22097,
+      "wetPad": -1.56565,
+      "voicingElevenths": -0.73941,
+      "minor": -0.47641,
+      "velHats": -0.75358,
+      "loopBars": -0.26374
     },
     "centre": {
-      "loopBars": 5.9,
-      "harmonicHold": 0.440392,
-      "rateHarmonic": 7.321875,
-      "harmonicBright": 11.028372,
-      "harmonicEnergyDb": -15.949922,
+      "lvKeys": -11.32725,
+      "rateKeys": 6.954167,
+      "layers": 7.428125,
+      "shareKeys": 0.961458,
+      "gainKeys": 1.126296,
+      "wetKeys": 0.574904,
+      "wetPad": 0.445741,
       "voicingElevenths": 0,
-      "rateHats": 3.333333,
-      "velKeys": 0.563735,
-      "shareKeys": 0
+      "minor": 0,
+      "velHats": 0.762219,
+      "loopBars": 5.9
+    }
+  },
+  "families": {
+    "drumless": {
+      "sample": {
+        "from": [
+          "drone",
+          "b27191"
+        ],
+        "n": 65
+      },
+      "residual": {
+        "r2": 0.745,
+        "inSample": 1.0998,
+        "crossValidated": 1.2082,
+        "worstHeldOut": 5.6525
+      },
+      "intercept": -11.98302,
+      "coef": {
+        "wetKeys": -3.23983,
+        "velBass": 4.75313,
+        "densityMedium": 0.2853
+      },
+      "centre": {
+        "wetKeys": 0.325942,
+        "velBass": 0.804825,
+        "densityMedium": 0
+      },
+      "headroom": {
+        "residual": {
+          "r2": 0.8899,
+          "inSample": 0.9779,
+          "crossValidated": 1.1339,
+          "worstHeldOut": 2.6423,
+          "n": 65
+        },
+        "intercept": -0.50384,
+        "coef": {
+          "wetKeys": 2.00868,
+          "ratePad": -0.84931,
+          "harmonicBright": -1.11419,
+          "harmonicHold": -6.24642,
+          "gainPad": -0.33145,
+          "velBass": -2.95543,
+          "loopBars": 0.29709,
+          "harmonicRoles": -0.7862,
+          "delayPad": 9.76464
+        },
+        "centre": {
+          "wetKeys": 0.325942,
+          "ratePad": 2.282692,
+          "harmonicBright": 11.048818,
+          "harmonicHold": 0.437538,
+          "gainPad": -1.246154,
+          "velBass": 0.804825,
+          "loopBars": 5.230769,
+          "harmonicRoles": 1.830769,
+          "delayPad": 0.101906
+        }
+      }
+    },
+    "drop": {
+      "targetLufs": -11.5,
+      "sample": {
+        "from": [
+          "dubstep"
+        ],
+        "n": 60
+      },
+      "residual": {
+        "r2": 0.3892,
+        "inSample": 0.5984,
+        "crossValidated": 0.6215,
+        "worstHeldOut": 3.5295
+      },
+      "intercept": -11.14467,
+      "coef": {
+        "wetPad": 0.55045,
+        "harmonicBright": -0.51119,
+        "voicingElevenths": -0.27283,
+        "shareKick": -1.5491,
+        "rateShaker": 0.08629
+      },
+      "centre": {
+        "wetPad": 0.748187,
+        "harmonicBright": 11.142417,
+        "voicingElevenths": 0,
+        "shareKick": 0.970833,
+        "rateShaker": 1.283333
+      },
+      "headroom": {
+        "residual": {
+          "r2": 0.5343,
+          "inSample": 1.2704,
+          "crossValidated": 1.4276,
+          "worstHeldOut": 3.6309,
+          "n": 60
+        },
+        "intercept": -2.31445,
+        "coef": {
+          "wetKeys": 0.99418,
+          "rateShaker": -0.11399,
+          "bassMask": 6.53456,
+          "densityBusy": -1.85182,
+          "velBass": -6.86256,
+          "shareKick": 3.71058,
+          "knobDb": -0.29581
+        },
+        "centre": {
+          "wetKeys": 0.569694,
+          "rateShaker": 1.283333,
+          "bassMask": 0.125,
+          "densityBusy": 0,
+          "velBass": 0.755117,
+          "shareKick": 0.970833,
+          "knobDb": 3.367863
+        }
+      }
     }
   }
 }

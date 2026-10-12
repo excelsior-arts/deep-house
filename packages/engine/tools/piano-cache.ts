@@ -1,5 +1,7 @@
-import {piano,preparePiano,pianoCacheStats,resetPianoCacheStats,pianoCacheBytes,PIANO_CACHE_BYTES} from '../src/voices/piano.ts';
-import {prepareVoices} from '../src/voices/index.ts';
+import {preparePiano,pianoCacheStats,resetPianoCacheStats,pianoCacheBytes,PIANO_CACHE_BYTES} from '../src/voices/piano.ts';
+import {prepareVoices,VOICES} from '../src/voices/index.ts';
+// the piano is a row over its topology (round SOUNDS-R3): its note is the registry's
+const piano=VOICES.piano;
 import type {ProgramEvent} from '../src/program.ts';
 import type {Settings} from '../src/settings.ts';
 

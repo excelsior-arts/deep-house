@@ -76,7 +76,8 @@ import type { Audition } from './audition.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 
 // A `--name value` off the command line, or nothing when it is not there.
 const arg = (k: string, d: string | null = null): string | null => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
@@ -291,6 +292,7 @@ interface ProbeOut {
   centreHz?: number;
   crestOpen?: number;
   crestShut?: number;
+  crestDriven?: number;
   crestFellDb?: number;
   levelChangeDb?: number;
   sharpPeak?: number;
@@ -660,6 +662,49 @@ const RUN = async (job: Job) => {
       out.centsOff = r2(1200 * Math.log2(out.centreHz / 440));
       out.atExactly440 = db(magAt(x, 440, 2.2, n));
       out.windowHz = r2(1 / 0.06, 1);
+    }
+    if (job.id === 'drive') {
+      // The clip squashes: the distance between the peak and the body falls
+      // as the drive goes up, the make-up keeping the body where it was. And
+      // the trims are levels: the output trim at -6 is six decibels, whatever
+      // the clip did.
+      const open = await make({ drive: 0 });
+      const hard = await make(wet);
+      const trimmed = await make({ ...wet, outputDb: -6 });
+      const crest = (buf: AudioBuffer): number => r2(db(ME.samplePeak(channels(buf))) - db(rms(channels(buf, 0.2, stop))));
+      out.crestOpen = crest(open);
+      out.crestDriven = crest(hard);
+      out.crestFellDb = r2(out.crestOpen - out.crestDriven);
+      out.outputTrimDb = r2(db(rms(channels(trimmed, 0.2, stop))) - db(rms(channels(hard, 0.2, stop))));
+    }
+    if (job.id === 'lofi') {
+      // The top: a tone over the corner against one under it, both through.
+      const low = await tone(500, {}, 1.2);
+      const high = await tone(6000, {}, 1.2);
+      out.cutDb = r2(db(rms(channels(high, 0.3, 1.1))) - db(rms(channels(low, 0.3, 1.1))));
+      // The wander: a held 1 kHz tone's period, read off its own rising zero
+      // crossings, over twenty-cycle stretches of four seconds — the spread of
+      // those frequencies is the head's speed moving.
+      const held = await tone(1000, {}, 4.5);
+      const x = held.getChannelData(0);
+      const cross: number[] = [];
+      for (let i = Math.round(0.3 * rate); i < x.length - 1; i++) {
+        if (x[i] <= 0 && x[i + 1] > 0) cross.push(i + x[i] / (x[i] - x[i + 1]));
+      }
+      const hz: number[] = [];
+      for (let k = 0; k + 20 < cross.length; k += 20) hz.push((20 * rate) / (cross[k + 20] - cross[k]));
+      const cents = hz.map((f) => 1200 * Math.log2(f / 1000));
+      out.wanderCents = r2(Math.max(...cents) - Math.min(...cents));
+      const still = await tone(1000, { wow: 0, flutter: 0 }, 4.5);
+      const y = still.getChannelData(0);
+      const c2: number[] = [];
+      for (let i = Math.round(0.3 * rate); i < y.length - 1; i++) {
+        if (y[i] <= 0 && y[i + 1] > 0) c2.push(i + y[i] / (y[i] - y[i + 1]));
+      }
+      const hz2: number[] = [];
+      for (let k = 0; k + 20 < c2.length; k += 20) hz2.push((20 * rate) / (c2[k + 20] - c2[k]));
+      const cents2 = hz2.map((f) => 1200 * Math.log2(f / 1000));
+      out.stillCents = r2(Math.max(...cents2) - Math.min(...cents2));
     }
     if (job.id === 'compressor') {
       // **Not the level**, and that took a reading to learn: a
@@ -1211,6 +1256,11 @@ if (pw) {
         // quantising anything. Six decibels a bit is the arithmetic; four is the
         // band, because a lowpass sits behind the staircase.
         crush: () => r.perBitDb >= 4,
+        // A drive that does not narrow the crest is not driving; a trim that
+        // is not its own decibels is not a trim.
+        drive: () => r.crestFellDb >= 2 && Math.abs(r.outputTrimDb - -6) <= 0.2,
+        // The top comes off, and the head wanders where a still one does not.
+        lofi: () => r.cutDb <= -6 && r.wanderCents >= 3 && r.stillCents <= 1,
       };
       const claim = claims[id];
       must(

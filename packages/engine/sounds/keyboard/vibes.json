@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "vibes",
+  "revision": 1,
+  "topology": "mallet",
+  "block": "vibes",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        5.5,
+        1
+      ],
+      [
+        2.76,
+        1.6,
+        0.3
+      ],
+      [
+        5.4,
+        0.7,
+        0.12
+      ]
+    ],
+    "attack": 0.003,
+    "release": 0.3,
+    "ringLevel": 0.6,
+    "tremoloHz": 4.4,
+    "tremoloDepth": 0.75,
+    "malletHz": 1200,
+    "malletLevel": 0.3,
+    "malletTime": 0.006,
+    "spread": 0.5,
+    "trim": 0.3,
+    "delay": 0.14,
+    "reverb": 0.42
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "vibes": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.35,
+        "brightnessHz": 4200,
+        "loudnessDb": -11.4
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "mallets.ts",
+    "note": "Vibes: metal bars, so the partials are left where a free bar puts them — 1, 2.76, 5.40 — and the decay is six times as long. The tremolo is on the *resonator* and not on the note, which is what the rotating discs do."
+  }
+}

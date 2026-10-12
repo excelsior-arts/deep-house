@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatTight",
+  "revision": 3,
+  "topology": "kit-hat",
+  "block": "hatTight",
+  "dice": 53.3,
+  "parameters": {
+    "ratios": [
+      1,
+      1.5,
+      2.08,
+      2.72,
+      3.4,
+      4.11
+    ],
+    "base": 700,
+    "detune": 10,
+    "metal": 0.6,
+    "hp": 4600,
+    "peakHz": 8200,
+    "q": 0.3,
+    "tilt": 3,
+    "lidHz": 13400,
+    "t10": 0.02,
+    "seconds": 0.35,
+    "variants": 3,
+    "variantCents": 30,
+    "attack": 0.0015,
+    "trim": 1.22,
+    "rateSpread": 0.035,
+    "gainSpread": 0.09,
+    "decaySpread": 0.12,
+    "panSpread": 0.07,
+    "velBright": 0.35,
+    "velDecay": 0.2,
+    "pan": 0.1,
+    "room": 0,
+    "delay": 0,
+    "top": 0,
+    "air": 0,
+    "airHz": 8000,
+    "tail": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "hatTight": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 8200,
+        "loudnessDb": -22.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats-kit.ts",
+    "note": "Three more hats. The ladder is the record's own — nothing a whole-number multiple of anything else — and what separates the three is the decay, the lid and how much of the hat is metal rather than noise.",
+    "notes": {
+      "grain": "SPARK-2: the grain (`hat-grain.ts`): the upper ladder's share of the metal, the air past the lid from `airHz`, the tail after -10 dB. Nought here builds nothing; a place voices the block."
+    }
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

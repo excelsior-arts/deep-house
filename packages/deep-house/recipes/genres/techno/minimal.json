@@ -164,7 +164,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -197,6 +197,12 @@
   "provenance": {
     "pattern": "minimal techno: the four and very little else — a cross-stick placed off the beat, a closed hat on the offbeat, and a sub that dots a short syncopated figure",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars, and the space is the point: the cross-stick falls on the a of two and the e of four in the first bar and on three-and in the second, the only closed hat is on each offbeat, the sub plays four short notes in two bars. Eugene's favourite, and the one the research thought nearest the house already."
+    "note": "Two bars, and the space is the point: the cross-stick falls on the a of two and the e of four in the first bar and on three-and in the second, the only closed hat is on each offbeat, the sub plays four short notes in two bars. the listener's favourite, and the one the research thought nearest the house already.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": 0.6,
+      "syncopationZ": -0.4,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

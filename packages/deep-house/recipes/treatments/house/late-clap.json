@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/late-clap",
+  "revision": 1,
+  "name": "late clap",
+  "scope": "treatment",
+  "applies": "turnaround",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "....X.........X."
+        ]
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "turnaround",
+    "where": "the last bar of a four-bar group inside a main or a drop",
+    "reading": "the snare band moved on 3.0-7.7 bars in 16 of the reference mains, the commonest single change of the four cuts (and the house's own renders read 1.5-3.3 there, so the measure is generous)",
+    "idiom": "the backbeat's second hit pushed from the four to its and: the turnaround a house groove answers itself with",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02: a row of the house's mains, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

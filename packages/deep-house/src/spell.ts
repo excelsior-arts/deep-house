@@ -153,6 +153,11 @@ export interface Derived {
   pulse: number;
   /** which band of tempi that pulse belongs in, and the band itself in BPM */
   tempoFamily: TempoFamily;
+  /** the band inside the family (round GA3): `slow` in the house's, `high` in techno's */
+  tempoBand: TempoBand;
+  /** the centre of the tempo window on Ember's curve (GA5) */
+  tempoCentre: number;
+  /** the window the room's own draw plays at: the centre, five either side */
   tempoRange: readonly [number, number];
   /** whether there is a drum grid at all, and which one */
   drumsOn: boolean;
@@ -173,14 +178,62 @@ export interface Derived {
   formLength: number;
 }
 
-/** The four bands, and what each is in BPM. PLAN-MAGIC-V2 §2's table. */
-const TEMPO_BANDS: ReadonlyArray<{ upTo: number; family: TempoFamily; bpm: readonly [number, number] }> =
-  Object.freeze([
-    { upTo: 0.15, family: 'unmetered', bpm: Object.freeze([40, 70] as const) },
-    { upTo: 0.55, family: 'house', bpm: Object.freeze([95, 115] as const) },
-    { upTo: 0.80, family: 'techno', bpm: Object.freeze([120, 140] as const) },
-    { upTo: Infinity, family: 'drumAndBass', bpm: Object.freeze([160, 180] as const) },
-  ]);
+/**
+ * **Ember is a tempo, not a band** (round GA5, Eugene 09-27: *"allow users to
+ * change Ember more fluidly"*, and the seed pulling the tempo *"within the
+ * current bird setting … rolling dice on default birds should land us"* where
+ * the record is).
+ *
+ * The pulse (`ember x (0.80 + 0.20 x spark)`, below) reads a **monotone curve**
+ * of tempo centres, and the room's own draw — the record's 95..105 — becomes a
+ * window of the same width round the centre: the seed still pulls the tempo
+ * inside the birds' setting, five either side. The knots are tempi at pulses
+ * the pattern rows' spells stand at — the free pulse, **27191's own pulse,
+ * 0.112, at 48** (so the benchmark plays at the 49-50 BPM it has always
+ * played: the room's draw for it is 101), a slow groove's 88 at 0.26, **the
+ * house at 0.337, exactly 100**, a driving four's 122-131 between 0.59 and
+ * 0.68, a straight 140 at 0.76 and 172 at 0.92 — joined linearly: no step
+ * anywhere, so a hand sliding Ember slides the tempo.
+ *
+ * **The house is the identity**: the house's centre is 100 to the bit, so the
+ * room's 95..105 plays at 95..105 (`tempoInFamily` shifts by nothing), which
+ * is what the golden, seed 1 and 27191's own themes rest on and what
+ * `tools/check.ts` and check-composer state.
+ */
+export const TEMPO_CURVE: ReadonlyArray<readonly [number, number]> = Object.freeze([
+  [0, 46], [0.112, 48], [0.15, 60], [0.257, 88], [HOUSE.ember * (0.80 + 0.20 * HOUSE.spark), 100], [0.55, 118], [0.59, 122], [0.616, 125],
+  [0.641, 128], [0.677, 131], [0.72, 136], [0.76, 140], [0.80, 150], [0.92, 172], [1, 176],
+].map((k) => Object.freeze(k as unknown as [number, number])));
+/** The window's half-width round the centre: the room's own 95..105. */
+export const TEMPO_WINDOW = 5;
+/** The tempo centre a pulse reads, on the curve. */
+export function tempoCentreOf(pulse: number): number {
+  const c = TEMPO_CURVE;
+  if (pulse <= c[0][0]) return c[0][1];
+  for (let i = 1; i < c.length; i++) {
+    if (pulse <= c[i][0]) {
+      const [p0, b0] = c[i - 1], [p1, b1] = c[i];
+      // a knot is its own value to the bit, so the house is exactly 100
+      if (pulse === p1) return b1;
+      return b0 + ((pulse - p0) * (b1 - b0)) / (p1 - p0);
+    }
+  }
+  return c[c.length - 1][1];
+}
+/**
+ * The family and band **words**, now labels of the centre and nothing else
+ * (the ring's words, the glue's gates and the swell read them): where the
+ * centre sits, never which table a pulse fell in.
+ */
+export type TempoBand = 'free' | 'slow' | 'steady' | 'driving' | 'high' | 'fast';
+const LABELS: ReadonlyArray<{ below: number; family: TempoFamily; band: TempoBand }> = Object.freeze([
+  { below: 70, family: 'unmetered', band: 'free' },
+  { below: 95, family: 'house', band: 'slow' },
+  { below: 115, family: 'house', band: 'steady' },
+  { below: 134, family: 'techno', band: 'driving' },
+  { below: 155, family: 'techno', band: 'high' },
+  { below: Infinity, family: 'drumAndBass', band: 'fast' },
+]);
 
 /** Drums are on above this much transient energy; the kit breaks above this much fracture. */
 export const DRUMS_ON_ABOVE = 0.18;
@@ -216,17 +269,87 @@ const PULSE_FROM_SPARK = 0.20;
  * the pulse is Ember times `0.80 + 0.20 x spark`. The glyph's middle level ends
  * here (`bird-glyph.ts`), so the blaze and DRIVING turn at one value.
  */
-export const EMBER_DRIVING_AT: number = TEMPO_BANDS.find((b) => b.family === 'house')!.upTo / (PULSE_FROM_EMBER + PULSE_FROM_SPARK * HOUSE.spark);
+// Since GA5 the house's words end where its centre reaches 115 on the curve
+// (`LABELS`), so the glyph turns at that pulse: the glyph and the word agree.
+const pulseAtCentre = (bpm: number): number => {
+  const c = TEMPO_CURVE;
+  for (let i = 1; i < c.length; i++) if (bpm <= c[i][1]) return c[i - 1][0] + ((bpm - c[i - 1][1]) * (c[i][0] - c[i - 1][0])) / (c[i][1] - c[i - 1][1]);
+  return c[c.length - 1][0];
+};
+
+/**
+ * **Ember in 5-bpm notches** (round K40, Eugene: *"the increments above 100 %
+ * are too small; allow change with 5 bpm precision"*). The curve stays
+ * continuous and so does the value a link carries; what is notched is the
+ * **centre** `derive()` reads off it — rounded to the nearest five — so every
+ * reader of `tempoCentre` (the window, `tempoInFamily`, the place tables, the
+ * glue, the swell, the ring's word and the blaze) hears and shows the notch.
+ * The free band under 70 is energy and not a metronome and is left as the
+ * curve says, so 27191's 48 does not move. The house's 100 is a notch, to the
+ * bit, and the band edges (70, 95, 115, 134, 155) stand where they stood: they
+ * are read off the notched centre.
+ */
+export const TEMPO_NOTCH = 5;
+/** The free band's top: under it the centre is the curve's own. */
+export const NOTCHED_FROM = 70;
+/** The centre a curve's tempo plays at: the nearest notch at 70 and above. */
+export function tempoNotch(raw: number): number {
+  return raw < NOTCHED_FROM ? raw : Math.round(raw / TEMPO_NOTCH) * TEMPO_NOTCH;
+}
+const pulseOf = (ember: number, spark: number): number => ember * (PULSE_FROM_EMBER + PULSE_FROM_SPARK * spark);
+/** Ember's tempo centre at a value, with Spark as it is — the curve's own (`raw`) or the notch it plays at. */
+export function emberTempo(ember: number, spark: number, raw = false): number {
+  const c = tempoCentreOf(pulseOf(ember, spark));
+  return raw ? c : tempoNotch(c);
+}
+/**
+ * **The value of Ember whose centre is a notch**, Spark as it is (Spark moves
+ * the pulse, so a notch's value moves with it), on a hundredth — what a link
+ * carries — and inside the notch whatever the hundredth's rounding did: the
+ * value nearest the curve's own tempo for it. The house's notch at the house's
+ * Spark is the house, exactly. Null where Ember cannot reach it (past the top,
+ * or under the free band).
+ */
+export function emberAtNotch(bpm: number, spark: number): number | null {
+  if (bpm < NOTCHED_FROM) return null;
+  if (bpm === HOUSE_DERIVED.tempoCentre && Math.abs(spark - HOUSE.spark) < 1e-9) return HOUSE.ember;
+  const exact = pulseAtCentre(bpm) / (PULSE_FROM_EMBER + PULSE_FROM_SPARK * spark);
+  let v = Math.min(1, Math.max(0, +exact.toFixed(2)));
+  // one hundredth of Ember is at most ~2.2 BPM on the curve's steepest stretch,
+  // so the notch (5 wide) always holds one; walk in from a rounding that fell over its edge
+  for (let i = 0; i < 4 && emberTempo(v, spark) !== bpm; i++) {
+    const w = +(v + (emberTempo(v, spark) < bpm ? 0.01 : -0.01)).toFixed(2);
+    if (w < 0 || w > 1) break;
+    v = w;
+  }
+  return emberTempo(v, spark) === bpm ? v : null;
+}
+/** The notch's own value for the notch a value reads, or the value itself in the free band. */
+export function emberNotchValue(ember: number, spark: number): number {
+  const raw = emberTempo(ember, spark, true);
+  if (raw < NOTCHED_FROM) return ember;
+  return emberAtNotch(tempoNotch(raw), spark) ?? ember;
+}
+
+// The glyph's turn (the comment over `pulseAtCentre` says what it is). Since
+// K40 the centre is notched (`tempoNotch`), so the word turns where the *notch*
+// reaches 115: the curve's 112.5 rounds up to it, and that is the pulse the
+// glyph turns at.
+export const EMBER_DRIVING_AT: number = pulseAtCentre(115 - TEMPO_NOTCH / 2) / (PULSE_FROM_EMBER + PULSE_FROM_SPARK * HOUSE.spark);
 
 /** Once per theme, before the dice. Pure, and it reads nothing but the spell. */
 export function derive(spell: Spell): Derived {
   const s = asSpell(spell);
-  const pulse = s.ember * (PULSE_FROM_EMBER + PULSE_FROM_SPARK * s.spark);
-  const band = TEMPO_BANDS.find((b) => pulse < b.upTo) ?? TEMPO_BANDS[TEMPO_BANDS.length - 1];
+  const pulse = pulseOf(s.ember, s.spark);
+  // the notch, not the curve: the link's value is continuous, the tempo is in fives (K40)
+  const centre = tempoNotch(tempoCentreOf(pulse));
+  const band = LABELS.find((b) => centre < b.below)!;
   return {
     pulse,
     tempoFamily: band.family,
-    tempoRange: band.bpm,
+    tempoBand: band.band,
+    tempoCentre: centre,
+    tempoRange: Object.freeze([centre - TEMPO_WINDOW, centre + TEMPO_WINDOW] as const),
     drumsOn: s.ember > DRUMS_ON_ABOVE,
     kit: s.spark < BREAKS_ABOVE ? 'fourFloor' : 'breaks',
     wet: s.tide,
@@ -260,11 +383,21 @@ export const HOUSE_DERIVED: Readonly<Derived> = Object.freeze(derive(HOUSE as Sp
  * integer the tempo die hands over. Both digests are what check it.
  */
 export function tempoInFamily(bpm: number, derived: Derived): number {
-  const [lo0, hi0] = HOUSE_DERIVED.tempoRange;
-  const [lo1, hi1] = derived.tempoRange;
-  const span = hi0 - lo0;
-  if (!(span > 0)) return bpm;
-  return Math.round(lo1 + ((bpm - lo0) * (hi1 - lo1)) / span);
+  // The room's draw shifted by the centre's distance from the house's own:
+  // at the house the shift is nought and the draw is itself, to the bit.
+  const shift = derived.tempoCentre - HOUSE_DERIVED.tempoCentre;
+  return shift === 0 ? bpm : Math.round(bpm + shift);
+}
+
+/**
+ * **The tempo the house would play this theme at** (round L3): `tempoInFamily`
+ * read backwards, the played tempo less the family centre's distance from the
+ * house's own — the room's draw for a theme, the set's for a set's theme. At
+ * the house it is the played tempo itself, so a ratio of the two is exactly 1.
+ */
+export function houseTempoOf(bpm: number, derived: Derived | null): number {
+  const shift = derived ? derived.tempoCentre - HOUSE_DERIVED.tempoCentre : 0;
+  return shift === 0 ? bpm : bpm - shift;
 }
 
 // --- the knobs: a bird moves a voice's own range ------------------------------
@@ -317,36 +450,44 @@ export function knobSetting(spec: KnobSpec, spell: Spell): number {
 
 /**
  * **What taste, rather than the gate, allows** — `notes/diagrams/landscape.md`
- * §4, as fractions of each knob's engine range (0 is `min`, 1 is `max`).
+ * §4, as fractions of each knob's engine range (0 is `min`, 1 is `max`), keyed
+ * by the tempo's own band words (`TempoBand`, the ring's), never by a genre's
+ * (the review of 10-08, A4): the bands the house's family holds (`free`,
+ * `slow`, `steady`) at the identity, the driving and high bands at the sheet's
+ * row for that pulse, the fast band at its own. The numbers are the sheet's
+ * as they were keyed by its region words, and the lean read off them
+ * (`tempoBassLean`) is the same number at every band; the sheet's rows that no
+ * band reads were never reached and are left to the sheet.
  *
  * Two limits and they are different things: the **engine** range is the ends a
  * gate proved artefact-free and it is the voice's own declaration; the
- * **region** range is narrower and is a judgement about what that music sounds
+ * **band** range is narrower and is a judgement about what that pulse sounds
  * like. A hand may only ever narrow.
  *
- * Deep house is `[0, 1]` on every knob — *the default plus or minus the box* —
- * which is the identity, so **nothing in this table is selected by region yet**
- * and the engine range is what a spell reaches. It is recorded and gated here
- * so the day the ring's centre names a region (`PLAN-MAGIC-V2` phase 2) the
+ * The house's band is `[0, 1]` on every knob — *the default plus or minus the
+ * box* — which is the identity, so **nothing in this table is selected by band
+ * yet** and the engine range is what a spell reaches. It is recorded and gated
+ * here so the day the ring's centre names a band (`PLAN-MAGIC-V2` phase 2) the
  * numbers are already the sheet's and not a second copy of them.
  */
-export const KNOB_TASTE: Readonly<Record<string, Readonly<Record<string, readonly [number, number]>>>> = Object.freeze({
-  ambient: Object.freeze({ hold: [0.70, 1.00] as const, brightnessHz: [0.20, 0.50] as const, attack: [0.50, 1.00] as const }),
-  'dub techno': Object.freeze({ hold: [0.60, 0.90] as const, brightnessHz: [0.30, 0.60] as const, attack: [0.20, 0.50] as const }),
-  minimal: Object.freeze({ hold: [0.20, 0.50] as const, brightnessHz: [0.30, 0.60] as const, attack: [0.10, 0.30] as const }),
-  'deep house': Object.freeze({ hold: [0, 1] as const, brightnessHz: [0, 1] as const, attack: [0, 1] as const }),
-  techno: Object.freeze({ hold: [0.20, 0.50] as const, brightnessHz: [0.50, 0.80] as const, attack: [0.00, 0.20] as const }),
-  'breaks / garage': Object.freeze({ hold: [0.20, 0.50] as const, brightnessHz: [0.50, 0.80] as const, attack: [0.00, 0.20] as const }),
-  'drum and bass': Object.freeze({ hold: [0.10, 0.40] as const, brightnessHz: [0.60, 0.90] as const, attack: [0.00, 0.15] as const }),
+const TASTE_IDENTITY = Object.freeze({ hold: [0, 1] as const, brightnessHz: [0, 1] as const, attack: [0, 1] as const });
+const TASTE_DRIVING = Object.freeze({ hold: [0.20, 0.50] as const, brightnessHz: [0.50, 0.80] as const, attack: [0.00, 0.20] as const });
+export const KNOB_TASTE: Readonly<Record<TempoBand, Readonly<Record<string, readonly [number, number]>>>> = Object.freeze({
+  free: TASTE_IDENTITY,
+  slow: TASTE_IDENTITY,
+  steady: TASTE_IDENTITY,
+  driving: TASTE_DRIVING,
+  high: TASTE_DRIVING,
+  fast: Object.freeze({ hold: [0.10, 0.40] as const, brightnessHz: [0.60, 0.90] as const, attack: [0.00, 0.15] as const }),
 });
 
-/** The region a spell is read in until the ring's centre names one. */
-export const HOUSE_REGION = 'deep house';
+/** The band a spell is read in until the ring's centre names one: the house's own. */
+export const HOUSE_REGION: TempoBand = 'steady';
 
 /**
- * One knob narrowed to a region's taste, as a fraction of its own engine range.
+ * One knob narrowed to a band's taste, as a fraction of its own engine range.
  *
- * At `[0, 1]` — which is deep house on all three, and so every knob this round
+ * At `[0, 1]` — which is the house's band on all three, and so every knob this round
  * reaches — it hands back **the spec it was given, the same object**, so the
  * mapping above runs on the engine's own numbers and not on a copy of them a
  * tenth of a hertz away. Elsewhere it narrows, never widens, and the default
@@ -354,7 +495,8 @@ export const HOUSE_REGION = 'deep house';
  * the voice can reach.
  */
 export function knobInRegion(name: string, spec: KnobSpec, region: string = HOUSE_REGION): KnobSpec {
-  const band = KNOB_TASTE[region] && KNOB_TASTE[region][name];
+  const row = (KNOB_TASTE as Readonly<Record<string, Readonly<Record<string, readonly [number, number]>>>>)[region];
+  const band = row && row[name];
   if (!band || (band[0] <= 0 && band[1] >= 1)) return spec;
   const span = spec.max - spec.min;
   const min = spec.min + band[0] * span;
@@ -383,17 +525,6 @@ export function knobInRegion(name: string, spec: KnobSpec, region: string = HOUS
 // each is more overlap between them. Lighter is shorter.
 
 /**
- * Which region of `notes/diagrams/landscape.md` a derived tempo family leans
- * toward. `unmetered` has no drums to speed up, and the house is the house.
- */
-const FAMILY_REGION: Readonly<Record<TempoFamily, string>> = Object.freeze({
-  unmetered: 'deep house',
-  house: 'deep house',
-  techno: 'techno',
-  drumAndBass: 'drum and bass',
-});
-
-/**
  * **The knobs a tempo family leans, by name.** `hold` is declared by every
  * voice this round reaches; `mass` is M2's and is named here so the rule is
  * whole the day a voice declares one, rather than being half a rule somebody
@@ -405,24 +536,71 @@ const FAMILY_REGION: Readonly<Record<TempoFamily, string>> = Object.freeze({
  */
 export const TEMPO_BASS_KNOBS: readonly string[] = Object.freeze(['hold', 'mass']);
 
+/** A band's own lean: how far the sheet's `hold` ceiling for it sits under the house's. */
+function bandLean(band: TempoBand): number {
+  const here = KNOB_TASTE[band];
+  const home = KNOB_TASTE[HOUSE_REGION];
+  if (!here || !home || !here.hold || !home.hold) return 0;
+  // (read while the module loads, before `clamp` below is defined)
+  return Math.min(1, Math.max(0, home.hold[1] - here.hold[1]));
+}
+
 /**
- * **How far a family leans, and it is not a number anybody typed.** It is read
+ * **Where each band's lean is reached, in BPM**: a band that leans by nought
+ * holds nought across the whole of it, so both its edges are knots; a band
+ * that leans reaches its lean at its middle (the top band's top is the notch
+ * the curve's top plays at). Built once from `LABELS` and `KNOB_TASTE`.
+ */
+const LEAN_KNOTS: ReadonlyArray<readonly [number, number]> = (() => {
+  const top = tempoNotch(TEMPO_CURVE[TEMPO_CURVE.length - 1][1]);
+  const knots: [number, number][] = [];
+  let low = 0;
+  for (const b of LABELS) {
+    const high = Number.isFinite(b.below) ? b.below : top;
+    const lean = bandLean(b.band);
+    if (lean > 0) knots.push([(low + high) / 2, lean]);
+    else knots.push([low, 0], [high, 0]);
+    low = high;
+  }
+  return Object.freeze(knots.map((k) => Object.freeze(k)));
+})();
+
+/**
+ * **How far a tempo leans, and it is not a number anybody typed.** It is read
  * off the landscape sheet's own §4 `hold` column, as the distance that column
- * has already travelled from deep house: the sheet puts deep house's hold at
+ * has already travelled from the house: the sheet puts the house's hold at
  * `[0, 1]` of the engine range — the identity, the whole range a gate proved
- * clean — techno's ceiling at 0.50 and drum and bass's at 0.40, so the lean is
- * **0 at the house, 0.50 at techno and 0.60 at drum and bass**, and the day
- * somebody narrows a row of that table this follows it.
+ * clean — the driving and high bands' ceiling at 0.50 and the fast band's at
+ * 0.40, so a band leans **0 at the free, slow and steady bands, 0.50 at the
+ * driving and high and 0.60 at the fast**, and the day somebody narrows a row
+ * of that table this follows it.
  *
- * At the house family the two ceilings are the same number and the lean is
- * exactly nought, which is the identity the digests prove.
+ * **Continuous in the tempo** (the deep review of 10-08, B8). It was a step at
+ * each band's edge — one Ember notch from 110 to 115 BPM halved the sub's
+ * mass — and is now a line between the bands' own knots (`LEAN_KNOTS`): nought
+ * up to 115, the driving band's 0.50 at its middle (124.5), the high band's
+ * 0.50 to its middle (144.5), the fast band's 0.60 from its middle (165) on.
+ * So nothing under 115 moves, nor any notch from 125 to 140 or from 165 up;
+ * 115 and 120 lean 0 and 0.26 where they leant 0.50, 145 and 150 lean 0.50
+ * and 0.53 where they leant 0.50, 155 and 160 lean 0.55 and 0.58 where they
+ * leant 0.60.
+ *
+ * At the house family the lean is exactly nought, which is the identity the
+ * digests prove.
  */
 export function tempoBassLean(derived: Derived | null | undefined): number {
   if (!derived) return 0;
-  const here = KNOB_TASTE[FAMILY_REGION[derived.tempoFamily]];
-  const home = KNOB_TASTE[HOUSE_REGION];
-  if (!here || !home || !here.hold || !home.hold) return 0;
-  return clamp(home.hold[1] - here.hold[1], 0, 1);
+  // the derived tempo's own centre, between the bands' knots (the free band has no drums to speed up, and the house's bands are the house)
+  const bpm = derived.tempoCentre;
+  const k = LEAN_KNOTS;
+  if (!(bpm > k[0][0])) return k[0][1];
+  for (let i = 1; i < k.length; i++) {
+    if (bpm <= k[i][0]) {
+      const [b0, l0] = k[i - 1], [b1, l1] = k[i];
+      return b1 > b0 ? clamp(l0 + ((bpm - b0) * (l1 - l0)) / (b1 - b0), 0, 1) : l1;
+    }
+  }
+  return k[k.length - 1][1];
 }
 
 /**

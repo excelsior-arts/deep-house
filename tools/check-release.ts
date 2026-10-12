@@ -33,6 +33,13 @@ const DENIED = new Set([
   'abc9ac4c60ff', '94a168d2da57', 'd298391b0743',
 ]);
 const hash = (w) => crypto.createHash('sha256').update(w).digest('hex').slice(0, 12);
+// A data row that ships (a recipe, a sound, a digest) carries no person: its
+// provenance says what and when, never who said what — that is the notes'.
+// The author's name may stand in the app's own copy and in a source comment;
+// in a row it is a private note in a public asset (10-02). Hashed like DENIED.
+const ROW_DENIED = new Set(['f5a38e4245e1']);
+const ROW_PATHS = [/^packages\/deep-house\/recipes\/.*\.json$/, /^packages\/engine\/sounds\/.*\.json$/, /^packages\/deep-house\/tools\/scenes\.json$/];
+// (the link digest's blessings the last cut shipped are its record and stay as written; `sinceCut` holds them as a prefix)
 
 // Paths outside this project, matched by shape so the list gives nothing away
 // and still catches one that has not been seen before.
@@ -306,8 +313,10 @@ for (const rel of shipped()) {
   lines.forEach((line, i) => {
     const n = i + 1;
     for (const [shape, why] of SHAPES) if (shape.test(line)) fault(rel, n, `${why}: ${line.trim().slice(0, 90)}`);
-    for (const word of line.toLowerCase().match(/[a-z][a-z0-9]{2,}/g) || [])
+    for (const word of line.toLowerCase().match(/[a-z][a-z0-9]{2,}/g) || []) {
       if (DENIED.has(hash(word))) fault(rel, n, 'a denied name');
+      if (ROW_DENIED.has(hash(word)) && ROW_PATHS.some((shape) => shape.test(rel))) fault(rel, n, 'a person named in a data row');
+    }
     if (PAGE.test(rel) && /\btmp\//.test(line)) fault(rel, n, `the scratch folder: ${line.trim().slice(0, 90)}`);
     if (PAGE.test(rel) && !/\.map$/.test(rel) && PRIVATE_TOOLS.test(line) && !/^\s*\/\//.test(line) && !privateToolsGuarded(text, line))
       fault(rel, n, `a private tier's module named outside a guarded glob: ${line.trim().slice(0, 90)}`);

@@ -1,0 +1,362 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "downtempo/chillout-groove",
+  "revision": 1,
+  "name": "Chillout groove",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            4,
+            8,
+            12
+          ],
+          "accents": [
+            0.9,
+            0.8,
+            0.9,
+            0.8
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            4,
+            12
+          ],
+          "accents": [
+            0.75,
+            0.75
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.008,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "holdMin": 0.012
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.5,
+            0.45,
+            0.5,
+            0.45
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0.02
+            },
+            "timing": {
+              "beats": 0.008
+            },
+            "dynamics": 0.12
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 1,
+          "steps": [
+            1,
+            3,
+            5,
+            7,
+            9,
+            11,
+            13,
+            15
+          ],
+          "accents": [
+            0.22,
+            0.3,
+            0.2,
+            0.34,
+            0.22,
+            0.3,
+            0.2,
+            0.36
+          ],
+          "families": [
+            "noise"
+          ],
+          "feel": {
+            "swing": 0.58,
+            "delay": {
+              "beats": 0.02
+            },
+            "timing": {
+              "beats": 0.008
+            },
+            "dynamics": 0.12
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              1,
+              1
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              7,
+              7
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                4,
+                0,
+                2
+              ],
+              "beats": [
+                2,
+                2,
+                2,
+                2
+              ],
+              "holds": [
+                1.75,
+                1.5,
+                1.75,
+                1.5
+              ],
+              "accents": [
+                1,
+                0.8,
+                0.95,
+                0.8
+              ]
+            }
+          ]
+        }
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "brightnessMin": 1500,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.29,
+          "brightnessMax": 2000
+        },
+        "motif": {
+          "contour": "rise",
+          "intervals": {
+            "steps": [
+              1,
+              1
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              2,
+              2
+            ]
+          },
+          "density": [
+            1,
+            1
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                1
+              ],
+              "beats": [
+                4,
+                4
+              ],
+              "holds": [
+                3.5,
+                3.5
+              ],
+              "accents": [
+                0.75,
+                0.7
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.45,
+          0.55
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            2,
+            2
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -7,
+            -4,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting",
+      "sixteenth": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "sixteenth",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "fourFloor"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      80,
+      100
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown"
+  ],
+  "provenance": {
+    "pattern": "chillout: a soft four on the floor with a clap on two and four, a swung offbeat hat and a light shaker, a root-and-fifth bass that walks, and warm electric-piano sevenths once a bar",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "One bar: the kick on every beat a little under full weight, the clap (preferred by its hold over the snare's) on two and four, the loose hat on the ands swung to 0.58, a shaker on the off-sixteenths low in the mix. The bass walks root, fifth, root, third in halves; a stacked-seventh chord on a warm struck keyboard lands on one each bar. Played under the Downtempo tile's spell at 80-90 (round G4).",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 0.1,
+      "syncopationZ": 3.1,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
+  }
+}

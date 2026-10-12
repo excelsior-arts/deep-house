@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatSizzle",
+  "revision": 3,
+  "topology": "kit-hat",
+  "block": "hatSizzle",
+  "dice": 71.1,
+  "parameters": {
+    "ratios": [
+      2,
+      2.31,
+      2.63,
+      2.87,
+      3.16,
+      3.47
+    ],
+    "base": 1150,
+    "detune": 26,
+    "metal": 0.82,
+    "hp": 7000,
+    "peakHz": 9500,
+    "q": 0.25,
+    "tilt": 4,
+    "lidHz": 15500,
+    "t10": 0.06,
+    "seconds": 0.6,
+    "variants": 3,
+    "variantCents": 34,
+    "attack": 0.0015,
+    "trim": 1.28,
+    "rateSpread": 0.04,
+    "gainSpread": 0.1,
+    "decaySpread": 0.12,
+    "panSpread": 0.09,
+    "velBright": 0.32,
+    "velDecay": 0.25,
+    "pan": 0.16,
+    "room": 0,
+    "delay": 0,
+    "top": 0,
+    "air": 0,
+    "airHz": 8000,
+    "tail": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "hatSizzle": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 9500,
+        "loudnessDb": -20.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats-kit.ts",
+    "note": "The metallic one, and the ladder is the instrument: six ratios packed between 2 and 3.5, through a highpass above all of them, beat into a buzz where the record's own spread ladder chimes.",
+    "notes": {
+      "grain": "SPARK-2: the grain (`hat-grain.ts`): the upper ladder's share of the metal, the air past the lid from `airHz`, the tail after -10 dB. Nought here builds nothing; a place voices the block."
+    }
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

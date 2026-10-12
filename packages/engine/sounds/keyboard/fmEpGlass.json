@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmEpGlass",
+  "revision": 1,
+  "topology": "fm-key",
+  "parameters": {
+    "ratio": 1,
+    "index": [
+      0.3,
+      0.9
+    ],
+    "indexDecay": 0.8,
+    "indexFloor": 0.06,
+    "modulator2": null,
+    "tine": {
+      "ratio": 19,
+      "index": 1.2,
+      "level": 0.16,
+      "decay": 0.09
+    },
+    "attack": 0.003,
+    "decay": 2.2,
+    "sustain": 0.22,
+    "release": 0.9,
+    "lpHz": 6500,
+    "hpHz": 90,
+    "detuneCents": 7,
+    "spread": 0.6,
+    "trim": 1,
+    "dur": 0.5,
+    "minDur": 0.08,
+    "delay": 0,
+    "reverb": 0
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "fm-keys.ts",
+    "round": "liquid-keys",
+    "note": "A glassy electric piano: a pure body under a high tine at 19x that rings for 90 ms, wide carriers and a long fall, the top open to 6.5 kHz and soft at the strike.",
+    "notes": {
+      "copiedFrom": "fmEp, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

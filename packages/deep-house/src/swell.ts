@@ -66,8 +66,8 @@ import { entranceOf, TIMBRES } from '@deep-house/engine/voices';
 import type { Lane, Style } from '@deep-house/engine/style';
 import { derive, asSpell } from './spell.ts';
 import type { Spell } from './spell.ts';
-import { bandAt } from './bird-labels.ts';
-import type { Arrangement } from './arrangement.ts';
+import { bandWordOf } from './bird-labels.ts';
+import { sectionAtBar, type Arrangement } from './arrangement.ts';
 
 /** A phrase without the layer is what makes its return an entrance. */
 export const ABSENT_BARS = 8;
@@ -126,28 +126,21 @@ export interface SwellInput {
   lanes: readonly Lane[];
 }
 
-/**
- * A bird's band word, or null where the style has no bands to read — a style
- * whose composition does not name the families the labels' thresholds are
- * solved against (a check's hand-built style) reads no band and so no bias.
- */
-function wordOf(bird: 'spark' | 'loom' | 'veil', spell: Partial<Spell> | null | undefined, style: Style): string | null {
-  try { return bandAt(bird, spell, style)?.word ?? null; } catch { return null; }
-}
 
 /** The spell's side, read off the words the ring shows for it. */
 export function spellVerdict(spell: Partial<Spell> | null | undefined, style: Style): SpellVerdict {
   const d = derive(asSpell(spell));
-  if (d.drumsOn && (d.tempoFamily === 'techno' || d.tempoFamily === 'drumAndBass'))
-    return { side: 'step', why: `Ember: ${d.tempoFamily === 'techno' ? 'a driving' : 'a fast'} kick`, span: 0 };
-  const spark = wordOf('spark', spell, style);
+  // the tempo's own band words (the ring's), never a genre's: a driving, high or fast kick steps
+  if (d.drumsOn && (d.tempoBand === 'driving' || d.tempoBand === 'high' || d.tempoBand === 'fast'))
+    return { side: 'step', why: `Ember: ${d.tempoBand === 'fast' ? 'a fast' : 'a driving'} kick`, span: 0 };
+  const spark = bandWordOf('spark', spell, style);
   if (spark === 'broken') return { side: 'step', why: 'Spark: a broken beat', span: 0 };
-  const slow = !d.drumsOn || d.tempoFamily === 'unmetered';
+  const slow = !d.drumsOn || d.tempoBand === 'free';
   let span: number = slow ? SPAN.slow : SPAN.steady;
   const why = [slow ? `Ember: ${d.drumsOn ? 'a free pulse' : 'no drums'}` : 'Ember: a steady four'];
-  const loom = wordOf('loom', spell, style);
+  const loom = bandWordOf('loom', spell, style);
   if (loom === 'loops') { span /= 2; why.push('Loom: loops, half'); }
-  const veil = wordOf('veil', spell, style);
+  const veil = bandWordOf('veil', spell, style);
   if (!slow && veil === 'shifting') { span *= 2; why.push('Veil: shifting, double'); }
   return { side: slow ? 'slow' : 'steady', why: why.join('; '), span };
 }
@@ -196,7 +189,7 @@ export function swellsOf(input: SwellInput): SwellEntry[] {
       const first = list.filter((e) => e.bar === bar);
       if (!first.length || !first.some(holds)) continue;
       const lead = first.find(holds)!;
-      const section = sectionAt(arrangement, bar);
+      const section = sectionAtBar(arrangement, bar);
       // The contrast: what enters, over what is heard on the line.
       const heard = timeline[bar]?.layers ?? [];
       const entering = heard.filter((l) => l === layer || enteringHeld(byLayer, l, bar, barSeconds, holds));
@@ -242,7 +235,8 @@ export function swellsOf(input: SwellInput): SwellEntry[] {
       });
     }
   }
-  return out.sort((a, b) => a.bar - b.bar || a.layer.localeCompare(b.layer));
+  // ties by the layer's code points, never the runtime's locale (the review of 10-08, A4)
+  return out.sort((a, b) => a.bar - b.bar || (a.layer < b.layer ? -1 : a.layer > b.layer ? 1 : 0));
 }
 
 /**
@@ -259,16 +253,11 @@ export function applySwells<E extends { t: number; layer: string; role?: string;
     const t0 = s.bar * barSeconds;
     const t1 = (s.bar + s.span) * barSeconds;
     for (const e of events) {
-      if (e.layer !== s.layer || e.role === 'texture' || e.t < t0 - 1e-6 || e.t >= t1 - 1e-6) continue;
+      if (e.layer !== s.layer || e.role === 'texture' || e.role === 'sparse-keys' || e.t < t0 - 1e-6 || e.t >= t1 - 1e-6) continue;
       const u = (e.t - t0) / (t1 - t0);
       e.p = { ...e.p, swell: { db: s.depthDb * (1 - u), oct: s.oct * (1 - u), over: t1 - e.t } };
     }
   }
-}
-
-function sectionAt(arrangement: Arrangement, bar: number) {
-  for (const s of arrangement.sections) if (bar >= s.startBar && bar < s.startBar + s.bars) return s;
-  return arrangement.sections[arrangement.sections.length - 1];
 }
 
 // Whether another layer enters with this one: it holds, and it was silent the

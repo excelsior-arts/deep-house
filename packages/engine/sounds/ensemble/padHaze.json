@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "padHaze",
+  "revision": 1,
+  "topology": "wavetable-pad",
+  "parameters": {
+    "partials": 16,
+    "hollow": 0.3,
+    "humpAt": 3,
+    "humpWidth": 2,
+    "humpDb": 1.5,
+    "layers": [
+      [
+        0,
+        0.5,
+        -0.5
+      ],
+      [
+        1,
+        0.22,
+        0.6
+      ]
+    ],
+    "morphFrom": 0.05,
+    "morphTo": 0.4,
+    "morphTime": 8,
+    "attack": 0.9,
+    "decay": 1.5,
+    "sustain": 0.85,
+    "release": 1.6,
+    "cutoff": 1400,
+    "q": 0.7,
+    "veloOpen": 0.3,
+    "driftHz": 0.05,
+    "driftDepth": 0.15,
+    "spread": 0.8,
+    "trim": 0.959
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "wave-pad.ts",
+    "round": "liquid-keys",
+    "note": "A haze to sit under a keyboard: a dark wavetable that swells in over 0.9 s and barely opens, drifting slowly; a layer, never a lead.",
+    "notes": {
+      "copiedFrom": "wavePad, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

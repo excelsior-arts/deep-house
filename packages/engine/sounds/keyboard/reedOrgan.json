@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "reedOrgan",
+  "revision": 1,
+  "topology": "reed-organ",
+  "block": "reedOrgan",
+  "parameters": {
+    "attack": 0.045,
+    "decay": 0.25,
+    "sustain": 0.85,
+    "release": 0.14,
+    "beatCents": 7,
+    "formantHz": 1150,
+    "formantQ": 1.1,
+    "formantDb": 7,
+    "lpHz": 4200,
+    "hpHz": 120,
+    "bellowsHz": 0.9,
+    "bellowsDepth": 0.06,
+    "breathLevel": 0.12,
+    "breathTime": 0.05,
+    "spread": 0.4,
+    "trim": 0.724
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "reedOrgan": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.8,
+        "brightnessHz": 3200,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "keys-2.ts",
+    "note": "A reed organ: a sawtooth through a fixed resonance, which is what a metal tongue is, where the catalogue's organ is drawbars, which is a pipe.",
+    "notes": {
+      "formantHz": "The reed's own body: fixed in hertz, because a metal tongue's resonance does not move with the note. It is what makes the bottom dark and the top nasal. A peaking filter's Q is a real Q.",
+      "bellowsHz": "The bellows: somebody's arm, on the level and not on the pitch."
+    }
+  }
+}

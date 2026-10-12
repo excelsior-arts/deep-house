@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "woodblock",
+  "revision": 2,
+  "topology": "block",
+  "block": "woodblock",
+  "dice": 149.1,
+  "parameters": {
+    "boost": 26,
+    "hz": 1400,
+    "secondHz": 2360,
+    "second": 0.35,
+    "q": 9,
+    "strikeDecay": 0.004,
+    "t10": 0.014,
+    "seconds": 0.2,
+    "variants": 3,
+    "variantCents": 18,
+    "attack": 0.001,
+    "trim": 0.531,
+    "rateSpread": 0.03,
+    "gainSpread": 0.07,
+    "decaySpread": 0.1,
+    "panSpread": 0.07,
+    "velBright": 0.15,
+    "velDecay": 0.15,
+    "pan": -0.3,
+    "room": 0.04
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "woodblock": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 1400,
+        "loudnessDb": -33.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "perc.ts",
+    "note": "A woodblock: two resonators rung by one burst. A real quality factor of twelve on a bandpass rings for about as many cycles, which at 1.4 kHz is the ten milliseconds a block is, and the Q is the block's own hardness.",
+    "notes": {
+      "boost": "The make-up behind the resonators. A bandpass at a real quality factor of nine passes a ninth of an octave of a broadband burst, so what comes out of it is forty decibels under what went in; the gain is behind the filters, where it belongs, rather than hidden in the family trim."
+    },
+    "moved": "10-03: three decibels down (trim 0.75 to 0.531, the declared loudness with it) \u2014 it clapped above the hats in the mix once the record's top opened"
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

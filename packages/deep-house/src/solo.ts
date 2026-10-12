@@ -28,10 +28,10 @@
 // could try and see; if it is silly we drop the idea"*. The switch was written
 // off for his ear and is on since S17.
 //
-//   **The spell**: the slow side. **The form**: a theme of `SOLO_MIN_BARS` or
-//     more. **The cast**: no percussion in the whole theme, and an arc section
-//     that is sparse all through — the bass, at most one other melodic layer,
-//     nothing sustained.
+//   **The spell**: the slow side. **The form**: a theme of `SOLO_MIN_MINUTES`
+//     or more at the tempo it plays (bars until round S24). **The cast**: no
+//     percussion in the whole theme, and an arc section that is sparse all
+//     through — the bass, at most one other melodic layer, nothing sustained.
 //   **The arc** is one place: of the main sections of 16 bars or more that
 //     are sparse all through, the one whose middle is nearest the golden point
 //     of the theme's length. None qualifying is no solo; there is never a
@@ -56,12 +56,27 @@ import type { Arrangement } from './arrangement.ts';
 export const TEXTURE_LIFT_DB = 4;
 export const TEXTURE_INDEX = 1.5;
 /**
- * A long theme, in bars: 128 until round S19 cut every theme to 0.85 of its
- * drawn length, and 108 since, so the themes that solo are the ones S17
- * counted (four of the golden and benchmark themes under the ambient spell, 20
- * of 120 over seeds 1-40).
+ * **A long theme, in minutes** (round S24). The gate was in bars — 128 until
+ * round S19 cut every theme to 0.85 of its drawn length, 108 since — and bars
+ * are minutes only at one tempo: 108 bars are 4.3 minutes at the house's 100
+ * BPM and 8.6 at the benchmark's 50, and since round L1 gave a theme its
+ * length in minutes from the birds, 27191's themes (5.0 to 8.8 minutes) were
+ * all under 108 bars and none soloed. So the gate is the minutes 108 bars are
+ * at 100 BPM, 4.3, and the bars it asks follow from the tempo the theme plays
+ * at (`tempoInFamily`'s), on the four-bar grid (`soloMinBars`): 108 at 100
+ * BPM, so the house's solo population is the one S17 set, and at 27191's 50
+ * BPM 53.75 bars, 56 on the grid.
  */
-export const SOLO_MIN_BARS = 108;
+export const SOLO_MIN_MINUTES = 4.3;
+/** The bars `SOLO_MIN_MINUTES` asks of a theme played at `bpm`, rounded up to the four-bar grid. */
+export const soloMinBars = (bpm: number): number => Math.ceil((SOLO_MIN_MINUTES * bpm) / 4 / 4 - 1e-9) * 4;
+/**
+ * **The section a whole solo asks** (round L2): a main of this many bars or
+ * more solos over its last 16, a shorter one over its last 8. S19's cut keeps
+ * it for a theme's only open main where the theme may solo
+ * (`CutRule.soloBars`, `src/arrangement.ts`).
+ */
+export const SOLO_SECTION_BARS = 24;
 export const SOLO_THIN_DB = -4;
 /**
  * **How high the bass may go in a solo**, per voice: the sub is a sine body
@@ -129,14 +144,19 @@ export interface SoloPlace { from: number; to: number; section: number; why: str
 
 export function soloPlace(input: SparseInput): SoloPlace | null {
   const { style, spell, bars, arrangement } = input;
-  if (spellVerdict(spell, style).side !== 'slow' || bars < SOLO_MIN_BARS) return null;
+  if (spellVerdict(spell, style).side !== 'slow' || bars < soloMinBars(240 / input.barSeconds)) return null;
   if (soundingIn(input, 0, bars).drums) return null;
   const golden = bars * 0.618;
+  const lenOf = (s: { bars: number }) => (s.bars >= SOLO_SECTION_BARS ? 16 : 8);
+  // the solo ornaments the figure in its window, so a window where the bass plays nothing is no place for one
+  // (the review of 10-08, A4: `soloEvents` had no figure to start from there, and its run into the groove never ended)
+  const bassIn = (from: number, to: number) => input.events.some((e) => e.layer === 'bass' && e.bar != null && e.bar >= from && e.bar < to);
   const candidates = arrangement.sections.filter((s) => s.kind === 'main' && s.bars >= 16
-    && sparse(soundingIn(input, s.startBar, s.startBar + s.bars)) && soundingIn(input, s.startBar, s.startBar + s.bars).bass);
+    && sparse(soundingIn(input, s.startBar, s.startBar + s.bars)) && soundingIn(input, s.startBar, s.startBar + s.bars).bass
+    && bassIn(s.startBar + s.bars - lenOf(s), s.startBar + s.bars));
   if (!candidates.length) return null;
   const arc = candidates.reduce((a, s) => Math.abs(s.startBar + s.bars / 2 - golden) < Math.abs(a.startBar + a.bars / 2 - golden) ? s : a);
-  const len = arc.bars >= 24 ? 16 : 8;
+  const len = lenOf(arc);
   return { from: arc.startBar + arc.bars - len, to: arc.startBar + arc.bars, section: arc.index, why: `the ${arc.kind} at ${arc.startBar}, nearest the golden point ${golden.toFixed(0)}` };
 }
 
@@ -259,12 +279,18 @@ export function soloEvents(input: SoloInput, place: SoloPlace): { events: Ev[]; 
         ...(pop ? { pop } : {}), knobs } });
     }
   }
-  // Staccato on the pops.
+  // Staccato on the pops. A pop's gap runs to the next hit or the section
+  // line, so a pop ends inside the window. Every other hit keeps the figure's
+  // own length, and that includes a last note the figure holds a sixteenth
+  // over the line. Until round S24 that note was cut at the line, and where a
+  // breakdown with no pad followed, the bar after the line fell silent and
+  // S21's bed (`src/silence.ts`) came in a bar early (14 #3, 21 #4, 23 #1 and
+  // 30 #1 under the benchmark's spell). The solo moves nothing outside its
+  // window.
   for (let i = 0; i < line.length; i++) {
     const e = line[i], nx = line[i + 1];
     const gap = (nx ? nx.t : place.to * barSeconds) - e.t;
     if (e.p.pop) e.p = { ...e.p, dur: Math.min(e.p.dur ?? gap, gap * 0.7) };
-    if (e.t + (e.p.dur ?? 0) > place.to * barSeconds) e.p = { ...e.p, dur: place.to * barSeconds - e.t };
   }
   // No note of the solo glides (round S15): the figure's own slides go with
   // the pops', since among them are the figure's octave leaps (30 to 42 in the

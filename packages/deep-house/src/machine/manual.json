@@ -29,7 +29,8 @@
       ],
       "v1": "Under house-v1 the bass instrument is the style's own.",
       "v2": "Under house-v2 the bass instrument is drawn per theme from the lane's candidates.",
-      "ring": "Under house-v2 the ring's controls can move the bass instrument's settings; the moved ones are listed in the readings."
+      "ring": "Under house-v2 the ring's controls can move the bass instrument's settings; the moved ones are listed in the readings.",
+      "aside": "Registered and never drawn by the house: a reese, three detuned saws rolling over a sine; a driven reese with a clip in front of its filter; and a 303 line, a resonant filter thrown open on every note, with accents and glides between tied notes."
     },
     "lane:keyboard": {
       "title": "Source · keyboard",
@@ -39,7 +40,8 @@
       ],
       "v1": "Under house-v1 the instrument follows the style's timbre die for the theme.",
       "v2": "Under house-v2 the instrument is drawn per theme from the registered voices that play this lane's layer.",
-      "ring": "Under house-v2 the ring's controls can lean the draw and the instrument's own settings; under house-v1 they only read the record."
+      "ring": "Under house-v2 the ring's controls can lean the draw and the instrument's own settings; under house-v1 they only read the record.",
+      "aside": "Registered and never drawn by the house: a supersaw lead, seven saws spread across the field and held for the whole note, its filter opening as it holds; and a struck organ, drawbars with a key click, falling away like a stab."
     },
     "lane:ensemble": {
       "title": "Source · sustained",
@@ -49,7 +51,8 @@
       ],
       "v1": "Under house-v1 the instrument follows the style's timbre die for the theme.",
       "v2": "Under house-v2 the instrument is drawn per theme from the lane's candidates.",
-      "ring": "Under house-v2 the ring's controls can move the instrument's own settings; the moved ones are listed in the readings."
+      "ring": "Under house-v2 the ring's controls can move the instrument's own settings; the moved ones are listed in the readings.",
+      "aside": "Registered and never drawn by the house: a shimmer, a held tone above 2 kHz whose octaves climb round a loop with a pitch shifter in it."
     },
     "lane:vocal": {
       "title": "Source · voice-like",
@@ -64,7 +67,8 @@
         "A transition sound — a riser, a sweep, an impact, a swell: the lane {label}, played now by {instrument}. It speaks at section boundaries and is silent most bars, so a dim row here is normal.",
         "It lands on the melodic bus, so it is ducked under the kick like the held parts."
       ],
-      "v2": "Under house-v2 the sound is drawn per theme from the lane's candidates."
+      "v2": "Under house-v2 the sound is drawn per theme from the lane's candidates.",
+      "aside": "Registered and never drawn by the house: a siren, a tone that glides up or down by a stated interval over a share of its note and holds there."
     },
     "lane:other": {
       "title": "Source",
@@ -76,10 +80,11 @@
       "title": "Lane insert",
       "text": [
         "An effect the desk's rota has put on one lane for a stretch of bars: {label}, a {made}. It sits on the lane's own wire, between the source and its bus, and only while the lane is sounding.",
-        "The numbers are the ones the rota rolled for this stretch: rate, depth, mix, amount, stages and how many bars it lasts. Its line in the ledger says when it engaged and when it was released."
+        "The numbers are the ones the rota rolled for this stretch: rate, depth, mix, amount, stages and how many bars it lasts. Its line in the ledger says when it engaged and when it was released. Press it for the effect's declared knobs as this stretch builds it on each note — the rolls on the knobs they name, the rest at the effect's own default. A reading: the desk does not move an insert yet."
       ],
       "v1": "Under house-v1 the rota draws from the style's gestures.",
-      "v2": "Under house-v2 the rota can also draw an effect instance from the effect registry."
+      "v2": "Under house-v2 the rota can also draw an effect instance from the effect registry.",
+      "aside": "Three are registered and never drawn by the house: a drive, a soft clip on a bus with input and output trims and a tone; a lo-fi, a low-pass and a wandering tape head; and a bass drive, a driven copy summed under the clean bass, which the fast, bass-forward places put on the bass bus for a whole theme."
     },
     "bus:kick": {
       "title": "Bus · kick",
@@ -132,6 +137,15 @@
         "A short bright room for the clap, {note}. It returns to the drums bus, so it is filtered with the drums and not ducked."
       ]
     },
+    "send:echo": {
+      "title": "Send · echo",
+      "text": [
+        "A part's own repeats: a tape delay, {note}. Each repeat is darker and thinner than the last, and the head wanders a little, so they read as tape and not as copies. It returns into the duck with the delay line.",
+        "It is built the first time a note asks for it and drawn only where the theme's notes send to it; how much each note sends is the note's own."
+      ],
+      "v1": "House-v1 themes do not send here.",
+      "v2": "No part of the house sends here yet; it is kept for the parts that ask for an echo."
+    },
     "send:hall": {
       "title": "Send · hall",
       "text": [
@@ -159,52 +173,84 @@
       "text": [
         "A gain on the bass, ramped down on every kick and back up after it — {note}. It makes room for the kick's low end so the two do not add up to a bump.",
         "Now: {r:gain} dB."
-      ]
+      ],
+      "aside": "Press the box for its device: the depth under the kick, moved on the music that is playing from the next kick, with the room's number one press away."
+    },
+    "bassDrive": {
+      "title": "Stage · bass drive",
+      "text": [
+        "A driven copy of the bass summed under the clean one — {note}. The clean bass passes untouched and keeps the weight; the copy is high-passed either side of its clip, so it carries nothing under 150 Hz, and low-passed after it, so its edge sits in the low mids.",
+        "It is built only where the theme asks for it: the fast, bass-forward side, a deep four at the half-time tempo or a fast broken beat. At the house there is no box here and the bus goes straight to the body."
+      ],
+      "aside": "Press the box for its device: the copy's blend, drive, corners and wobble, the effect's own knobs, each moved on the copy that is playing; which input feeds the copy is set when the theme is built, so a move there is heard from the next theme."
     },
     "bassBody": {
       "title": "Stage · bass body",
       "text": [
         "A peaking filter on the bass at {r:freq} Hz, {r:gain} dB: the part of the bass that reads on small speakers. It is set by the room."
-      ]
+      ],
+      "aside": "Press the box for its device: the bell's corner, gain and width, moved on the music that is playing; where the arrangement's push writes the gain this theme, a move of the gain waits for a theme without that line."
     },
     "bassComp": {
       "title": "Stage · bass compressor",
       "text": [
         "A compressor on the bass, before the low duck: it evens the notes so the duck's movement is the only movement. Reduction now: {r:gr} dB."
-      ]
+      ],
+      "aside": "Press the box for its device: threshold, knee, ratio, attack and release, moved on the music that is playing."
     },
     "push": {
       "title": "Stage · push",
       "text": [
         "A hot, saturated copy of the kick and the bass, mixed in under the clean pair. Its level is one of the arrangement's automated moves; at −120 dB it is off.",
         "Now: {r:gain} dB."
-      ]
+      ],
+      "aside": "Press the box for its device: the saturation's drive, heard from the next theme, since its curve is made when the theme is built. The push's levels are the arrangement's, written when the theme is planned, and stay fixed."
     },
     "glue": {
       "title": "Stage · glue",
       "text": [
         "A gentle compressor on the kick and the bass together, followed by saturation, so the pair reads as one low instrument. Where the room sets its ratio to 1 it is a plain gain and is drawn as passed through."
-      ]
+      ],
+      "aside": "Press the box for its device: the compressor's five, moved on the music that is playing where the glue is built as a compressor, and the saturation's drive, heard from the next theme."
+    },
+    "harmonicEdge": {
+      "title": "Stage · bus edge",
+      "text": [
+        "A driven copy of the melodic bus summed under the clean one — {note}. The pads, the keys and the leads pass untouched; the copy is high-passed before its clip, so the bed's body does not drive it, and kept between a floor and a top after it, so what it adds is the notes' own harmonics and nothing at their register. Two held notes a few cents apart beat slowly, and the drive swells their harmonics with the beat: that slow wobble in the top is this box.",
+        "Now: {r:gain} dB. Where the room writes no edge it is built at nought while this view is open, and nothing is built for it once the view closes."
+      ],
+      "aside": "Press the box for its device: the copy's blend, its drive, the pre-filter's corner, the floor and the top, each moved on the music that is playing, one line for the held and the struck notes alike."
+    },
+    "harmonicBell": {
+      "title": "Stage · bus bell",
+      "text": [
+        "A peaking filter on the melodic bus — {note}. It lifts the notes that are playing, the pads, the keys and the leads, where the master's own mid lifts a band some grooves leave empty; it sits before the duck, so the reverb and echo returns that join there are not brightened with them.",
+        "Now: {r:gain} dB at {r:freq} Hz. The drones keep their floor and have no box here."
+      ],
+      "aside": "Press the box for its device: its corner, width and gain, moved on the music that is playing; where the arrangement moves the gain section by section, a move of the gain waits for a theme without that line."
     },
     "duck": {
       "title": "Stage · duck",
       "text": [
         "The sidechain: a gain on the melodic side, {note}. The kick bus is its key — each kick pulls the held parts, the keys and the delay, reverb and hall returns down, and they recover before the next beat.",
         "Now: {r:gain} dB. This is the movement most people call the pump."
-      ]
+      ],
+      "aside": "Press the box for its device: the depth for the held notes and, where the room writes one, for the struck notes, each moved from the next kick. The shape's times stay fixed."
     },
     "width": {
       "title": "Stage · width",
       "text": [
         "A mid/side stage: the side signal is scaled by a slow oscillator, {note}, so the image breathes rather than sitting wide. Below a low corner the side is removed, which keeps the low end mono."
-      ]
+      ],
+      "aside": "Press the box for its device: the side's base gain, how far it breathes and how fast, moved on the music that is playing."
     },
     "macro": {
       "title": "Stage · macro filter",
       "text": [
         "A {made} over the melodic side and the drums — not the kick and not the bass. It is the arrangement's one automated knob: it closes in builds and breakdowns and opens at the drops.",
         "Now: {r:freq} Hz."
-      ]
+      ],
+      "aside": "Press the box for its device: the open corner, moved on the music that is playing where the arrangement writes no line on it; most themes write one, and the move waits for a theme that does not."
     },
     "themeOut": {
       "title": "Master · theme trim",
@@ -351,15 +397,15 @@
     "key:reset": {
       "title": "Key · reset",
       "text": [
-        "Puts this strip's or this bus's desk moves back: its level to 100 %, and its mute, solo and sends off let go. The rest of the desk is left as it is; the RESET over the sources puts every strip back and the master at the room.",
-        "Written to the ledger. The plan is untouched throughout: a reset only takes the desk's hand off it."
+        "Puts back everything this popover holds, in one press. On a strip: the level of every instrument on it to 100 %, its mute, solo and sends off let go, and every moved line of every device under it back to the row. On a bus: its instruments' levels, mutes, solos and sends. It is dark while nothing there is moved. The rest of the desk is left as it is; the RESET over the sources puts every strip back and the master at the room, and lets a recalled scene go: it is no longer armed, and stays kept under its name.",
+        "Written to the ledger, one line a layer — the strip, then each device it put back. The plan is untouched throughout: a reset only takes the desk's hand off it. Every reset in a popover is one of two words — reset for everything the popover holds, reset to a number for one line — drawn a step smaller than a working key and in the dim ink until a hand is on it."
       ]
     },
     "key:level": {
       "title": "Fader · level",
       "text": [
-        "The instrument's level, in percent of the plan's own: 100 % is what the composition asked for, 0 % silence, 200 % twice the gain. − and + move it a step of 1 % for the fine moves a finger cannot make on the slider. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link.",
-        "A strip keeps a thin amber line under its level key while any of its instruments is off 100 %. The manual's page for a source says the raw gain the mix multiplies by."
+        "The instrument's level, in percent of the plan's own: 100 % is what the composition asked for, 0 % silence, 200 % twice the gain. − and + move it a step of 1 % for the fine moves a finger cannot make on the slider. All parts playing this instrument follow this strip: a shared instrument follows it everywhere. A desk move: it is written to the ledger, lasts until it is reset or the view closes, and never touches the link. The strip's key reads the level and its unit beside a small device, three short lines with a fader's cap on each, and keeps a thin amber line under it while any of its instruments is off 100 %. The manual's page for a source says the raw gain the mix multiplies by.",
+        "Under the fader and its keys, always, the instrument's device: every number its sound is made from, as this theme renders it — one line a parameter, with its value in its unit, the range the engine admits in its title, and a mark where the ring moves it (the knob's name and the number the spell set) or where a part writes it on the note. The head says which topology renders it, the row's revision, whether the room may voice the numbers (a block) or they are the row's own (frozen), its bus and its level in this room; a pointer resting on it says how the lines are moved. Looking is a reading, not a move: no line is written. Where one name stands for several sounds — the pad and the keys, whose notes name the timbre they play — the device reads first the sound each timbre of this theme plays, named by its timbres, a sound like any other with every number a line to move; under it, folded, the name's own table. One name for several sounds: each timbre a note names plays the row in its line. The rows this theme plays stand above it, each with its own numbers. The strings under the pad carry their breath, the filtered noise under the saws, at nought where no place writes one."
       ]
     },
     "key:lean": {
@@ -370,10 +416,59 @@
       ]
     },
     "key:room": {
-      "title": "Key · the room",
+      "title": "Key · reset to the room",
       "text": [
-        "Takes this band's lean off: the band back at the gain the room this seed plays in gives it, which the key names.",
-        "Written to the ledger. The room itself is the plan's and is never changed here."
+        "Takes this band's lean off: the band back at the gain the room this seed plays in gives it, which the key names — reset to −3.0 dB. It is dark while the band is not leant.",
+        "Written to the ledger. The room itself is the plan's and is never changed here. Every reset in a popover is one of two words — reset for everything the popover holds, reset to a number for one line — drawn a step smaller than a working key and in the dim ink until a hand is on it."
+      ]
+    },
+    "key:param": {
+      "title": "Fader · a device line",
+      "text": [
+        "Press a number to move it. A move is heard on the notes sounding now, over 40 ms, and on every note after; a line marked next note is heard from the next note, and a note already sounding keeps its own. A knob the ring turns scales a moved number as it scales the row's. The fader opens under the line and has no name of its own: the line is its label and its readout, amber while moved. This page is the device head's — a pointer resting on the head opens it, and working a fader opens nothing. It moves the number inside the range the engine admits for it: a frequency or a time travels its range in ratio, about 1 % a step, so a kick's pitch or a short tail moves as finely as a filter's corner; everything else in equal steps. − and + move it one step. Most lines are live, walked to the moved number over 40 ms — a corner, a resonance, a movement's rate, a level. A line marked next note is one a sounding note has already been built from — how many oscillators, a clip's curve, an envelope's legs, a drum's body rendered ahead. Words, names, switches and lists stay readings. The knob marks in amber are the ones the ring reaches.",
+        "A desk move: one line is written to the ledger when the hand lets go, saying where it went and what the row had. It is the instrument's, so it stays through a cast; it goes when the view closes or RESET is pressed, and never touches the link. A drum that renders its sound ahead renders it again from the moved number, beside the music."
+      ]
+    },
+    "key:row": {
+      "title": "Key · reset to the row",
+      "text": [
+        "Puts one line back to the number the instrument's row gives it in this room, which the key names — reset to 380 Hz, centred under the slider. The reset in the strip's keys puts back every line of every device on the strip at once, with the strip's own level and keys. On a live line the notes sounding now walk back over 40 ms; on a line marked next note the next note is the row's.",
+        "Written to the ledger. The row itself is never changed here: the desk only takes its hand off it. Every reset in a popover is one of two words — reset for everything the popover holds, reset to a number for one line — drawn a step smaller than a working key and in the dim ink until a hand is on it."
+      ]
+    },
+    "key:stageparam": {
+      "title": "Fader · a stage line",
+      "text": [
+        "Press a number to move it. A live line moves the sound that is playing, over 40 ms; a depth of the duck from the next kick. The room is this theme's own number; a cast keeps the moves, and the arriving theme is built with them. This page is the box's head's: a pointer resting on the head opens it, and working a fader opens nothing. The fader opens under the line with no name of its own, and moves the number inside the range declared for it: a frequency or a time travels its range in ratio, about 1 % a step, and everything else in equal steps; − and + move it one step. A line that waits says so under its fader: one marked next theme is heard when the next theme's graph is built with it; one the arrangement's line writes this theme is held until a theme without that line; one whose box is not built is heard when a theme builds it.",
+        "A desk move: one line is written to the ledger when the hand lets go, saying where it went and what the room had. It stays through a cast — the arriving theme's stage is built with it — and goes when the view closes or RESET is pressed. It never touches the link: the plan, its program and its record are the plan's own."
+      ]
+    },
+    "key:stageroom": {
+      "title": "Key · reset, on a stage box",
+      "text": [
+        "Puts a stage line back to the number this theme's room gives it: under an open fader the key names it — reset to 0.45, centred under the slider — and the box's own reset, under its table, puts back every line of the box at once, dark while none is moved. Where a line is live the sound walks back over 40 ms; where it waits, the next theme is built at the room.",
+        "Written to the ledger. The room itself is never changed here: the desk only takes its hand off it. Every reset in a popover is one of two words — reset for everything the popover holds, reset to a number for one line — drawn a step smaller than a working key and in the dim ink until a hand is on it."
+      ]
+    },
+    "key:save": {
+      "title": "Key · save",
+      "text": [
+        "Keeps the desk as it stands under the name in the field: every strip's mute, solo, sends off and level, the master's band leans, every device line and every stage line that is moved — a scene. It is kept in this browser, for this viewer, never in the address and never in a link, so a copied link still plays the composition and nothing of the desk. A name already kept is saved over without a question: the key reads SAVE OVER, and the ledger says so.",
+        "Only a saved scene outlives the view: closing it still puts the desk back, as it always has."
+      ]
+    },
+    "key:recall": {
+      "title": "Key · recall",
+      "text": [
+        "Puts the desk back to clean and lays the scene on it, layer by layer through the desk's own controls, so what plays is the scene and nothing else; the ledger writes one line a layer. A strip, a device line or a stage line this page no longer has is left out, and the ledger names it. Device and stage lines are kept as numbers, so a scene saved in one theme plays the same numbers in another; the band leans are offsets over whatever room is playing.",
+        "The recalled scene stays armed — edged green — until RESET or the view closes, and is edged amber once the desk has moved since. A cast still takes the bands back to the room before it retunes the master; once it has landed, the armed scene's leans are leant again over the new room, walked in over a bar. Each scene says how many of its lines the theme playing cannot use — a strip whose instrument is on no lane, a device line of an instrument not playing, a stage line on a box this theme does not build — and those lines wait, unheard, for a theme that has them."
+      ]
+    },
+    "key:delete": {
+      "title": "Key · delete",
+      "text": [
+        "Takes the scene off this browser's list. The first press turns the key to SURE? for three seconds, and a second press in that time deletes it; anything else lets it be. The desk is left as it is, armed or not.",
+        "Written to the ledger. Nothing else is touched: a scene is this browser's, and deleting one changes no link and nothing of the record."
       ]
     }
   }

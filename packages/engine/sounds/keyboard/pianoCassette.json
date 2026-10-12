@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoCassette",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.004,
+    "decayFast": 0.3,
+    "sustainLevel": 0.26,
+    "decaySlow": 4,
+    "ring": 1.2,
+    "partialLevel": 0.32,
+    "partialDecay": 0.9,
+    "stretchCents": 3,
+    "unisonCents": 5.5,
+    "unisonLevel": 0.8,
+    "hammerLevel": 0.1,
+    "hammerHz": 1400,
+    "brightMin": 700,
+    "brightMax": 2600,
+    "hpHz": 100,
+    "spread": 0.3,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "A home upright for a cassette: a little out of tune, a clear hammer and a short fall, bright enough that a tape's lost top still leaves the notes; meant to be played through a worn tape head.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

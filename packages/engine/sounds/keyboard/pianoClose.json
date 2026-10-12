@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoClose",
+  "revision": 1,
+  "topology": "piano",
+  "parameters": {
+    "attack": 0.003,
+    "decayFast": 0.42,
+    "sustainLevel": 0.3,
+    "decaySlow": 7,
+    "ring": 2,
+    "partialLevel": 0.32,
+    "partialDecay": 0.7,
+    "stretchCents": 1.2,
+    "unisonCents": 1.2,
+    "unisonLevel": 0.5,
+    "hammerLevel": 0.1,
+    "hammerHz": 700,
+    "brightMin": 800,
+    "brightMax": 2700,
+    "hpHz": 45,
+    "spread": 0.6,
+    "dryLevel": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "piano.ts",
+    "round": "liquid-keys",
+    "note": "An intimate grand heard from just over the strings, played soft: the felt landing low and audible, two strings barely apart, the top let ring a little longer than the felt grand's so the chord keeps its detail, and the low end full.",
+    "notes": {
+      "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

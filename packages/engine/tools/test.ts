@@ -64,7 +64,8 @@ import type { HeldState, HeldVoice } from '../src/voices/voice-contract.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 
 let failed = 0;
 const skipped: string[] = [];
@@ -98,13 +99,18 @@ must(
   `a room resolved out of a table that is nobody's music: ${Object.keys(settings).length} groups, frozen through, the room's own sub at ${settings.levels.sub} dB`
 );
 
+// Five points on each of three lines: the pads' duck, the low line, and the
+// struck notes' own (round PIANO-2), each opening on a set.
 const shape = duckShape(settings, 0.5);
 const at = duckAt(shape, 0.0005);
+const duckPaths = ['duck.gain', 'duckLow.gain', 'struckDuck.gain'];
 must(
-  shape.length === 10 && shape.every((d) => Number.isFinite(d.v) && Number.isFinite(d.dt)) &&
-    at.every((d) => d.t >= 0) && at[0].t === 0,
+  shape.length === 5 * duckPaths.length &&
+    duckPaths.every((p) => shape.filter((d) => d.p === p).length === 5 && shape.find((d) => d.p === p)!.op === 'set') &&
+    shape.every((d) => Number.isFinite(d.v) && Number.isFinite(d.dt)) &&
+    at.every((d) => d.t >= 0) && at.filter((d) => d.op === 'set').every((d) => d.t === 0),
   'the sidechain is not a finite shape, or a point of it fell before the start of the timeline',
-  `the sidechain shape reads off the room alone: ${shape.length} points over two paths, and a kick at half a millisecond clamps its first set to 0`
+  `the sidechain shape reads off the room alone: ${shape.length} points over ${duckPaths.length} paths, and a kick at half a millisecond clamps each line's first set to 0`
 );
 
 // One theme, written out by hand: two kicks, a sub between them, and a voice
@@ -369,6 +375,7 @@ if (pw) {
   const read = await page.evaluate(async ({ program, src }: { program: Program; src: string }) => {
     const { makeV1Graph, makeV1Master } = await import(`${src}graph.ts`);
     const { prepareLimiter, writeDuck } = await import(`${src}master.ts`);
+    const { duckFor } = await import(`${src}program.ts`);
     const { VOICES, prepareVoices } = await import(`${src}voices/index.ts`);
     const { schedule, offsetGrid } = await import(`${src}schedule.ts`);
     const rate = 44100;
@@ -384,7 +391,7 @@ if (pw) {
     const fired = [];
     for (const s of schedule(program, offsetGrid(0)).events) {
       VOICES[s.pe.voice](ctx, graph.buses[s.pe.bus], s.at, s.pe.p, program.settings);
-      if (s.pe.duck) writeDuck(graph, graph.duckShape, s.at);
+      if (s.pe.duck) writeDuck(graph, duckFor(graph.duckShape, s.pe.p), s.at);
       fired.push(`${s.pe.voice}@${s.at.toFixed(3)}`);
     }
     const buf = await ctx.startRendering();
@@ -458,6 +465,13 @@ if (pw) {
   must(ramps.every((r:{quarter:number;step:number;final:number})=>Math.abs(r.quarter-.25)<.001&&r.step<.001&&Math.abs(r.final-.2)<1e-6),
     `an interrupted ramp, offline: ${JSON.stringify(ramps)}`,
     `a line interrupted half-way up a ramp keeps the half that played, offline at 44.1 and 48 kHz: ${ramps.map((r:{quarter:number;step:number})=>`${r.quarter.toFixed(3)} at a quarter, worst step ${r.step.toFixed(5)}`).join('; ')}`);
+  const curves = await page.evaluate(async ({tools}: {tools:string}) => {
+    const {curveOverRamp}=await import(`${tools}ramp-continuity.ts`);
+    return curveOverRamp();
+  }, {tools:`http://127.0.0.1:${PORT}/tools/`});
+  must(curves.every((r:{mid:number;after:number;apart:number})=>Math.abs(r.mid-.25)<.002&&Math.abs(r.after-.3)<.002&&r.apart<.002),
+    `a curve written inside a ramp, offline: ${JSON.stringify(curves)}`,
+    `a curve written from inside a longer ramp replaces it, offline at 44.1 and 48 kHz: ${curves.map((r:{mid:number;after:number;apart:number})=>`${r.mid.toFixed(3)} mid-curve, ${r.after.toFixed(3)} after it, the line within ${r.apart.toFixed(5)}`).join('; ')} (E03 of 10-03)`);
   await browser.close();
   must(
     read.fired.length === 4 && read.bad === 0 && read.peak > 0.005 && read.peak <= 1 && read.mean > 1e-6,

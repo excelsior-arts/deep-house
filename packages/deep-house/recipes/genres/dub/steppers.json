@@ -172,7 +172,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -204,6 +204,12 @@
   "provenance": {
     "pattern": "steppers (UK dub): the kick on every beat under a rim on the third, eighth hats, and a rolling, repeating bass riff — the militant dub rhythm",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar of drums: four kicks, a cross-stick on the third beat (the one-drop's drop kept), eighth hats; the bass is a one-bar riff of eighths and a held note inside a fifth, repeated without development. At 130 under the Dub key."
+    "note": "One bar of drums: four kicks, a cross-stick on the third beat (the one-drop's drop kept), eighth hats; the bass is a one-bar riff of eighths and a held note inside a fifth, repeated without development. At 130 under the Dub key.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -0.3,
+      "syncopationZ": -3,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

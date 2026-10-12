@@ -23,11 +23,11 @@ import zlib from 'node:zlib';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { planTheme, presetOfTheme, makeSetClock, seamFromHere, spellFor, MIX_DEFAULTS, SEAM_FLOOR, STYLE } from '../src/mix.ts';
+import { planTheme, planTheme as planThemeOf, presetOfTheme, makeSetClock, seamFromHere, spellFor, MIX_DEFAULTS, SEAM_FLOOR, STYLE } from '../src/mix.ts';
 import { generate } from '../src/generator.ts';
 import { dbToGain, startTime, leadStats } from '@deep-house/engine/dsp';
 import { THIRDS } from '@deep-house/engine/meter';
-import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, LOUDNESS_COLUMNS, knobDbOf } from '../src/loudness.ts';
+import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, trimTargetLufs, LOUDNESS_COLUMNS, knobDbOf } from '../src/loudness.ts';
 import v2LoudnessFit from '../src/styles/deep-house-v2-loudness.json' with { type: 'json' };
 import { pushCurve } from '../src/arrangement.ts';
 import {
@@ -40,12 +40,13 @@ import { LANES, LAYER_ORDER, LAYER_LABEL } from '../src/control.ts';
 import { linkRead } from '../src/link.ts';
 import { isReported, REPORTED_KINDS, REPORT_CAPS, CAUGHT, reportedAs, ours, aBug, report, lines as ledgerLines } from '../src/ledger.ts';
 import { createJournal, CAP as JOURNAL_CAP, KEY as JOURNAL_KEY, SESSION_HOURS } from '../src/journal.ts';
-import { STAGE_LAYERS, STAGE_HARMONIC, compilePerformance, sliceProgram, programOf } from '../src/performance.ts';
-import { duckAt } from '@deep-house/engine/program';
+import { STAGE_LAYERS, STAGE_HARMONIC, ROOM_BARS, handSeamBars, compilePerformance, sliceProgram, programOf } from '../src/performance.ts';
+import { duckAt, duckFor } from '@deep-house/engine/program';
 
 import { loudnessFeatures } from '../src/loudness.ts';
 import { clone } from '@deep-house/engine/params';
 import { resolveSettings, settingsOf } from '@deep-house/engine/settings';
+import { EQ_BANDS } from '@deep-house/engine/master';
 import { styleDistance, FLOOR } from '../src/style-distance.ts';
 import { castPool, pickCast } from '../src/cast-pool.ts';
 import Rng from '../src/rng.ts';
@@ -84,7 +85,7 @@ import {
   STRATEGIES, STRATEGY_IDS, DEFAULT_STRATEGY, strategyById, strategyFromQuery,
 } from '../src/strategies/index.ts';
 import { MOMENTS, PALETTE_LANES, LANE_TRIMS } from '../src/styles/deep-house-v2.ts';
-import { DROPPED_FOR_COST, CEILING as CATALOGUE_CEILING, CAST_UNITS, TREATED_LANES } from '../src/catalogue-v2.ts';
+import { DROPPED_FOR_COST, CEILING as CATALOGUE_CEILING, CAST_UNITS, TREATED_LANES, AWAITING_TREATMENTS, AWAITING, BY_PLACE } from '../src/catalogue-v2.ts';
 import { BY_ID as EFFECTS_BY_ID, REGISTRY as EFFECT_REGISTRY, costOf } from '@deep-house/engine/effects';
 import { costOfVoices } from '@deep-house/engine/voices';
 import * as VOICE_REGISTRY from '@deep-house/engine/voices';
@@ -107,15 +108,29 @@ import { schedule, firstEvent, offsetGrid, visitAt } from '@deep-house/engine/sc
 import { deckContextTime, deckThemeTime } from '@deep-house/engine/deck';
 import { setLayout } from './setplan.ts';
 import { drawsOf } from './imprint/signatures.ts';
-import { canonical, seamProgram, recordAutomation, settingsHash, SETTINGS_LOCKED } from './program.ts';
+import { canonical, seamProgram, recordAutomation, settingsHash, soundsHash, SETTINGS_LOCKED } from './program.ts';
+import { soundFaults, TOPOLOGIES, TIMBRE_ROWS, ROWS } from '@deep-house/engine/voices';
 // The machine view's two pieces that are arithmetic rather than drawing: where
 // a box goes, and where a decibel sits on a meter.
 import { joinParts, describeGraph, describeDeck, describeMaster } from '@deep-house/engine/describe';
+import { deviceOf, setDeviceParam, clearDevice, deviceOverrides, prepareMoved, fieldAt, armLive, clearLive, liveNotes, moveLive } from '@deep-house/engine/device';
+import { makeDeck, pumpDeck, spanning, startDeck } from '@deep-house/engine/deck';
+import { patchOf, provePatch, rowBase } from '@deep-house/engine/voices/sound';
+import { liveStandin, OfflineStandin } from '@deep-house/engine/standin';
+import { STAGE, clearStage, roomOf, setStageParam, stageLine, stageMoves, withStage } from '@deep-house/engine/stage';
+import { SCENES_KEY, SCENE_SCHEMA, deskFor, dropScene, keepScene, readShelf, sceneFit, shelf, shelfText } from '../src/machine/desk.ts';
+import { makeV1Graph, makeV1Master } from '@deep-house/engine/graph';
+import { fireEvent } from '@deep-house/engine/scheduler';
+import { blessedLine, grid, lineOf, played, themeHash } from './link-digest.ts';
+import { HZ, LFO_HZ, SECONDS, WAIT, LEVEL, UNIT, CENTS, DB, RATIO, SEND, SPREAD, VARIANTS, BODY_SECONDS } from '@deep-house/engine/voices/schema';
 import { CLIP_DB, HOT_DB, windowFor } from '@deep-house/engine/taps';
 import { FRAME_MS, COARSE_FRAME_MS } from '../src/machine/store.ts';
 import { FAMILY_GAP, FRAME_LABEL, FRAME_PAD, INSET, KEY_GAP, KEY_H, KEY_INSET, KEY_W, LEGEND_H, LEVEL_W, PAD, RADIUS, SOURCE_GAP, SOURCE_H, SOURCE_H2, SOURCE_KEYS_W, bellsAt, layoutCanvas, mainPath, oneLine, rackOf, shapeOf } from '../src/machine/layout.ts';
 import { SPACE } from '../src/machine/look.ts';
 import { GROUPS, lanePart, lanesOfTheme } from '../src/machine/model.ts';
+import { ENGINES as STILL_ENGINES, FITS as STILL_FITS, FLOOR_HUNG, moved as stillMoved, setLayouts, sourcesFoot, stackOf } from './measure-lanes.ts';
+import { KIT_IDS, kitOf, kitProblems } from '../src/kit.ts';
+import { DRUMS as PLACED_DRUMS } from '../src/styles/deep-house-places.ts';
 import { ENTRIES as MANUAL, KEY_PAGES, manualKey, said } from '../src/machine/manual.ts';
 import { METER_FLOOR, SCALE, meterAt } from '../src/machine/look.ts';
 import { note, forget, lines, keepPlace, sentence } from '../src/ledger.ts';
@@ -192,10 +207,14 @@ check('the program lock sees the settings the voices render with, and every auto
     const lines = Object.values(sectionOf(id).masters).flat();
     const carrying = lines.filter((l) => typeof l.settings === 'string' && /^[0-9a-f]{64}$/.test(l.settings)).length;
     must(carrying === (SETTINGS_LOCKED.includes(id) ? lines.length : 0), `${id}: ${carrying} of ${lines.length} theme lines carry a settings hash`);
+    // The `sounds` line (round R1) is carried from the bless that adds it: all of a section's lines or none.
+    const sounds = lines.filter((l) => typeof l.sounds === 'string' && /^[0-9a-f]{64}$/.test(l.sounds)).length;
+    must(sounds === 0 || sounds === lines.length, `${id}: ${sounds} of ${lines.length} theme lines carry a sounds hash`);
   }
   const program = programOf(planTheme('1', 0, { preset: 'auto', strategy: 'house-v2' }));
   const line = d.strategies['house-v2'].masters['1'][0];
   must(settingsHash(program) === line.settings, 'house-v2 1#0: the settings hash is not the committed one');
+  if (line.sounds) must(soundsHash(program) === line.sounds, 'house-v2 1#0: the sounds hash is not the committed one');
   // A move the program's own hash cannot see: the sidechain's attack, which no
   // event carries and the level table does not hold.
   const nudged = { ...program, settings: { ...program.settings, sidechain: { ...program.settings.sidechain, attack: program.settings.sidechain.attack * 1.01 } } };
@@ -326,10 +345,11 @@ check('a bare run of a lock tool writes nothing and says how', () => {
 // strategies must now **differ**, on every master and on every set, and by how
 // much is a number this check states rather than a sentence somebody writes.
 //
-// house-v1's own section is still asserted to be the record, byte for byte,
-// which is the half of the promise that does not move: an unversioned link is
-// still the record and `tools/golden.ts --check` on the default is still the
-// numbers it read the day it was blessed.
+// house-v1's own section is held by the two lock lines above, and since V1-1
+// (10-02) it moves the way house-v2's does — by a bless stated with its counts
+// — when a shared path (the mix, the engine, the transport) moves both: the
+// record is a composing preset, its own composing rules and its own EQ, and
+// not a byte lock. What this check holds is that the two sections differ.
 check('house-v2 no longer locks house-v1\'s record, and here is how far it moved', () => {
   let themes = 0;
   let moved = 0;
@@ -378,11 +398,12 @@ check('house-v2 no longer locks house-v1\'s record, and here is how far it moved
   // **Until round S4 of the composer (09-25), which is that day on purpose:**
   // house-v2 has its own set table — its themes a fifth shorter and its seam
   // floor at 0.82 (Eugene: "trim the formula for track length by about 20 %
-  // ... the mix starts a bit later") — so its sets turn over elsewhere, every
-  // one of them, and that is asserted as well: a v2 set hash equal to v1's
-  // would be a set table nobody reads.
+  // ... the mix starts a bit later"), and since MIX-X2 its keys drawn on the
+  // wheel — so its sets turn over elsewhere, every one of them, and that is
+  // asserted as well: a v2 set hash equal to v1's would be a set table nobody
+  // reads.
   must(setsMoved === sets, `${setsMoved} of ${sets} set hashes moved, and house-v2's own set table (round S4) moves every one`);
-  return `${notes.join(' and ')}: all ${themes} theme hashes differ between the two strategies and the fourteen golden themes hold ${events2} events under house-v2 against ${events1} under house-v1 (${events2 - events1 >= 0 ? '+' : ''}${events2 - events1}), and all ${sets} set hashes moved — house-v2's themes are a fifth shorter and its seams later since round S4, so its ${seamCount} hand-overs land elsewhere. house-v1's own section is untouched and is checked against, byte for byte, by the two lines above`;
+  return `${notes.join(' and ')}: all ${themes} theme hashes differ between the two strategies and the fourteen golden themes hold ${events2} events under house-v2 against ${events1} under house-v1 (${events2 - events1 >= 0 ? '+' : ''}${events2 - events1}), and all ${sets} set hashes moved — house-v2's themes are a fifth shorter and its seams later since round S4, so its ${seamCount} hand-overs land elsewhere. house-v1's own section is held by the two lines above and moves only by a bless stated with its counts`;
 });
 
 // --- the compiler's own four properties -------------------------------------
@@ -667,7 +688,7 @@ check('a room cannot be reached from another room', () => {
     const rows = [];
     for (const pe of program.events.slice(0, n)) {
       rows.push([pe.voice, pe.p.gain]);
-      if (pe.duck) for (const d of duckAt(program.duckShape, pe.onset)) sink.push([d.p, d.op, +d.t.toFixed(9), d.v]);
+      if (pe.duck) for (const d of duckAt(duckFor(program.duckShape, pe.p), pe.onset)) sink.push([d.p, d.op, +d.t.toFixed(9), d.v]);
     }
     duckPoints = sink.length;
     return JSON.stringify([
@@ -738,6 +759,9 @@ check('the set plan is what a hand-over writes', () => {
         swapInFrom: deckThemeTime(from, s.swapAt),
         swapInTo: deckThemeTime(to, s.swapAt),
         sumGain: 1,
+        // the two keys, for the harmonic cross (MIX-X2; the record's since 10-02)
+        fromKey: from.track.key,
+        toKey: to.track.key,
       }, MIX_DEFAULTS);
       must(plan.at === s.at && plan.end === s.end && plan.swapAt === s.swapAt,
         `master ${m} seam ${s.from}: the plan puts it at ${plan.at}/${plan.swapAt}/${plan.end} where the layout says ${s.at}/${s.swapAt}/${s.end}`);
@@ -922,7 +946,10 @@ check('live and offline schedule the same window', () => {
 // that takes its threshold from the thing it is checking passes whatever the
 // threshold becomes, which is how the old rule — the last breakdown past 55% —
 // would have slipped back in without a word. A deliberate change to the floor
-// is a deliberate change to this line as well.
+// is a deliberate change to this line as well. It is the record's: where a
+// seam sits in the outgoing theme is a measured property of the reference
+// sets, the set's composition and not the mix's (V1-1, 10-02 — house-v2's
+// 0.82 and finer line are its own set fields, held by the contract check).
 const SEAM_QUARTER = 0.75;
 check('the seam floor, 900 pairs', () => {
   must(SEAM_FLOOR === SEAM_QUARTER, `the style puts the seam floor at ${SEAM_FLOOR * 100}% where this check is written against ${SEAM_QUARTER * 100}%`);
@@ -960,13 +987,25 @@ check('the seam floor, 900 pairs', () => {
 // The longest a hand-asked hand-over may run is written here rather than read
 // off the mix, for the reason the seam floor is: a check that takes its bound
 // from the thing it is checking passes whatever the bound becomes. The rule is
-// one phrase past the swap — the low end changes hands `swapAfterBars` into any
-// blend, so past twice that the theme it replaced is lingering over music that
-// has already replaced it.
+// one swap past the swap: the low end changes hands at the swap, so past twice
+// that the theme it replaced is lingering over music that has already replaced
+// it. Since round MIX-X3 the hand's swap is a budget in seconds (`set.handSeam`,
+// `handSeamBars`): about fourteen seconds converted to bars at the tempo the
+// blend is played at, so the hand's blend is six bars at 49 BPM and twelve at
+// 104; the sixteen here is the sweep's own bound on `seamFromHere`, which takes
+// whatever `most` it is handed.
 const HAND_OVER_MOST = 16;
 check('a hand-over from here lands on a line', () => {
-  must(MIX_DEFAULTS.swapAfterBars * 2 === HAND_OVER_MOST,
-    `the style swaps ${MIX_DEFAULTS.swapAfterBars} bars in, so a hand-asked blend is ${MIX_DEFAULTS.swapAfterBars * 2} bars where this check is written against ${HAND_OVER_MOST}`);
+  const hand = MIX_DEFAULTS.handSeam;
+  must(!!hand, 'the style states no budget in seconds for the hand\'s hand-over');
+  for (const bpm of [49, 54, 104, 126, 169]) {
+    const bs = 240 / bpm;
+    const h = handSeamBars(hand, bs, MIX_DEFAULTS.harmonicCross, MIX_DEFAULTS.swapAfterBars);
+    must(Math.abs(h.swap * bs - hand!.swapSeconds) <= bs / 2 && h.blend === 2 * h.swap && h.swap >= 1,
+      `at ${bpm} BPM the hand's swap is ${h.swap} bars = ${(h.swap * bs).toFixed(1)} s against a budget of ${hand!.swapSeconds} s, the blend ${h.blend}`);
+    must(!!h.cross && h.cross.crossBars >= 1 && h.cross.fadeBars >= 1 && Math.abs(h.cross.fadeBars * bs - hand!.fadeSeconds) <= bs / 2,
+      `at ${bpm} BPM the hand's cross is ${JSON.stringify(h.cross)} against ${hand!.fadeSeconds} s out and ${hand!.crossSeconds} s in`);
+  }
   let asks = 0, offLine = 0, behind = 0, waited = 0, tooShort = 0, tooLong = 0, tooFar = 0;
   let shortest = { bars: Infinity };
   const at = [0, 0.004, 0.13, 0.37, 0.5, 0.62, 0.755, 0.9, 0.97, 0.999];
@@ -978,7 +1017,12 @@ check('a hand-over from here lands on a line', () => {
       for (const unit of [1, 4]) {
         const s = seamFromHere(from, here, into, { unit, most: HAND_OVER_MOST });
         asks++;
-        if (s.bar % unit !== 0 || Math.abs(s.at - s.bar * from.barSeconds) > 1e-9) offLine++;
+        // On the line it was asked for — or, where that line leaves the record
+        // fewer than `ROOM_BARS` bars to hand over on, on the finer line that
+        // does (round MIX-X1): a phrase line on a theme's last bar began the
+        // blend where the record had run out.
+        const room = from.bars - Math.ceil(here / from.barSeconds / unit - 1e-9) * unit >= ROOM_BARS;
+        if ((room && s.bar % unit !== 0) || Math.abs(s.at - s.bar * from.barSeconds) > 1e-9) offLine++;
         if (s.at < here - 1e-9) behind++;
         if (s.at - here > unit * from.barSeconds + 1e-9) waited++;
         if (s.bars < 2) tooShort++;
@@ -2468,8 +2512,13 @@ check('a cell\'s radius is its bird\'s value, and the house is exactly where it 
   // stays until the hand is `HOUSE_HOLD` points off, off it the bird snaps home
   // inside `HOUSE_ZONE`, and everywhere else it is the hand's radius — on both
   // hands, the drag and the phone's slider, through the one function
-  must(/const p = magnet\(\(\(hand \/ starR - pullIn\) \/ \(1 - pullIn\)\) \* 100, c\.value === home\);\n\s*const R = p === 100 \? radiusFor\(c\.bird, home\) : hand;/.test(RING),
+  // (K40: Ember has a second detent, its 5-bpm notch, read after the house's
+  // magnet and only off the house — `emberDetent` — so the bird is the hand's
+  // radius, the house's, or a notch's)
+  must(/const p = magnet\(\(\(hand \/ starR - pullIn\) \/ \(1 - pullIn\)\) \* 100, c\.value === home\);\n\s*let R = p === 100 \? radiusFor\(c\.bird, home\) : hand;/.test(RING),
     'a drag does not read the house\'s magnet, or stands anywhere but the house or the hand');
+  must(/if \(c\.bird === 'ember' && p !== 100\) \{ const d = emberDetent\(v\); if \(d !== v\) \{ v = d; R = radiusFor\(c\.bird, d\); \} \}/.test(RING),
+    'Ember\'s notch detent is not read after the house\'s magnet, or moves a bird at the house');
   must(/const p = magnet\(Number\(panelSlider\.value\), c\.value === HOUSE\[c\.bird\]\);/.test(RING), 'the phone\'s slider has no gravity at the house');
   must(HOUSE_HOLD > 0 && HOUSE_HOLD < PULL_STEP && HOUSE_ZONE < PULL_STEP, `the magnet is ${HOUSE_ZONE} in and ${HOUSE_HOLD} out, where a ${PULL_STEP} % step off the house has to hold`);
   for (const [p, at, want] of [[100 + HOUSE_HOLD, true, 100], [100 - HOUSE_HOLD, true, 100], [100 + HOUSE_HOLD + 0.5, true, 100 + HOUSE_HOLD + 0.5],
@@ -2632,13 +2681,14 @@ check('every bird names what it means, the ring says the reading and not the end
   // the live half is the deck's)
   // the live half is the deck's and never the plan's: what is rewritten is a
   // note nothing has been built for yet
-  const DECK = fs.readFileSync(path.join(ROOT, '..', 'engine', 'src', 'deck.ts'), 'utf8');
-  must(/export function seasonDeck/.test(DECK), 'a deck cannot be seasoned after it was built');
-  must(/const from = Math\.max\(0, deck\.index \| 0\);/.test(DECK),
-    'the live seasoning does not begin at the first note the scheduler has not visited');
-  must(/deck\.program = \{ \.\.\.deck\.program, events: events\.slice\(\) \};/.test(DECK),
-    'the live seasoning writes into the cached program the digest hashes');
+  // (since the deep review of 10-08 the notes are seasoned per note in the
+  // mix, each with its own knobs over the plan's chain: `seasonNotes`)
   const MIX = fs.readFileSync(path.join(ROOT, 'src', 'mix.ts'), 'utf8');
+  must(/function seasonNotes\(d: Deck, /.test(MIX), 'a deck cannot be seasoned after it was built');
+  must(/const from = Math\.max\(0, d\.index \| 0\);/.test(MIX),
+    'the live seasoning does not begin at the first note the scheduler has not visited');
+  must(/d\.program = \{ \.\.\.d\.program, events: events\.slice\(\) \};/.test(MIX),
+    'the live seasoning writes into the cached program the digest hashes');
   must(/function reseason\(\): number \{/.test(MIX), 'a spell set while a set plays does not reach the notes');
   return `all ${poles.length} birds name themselves and what they mean, and the explanation says the reading, not the ends, since round K13 `
     + `(${poles.map((p) => `${p.name}: ${p.means}`).slice(0, 3).join('; ')}…); `
@@ -2732,8 +2782,11 @@ check('the ring\'s marks for a held bird are the value and nothing beside it', (
   // on the phone's own grid (R64: they were 0.05 and 0.2 of a value)
   must(PULL_STEP === 5 && PULL_PAGE === 20 && TAP_STEP === PULL_STEP && !/const (?:HOUSE_ZONE|PULL_STEP|PULL_PAGE|TAP_STEP) = /.test(RING),
     `an arrow steps ${PULL_STEP} %, a page ${PULL_PAGE} %, the phone ${TAP_STEP} %, or the ring states its own`);
-  must(/stepPercent\(c\.bird, c\.value, 1, PULL_STEP\)/.test(RING) && /stepPercent\(c\.bird, c\.value, -1, PULL_PAGE\)/.test(RING),
-    'an arrow or a page key does not step the percent');
+  // (K40: the keys go through `stepBird`, which is the percent step for every
+  // bird but Ember, and Ember's next 5-bpm notch — a page key four of them)
+  must(/stepBird\(c, 1, PULL_STEP\)/.test(RING) && /stepBird\(c, -1, PULL_PAGE\)/.test(RING)
+    && /if \(c\.bird !== 'ember'\) return stepPercent\(c\.bird, c\.value, dir, step\);/.test(RING),
+    'an arrow or a page key does not step the percent, or Ember\'s key does not step its notch');
   // and a focused cell answers arrows, pages and a delete, which is
   // accessibility on a control — and nothing else, because the page has one
   // key and it is the space bar. (The seed field answers Escape, which is a
@@ -2843,18 +2896,22 @@ check('twenty taps from seed 1', () => {
 // the target is in the list on purpose, because the two slopes are not one.
 //
 // They were read off the build of 2026-09-17 that the 120-theme measurement
-// blessed (tools/loudness-fit.ts, tmp/analysis/loudness-fit.md).
+// blessed (tools/loudness-fit.ts, tmp/analysis/loudness-fit.md), and restated
+// on 2026-10-03 when the woodblock's declared loudness came down three
+// decibels with its trim (his ear: it clapped above the hats): the five themes
+// that draw it predict a twentieth of a LU quieter and trim up by as much;
+// house-v1's model itself is unchanged.
 const LOUDNESS_PREDICTIONS = [
   // master seed, theme, predicted LUFS, trim dB
-  ['1', 0, -12.9961, -0.005],
+  ['1', 0, -13.0457, 0.068],
   ['1', 1, -13.9744, 1.46],
-  ['1', 2, -13.5329, 0.799],
+  ['1', 2, -13.5773, 0.865],
   ['92970', 0, -12.5152, -0.633],
-  ['21323', 2, -13.5808, 0.87],
-  ['15576', 0, -13.2867, 0.43],
+  ['21323', 2, -13.6252, 0.937],
+  ['15576', 0, -13.3386, 0.507],
   ['15576', 1, -12.1831, -1.066],
   ['25417', 1, -11.8646, -1.482],
-  ['68299', 1, -13.1407, 0.211],
+  ['68299', 1, -13.1926, 0.289],
 ];
 
 check('the loudness fit reproduces what it was measured on', () => {
@@ -2961,8 +3018,11 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
     // No theme is predicted, at its loudest main and with its trim, over the
     // target by more than the fit's own error: the clamp is the only thing that
     // could leave one there, and it may not.
+    // Over the theme's own target: its family's where the family names one
+    // (round LOUD-2, the drop's), else the block's.
     const after = loud + t.trimDb * slope(t.trimDb);
-    must(after <= M.targetLufs + residual, `house-v2 master seed ${sd} theme ${i}: predicted ${after.toFixed(2)} LUFS at its loudest main with its trim, more than the fit's ${residual} LU over ${M.targetLufs}`);
+    const target = trimTargetLufs(t, v2);
+    must(after <= target + residual, `house-v2 master seed ${sd} theme ${i}: predicted ${after.toFixed(2)} LUFS at its loudest main with its trim, more than the fit's ${residual} LU over ${target}`);
     if (after > worst) { worst = after; worstAt = `${sd}#${i}`; }
     // ...and no trim past the headroom, less the model's margin, unless the
     // clamp stopped it first.
@@ -2971,7 +3031,7 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
       must(room != null && Number.isFinite(room), `house-v2 master seed ${sd} theme ${i}: no headroom read`);
       const cap = room - M.headroom.marginDb;
       must(t.trimDb <= cap + 1e-3 || t.trimDb === -M.clampDb, `house-v2 master seed ${sd} theme ${i}: trims ${t.trimDb} dB past its headroom of ${cap.toFixed(2)}`);
-      if (cap < (M.targetLufs - loud) / slope(M.targetLufs - loud)) held++;
+      if (cap < (target - loud) / slope(target - loud)) held++;
     }
     if (t.trimDb > 0) positive++;
     n++;
@@ -3214,6 +3274,53 @@ check('every descriptor is complete', () => {
     for (const t of d.dispatches) must(t in TIMBRES, `${where}: it dispatches ${t}, which no module declares`);
   }
   return `${REGISTRY.length} voices, ${fields} fields, ${timbres} timbres, ${new Set(REGISTRY.map((d) => d.family)).size} of the ${FAMILIES.length} families in use`;
+});
+
+// --- a sound that is a row renders through its topology (round R1) ----------
+// A row over a topology (`packages/engine/src/voices/sound.ts`) is held to it
+// at the registry: its parameters are the topology's exactly, its knobs and
+// controls default to the parameters the topology names, its words are the
+// vocabularies'. And a row with a `block` is the settings table's block, key
+// for key and value for value — `params.ts` puts the row there, and the voice
+// renders from the room's copy — so the row and the table cannot drift.
+check('every sound row renders through its topology and a blocked row is the table\'s block', () => {
+  // every registered voice is a row since round SOUNDS-R3, and the rows the
+  // dispatchers render through are held to their topologies the same way
+  must(REGISTRY.every((d) => d.row), `a registered voice is a module still: ${REGISTRY.filter((d) => !d.row).map((d) => d.name).join(', ')}`);
+  const rows = [...REGISTRY, ...TIMBRE_ROWS].filter((d) => d.row);
+  let blocked = 0, keys = 0, voiced = 0, voicedKeys = 0;
+  for (const d of rows) {
+    const row = d.row;
+    const faults = soundFaults(row, TOPOLOGIES[row.topology]);
+    must(!faults.length, faults.join('; '));
+    must(d.name === row.id && d.render !== undefined, `${row.id}: the descriptor is not the row's`);
+    must((d.cost ?? null) === (row.descriptor.cost ?? TOPOLOGIES[row.topology].cost), `${row.id}: priced at ${d.cost}, neither the row's nor the topology's class`);
+    if (row.voicedBy) {
+      // a voiced row at rest is its own numbers: every field the style's base
+      // table holds at a path that voices it reads back equal from the row
+      voiced++;
+      for (const path of row.voicedBy) {
+        const held = path.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), BASE_SETTINGS);
+        if (!held || typeof held !== 'object') continue;
+        for (const k of TOPOLOGIES[row.topology].voiced) {
+          if (!(k in held) || path.startsWith('keyboardPatches.')) continue;
+          must(JSON.stringify(held[k]) === JSON.stringify(row.parameters[k]), `${row.id}: the table's ${path}.${k} is ${JSON.stringify(held[k])} and the row says ${JSON.stringify(row.parameters[k])}`);
+          voicedKeys++;
+        }
+      }
+    }
+    if (row.block === undefined) continue;
+    blocked++;
+    const block = BASE_SETTINGS[row.block];
+    must(block && typeof block === 'object', `${row.id}: the base table has no block ${row.block}`);
+    for (const [k, v] of Object.entries(row.parameters)) {
+      must(k in block && (typeof v === 'object' ? JSON.stringify(block[k]) === JSON.stringify(v) : Object.is(block[k], v)),
+        `${row.id}: the table's ${row.block}.${k} is ${JSON.stringify(block[k])} and the row says ${JSON.stringify(v)}`);
+      keys++;
+    }
+  }
+  const topologies = new Set(rows.map((d) => d.row.topology));
+  return `${rows.length} rows over ${topologies.size} topologies (${[...topologies].join(', ') || 'none yet'}), ${blocked} of them a block of the table, ${keys} keys read back equal; ${voiced} voiced by a block they share, ${voicedKeys} of their keys read back equal from the base table`;
 });
 
 check('the derived tables are the registry, in its order', () => {
@@ -3650,7 +3757,17 @@ check('an absent strategy is the record', () => {
   return `${STRATEGY_IDS.length} strategies, ${DEFAULT_STRATEGY} the default; five ways of asking for nothing and an unknown id all resolve to the record, four query strings read the way they are written, and ${same} golden themes plan the same bytes whether the default is named or not`;
 });
 
-check('house-v2 is house-v1\'s data with eleven switches on', () => {
+// **The contract since V1-1 (10-02)**: house-v2 is house-v1's *composing* data
+// with the composing switches on, and what is shared is shared. house-v1 keeps
+// its own composing rules — its cast and catalogue, its arrangement, section
+// and figure rules, its set-plan composition (any root, the record's lengths)
+// and where a seam sits in the outgoing theme, which the reference sets
+// measured — and its own master EQ (`EQ_V1`); the engine, the hand-over's
+// curves, the transport, the loudness machinery and the lane-level code are
+// one path for both. A field that tells the two apart below is a composing
+// decision or the EQ, and nothing else; a mixing number lives in
+// `deep-house.ts` once.
+check('house-v2 is house-v1\'s composing data with the composing switches on, and the mix is shared', () => {
   const v1 = STRATEGIES['house-v1'].style;
   const v2 = STRATEGIES['house-v2'].style;
   // (1) The data, field by field. Everything that is *the record* is still v1's
@@ -3661,12 +3778,20 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
   const SAME = ['corpus', 'sections', 'figures', 'loudness', 'signatures'];
   for (const k of SAME) must(v2[k] === v1[k], `house-v2's ${k} is not house-v1's own object`);
   // The set table is house-v2's own since round S4 of the composer: v1's, with
-  // its lengths a fifth shorter, its seam floor at 0.82 and the finer seam line,
-  // and every other field v1's value.
-  const OWN_SET = ['themeBarPercentiles', 'themeBarsMin', 'themeBarsMax', 'seamFloor', 'seamLineInside'];
+  // its lengths a fifth shorter, its seam floor at 0.82 and the finer seam
+  // line, and every other field v1's value. Since MIX-X2 (10-02) house-v2 also
+  // mixes in key: `harmonicMixing` on and its own `keySteps` on the wheel; the
+  // record draws any root. The floor and the line are the set's composition
+  // (where a seam sits is a measured property of the reference sets: the
+  // record's last quarter on a sixteen-bar line), not the mix's — V1-1 tried
+  // them as the mix's and Eugene put them back.
+  const OWN_SET = ['themeBarPercentiles', 'themeBarsMin', 'themeBarsMax', 'seamFloor', 'seamLineInside', 'harmonicMixing', 'keySteps'];
   must(v2.set !== v1.set && Object.isFrozen(v2.set), 'house-v2 has no set table of its own');
   for (const k of Object.keys(v1.set)) if (!OWN_SET.includes(k)) must(v2.set[k] === v1.set[k], `house-v2's set.${k} is not house-v1's`);
   must(!('seamLineInside' in v1.set) && v1.set.seamFloor === 0.75, 'house-v1\'s set table moved');
+  // ...and a mixing number — the swap, the cross, the glide — is written once.
+  for (const k of ['swapAfterBars', 'harmonicCross', 'tempoGlideBars'])
+    must(v2.set[k] === v1.set[k], `house-v2 carries its own set.${k}, and a mixing number is written once`);
   // `base` and `settings` are held **field by field** rather than by reference
   // since round K6, because the loudness block is house-v2's own:
   // loudness model, which is fitted on a palette and whose palette is not the
@@ -3684,8 +3809,22 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
     must(same(Object.keys(a), Object.keys(b).filter(k => k !== 'keyboardPatches')),
       `house-v2's ${table} does not have house-v1's fields plus keyboard voicing`);
     must(same(Object.keys(b.keyboardPatches), ['ep']), `house-v2's ${table} unexpectedly revoices another keyboard`);
+    // Round E1: the master's EQ profile is house-v2's own (`EQ_V2`), and only
+    // the profile -- every other field of the master block is v1's value, so
+    // the corners, the widths, the limiter and the gain are the record's.
+    for (const k of Object.keys(a.master)) {
+      if (EQ_BANDS.includes(k)) continue;
+      must(JSON.stringify(a.master[k]) === JSON.stringify(b.master[k]), `house-v2's ${table}.master.${k} is not house-v1's value`);
+    }
+    must(EQ_BANDS.some(k => a.master[k] !== b.master[k]), `house-v2's ${table}.master carries house-v1's own EQ profile`);
+    // ...and the present piano is v2's own too: three of its fields, the rest v1's.
+    const PIANO_OWN = ['dryLevel', 'sustainLevel', 'partialDecay'];
+    for (const k of Object.keys(a.piano)) {
+      if (PIANO_OWN.includes(k)) must(a.piano[k] !== b.piano[k], `house-v2's ${table}.piano.${k} is house-v1's`);
+      else must(JSON.stringify(a.piano[k]) === JSON.stringify(b.piano[k]), `house-v2's ${table}.piano.${k} is not house-v1's value`);
+    }
     for (const k of Object.keys(a)) {
-      if (k === 'loudness' || k === 'sawLead') continue;
+      if (k === 'loudness' || k === 'sawLead' || k === 'master' || k === 'piano') continue;
       // `base` is v1's with two keys replaced and keyboard voicing added; every other
       // block of it is v1's own object and is held to that. `settings` is what
       // the resolver makes of a base table, and a resolver copies — so it is
@@ -3701,13 +3840,21 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
   must(JSON.stringify(v1.settings.loudness) === JSON.stringify(v1.base.loudness),
     'house-v1\'s resolved loudness model is not its table\'s own');
   const v2L = v2.settings.loudness;
-  must(v2L.targetLufs === v1.settings.loudness.targetLufs && v2L.clampDb === v1.settings.loudness.clampDb,
-    `house-v2 levels to ${v2L.targetLufs} LUFS within ${v2L.clampDb} dB where the record levels to ${v1.settings.loudness.targetLufs} within ${v1.settings.loudness.clampDb}`);
+  // The target is the record's: levelling a palette and moving where the record
+  // sits are two decisions. The clamp is v2's own since round N1. E1's lift
+  // raised the loudest mains' input into the limiter, where a cut gives back
+  // under half a decibel, so v2 levels within ±6 dB where the record does ±4.
+  // The quiet themes' trims are unchanged by it. The JSON says the same number,
+  // so a refit writes it back.
+  must(v2L.targetLufs === v1.settings.loudness.targetLufs,
+    `house-v2 levels to ${v2L.targetLufs} LUFS where the record levels to ${v1.settings.loudness.targetLufs}`);
+  must(v1.settings.loudness.clampDb === 4 && v2L.clampDb === 6 && v2LoudnessFit.clampDb === v2L.clampDb,
+    `house-v2's clamp is ${v2L.clampDb} dB (its JSON says ${v2LoudnessFit.clampDb}) and the record's ${v1.settings.loudness.clampDb}, where N1 set v2's own at 6 and left the record's at 4`);
   for (const k of Object.keys(v2L.coef)) must(LOUDNESS_COLUMNS[k], `house-v2's loudness.coef names ${k}, which is no column in src/loudness.ts`);
   must(Object.keys(v2L.coef).length && Object.keys(v2L.centre).length === Object.keys(v2L.coef).length,
     'house-v2\'s loudness model has no coefficients, or a centre for each of them');
   must(v2L.slopeUp > 0 && v2L.slopeUp < 1 && v2L.slopeDown > 0 && v2L.slopeDown < 1,
-    `house-v2's master gives back ${v2L.slopeUp} and ${v2L.slopeDown} per decibel, which is not a limiter`);
+    `house-v2's master gives back ${v2L.slopeUp} and ${v2L.slopeDown} per decibel of trim, which is not a limiter (a slope near nought is a fit that read an after pass of another measurement: refit with --measure, --after, --fit)`);
   // The lane table is the one block that is neither the same object nor a
   // transcription: round K6 widens four of its twelve rows and leaves eight
   // alone, and *leaves alone* has to mean the same object for the same reason.
@@ -3746,12 +3893,14 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
   // fifteenth and sixteenth are round S3's, `sparseTexture` and `bassSolo`;
   // the seventeenth and eighteenth round S6's, `hatRing` and `hatSections`;
   // the nineteenth round S13's `openingSound`; the twentieth S14's `glueGates`;
-  // the twenty-first S18's `laneFloors`; the twenty-second S21's `neverSilent`.
+  // the twenty-first S18's `laneFloors`; the twenty-second S21's `neverSilent`;
+  // the twenty-third GA1's `libraryDraw`; the twenty-fourth GA6's `placeTables`;
+  // the twenty-fifth S25's `mainsApart`.
   const sw = v2.switches;
   // Every switch is on: `bassSolo`, round S3's experiment, was written off
   // until Eugene had heard it, and is on since S17 ("commit it").
   for (const [k, v] of Object.entries(sw)) must(v === true, `the switch ${k} is off, and every one of them is on`);
-  must(Object.keys(sw).length === 22, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one set of lane floors and one silence rule`);
+  must(Object.keys(sw).length === 26, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme and one set of small things inside a section (the lane floors are level machinery and every style's since V1-1)`);
   must(sw.derived === true, 'house-v2 does not read the derived state');
   must(sw.knobs === true, 'house-v2 does not season the voices it draws');
   must(sw.motif === true, 'house-v2 draws no theme');
@@ -3769,7 +3918,12 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
   must(sw.openingSound === true, 'house-v2 lets a theme open silent');
   must(sw.glueGates === true, 'house-v2 blows its noise glue through a dark, slow theme');
   must(sw.neverSilent === true, 'house-v2 leaves a gap of silence in the middle of a theme');
-  must(sw.laneFloors === true, 'house-v2 lets a room\'s clap or shaker at -60 silence a snare or a conga');
+  must(sw.libraryDraw === true, 'house-v2 never lets the library reach a theme');
+  must(sw.placeTables === true, 'house-v2 plays the house\'s harmony and form everywhere');
+  must(sw.mainsApart === true, 'house-v2 stands two mains alike side by side');
+  must(sw.eqByTheme === true, 'house-v2 keeps the set\'s room on the master whatever the theme');
+  must(sw.subSections === true, 'house-v2 plays every section as one beat from its first bar to its last');
+  must(!('laneFloors' in sw), 'house-v2 carries a lane-floors switch, and the lane-level rule is every style\'s');
   must(!('switches' in v1), 'house-v1 carries switches, and the record reads none');
   // (3) Three of K5b's four take a field off every room, and neither the fourth
   // nor derive-lite's fifth takes any: `avoidOrgan` is handed to `generate` by
@@ -3794,16 +3948,36 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
       }
     }
     // ...and nothing else about a room moved: every other block is v1's.
+    // A room's master lean is v1's room over v2's profile (round E1): each gain
+    // it names moved by however far v2's base profile stands from v1's.
+    if (a.params && a.params.master) {
+      for (const k of Object.keys(a.params.master)) {
+        const want = EQ_BANDS.includes(k) ? +(a.params.master[k] + v2.base.master[k] - v1.base.master[k]).toFixed(3) : a.params.master[k];
+        must(b.params.master[k] === want, `the room ${id}'s master.${k} is ${b.params.master[k]}, not v1's room over v2's profile (${want})`);
+      }
+    }
     for (const k of Object.keys(a.params || {})) {
-      if (k === 'sidechain') continue;
+      if (k === 'sidechain' || k === 'master') continue;
       must(JSON.stringify(b.params[k]) === JSON.stringify(a.params[k]), `the room ${id}'s params.${k} moved and no switch owns it`);
     }
   }
   must(taken > 0, 'the switches are on and took nothing off any room');
   // (4) The stage is v1's stage with one field added — the placement table the
   // rota draws — and the live rota it exposes.
-  for (const k of Object.keys(v1.stage))
+  // Round E1 lands two of the 09-28 listening drafts here: the keys' front
+  // target 2 dB up (every other level v1's) and the front role's returns at .70.
+  for (const k of Object.keys(v1.stage)) {
+    if (k === 'level') {
+      for (const role of Object.keys(v1.stage.level)) {
+        if (role === 'keys') must(v2.stage.level.keys.front === v1.stage.level.keys.front + 2 && v2.stage.level.keys.back === v1.stage.level.keys.back,
+          `the keys' front is ${v2.stage.level.keys.front}, not v1's ${v1.stage.level.keys.front} and 2 dB`);
+        else must(v2.stage.level[role] === v1.stage.level[role], `the stage's level.${role} moved`);
+      }
+      continue;
+    }
+    if (k === 'frontWet') { must(v2.stage.frontWet === 0.70 && v1.stage.frontWet === 0.82, `the front role's returns are ${v2.stage.frontWet}, not .70 over v1's .82`); continue; }
     must(k === 'treatments' ? Array.isArray(v2.stage[k]) : v2.stage[k] === v1.stage[k], `the stage's ${k} moved`);
+  }
   // Round S12 adds the second: the bass bus's level, a hint down (1 to 2 dB,
   // Eugene's "calm it down a hint while not reducing range"), which v1 never has.
   must(v1.stage.bassBusDb === undefined, 'house-v1 has a bass bus level');
@@ -3829,7 +4003,7 @@ check('house-v2 is house-v1\'s data with eleven switches on', () => {
     }
   }
   must(moved === themes, `${themes - moved} of ${themes} golden themes still plan house-v1's bytes under house-v2`);
-  return `${SAME.length} blocks of house-v1's own data held by reference, ${sameFields} fields of base and settings unchanged, with loudness and saw articulation house-v2's own, ${sameLanes} of ${v1.lanes.length} lane rows the same objects, ${Object.keys(sw).length} switches all on (the fifth derive-lite's own, the sixth modulation M1's, the seventh the theme and the eighth the lead's entry, the ninth a section's edges), ${taken} fields taken off the rooms by the three that own one and every other field of every room v1's own, the stage v1's with a placement table of ${v2.stage.palette.length} rows and the bass bus at ${v2.stage.bassBusDb} dB added, a third room slot still declared and still empty, and all ${themes} golden themes planning different bytes under the two`;
+  return `${SAME.length} blocks of house-v1's own data held by reference, ${sameFields} fields of base and settings unchanged, with loudness, saw articulation and the present piano house-v2's own, ${sameLanes} of ${v1.lanes.length} lane rows the same objects, the master's EQ profile house-v2's own, ${Object.keys(sw).length} switches all on (the fifth derive-lite's own, the sixth modulation M1's, the seventh the theme and the eighth the lead's entry, the ninth a section's edges), ${taken} fields taken off the rooms by the three that own one and every other field of every room v1's own, the stage v1's with a placement table of ${v2.stage.palette.length} rows and the bass bus at ${v2.stage.bassBusDb} dB added, a third room slot still declared and still empty, and all ${themes} golden themes planning different bytes under the two`;
 });
 
 check('every list house-v2 widened is widened by the rule', () => {
@@ -3987,8 +4161,12 @@ check('the four lanes are the record\'s own, and the kitchen is behind them', ()
       }
     }
     // ...and every registered voice that declares the role is in the list, so a
-    // lane is the registry's own answer and not a selection.
-    const all = REGISTRY.filter((d) => d.roles.includes(role)).map((d) => d.name);
+    // lane is the registry's own answer and not a selection — but the voices
+    // only a place admits or still awaiting a part (`BY_PLACE`, `AWAITING`),
+    // which the registry keeps out of every list it widens (round DNB-2's dry
+    // snare is the first of them in one of these four roles).
+    const unlisted = new Set([...AWAITING, ...BY_PLACE].map((a) => a.id));
+    const all = REGISTRY.filter((d) => d.roles.includes(role) && !unlisted.has(d.name)).map((d) => d.name);
     must(same(list.map((e) => e.v), all), `${id} is not every voice that declares ${role}`);
     // ...and since round K6 the list is **read**: one or more lanes of the
     // style's own table name it, and the composer asks each of them who is
@@ -4269,8 +4447,10 @@ check('the rota is the stage\'s six, and the kitchen the ceiling admitted behind
   // of them either at the weight rule 2 opened it at or at nought with rule 4's
   // arithmetic on the row.
   const instances = rota.filter((e) => e.kind === 'effect');
-  must(same(instances.map((e) => e.v), EFFECT_REGISTRY.map((d) => `fx:${d.id}`)),
-    'the instances are not one per registered effect in the registry\'s order');
+  // ...less the ones still awaiting a part (round KV1, `AWAITING`), which are
+  // registered and on no row of the rota until one admits them.
+  must(same(instances.map((e) => e.v), EFFECT_REGISTRY.map((d) => `fx:${d.id}`).filter((v) => !AWAITING_TREATMENTS.includes(v))),
+    'the instances are not one per registered effect in the registry\'s order, less the awaiting');
   let admitted = 0;
   for (const e of instances) {
     if (e.w > 0) { admitted++; must(e.w === e.opened, `${e.v} is live at ${e.w} and was opened at ${e.opened}`); continue; }
@@ -4919,7 +5099,9 @@ check('the derived state is the landscape sheet, and the house is the house', ()
   must(HOUSE_DERIVED.drumsOn === true, 'the house derives to drums off');
   must(HOUSE_DERIVED.kit === 'fourFloor', `the house derives to a ${HOUSE_DERIVED.kit} kit`);
   must(HOUSE_DERIVED.tempoFamily === 'house', `the house derives to the ${HOUSE_DERIVED.tempoFamily} band`);
-  must(HOUSE_DERIVED.tempoRange[0] === 95 && HOUSE_DERIVED.tempoRange[1] === 115,
+  // Since round GA3 a band is the tempi the room's own window plays at in it,
+  // and the house's is that window: 95-105.
+  must(HOUSE_DERIVED.tempoRange[0] === 95 && HOUSE_DERIVED.tempoRange[1] === 105 && HOUSE_DERIVED.tempoBand === 'steady',
     `the house band is ${HOUSE_DERIVED.tempoRange.join('-')}`);
   // ...and `derive()` is a pure function of the eight, so the frozen record of
   // what the house derives to is what the house derives to.
@@ -4960,7 +5142,7 @@ check('the derived state is the landscape sheet, and the house is the house', ()
   // house band, so *no* pull on ember alone left the house at all.
   must(straightFastest.kit === 'fourFloor' && straightFastest.tempoFamily === 'drumAndBass',
     `ember at 1 gives ${straightFastest.kit} in the ${straightFastest.tempoFamily} band`);
-  return `the house is drums on, a fourFloor kit and the house band 95-115, and derive(HOUSE) is the frozen record of it; all ${LANDSCAPE.length} regions of notes/diagrams/landscape.md derive to the family and the kit its table says (${rows.join('; ')}); a four-floor techno and a broken kit at the house tempo are both reachable, and drum and bass sits above techno on the pulse`;
+  return `the house is drums on, a fourFloor kit and the house band 95-105, and derive(HOUSE) is the frozen record of it; all ${LANDSCAPE.length} regions of notes/diagrams/landscape.md derive to the family and the kit its table says (${rows.join('; ')}); a four-floor techno and a broken kit at the house tempo are both reachable, and drum and bass sits above techno on the pulse`;
 });
 
 check('drums off is a plan with no drum grid in it', () => {
@@ -5011,6 +5193,805 @@ check('drums off is a plan with no drum grid in it', () => {
   const v1perc = v1.events.filter((e) => PERC.has(e.voice)).length;
   must(v1perc > 0, 'house-v1 read the derived state, and it never may');
   return `${seeds.length} seeds of house-v2 at ember 0.10: ${events} events, ${percussion} of them percussion, all 5 percussion gates off in every phrase of ${sections} sections and in every timeline row, ${ducked} sidechain points laid, and ${crashes} crashes drawn by a texture lane at a boundary; the same spell under house-v1 plans ${v1perc} percussion events on one seed, because the record reads no derived state at all`;
+});
+
+// --- the desk's inventory (PLAN-DESK D0) ------------------------------------
+//
+// The desk's unit is the declared parameter, and the inventory D0 asked for —
+// every parameter the engine reads, declared or fixed with a reason — is the
+// topologies' contracts since the sounds became rows: a row carries exactly
+// the fields its topology renders from (`soundFaults`). What this holds is the
+// *reading* of it: every row's device resolves under a real theme's settings,
+// every parameter of it has a value inside its own range and a unit where the
+// shared words give one, every knob and control the row declares is either on
+// a parameter of the row or a property the voice computes, every row's level
+// key is a level the settings carry, and the shared field words all say what
+// they are in — so a panel drawn off the device never shows a bare number for
+// a corner or a time.
+check('the desk reads every row\'s device: each parameter with a value in range and a unit where the field has one, each knob and control placed', () => {
+  const track = planTheme('1', 0, { preset: 'auto', strategy: 'house-v2' });
+  const S = settingsOf(track);
+  for (const [name, f] of Object.entries({ HZ, LFO_HZ, SECONDS, WAIT, LEVEL, UNIT, CENTS, DB, RATIO, SEND, SPREAD, VARIANTS, BODY_SECONDS }))
+    must(typeof f.unit === 'string' && f.unit, `the shared field ${name} carries no unit`);
+  let rows = 0, params = 0, inUnit = 0, bare = 0, knobsOn = 0, knobsOff = 0, controlsOn = 0, controlsOff = 0, blocks = 0;
+  const modules = [];
+  const bareFields = new Set();
+  for (const d of [...REGISTRY, ...TIMBRE_ROWS]) {
+    const dev = deviceOf(S, d.name);
+    if (!dev) { must(!d.row, `${d.name} is a row and has no device`); modules.push(d.name); continue; }
+    rows++;
+    if (dev.block) blocks++;
+    must(dev.params.length > 0, `${d.name}: a device with no parameters`);
+    must(dev.levelDb !== null, `${d.name}: its level key ${dev.level} is not in the settings' levels`);
+    for (const p of dev.params) {
+      params++;
+      must(p.value !== undefined, `${d.name}/${p.path} has no value`);
+      // null is a part of the topology the row does not build (a `maybe` field: the reese's clip, a hat's room)
+      if (p.kind === 'num' && p.value !== null) {
+        must(typeof p.value === 'number' && Number.isFinite(p.value), `${d.name}/${p.path} reads ${p.value}`);
+        must(p.value >= p.min && p.value <= p.max, `${d.name}/${p.path} is ${p.value}, outside its ${p.min}..${p.max}`);
+        if (p.unit) inUnit++; else { bare++; bareFields.add(`${dev.topology}.${p.path.replace(/\.[^.]+$/, (m) => (/^\.\w+$/.test(m) && /ratios|partials/.test(p.path) ? '.*' : m))}`); }
+      }
+      if (p.knob) knobsOn++;
+      if (p.control) controlsOn++;
+    }
+    knobsOff += dev.knobs.length;
+    controlsOff += dev.controls.length;
+    must(Object.keys(d.knobs ?? {}).length === dev.params.filter((p) => p.knob).length + dev.knobs.length, `${d.name}: a knob is neither on a parameter nor a property`);
+    must(Object.keys(d.controls ?? {}).length === dev.params.filter((p) => p.control).length + dev.controls.length, `${d.name}: a control is neither on a parameter nor a note's own`);
+  }
+  must(rows > 50 && params > 1000, `${rows} rows and ${params} parameters: the registry has shrunk`);
+  // a dispatcher asked with its timbres carries one device more per row they render through
+  const pad = deviceOf(S, 'pad', ['strings', 'swell', 'organ', 'nobody']);
+  must(pad && JSON.stringify(pad.parts.map((x) => [x.device.voice, x.timbres])) === JSON.stringify([['stringsPad', ['strings']], ['stringsSwell', ['swell']], ['keysOrgan', ['organ']]]),
+    `the pad's device with its timbres has ${JSON.stringify(pad && pad.parts.map((x) => [x.device.voice, x.timbres]))}`);
+  must(pad.parts[0].device.params.some((p) => p.path === 'breath.level' && p.kind === 'num'), 'the strings pad\'s device has no breath line');
+  return `${rows} rows (${blocks} voiced by a block of the settings, ${rows - blocks} frozen or voiced by a block they share) and ${modules.length} module voices without one${modules.length ? ` (${modules.join(', ')})` : ''}; `
+    + `${params} parameters read under seed 1's settings, every one inside its range, ${inUnit} in a unit and ${bare} bare numbers over ${bareFields.size} fields (drives, velocity senses, counts, shapes); `
+    + `${knobsOn} knobs on a parameter and ${knobsOff} on a property the voice computes, ${controlsOn} controls on a parameter and ${controlsOff} a note's own; every row's level key in the settings' levels; the 13 shared field words each in a unit`;
+});
+
+// --- the device's setters (PLAN-DESK D1) ---------------------------------------
+//
+// A desk move is a number on the engine's desk layer, read at the one door
+// every topology reads its numbers by (`patchOf`). Held here: at rest the door
+// hands back the very object it always did — the identity the locks rest on,
+// stated where a digest cannot see it; a move hands back a copy, frozen, proven
+// against the contract and clamped to the field's own range at the setter;
+// every numeric line of every row moves at its two ends without a throw and a
+// note renders from it; and a move is not a plan move — the programs the
+// links play hash the same with moves on.
+check('the device\'s lines are setters: no move is the same object, a move is a proven copy clamped to its field, every line settable, the digests unmoved', () => {
+  clearDevice();
+  const S = settingsOf(planTheme('1', 0, { preset: 'auto', strategy: 'house-v2' }));
+  // (1) the identity at rest, for every row
+  let rows = 0;
+  for (const d of [...REGISTRY, ...TIMBRE_ROWS]) {
+    const row = d.row;
+    if (!row) continue;
+    rows++;
+    const C = TOPOLOGIES[row.topology].parameters;
+    const base = row.block !== undefined ? S[row.block] : row.voicedBy ? rowBase(S, row) : row.parameters;
+    must(patchOf(S, row, C) === base, `${d.name}: with nothing moved the door handed back a different object`);
+  }
+  // (2) one move: a copy, the same copy until the layer changes, frozen and proven; clamped at the setter
+  const reese = BY_NAME.reeseWobble.row;
+  const RC = TOPOLOGIES[reese.topology].parameters;
+  const at = setDeviceParam('reeseWobble', 'cutoffHz', 520, S);
+  const a = patchOf(S, reese, RC);
+  must(at.changed && at.value === 520 && a !== reese.parameters && a.cutoffHz === 520 && a.saws === reese.parameters.saws, `the reese's cutoffHz to 520 read ${a.cutoffHz}`);
+  must(patchOf(S, reese, RC) === a && Object.isFrozen(a) && Object.isFrozen(a.clip) && provePatch(a, RC, 'the probe') === a, 'the moved patch is not one frozen, proven copy');
+  must(reese.parameters.cutoffHz === 460, 'the row itself moved');
+  const over = setDeviceParam('reeseWobble', 'clip.drive', 99, S);
+  const under = setDeviceParam('reeseWobble', 'saws', -3, S);
+  const nan = setDeviceParam('reeseWobble', 'movementHz', Number.NaN, S);
+  const f = fieldAt(RC.fields, 'saws');
+  must(over.value === 16 && patchOf(S, reese, RC).clip.drive === 16, `clip.drive 99 was put at ${over.value}, not its field's top`);
+  must(under.value > 0 && under.value < 1e-3 && f.open, `saws −3 was put at ${under.value}: an open bound is never the bound itself`);
+  must(nan.value === null && !nan.changed, 'a move that is not a number was not a reset');
+  const word = setDeviceParam('hatClosed', 'metal', 0.5, S);
+  const list = setDeviceParam('reeseWobble', 'nothing', 1, S);
+  must(word.refused && list.refused, 'a word, or a line the row has not, was moved');
+  const dev = deviceOf(S, 'reeseWobble');
+  const moved = dev.params.filter((p) => p.row !== undefined).map((p) => `${p.path} ${p.value} (row ${p.row})`);
+  must(moved.length === 3, `the device reads ${moved.length} moved lines: ${moved.join(', ')}`);
+  must(setDeviceParam('reeseWobble', 'cutoffHz', null, S).changed && deviceOverrides('reeseWobble').cutoffHz === undefined, 'null did not put the line back');
+  clearDevice();
+  must(patchOf(S, reese, RC) === reese.parameters, 'with the moves cleared the door did not hand back the row again');
+  // (3) every numeric line of every row, at both ends of its field, and a note from it
+  let lines = 0, ends = 0, notes = 0;
+  const refused = [];
+  for (const d of [...REGISTRY, ...TIMBRE_ROWS]) {
+    const dv = deviceOf(S, d.name);
+    if (!dv) continue;
+    for (const p of dv.params) {
+      if (p.kind !== 'num' || typeof p.value !== 'number') continue;
+      lines++;
+      for (const v of [p.min, p.max]) {
+        const got = setDeviceParam(d.name, p.path, v, S);
+        ends++;
+        if (got.refused) { refused.push(`${d.name}/${p.path}`); continue; }
+        const ctx = liveStandin();
+        d.render(ctx, { dry: ctx.destination }, 0, { midi: 48, dur: 0.5, vel: 0.8 }, S, 0);
+        notes++;
+        clearDevice(d.name);
+      }
+    }
+  }
+  // a refusal is only ever a relation the contract states between two numbers (a ping with no pitch, a ring past its delay line)
+  const relational = new Set([...REGISTRY, ...TIMBRE_ROWS].filter((d) => d.row && TOPOLOGIES[d.row.topology].parameters.relations).map((d) => d.name));
+  must(refused.every((r) => relational.has(r.split('/')[0])), `refused where the contract states no relation: ${refused.filter((r) => !relational.has(r.split('/')[0])).join(', ')}`);
+  must(lines > 1000 && notes > 2000, `${lines} lines and ${notes} notes: the registry has shrunk`);
+  // (4) a desk move is not a plan move: the programs the links play hash the same with moves on
+  const rowsOf = grid().filter((r) => !r.themes && /seed=1\b/.test(r.link) && /v=2/.test(r.link)).slice(0, 2).concat(grid().filter((r) => r.group === 'benchmark' && !r.themes).slice(0, 1));
+  const dub = 'seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80';
+  const restHash = themeHash(played(dub).plan);
+  for (const [v, path, x] of [['reeseWobble', 'cutoffHz', 520], ['reeseWobble', 'saws', 0], ['kick', 'endHz', 45], ['kick', 't34', 0.3], ['hatClosed', 'hp', 9000], ['sub', 'cutoffHz', 200]]) setDeviceParam(v, path, x, S);
+  const held = rowsOf.map((r) => { const now = lineOf(r); const was = blessedLine(r.link); return now.hash === was.hash ? null : r.link; }).filter(Boolean);
+  const movedHash = themeHash(played(dub).plan);
+  const on = Object.keys(deviceOverrides('reeseWobble')).length + Object.keys(deviceOverrides('kick')).length;
+  clearDevice();
+  must(!held.length, `with the desk's moves on, the link digest moved for ${held.join(', ')}`);
+  must(movedHash === restHash, 'with the desk\'s moves on, seed 6 at the half-time spell planned a different program');
+  return `${rows} rows hand back the very object at rest; the reese's cutoffHz at 520 is a frozen copy proven against its contract, the same copy until the layer moves, the row untouched; `
+    + `clip.drive 99 is put at 16, saws −3 a hair above nought, a not-a-number a reset, a word and a line the row has not refused; `
+    + `${lines} numeric lines moved to both ends (${ends} moves, ${notes} notes rendered without a throw, ${refused.length} refused by a relation the contract states: ${[...new Set(refused)].join(', ') || 'none'}); `
+    + `with ${on} lines moved on two instruments and more, ${rowsOf.length} rows of the link digest and the half-time link plan the same programs`;
+});
+
+// The measurement D1 asks for: a moved number reaches the next note, and a
+// drum that renders its body ahead never strikes from a body of the old one.
+// The kit's kick is struck through a recorder whose offline contexts keep the
+// pitch each rendered body was built at, so what a hit *reads* is known.
+const deskMeasure = (async () => {
+  clearDevice();
+  const bodies = new WeakMap();
+  class Recording extends OfflineStandin {
+    async startRendering() {
+      const buf = await super.startRendering();
+      // a voice writes an oscillator's \`type\` over the recorder's own word, so the body's sine is found by it
+      const hz = this.of('sine').flatMap((o) => o.params.frequency.events.filter((e) => e[0] === 'exp').map((e) => e[1]));
+      bodies.set(buf, hz);
+      return buf;
+    }
+  }
+  const g = globalThis;
+  const had = g.OfflineAudioContext;
+  g.OfflineAudioContext = Recording;
+  try {
+    const S = settingsOf(planTheme('1', 0, { preset: 'auto', strategy: 'house-v2' }));
+    const d = BY_NAME.kickPunch;
+    const ctx = liveStandin();
+    const out = { dry: ctx.destination };
+    const events = [{ voice: 'kickPunch', t: 0, p: { vel: 1 } }];
+    const hit = (t) => {
+      const before = ctx.nodes.length;
+      d.render(ctx, out, t, { vel: 1 }, S, t);
+      const made = ctx.nodes.slice(before);
+      const src = made.find((n) => n.type === 'buffer' && n.buffer && bodies.has(n.buffer));
+      if (src) return { from: 'body', hz: bodies.get(src.buffer) };
+      return { from: 'live', hz: made.filter((n) => n.type === 'sine').flatMap((o) => o.params.frequency.events.filter((e) => e[0] === 'exp').map((e) => e[1])) };
+    };
+    await d.prepare(ctx, S, events, {});
+    const row = hit(1);
+    setDeviceParam('kickPunch', 'hz', 45, S);
+    const first = hit(2);
+    await prepareMoved(ctx, S, events, ['kickPunch']);
+    const next = hit(3);
+    clearDevice();
+    const back = hit(4);
+    // and the reese the half-time link plays: its next note's corner
+    const dub = played('seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80');
+    const prog = programOf(dub.plan);
+    const reeseEvent = prog.events.find((e) => /^reese/.test(e.voice));
+    const corner = (voice) => {
+      const c = liveStandin();
+      BY_NAME[voice].render(c, { dry: c.destination }, 0, reeseEvent.p, prog.settings, 0);
+      // the corner the next note's low-pass is written at, set and swept (a filter's \`type\` is written over the recorder's word)
+      return c.of('lowpass').flatMap((b) => [b.params.frequency.value, ...b.params.frequency.events.map((e) => e[1])]).filter((x) => x > 0);
+    };
+    const r0 = corner(reeseEvent.voice);
+    setDeviceParam(reeseEvent.voice, 'cutoffHz', 520, prog.settings);
+    const r1 = corner(reeseEvent.voice);
+    clearDevice();
+    return { row, first, next, back, voice: reeseEvent.voice, r0, r1 };
+  } finally {
+    g.OfflineAudioContext = had;
+    clearDevice();
+  }
+})();
+const desk1 = await deskMeasure.catch((e) => ({ error: e }));
+check('a moved number reaches the next note: the kit kick at 45 Hz strikes at 45 from its next hit, and from a body rendered at 45 once the window is prepared again', () => {
+  if (desk1.error) throw desk1.error;
+  const { row, first, next, back } = desk1;
+  const near = (xs, hz) => xs.length > 0 && xs.every((x) => Math.abs(1200 * Math.log2(x / hz)) < 10);
+  must(row.from === 'body' && near(row.hz, 52), `before the move the hit read ${row.from} at ${row.hz.join(', ')} Hz`);
+  must(first.from === 'live' && near(first.hz, 45), `the first hit after the move ${first.from === 'body' ? `read a body at ${first.hz.join(', ')} Hz` : `built itself at ${first.hz.join(', ')} Hz`}`);
+  must(next.from === 'body' && near(next.hz, 45), `after the window was prepared again the hit read ${next.from} at ${next.hz.join(', ')} Hz`);
+  must(back.from === 'body' && near(back.hz, 52), `with the move cleared the hit read ${back.from} at ${back.hz.join(', ')} Hz`);
+  const fmt = (xs) => [...new Set(xs.map((x) => +x.toFixed(2)))].join('/');
+  return `kickPunch read its body at ${fmt(row.hz)} Hz; moved to hz 45, its next hit built itself live at ${fmt(first.hz)} Hz (never the old body), and after the move's window was prepared again it read a body rendered at ${fmt(next.hz)} Hz; `
+    + `cleared, the body at ${fmt(back.hz)} Hz again. ${desk1.voice} on seed 6 at the half-time spell: its filter's corners ${fmt(desk1.r0)} Hz at the row, ${fmt(desk1.r1)} Hz with cutoffHz moved to 520`;
+});
+
+// --- the stage's setters (PLAN-DESK D2) ----------------------------------------
+//
+// A stage move is a number on the engine's stage layer (`stage.ts`), laid on
+// the settings only where the mix builds a graph (`withStage`), and moved on a
+// graph that is up through its own door (`V1Graph.stage`). Held here: at rest
+// the layer hands back the very settings object it was given; every stage box
+// the graph draws is declared, and every number of a block that box owns alone
+// is a line or fixed with a reason; every declared line moves at both ends of
+// its range, clamped, on the layer and on a built graph, without a throw; and a
+// desk move is not a plan move — the programs the links play hash the same.
+const DUB = 'seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80';
+check('the stage\'s blocks are setters: no move is the same settings, every box declared or fixed, every line settable in its range on the layer and on a graph, the digests unmoved', () => {
+  clearStage();
+  const dub = played(DUB).plan;
+  const house = planTheme('1', 0, { preset: 'auto', strategy: 'house-v2' });
+  const rooms = [['the half-time spell', programOf(dub).settings], ['the house', settingsOf(house)]];
+  // (1) the identity at rest
+  for (const [, S] of rooms) must(withStage(S) === S, 'with nothing moved the stage layer handed back a different settings object');
+  // (2) every stage box drawn is declared; a block a box owns alone is lines or fixed, field for field
+  const OWNED = { bassDrive: 'bass.parallel', bassComp: 'bass.comp', push: 'push', glue: 'master.glue', harmonicEdge: 'harmonicEdge', harmonicBell: 'harmonicBell' };
+  const drawn = new Set();
+  for (const [, S] of rooms) {
+    for (const n of describeGraph(null, S).nodes) {
+      if (n.stage !== 'stage') continue;
+      drawn.add(n.id);
+      must(STAGE[n.id], `the stage box ${n.id} is drawn and declares nothing`);
+    }
+    for (const [box, block] of Object.entries(OWNED)) {
+      const B = STAGE[box];
+      const table = block.split('.').reduce((o, k) => (o ? o[k] : undefined), S);
+      if (!table) continue;
+      for (const [k, v] of Object.entries(table)) {
+        if (typeof v !== 'number') continue;
+        const path = `${block}.${k}`;
+        must(B.lines.some((l) => l.path === path) || B.fixed.some((f) => f.path === path && f.why), `${path} is a number of ${box}'s block, neither a line nor fixed with a reason`);
+      }
+    }
+    const sc = S.sidechain;
+    for (const [k, v] of Object.entries(sc)) if (typeof v === 'number') {
+      const path = `sidechain.${k}`;
+      must([STAGE.duck, STAGE.duckLow].some((B) => B.lines.some((l) => l.path === path) || B.fixed.some((f) => f.path === path && f.why)), `${path} is neither a line nor fixed`);
+    }
+  }
+  // (3) every declared line, at both ends and past them, on the layer and on graphs built at rest and with the move on
+  let lines = 0, moves = 0, live = 0;
+  const hows = {};
+  const S = rooms[0][1];
+  const prog = programOf(dub);
+  for (const [, S] of rooms) for (const B of Object.values(STAGE)) {
+    for (const l of B.lines) {
+      lines++;
+      must(stageLine(l.path)?.line === l, `${l.path} does not find its own line`);
+      const over = setStageParam(l.path, l.max + 1000, S);
+      const under = setStageParam(l.path, l.min - 1000, S);
+      if (over.refused) { must(roomOf(S, l.path) === null && B.builds(S), `${l.path} refused: ${over.refused}`); clearStage(); continue; }
+      must(over.value === l.max && under.value === l.min, `${l.path} past its ends was put at ${over.value} and ${under.value}, not ${l.max} and ${l.min}`);
+      for (const v of [l.min, l.max]) {
+        setStageParam(l.path, v, S);
+        const moved = withStage(S);
+        // a move to the room's own number is no move: the very same settings
+        // and a move on a block this room does not build is not a block: the very same settings, the move waiting on the layer
+        if (roomOf(S, l.path) === v || roomOf(S, l.path) === null) must(moved === S, `${l.path}: a move to the room's own ${v}, or on a block it has not, handed back a copy`);
+        else must(moved !== S && Object.isFrozen(moved) && withStage(S) === moved, `${l.path}: the moved settings are not one frozen copy`);
+        if (roomOf(S, l.path) !== null) must(roomOf(moved, l.path) === v, `${l.path}: the moved settings read ${roomOf(moved, l.path)}, not ${v}`);
+        const ctx = liveStandin();
+        const rest = makeV1Graph(ctx, S, { bpm: prog.bpm, master: makeV1Master(ctx, S), at: 0 });
+        const how = rest.stage(l.path, v, 1, 0.04);
+        hows[how] = (hows[how] || 0) + 1;
+        if (how === 'live') live++;
+        rest.describe();
+        makeV1Graph(ctx, moved, { bpm: prog.bpm, master: makeV1Master(ctx, S), at: 0 }).describe();
+        moves++;
+      }
+      must(setStageParam(l.path, Number.NaN, S).value === null && stageMoves()[l.path] === undefined, `${l.path}: a value that is not a number was not a reset`);
+    }
+  }
+  must(setStageParam('bass.parallel.nothing', 1, S).refused && setStageParam('macro', 1, S).refused, 'a path no box declares was moved');
+  clearStage();
+  must(withStage(S) === S, 'with the moves cleared the layer did not hand back the settings again');
+  // (4) a desk move is not a plan move: the programs the links play hash the same with moves on
+  const rowsOf = grid().filter((r) => !r.themes && /seed=1\b/.test(r.link) && /v=2/.test(r.link)).slice(0, 2).concat(grid().filter((r) => r.group === 'benchmark' && !r.themes).slice(0, 1));
+  const restHash = themeHash(played(DUB).plan);
+  const restProgram = programOf(played(DUB).plan);
+  for (const [p, v] of [['bass.parallel.blend', 0.6], ['bass.parallel.wobbleBeats', 1], ['sidechain.lowDepthDb', -6], ['sidechain.depthDb', -9], ['bass.comp.threshold', -24], ['master.glue.ratio', 2], ['space.widthBase', 1.1], ['push.satDrive', 0.8]]) setStageParam(p, v, S);
+  const held = rowsOf.map((r) => { const now = lineOf(r); const was = blessedLine(r.link); return now.hash === was.hash ? null : r.link; }).filter(Boolean);
+  const movedPlan = played(DUB).plan;
+  const movedHash = themeHash(movedPlan);
+  const sameSettings = settingsOf(movedPlan).bass.parallel.blend === 0.45 && programOf(movedPlan).settings.sidechain.lowDepthDb === -5;
+  const on = Object.keys(stageMoves()).length;
+  clearStage();
+  must(!held.length, `with the stage's moves on, the link digest moved for ${held.join(', ')}`);
+  must(movedHash === restHash, 'with the stage\'s moves on, seed 6 at the half-time spell planned a different program');
+  must(sameSettings && restProgram.settings.bass.parallel.blend === 0.45, 'with the stage\'s moves on, the plan\'s own settings read a moved number');
+  return `${drawn.size} stage boxes drawn on the two rooms, every one declared (${Object.values(STAGE).reduce((n, B) => n + B.lines.length, 0)} lines, ${Object.values(STAGE).reduce((n, B) => n + B.fixed.length, 0)} fixed with a reason); `
+    + `the settings come back the very object at rest; ${lines} lines over the two rooms put at both ends and past them (${moves} moves, each a frozen copy the same for one version, a graph built at rest moved through its door — ${Object.entries(hows).map(([k, n]) => `${n} ${k}`).join(', ')} — and one built with the move on, each described); `
+    + `with ${on} lines moved, ${rowsOf.length} rows of the link digest and the half-time link plan the same programs, and the plan's settings read the room's 0.45 and −5 dB`;
+});
+
+// The measurement D2 asks for, on the half-time link's own program: the
+// driven copy's blend and the duck under the knock, read off what the graph
+// is told before and after a move — the blend's gain on the copy (the effect's
+// make-up makes a blend of one an edge as loud as the clean bass, so its level
+// under the clean one is 20 log10 of the blend), and the duck's floor on the
+// bass as the next kick writes it through `fireEvent`, the path a deck plays.
+check('a stage move reaches the sound: on the half-time link the copy\'s blend ramps 0.45 to 0.6 and the duck under the knock falls from −5 to −6 dB from the next kick, live; the next theme is built with both', () => {
+  clearStage();
+  const prog = programOf(played(DUB).plan);
+  const S = prog.settings;
+  const ctx = liveStandin();
+  const g = makeV1Graph(ctx, withStage(S), { bpm: prog.bpm, master: makeV1Master(ctx, S), trimDb: prog.trimDb, at: 0 });
+  const db = (x) => +(20 * Math.log10(x)).toFixed(2);
+  const kicks = prog.events.filter((e) => e.duck);
+  const duckLow = g.nodes.duckLow.gain;
+  const floor = (from) => Math.min(...duckLow.events.slice(from).filter((e) => e[0] === 'lin').map((e) => e[1]));
+  fireEvent(ctx, g, prog, kicks[0], 1);
+  const duck0 = floor(0);
+  const n0 = duckLow.events.length;
+  setStageParam('sidechain.lowDepthDb', -6, S);
+  const how0 = g.stage('sidechain.lowDepthDb', -6, 1.4, 0.04);
+  fireEvent(ctx, g, prog, kicks[1], 1.5);
+  const duck1 = floor(n0);
+  const note = g.describe().nodes.find((n) => n.id === 'duckLow').note;
+  // the blend: the one parameter the move writes, its value at the build and the ramp's end
+  const before = ctx.nodes.map((n) => Object.fromEntries(Object.entries(n.params).map(([k, p]) => [k, p.events.length])));
+  setStageParam('bass.parallel.blend', 0.6, S);
+  const how1 = g.stage('bass.parallel.blend', 0.6, 2, 0.04);
+  const touched = [];
+  ctx.nodes.forEach((n, i) => { for (const [k, p] of Object.entries(n.params)) if (p.events.length > before[i][k]) touched.push({ p, ev: p.events.slice(before[i][k]) }); });
+  must(touched.length === 1, `the blend's move wrote ${touched.length} parameters, not the copy's one gain`);
+  const blend0 = touched[0].p.value;
+  const end = touched[0].ev.filter((e) => e[0] === 'lin').pop();
+  // the wobble: two beats a cycle to one, its depth 0.5 to 0.7, on the copy's corner LFO
+  const w = [g.stage('bass.parallel.wobbleBeats', 1, 2, 0.04), g.stage('bass.parallel.wobbleDepth', 0.7, 2, 0.04)];
+  // the next theme, built with the moves on
+  const ctx2 = liveStandin();
+  const next = makeV1Graph(ctx2, withStage(S), { bpm: prog.bpm, master: makeV1Master(ctx2, S), at: 0 });
+  const nextFloor = Math.min(...next.duckShape.filter((d) => d.p === 'duckLow.gain').map((d) => d.v));
+  const nextBlend = withStage(S).bass.parallel.blend;
+  clearStage();
+  must(how0 === 'live' && how1 === 'live' && w.every((h) => h === 'live'), `the moves reached the graph as ${[how0, how1, ...w].join(', ')}`);
+  must(Math.abs(db(duck0) + 5) < 0.01 && Math.abs(db(duck1) + 6) < 0.01, `the duck under the knock read ${db(duck0)} dB at the room and ${db(duck1)} dB after the move`);
+  must(/-6 dB/.test(note), `the low duck's box reads "${note}" after the move`);
+  must(Math.abs(blend0 - 0.45) < 1e-9 && end && Math.abs(end[1] - 0.6) < 1e-9 && Math.abs(end[2] - 2.04) < 1e-9, `the copy's blend stood at ${blend0} and ramped to ${end && end[1]} at ${end && end[2]}`);
+  must(Math.abs(db(nextFloor) + 6) < 0.01 && nextBlend === 0.6, `the next theme was built at ${db(nextFloor)} dB and a blend of ${nextBlend}`);
+  must(withStage(S) === S, 'the layer was not clear after');
+  return `the copy's blend stood at ${blend0} (${db(blend0)} dB under the clean bass) and ramped to ${end[1]} (${db(end[1])} dB) over 40 ms; the wobble moved live to one beat a cycle at depth 0.7; `
+    + `the duck under the knock wrote its floor at ${db(duck0)} dB on the kick before the move and ${db(duck1)} dB on the kick after (the box reads "${note}"); the next theme's graph is built at ${db(nextFloor)} dB and a blend of ${nextBlend}`;
+});
+
+// --- realtime where the sound allows (PLAN-DESK D1b) ---------------------------
+//
+// A start inside a theme sounds the notes that span the point, re-timed to it
+// and fired through the same door, the program untouched; the engine keeps
+// each voice's sounding notes, and every topology that declares a `live` table
+// hands a handle at the note whose paths are in it and only there; the desk's
+// move ramps them, landing on the number the next note is built with; a note
+// is let go after its end. Read on the recording stand-in: what a parameter is
+// told, and where it is at an instant (`toldAt`, the AudioParam's own
+// arithmetic over the commands it was given).
+
+/** Where a stand-in parameter stands at `t`, by the commands it was given (set, linear ramp, cancel). */
+const toldAt = (param, t) => {
+  let pts = [];
+  for (const e of param.events) {
+    if (e[0] === 'cancel') pts = pts.filter((p) => p.t < e[1]);
+    else if (e[0] === 'set' || e[0] === 'lin') pts.push({ k: e[0], v: e[1], t: e[2] });
+  }
+  pts.sort((a, b) => a.t - b.t);
+  let v = param.value, at = 0;
+  for (const p of pts) {
+    if (t < p.t) return p.k === 'lin' && p.t > at ? v + (p.v - v) * (t - at) / (p.t - at) : v;
+    v = p.v; at = p.t;
+  }
+  return v;
+};
+
+const DROP_START = 158.9; // inside seed 6's first drop: the two-beat reese at 158.54 and the held rhodes chord span it
+check('a start inside a theme sounds what spans the point: on seed 6\'s first drop the reese and the pad\'s chord are fired once each at the point, re-timed, through the same door, no event twice, the program untouched', () => {
+  clearLive();
+  const { plan } = played(DUB);
+  const prog = programOf(plan);
+  const hash0 = themeHash(plan);
+  const spans = spanning(prog, DROP_START);
+  const ctx = liveStandin();
+  const master = makeV1Master(ctx, prog.settings);
+  const clock = makeSetClock(prog.beat, 0);
+  const fired = [];
+  const real = {};
+  for (const name of Object.keys(VOICE_REGISTRY.VOICES)) {
+    real[name] = VOICE_REGISTRY.VOICES[name];
+    VOICE_REGISTRY.VOICES[name] = (c, out, time, p, st, at) => { fired.push({ voice: name, time, at, p }); return real[name](c, out, time, p, st, at); };
+  }
+  let deck;
+  try {
+    deck = makeDeck(ctx, plan, prog, master.input, master, clock, 0.2, 1);
+    startDeck(ctx, deck, 0.2, DROP_START);
+    // two fills, the second over the first's horizon: what spans the point fires on the first and never again
+    pumpDeck(ctx, deck, 0.2 + 0.3);
+    pumpDeck(ctx, deck, 0.2 + 0.45);
+  } finally {
+    for (const name of Object.keys(real)) VOICE_REGISTRY.VOICES[name] = real[name];
+  }
+  const atPoint = fired.filter((f) => f.at === DROP_START);
+  const by = (xs) => xs.reduce((m, f) => ({ ...m, [f.voice]: (m[f.voice] ?? 0) + 1 }), {});
+  const key = (voice, at, p) => `${voice}|${at}|${p.midi}|${p.timbre ?? ''}|${p.ride ?? ''}|${(+p.dur).toFixed(6)}`;
+  const keys = fired.map((f) => key(f.voice, f.at, f.p));
+  const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
+  const early = fired.filter((f) => f.at < DROP_START);
+  const reese = spans.filter((e) => /^reese/.test(e.voice));
+  const pad = spans.filter((e) => e.voice === 'pad');
+  must(reese.length >= 1 && pad.length >= 3, `the point spans ${reese.length} reese and ${pad.length} pad notes`);
+  must(atPoint.length === spans.length && deck.spanned === spans.length, `${atPoint.length} notes fired at the point where ${spans.length} span it (the deck says ${deck.spanned})`);
+  must(atPoint.every((f) => Math.abs(f.time - 0.2) < 1e-9), `a spanned note fired at ${atPoint.map((f) => f.time).join(', ')}, not at the start`);
+  for (const e of spans) {
+    const orig = prog.events.find((x) => x.i === e.i);
+    must(orig && Math.abs(e.p.dur - (orig.t + orig.p.dur - DROP_START)) < 1e-9 && e.t === DROP_START && e.onset === DROP_START && e.lead === 0,
+      `the ${e.voice} copy of event ${e.i} is not the rest of it at the point`);
+    must(orig.t < DROP_START && orig.p.dur !== e.p.dur, `event ${e.i} was changed in the program`);
+  }
+  must(!twice.length, `fired twice: ${twice.slice(0, 3).join('; ')}`);
+  must(!early.length, `${early.length} events before the point were fired as themselves`);
+  must(themeHash(plan) === hash0, 'the program moved with a start inside it');
+  const after = fired.length - atPoint.length;
+  return `a start at ${DROP_START} s on seed 6 at the half-time spell fired ${spans.length} notes at the point (${Object.entries(by(atPoint)).map(([v, n]) => `${v} ${n}`).join(', ')}), each once, each the rest of its note `
+    + `(the reese's ${reese.map((e) => `${e.p.dur.toFixed(3)} s`).join(' and ')}, the chord's ${pad[0].p.dur.toFixed(2)} s), then ${after} events from the cursor on over two fills, none twice and none before the point; the program hashes as it did`;
+});
+
+check('a sounding note takes what its topology declares live and nothing else: every live table names numbers of its contract, every handle\'s paths are in it, every declared path is reached, a note is let go after its end', () => {
+  clearLive();
+  armLive(true);
+  const S = programOf(played(DUB).plan).settings;
+  const tables = Object.values(TOPOLOGIES).filter((t) => t.live);
+  const bad = [];
+  for (const t of tables) for (const path of Object.keys(t.live)) if (!fieldAt(t.parameters.fields, path)) bad.push(`${t.id}: ${path}`);
+  must(!bad.length, `a live table names what is not a number of its contract: ${bad.join(', ')}`);
+  // every row of a topology with a table, one note each, and what it handed over
+  const reached = new Map(tables.map((t) => [t.id, new Set()]));
+  let rows = 0, handles = 0;
+  const outside = [];
+  try {
+    for (const d of [...REGISTRY, ...TIMBRE_ROWS]) {
+      const row = d.row;
+      const t = row && TOPOLOGIES[row.topology];
+      if (!t || !t.live) continue;
+      // under the drop's room and under one that voices no keyboard patch (seed 6's room writes the EP's tine to nought and its tremolo off)
+      const ctx = liveStandin();
+      for (const room of [S, { ...S, keyboardPatches: {} }]) d.render(ctx, { dry: ctx.destination }, 0.1, { midi: 52, dur: 2, vel: 0.8, tremolo: 1 }, room, 0);
+      rows++;
+      for (const h of liveNotes(row.id)) {
+        handles++;
+        for (const path of Object.keys(h.params)) {
+          if (!(path in t.live)) outside.push(`${row.id}: ${path}`);
+          reached.get(t.id).add(path);
+        }
+        must(h.row === row, `${row.id}'s handle names the row ${h.row && h.row.id}`);
+      }
+      // let go after its end: the clock past every note of it
+      ctx.currentTime = 1e6;
+      must(!liveNotes(row.id).some((h) => h.ctx === ctx), `${row.id}'s note was kept past its end`);
+    }
+  } finally {
+    armLive(false);
+  }
+  must(!outside.length, `a handle names a path its topology does not declare live: ${outside.join(', ')}`);
+  const unreached = tables.flatMap((t) => Object.keys(t.live).filter((p) => !reached.get(t.id).has(p)).map((p) => `${t.id}: ${p}`));
+  must(!unreached.length, `declared live and reached by no note of any row: ${unreached.join(', ')}`);
+  // the held drones route their controls through the same table
+  const hctx = liveStandin();
+  const drone = VOICE_REGISTRY.holdWavePad(hctx, { dry: hctx.destination }, 0, { midi: 57 }, S);
+  const held = liveNotes('wavePad').filter((h) => h.ctx === hctx);
+  must(held.length === 1 && Object.keys(held[0].params).every((p) => p in TOPOLOGIES['wavetable-pad'].live), `the held wave pad handed over ${held.map((h) => Object.keys(h.params).join('+')).join(', ') || 'nothing'}`);
+  const end = drone.release(1);
+  hctx.currentTime = end + 0.01;
+  must(!liveNotes('wavePad').some((h) => h.ctx === hctx), 'the held wave pad was kept past its release');
+  // an offline render hands nothing over
+  const off = new OfflineStandin(2, 4800, 48000);
+  BY_NAME.reeseWobble.render(off, { dry: off.destination }, 0, { midi: 36, dur: 1, vel: 1 }, S, 0);
+  must(!liveNotes('reeseWobble').some((h) => h.ctx === off), 'an offline render handed a note over');
+  // the counts the panel marks
+  let lines = 0, live = 0, devices = 0, liveRows = 0;
+  for (const d of [...REGISTRY, ...TIMBRE_ROWS]) {
+    const dv = deviceOf(S, d.name);
+    if (!dv) continue;
+    devices++;
+    let any = false;
+    for (const p of dv.params) if (p.kind === 'num') { lines++; if (p.how === 'live') { live++; any = true; } must(p.how === 'live' || p.how === 'next', `${d.name}'s ${p.path} says no how`); }
+    if (any) liveRows++;
+  }
+  clearLive();
+  return `${tables.length} topologies declare what a sounding note can still take (${tables.map((t) => `${t.id} ${Object.keys(t.live).length}`).join(', ')}), every path a number of the contract; `
+    + `${rows} rows rendered one note each and handed ${handles} handles, every path in its table and every declared path reached; each let go after its end, the held wave pad on its release; an offline render handed none. `
+    + `The panel marks ${live} of ${lines} numeric lines live, on ${liveRows} of ${devices} rows, and ${lines - live} next note`;
+});
+
+// The feedback loop D1b is for, measured: with the set playing, a hand on
+// the device moves the note that is sounding, not the next one.
+check('a live move lands inside the sounding note: seed 6\'s reese corner and 27191\'s drone breath move within 40 ms of the hand, on the number the next note is built with', () => {
+  clearLive();
+  clearDevice();
+  const out = {};
+  const hash0 = themeHash(played(DUB).plan);
+  // (1) the reese on seed 6's first drop: the two-beat note at 158.54, sounding, its corner moved 0.2 s in
+  {
+    const prog = programOf(played(DUB).plan);
+    const S = prog.settings;
+    const e = prog.events.find((x) => x.voice === 'reeseWobble' && !x.p.ride && x.t > 158.5 && x.t < 158.6);
+    const next = prog.events.find((x) => x.voice === 'reeseWobble' && !x.p.ride && x.t > e.t + 1e-6);
+    const ctx = liveStandin();
+    const g = makeV1Graph(ctx, S, { bpm: prog.bpm, master: makeV1Master(ctx, S), trimDb: prog.trimDb, at: 0 });
+    const n0 = ctx.nodes.length;
+    fireEvent(ctx, g, prog, e, e.t);
+    const lp = ctx.nodes.slice(n0).find((n) => n.type === 'lowpass');
+    const corner = (t) => lp.frequency.value * Math.pow(2, toldAt(lp.detune, t) / 1200);
+    const hand = e.t + 0.2;
+    ctx.currentTime = hand;
+    setDeviceParam('reeseWobble', 'cutoffHz', 520, S);
+    const moved = moveLive('reeseWobble', 'cutoffHz', 520, ctx);
+    // the plan the link plays, with the move on the layer and on the sounding note
+    out.onHash = themeHash(played(DUB).plan);
+    // the next note, built with the move on: the number the live move must land on
+    const c2 = liveStandin();
+    BY_NAME.reeseWobble.render(c2, { dry: c2.destination }, 0, e.p, S, 0);
+    const nextCorner = c2.of('lowpass')[0].frequency.value;
+    const lane = { note: +e.t.toFixed(3), ends: +(e.t + e.p.dur).toFixed(3), next: +next.t.toFixed(3), moved,
+      at: [0, 0.01, 0.02, 0.04, 0.1, 0.5].map((dt) => [dt, +corner(hand + dt).toFixed(1)]), before: +corner(hand - 0.01).toFixed(1), nextCorner: +nextCorner.toFixed(1) };
+    clearDevice();
+    moveLive('reeseWobble', 'cutoffHz', null, (ctx.currentTime = hand + 0.6, ctx));
+    lane.back = +corner(hand + 0.65).toFixed(1);
+    out.reese = lane;
+  }
+  // (2) the drone pad's breath on 27191's first theme: the strings chord sounding at 60 s, the desk up. The
+  // link's spark is at nought, and the ring's grain knob (spark's) scales the breath by nought there: the
+  // move is read as the link plays it, and with the knob at its default (the spark at the house)
+  {
+    armLive(true);
+    try {
+      const prog = programOf(played('seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&theme=1').plan);
+      const S = prog.settings;
+      const e = prog.events.find((x) => x.voice === 'pad' && x.p.timbre === 'strings' && x.t < 60 && x.t + x.p.dur > 61);
+      const breathOf = (c) => c.of('buffer').map((n) => n.connections[0]).filter((h) => h && h.type === 'highpass')
+        .map((h) => h.connections[0]).filter((l) => l && l.type === 'lowpass').map((l) => l.connections[0]).find((x) => x && x.type === 'gain');
+      const run = (pe) => {
+        clearLive();
+        clearDevice();
+        const ctx = liveStandin();
+        const g = makeV1Graph(ctx, S, { bpm: prog.bpm, master: makeV1Master(ctx, S), trimDb: prog.trimDb, at: 0 });
+        fireEvent(ctx, g, prog, pe, pe.t);
+        const handles = liveNotes('stringsPad').filter((x) => x.ctx === ctx).length;
+        const hand = 60;
+        ctx.currentTime = hand;
+        setDeviceParam('stringsPad', 'breath.level', 0.2, S);
+        const moved = moveLive('stringsPad', 'breath.level', 0.2, ctx);
+        setDeviceParam('stringsPad', 'cutoffHz', 900, S);
+        moveLive('stringsPad', 'cutoffHz', 900, ctx);
+        const bg = breathOf(ctx);
+        const lpA = ctx.nodes.find((n) => n.type === 'lowpass' && n.params.detune.events.length);
+        // the next chord, built with both moves on
+        const c2 = liveStandin();
+        BY_NAME.pad.render(c2, { dry: c2.destination }, 0, pe.p, S, 0);
+        const nextBreath = breathOf(c2)?.gain.value ?? null;
+        // the first of the two low-passes in series is the corner
+        const nextCorner = c2.of('lowpass').find((n) => n.connections[0] && n.connections[0].type === 'lowpass')?.frequency.value ?? null;
+        clearDevice();
+        return { note: +pe.t.toFixed(2), ends: +(pe.t + pe.p.dur).toFixed(2), handles, moved, grain: pe.p.knobs?.grain ?? 1, nextCorner,
+          breath: bg ? [0, 0.02, 0.04, 0.5].map((dt) => [dt, +toldAt(bg.gain, hand + dt).toFixed(3)]) : null,
+          cornerAt: lpA ? [0, 0.04].map((dt) => [dt, +(lpA.frequency.value * Math.pow(2, toldAt(lpA.detune, hand + dt) / 1200)).toFixed(1)]) : null,
+          nextBreath };
+      };
+      out.drone = run(e);
+      out.house = run({ ...e, p: { ...e.p, knobs: { ...e.p.knobs, grain: 1 } } });
+    } finally {
+      armLive(false);
+      clearDevice();
+    }
+  }
+  clearLive();
+  must(out.onHash === hash0 && themeHash(played(DUB).plan) === hash0, 'the half-time link planned another program with the live move on, or after it');
+  const r = out.reese, d = out.drone;
+  must(r.moved >= 1, `the move reached ${r.moved} reese notes`);
+  must(Math.abs(r.at[0][1] - r.before) < 0.5 && Math.abs(r.at[3][1] - r.nextCorner) < 0.5 && Math.abs(r.at[5][1] - r.nextCorner) < 0.5,
+    `the sounding reese's corner read ${r.before} before the hand and ${r.at.map(([t, v]) => `${v} at +${t * 1000} ms`).join(', ')}, the next note's ${r.nextCorner}`);
+  must(r.ends > r.at[5][0] + r.note + 0.2 && Math.abs(r.back - r.before) < 0.5, `the note ends at ${r.ends} s; back at the row it read ${r.back}`);
+  const hs = out.house;
+  for (const [x, what] of [[d, 'as the link plays it'], [hs, 'with the grain knob at its default']]) {
+    must(x && x.handles >= 1 && x.moved >= 1 && x.breath && x.breath[0][1] === 0 && x.nextBreath !== null && Math.abs(x.breath[2][1] - x.nextBreath) < 1e-3 && Math.abs(x.breath[3][1] - x.nextBreath) < 1e-3,
+      `the drone's breath ${what} read ${JSON.stringify(x && x.breath)} over ${x && x.handles} handles, the next chord's ${x && x.nextBreath}`);
+    must(x.cornerAt && x.nextCorner && Math.abs(x.cornerAt[1][1] - x.nextCorner) < 1, `the drone's corner ${what} read ${JSON.stringify(x.cornerAt)}, the next chord's ${x.nextCorner}`);
+  }
+  must(Math.abs(hs.breath[2][1] - 0.2) < 1e-6, `with the grain knob at its default the breath reached ${hs.breath[2][1]}, not 0.2`);
+  return `seed 6 at the half-time spell, the reese note at ${r.note} s (sounding to ${r.ends} s, the next at ${r.next} s): its corner stood at ${r.before} Hz, and cutoffHz to 520 on the device 0.2 s into it read `
+    + `${r.at.map(([t, v]) => `${v} Hz at +${Math.round(t * 1000)} ms`).join(', ')} — the next note's corner with the move on is ${r.nextCorner} Hz — and back at the row ${r.back} Hz; `
+    + `27191's first theme, the strings chord at ${d.note} s (to ${d.ends} s) with the desk up: breath.level 0 → 0.2 put its gain at ${hs.breath.map(([t, v]) => `${v} at +${Math.round(t * 1000)} ms`).join(', ')} with the grain knob at its default, `
+    + `and at ${d.breath[3][1]} as the link plays it — its spark at nought sets the grain knob to ${d.grain}, which scales the breath away on this chord and the next alike (the next chord's ${+d.nextBreath.toFixed(3)}); `
+    + `cutoffHz to 900 put its corner at ${d.cornerAt.map(([t, v]) => `${v} Hz at +${Math.round(t * 1000)} ms`).join(', ')}, the next chord's ${+d.nextCorner.toFixed(1)} Hz (the theme's own scale on the corner, as the note applies it)`;
+});
+
+// **The saved desk** (PLAN-DESK D3): a scene is the desk's whole state as one
+// value, kept per viewer in the browser and recalled through the desk's own
+// setters. Read here on a stand-in control (a mixer, a master that records
+// its leans, a mix whose graph says every stage move is live) and a stand-in
+// storage: every layer round-trips through the stored shape; a recall is the
+// scene and nothing else, one ledger line a layer; the armed scene's leans go
+// back to the room before a cast and are leant again over a bar once it has
+// landed; a line this tree lacks is left out and said; a later table is
+// refused kindly; and with a scene applied the plans the links play are the
+// plans they were.
+check('a scene is the desk as one value: every layer round-trips through its storage shape, a recall is the scene and nothing else, its bands are leant again after a cast, a line this tree lacks is left out, and the digests hold with a scene applied', () => {
+  const leans = {};
+  let sm = null;
+  let seed = '6';
+  const clean = { mute: [], solo: [], dry: [] };
+  const mix = {
+    master: { lean(band, offset, at, over) { leans[band] = { offset, over }; return at + over; }, param: () => ({ value: 0 }) },
+    masterSettings: { master: { lowShelfDb: 0.5, lowMidDb: -0.5, midDb: 0, presenceDb: 1, airDb: 1.5 } },
+    record: null, arriving: null,
+    stage: () => 'live',
+  };
+  const state = { mix, ctx: { currentTime: 10 }, castTo: null, themeIndex: 1 };
+  const control = {
+    state,
+    readout: () => ({ seed, strategy: 'house-v2', track: null }),
+    get sourceMix() { return sm ?? clean; },
+    get sourceMixOn() { return sm !== null; },
+    setSourceMix(next) {
+      const gain = Object.fromEntries(Object.entries(next.gain ?? {}).filter(([, v]) => v !== 1));
+      sm = !next.mute.length && !next.solo.length && !next.dry.length && !Object.keys(gain).length ? null
+        : { mute: [...next.mute], solo: [...next.solo], dry: [...next.dry], ...(Object.keys(gain).length ? { gain } : {}) };
+    },
+    resetSources() { sm = null; },
+    emit() {},
+  };
+  const kept = new Map();
+  const store = { getItem: (k) => (kept.has(k) ? kept.get(k) : null), setItem: (k, v) => { kept.set(k, String(v)); } };
+  const desk = deskFor(control);
+  const since = (n) => ledgerLines(1e9).filter((e) => e.n > n && e.kind === 'desk').map((e) => e.what);
+  const last = () => { const all = ledgerLines(1e9); return all.length ? all[all.length - 1].n : 0; };
+  // (1) the desk moved on every layer, as the scenario moves it
+  const restHash = themeHash(played(DUB).plan);
+  const rowsOf = grid().filter((r) => !r.themes && /seed=1\b/.test(r.link) && /v=2/.test(r.link)).slice(0, 2).concat(grid().filter((r) => r.group === 'benchmark' && !r.themes).slice(0, 1));
+  desk.toggle('mute', ['hatClosed'], 'the hats');
+  desk.setLevel('reeseWobble', 0.8, 'the bass');
+  desk.setBand('air', 1.5);
+  desk.setBand('mid', -1);
+  desk.setParam('reeseWobble', 'cutoffHz', 520);
+  desk.setStage('bass.parallel.blend', 0.6);
+  desk.setStage('sidechain.lowDepthDb', -6);
+  const scene = desk.scene('warm drop');
+  const layers = { mix: scene.mix, bands: scene.bands, device: scene.device, stage: scene.stage };
+  must(scene.head.name === 'warm drop' && scene.head.seed === '6' && scene.head.theme === 1 && scene.head.engine === 'house-v2', `the head reads ${JSON.stringify(scene.head)}`);
+  must(JSON.stringify(scene.mix) === JSON.stringify({ mute: ['hatClosed'], solo: [], dry: [], gain: { reeseWobble: 0.8 } }), `the strips read ${JSON.stringify(scene.mix)}`);
+  must(JSON.stringify(scene.bands) === JSON.stringify({ mid: -1, air: 1.5 }) && scene.device.reeseWobble.cutoffHz === 520
+    && scene.stage['bass.parallel.blend'] === 0.6 && scene.stage['sidechain.lowDepthDb'] === -6, `the scene reads ${JSON.stringify(layers)}`);
+  // (2) through the stored shape and back, every layer
+  must(keepScene(scene, store).ok, 'the scene was not kept');
+  const raw = JSON.parse(kept.get(SCENES_KEY));
+  must(raw.schema === SCENE_SCHEMA && Object.keys(raw.scenes).join() === 'warm drop', `the stored table reads ${Object.keys(raw)} with ${Object.keys(raw.scenes || {})}`);
+  must(keepScene(scene, store).over === true, 'a second save of the same name was not said to be over the first');
+  const back = shelf(store);
+  must(back.scenes.length === 1 && !back.spoiled && back.later === null, `the table read back ${back.scenes.length} scenes, ${back.spoiled} spoiled`);
+  const read = back.scenes[0];
+  for (const k of ['head', 'mix', 'bands', 'device', 'stage']) must(JSON.stringify(read[k]) === JSON.stringify(scene[k]), `${k} did not round-trip: ${JSON.stringify(read[k])} against ${JSON.stringify(scene[k])}`);
+  // (3) RESET: everything back
+  desk.resetAll();
+  must(!control.sourceMixOn && !Object.keys(desk.state().bands).length && !Object.keys(desk.state().device).length && !Object.keys(desk.state().stage).length
+    && leans.airDb.offset === 0 && desk.armed() === null, `after RESET the desk reads ${JSON.stringify(desk.state())}`);
+  // (4) the recall: the scene and nothing else, one line a layer under one for the whole
+  desk.setStage('space.widthBase', 1.1);
+  const n0 = last();
+  const got = desk.apply(read);
+  const said = since(n0);
+  const now = desk.scene('x');
+  for (const k of ['mix', 'bands', 'device', 'stage']) must(JSON.stringify(now[k]) === JSON.stringify(scene[k]), `after the recall ${k} reads ${JSON.stringify(now[k])} against ${JSON.stringify(scene[k])}`);
+  must(stageMoves()['space.widthBase'] === undefined, 'a move made before the recall outlived it');
+  must(leans.airDb.offset === 1.5 && leans.midDb.offset === -1, `the master was leant ${JSON.stringify(leans)}`);
+  const ours = said.filter((w) => w.startsWith("the scene 'warm drop'"));
+  must(ours.length === 5 && /was recalled: 2 strips, 2 bands, 1 device line, 2 stage lines$/.test(ours[0]) && said.length === ours.length,
+    `the recall wrote ${said.length} lines: ${JSON.stringify(said)}`);
+  must(!got.skipped.length && JSON.stringify(desk.armed()) === JSON.stringify({ name: 'warm drop', dirty: false, waiting: false }), `armed ${JSON.stringify(desk.armed())}, skipped ${got.skipped}`);
+  // with the scene applied, the plans the links play are the plans they were (a desk move is not a plan move)
+  const held = rowsOf.map((r) => { const line = lineOf(r); const was = blessedLine(r.link); return line.hash === was.hash ? null : r.link; }).filter(Boolean);
+  must(!held.length, `with a scene applied, the link digest moved for ${held.join(', ')}`);
+  must(themeHash(played(DUB).plan) === restHash, 'with a scene applied, seed 6 at the half-time spell planned a different program');
+  // (5) a cast: the bands go back to the room before it, the armed scene's come back after it, over a bar
+  state.castTo = '27191';
+  const n1 = last();
+  desk.follow();
+  const letGo = !Object.keys(desk.state().bands).length && leans.airDb.offset === 0 && desk.armed().waiting;
+  const kept1 = desk.scene('during');
+  state.castTo = null; seed = '27191'; mix.record = { program: { barSeconds: 2.1 } };
+  desk.follow();
+  mix.record = null; // (a stand-in record has no clock for the device's bodies to be prepared against)
+  const castSaid = since(n1);
+  must(letGo && JSON.stringify(kept1.bands) === JSON.stringify(scene.bands), `before the cast the bands read ${JSON.stringify(desk.state().bands)} and a save would keep ${JSON.stringify(kept1.bands)}`);
+  must(leans.airDb.offset === 1.5 && leans.airDb.over === 2.1 && leans.midDb.offset === -1 && desk.state().bands.air === 1.5, `after the cast the master was leant ${JSON.stringify(leans)}`);
+  must(castSaid.length === 2 && /^a cast is arriving/.test(castSaid[0]) && castSaid[1] === "the armed scene's bands were leant again after the cast", `the cast wrote ${JSON.stringify(castSaid)}`);
+  must(JSON.stringify(desk.armed()) === JSON.stringify({ name: 'warm drop', dirty: false, waiting: false }), `after the cast the armed scene reads ${JSON.stringify(desk.armed())}`);
+  desk.setBand('air', 2);
+  must(desk.armed().dirty, 'a hand on a band after the recall did not mark the desk moved');
+  desk.setBand('air', 1.5);
+  must(!desk.armed().dirty, 'the band back where the recall put it still read moved');
+  // (6) a scene with lines this tree lacks: recalled without them, and said
+  const gone = { ...read, head: { ...read.head, name: 'gone' }, mix: { ...read.mix, mute: [...read.mix.mute, 'noSuchVoice'] },
+    device: { ...read.device, noSuchVoice: { cutoffHz: 1 }, reeseWobble: { ...read.device.reeseWobble, nothingHere: 2 } }, stage: { ...read.stage, 'bass.nothing.at.all': 1 } };
+  const n2 = last();
+  const missing = desk.apply(gone);
+  const goneSaid = since(n2);
+  const after = desk.scene('x');
+  for (const k of ['mix', 'bands', 'device', 'stage']) must(JSON.stringify(after[k]) === JSON.stringify(scene[k]), `recalled without the missing lines, ${k} reads ${JSON.stringify(after[k])}`);
+  must(missing.skipped.length === 4 && /left out what this page does not have: .*noSuchVoice/.test(goneSaid[goneSaid.length - 1]), `skipped ${JSON.stringify(missing.skipped)}; ${JSON.stringify(goneSaid)}`);
+  // (7) the greying: what the theme playing can use
+  const fit = sceneFit(read, { voices: new Set(['reeseWobble']), built: (p) => p.startsWith('sidechain') });
+  must(fit.lines === 7 && fit.out === 2 && fit.outs.includes('the hatClosed strip'), `the fit reads ${JSON.stringify(fit)}`);
+  const stopped = sceneFit(read, { voices: new Set(['reeseWobble', 'hatClosed']), built: () => null });
+  must(stopped.out === 0, 'with nothing playing a stage line was counted out');
+  // (8) the table's shape, kindly: a later one left alone, a spoiled entry left out
+  const later = new Map([[SCENES_KEY, JSON.stringify({ schema: SCENE_SCHEMA + 1, scenes: {} })]]);
+  const laterBin = { getItem: (k) => later.get(k) ?? null, setItem: (k, v) => { later.set(k, v); } };
+  const refused = keepScene(scene, laterBin);
+  must(!refused.ok && shelf(laterBin).later === SCENE_SCHEMA + 1 && JSON.parse(later.get(SCENES_KEY)).schema === SCENE_SCHEMA + 1, 'a later table was written over');
+  const spoiled = readShelf(JSON.stringify({ schema: SCENE_SCHEMA, scenes: { a: read, b: { head: { name: 'b' } }, c: { ...read, bands: { nothing: 1 } } } }));
+  must(spoiled.scenes.length === 1 && spoiled.spoiled === 2 && readShelf('{not json').spoiled === 1 && !readShelf(null).scenes.length, `a spoiled table read ${spoiled.scenes.length} and ${spoiled.spoiled} spoiled`);
+  must(dropScene('warm drop', store).ok && !shelf(store).scenes.length && !dropScene('warm drop', store).ok, 'a delete did not take the scene off the table');
+  // (9) the view closing: disarmed, and everything back
+  desk.release();
+  must(desk.armed() === null && !Object.keys(stageMoves()).length && !Object.keys(deviceOverrides('reeseWobble')).length, 'the view closing left the desk moved or armed');
+  must(shelfText([read]).length < 2000, 'a scene of seven lines is not small');
+  return `a scene of 2 strips, 2 bands, 1 device line and 2 stage lines round-trips through the stored table (schema ${SCENE_SCHEMA}, one key) on every layer and its head; `
+    + `a recall over a moved desk is the scene and nothing else, in ${ours.length} ledger lines ("${ours[0]}"); the armed scene's leans went back to the room before a cast and were leant again over a bar of 2.1 s after it ("${castSaid[1]}"); `
+    + `a scene naming a voice, a line and a stage path this tree lacks was recalled without the ${missing.skipped.length} of them and said so; ${fit.out} of ${fit.lines} lines greyed where the theme has no hats and builds no copy; a later table left alone, ${spoiled.spoiled} spoiled entries left out; `
+    + `with the scene applied, ${rowsOf.length} rows of the link digest and the half-time link plan the same programs`;
+});
+
+// **A hand's band lean under a cast waits for it** (the deep review of 10-08):
+// a lean written while a cast was arriving was let go by the next `follow`,
+// about 100 ms later. It is held now — shown on the fader as waiting, never
+// written onto the master the cast is about to retune — and leant over the
+// new room, over a bar, once the cast has landed; one line says it waits and
+// one that it landed. On the same stand-in as the scene's check.
+check('a band leant while a cast arrives waits for it, shown as waiting, and is leant over the new room once the cast lands', () => {
+  const leans = {};
+  let seed = '1';
+  const mix = {
+    master: { lean(band, offset, at, over) { leans[band] = { offset, over }; return at + over; }, param: () => ({ value: 0 }) },
+    masterSettings: { master: { lowShelfDb: 0.5, lowMidDb: -0.5, midDb: 0, presenceDb: 1, airDb: 1.5 } },
+    record: null, arriving: null,
+    stage: () => 'live',
+  };
+  const state = { mix, ctx: { currentTime: 10 }, castTo: null, themeIndex: 0 };
+  const control = {
+    state,
+    readout: () => ({ seed, strategy: 'house-v2', track: null }),
+    sourceMix: { mute: [], solo: [], dry: [] }, sourceMixOn: false,
+    setSourceMix() {}, resetSources() {}, emit() {},
+  };
+  const desk = deskFor(control);
+  const last = () => { const all = ledgerLines(1e9); return all.length ? all[all.length - 1].n : 0; };
+  const since = (n) => ledgerLines(1e9).filter((e) => e.n > n && e.kind === 'desk').map((e) => e.what);
+  const n0 = last();
+  state.castTo = '27191';
+  desk.setBand('air', 1, false);
+  desk.setBand('air', 2, false);
+  desk.said('the master', null, 'air');
+  must(leans.airDb === undefined, `a lean under the cast was written onto the master: ${JSON.stringify(leans)}`);
+  must(desk.state().waits.air === 2 && desk.state().bands.air === undefined, `under the cast the desk reads ${JSON.stringify(desk.state())}`);
+  desk.follow();
+  must(leans.airDb === undefined && desk.state().waits.air === 2, `a frame under the cast let the lean go: ${JSON.stringify(desk.state())}`);
+  state.castTo = null; seed = '27191'; mix.record = { program: { barSeconds: 2.1 } };
+  desk.follow();
+  mix.record = null;
+  const said = since(n0);
+  must(leans.airDb && leans.airDb.offset === 2 && leans.airDb.over === 2.1, `after the cast the master was leant ${JSON.stringify(leans)}`);
+  must(desk.state().bands.air === 2 && desk.state().waits.air === undefined, `after the cast the desk reads ${JSON.stringify(desk.state())}`);
+  must(said.length === 2 && said[0] === "the master's air will be leant +2 dB once the cast lands" && said[1] === "the master's bands were leant once the cast landed, as the hand asked under it",
+    `the lean wrote ${JSON.stringify(said)}`);
+  const landed = { ...leans.airDb };
+  desk.release();
+  must(!Object.keys(desk.state().bands).length && !Object.keys(desk.state().waits).length, `the view closing left ${JSON.stringify(desk.state())}`);
+  return `air leant +2 dB while a cast to 27191 arrived: nothing written onto the master and the fader at +2 waiting through a frame of the cast, then leant +${landed.offset} dB over ${landed.over} s once it landed, in two lines ("${said[0]}"; "${said[1]}")`;
 });
 
 check('a knob is declared by a property and moved by a bird, and the house is every default', () => {
@@ -5067,7 +6048,7 @@ check('a knob is declared by a property and moved by a bird, and the house is ev
   // and until the ring's centre names a region the engine limit is what a pull
   // reaches. A row that narrowed deep house would be a hand on the record.
   const regions = Object.keys(KNOB_TASTE);
-  must(regions.length === 7, `${regions.length} regions in the taste table, and the landscape sheet has seven`);
+  must(regions.length === 6, `${regions.length} bands in the taste table, and the tempo has six`);
   must(regions.includes(HOUSE_REGION), `the house region ${HOUSE_REGION} is not in the taste table`);
   for (const [region, row] of Object.entries(KNOB_TASTE)) {
     for (const [name, band] of Object.entries(row)) {
@@ -5108,7 +6089,7 @@ check('a knob is declared by a property and moved by a bird, and the house is ev
 
   return `${knobs} knobs on ${declaring.length} voices, each of them at the number its own descriptor measures when the spell is the house — ${knobReadout()}; `
     + `every knob reaches exactly its declared end at its bird's 0 and 1 in the sense it declares and never leaves the range between them over 101 pulls; `
-    + `the taste table is the landscape sheet's seven regions and deep house is the identity on all three, so the engine range is what a pull reaches; `
+    + `the taste table is the landscape sheet's numbers by the tempo's six bands and the house's band is the identity on all three, so the engine range is what a pull reaches; `
     + `house-v1 plans ${v1.events.length} events with no knob on any of them under a spell ${BIRDS.length} birds from the house, and house-v2 seasons ${Object.keys(v2far.knobs).length} voices (${Object.keys(v2far.knobs).join(', ')}) under the same one`;
 });
 
@@ -5121,12 +6102,15 @@ check('a knob is declared by a property and moved by a bird, and the house is ev
 // somebody typed; and it lands the bass **inside that sheet's band** for the
 // family it landed in, on the voice the lane table calls the bass and no other.
 check('a faster family leans the bass lane down, and the house family leans it by nought', () => {
-  const style = STRATEGIES['house-v2'].style;
+  // The lane's own voice, so the place tables (GA6) are off here: a place
+  // that swaps the bass swaps what leans, and check-composer holds that.
+  const style = { ...STRATEGIES['house-v2'].style, switches: { ...STRATEGIES['house-v2'].style.switches, placeTables: false } };
+  const planTheme = (m, n, o) => planThemeOf(m, n, { style, preset: 'auto', spell: o.spell });
   const FAMILIES = [
-    ['house', {}, 'house', 'deep house'],
-    ['techno', { ember: 0.85 }, 'techno', 'techno'],
-    ['dnb', { ember: 0.90, spark: 0.85 }, 'drumAndBass', 'drum and bass'],
-    ['slow', { ember: 0.10 }, 'unmetered', 'deep house'],
+    ['house', {}, 'house', 'steady'],
+    ['techno', { ember: 0.85 }, 'techno', 'high'],
+    ['dnb', { ember: 0.90, spark: 0.85 }, 'drumAndBass', 'fast'],
+    ['slow', { ember: 0.10 }, 'unmetered', 'free'],
   ];
   // (1) The lean itself: nought at the house and at unmetered, and the sheet's
   // own distance elsewhere, as numbers.
@@ -5135,6 +6119,8 @@ check('a faster family leans the bass lane down, and the house family leans it b
   for (const [name, pull, family, region] of FAMILIES) {
     const d = derive(asSpell({ ...HOUSE, ...pull }));
     must(d.tempoFamily === family, `${name} derives to ${d.tempoFamily} and the sheet says ${family}`);
+    // the taste is read by the tempo's band (re-keyed 10-08, the same numbers)
+    must(d.tempoBand === region, `${name} derives to the ${d.tempoBand} band and the check reads ${region}`);
     const lean = tempoBassLean(d);
     // **Stated, not recomputed** (the reconciled review of 09-24, R132): this
     // line used to write `tempoBassLean`'s own expression out again and compare
@@ -5148,6 +6134,20 @@ check('a faster family leans the bass lane down, and the house family leans it b
   must(leans.get('slow') === 0, `an unmetered theme leans the bass by ${leans.get('slow')}, and it has no drums to speed up`);
   must(leans.get('techno') > 0 && leans.get('dnb') > leans.get('techno'),
     `the lean is ${leans.get('house')} / ${leans.get('techno')} / ${leans.get('dnb')} and it has to rise with the family`);
+  // **Continuous in the tempo** (the deep review of 10-08, B8): it stepped by
+  // 0.50 from one notch to the next at 115, which halved the sub's mass; it
+  // rises with the notch, never falls, leans nought under 115, and no notch
+  // moves it by much more than half that step (0.26 from 115 to 120).
+  let notchStep = 0, prevLean = 0;
+  for (let c = 70; c <= 175; c += 5) {
+    const band = c < 95 ? 'slow' : c < 115 ? 'steady' : c < 134 ? 'driving' : c < 155 ? 'high' : 'fast';
+    const l = tempoBassLean({ tempoCentre: c, tempoBand: band } as any);
+    if (c < 115) must(l === 0, `${c} BPM leans the bass by ${l}, under the house's top`);
+    must(l >= prevLean - 1e-12, `the lean falls from ${prevLean} to ${l} at ${c} BPM`);
+    notchStep = Math.max(notchStep, l - prevLean);
+    prevLean = l;
+  }
+  must(notchStep <= 0.27, `one notch moves the lean by ${notchStep.toFixed(3)}, a step where it should be a slope`);
   // ...and at nought it is the identity on every knob of every voice, to the
   // bit, which is the line the digests prove and this states in one place.
   for (const [voice, knobs] of Object.entries(VOICE_KNOBS)) {
@@ -5272,7 +6272,7 @@ check('the loudness model reads what the seasoning did, and nothing at the house
 
 check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   const v2 = STRATEGIES['house-v2'].style;
-  const BANDS = { unmetered: [40, 70], house: [95, 115], techno: [120, 140], drumAndBass: [160, 180] };
+  // By band since round GA3: the slow band under the house and the high one over techno.
   // The tempo, first: a theme lands in the band its own pulse derived, the set
   // it is in runs on one grid, and the deck's clock is that grid.
   const rows = [];
@@ -5280,11 +6280,12 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   for (const [name, pull] of [['house', {}], ['techno', { ember: 0.85 }], ['dnb', { ember: 0.90, spark: 0.85 }], ['slow', { ember: 0.10 }]]) {
     const spell = { ...HOUSE, ...pull };
     const d = derive(asSpell(spell));
-    const [lo, hi] = BANDS[d.tempoFamily];
+    // the window round the centre the spell's pulse reads (GA5), the drift's tenth a theme beside it
+    const [lo, hi] = d.tempoRange;
     const plan = setLayout('1', 3, { style: v2, spell, themeBars: 32 });
     for (const t of plan.plans) {
       themes++;
-      must(t.bpm >= lo - 1 && t.bpm <= hi + 1, `${name}: theme ${t.index} is ${t.bpm} BPM and the ${d.tempoFamily} band is ${lo}-${hi}`);
+      must(t.bpm >= lo - 1 && t.bpm <= hi + 1, `${name}: theme ${t.index} is ${t.bpm} BPM and the ${d.tempoBand} band is ${lo}-${hi}`);
       // One grid for the set: every theme of it is the same tempo but for the
       // session's own drift, which is a tenth of a BPM a minute.
       must(Math.abs(t.bpm - plan.plans[0].bpm) < 2, `${name}: the set is not on one grid (${plan.plans.map((x) => x.bpm).join(', ')})`);
@@ -5343,7 +6344,7 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   let claps = 0;
   const drawn = new Set();
   for (let i = 0; i < 20; i++) {
-    const t = planTheme(String(2000 + i * 91), 1, { strategy: 'house-v2', spell: { ...HOUSE, spark: 0.80 } });
+    const t = planTheme(String(2000 + i * 91), 1, { strategy: 'house-v2', spell: { ...HOUSE, spark: 0.80 }, library: [] });
     broken++;
     must(t.dice.breakMask, `a broken theme drew no break`);
     drawn.add(t.dice.breakMask);
@@ -5369,11 +6370,17 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   // the house and at spark 0.80, on the four drum layers; and the bass beside
   // it, which is what the room is for.
   const DRUM_LAYERS = new Set(['kick', 'clap', 'hats', 'shaker']);
-  const density = (spell) => {
+  // The authored break alone, as derive-lite wrote it: since round GA4 the
+  // broken kit carries the funk break's ghosts on the backbeat (the style's
+  // `ghost-backbeat` family: event rate -4.3 against the broken references), which is
+  // the genre's density and not the break's, so the break is weighed without
+  // them and the ghosts' lift is said beside it.
+  const noGhosts = { ...v2, composition: { ...v2.composition, families: v2.composition.families.filter((f) => f.id !== 'ghost-backbeat') } };
+  const density = (spell, style = noGhosts) => {
     let bars = 0; let drum = 0; let bass = 0;
     const per = new Map();
     for (let i = 0; i < 20; i++) {
-      const t = planTheme(String(2000 + i * 91), 1, { strategy: 'house-v2', spell });
+      const t = planTheme(String(2000 + i * 91), 1, { style, preset: 'auto', spell, library: [] });
       const hit = t.events.filter((e) => DRUM_LAYERS.has(BY_NAME[e.voice].layer));
       bars += new Set(hit.map((e) => e.bar)).size;
       drum += hit.length;
@@ -5384,6 +6391,8 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   };
   const floorDensity = density(HOUSE);
   const brokenDensity = density({ ...HOUSE, spark: 0.80 });
+  const ghosted = density({ ...HOUSE, spark: 0.80 }, v2);
+  must(ghosted.drum > brokenDensity.drum, `the break's ghosts lift nothing (${ghosted.drum.toFixed(2)} against ${brokenDensity.drum.toFixed(2)} a bar)`);
   must(brokenDensity.drum <= floorDensity.drum,
     `a break lays ${brokenDensity.drum.toFixed(2)} events a bar on the drum lanes and the four on the floor lays ${floorDensity.drum.toFixed(2)}`);
   // ...and the sixteenth lane is off under one, which is a third of that cut.
@@ -5402,7 +6411,7 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
   // asserted is the *figure*, which is what the kit decides.
   const floor = new Set(straight.events.filter((e) => e.voice === 'kick').map((e) => e.step));
   must([0, 4, 8, 12].every((i) => floor.has(i)), `a theme at the house lost its four on the floor (${[...floor].sort((a, b) => a - b).join(',')})`);
-  return `4 pulls laid out as sets of 3, ${themes} themes all inside their derived band and every set on one grid whose clock is the plan's own bar (${rows.join('; ')}), and the house spell moves the set's tempo by nothing; ${breaks.length} authored breaks, none of them a four on the floor, every kick in 2-3 places, every snare on the backbeat only and every row leaving the bass a pedal or a pump, ${drawn.size} of them drawn over 20 broken themes that played ${snares} snares and 0 claps with every kick on its own break's steps — and a break lays ${brokenDensity.drum.toFixed(2)} events a bar on the drum lanes against the four on the floor's ${floorDensity.drum.toFixed(2)}, with the sixteenth lane off under one and ${brokenDensity.bass.toFixed(2)} notes of bass a bar against ${floorDensity.bass.toFixed(2)}`;
+  return `4 pulls laid out as sets of 3, ${themes} themes all inside their derived band and every set on one grid whose clock is the plan's own bar (${rows.join('; ')}), and the house spell moves the set's tempo by nothing; ${breaks.length} authored breaks, none of them a four on the floor, every kick in 2-3 places, every snare on the backbeat only and every row leaving the bass a pedal or a pump, ${drawn.size} of them drawn over 20 broken themes that played ${snares} snares and 0 claps with every kick on its own break's steps — and a break lays ${brokenDensity.drum.toFixed(2)} events a bar on the drum lanes against the four on the floor's ${floorDensity.drum.toFixed(2)}, with the sixteenth lane off under one and ${brokenDensity.bass.toFixed(2)} notes of bass a bar against ${floorDensity.bass.toFixed(2)}; with GA4's ghosts the broken kit lays ${ghosted.drum.toFixed(2)}`;
 });
 
 // --- a recipe names no voice, no effect and no engine number -----------------
@@ -5802,7 +6811,10 @@ check('a recipe with no wants is the identity, and two rows with one box plan tw
     const st = strategyById(id);
     for (const [master, n] of Object.entries(GOLDEN_THEMES)) {
       for (let i = 0; i < n; i++) {
-        const bare = planTheme(master, i, { strategy: id, style: st.style });
+        // A named row overrides the library's turn (GA1), so the identity is
+        // held against the plan with the library out of reach: a bare theme on
+        // a turn draws a row, and the house row pinned is the house.
+        const bare = planTheme(master, i, { strategy: id, style: st.style, library: [] });
         const with_ = planTheme(master, i, { strategy: id, style: st.style, recipe: HOUSE_RECIPE });
         must(planDigest(bare) === planDigest(with_),
           `${id} ${master}#${i} moved under a row with no wants`);
@@ -6978,6 +7990,66 @@ check('the layout places the machine each strategy describes, with no box on ano
   return `seed 1 theme 1 at bar 41, at rest: ${said.join('; ')} — every box placed, none on another, no wire over one, no two in one lane`;
 });
 
+// **The graph stands still through a set** (VIEW-STILL, Eugene, 10-05: *"the
+// dynamic lane inserts are pushing the rest of the layout … the screen shakes
+// back and forward through the track as lane inserts come and go quickly"*).
+// Every channel the wires size keeps a reserve (`M_LANES`, `SR_LANES`,
+// `UNDER_LANES`, `GUTTER_LANES` beside `RAIL_LANES`), so for twenty seeds under
+// both engines, three themes a set and every bar of each, laid out as the view
+// lays them out at 1440 (and the first five on a phone): within a theme every box but the chips
+// and returns inside the effects area agrees with the theme's first bar to
+// `STILL_TOLERANCE` — the columns, the gutters, the effects area, the rail,
+// every strip, every stage box, the rack, the output, the response and the
+// drawing's size — and across the themes of a set everything across (every
+// `x` and `w`), the effects area, the rail and the strips' tops agree with the
+// set's first theme. **What a theme changes is a theme's**: a part that comes
+// with it, or a source row that turns two-line for its instrument's name, ends
+// the sources column at another line, and the meters end there and the stage
+// and the master reach down to it (M4); and a theme with the bass drive or the
+// bus bell stacks one more box. Between two such themes, and only there, a
+// strip's height and what hangs down the stage and master columns
+// (`FLOOR_HUNG`) may move; the line says how often and by how much.
+const STILL_TOLERANCE = 0;
+check('the graph stands still through a set: no lane insert or return coming or going moves a box, to the pixel', () => {
+  let layouts = 0; let themes = 0; let changes = 0; let feet = 0; let stacks = 0; let worst = 0;
+  // the twenty at 1440, and the first five again on a phone (the same arithmetic at another density)
+  for (const [fitName, fit] of STILL_FITS) for (const strategy of STILL_ENGINES) for (let n = 1; n <= (fitName === '390' ? 5 : 20); n++) {
+    const seed = String(n);
+    const set = setLayouts(seed, strategy, '', 3, fit);
+    layouts += set.length;
+    const firstOf = new Map();
+    for (const x of set) if (!firstOf.has(x.theme)) firstOf.set(x.theme, x);
+    themes += firstOf.size;
+    const at = (x) => `${fitName} px, ${strategy}, seed ${seed}, theme ${x.theme + 1}, bar ${x.bars[0] + 1}`;
+    // within a theme: nothing but the chips and the returns
+    for (const x of set) {
+      const own = firstOf.get(x.theme);
+      if (x === own) continue;
+      const m = stillMoved(own.layout, x.layout, STILL_TOLERANCE);
+      must(!m.length, `${at(x)}: ${m[0] && `${m[0].name} ${m[0].side} ${m[0].from} → ${m[0].to}`} against bar ${own.bars[0] + 1} (${m.length} moved)`);
+    }
+    // across the themes: everything across, and down only what hangs off a floor the theme moved
+    const head = set[0];
+    for (const [t, x] of firstOf) {
+      if (t === head.theme) continue;
+      changes++;
+      const foot = sourcesFoot(x.layout) !== sourcesFoot(head.layout);
+      const stack = stackOf(x.layout) !== stackOf(head.layout);
+      if (foot) feet++;
+      if (stack) stacks++;
+      for (const m of stillMoved(head.layout, x.layout, STILL_TOLERANCE)) {
+        must(FLOOR_HUNG(m.name, m.side) && (foot || stack),
+          `${at(x)}: ${m.name} ${m.side} ${m.from} → ${m.to} against theme ${head.theme + 1}, `
+          + `${foot || stack ? 'which a theme\'s floor does not move' : 'with the sources and the stage stack as they were'}`);
+        worst = Math.max(worst, Math.abs(m.to - m.from));
+      }
+    }
+  }
+  return `${themes} themes, ${layouts} machines laid out (every bar's shape; twenty seeds at 1440, five on a phone): within a theme no box moved by more than ${STILL_TOLERANCE} px as lane inserts came and went; `
+    + `across ${changes} changes of theme every column, gutter, box's x and width, the effects area, the rail and the strips' tops stood still; ${feet} ended the sources at another line and ${stacks} changed the stage stack, `
+    + `and there alone the meters' length and the stage's and master's places down moved, by up to ${worst.toFixed(1)} units`;
+});
+
 // **One radius, and converging arrivals join** (M8, Eugene: *"the curve is too
 // wide — it should be round but consistent on all lines, not relative to
 // distances"*, and *"drums are busy with lines — since the main paths are
@@ -7106,7 +8178,21 @@ check('the genre table is two tiers of spells, a family and its sub-genres', () 
   must(!unclaimed.length, `library rows no family or style claims: ${unclaimed.join(', ')}`);
   // (M11) a family with no measured spell (Trance) is not tuned: an empty spell is the house, and would play it
   for (const f of t.families) must(Object.keys(f.spell).length || !f.tuned, `${f.label}: no spell, and tuned`);
-  const pressing = t.families.map((f) => `${f.label} ${(f.tuned ? 1 : 0) + f.subs.filter((s) => s.tuned).length}`);
+  // (M23, GA5) a key presses where its spell is tuned or its rows have a place
+  // (one source, src/row-places.json, keyed by the rows' own ids), and every
+  // row's place is the spell it was audited at (tools/genre-audit.json), or this fails
+  const places = JSON.parse(fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'src', 'row-places.json'), 'utf8'));
+  const audit = JSON.parse(fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'tools', 'genre-audit.json'), 'utf8'));
+  const SHORT = { em: 'ember', ti: 'tide', ze: 'zephyr', ro: 'root', gl: 'gleam', ve: 'veil', sp: 'spark', lo: 'loom' };
+  for (const [id, a] of Object.entries(audit.rows)) {
+    const q = audit.keys[a.key];
+    const spell = Object.fromEntries(String(q.spell ?? q).split(',').map((kv) => { const [x, v] = kv.split(':'); return [SHORT[x], +v]; }));
+    const r = places.rows[id];
+    must(r && Object.keys(spell).length === Object.keys(r.birds).length && Object.entries(spell).every(([b, v]) => Math.abs(r.birds[b] - v) < 1e-9), `${id}: audited at ${q.spell ?? q}, placed at ${JSON.stringify(r && r.birds)}`);
+  }
+  const regionOf = (rows) => { const c = new Map(); for (const id of rows || []) { const p = places.rows[id]; const k = p && Object.keys(p.birds).length ? JSON.stringify(p.birds) : null; if (k) c.set(k, (c.get(k) || 0) + 1); } let best = null; for (const [k, n] of c) if (!best || n > c.get(best)) best = k; return best; };
+  const plays = (tuned, rows) => tuned || !!regionOf(rows);
+  const pressing = t.families.map((f) => `${f.label} ${(plays(f.tuned, [...(f.recipes || []), ...f.subs.flatMap((x) => x.recipes || [])]) ? 1 : 0) + f.subs.filter((s) => plays(s.tuned, s.recipes)).length}`);
   const birds = ['ember', 'tide', 'zephyr', 'root', 'gleam', 'veil', 'spark', 'loom'];
   const spellOk = (sp) => sp && Object.entries(sp).every(([k, v]) => birds.includes(k) && typeof v === 'number' && v >= 0 && v <= 1);
   let subs = 0, tuned = 0;
@@ -7182,7 +8268,8 @@ check('every box the machine can draw has an entry in the manual, and every fill
   }
   for (const d of Object.values(BY_NAME)) want.add(manualKey({ id: 'x', label: 'X', kind: 'lane', stage: 'sources', made: '', readings: [], state: 'live' }, d.family));
   // (M8) and every key of the desk's popovers: the ones listed, and every one the controls name
-  const controls = fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'src', 'machine', 'source-controls.tsx'), 'utf8');
+  // (D3) and the SCENES block's
+  const controls = ['source-controls.tsx', 'scenes.tsx'].map((f) => fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'src', 'machine', f), 'utf8')).join('\n');
   const named = [...controls.matchAll(/['"`](key:[a-z]+)['"`]/g)].map((m) => m[1]);
   if (/keyHelp\(`key:\$\{k\}`\)/.test(controls)) named.push('key:mute', 'key:solo', 'key:dry');
   const unlisted = named.filter((k) => !KEY_PAGES.includes(k));
@@ -7314,6 +8401,42 @@ check('a ledger line is a value somebody can paste into a report', () => {
   return `a line carries the seed, the theme, the bar and the context's own clock off whoever is keeping the place, `
     + `reads as one sentence a report can hold — "${sentence(line)}" — drops a field with nothing in it and keeps a nought, `
     + `takes a serial of its own, and answers ${n} lines inside its window and none outside it`;
+});
+
+check('a mined kit is a row the composer reads whole, and every place that names one names a row that is there', () => {
+  for (const id of KIT_IDS) {
+    const bad = kitProblems(kitOf(id)!);
+    must(!bad.length, `${id}: ${bad.join('; ')}`);
+  }
+  const named = PLACED_DRUMS.filter((d) => d.kit).map((d) => d.kit!);
+  for (const id of named) must(kitOf(id) != null, `a place names the kit ${id} and no row carries it`);
+  return `${KIT_IDS.length} kit row(s) whole by shape (lanes grouped, moves and lift on lanes it has), named by ${named.length} place(s)`;
+});
+
+// **No number the locks cannot see** (the review of 10-08, A4): the golden and
+// program digests hash `JSON.stringify`, which writes a NaN or an infinity as
+// null and a minus nought as nought, so a program carrying one would hash the
+// same as one carrying a null. Every number of every program the two locks
+// hold — both strategies' golden themes, their plans' knobs and overrides —
+// and of the Drum & Bass tile's riffs (the pair clock's curves) is finite.
+check('every program the locks hold is finite: no NaN or infinity a digest would write as null', () => {
+  let numbers = 0, programs = 0;
+  const walk = (v, at) => {
+    if (typeof v === 'number') { numbers++; must(Number.isFinite(v), `${at} is ${v}`); return; }
+    if (Array.isArray(v) || ArrayBuffer.isView(v)) { for (let i = 0; i < v.length; i++) walk(v[i], `${at}[${i}]`); return; }
+    if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, `${at}.${k}`);
+  };
+  const tile = { ...HOUSE, ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 };
+  const asks = [];
+  for (const strategy of Object.keys(STRATEGIES)) for (const master of Object.keys(GOLDEN_THEMES))
+    for (let n = 0; n < GOLDEN_THEMES[master]; n++) asks.push([`${strategy} ${master}#${n}`, master, n, { preset: 'auto', strategy }]);
+  for (const spell of [tile, { ...tile, tide: 0.8 }, { ...tile, spark: 1, loom: 1 }]) asks.push([`the tile ${JSON.stringify(spell)}`, '1', 0, { strategy: 'house-v2', spell }]);
+  for (const [name, master, n, opts] of asks) {
+    const plan = planTheme(master, n, opts);
+    walk({ program: programOf(plan), knobs: plan.knobs ?? null, paramOverrides: plan.paramOverrides ?? null }, name);
+    programs++;
+  }
+  return `${programs} programs (both strategies' golden themes and the Drum & Bass tile's three riffs), ${numbers} numbers, every one finite`;
 });
 
 if (failed) {

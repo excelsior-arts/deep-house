@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "wavePad",
+  "revision": 1,
+  "topology": "wavetable-pad",
+  "block": "wavePad",
+  "parameters": {
+    "partials": 20,
+    "hollow": 0.35,
+    "humpAt": 5,
+    "humpWidth": 2.2,
+    "humpDb": 1.8,
+    "layers": [
+      [
+        0,
+        0.5,
+        -0.5
+      ],
+      [
+        1,
+        0.22,
+        0.6
+      ]
+    ],
+    "morphFrom": 0.05,
+    "morphTo": 0.85,
+    "morphTime": 6,
+    "attack": 0.6,
+    "decay": 1.4,
+    "sustain": 0.8,
+    "release": 1.2,
+    "cutoff": 2400,
+    "q": 0.9,
+    "veloOpen": 0.5,
+    "driftHz": 0.05,
+    "driftDepth": 0.18,
+    "spread": 0.7,
+    "trim": 0.959
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "wavePad": {
+        "family": "sustained",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 2200,
+        "loudnessDb": -11
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "wave-pad.ts",
+    "note": "Two spectra and a crossfade between them, which is the linear interpolation a wavetable synthesiser actually computes.",
+    "notes": {
+      "hollow": "The first frame: odd harmonics at 1/n with the third and fifth pulled down, which is a closed pipe and reads dark and woody.",
+      "humpAt": "The second: every harmonic at 1/sqrt(n) with a hump five partials up, which is what makes a spectrum read as a mouth rather than as a filter.",
+      "layers": "`[octave, level, pan]`. The morph is between two *waves*, so the two oscillators of a pair may not be detuned — that would be a flanger — and the width is a second pair an octave up instead."
+    }
+  }
+}

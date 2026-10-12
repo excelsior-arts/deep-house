@@ -14,15 +14,15 @@
   "clickRatio": 8,
   "limiterOver1dBShare": 0.85,
   "limiterShareTolerance": 0.08,
-  "mainLufs": -12.3,
-  "mainLufsTolerance": 1.25,
+  "mainLufs": -12.8,
+  "mainLufsTolerance": 1.5,
   "dropOverMainsLU": 1.5,
   "breakdownOverMainsLU": 0.5,
   "why": {
    "prerollBars": "Two bars of the theme before the window are rendered and thrown away, so the reverb, the delay and the limiter's envelope are running by the time the window opens rather than starting from rest inside it. Everything before that reaches the render as events with no voice: develop() reads them and stages the window against the theme's real history, and fireEvent() does not build a node for them. Without that, seed 15576's minimal room measured 4.5 dB out in a band and four tenths of a decibel out in loudness, because a window taken on its own looks like a theme where nothing has held long enough to be moved to the back.",
    "limiterOver1dBShare": "The share of the window in which the master limiter took more than a decibel off, read off the limiter's own meter — the worklet posts the worst reduction it saw every eighth of a second and the suite counts the posts. The stated ceiling is loose on purpose, because this record lives on its limiter: the nine scenes measure 2% to 75%, and the eight bars of seed 1 that have always been the reference measure 45% with a worst of 6.7 dB. What is tight is limiterShareTolerance, which holds each scene to the share it was blessed at.",
    "limiterShareTolerance": "Eight points either side of the blessed share. An offline render is deterministic to the sample — two renders of a scene agree to 0.000 dB — so this is a real gate and not a noise band: a mix change that puts the master a decibel harder on the ceiling moves it.",
-   "mainLufs": "A main groove sits inside a band round -12.3 LUFS, and the band is 1.25 where it used to be -12 and 2. What changed is the record: each theme now carries a loudness trim worked out from its own plan (src/loudness.js, PARAMS.loudness), so the rooms no longer sit decibels apart by die roll. The same six main windows measured -13.62, -13.37, -12.99, -12.05, -11.15 and -10.74 before it and measure -13.33, -12.34, -12.99, -11.95, -12.08 and -11.27 after: a spread of 2.88 LU down to 2.06, and the sd of 120 measured themes' own mid-main windows from 0.921 to 0.477. It is not the fit's 0.52 LU residual because these six windows were chosen for the faults they hold and not for being typical — the trim's target is the theme's own mid-main window, and a drop's neighbour or the fourteenth bar of a theme is not that window; they sit about 0.7 LU above the -13.0 the trim aims at, and seed 1's opening is a `generate()` track with no trim at all, which is why tools/reference-seed1.json did not move by a hundredth. Each scene's own loudness is still pinned to a tenth by its blessed envelope; this is the outer net. The make-up gain is untouched at 0.84, where the click gate holds it (tmp/TODO.md): levelling the themes against each other and making the record louder are two decisions and this is only the first.",
+   "mainLufs": "A main groove sits inside a band round -12.3 LUFS, and the band is 1.25 where it used to be -12 and 2. What changed is the record: each theme now carries a loudness trim worked out from its own plan (src/loudness.js, PARAMS.loudness), so the rooms no longer sit decibels apart by die roll. The same six main windows measured -13.62, -13.37, -12.99, -12.05, -11.15 and -10.74 before it and measure -13.33, -12.34, -12.99, -11.95, -12.08 and -11.27 after: a spread of 2.88 LU down to 2.06, and the sd of 120 measured themes' own mid-main windows from 0.921 to 0.477. It is not the fit's 0.52 LU residual because these six windows were chosen for the faults they hold and not for being typical — the trim's target is the theme's own mid-main window, and a drop's neighbour or the fourteenth bar of a theme is not that window; they sit about 0.7 LU above the -13.0 the trim aims at, and seed 1's opening is a `generate()` track with no trim at all, which is why tools/reference-seed1.json did not move by a hundredth. Each scene's own loudness is still pinned to a tenth by its blessed envelope; this is the outer net. The make-up gain is untouched at 0.84, where the click gate holds it (tmp/TODO.md): levelling the themes against each other and making the record louder are two decisions and this is only the first. 10-11, at the v2.1.0 cut: the house's mains have moved since 09-24 by rounds he heard and approved (EQ-1 and EQ-2 on 10-03, the sub by his ear over the meter, group B): the six main windows read -12.91, -14.03, -14.23, -11.43, -12.43 and -14.22 in Chromium, so the net is re-centred at -12.8 with a band of 1.5; each scene's own loudness is still pinned to a tenth by its envelope, re-blessed the same day.",
    "engine": "The absolute loudness band, and the drop and breakdown measured against their theme's mains, are checked in Chromium only. Firefox is a second engine and not a second machine: it reads the same eight bars up to 3.6 dB apart in a band and 1.2 LU louder, and it does not move a drop and a main by the same amount — seed 1's drop sits +0.61 LU over its mains in Chromium and +1.70 in Firefox. That is its own biquads and not the record. WebKit agrees with Chromium to a hundredth of a decibel. What Firefox is here for is the mono rule, the click ratio and its own blessed envelope.",
    "breakdownOverMainsLU": "A breakdown should be under its theme's mains and the patched record has it at +0.27 LU (tmp/plans/sub-drop.md), which is what a breakdown with a bass, no kick and therefore no sidechain measures. Half a decibel is the line; before the push-curve fix these bars read four decibels over.",
    "clickStep": "The absolute bound is a lone *kick*: a sine, on a bus that is mono, whose one-sample move is arithmetic — a 56 Hz wave near full scale moves under 0.01 a sample and the captures that started this moved 0.31. Every other hit is held to the ratio alone, in both engines. A lone hat or shaker reads 0.06 to 0.08 at four or five times its neighbours in Chromium and 1.7x that again in Firefox, and that is a pre-rendered noise burst and not a discontinuity; holding it to 0.05 would have been a gate on the hat's timbre. A step stands forty times over its neighbours."
@@ -39,7 +39,17 @@
    "bars": 8,
    "kind": "main",
    "legacy": "reference-seed1.json",
-   "why": "The eight bars the suite has always metered: seed 1's opening, growl, the push at zero. It stays first and its reading stays in the file it has always been in."
+   "why": "The eight bars the suite has always metered: seed 1's opening, growl, the push at zero. It stays first and its reading stays in the file it has always been in.",
+   "knownClick": {
+    "chromium": {
+     "step": 0.0756,
+     "why": "EQ-2 (10-03, merge 749620af; bisected 10-11 over the 407 commits since these references were blessed on 09-24, the lone kick reading 0.0481 up to 22d8336c and 0.0736 from 749620af on): the strings' lid opened 1200 -> 2200 Hz, the keys and pad floors rose to -12 and -7.5 and a +2.5 dB bell at 1.1 kHz went on the harmonic bus, so the mix under a lone kick is brighter and its one-sample move larger. It is not a step: it stands 4.4x its neighbours, where a step stands forty times over them, and the kick's own row (a 4 ms attack ramp) is unchanged. Pinned at the reading, not waived: it may not grow."
+    },
+    "firefox": {
+     "step": 0.0649,
+     "why": "EQ-2 (10-03, merge 749620af; bisected 10-11 over the 407 commits since these references were blessed on 09-24, the lone kick reading 0.0481 up to 22d8336c and 0.0736 from 749620af on): the strings' lid opened 1200 -> 2200 Hz, the keys and pad floors rose to -12 and -7.5 and a +2.5 dB bell at 1.1 kHz went on the harmonic bus, so the mix under a lone kick is brighter and its one-sample move larger. It is not a step: it stands 5.2x its neighbours, where a step stands forty times over them, and the kick's own row (a 4 ms attack ramp) is unchanged. Pinned at the reading, not waived: it may not grow."
+    }
+   }
   },
   {
    "name": "seed1-drop",
@@ -50,7 +60,7 @@
    "bars": 8,
    "kind": "drop",
    "against": "seed1-main",
-   "why": "The drop Eugene captured and called broken. The sub's proportion is right and its level, its drive and its placement were not; the patch that fixed it is the one this scene holds still."
+   "why": "The drop the listener captured and called broken. The sub's proportion is right and its level, its drive and its placement were not; the patch that fixed it is the one this scene holds still."
   },
   {
    "name": "seed1-breakdown",
@@ -81,7 +91,7 @@
    "fromBar": 32,
    "bars": 8,
    "kind": "main",
-   "why": "The minimal sub room Eugene marked \"hi hats are too intense given minimal density\" while calling the composition amazing. The hats never moved with the density die; hatEnergy() now reads the room's own levels and writes one number per theme, and this window is where it lands."
+   "why": "The minimal sub room the listener marked \"hi hats are too intense given minimal density\" while calling the composition amazing. The hats never moved with the density die; hatEnergy() now reads the room's own levels and writes one number per theme, and this window is where it lands."
   },
   {
    "name": "seed25417-voicing",
@@ -101,7 +111,17 @@
    "fromBar": 6,
    "bars": 4,
    "kind": "main",
-   "why": "Bar 8, marked -3 and \"weird effect\": F#4 G#4 A4, the other half of the same fault."
+   "why": "Bar 8, marked -3 and \"weird effect\": F#4 G#4 A4, the other half of the same fault.",
+   "knownClick": {
+    "chromium": {
+     "step": 0.0735,
+     "why": "EQ-2 (10-03, merge 749620af; bisected 10-11 over the 407 commits since these references were blessed on 09-24, the lone kick reading 0.0481 up to 22d8336c and 0.0736 from 749620af on): the strings' lid opened 1200 -> 2200 Hz, the keys and pad floors rose to -12 and -7.5 and a +2.5 dB bell at 1.1 kHz went on the harmonic bus, so the mix under a lone kick is brighter and its one-sample move larger. It is not a step: it stands 4.1x its neighbours, where a step stands forty times over them, and the kick's own row (a 4 ms attack ramp) is unchanged. Pinned at the reading, not waived: it may not grow."
+    },
+    "firefox": {
+     "step": 0.0623,
+     "why": "EQ-2 (10-03, merge 749620af; bisected 10-11 over the 407 commits since these references were blessed on 09-24, the lone kick reading 0.0481 up to 22d8336c and 0.0736 from 749620af on): the strings' lid opened 1200 -> 2200 Hz, the keys and pad floors rose to -12 and -7.5 and a +2.5 dB bell at 1.1 kHz went on the harmonic bus, so the mix under a lone kick is brighter and its one-sample move larger. It is not a step: it stands 4.2x its neighbours, where a step stands forty times over them, and the kick's own row (a 4 ms attack ramp) is unchanged. Pinned at the reading, not waived: it may not grow."
+    }
+   }
   },
   {
    "name": "seed15576-growl",
@@ -113,8 +133,8 @@
    "kind": "main",
    "knownClick": {
     "firefox": {
-     "step": 0.1726,
-     "why": "FOUND BY THIS GATE, and not caused by it. At bar 111.875 — the last eighth of the last bar of a sixteen-bar phrase — Firefox puts a one-sample move of 0.1726 into the record where Chromium puts 0.0471. It read 0.1643 against 0.0448 before this theme took its loudness trim of +0.43 dB, and it has grown by exactly that trim, which is the arithmetic of a step and not a new fault, and sidedClicks reads 0.1248 of it in one channel alone. It is not the window: a render of the whole theme up to bar 116 reads 0.1628 at the same instant in Firefox and 0.0171 in Chromium. It is not one layer either: rendered alone, no layer moves more than 0.034 there, so it is the two engines' filters diverging under a dense phrase line and the master reacting to what arrives. It is written down here and pinned rather than waved through: the reading may not grow, and tmp/TODO.md carries it as an open item for Eugene."
+     "step": 0.2493,
+     "why": "FOUND BY THIS GATE, and not caused by it. At bar 111.875 — the last eighth of the last bar of a sixteen-bar phrase — Firefox puts a one-sample move of 0.1726 into the record where Chromium puts 0.0471. It read 0.1643 against 0.0448 before this theme took its loudness trim of +0.43 dB, and it has grown by exactly that trim, which is the arithmetic of a step and not a new fault, and sidedClicks reads 0.1248 of it in one channel alone. It is not the window: a render of the whole theme up to bar 116 reads 0.1628 at the same instant in Firefox and 0.0171 in Chromium. It is not one layer either: rendered alone, no layer moves more than 0.034 there, so it is the two engines' filters diverging under a dense phrase line and the master reacting to what arrives. It is written down here and pinned rather than waved through: the reading may not grow, and tmp/TODO.md carries it as an open item for the listener. 10-11: it reads 0.2493 at the same instant (8.857 s into the window, bar 111.875), 13.7x its neighbours in Firefox where Chromium reads 0.0578 there, grown by EQ-2's gain on the harmonic bus (the bell's +2.5 dB, the pad and keys floors) as it grew by the loudness trim before; re-pinned at 0.2493."
     }
    },
    "why": "The densest eight bars of a growl main groove: all eight layers sounding at once, which is where the master chain is asked to do the most and where the balance passes' mid bell and low shelf are load-bearing."

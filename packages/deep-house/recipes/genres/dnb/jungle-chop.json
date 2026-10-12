@@ -196,7 +196,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.25,
   "score": {
     "chef": 0,
     "likes": 0
@@ -228,6 +228,13 @@
   "provenance": {
     "pattern": "jungle: the Amen's first bar answered by a chopped second bar, the snare stuttering into a roll at its end, over a long booming sub that walks root, fifth, fourth, root",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: the first is the break as written, the second is a re-edit (kick one, one-and, three-and, snares on two, two-a, three-e and then a sixteenth roll from four) — the chopping jungle producers did on a sampler, here as steps. The sub notes are long and far apart, which is where jungle leaves the space the break fills."
+    "note": "Two bars: the first is the break as written, the second is a re-edit (kick one, one-and, three-and, snares on two, two-a, three-e and then a sixteenth roll from four) \u2014 the chopping jungle producers did on a sampler, here as steps. The sub notes are long and far apart, which is where jungle leaves the space the break fills.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.7,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    },
+    "weighed": "round DNB-3 (2026-10-05): 0.75 -> 0.25, reachable, not dominant: liquid is the territory's first character"
   }
 }

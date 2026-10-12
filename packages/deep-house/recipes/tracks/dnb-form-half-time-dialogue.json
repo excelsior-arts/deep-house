@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/form-half-time-dialogue",
+  "revision": 1,
+  "name": "Half-time dialogue: a broad half-time statement answered fast",
+  "scope": "track",
+  "applies": null,
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "form": {
+    "order": [
+      "intro",
+      "drop",
+      "groove",
+      "breakdown",
+      "drop",
+      "groove",
+      "outro"
+    ],
+    "bars": [
+      16,
+      16,
+      32,
+      16,
+      16,
+      16,
+      16
+    ],
+    "stretch": [
+      "groove"
+    ],
+    "fits": [
+      112,
+      480
+    ],
+    "prefers": {
+      "dnb/dnb-mix-intro": 1,
+      "dnb/dnb-intro": 0,
+      "sections/intro": 0,
+      "dnb/dnb-exposed": 1,
+      "dnb/dnb-breakdown": 0,
+      "sections/breakdown": 0,
+      "dnb/dnb-main": 0
+    },
+    "choices": [
+      null,
+      [
+        [
+          16,
+          2
+        ],
+        [
+          32,
+          1
+        ]
+      ],
+      null,
+      [
+        [
+          16,
+          2
+        ],
+        [
+          32,
+          1
+        ]
+      ],
+      null,
+      [
+        [
+          16,
+          2
+        ],
+        [
+          48,
+          1
+        ]
+      ],
+      [
+        [
+          16,
+          2
+        ],
+        [
+          32,
+          1
+        ]
+      ]
+    ],
+    "states": [
+      null,
+      "half-time",
+      null,
+      "bed",
+      null,
+      null,
+      null
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's arrangement grammars (§4), its lengths and weights as listening hypotheses; no record's arrangement copied",
+    "note": "mixing intro (16) → a broad half-time statement (a drop of 16 or 32, 2:1, the kit and the bass in their half-time state) → the fast answer (32) → a suspension (16 or 32, 2:1: the harmony alone) → the longer fast passage (32 or 64, 2:1) → outro (16 or 32, 2:1). The transport never halves: the written relationships do.",
+    "plays": "drawn by the fast places among the form rows whose window holds the theme's length (deep-house-places.ts FORM rows, the weights by place), off the theme's own stream; its lengths, states and feature each drawn once off a stream of their own (src/phrase-development.ts resolveForm); at nought nowhere else"
+  }
+}

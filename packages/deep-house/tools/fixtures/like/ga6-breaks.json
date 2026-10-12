@@ -1,0 +1,207 @@
+{
+ "schema": 1,
+ "kind": "fingerprint",
+ "taken": {
+  "link": "?seed=1&v=2&theme=3&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
+  "build": "1adfbce",
+  "date": "2026-09-27",
+  "note": "music and audio are structural; engine is read only between like engines (tools/like/features.ts)"
+ },
+ "music": {
+  "bpm": 135.2,
+  "bars": 56,
+  "seconds": 103.408,
+  "tonic": 4,
+  "mode": "minor",
+  "drums": true,
+  "form": {
+   "kindShare": {
+    "intro": 0.071,
+    "main": 0.571,
+    "breakdown": 0.143,
+    "build": 0.071,
+    "outro": 0.143
+   },
+   "sections": 5,
+   "introBars": 4,
+   "outroBars": 8,
+   "silentLeadBars": 0
+  },
+  "roles": {
+   "kick": {
+    "activeShare": 0.857,
+    "notesPerActiveBar": 5,
+    "pitch": null,
+    "holdBeats": null,
+    "onsetSpacingBars": 0.25
+   },
+   "hats": {
+    "activeShare": 0.857,
+    "notesPerActiveBar": 16,
+    "pitch": null,
+    "holdBeats": null,
+    "onsetSpacingBars": 0.063
+   },
+   "backbeat": {
+    "activeShare": 0.714,
+    "notesPerActiveBar": 4,
+    "pitch": null,
+    "holdBeats": null,
+    "onsetSpacingBars": 0.188
+   },
+   "bass": {
+    "activeShare": 0.643,
+    "notesPerActiveBar": 6,
+    "pitch": {
+     "median": 30.5,
+     "low": 28,
+     "high": 35
+    },
+    "holdBeats": 0.3,
+    "onsetSpacingBars": 0.187
+   },
+   "pad": {
+    "activeShare": 1,
+    "notesPerActiveBar": 0.625,
+    "pitch": {
+     "median": 64,
+     "low": 54,
+     "high": 69
+    },
+    "holdBeats": 32,
+    "onsetSpacingBars": 8
+   },
+   "keys": {
+    "activeShare": 0.571,
+    "notesPerActiveBar": 9.125,
+    "pitch": {
+     "median": 64,
+     "low": 54,
+     "high": 69
+    },
+    "holdBeats": 0.27,
+    "onsetSpacingBars": 0.219
+   }
+  }
+ },
+ "audio": {
+  "lufs": -14.81,
+  "thirds": [
+   -17.37,
+   -7.93,
+   -3.04,
+   -11.35,
+   -16.44,
+   -17.63,
+   -18.61,
+   -19.27,
+   -13.31,
+   -28.07,
+   -13.72,
+   -16.19,
+   -27.13,
+   -19.55,
+   -18.33,
+   -22.04,
+   -19.19,
+   -19.86,
+   -21.56,
+   -21.92,
+   -23.69,
+   -25.56,
+   -25.66,
+   -26.02,
+   -27.53,
+   -30.73
+  ],
+  "subShare": 0.778,
+  "lufsByKind": {
+   "intro": -15.25,
+   "main": -15.26,
+   "breakdown": -13.26,
+   "build": -14.29,
+   "outro": -15.09
+  },
+  "textureUnderBassLU": null,
+  "wavSha256": "5df8fc043fb8579adf64400afa8e8d6cf863d18f31c21d2dd9e397e0a77ea061",
+  "window": {
+   "bars": [
+    4,
+    36
+   ],
+   "lufs": -15.29,
+   "thirds": [
+    -17.31,
+    -7.905,
+    -3.03,
+    -11.385,
+    -16.48,
+    -17.58,
+    -18.48,
+    -18.84,
+    -13.25,
+    -28.245,
+    -14.3,
+    -16.295,
+    -27.08,
+    -19.77,
+    -18.185,
+    -21.93,
+    -19.05,
+    -19.715,
+    -21.5,
+    -22.055,
+    -23.295,
+    -23.655,
+    -24.075,
+    -24.36,
+    -25.72,
+    -28.75
+   ],
+   "subShare": 0.776,
+   "textureUnderBassLU": null
+  }
+ },
+ "engine": {
+  "strategy": "house-v2",
+  "voices": {
+   "kick": [
+    "kick"
+   ],
+   "hats": [
+    "hatTight"
+   ],
+   "pad": [
+    "supersawPad"
+   ],
+   "backbeat": [
+    "clap"
+   ],
+   "bass": [
+    "reeseDriven"
+   ],
+   "keys": [
+    "fmPluck"
+   ]
+  },
+  "room": "sub",
+  "dice": {
+   "tempoFamily": "upper",
+   "band": "driving",
+   "preset": "sub",
+   "density": "minimal",
+   "voicingStyle": "elevenths",
+   "padTimbre": "supersawPad",
+   "leadTimbre": "supersawPad",
+   "stabTimbre": "fmPluck",
+   "keysPreset": "fmPluck",
+   "fxPalette": "tight",
+   "progression": "i",
+   "bassMask": ".x...........x..",
+   "stabMask": "x...x...x...x...",
+   "hatMask": "..x...x...x.x.x.",
+   "breakMask": "garage swing",
+   "loopBars": 8
+  }
+ }
+}

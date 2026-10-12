@@ -32,11 +32,11 @@
 // either, `plays` is null, and the level is the clap's own, which the table
 // already has.
 
-import { strike, warmDrums, drumNoise, filter, tuned, transient } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { contract, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 
 /**
@@ -44,7 +44,15 @@ import type { Settings } from '../settings.ts';
  * numbers in it, which is the module's own sentence about the rim: the same
  * builder, three numbers changed, and a different instrument out of it.
  */
-type SnareSettings = Settings['snare'] | Settings['rimshot'];
+const PARAMETERS = contract({
+  shellHz: HZ, shellFifth: RATIO, shellLevel: LEVEL, shellDecay: SECONDS, drop: RATIO, dropTime: SECONDS,
+  wireHp: HZ, wireHz: HZ, wireQ: Q, wireLevel: LEVEL, crackHz: HZ, crackQ: Q, crackDecay: SECONDS, crackLevel: LEVEL,
+  lidHz: HZ, t10: KIT.t10, seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents,
+  attack: KIT.attack, trim: KIT.trim, rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread,
+  decaySpread: KIT.decaySpread, panSpread: KIT.panSpread, velBright: KIT.velBright, velDecay: KIT.velDecay,
+  pan: KIT.pan, room: KIT.room,
+});
+type SnareSettings = PatchOf<typeof PARAMETERS.fields>;
 
 function snareSpec(S: SnareSettings, p: NoteParams): DrumSpec {
   const soft = p.hit === 'ghost';
@@ -132,108 +140,21 @@ function snareBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: nu
   n.stop(at + spec.seconds);
 }
 
-const SNARE: DrumInstrument = {
-  id: 'snare',
-  seed: 37.1,
-  spec: (p, settings) => snareSpec(settings.snare, p),
-  variant: snareVariant,
-  build: snareBody,
-};
-
-const RIM: DrumInstrument = {
-  id: 'rimshot',
-  seed: 43.7,
-  spec: (p, settings) => snareSpec(settings.rimshot, p),
-  variant: snareVariant,
-  build: snareBody,
-};
-
-const INSTS = { snare: SNARE, rimshot: RIM };
-
-export const prepareSnare = (
-  ctx: BaseAudioContext,
-  settings: Settings,
-  events: ProgramEvent[],
-): Promise<void> => warmDrums(ctx, settings, events, INSTS);
-
-export function snare(
-  ctx: BaseAudioContext,
-  out: VoiceOut,
-  time: number,
-  p: NoteParams = {},
-  settings: Settings,
-  at?: number,
-): number {
-  return strike(ctx, out, time, p, SNARE, settings, at);
-}
-
-export function rimshot(
-  ctx: BaseAudioContext,
-  out: VoiceOut,
-  time: number,
-  p: NoteParams = {},
-  settings: Settings,
-  at?: number,
-): number {
-  return strike(ctx, out, time, p, RIM, settings, at);
-}
-
-/** MEASURED, both of them, and written by `tools/test-drums.ts --bless`. */
-export const SNARE_MEASURED = {
-  snare: { loudnessDb: -21.4, clickStep: 0 },
-  snareGhost: { loudnessDb: -23.8, clickStep: 0.0001 },
-  rimshot: { loudnessDb: -26, clickStep: 0 },
-};
-
-/** What the two are worth to a meter, as the descriptor's contract states it. */
-export const SNARE_TIMBRES = {
-  snare: { family: 'drum', struck: true, hold: 0.01, brightnessHz: 1900, loudnessDb: SNARE_MEASURED.snare.loudnessDb },
-  rimshot: { family: 'drum', struck: true, hold: 0, brightnessHz: 2400, loudnessDb: SNARE_MEASURED.rimshot.loudnessDb },
-};
-
 /**
- * The backbeat, twice over. `roles: ['backbeat']` and `layer: 'clap'` are one
- * decision and not two: the rim's C lane is the backbeat's lane and it reads
- * the clap layer, so a backbeat instrument on any other layer would put that
- * layer in two lanes and *the lanes do not cover every event layer exactly
- * once* fails by name. It is round G's one-role finding met from the side a
- * drum meets it from.
+ * The snare topology: a shell, the wires and the crack, struck through the
+ * kit (`sounds/drum/snare.json`, `rimshot.json` since round R2 — one builder,
+ * a few numbers changed, a different instrument out of it). Both rows play the
+ * backbeat on the clap layer, which is one decision and not two: the C lane is
+ * the backbeat's and reads that layer, so a backbeat instrument on any other
+ * layer would put it in two lanes.
  */
-export const descriptors: Descriptor[] = [
-  {
-    name: 'snare',
-    cost: 'cheap',
-    family: 'drum',
-    roles: ['backbeat'],
-    bus: 'drums',
-    level: 'clap',
-    layer: 'clap',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareSnare,
-    render: snare,
-    timbres: { snare: SNARE_TIMBRES.snare },
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'rimshot',
-    cost: 'cheap',
-    family: 'drum',
-    roles: ['backbeat'],
-    bus: 'drums',
-    level: 'clap',
-    layer: 'clap',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareSnare,
-    render: rimshot,
-    timbres: { rimshot: SNARE_TIMBRES.rimshot },
-    dispatches: [],
-    mood: [],
-  },
-];
+export const SNARE = kitTopology({
+  id: 'snare',
+  cost: 'cheap',
+  parameters: PARAMETERS,
+  spec: snareSpec,
+  variant: snareVariant,
+  build: snareBody,
+});
+
+export default SNARE;

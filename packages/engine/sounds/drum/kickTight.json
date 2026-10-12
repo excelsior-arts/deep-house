@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kickTight",
+  "revision": 1,
+  "topology": "kit-kick",
+  "dice": 171.3,
+  "parameters": {
+    "hz": 58,
+    "drop": 2.4,
+    "dropTime": 0.022,
+    "bodyLevel": 0.85,
+    "bodyLp": 300,
+    "drive": 0.25,
+    "clickHz": 2400,
+    "clickQ": 0.9,
+    "clickDecay": 0.004,
+    "clickLevel": 0.35,
+    "t10": 0.04,
+    "seconds": 0.3,
+    "variants": 2,
+    "variantCents": 6,
+    "attack": 0.0015,
+    "trim": 0.45,
+    "rateSpread": 0.012,
+    "gainSpread": 0.05,
+    "decaySpread": 0.07,
+    "velBright": 0.1,
+    "velDecay": 0.2,
+    "skinHz": null,
+    "skinLevel": null,
+    "skinDecay": null,
+    "holdS": null,
+    "releaseS": null,
+    "wobbleCents": null,
+    "harmonics": null
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": null,
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "kickTight": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 220,
+        "loudnessDb": -19
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-2",
+    "module": "none",
+    "note": "a short kick for the fast broken beat, 5 dB under the punch's trim: the punch's drop over less time onto 58 Hz, -10 dB at 40 ms and gone by 140, so the sub under it is what owns the low band after the hit (source 8's sub dips 3-10 dB 20 ms after a kick and is back by 80; the record's kick, shortened, still held the band 10 dB over the sub for 80 ms)"
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

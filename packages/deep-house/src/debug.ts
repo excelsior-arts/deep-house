@@ -12,7 +12,7 @@ import { VOICES } from '@deep-house/engine/voices';
 import { createMix, planTheme, recipesFor, renderMix, renderTrack, STYLE } from './mix.ts';
 import { encodeWav } from './wav.ts';
 import { lateInfo, leadStats } from '@deep-house/engine/dsp';
-import { dropInfo } from '@deep-house/engine/deck';
+import { dropInfo, spanning } from '@deep-house/engine/deck';
 import { pianoCacheStats } from '@deep-house/engine/voices';
 import { clockSource } from '@deep-house/engine/clock';
 // The machine view's own meters, on the surface for one reason: the gate that
@@ -88,6 +88,9 @@ export function installDebug(control: Control) {
     schedule,
     firstEvent,
     offsetGrid,
+    // The notes a start inside a theme sounds first (D1b): what a deck laid
+    // out from a point fires before the schedule, as copies that begin there.
+    spanning,
     attachTaps,
     voices: VOICES,
     control,

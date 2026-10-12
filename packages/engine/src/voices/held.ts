@@ -33,6 +33,10 @@ import { MIN_RELEASE, GAIN_FLOOR } from '../dsp.ts';
 import { line } from '../ramp.ts';
 import type { Line } from '../ramp.ts';
 import type { HeldState, HeldVoice } from './voice-contract.ts';
+import { admittedOf } from './sound.ts';
+import { dropLive, liveNote } from './live.ts';
+import type { ParamSetter } from './live.ts';
+import type { Settings } from '../settings.ts';
 
 /**
  * The ramp a voice's own module wrote before handing over: where it started,
@@ -87,6 +91,14 @@ export interface HeldVoiceSpec {
   sources?: Array<{ stop: (t?: number) => void }>;
   /** everything to let go */
   nodes?: Array<{ disconnect: () => void }>;
+  /**
+   * **The row's paths this voice's controls are** (PLAN-DESK D1b): a desk
+   * move on the row behind the drone (`voice`, in the room it was made in)
+   * reaches it through its own controls — the corner through `brightness`, the
+   * trim through `gain` — by one table with every note's, rather than beside
+   * it. Each path turns the row's number into the controls and values it means.
+   */
+  live?: { voice: string; settings: Settings; paths: Record<string, (v: number) => Array<[string, number]>> };
 }
 
 /**
@@ -94,7 +106,7 @@ export interface HeldVoiceSpec {
  */
 export function heldVoice(
   ctx: BaseAudioContext,
-  { gain, tail, level, attack, parked = [], controls, sources = [], nodes = [] }: HeldVoiceSpec,
+  { gain, tail, level, attack, parked = [], controls, sources = [], nodes = [], live }: HeldVoiceSpec,
 ): HeldVoice {
   let state: HeldState = 'holding';
   let held = level;
@@ -130,7 +142,7 @@ export function heldVoice(
     return silent;
   };
 
-  return {
+  const voice: HeldVoice = {
     controls: Object.keys(controls),
     tail,
     get state() { return state; },
@@ -180,10 +192,12 @@ export function heldVoice(
       for (const s of sources) {
         try { s.stop(silent); } catch (e) { /* already stopped */ }
       }
+      if (entry) entry.until = silent;
       return silent;
     },
     dispose(): void {
       state = 'gone';
+      if (live && entry) { dropLive(live.voice, entry); entry = null; }
       for (const s of sources) {
         try { s.stop(); } catch (e) { /* already stopped, or never started */ }
       }
@@ -196,6 +210,14 @@ export function heldVoice(
       }
     },
   };
+  // the drone, kept by the row's paths until its release is silent: each path a move of its own controls
+  const row = live ? admittedOf(live.voice)?.row : undefined;
+  let entry = live && row ? liveNote(live.voice, {
+    ctx, row, settings: live.settings,
+    params: Object.fromEntries(Object.entries(live.paths).map(([path, to]): [string, ParamSetter] =>
+      [path, (v, at, over) => { for (const [name, x] of to(v)) voice.setControl(name, x, at, over); }])),
+  }, Infinity) : null;
+  return voice;
 }
 
 export default heldVoice;

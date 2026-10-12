@@ -374,8 +374,10 @@ test('a near move blends beat-matched on the outgoing grid and glides a bar a pe
   assert.ok(Math.abs(r.said - r.reached) < 1, `settleIn said ${(r.said - r.t0).toFixed(1)} s and the tempo was heard at ${(r.reached - r.t0).toFixed(1)} s`);
 });
 
+// Since GA5 Ember is a curve (`TEMPO_CURVE`): 0.40 is 104 and 0.14 is 54 on seed 1,
+// the pair the rule was written on (a half with four percent left to glide).
 test('a half or double move is counted two to one on the shared grid: 104 → 54 and 54 → 104 BPM, no glide in the blend and what is left glided after', async () => {
-  for (const [spell, to, per] of [[{ ember: 0.5 }, { ember: 0 }, 0.5], [{ ember: 0 }, { ember: 0.5 }, 2]] as const) {
+  for (const [spell, to, per] of [[{ ember: 0.4 }, { ember: 0.14 }, 0.5], [{ ember: 0.14 }, { ember: 0.4 }, 2]] as const) {
     const r = await tempoSeam('1', spell, (m) => m.setSpell(to));
     assert.equal(r.perBeat, per, `${r.from.toFixed(1)} → ${r.own.toFixed(1)} counted ${r.perBeat}:1`);
     assert.ok(Math.abs(r.firstNote - r.from * per) < 0.05, `the arriving theme's first note is at ${r.firstNote.toFixed(2)} BPM, not ${per} × ${r.from.toFixed(2)}`);
@@ -409,8 +411,11 @@ test('a held note ends on its beat of the grid through a far ride: 126 → 49 on
   const BENCH = { ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const style = STRATEGIES['house-v2'].style;
   const o = { strategy: 'house-v2', themeBars: 32 } as any;
-  const A = quiet(() => planTheme('27191', 1, { ...o, spell: { ...BENCH, ember: 0.7 } }));
-  const B = quiet(() => planTheme('27191', 2, { ...o, spell: BENCH }));
+  // the composer's own themes (the library's turn held out of reach, GA5): 27191's theme 2 is a turn
+  // ...and the house's own form (GA6's place tables off): the breakdown's pad is the house form's
+  const houseForm = { ...style, switches: { ...(style.switches as Record<string, boolean>), placeTables: false } };
+  const A = quiet(() => planTheme('27191', 1, { themeBars: 32, style: houseForm, preset: 'auto', spell: { ...BENCH, ember: 0.7 }, library: [] } as any));
+  const B = quiet(() => planTheme('27191', 2, { themeBars: 32, style: houseForm, preset: 'auto', spell: BENCH, library: [] } as any));
   const L = layOut([A, B], { ...setOptions(style, {}), style });
   assert.ok(seamTempo(A.bpm, B.bpm).kind === 'far', `${A.bpm} → ${B.bpm} is not a far move`);
   const ctx: any = liveStandin();
@@ -481,7 +486,12 @@ test('a bird move keeps the place: the same theme under the asked spell enters a
     // at the swap the record is the arriving plan at the same bar of the form
     const swapBarOut = barOf(out, p.swapAt), swapBarIn = barOf(inn, p.swapAt);
     const kind = (t: any, b: number) => t.arrangement.sections.filter((x: any) => x.startBar <= b).pop().kind;
-    assert.equal(kind(inn.track, swapBarIn), kind(out.track, swapBarOut), `${seed}: the section at the swap is ${kind(inn.track, swapBarIn)} where the record was in ${kind(out.track, swapBarOut)}`);
+    // Since GA6 a bird move can cross into another place's form (its section
+    // orders): the bar is kept (above), and the section kind is the same
+    // wherever the two plans share their form.
+    const order = (t: any) => t.arrangement.sections.map((x: any) => `${x.kind}:${x.startBar}`).join(' ');
+    if (order(inn.track) === order(out.track))
+      assert.equal(kind(inn.track, swapBarIn), kind(out.track, swapBarOut), `${seed}: the section at the swap is ${kind(inn.track, swapBarIn)} where the record was in ${kind(out.track, swapBarOut)}`);
     assert.ok(Math.abs(mix.state.elapsed - barOf(inn, ctx.currentTime) * inn.track.barSeconds) < 1e-6);
     mix.stop();
   }
@@ -583,8 +593,9 @@ async function rideAndAsk(seed: string, spell: Record<string, number>, first: Re
 const sameAsked = (x: any, y: any) => !!x && Object.keys(y).every((k) => Math.abs((x[k] ?? 0) - y[k]) < 1e-9);
 const sig = (t: any) => JSON.stringify(t.dice) + '|' + t.bars + '|' + t.bpm + '|' + t.events.length;
 
-test('a second ask inside a far ride keeps the ride: 43 → 101 BPM with Loom asked mid-ride, the record never falls silent, the swap is at the target, and the plan is both values', async () => {
-  const r = await rideAndAsk('51757', { ember: 0.16, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { loom: 1 });
+// Since GA5 Ember is a curve: 0.30 is 88 and 0.55 is 111 on 51757, a far move (1.26, neither near nor double).
+test('a second ask inside a far ride keeps the ride: 88 → 111 BPM with Loom asked mid-ride, the record never falls silent, the swap is at the target, and the plan is both values', async () => {
+  const r = await rideAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { loom: 1 });
   const hole = r.sample.filter((x) => x.up < 0.3);
   assert.equal(hole.length, 0, `the loudest fader fell under 0.3 at ${hole.slice(0, 5).map((x) => `${x.t.toFixed(2)} s (${x.up.toFixed(3)})`).join(', ')}`);
   assert.ok(r.reached > 0, 'the tempo never reached the landing');
@@ -597,11 +608,11 @@ test('a second ask inside a far ride keeps the ride: 43 → 101 BPM with Loom as
 });
 
 test('a second ask inside a far ride down keeps it too, and a second Ember re-aims the ride from the tempo it has reached', async () => {
-  const down = await rideAndAsk('51757', { ember: 0.55, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.16 }, { loom: 1 });
+  const down = await rideAndAsk('51757', { ember: 0.55, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.3 }, { loom: 1 });
   assert.equal(down.sample.filter((x) => x.up < 0.3).length, 0, 'a hole in the ride down');
   assert.equal(sig(down.landedPlan), sig(down.want), 'the ride down landed another plan than both values');
   assert.ok(Math.abs(down.said - down.reached) < 1, `down: settleIn said ${(down.said - down.t0).toFixed(1)} s, heard at ${(down.reached - down.t0).toFixed(1)} s`);
-  const reaim = await rideAndAsk('51757', { ember: 0.16, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { ember: 0.75 });
+  const reaim = await rideAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { ember: 0.75 });
   assert.equal(reaim.sample.filter((x) => x.up < 0.3).length, 0, 'a hole in the re-aimed ride');
   assert.equal(sig(reaim.landedPlan), sig(reaim.want), 'the re-aimed ride landed another plan than the second Ember');
   assert.ok(Math.abs(reaim.own - reaim.want.bpm) < 1e-9 && Math.abs(reaim.bpmNow - reaim.own) < 0.05, `the re-aimed ride landed at ${reaim.bpmNow.toFixed(1)} BPM for ${reaim.want.bpm}`);
@@ -618,7 +629,17 @@ test('the ambient spell\'s last forty bars on 27191 (theme 11 into the seam to 1
   // the rota writes for every effect.
   const { insert } = await import('../../engine/src/voices/treat.ts');
   const spell = { ember: 0.10, tide: 0.85, zephyr: 0.01, root: 0.50, veil: 0.30, spark: 0.00, loom: 0.80 };
-  const t = quiet(() => planTheme('27191', 6, { strategy: 'house-v2', spell } as any));
+  // Restated in round L3: the form counted in time moves which theme's rota
+  // draws the lfoParam, so the case is the first of 27191's twelve whose last
+  // forty bars carry ten of them (theme 7 until L3).
+  const lfoIn = (t: any) => { const q = programOf(t), b = q.barSeconds; return q.events.filter((e: any) => e.t / b >= t.bars - 40 && e.t / b < t.bars && e.p && e.p.fx && e.p.fx.id === 'lfoParam').length; };
+  // Restated in the 10-02 batch: house-v2 draws the next key on the wheel,
+  // which moved 27191's rotas so none of its twelve carries ten in its last
+  // forty any more; the claim is the engine's (a wire, never a source), so
+  // the case is the first theme under this spell that does — 27191's first,
+  // then seeds 1–60.
+  const cases = function* () { for (let n = 0; n < 12; n++) yield ['27191', n] as const; for (let s = 1; s <= 60; s++) for (let n = 0; n < 3; n++) yield [String(s), n] as const; };
+  const t = quiet(() => { for (const [s, n] of cases()) { const x = planTheme(s, n, { strategy: 'house-v2', spell } as any); if (lfoIn(x) >= 10) return x; } return planTheme('27191', 6, { strategy: 'house-v2', spell } as any); });
   const p = programOf(t);
   const bs = p.barSeconds;
   // Bars 216-238 of a 240-bar theme until round S4 made house-v2's themes a
@@ -634,11 +655,15 @@ test('the ambient spell\'s last forty bars on 27191 (theme 11 into the seam to 1
   const made: string[] = [];
   const real = ctx.createConstantSource.bind(ctx);
   ctx.createConstantSource = () => { made.push('constant'); return real(); };
-  for (const e of lfo) insert(ctx, e.p, ctx.createGain(), e.onset, e.onset + (e.p.dur ?? 1), p.settings);
+  // Built from the window's own first onset: the stand-in's clock runs in
+  // real time, so a case late in the set (theme 11 since L3) would otherwise
+  // hold the process open for its whole onset.
+  const base = Math.min(...evs.map((e) => e.onset));
+  for (const e of lfo) insert(ctx, e.p, ctx.createGain(), e.onset - base, e.onset - base + (e.p.dur ?? 1), p.settings);
   assert.equal(made.length, 0, `${made.length} LFO offsets were built into ${lfo.length} pad notes`);
   const before = made.length;
   let built = 0;
-  for (const e of other) { const tail = ctx.createGain(); if (insert(ctx, e.p, tail, e.onset, e.onset + (e.p.dur ?? 1), p.settings) !== tail) built++; }
+  for (const e of other) { const tail = ctx.createGain(); if (insert(ctx, e.p, tail, e.onset - base, e.onset - base + (e.p.dur ?? 1), p.settings) !== tail) built++; }
   assert.equal(made.length, before);
   assert.ok(other.length === 0 || built > 0, 'no other effect insert was built');
 });
@@ -956,4 +981,208 @@ test('S16: a tone past the ceiling reaches full scale only past a hot trim, the 
   } finally {
     g.AudioWorkletProcessor = hadProc; g.registerProcessor = hadReg; g.sampleRate = hadRate;
   }
+});
+
+// --- the deep review of 10-08: a hand on the band while a hand-over is in flight ----
+
+/**
+ * Every offline render held `ms` of the wall clock, so a landing that prepares
+ * a voice — a window of the piano's strings, a new set's hat beds — takes that
+ * long, and the set's own clock runs on under it as it does on a slow phone.
+ * Hands back how many renders were held and how to let go.
+ */
+function slowRenders(ms: number): { count: () => number; done: () => void } {
+  const P = (globalThis as any).OfflineAudioContext.prototype;
+  const was = P.startRendering;
+  let n = 0;
+  P.startRendering = function (this: unknown, ...a: unknown[]) { n++; return new Promise((r) => setTimeout(r, ms)).then(() => was.apply(this, a)); };
+  return { count: () => n, done: () => { P.startRendering = was; } };
+}
+
+/** A set picked up `before` seconds ahead of its first theme's own seam, not yet in it. */
+async function nearItsSeam(seed: string, before: number, opts: Record<string, unknown> = {}) {
+  const ctx = liveStandin();
+  const mix = quiet(() => createMix(ctx, { masterSeed: seed, strategy: 'house-v2', destination: ctx.destination as any, bypass: null, ...opts } as any));
+  const first = mix.record ? null : quiet(() => planTheme(seed, 0, { strategy: 'house-v2', ...opts } as any));
+  const { seamPlan, blendAsked } = await import('../src/performance.ts');
+  const seam = seamPlan(first!, blendAsked(first!), { boundaryBars: 16 });
+  const log = console.log; console.log = () => {};
+  try { await mix.start(0, seam.at - before); } finally { console.log = log; }
+  await play(ctx, 0.2);
+  return { ctx, mix, seam, first: first! };
+}
+
+test('a seek whose landing is still being built when the record reaches its own seam is not raced by it: the sought deck plays on and nothing hands over under it (the deep review of 10-08, F1)', async () => {
+  const { ctx, mix, seam } = await nearItsSeam('7', 2.5);
+  assert.equal(mix.arriving, null, 'the set was already in its seam');
+  const slow = slowRenders(500);
+  const target = seam.at - 45;
+  let raced = false, landed: number | null = null, renders = 0;
+  try {
+    const seeking = mix.seek(target);
+    await play(ctx, 4);   // past the seam's own point while the landing is built
+    raced = !!mix.arriving;
+    renders = slow.count();
+    landed = await seeking;
+  } finally { slow.done(); }
+  assert.ok(renders > 0, 'the landing prepared nothing, so nothing raced it');
+  assert.equal(raced, false, 'the record\'s own seam was laid on the deck the seek is replacing');
+  assert.equal(landed, target);
+  await play(ctx, 3);
+  const at = { index: mix.state.themeIndex, out: !!mix.playingOut, elapsed: mix.state.elapsed };
+  mix.stop();
+  assert.equal(at.index, 0, `the sought theme was handed over: the set is on theme ${at.index + 1}`);
+  assert.equal(at.out, false, 'the sought deck is playing out');
+  assert.ok(Math.abs(at.elapsed - target - 3) < 0.5, `three seconds after the landing the record is at ${at.elapsed.toFixed(2)} s, not ${(target + 3).toFixed(2)}`);
+});
+
+test('a seek inside a bird\'s hand-over lays the ask again from where it landed, and the pull lands in place on the theme the hand is on (the deep review of 10-08)', async () => {
+  const { ctx, mix } = await aSet('1');
+  const asked = { ember: 0.95 };
+  await mix.setSpell(asked);
+  await until(ctx, () => !!mix.arriving && !!mix.state.wait?.laid, 60);
+  assert.ok(mix.arriving, 'the pull laid no hand-over');
+  const target = mix.state.elapsed + 20;
+  await mix.seek(target);
+  await turn();
+  const w = mix.state.wait;
+  assert.ok(w && w.kind === 'spell', `after the seek the set waits for ${JSON.stringify(w)}: the hand's ask was not laid again`);
+  const ok = await until(ctx, () => sameAsked(mix.spell, asked), 120);
+  assert.ok(ok, `two minutes after the seek the set still plays ${JSON.stringify(mix.spell)}`);
+  assert.equal(mix.state.themeIndex, 0, `the pull landed on theme ${mix.state.themeIndex + 1}, not in place`);
+  assert.ok(mix.state.elapsed > target, `the pull landed at ${mix.state.elapsed.toFixed(1)} s, before the place the hand sought`);
+  mix.stop();
+  // and an engine switch takes its own door again: into the next theme, under the engine asked
+  const e = await aSet('1');
+  await e.mix.setStrategy('house-v1');
+  await e.mix.seek(30);
+  await turn();
+  assert.ok(e.mix.state.wait && e.mix.state.wait.kind === 'engine', `after the seek the engine switch waits for ${JSON.stringify(e.mix.state.wait)}`);
+  e.mix.stop();
+});
+
+test('a seek out of a far ride lands at the theme\'s own tempo at once: 104 ridden toward 169 BPM, scrubbed, and the grid is the record\'s from the landing on (the deep review of 10-08, B12)', async () => {
+  const { ctx, mix } = await aSet('1', 'house-v2');
+  const own = mix.record!.program.beat;
+  await mix.setSpell({ ember: 1 });
+  // into the ride, far enough that the grid has left the record's tempo by a tenth
+  const rode = await until(ctx, () => mix.state.beatSeconds < own * 0.9, 240);
+  assert.ok(rode, `the ride never took the grid a tenth off ${(60 / own).toFixed(1)} BPM`);
+  const riding = 60 / mix.state.beatSeconds;
+  const target = Math.max(10, mix.state.elapsed - 30);
+  const landed = await mix.seek(target);
+  assert.equal(landed, target);
+  await play(ctx, 0.5);
+  const record = mix.record!;
+  const grid = record.clock.spbAt(record.clock.beatAt(ctx.currentTime)) / (record.perBeat ?? 1);
+  const later = record.clock.spbAt(record.clock.beatAt(ctx.currentTime + 4)) / (record.perBeat ?? 1);
+  mix.stop();
+  assert.ok(Math.abs(grid - record.program.beat) < 1e-9,
+    `half a second after the seek the grid runs at ${(60 / grid).toFixed(2)} BPM (the ride had reached ${riding.toFixed(1)}), not the theme's own ${(60 / record.program.beat).toFixed(2)}`);
+  assert.ok(Math.abs(later - record.program.beat) < 1e-9, `four seconds on the grid is at ${(60 / later).toFixed(2)} BPM: it is still gliding home`);
+});
+
+test('a pull or a cast overtaken by a seek inside its preparation leaves no plan and no wait behind: the record\'s own seam brings its own next theme (the deep review of 10-08, F2, F7)', async () => {
+  // a cast, abandoned by the seek: the seam that follows is the set's own
+  {
+    const { ctx, mix } = await nearItsSeam('1', 30);
+    const slow = slowRenders(300);
+    try {
+      const cast = mix.cast('77', { spell: { ember: 0.95, spark: 0.85, zephyr: 0.6, root: 0.75, veil: 0.6, tide: 0.45 } });
+      await play(ctx, 0.1);
+      const seeking = mix.seek(mix.state.elapsed + 5);
+      assert.equal(await cast, null, 'the cast was not overtaken');
+      await seeking;
+    } finally { slow.done(); }
+    assert.equal(mix.state.casting, false);
+    assert.equal(mix.state.wait, null, `the abandoned cast's wait is still drawn: ${JSON.stringify(mix.state.wait)}`);
+    assert.ok(await until(ctx, () => !!mix.arriving, 60), 'the record\'s own seam never began');
+    assert.equal(String(mix.arriving!.track.seed), '1#1', `the record's own seam brought ${mix.arriving!.track.seed}`);
+    mix.stop();
+  }
+  // a pull put back inside its own preparation: nothing is coming, so nothing is waited for
+  {
+    const { ctx, mix } = await aSet('1');
+    const slow = slowRenders(300);
+    try {
+      const a = mix.setSpell({ ember: 0.95 });
+      await play(ctx, 0.1);
+      const b = mix.setSpell(null);
+      await a; await b;
+    } finally { slow.done(); }
+    assert.equal(mix.state.wait, null, `a pull taken back leaves a wait: ${JSON.stringify(mix.state.wait)}`);
+    assert.equal(mix.state.next?.index, 1, `the next theme named is ${JSON.stringify(mix.state.next?.index)}`);
+    mix.stop();
+  }
+});
+
+test('nothing asked of a deck is nothing written to it: through a swap and a seek the live notes are the locked program\'s, and a real pull seasons them with the plan\'s whole chain, each note\'s own knobs kept (the deep review of 10-08)', async () => {
+  const { seasonOf, knobTablesOf } = await import('../src/generator.ts');
+  const { knobsFor } = await import('../src/spell.ts');
+  const { noteKnobs } = await import('../src/performance.ts');
+  const k = (x: unknown) => JSON.stringify(x ?? null);
+  /** notes past the cursor whose knobs are not `want`'s; the locked program's when none is named */
+  const off = (d: any, want: ((ev: any) => unknown) | null = null): number => {
+    const locked = programOf(d.track);
+    let n = 0;
+    for (let c = Math.max(0, d.index); c < d.program.events.length; c++) {
+      const ev = visitAt(d.program, c);
+      if (k(ev.p?.knobs) !== k(want ? want(ev) : visitAt(locked, c).p?.knobs)) n++;
+    }
+    return n;
+  };
+  // the link row seed=1&v=2&spell=em:0.90, into its theme 2 by its own seam, then a seek
+  const spell = { ember: 0.9 };
+  const { ctx, mix } = await nearItsSeam('1', 2, { spell });
+  assert.ok(await until(ctx, () => mix.state.themeIndex === 1 && !mix.playingOut, 60), 'the set never reached its theme 2');
+  const theme2 = mix.record!;
+  assert.ok(theme2.track.knobs, 'theme 2 under Ember 0.90 carries no seasoning, so there is nothing to keep');
+  assert.equal(off(theme2), 0, `${off(theme2)} notes of theme 2 left the locked program at the swap`);
+  await mix.seek(40);
+  assert.equal(off(mix.record!), 0, `${off(mix.record!)} notes left the locked program at a seek`);
+  assert.equal(mix.record!.program, programOf(mix.record!.track), 'a seek with nothing asked copied the program');
+  // a real pull: the plan's whole chain on the voices the theme drew, the tempo's lean on the bass among it
+  const asked = { ember: 0.95, spark: 0.85, zephyr: 0.6, root: 0.75, veil: 0.6, tide: 0.45 };
+  void mix.setSpell(asked);
+  const d = mix.record!;
+  const chain = seasonOf(d.track, asked);
+  const plan = d.track.events as any[];
+  assert.equal(off(d, (ev) => noteKnobs(chain[ev.voice], plan[ev.i]?.p?.knobs)), 0, 'the pull did not season the notes with the plan\'s chain');
+  const bare = knobsFor(asked, knobTablesOf(d.track));
+  const leaned = Object.keys(chain).filter((v) => k(chain[v]) !== k(bare[v]));
+  assert.ok(leaned.length, 'the chain is the spell\'s knobs alone: nothing of the tempo\'s lean or the place\'s bass reached it');
+  // and let go: the program's own again
+  void mix.setSpell(spell);
+  assert.equal(off(d), 0, `${off(d)} notes kept the pull's seasoning after it was let go`);
+  mix.stop();
+});
+
+test('live play is the locked program through a swap and a seek on five link rows: a far pull, a slow one, two of several birds and the benchmark (the deep review of 10-08)', async () => {
+  const rows: Array<[string, Record<string, number>]> = [
+    ['1', { ember: 0.9 }],
+    ['1', { ember: 0.1 }],
+    ['1', { ember: 0.85, root: 0.3, glow: 0.75, spark: 0.9 }],
+    ['1', { ember: 0.2, tide: 0.8, veil: 0.7 }],
+    ['27191', { ember: 0.14, glow: 0, veil: 0.34, spark: 0, loom: 0.81 }],
+  ];
+  const k = (x: unknown) => JSON.stringify(x ?? null);
+  const off = (d: any): number => {
+    const locked = programOf(d.track);
+    let n = 0;
+    for (let c = Math.max(0, d.index); c < d.program.events.length; c++) if (k(visitAt(d.program, c).p?.knobs) !== k(visitAt(locked, c).p?.knobs)) n++;
+    return n;
+  };
+  const seen: string[] = [];
+  let left = 0;
+  for (const [seed, spell] of rows) {
+    const { ctx, mix } = await nearItsSeam(seed, 2, { spell });
+    assert.ok(await until(ctx, () => mix.state.themeIndex === 1 && !mix.playingOut, 90), `${seed} ${k(spell)} never reached its theme 2`);
+    const swapped = off(mix.record!);
+    await mix.seek(30);
+    const sought = off(mix.record!);
+    seen.push(`seed ${seed} ${k(spell)}: ${swapped} at the swap, ${sought} at a seek`);
+    left += swapped + sought;
+    mix.stop();
+  }
+  assert.equal(left, 0, `notes left the locked program: ${seen.join('; ')}`);
 });

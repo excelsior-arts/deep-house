@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "clavKey",
+  "revision": 1,
+  "topology": "clav",
+  "block": "clavKey",
+  "parameters": {
+    "attack": 0.002,
+    "decay": 0.15,
+    "sustain": 0.1,
+    "release": 0.09,
+    "pwmWidth": 0.26,
+    "pwmDepth": 0.05,
+    "pwmHz": 0.8,
+    "pwmMix": 0.9,
+    "combRatio": 0.5,
+    "combMix": 0.42,
+    "drive": 0.22,
+    "oversample": "none",
+    "peakHz": 2300,
+    "peakDb": 5,
+    "peakQ": 2.2,
+    "cutoff": 3400,
+    "envMult": 2.2,
+    "envTime": 0.045,
+    "q": 3,
+    "veloOpen": 0.8,
+    "hpHz": 210,
+    "spread": 0.35,
+    "trim": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "clavKey": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.1,
+        "brightnessHz": 3400,
+        "loudnessDb": -13.2
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "clav-key.ts",
+    "note": "A clavinet-ish key: a narrow pulse, a comb tuned to the note, a bright resonant lowpass and an envelope that is nearly all attack. It is the figure and the stab voice of the set — the one that plays sixteenths without filling the octave a vocal would sit in. The comb is **feed-forward** — the note plus a copy of itself half a period later — for the same reason the string above is arithmetic: a feedback comb through a DelayNode cannot be shorter than a render quantum, and half a period at 500 Hz is one millisecond. A feed-forward comb has the notches and not the ring, which on a plucked key is what is wanted anyway.",
+    "notes": {
+      "pwmWidth": "The pulse, as a fraction of the note's own period. A clavinet is narrow: a quarter of a cycle is most of where its rasp comes from.",
+      "combRatio": "The comb, as a fraction of the period, and how much of it is mixed in.",
+      "drive": "The pickup, driven. MEASURED per engine under `--ab` (round K2): the shaped signal here is a narrow pulse already full of harmonics going into a 3.6 kHz lowpass, and the two engines agree at every setting, so the cheapest one is the one that is declared. See notes/archive/2026-09-kitchen/rounds/k2.md.",
+      "peakHz": "The resonance: one peaking bell where a clavinet's body speaks."
+    }
+  }
+}

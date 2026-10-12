@@ -243,7 +243,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -276,6 +276,12 @@
   "provenance": {
     "pattern": "UK garage two-step: the kick leaves the second and fourth beat, skipping to the and of three, under a snare on two and four, swung sixteenth hats and a syncopated sub",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: kick one and the and of three, then one, the a of two and the and of three; snare on two and four with a rim-like ghost before the second; sixteenth hats swung hard (0.62, the shuffle) with the offbeat louder; a quiet shaker; a sub that pushes the and of one and answers itself in the second bar, inside a fifth. At 130 under the Tech House key: garage has no key of its own, and 130 is the fast band's top."
+    "note": "Two bars: kick one and the and of three, then one, the a of two and the and of three; snare on two and four with a rim-like ghost before the second; sixteenth hats swung hard (0.62, the shuffle) with the offbeat louder; a quiet shaker; a sub that pushes the and of one and answers itself in the second bar, inside a fifth. At 130 under the Tech House key: garage has no key of its own, and 130 is the fast band's top.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 0.6,
+      "syncopationZ": 2.8,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

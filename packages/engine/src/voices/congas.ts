@@ -36,16 +36,26 @@
 // Style lane palettes decide when these players are reachable. Their shared
 // level belongs to the percussion layer; a voice never chooses its own groove.
 
-import { strike, warmDrums, drumNoise, filter, tuned, transient } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import type { VoiceOut } from '../dsp.ts';
+import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { contract, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
 import { noteControl } from './descriptor.ts';
-import type { Controls, Descriptor, NoteParams } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import type { Controls, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 
-/** The settings block one membrane drum is made out of: the conga's or the bongo's. */
-type MembraneSettings = Settings['conga'] | Settings['bongo'];
+/** What a row of this topology carries — the conga's or the bongo's — each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  highHz: HZ, lowHz: HZ, mode: RATIO, modeLevel: LEVEL, modeDecay: SECONDS, drop: RATIO, dropTime: SECONDS,
+  bodyLevel: LEVEL, bodyLp: HZ, slapHz: HZ, slapHzHard: HZ, slapQ: Q, slapDecay: SECONDS, slapOpen: LEVEL,
+  slapHard: LEVEL, slapBody: LEVEL, t10Open: SECONDS, t10Slap: SECONDS, lowRing: RATIO,
+  seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents, attack: KIT.attack, trim: KIT.trim,
+  rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread, decaySpread: KIT.decaySpread, panSpread: KIT.panSpread,
+  velBright: KIT.velBright, velDecay: KIT.velDecay, pan: KIT.pan, room: KIT.room,
+});
+
+/** The patch one membrane drum is made out of: the conga's or the bongo's. */
+type MembraneSettings = PatchOf<typeof PARAMETERS.fields>;
 
 // Optional note controls, shared by both membrane players. Named colours live
 // in the style, not in this renderer, and so do their levels: the style trims
@@ -170,106 +180,21 @@ function membraneBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at:
   n.stop(at + spec.seconds);
 }
 
-const CONGA: DrumInstrument = {
-  id: 'conga',
-  seed: 11.3,
-  spec: (p: NoteParams, settings: Settings) => membraneSpec(settings.conga, p),
+/**
+ * The membrane topology: every row of it is a tuned head struck open or
+ * slapped (`sounds/drum/conga.json`, `bongo.json` since round R2). What each
+ * playable articulation measured — its loudness and its click bound, written
+ * by `tools/test-drums.ts --bless` — is the row's: the drum's own as its timbre
+ * fact and `measured.clickStep`, an articulation's (`congaSlap`) under its
+ * scene's name in `measured`.
+ */
+export const MEMBRANE = kitTopology({
+  id: 'membrane',
+  cost: 'mid',
+  parameters: PARAMETERS,
+  spec: membraneSpec,
   variant: membraneVariant,
   build: membraneBody,
-};
+});
 
-const BONGO: DrumInstrument = {
-  id: 'bongo',
-  seed: 23.9,
-  spec: (p: NoteParams, settings: Settings) => membraneSpec(settings.bongo, p),
-  variant: membraneVariant,
-  build: membraneBody,
-};
-
-const INSTS = { conga: CONGA, bongo: BONGO };
-
-export const prepareCongas = (ctx: BaseAudioContext, settings: Settings, events: ProgramEvent[]): Promise<void> =>
-  warmDrums(ctx, settings, events, INSTS);
-
-export function conga(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, CONGA, settings, at);
-}
-
-export function bongo(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, BONGO, settings, at);
-}
-
-/**
- * The two numbers every playable articulation declares about itself, both
- * **MEASURED** and both written by the gate that measures them, never typed
- * (`tools/test-drums.ts --bless`).
- *
- * `loudnessDb` is the instrument alone through the real graph, eight bars of
- * its role's own groove under `tools/fixture.ts`'s table, integrated, less the
- * level that table gave it. `clickStep` is the largest one-sample move a lone
- * hit of it makes: a drum is allowed its own transient — that is what a drum
- * is, and the scenes' click gate is a step *and* a neighbour ratio — so the
- * bound is per instrument, and what the gate holds is that the transient does
- * not grow.
- */
-export const CONGA_MEASURED = {
-  conga: { loudnessDb: -16, clickStep: 0.0024 },
-  congaLow: { loudnessDb: -15.2, clickStep: 0.0018 },
-  congaSlap: { loudnessDb: -22.4, clickStep: 0.0001 },
-  bongo: { loudnessDb: -18.3, clickStep: 0.0006 },
-  bongoSlap: { loudnessDb: -22.9, clickStep: 0 },
-};
-
-/**
- * What the two are worth to a meter, as the descriptor's own contract states
- * it. The loudness is the measured table's and not a second copy of it; `hold`
- * is what is still sounding at the bar line and `brightnessHz` is the body's
- * own corner, so neither can drift from the sound.
- */
-export const CONGA_TIMBRES = {
-  conga: { family: 'drum', struck: true, hold: 0.02, brightnessHz: 2600, loudnessDb: CONGA_MEASURED.conga.loudnessDb },
-  bongo: { family: 'drum', struck: true, hold: 0.01, brightnessHz: 3400, loudnessDb: CONGA_MEASURED.bongo.loudnessDb },
-};
-
-export const descriptors: Descriptor[] = [
-  {
-    name: 'conga',
-    cost: 'mid',
-    family: 'drum',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareCongas,
-    render: conga,
-    timbres: { conga: CONGA_TIMBRES.conga },
-    controls: MEMBRANE_CONTROLS,
-    noteControls: Object.keys(MEMBRANE_CONTROLS),
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'bongo',
-    cost: 'mid',
-    family: 'drum',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: prepareCongas,
-    render: bongo,
-    timbres: { bongo: CONGA_TIMBRES.bongo },
-    controls: MEMBRANE_CONTROLS,
-    noteControls: Object.keys(MEMBRANE_CONTROLS),
-    dispatches: [],
-    mood: [],
-  },
-];
+export default MEMBRANE;

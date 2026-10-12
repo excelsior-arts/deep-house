@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/half-bar-fill",
+  "revision": 1,
+  "name": "half-bar fill",
+  "scope": "treatment",
+  "applies": "fill",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "clear": 8,
+        "roll": {
+          "from": 8,
+          "base": 0.45,
+          "rise": 0.5
+        }
+      },
+      "kick": {
+        "clear": 9
+      }
+    },
+    "without": {
+      "backbeat": {
+        "lanes": {
+          "kick": {
+            "clear": 9
+          }
+        }
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:225+63, 8:1864+126",
+    "kind": "fill",
+    "reading": "the breakdown's roll into the first drop (cut 3) and the jungle cuts' last bars",
+    "from": "src/subsections.ts FILLS half-bar fill (round DNB-1, 2026-10-02): the roll through the last two beats",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

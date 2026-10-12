@@ -355,6 +355,16 @@ export function bandAt(bird: Bird, spell: Partial<Spell> | null | undefined, sty
 }
 
 /**
+ * A bird's band word, or null where the style has no bands to read — a style
+ * whose composition does not name the families the labels' thresholds are
+ * solved against (a check's hand-built style) reads no band and so no bias.
+ * The gates' one reading of the ring's words (`swell.ts`, `glue.ts`).
+ */
+export function bandWordOf(bird: Bird, spell: Partial<Spell> | null | undefined, style: Style): string | null {
+  try { return bandAt(bird, spell, style)?.word ?? null; } catch { return null; }
+}
+
+/**
  * **Where in its band a value stands** (round K15, Eugene: *"we have at best
  * 3–4 word variations per bird — could we fill in more text variants on bird
  * movement?"*): the lower third of the band's span in the quantity, the upper
@@ -472,6 +482,9 @@ export function cellReading(bird: Bird, t: LabelTheme, style: Style | null | und
   const band = bandAt(bird, t.spell, style);
   const w = String(locked.word ?? '');
   switch (bird) {
+    // Ember's word is the tempo that plays (the theme's own, inside the window
+    // round the curve's centre since GA5): the ring's rule that a reading is
+    // what plays, which the beat's flash and the fills are held to.
     case 'ember':
     case 'zephyr': return locked;
     case 'spark': {

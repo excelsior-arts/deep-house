@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kick",
+  "revision": 1,
+  "topology": "kick",
+  "block": "kick",
+  "parameters": {
+    "startHz": 56,
+    "endHz": 46,
+    "pitchTime": 0.045,
+    "t6": 0.058,
+    "t20": 0.125,
+    "t34": 0.17,
+    "clickLevel": 0,
+    "attack": 0.004,
+    "clickAttack": 0.0012,
+    "clickHp": 200,
+    "clickLp": 1200,
+    "bodyLp": 140,
+    "partialHz": 115,
+    "partialLevel": 0.2,
+    "partialDecay": 0.05,
+    "drive": 0.07
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": "kick",
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "knobs": {
+      "hold": {
+        "unit": "seconds",
+        "min": 0.07,
+        "default": 0.17,
+        "max": 0.42,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 18.4
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.0012,
+        "default": 0.004,
+        "max": 0.018,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -12.7
+      }
+    },
+    "controls": {
+      "bodyLp": {
+        "unit": "hz",
+        "min": 80,
+        "max": 240,
+        "default": 140
+      },
+      "partialLevel": {
+        "unit": "level",
+        "min": 0,
+        "max": 0.3,
+        "default": 0.2
+      }
+    },
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "kick.ts",
+    "note": "the record's own kick, MEASURED off the two benchmark minutes; what each number means is written in the kick topology (voices/kick.ts)"
+  }
+}

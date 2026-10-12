@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "cowbell",
+  "revision": 1,
+  "topology": "bell",
+  "block": "cowbell",
+  "dice": 139.7,
+  "parameters": {
+    "lowHz": 540,
+    "highHz": 800,
+    "detune": 7,
+    "hp": 420,
+    "band": 2600,
+    "q": 0.9,
+    "t10": 0.07,
+    "seconds": 0.6,
+    "variants": 3,
+    "variantCents": 16,
+    "attack": 0.0015,
+    "trim": 0.75,
+    "rateSpread": 0.02,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.06,
+    "velBright": 0.12,
+    "velDecay": 0.25,
+    "pan": 0.3,
+    "room": 0.05
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "cowbell": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 2600,
+        "loudnessDb": -19.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "perc.ts",
+    "note": "A cowbell: two detuned squares a minor sixth and a half apart, through a bandpass. The interval is the point — it beats into something with no pitch at all, which is why a cowbell sits in a key it was never tuned to."
+  },
+  "measured": {
+    "clickStep": 0.0002
+  }
+}

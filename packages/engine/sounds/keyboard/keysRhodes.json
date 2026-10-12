@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keysRhodes",
+  "revision": 1,
+  "topology": "keys",
+  "voicedBy": [
+    "keys",
+    "keyboardPatches.rhodes"
+  ],
+  "parameters": {
+    "cutoff": 1900,
+    "det": 5,
+    "attack": 0.03,
+    "decay": 0.42,
+    "sustain": 0.3,
+    "formant": [
+      2600,
+      4
+    ],
+    "ratio": 2,
+    "index": [
+      1.4,
+      1.8
+    ],
+    "indexDecay": 0.2,
+    "tine": null,
+    "tineIndex": null,
+    "tineDecay": null,
+    "tremolo": false,
+    "rotary": false,
+    "organ": false,
+    "pluck": false,
+    "hpHz": 110,
+    "tremoloHz": 5.2,
+    "tremoloDepth": 0.18,
+    "tremoloPan": 0.22,
+    "rotaryHz": 5,
+    "rotaryDepth": 0.1,
+    "edge": {
+      "level": 0,
+      "hz": 2000,
+      "decay": 0.15,
+      "tine": 3,
+      "hold": 0.3,
+      "chiff": 0,
+      "chiffHz": 4500,
+      "chiffDecay": 0.01
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 600,
+        "default": 2000,
+        "max": 9000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.000038
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.06,
+        "default": 0.32,
+        "max": 0.95,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 10.4
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.004,
+        "default": 0.022,
+        "max": 0.32,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -1.42
+      },
+      "grain": {
+        "unit": "ratio",
+        "min": 0,
+        "default": 1,
+        "max": 2.5,
+        "bird": "spark",
+        "sense": 1,
+        "slopeDb": 0.002
+      }
+    },
+    "timbres": {
+      "rhodes": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.3,
+        "brightnessHz": 1900,
+        "loudnessDb": -7.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "sounds-r3",
+    "note": "The rhodes: the older, plainer tine — one modulator at 2x, its index away in 200 ms. The study's keys blend sits here, and the sustained role holds it. The patch is its own (what was `KEYBOARD_PRESETS`); the amplifier it plays through is the room's `keys` block, which all five share. Its timbre's loudness is MEASURED (2026-09-17, tools/loudness-fit.ts --timbres): this family alone in an eight-bar main groove, metered, less the level its room gave it, median over the themes that rolled it; it belongs to the instrument and not the room. The other three facts are read off the patch and held to it: struck where it is not an organ, the hold its sustain, the brightness its corner.",
+    "notes": {
+      "attack": "The envelope is the measured level at 300 ms and at the bar line, turned into an envelope: attack, decay and the sustain fraction.",
+      "hpHz": "The keys reach down into the band the kick body tops out in.",
+      "tremoloHz": "MEASURED: 27% of tracks carry a 4-7 Hz tremolo; the electric piano family has the highest AM prominence of the sustained families.",
+      "edge": "Round SPARK-1: the note's own oscillators high-passed at the place's corner and summed in after the lowpass, falling from the strike to a fraction of itself, and a few milliseconds of band-passed noise on the onset; a place writes it (the house's row). At rest its level and its strike are nought, which builds nothing, over the corners the house writes.",
+      "knobs": "The keyboard's ranges (PLAN-MODULATION M1): five patches behind one name, so each default is the median of the five — 1900/2600/1800/2500/2000 Hz of corner, 0.30/0.32/0.37/0.72/0.048 of sustain, 30/22/24/9/11 ms of attack — and what a knob moves is a factor on whichever patch is playing; a setting in absolute hertz would make one instrument out of five. The ceiling on brightness is the one the voice has always had: the note's own lowpass is clamped at 9 kHz. The grain (round SPARK-1) is a factor on the edge and the strike a place writes, one at the house; its measured slope is the keys alone under the house's edge against none, seed 1 theme two, +0.002 LU."
+    }
+  }
+}

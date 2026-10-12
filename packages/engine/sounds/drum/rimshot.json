@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "rimshot",
+  "revision": 1,
+  "topology": "snare",
+  "block": "rimshot",
+  "dice": 43.7,
+  "parameters": {
+    "shellHz": 420,
+    "shellFifth": 1.49,
+    "shellLevel": 0.35,
+    "shellDecay": 0.03,
+    "drop": 1.05,
+    "dropTime": 0.008,
+    "wireHp": 900,
+    "wireHz": 2600,
+    "wireQ": 1.6,
+    "wireLevel": 0.12,
+    "crackHz": 2400,
+    "crackQ": 3,
+    "crackDecay": 0.006,
+    "crackLevel": 0.8,
+    "lidHz": 9000,
+    "t10": 0.022,
+    "seconds": 0.3,
+    "variants": 3,
+    "variantCents": 26,
+    "attack": 0.0012,
+    "trim": 3.7,
+    "rateSpread": 0.035,
+    "gainSpread": 0.09,
+    "decaySpread": 0.12,
+    "panSpread": 0.06,
+    "velBright": 0.2,
+    "velDecay": 0.2,
+    "pan": -0.1,
+    "room": 0.08
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "rimshot": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 2400,
+        "loudnessDb": -26
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "snare.ts",
+    "note": "The rim, which is the same builder and a different instrument: nearly all stick and a twentieth of the shell, so it reads as a click with a pitch. A cross-stick is the quiet backbeat a house record uses where a snare would be an announcement."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

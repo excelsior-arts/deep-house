@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "vinylBed",
+  "revision": 1,
+  "topology": "vinyl",
+  "block": "vinylBed",
+  "parameters": {
+    "attack": 0.6,
+    "release": 0.8,
+    "hpHz": 240,
+    "lpHz": 5200,
+    "q": 0.7,
+    "driftHz": 0.06,
+    "driftDepth": 0.25,
+    "trim": 0.363
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "vinylBed": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 5200,
+        "loudnessDb": -12.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "texture.ts",
+    "note": "The air of a room and the surface of a record: the cheapest voice in the engine, and the one whose job is to be inaudible until it stops."
+  }
+}

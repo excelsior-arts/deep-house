@@ -28,46 +28,96 @@
 // brightness and the hammer take the exact values. MEASURED (perf): twelve
 // oscillators a note were a quarter of a piano theme's audio thread. A pitch
 // that has not been rendered yet is built from oscillators as before.
+//
+// **A topology since round SOUNDS-R3.** The numbers are a row
+// (`sounds/keyboard/piano.json`) that owns the settings' `piano` block
+// (`BLOCKS` in params.ts): its parameters are every number of the block this
+// file reads, the room's copy of them is what a note renders from, and a room
+// or a place voices them as it always has (house-v2's present piano, a phrase
+// character's envelope over them). The block's other half — the register, the
+// sends' rolls, the arpeggio's chances — is the composer's and stays beside
+// them. What the place's grain writes (`piano.grain`, round SPARK-1) is the
+// block's own beside the row's numbers, as the bass block's bus half is: no
+// row holds it at rest. The string model, the cache, the prewarm and the
+// holders are this topology's and are untouched; each event a preparation is
+// handed resolves its patch through its own row (`patchOf`).
 
-import { midiToHz, route, panner, noiseSource, MIN_RELEASE, startTime, Offline, GAIN_FLOOR } from '../dsp.ts';
+import { midiToHz, route, panner, noiseSource, MIN_RELEASE, startTime, GAIN_FLOOR } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
 import { pair, rampFrequency } from './treat.ts';
 import { withControls } from './descriptor.ts';
-import { INSTRUMENTS } from '../params.ts';
-import { job, MAX_JOBS } from './render-cache.ts';
-import type { Controls, Descriptor, NoteParams, PrepareOptions } from './descriptor.ts';
+import { offline, MAX_JOBS } from './render-cache.ts';
+import type { Controls, NoteParams, PrepareOptions, VoiceRenderer } from './descriptor.ts';
+import type { PianoGrain } from './grain.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import type { PatchOf } from './schema.ts';
+import { contract, inUnit, num, CENTS, HZ, LEVEL, SECONDS, UNIT, WAIT } from './schema.ts';
 
-/** The settings' own `piano` block: every number a string, a hammer and a note is made of. */
-type PianoSettings = Settings['piano'] & { harmonicBody?: number };
+/**
+ * What the piano's row carries (`schema.ts`): every number of the settings'
+ * `piano` block a string, a hammer and a note is made of.
+ */
+const PARAMETERS = contract({
+  attack: SECONDS,
+  /** the first fall: most of the note */
+  decayFast: SECONDS,
+  sustainLevel: UNIT,
+  /** how long a string is allowed to ring at all */
+  decaySlow: SECONDS,
+  /** how far past its written length a note rings */
+  ring: WAIT,
+  partialLevel: LEVEL,
+  /** per partial index: the top of the note goes first */
+  partialDecay: inUnit(num(0, 8), 'ratio'),
+  /** string stiffness; a couple of cents up the stack */
+  stretchCents: CENTS,
+  unisonCents: CENTS,
+  unisonLevel: LEVEL,
+  hammerLevel: LEVEL,
+  hammerHz: HZ,
+  brightMin: HZ,
+  brightMax: HZ,
+  hpHz: HZ,
+  /** by register: the right hand sits out to the side */
+  spread: inUnit(num(0, 1), 'ratio'),
+  /** the dry note is quiet; the hall is the instrument */
+  dryLevel: LEVEL,
+});
+
+/** The piano's numbers, as the room voices them (and a place's grain beside them): every number a string, a hammer and a note is made of. */
+type PianoSettings = PatchOf<typeof PARAMETERS.fields> & { harmonicBody?: number; grain?: PianoGrain };
 
 // Per-note sound controls let a sustained piano phrase and short chord stabs
 // share this instrument without revoicing the entire theme. Omission retains
-// the original settings object and synthesis arithmetic. The defaults are the
-// piano block's (`params.ts`), read from it rather than written twice (round
-// (f) of the reconciled review of 09-24, D44); `harmonicBody` 0 is no body,
-// which is what an absent one is. `ring` is how far past its written length
-// the note rings.
-const P0 = INSTRUMENTS.piano;
-export const PIANO_CONTROLS: Controls = {
-  sustainLevel: { unit: 'ratio', min: 0.05, max: 1, default: P0.sustainLevel },
-  decayFast: { unit: 'seconds', min: 0.04, max: 2, default: P0.decayFast },
-  partialDecay: { unit: 'ratio', min: 0.05, max: 2, default: P0.partialDecay },
-  unisonCents: { unit: 'cents', min: 0, max: 12, default: P0.unisonCents },
-  hammerLevel: { unit: 'level', min: 0, max: 1, default: P0.hammerLevel },
-  harmonicBody: { unit: 'level', min: 0, max: 1, default: 0 },
-  ring: { unit: 'seconds', min: 0, max: 4.5, default: P0.ring },
-};
+// the original settings object and synthesis arithmetic. The controls are the
+// row's (`descriptor.controls`), their defaults the row's own numbers, held to
+// them by the topology's `controlOf` (round (f) of the reconciled review of
+// 09-24, D44, said it of the block; the row is where they live now);
+// `harmonicBody` 0 is no body, which is what an absent one is. `ring` is how
+// far past its written length the note rings.
 /** The ones that are the piano block's own numbers, overridden per note. */
 const SETTINGS_CONTROLS = ['sustainLevel', 'decayFast', 'partialDecay', 'unisonCents', 'hammerLevel', 'harmonicBody'];
-export function pianoNoteSettings(p: NoteParams, base: Settings['piano']): PianoSettings {
-  const q = withControls(p, PIANO_CONTROLS);
+export function pianoNoteSettings(p: NoteParams, base: PianoSettings, controls: Controls): PianoSettings {
+  const q = withControls(p, controls);
   const entries = SETTINGS_CONTROLS.filter((key) => q[key] !== undefined);
-  if (!entries.length) return base;
+  const G = base.grain;
+  if (!entries.length && !G) return base;
   const overrides: Record<string, number> = {};
   for (const key of entries) overrides[key] = q[key];
-  return { ...base, ...overrides };
+  const P: PianoSettings = { ...base, ...overrides };
+  if (!G) return P;
+  // **The hammer and the body a place writes** (round SPARK-1, `grain.ts`):
+  // on whatever the note or the room says, so a character's own hammer is
+  // lifted by the same factor as the room's. The body is the second and third
+  // partials, the hammer is noise; the fundamental is neither.
+  return {
+    ...P,
+    hammerLevel: Math.min(1, P.hammerLevel * G.hammer),
+    ...(G.body > 0 ? { harmonicBody: Math.min(1, (P.harmonicBody ?? 0) + G.body) } : {}),
+  };
 }
 
 /** Every input read by the rendered string body, shared by prewarm and play. */
@@ -202,13 +252,17 @@ function trim(ctx: BaseAudioContext, per: StringCache, need: number): void {
   held.set(ctx, Math.max(0, bytes));
 }
 
-function renderStrings(ctx: BaseAudioContext, hz: number, vel: number, life: number, P: PianoSettings): Promise<AudioBuffer> {
-  const Ctor = Offline();
-  const rate = ctx.sampleRate;
+// One string, rendered: one OfflineAudioContext under one permit (`offline`,
+// the place every voice's offline contexts are made and counted).
+function renderStrings(ctx: BaseAudioContext, hz: number, vel: number, life: number, P: PianoSettings, defer: boolean): Promise<AudioBuffer> {
   const seconds = P.attack + life + MIN_RELEASE + 0.05;
-  const off = new Ctor(1, Math.ceil(seconds * rate), rate);
-  strings(off, off.destination, 0, hz, vel, life, P);
-  return off.startRendering();
+  let began = false;
+  return offline(ctx, 1, Math.ceil(seconds * ctx.sampleRate), (off) => {
+    began = true;
+    liveJobs += 1;
+    if (liveJobs > peakJobs) peakJobs = liveJobs;
+    strings(off, off.destination, 0, hz, vel, life, P);
+  }, defer).finally(() => { if (began) liveJobs -= 1; });
 }
 
 function stringBuffer(ctx: BaseAudioContext, midi: number, vel: number, life: number, P: PianoSettings, promise: true): AudioBuffer | Promise<AudioBuffer>;
@@ -250,12 +304,7 @@ function stringBuffer(
     // chord, outside every cap (R30). It is queued for the next task now: this
     // note builds its strings live, as it always did, and the render lands
     // beside the music for the next note that wants it.
-    const render = (): Promise<AudioBuffer> => {
-      liveJobs += 1;
-      if (liveJobs > peakJobs) peakJobs = liveJobs;
-      return renderStrings(ctx, midiToHz(midi), vel, life, P).finally(() => { liveJobs -= 1; });
-    };
-    got = job(ctx, render, !promise).then((buf) => {
+    got = renderStrings(ctx, midiToHz(midi), vel, life, P, !promise).then((buf) => {
       if (per.get(key) === got) {
         const bytes = buf.length * buf.numberOfChannels * 4;
         trim(ctx, per, bytes);
@@ -282,10 +331,10 @@ function stringBuffer(
 
 // What a note's strings are keyed by: the pitch, the velocity to a tenth
 // and the ring to a quarter second.
-function shape(p: NoteParams, P: PianoSettings) {
+function shape(p: NoteParams, P: PianoSettings, controls: Controls) {
   const dur = Math.max(0.15, p.dur ?? 0.6);
   const vel = Math.max(0.05, Math.min(1, p.vel ?? 0.7));
-  const ring = withControls(p, PIANO_CONTROLS).ring;
+  const ring = withControls(p, controls).ring;
   const life = Math.min(P.decaySlow, dur + (ring ?? P.ring));
   return { vel, life, velQ: Math.round(vel * 10) / 10, lifeQ: Math.round(life * 4) / 4 };
 }
@@ -321,39 +370,10 @@ const WARM_SHARE = 0.85;
 // Three rules, all of them from the same measurement: prewarm a bounded
 // window rather than a whole theme, render at most a few at a time, and do
 // not let the tail of the pass evict its own head.
-// The piano as it describes itself, for the loudness fit: a struck string whose
-// sustain level is 0.26 of its attack and whose brightness runs from 1.5 to
-// 5.4 kHz on velocity — the middle of that is what stands here. `loudnessDb` is
-// MEASURED the way keys.ts describes it, against `levels.piano` rather than
-// `levels.keys`, because that is the level this voice is actually played at.
-//
-// **It is the fit's input and it is left where the fit was blessed.** The
-// channel pin on the lowpass below (the click repair of 09-22) holds
-// the StereoPanner on its stereo law for the whole note, so the tail no longer
-// drops 3 dB when the hammer stops, and the piano plays 0.7-1.0 dB louder on
-// its fixture (the scene gate below) and 0.9 dB louder in the golden `1:0`
-// window (the engine review of 09-22). Measured by the definition this number
-// was taken on it would read about -16.0; but the loudness model reads it for
-// every v1 theme whose keys die rolled the piano, so writing it moves those
-// themes' trims and with them v1's program lock, which is not moved for a
-// repair. It moves with the next refit of the loudness model, which re-measures
-// every timbre at once. What the piano sounds like now is held by the gate in
-// `PIANO_MEASURED`.
-export const PIANO_TIMBRES = {
-  piano: { family: 'harmonic', struck: true, hold: 0.26, brightnessHz: 3450, loudnessDb: -16.9 },
-};
-
-/**
- * The piano alone on its own fixture through the real graph, eight bars of its
- * figure, integrated, less the level its table gave it: the scene every
- * kitchen voice is held to (`tools/test-voices.ts`), in both engines at both
- * rates, within a decibel. MEASURED and written by that gate's `--bless`,
- * never typed. Before the channel pin the same scene read -21.2 in Chromium
- * and -21.5 in Firefox; with it, -20.5 in both.
- */
-export const PIANO_MEASURED = {
-  piano: { sceneDb: -20.5 },
-};
+// The piano as it describes itself, for the loudness fit, and what its own
+// scene measures (`PIANO_TIMBRES` and `PIANO_MEASURED` here until round
+// SOUNDS-R3) are the row's: its `timbres` and its `measured`, with the prose
+// that sat beside them in its notes.
 
 export function preparePiano(
   ctx: BaseAudioContext,
@@ -376,8 +396,8 @@ export function preparePiano(
   if (!all) inOrder.sort((a, b) => (a.t ?? 0) - (b.t ?? 0));
   for (const ev of inOrder) {
     if (ev.t < from) continue;
-    const P = pianoNoteSettings(ev.p, settings.piano);
-    const { velQ, lifeQ } = shape(ev.p, P);
+    const P = noteOf(settings, ev);
+    const { velQ, lifeQ } = shape(ev.p, P, controlsOf(ev));
     const k = pianoStringKey(ev.p.midi, velQ, lifeQ, P);
     if (seen.has(k)) continue;
     // What this string will cost, from the same arithmetic renderStrings uses.
@@ -406,8 +426,20 @@ export function preparePiano(
       for (const k of keys) unpin(ctx, k);
     });
   }
-  return holdWindow(ctx, opts.id ?? events, inOrder, from, want, rate, settings.piano);
+  return holdWindow(ctx, opts.id ?? events, inOrder, from, want, rate, settings);
 }
+
+// The row an event of this topology renders through, its controls, and the
+// numbers its note is made of: each event's patch through its own row, so what
+// a preparation warms is what the note will play.
+const rowOfEvent = (ev: ProgramEvent): SoundRow => {
+  const row = PIANO.rows!.get(ev.voice);
+  if (!row) throw new Error(`the piano was handed an event of ${ev.voice}, which is no row of its`);
+  return row;
+};
+const controlsOf = (ev: ProgramEvent): Controls => rowOfEvent(ev).descriptor.controls ?? {};
+const noteOf = (settings: Settings, ev: ProgramEvent): PianoSettings =>
+  pianoNoteSettings(ev.p, patchOf(settings, rowOfEvent(ev), PARAMETERS) as PianoSettings, controlsOf(ev));
 
 // --- what the live preparations hold, and until when ------------------------
 //
@@ -526,7 +558,7 @@ function pump(ctx: BaseAudioContext): void {
 }
 
 function holdWindow(ctx: BaseAudioContext, id: object, inOrder: ProgramEvent[], from: number,
-  want: [number, number, number, PianoSettings][], rate: number, room: Settings['piano']): Promise<void> {
+  want: [number, number, number, PianoSettings][], rate: number, settings: Settings): Promise<void> {
   let list = holders.get(ctx);
   if (!list) { list = []; holders.set(ctx, list); }
   // A second pass for the same program takes its first's place in the line
@@ -547,8 +579,8 @@ function holdWindow(ctx: BaseAudioContext, id: object, inOrder: ProgramEvent[], 
   }
   for (const ev of inOrder) {
     if (ev.t < from) continue;
-    const P = pianoNoteSettings(ev.p, room);
-    const { velQ, lifeQ } = shape(ev.p, P);
+    const P = noteOf(settings, ev);
+    const { velQ, lifeQ } = shape(ev.p, P, controlsOf(ev));
     const key = pianoStringKey(ev.p.midi, velQ, lifeQ, P);
     if (!inWindow.has(key)) continue;
     h.notes.set(ev.p, key);
@@ -601,11 +633,11 @@ function letGo(ctx: BaseAudioContext, h: Holder, p: NoteParams): boolean {
   return false;
 }
 
-export function piano(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function piano(room: PianoSettings, controls: Controls, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const P = pianoNoteSettings(p, settings.piano);
+  const P = pianoNoteSettings(p, room, controls);
   const hz = midiToHz(p.midi);
-  const { vel, life, velQ, lifeQ } = shape(p, P);
+  const { vel, life, velQ, lifeQ } = shape(p, P, controls);
   const peak = vel * vel * (p.gain ?? 1); // velocity to level, not just to tone
 
   // How long the string is left to ring. A piano note outlives its own bar,
@@ -702,30 +734,21 @@ export function piano(ctx: BaseAudioContext, out: VoiceOut, time: number, p: Not
 
 
 /**
- * Struck strings, pre-rendered per pitch and cached, so it is the one voice
+ * The piano topology (`sounds/keyboard/piano.json` since round SOUNDS-R3):
+ * struck strings, pre-rendered per pitch and cached, so it is the one voice
  * with a `prepare` that matters to a deadline. It plays a figure or a melody —
- * the `pianorole` die decides — at a level of its own.
+ * the `pianorole` die decides — at a level of its own. Its controls default to
+ * the row's own numbers (`controlOf`).
  */
-export const descriptor: Descriptor = {
-  name: 'piano',
+export const PIANO: Topology = {
+  id: 'piano',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['figure', 'melody'],
-  bus: 'melodic',
-  level: 'piano',
-  layer: 'keys',
-  plays: 'keys',
-  mono: false,
-  treat: true,
-  anticipates: null,
+  parameters: PARAMETERS,
+  controlOf: { sustainLevel: 'sustainLevel', decayFast: 'decayFast', partialDecay: 'partialDecay', unisonCents: 'unisonCents', hammerLevel: 'hammerLevel', ring: 'ring' },
+  rows: new Map(),
   prepare: preparePiano,
-  render: piano,
-  timbres: PIANO_TIMBRES,
-  dispatches: [],
-  mood: [],
-  controls: PIANO_CONTROLS,
-  noteControls: Object.keys(PIANO_CONTROLS),
-  returns: ['hall'],
+  render: (row): VoiceRenderer => {
+    const controls = row.descriptor.controls ?? {};
+    return (ctx, out, time, p = {}, settings) => piano(patchOf(settings, row, PARAMETERS) as PianoSettings, controls, ctx, out, time, p);
+  },
 };
-
-export default piano;

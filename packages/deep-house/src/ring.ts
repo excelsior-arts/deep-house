@@ -46,11 +46,11 @@ import type { RingColour } from './ring-colour.ts';
 // The eight numbers a cell is a control over, and the house they rest at: the
 // radius a cell stands at *is* its bird's value, so the ring reads the same
 // vector the composer does rather than a second copy of it.
-import { HOUSE, BIRDS, SPELL_SAME, spellQuery } from './spell.ts';
+import { HOUSE, BIRDS, SPELL_SAME, spellQuery, emberTempo, emberAtNotch, emberNotchValue, NOTCHED_FROM, TEMPO_NOTCH } from './spell.ts';
 import type { Bird, Spell } from './spell.ts';
 // What a hand reads off a bird: a percent of the house. Presentation only — the
 // value a cell holds and the link writes is the 0..1 number above.
-import { percentOf, valueOfPercent, percentShown, percentText, RIM_PERCENT, nearHouse, magnet, PULL_STEP, PULL_PAGE, TAP_STEP } from './bird-percent.ts';
+import { percentOf, valueOfPercent, percentShown, percentText, RIM_PERCENT, nearHouse, magnet, PULL_STEP, PULL_PAGE, TAP_STEP, EMBER_NOTCH_HOLD } from './bird-percent.ts';
 // Whether a strategy's plan reads a held bird at all. A control that changes
 // nothing breaks the ring's first rule, so the cells are controls exactly where
 // `derive()` reaches the composer and readings everywhere else.
@@ -158,6 +158,10 @@ const SHADE_INK = '#000000';          // the field's own ground, now flat
 const SHADE_PLAYED = 0.5;             // over the bars already played
 const SHADE_SEAM = 0.8;               // per unit of the fade the seam applies to the band
 const R_SEC = 436;       // the section plan
+// the point on the needle, at rest: its dot and the halo round it
+const POINT_R = 4.2;
+const POINT_HALO_R = 10;
+const POINT_HALO_OP = 0.18;
 const R_SEC_TXT = 446;
 const R_NUM = 480;       // bar numbers and minutes
 const R_ENGRAVE = 492;   // the live time, following the cursor
@@ -245,8 +249,10 @@ let colour = ringColour(null);        // the house: today's gold, exactly
 let asked = colour;                   // and what the set has asked for
 const wornTone = new Map<string, string>();
 const askedTone = new Map<string, string>();
-// Every mark the derived colour owns, with the page's own colour for it.
-const toned: { node: Mark; attr: string; base: string }[] = [];
+// Every mark the derived colour owns, with the page's own colour for it — and,
+// for an asked mark, its own walk (below).
+interface Toned { node: Mark; attr: string; base: string; ask?: () => number }
+const toned: Toned[] = [];
 let tonedPruneAt = 256;
 
 const tone = (base: string) => {
@@ -261,7 +267,7 @@ const toneAsked = (base: string) => {
 };
 
 /** A mark that is the music: drawn in the ring's colour, and re-drawn when it moves. */
-function ink<T extends SVGElement>(node: Mark<T>, attr: string, base: string): Mark<T> {
+function ink<T extends SVGElement>(node: Mark<T>, attr: string, base: string, ask?: () => number): Mark<T> {
   // **The list is kept to the marks that are drawn** (R63): only a colour walk
   // pruned it, and at the house there is none, so every rebuild left its old
   // marks here and the detached cells with them — about two hundred nodes a
@@ -272,40 +278,99 @@ function ink<T extends SVGElement>(node: Mark<T>, attr: string, base: string): M
     toned.length = k;
     tonedPruneAt = Math.max(256, k * 2);
   }
-  toned.push({ node, attr, base });
+  toned.push({ node, attr, base, ask });
   put(node, attr, tone(base));
   return node;
 }
+/** The same, and kept on the list of the marks one owner repaints on its own clock. */
+function inkOwn<T extends SVGElement>(own: Toned[], ask: () => number, node: Mark<T>, attr: string, base: string): Mark<T> {
+  ink(node, attr, base);
+  ownLast(own, ask);
+  return node;
+}
+/** The mark `ink` drew last, handed to an owner that walks it on its own fraction. */
+function ownLast(own: Toned[], ask: () => number) {
+  const t = toned[toned.length - 1];
+  t.ask = ask;
+  own.push(t);
+}
+
+/**
+ * **An asked mark walks on its own fill** (round K43, Eugene, 10-02: *"in some
+ * cases it looks out of place. If possible, transition the colour on the
+ * bird's progress from the current ring colour to the future ring colour"*).
+ *
+ * The marks that say *a hand asked for this* — a dropped bird's fill, its
+ * halos and ornament, the lines between it and the birds it moves, the die's
+ * fill under a cast, and the type on them — used to wear the coming colour
+ * from the drop (a held cell's light, by the birds-UX plan's §2) or walk on
+ * the ring's own clock, which is the hand-over's and not the bird's. Now each
+ * is `mix(colour, asked, w)` in OKLab, `w` being the fraction its own fill
+ * draws: the ring's colour at the drop, the coming one as the fill closes. The
+ * coming colour stays the destination (*"it looks cute and preparing for the
+ * next colour"*); it is reached rather than jumped to. The ring's own walk
+ * (`seamWalk`) is untouched, and a mark whose owner is not asked (`ask()`
+ * below nought) is on it as before.
+ *
+ * The fraction is the one the fill already draws (`fillP`, the cut node's
+ * `cutWalk`), so there is no clock of its own; and a mark is written again
+ * only when its walk moved a step a colour can show (R122).
+ */
+const walkInk = (base: string, w: number) => (w <= 0 ? tone(base) : w >= 1 ? toneAsked(base) : mixHex(tone(base), toneAsked(base), w));
+/** Bumped whenever what is worn or what is asked changes: every owner's last write is then stale. */
+let inkGen = 0;
+/** A step of an asked mark's walk worth writing (R122). */
+const INK_STEP = 1 / 256;
+/** Where the ring's own walk stands, for a mark whose owner is not asked: what `paintToned` last wrote. */
+const ringWalk = () => (asked.hex === colour.hex ? 1 : tonedFor === asked && tonedAt >= 0 ? tonedAt : 0);
+/** The ring's type and pale ink for a colour, worked out once a colour. */
+const typeMemo = new WeakMap<RingColour, [string, string]>();
+function typeOf(c: RingColour): [string, string] {
+  let v = typeMemo.get(c);
+  if (!v) { v = [typeInk(c), paleInk(c)]; typeMemo.set(c, v); }
+  return v;
+}
+/**
+ * The type on an asked mark: the two tokens every word is drawn in, set on the
+ * mark's own group at the same `w`, so its words are neither the ring's type
+ * nor the coming one's but the step between them — nothing reads as a third
+ * colour. Nought (`w` < 0, or nothing to walk) takes them off again and the
+ * words are the page's. Returns what it wrote, to be handed back next time.
+ */
+function walkType(n: HTMLElement | SVGElement, w: number, said: string): string {
+  if (w < 0 || asked.hex === colour.hex) {
+    if (said) { n.style.removeProperty('--gold'); n.style.removeProperty('--pale'); }
+    return '';
+  }
+  const [g0, p0] = typeOf(colour);
+  const [g1, p1] = typeOf(asked);
+  const g = mixHex(g0, g1, w);
+  const pl = mixHex(p0, p1, w);
+  const key = `${g}${pl}`;
+  if (key === said) return said;
+  n.style.setProperty('--gold', g);
+  n.style.setProperty('--pale', pl);
+  return key;
+}
+/** One owner's marks at its own walk, or on the ring's where `w` is below nought. */
+function paintOwn(own: Toned[], w: number) {
+  const e = ringWalk();
+  for (const t of own) put(t.node, t.attr, w >= 0 ? walkInk(t.base, w) : e >= 1 ? tone(t.base) : mixHex(tone(t.base), toneAsked(t.base), e));
+}
+/** Whether an owner last written at `said` (generation `gen`) needs writing at `w`. */
+const inkDue = (w: number, said: number, gen: number) => gen !== inkGen
+  || (w < 0 ? said >= 0 : said < 0 || (w >= 1) !== (said >= 1) || (w <= 0) !== (said <= 0) || Math.abs(w - said) > INK_STEP);
 
 // The unfiltered layers, at `e` of the way from what is worn to what is asked.
 // A cell rebuilt since the last pass drops out of the list by having left the
-// document, which is the only bookkeeping this needs.
+// document, which is the only bookkeeping this needs. An asked mark is at its
+// own walk instead.
 function paintToned(e: number) {
   for (let i = toned.length - 1; i >= 0; i--) {
     const t = toned[i];
     if (!t.node.isConnected) { toned.splice(i, 1); continue; }
-    put(t.node, t.attr, e >= 1 ? tone(t.base) : mixHex(tone(t.base), toneAsked(t.base), e));
-  }
-}
-
-/**
- * **A held cell's own light takes the derived colour at once** (`notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md`
- * §2). The rest of the ring walks onto the colour a spell asks for over the
- * seam's own clock, because the music has not changed hands yet; the cell a
- * hand is holding is the thing that *asked*, and what it wears is the answer to
- * the hand rather than a reading of the music. So its pending fill and its
- * halo are written from `asked` and not from what the ring is wearing.
- *
- * Nothing at all happens with no bird held, which is every picture the identity
- * proof is taken on.
- */
-function paintHeldInk() {
-  if (!heldValue.size || !cellNodes.length) return;
-  for (let i = 0; i < cellNodes.length; i++) {
-    const c = cellNodes[i];
-    if (!c.held) continue;
-    const h = haloOn[i];
-    if (h) { put(h.wide, 'stroke', toneAsked('#f2c14e')); put(h.crisp, 'stroke', toneAsked('#ffd97a')); }
+    const w = t.ask ? t.ask() : -1;
+    put(t.node, t.attr, w >= 0 ? walkInk(t.base, w) : e >= 1 ? tone(t.base) : mixHex(tone(t.base), toneAsked(t.base), e));
   }
 }
 
@@ -323,6 +388,7 @@ function wearColour(next: RingColour) {
   root.setProperty('--pale', paleInk(next));
   colour = next;
   wornTone.clear();
+  inkGen++;
   paintToned(1);
 }
 
@@ -400,6 +466,7 @@ function runColour(r: Readout | null, boundary: boolean) {
     spellWorn = key;
     asked = ringColour(s);
     askedTone.clear();
+    inkGen++;
   }
   if (asked.hex === colour.hex) return;
   if (boundary || !r || !r.playing) { wearColour(asked); tonedAt = -1; return; }
@@ -411,7 +478,6 @@ function runColour(r: Readout | null, boundary: boolean) {
   tonedAt = e;
   tonedFor = asked;
   paintToned(e);
-  paintHeldInk();
 }
 let tonedAt = -1;
 let tonedFor: RingColour | null = null;
@@ -530,6 +596,8 @@ const roman = (n: number) => romanNumeral(n).toLowerCase();
 const dieCorner = (R: number) => R * 1.12 * 0.075;
 /** The pair's turn, in degrees, negative to the left (K26: Eugene's 5.5°, the logo's own). */
 const DIE_TURN = -5.5;
+/** How many pairs of dice have been drawn: each one's knock-out mask has an id of its own. */
+let dieKnocks = 0;
 /** Round joins and round ends, said on the path as well as in the stylesheet. */
 const ROUND_ENDS = { 'stroke-linejoin': 'round', 'stroke-linecap': 'round' } as const;
 
@@ -642,14 +710,26 @@ const GLYPH = {
     const gg = el('g', {
       transform: `translate(${(-(x0 + x1) / 2).toFixed(2)} ${(-(y0 + y1) / 2).toFixed(2)}) rotate(${DIE_TURN})`,
     }, g);
-    const pip = (p: { at: Pt; r: number }) => el('circle', { cx: p.at[0].toFixed(2), cy: p.at[1].toFixed(2), r: p.r.toFixed(2), fill: 'url(#gold)' }, gg);
+    const pip = (p: { at: Pt; r: number }, into: Node = gg) => el('circle', { cx: p.at[0].toFixed(2), cy: p.at[1].toFixed(2), r: p.r.toFixed(2), fill: 'url(#gold)' }, into);
     // the far die, its one pip, then the near one over it: its silhouette
-    // knocks out what lies behind, and its line, its one edge and its five
-    el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: roundQuad(far, rr) }, gg);
-    el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: edgesFar }, gg);
-    pip(pips[0]);
+    // knocks out what lies behind, and its line, its one edge and its five.
+    // **The knock-out is a hole and not black paint** (round MIX-X5, Eugene on
+    // the die's node filled for a wait: *"one of the two dice reads black"*):
+    // the near die's silhouette used to be painted in the page's black, which
+    // is the ground on a bare node and a black patch on the filled one. It is
+    // a mask on the far die now, so whatever the node is wearing under the
+    // pair — its ground, or the wait's ink as the fill sweeps under it —
+    // shows through the near die, and both read in the node's ink either way.
     const nearPath = roundQuad(near, rr);
-    el('path', { d: nearPath, fill: '#000000' }, gg);
+    const knock = `dieKnock${++dieKnocks}`;
+    const span = U * 2;
+    const mask = el('mask', { id: knock, maskUnits: 'userSpaceOnUse', x: (-span).toFixed(1), y: (-span).toFixed(1), width: (span * 2).toFixed(1), height: (span * 2).toFixed(1) }, gg);
+    el('rect', { x: (-span).toFixed(1), y: (-span).toFixed(1), width: (span * 2).toFixed(1), height: (span * 2).toFixed(1), fill: '#ffffff' }, mask);
+    el('path', { d: nearPath, fill: '#000000' }, mask);
+    const behind = el('g', { mask: `url(#${knock})` }, gg);
+    el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: roundQuad(far, rr) }, behind);
+    el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: edgesFar }, behind);
+    pip(pips[0], behind);
     el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: nearPath }, gg);
     el('path', { class: 'ln fix thin', ...ROUND_ENDS, d: edgesNear }, gg);
     for (const p of pips.slice(1)) pip(p);
@@ -935,8 +1015,8 @@ function followOutsideAsk(r: Readout) {
   for (const b of BIRDS) if (a[b] != null) heldValue.set(b, pulled(a[b]!));
   handSpell = !!want;
   if (rolled) rolled = null;
-  // the wait runs from the ask, as a drop's does
-  dropAt = performance.now();
+  // the wait runs from the ask, as a drop's does — on the set's own clock (round MIX-X1)
+  dropAt = r.mix ? r.mix.clock : -1;
   layoutCells();
   repaintCells(r);
   paintHeld(r);
@@ -1091,6 +1171,50 @@ function stepPercent(b: Bird, v: number, dir: number, step = TAP_STEP): number {
   return pulled(clamp(v + dir * 0.01, 0, 1));
 }
 
+/** Spark as the ring stands it now: a notch of Ember is a value that depends on it (K40). */
+const sparkNow = (): number => cellNodes.find((c) => c.bird === 'spark')?.value ?? HOUSE.spark;
+
+/**
+ * **A hand's step, and Ember's is a notch** (round K40, Eugene: *"the
+ * increments above 100 % are too small; allow change with 5 bpm precision"*).
+ * Every other bird steps in the percent the ring speaks (`stepPercent`); Ember
+ * steps to the value whose tempo is the next notch of five (`emberAtNotch`,
+ * solved at the hand for Spark as it stands, since Spark moves the pulse), a
+ * page key four of them. Under 70 the tempo is the free band's energy and not a
+ * metronome, so there the step is the percent again, and a step up out of it
+ * lands on 70; at the top of what Ember reaches with this Spark it stays.
+ */
+function stepBird(c: CellNode, dir: number, step = TAP_STEP): number {
+  if (c.bird !== 'ember') return stepPercent(c.bird, c.value, dir, step);
+  const spark = sparkNow();
+  const at = emberTempo(c.value, spark);
+  if (at < NOTCHED_FROM) {
+    const to = stepPercent(c.bird, c.value, dir, step);
+    return dir > 0 && emberTempo(to, spark) >= NOTCHED_FROM ? emberAtNotch(NOTCHED_FROM, spark) ?? to : to;
+  }
+  for (let k = Math.max(1, Math.round(step / TAP_STEP)); k >= 1; k--) {
+    const bpm = at + dir * k * TEMPO_NOTCH;
+    if (bpm < NOTCHED_FROM) return stepPercent(c.bird, c.value, dir, step);
+    const v = emberAtNotch(bpm, spark);
+    if (v != null) return v;
+  }
+  return c.value;
+}
+
+/**
+ * **Ember's detents under a drag** (K40): the value is the hand's, continuous,
+ * except within `EMBER_NOTCH_HOLD` BPM of a notch's own tempo, where it is held
+ * at that notch's value — the magnet is the notch, and between two the node is
+ * under the hand. The free band under 70 has none.
+ */
+function emberDetent(v: number): number {
+  const spark = sparkNow();
+  const raw = emberTempo(v, spark, true);
+  if (raw < NOTCHED_FROM) return v;
+  const n = emberTempo(v, spark);
+  return Math.abs(raw - n) <= EMBER_NOTCH_HOLD ? emberAtNotch(n, spark) ?? v : v;
+}
+
 // --- the bird's glyph ------------------------------------------------------
 //
 // One drawing per bird, and it never changes (Eugene, 09-23; `bird-glyph.ts`
@@ -1103,7 +1227,7 @@ let pointed = -1;             // the cell under the pointer, or holding focus
 // Which cell the hand or the keyboard is on. It is not a control: what a cell
 // answers is its own reading, said in the tell.
 function pointCell(cell: CellNode | null) {
-  const i = cell ? cellNodes.indexOf(cell) : -1;
+  const i = cell ? cellIndexOf(cell) : -1;
   if (i !== pointed) pointed = i;
   holdTell(cell);
 }
@@ -1845,13 +1969,25 @@ interface LinkLine { a: number; b: number; kind: 'square' | 'octagon' | 'dotted'
   /** which end reaches the other, by the model: `a` into `b`, `b` into `a` */
   aToB: boolean; bToA: boolean;
   dot: Mark<SVGPathElement> | null; trace: Mark<SVGPathElement>; wide: Mark<SVGPathElement>; crisp: Mark<SVGPathElement>;
-  lit: number; traced: number; put: string; said: string }
+  lit: number; traced: number; put: string; said: string;
+  /** the path the lit pair and the trace were last given: written only while they show (the deep review of 10-08) */
+  litPut: string; tracePut: string }
 let linkLines: LinkLine[] = [];
 const linkLit = new Map<string, number>();
 const linkTraced = new Map<string, number>();
 const dotW = () => THIN_LINE.w * starK;
 const litW = () => clamp(LIT_PX / unitPx, 1, 8);
 const dashOf = () => `${ORN_DASH[0]} ${ORN_DASH[1]}`;
+
+/** The lit and traced lines' marks, and how far along the hand's walk they were last written (K43). */
+let linkInks: Toned[] = [];
+let linkInkSaid = -1;
+let linkInkGen = -1;
+/** The bird a hand holds, its asked marks' walk: what every lit line between it and the birds it moves wears. */
+function linkAsk(): number {
+  const h = handBird();
+  return h >= 0 && cellNodes[h] ? cellNodes[h].inkW : -1;
+}
 
 /** The declared lines under the playing strategy, and one lit overlay for every line the ring draws between two birds. */
 function buildLinks(r: Readout, verts: string[]) {
@@ -1878,31 +2014,46 @@ function buildLinks(r: Readout, verts: string[]) {
       dot.style.strokeDasharray = dashOf();
     }
     linkLines.push({ ...p, dot, trace: null!, wide: null!, crisp: null!, lit: linkLit.get(`${p.a}-${p.b}`) ?? 0,
-      traced: linkTraced.get(`${p.a}-${p.b}`) ?? 0, put: d, said: '' });
+      traced: linkTraced.get(`${p.a}-${p.b}`) ?? 0, put: d, said: '', litPut: d, tracePut: d });
   }
   const over = el('g', { class: 'links' }, gStarLines);
+  // the lit and traced lines are the hand's: they walk on the held bird's own fill (K43)
+  linkInks = [];
+  linkInkSaid = -1;
+  linkInkGen = -1;
   for (const l of linkLines) {
     const at = l.kind === 'dotted' ? under : over;
-    l.trace = ink(el('path', { class: 'trace', d: l.put, fill: 'none', 'stroke-width': litW().toFixed(2), 'stroke-linecap': 'butt', opacity: 0 }, at), 'stroke', '#ffeec0');
+    l.trace = inkOwn(linkInks, linkAsk, el('path', { class: 'trace', d: l.put, fill: 'none', 'stroke-width': litW().toFixed(2), 'stroke-linecap': 'butt', opacity: 0 }, at), 'stroke', '#ffeec0');
     l.trace.style.strokeDasharray = dashOf();
-    l.wide = ink(el('path', { class: 'lit', d: l.put, fill: 'none', 'stroke-width': (LIT_WIDE_W * starK).toFixed(2), 'stroke-linecap': 'round', opacity: 0 }, at), 'stroke', '#ffe0a0');
-    l.crisp = ink(el('path', { class: 'lit', d: l.put, fill: 'none', 'stroke-width': litW().toFixed(2), 'stroke-linecap': l.kind === 'dotted' ? 'butt' : 'round', opacity: 0 }, at), 'stroke', '#ffeec0');
+    l.wide = inkOwn(linkInks, linkAsk, el('path', { class: 'lit', d: l.put, fill: 'none', 'stroke-width': (LIT_WIDE_W * starK).toFixed(2), 'stroke-linecap': 'round', opacity: 0 }, at), 'stroke', '#ffe0a0');
+    l.crisp = inkOwn(linkInks, linkAsk, el('path', { class: 'lit', d: l.put, fill: 'none', 'stroke-width': litW().toFixed(2), 'stroke-linecap': l.kind === 'dotted' ? 'butt' : 'round', opacity: 0 }, at), 'stroke', '#ffeec0');
     if (l.kind === 'dotted') l.crisp.style.strokeDasharray = dashOf();
   }
   linksSaid = '';
 }
 
-/** The lines follow the birds, with the frame. */
+/**
+ * **The lines follow the birds, with the frame** — the ones that show. The
+ * dotted line is always drawn; the lit pair and the trace are at opacity zero
+ * until a hand lights them, so their paths are written only while they show,
+ * and brought up to where the line is on the frame they first light
+ * (`inkLinkPaths`). The deep review of 10-08: a stopped ring rewrote about
+ * 1600 invisible paths a second, more than a playing one costs.
+ */
 function placeLinks(verts: string[]) {
   for (const l of linkLines) {
     const d = `M${verts[l.a]} L${verts[l.b]}`;
     if (d === l.put) continue;
     l.put = d;
     if (l.dot) l.dot.setAttribute('d', d);
-    l.trace.setAttribute('d', d);
-    l.wide.setAttribute('d', d);
-    l.crisp.setAttribute('d', d);
+    inkLinkPaths(l);
   }
+}
+
+/** A lit or traced line's paths to where the line is now; nothing while it does not show. */
+function inkLinkPaths(l: LinkLine) {
+  if (l.lit > 0 && l.litPut !== l.put) { l.litPut = l.put; l.wide.setAttribute('d', l.put); l.crisp.setAttribute('d', l.put); }
+  if (l.traced > 0 && l.tracePut !== l.put) { l.tracePut = l.put; l.trace.setAttribute('d', l.put); }
 }
 
 /** The bird a hand holds now: the one dragged or slid, or else one dropped and still waiting for its seam. */
@@ -1921,6 +2072,8 @@ function runLinks(now: number) {
   linksAt = now;
   const k = REDUCED ? 1 : 1 - Math.exp(-dt / MARK_EASE);
   const h = handBird();
+  const hw = h >= 0 && cellNodes[h] ? cellNodes[h].inkW : -1;
+  if (inkDue(hw, linkInkSaid, linkInkGen)) { linkInkSaid = hw; linkInkGen = inkGen; paintOwn(linkInks, hw); }
   const px = `${unitPx.toFixed(4)}|${starK}`;
   if (px !== linksSaid) {
     linksSaid = px;
@@ -1942,6 +2095,8 @@ function runLinks(now: number) {
     const said = `${l.lit.toFixed(3)}|${l.traced.toFixed(3)}`;
     if (said === l.said) continue;
     l.said = said;
+    // a line lighting is where it stands before it shows
+    inkLinkPaths(l);
     put(l.wide, 'opacity', (LIT_WIDE_OP * l.lit).toFixed(3));
     put(l.crisp, 'opacity', l.lit.toFixed(3));
     put(l.trace, 'opacity', (TRACE_OP * l.traced).toFixed(3));
@@ -2181,8 +2336,8 @@ function buildActions(r: Readout) {
     linkNote.style.transition = 'opacity 160ms ease';
   }
   paintLinkNote();
-  setPlayGlyph(r.playing);
-  labelPlay(r.playing);
+  setPlayGlyph(sounding(r));
+  labelPlay(sounding(r));
   hoverAction(hoveredAction);
 }
 
@@ -2213,6 +2368,8 @@ function runCoreHold(now: number) {
   if (coreHold.at >= 0 && now - coreHold.at >= RELEASE_MS) {
     coreHold.at = -1;
     if (dragging && dragging.kind === 'core') dragging.armed = true;
+    // the press was a long one, and asks for no play: the face says so (K42)
+    if (pressingPlay) { pressingPlay = false; setPlayGlyph(sounding(last)); }
     offerRelease(true);
     nudge(0.25);
   }
@@ -2228,6 +2385,22 @@ function runCoreHold(now: number) {
  * life: a stop draws play, never the question again.
  */
 const playMode = (playing: boolean): PlayMode => (playing ? 'pause' : started ? 'play' : 'about');
+
+/**
+ * **The set as the face draws it** (K42, Eugene 10-02: *"would it be better to
+ * instantly react on the click and turn the ring into play mode, then
+ * wait?"*). A press on play is answered at the press: from then until the
+ * set's clock runs the key is the pause and the ring is in its playing state —
+ * the transport's `starting`, which runs through the build and the start's
+ * lead to the record's first moment, or a finger still on the centre, which
+ * asks for nothing until it lifts (a finger's press is not a gesture the
+ * browser lets sound start on). What moves is only the point on the needle;
+ * the needle and the elapsed time stay where the music is, which is not yet
+ * anywhere.
+ */
+let pressingPlay = false;
+const waiting = (r: Readout | null | undefined): boolean => !!r && (r.starting || (pressingPlay && !r.playing));
+const sounding = (r: Readout | null | undefined): boolean => !!r && (r.playing || waiting(r));
 const PLAY_WORD: Record<PlayMode, string> = { about: 'about', play: 'play', pause: 'pause' };
 
 function labelPlay(playing: boolean) {
@@ -2309,6 +2482,8 @@ let cutTheme: number | null = null;
 let gCutFill: Mark<SVGGElement> | null = null;
 let cutWedge: Mark<SVGRectElement> | null = null;
 let cutSpiral: Mark<SVGPathElement> | null = null;
+/** the die's sector beside a chevron's bar, where a step walks the journal onto another seed (10-05) */
+let cutTwin: Mark<SVGPathElement> | null = null;
 let cutDrawnFor: string | null = null;
 let cutFilledAt = -1;
 
@@ -2322,9 +2497,23 @@ function cutLanded() {
   if (!cutAsked) return;
   const was = cutAsked;
   cutAsked = null;
-  if (gCutFill) put(gCutFill, 'opacity', 0);
-  cutFilledAt = -1;
+  dropCutFill();
   hoverAction(hoveredAction === was ? null : hoveredAction);
+}
+
+/**
+ * The wait's drawing goes with the wait it drew (the deep review of 10-08: the
+ * last cut's node, its glyph and its die were kept, hidden, in `#inner`, and
+ * the layer grew by them across a set); the next cut draws its own.
+ */
+function dropCutFill() {
+  if (gCutFill) { put(gCutFill, 'opacity', 0); clear(gCutFill); }
+  cutDrawnFor = null;
+  cutWedge = null;
+  cutSpiral = null;
+  cutTwin = null;
+  cutInks = [];
+  cutFilledAt = -1;
 }
 
 // The node that asked, made ready to fill.
@@ -2467,30 +2656,53 @@ function paintSweep(arc: Mark<SVGCircleElement>, p: number, r: number) {
 /** Which node a hand-over a hand asked for belongs to. A spell and an engine
  * are changed by no node of the ring and so fill none. */
 const CUT_NODE: Partial<Record<string, string>> = { skip: 'skip', back: 'back', cast: 'cast' };
-function cutFillFor(id: string) {
+// **A step that walks the journal onto another seed fills both** (10-05,
+// Eugene: *"since the Prev button is clicked it must fill right to left, to
+// emphasize going backward; but at the same time show progress on the dice
+// too, to underline this will be going to the previous seed, and use the
+// opposite radial fill"*): the chevron's bar the way the step goes, and the
+// die's sector beside it — clockwise under a next, anticlockwise under a
+// back — since the hand pressed a step and the music is leaving the seed.
+function cutFillFor(id: string, twin: 'skip' | 'back' | null) {
   if (!gCutFill || !gCutFill.isConnected) {
     gCutFill = el('g', { id: 'cutFill', opacity: 0 }, gInnerLive);
     cutDrawnFor = null;
   }
-  if (cutDrawnFor === id) return;
-  cutDrawnFor = id;
+  const key = twin ? `${id}+${twin}` : id;
+  if (cutDrawnFor === key) return;
+  cutDrawnFor = key;
   clear(gCutFill);
   cutWedge = null;
   cutSpiral = null;
+  cutTwin = null;
   const a = actionNodes.find((x) => x.id === id);
   if (!a) return;
   const g = el('g', { transform: `translate(${a.x} ${a.y})` }, gCutFill);
   const clip = el('clipPath', { id: 'cutFillClip' }, g);
   el('circle', { cx: 0, cy: 0, r: cutR() }, clip);
+  cutInks = [];
+  cutInkSaid = -1;
+  cutInkGen = -1;
   if (id === 'cast') {
     cutSpiral = waitFill('path', { d: '', 'clip-path': 'url(#cutFillClip)' }, g);
+    ownLast(cutInks, cutAsk);
     GLYPH.die(g, ctrlR);
   } else {
     cutWedge = waitFill('rect', {
       x: -cutR(), y: -cutR(), width: 0, height: cutR() * 2, 'clip-path': 'url(#cutFillClip)',
     }, g);
+    ownLast(cutInks, cutAsk);
     GLYPH.step(g, ctrlR, id === 'skip' ? 1 : -1);
   }
+  const die = twin ? actionNodes.find((x) => x.id === 'cast') : null;
+  if (!die) return;
+  const g2 = el('g', { transform: `translate(${die.x} ${die.y})` }, gCutFill);
+  const clip2 = el('clipPath', { id: 'cutFillClipTwin' }, g2);
+  el('circle', { cx: 0, cy: 0, r: cutR() }, clip2);
+  // mirrored, the sector runs from twelve o'clock the other way round
+  cutTwin = waitFill('path', { d: '', 'clip-path': 'url(#cutFillClipTwin)', 'data-twin': twin, ...(twin === 'back' ? { transform: 'scale(-1 1)' } : {}) }, g2);
+  ownLast(cutInks, cutAsk);
+  GLYPH.die(g2, ctrlR);
 }
 
 // The sector from twelve o'clock, swept clockwise: a whole turn is the whole
@@ -2502,6 +2714,42 @@ function spiralPath(p: number, r: number): string {
   const x = Math.sin(a) * r;
   const y = -Math.cos(a) * r;
   return `M 0 0 L 0 ${-r} A ${r} ${r} 0 ${p > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`;
+}
+
+// **The pressed node's fill walks on its own fraction** (K43), as a bird's
+// does: the ring's colour at the press, the coming one at the swap — which a
+// cast joined to a bird's ask brings — and the die's words with it, the seed
+// under it and the word the node keeps for the wait.
+let cutInks: Toned[] = [];
+let cutInkSaid = -1;
+let cutInkGen = -1;
+/** How far the pressed node's fill has run, or below nought with none running. */
+const cutAsk = () => cutFilledAt;
+/** The die's words as last walked: the element and what was written on it. */
+let cutTypes: Array<{ n: HTMLElement | SVGElement; said: string }> = [];
+function paintCutInk(id: string | null, w: number) {
+  if (!inkDue(w, cutInkSaid, cutInkGen)) return;
+  cutInkSaid = w;
+  cutInkGen = inkGen;
+  paintOwn(cutInks, w);
+  // the die's words — the seed under it (or the field it is typed in) and the
+  // word the node keeps for the wait — at the same step; a word rebuilt since
+  // is given back to the page's tokens
+  const cast = id === 'cast' ? w : -1;
+  const now: Array<HTMLElement | SVGElement> = [];
+  if (seedText) now.push(seedText);
+  const wrap = gSeedEdit ? (gSeedEdit.querySelector('.seedWrap') as HTMLElement | null) : null;
+  if (wrap) now.push(wrap);
+  const label = actionNodes.find((a) => a.id === 'cast')?.label;
+  if (label) now.push(label);
+  const next: typeof cutTypes = [];
+  for (const t of cutTypes) if (!now.includes(t.n)) walkType(t.n, -1, t.said);
+  for (const n of now) {
+    const was = cutTypes.find((t) => t.n === n);
+    const said = walkType(n, cast, was ? was.said : '');
+    if (said) next.push({ n, said });
+  }
+  cutTypes = next;
 }
 
 // The wait itself, **read off the seam's own clock and never sampled from a
@@ -2518,31 +2766,36 @@ function spiralPath(p: number, r: number): string {
 // as long as the hand-over is in flight and the fill is written once, so
 // nothing on the ring moves that a listener asked not to have move.
 function runCutFill(r: Readout) {
-  const kind = r.mix ? r.mix.cutKind : null;
+  // the node is the gesture's (a chevron pressed), the transport's kind where none is said
+  const kind = r.mix ? r.mix.cutAsked ?? r.mix.cutKind : null;
   const id = (kind && CUT_NODE[kind]) || null;
+  // and the die beside it where the step is leaving the seed
+  const twin = id && (kind === 'skip' || kind === 'back') && r.mix.cutCasts ? kind : null;
   const on = !!(id && r.mix.cutting);
   if (!on) {
     // and nothing is written on a frame that has nothing to say
-    if (cutFilledAt >= 0) {
-      if (gCutFill && cutDrawnFor) put(gCutFill, 'opacity', 0);
-      cutFilledAt = -1;
-    }
+    if (cutFilledAt >= 0 || cutDrawnFor) dropCutFill();
+    paintCutInk(null, -1);
     return;
   }
-  cutFillFor(id!);
+  cutFillFor(id!, twin);
   const p = cutWalk(r.mix);
+  // the die's words walk wherever the die fills: under a cast, and beside a step that leaves the seed
+  paintCutInk(twin ? 'cast' : id, REDUCED ? 1 : p);
   if (REDUCED) {
     // one write, and only when the state itself changes
     if (cutFilledAt === 1) return;
     cutFilledAt = 1;
     put(gCutFill!, 'opacity', 1);
     if (cutSpiral) put(cutSpiral, 'd', spiralPath(1, cutR()));
+    if (cutTwin) put(cutTwin, 'd', spiralPath(1, cutR()));
     if (cutWedge) { put(cutWedge, 'width', (cutR() * 2).toFixed(2)); put(cutWedge, 'x', (-cutR()).toFixed(2)); }
     return;
   }
   cutFilledAt = p;
   put(gCutFill!, 'opacity', 1);
   if (cutSpiral) { put(cutSpiral, 'd', spiralPath(p, cutR())); return; }
+  if (cutTwin) put(cutTwin, 'd', spiralPath(p, cutR()));
   if (!cutWedge) return;
   const w = p * cutR() * 2;
   put(cutWedge, 'width', w.toFixed(2));
@@ -2580,7 +2833,7 @@ function paintActionGlow() {
   for (let i = 0; i < actionHalos.length; i++) {
     const a = actionNodes[i];
     if (!a) continue;
-    const on = a.id === hoveredAction || (a.id === 'play' && last && last.playing);
+    const on = a.id === hoveredAction || (a.id === 'play' && sounding(last));
     const h = actionHalos[i];
     put(h.crisp, 'opacity', on ? HALO_CRISP.op : 0);
     put(h.wide, 'opacity', on ? HALO_WIDE.op : 0);
@@ -2651,9 +2904,10 @@ interface CellNode {
   pendFill: Mark<SVGPathElement>;
   /** the ring that closes under a still press, as the die's does: every bird let go when it meets */
   holdArc: Mark<SVGCircleElement>;
-  /** the wait's fill: when it began (the drop, on the page's clock) or -1, and how far it has run (round K12c) */
+  /** the wait's fill: when it began (the drop, on the set's clock) or -1, how far it has run, and which plan of the transport's it is drawing (round K12c, MIX-X1) */
   fillFrom: number;
   fillP: number;
+  fillPlan: number;
   /** the hover and in-action halo, and the ornament ring outside it (round K12) */
   markWide: Mark<SVGCircleElement>;
   markCrisp: Mark<SVGCircleElement>;
@@ -2685,9 +2939,39 @@ interface CellNode {
   /** what was last written into each of the four lines and the two marks */
   saidTitle: string;
   saidArc: string;
+  /**
+   * **Its asked marks' walk** (round K43): the fill, the halos, the ornament
+   * and the words, at `inkW` of the way from the ring's colour to the coming
+   * one — the fill's own fraction, nought under the hand, below nought when
+   * nothing is asked of it — and what was last written of it (`inkSaid` at
+   * generation `inkGen`, the words' tokens as `typeSaid`).
+   */
+  inks: Toned[];
+  inkW: number;
+  inkSaid: number;
+  inkGen: number;
+  typeSaid: string;
 }
 
 const cellNodes: CellNode[] = [];
+/**
+ * **A cell by its id, never by its node** (the deep review of 10-08): a
+ * theme or a cast landing under a hand rebuilds all eight nodes, and a
+ * reference taken before it — the drag's, the line's, a waiting commit's —
+ * found nothing by identity, so the drag stopped drawing and the bird stayed
+ * lifted. `buildCells` re-points them; everything that indexes a cell asks by
+ * id besides.
+ */
+function cellIndexOf(c: CellNode | null | undefined): number {
+  if (!c) return -1;
+  const i = cellNodes.indexOf(c);
+  return i >= 0 ? i : cellNodes.findIndex((n) => n.id === c.id);
+}
+/** The node standing for this cell now: itself, or the one a rebuild put in its place. */
+function liveCell(c: CellNode): CellNode {
+  const i = cellIndexOf(c);
+  return i >= 0 ? cellNodes[i] : c;
+}
 
 /**
  * **What a rebuild carries over**, so that nothing slow is ever cut short.
@@ -2709,7 +2993,7 @@ const cellNodes: CellNode[] = [];
  * breathing — were never lost and are only listed here so
  * the next reader knows where each of them lives.
  */
-interface CarriedMotion { halo: number; flash: number; flashR: number; mark: number; orn: number; fillFrom: number; fillP: number }
+interface CarriedMotion { halo: number; flash: number; flashR: number; mark: number; orn: number; fillFrom: number; fillP: number; fillPlan: number }
 
 function carryMotion(): CarriedMotion[] {
   return cellNodes.map((c, i) => ({
@@ -2720,12 +3004,14 @@ function carryMotion(): CarriedMotion[] {
     orn: c.ornAt,
     fillFrom: c.fillFrom,
     fillP: c.fillP,
+    fillPlan: c.fillPlan,
   }));
 }
 
 function buildCells(r: Readout) {
   const carried = carryMotion();
   const born = !cellNodes.length;
+  const before = cellNodes.slice();
   clear(gCells);
   clear(gStarLive);
   clear(gStarWords);
@@ -2780,7 +3066,11 @@ function buildCells(r: Readout) {
     // The two indicators mean on a bird what they mean on the die: the fill
     // inside is a change on its way, the sweep round the outline is a long
     // press. Under the bird's glyph; empty at rest.
+    // (each of its asked marks walks on its own fill, round K43: `inkW`)
+    const inks: Toned[] = [];
+    const askW = () => node.inkW;
     const pendFill = waitFill('path', { d: '' }, knot);
+    ownLast(inks, askW);
     // the bird: one glyph, drawn once, the same at rest, under a hand and held
     const gl = el('g', { transform: `rotate(${(-swayDeg).toFixed(2)})` }, knot);
     // at the hand's value where a hand holds the bird, the set's otherwise
@@ -2823,8 +3113,8 @@ function buildCells(r: Readout) {
     // **Lit as brightly as the old one was**, not dark: a halo eases onto its
     // layer over about fifty frames, and a theme change that put it back to
     // nought made the eight lights blink out and swim back every time.
-    const wide = ink(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR + 1, fill: 'none', 'stroke-width': 7, opacity: (was ? was.halo * 0.26 : 0).toFixed(3) }, hg), 'stroke', '#f2c14e');
-    const crisp = ink(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR + 1, fill: 'none', 'stroke-width': 1.2, opacity: (was ? was.halo : 0).toFixed(3) }, hg), 'stroke', '#ffd97a');
+    const wide = inkOwn(inks, askW, el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR + 1, fill: 'none', 'stroke-width': 7, opacity: (was ? was.halo * 0.26 : 0).toFixed(3) }, hg), 'stroke', '#f2c14e');
+    const crisp = inkOwn(inks, askW, el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR + 1, fill: 'none', 'stroke-width': 1.2, opacity: (was ? was.halo : 0).toFixed(3) }, hg), 'stroke', '#ffd97a');
     const flash = ink(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: (was ? was.flashR : birdR).toFixed(1), fill: 'none', 'stroke-width': 2.4, opacity: (was ? was.flash : 0).toFixed(3) }, hg), 'stroke', '#fff8dc');
     // **The hold: every bird let go** — the same sweep round the outline the
     // die closes under its own long press, round whichever bird the hand is
@@ -2836,11 +3126,11 @@ function buildCells(r: Readout) {
     // drawn stronger, and outside it the ornament: the track's dotted section
     // stroke closed into a ring round the node (`birdMarks`). Nought until a
     // hand or a move asks for them.
-    const markWide = ink(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR, fill: 'none', 'stroke-width': HALO_WIDE.w, opacity: 0 }, hg), 'stroke', '#ffe0a0');
-    const markCrisp = ink(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR, fill: 'none', 'stroke-width': HALO_CRISP.w, opacity: 0 }, hg), 'stroke', '#ffeec0');
+    const markWide = inkOwn(inks, askW, el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR, fill: 'none', 'stroke-width': HALO_WIDE.w, opacity: 0 }, hg), 'stroke', '#ffe0a0');
+    const markCrisp = inkOwn(inks, askW, el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: birdR, fill: 'none', 'stroke-width': HALO_CRISP.w, opacity: 0 }, hg), 'stroke', '#ffeec0');
     // (evenly dotted, so it needs no turn to start at twelve: only the sweeps,
     // which are progress, start there)
-    const orn = ink(el('circle', { class: 'orn', cx: x.toFixed(1), cy: y.toFixed(1), r: ornR().toFixed(2), fill: 'none', 'stroke-width': ornW().toFixed(2), opacity: 0 }, hg), 'stroke', WAIT_INK);
+    const orn = inkOwn(inks, askW, el('circle', { class: 'orn', cx: x.toFixed(1), cy: y.toFixed(1), r: ornR().toFixed(2), fill: 'none', 'stroke-width': ornW().toFixed(2), opacity: 0 }, hg), 'stroke', WAIT_INK);
     // and its focus mark, one ornament gap outside the ornament (K24)
     const focusMark = focusRing(hg, x, y, ornR() + ornW() + ORN_GAP);
     haloOn[i] = { wide, crisp };
@@ -2859,10 +3149,10 @@ function buildCells(r: Readout) {
       dx: kx - x, dy: ky - y, wx: 0, wy: 0, put: '', putKnot: '', putHalo: halo,
       bird: bird2, pendFill, holdArc, markWide, markCrisp, orn,
       markAt: was ? was.mark : 0, ornAt: was ? was.orn : 0, markSaid: '',
-      fillFrom: was ? was.fillFrom : -1, fillP: was ? was.fillP : 0,
+      fillFrom: was ? was.fillFrom : -1, fillP: was ? was.fillP : 0, fillPlan: was ? was.fillPlan : 0,
       value: valueOf(bird2), held: controls && heldValue.has(bird2), pulling: false,
       implied: null, impliedFor: -1, impliedTheme: -1, impliedAt: 0, impliedTrail: 0, impliedNext: false, impliedR: null,
-      saidTitle: '', saidArc: '' };
+      saidTitle: '', saidArc: '', inks, inkW: -1, inkSaid: -1, inkGen: -1, typeSaid: '' };
     g.addEventListener('focus', () => { pointCell(node); showTell(node); markFocus(g, focusMark, true); });
     g.addEventListener('blur', () => { pointCell(null); markFocus(g, focusMark, false); });
     g.addEventListener('keydown', (ev: KeyboardEvent) => cellKey(node, ev));
@@ -2873,8 +3163,25 @@ function buildCells(r: Readout) {
   wordStep = Math.round(starDeg / 15);
   placeWords(starDeg);
   paintHeld(r);
+  // **A rebuild under a hand** (the deep review of 10-08): the bird a hand is
+  // moving stays under it — its pull and its value carried onto the new node —
+  // and every reference to a node is re-pointed to the new one by its id: the
+  // drag, the line, the last click, a waiting commit and the phone's panel
+  for (const o of before) {
+    if (!o.pulling) continue;
+    const n = liveCell(o);
+    if (n === o) continue;
+    n.pulling = true;
+    n.value = o.value;
+  }
+  const d = dragging;
+  if (d && (d.kind === 'pull' || d.kind === 'finger' || d.kind === 'spin' || d.kind === 'cell') && d.cell) d.cell = liveCell(d.cell);
+  if (tell.cell) tell.cell = liveCell(tell.cell);
+  if (lastClick.cell) lastClick = { cell: liveCell(lastClick.cell), at: lastClick.at };
+  if (pendingCommit) pendingCommit.c = liveCell(pendingCommit.c);
   // the phone's panel stays open on the same bird across a rebuild
-  if (panelCell) { const id = panelCell.id; panelCell = cellNodes.find((c) => c.id === id) ?? null; paintPanel(); }
+  if (panelCell) { panelCell = liveCell(panelCell); paintPanel(); }
+  if (!born && cellNodes.some((c) => c.pulling)) { layoutCells(); paintHeld(r); }
 }
 
 // ==========================================================================
@@ -3547,8 +3854,16 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
   const about = Math.max(0, r.mix.themeNumber - 1);
   // The answer goes stale when a theme lands as surely as when the hand moves.
   const fresh = c.implied && c.impliedTheme === about;
-  if (fresh && Math.abs(c.value - c.impliedFor) < 0.004) return c.implied;
-  const spell = { ...heldSpell(), [c.bird]: c.value } as Partial<Spell>;
+  // **The value the drop would leave** (K38): a drop holds the hand's value at a
+  // hundredth (`pulled`, `endPull`), so the promise is planned at that
+  // hundredth and is stale the moment it changes. It was planned at the raw
+  // value and kept for four thousandths of it, which under Ember's bands never
+  // crossed a word; under GA5's continuous tempo curve a hundredth at the rim is
+  // four beats a minute, and the label under the hand read 160.1 where the drop
+  // then read 164.1.
+  const leave = pulled(c.value);
+  if (fresh && leave === c.impliedFor) return c.implied;
+  const spell = { ...heldSpell(), [c.bird]: leave } as Partial<Spell>;
   // **A promise planned already is read at once, whatever the throttle**: the
   // plans are kept by the whole request, so a hand going back over a value it
   // has passed costs nothing (R13).
@@ -3558,7 +3873,7 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
     return c.implied;
   }
   c.impliedAt = now;
-  c.impliedFor = c.value;
+  c.impliedFor = leave;
   c.impliedTheme = about;
   try {
     // **The whole request, asked of the one place that resolves it** (R57): the
@@ -3845,7 +4160,7 @@ function runLinesFade(now: number) {
   }
 }
 
-/** When the hand last asked the music for something: every wait's fill runs from here (round K12c). */
+/** When the hand last asked the music for something, on the set's own clock: every wait's fill runs from here (round K12c, MIX-X1). */
 let dropAt = -1;
 /** A plan's identity as far as a listener can hear it: its tempo, key, length, room and every die. */
 const planSigs = new WeakMap<object, string>();
@@ -3857,6 +4172,16 @@ function planSig(t: any): string {
     planSigs.set(t, v);
   }
   return v;
+}
+
+/** A cell's asked marks and its words at `w` of their walk (K43), written only when that moved a step a colour can show. */
+function paintCellInk(c: CellNode, w: number) {
+  c.inkW = w;
+  if (!inkDue(w, c.inkSaid, c.inkGen)) return;
+  c.inkSaid = w;
+  c.inkGen = inkGen;
+  paintOwn(c.inks, w);
+  c.typeSaid = walkType(c.gt, w, c.typeSaid);
 }
 
 /**
@@ -3894,20 +4219,30 @@ function planSig(t: any): string {
 function paintHeld(r: Readout | null) {
   if (!cellNodes.length) return;
   const on = controls;
-  const now = performance.now();
   const con = r ? consequence(r) : null;
+  // **The wait, as the transport states it** (round MIX-X1): the hand-over a
+  // hand asked for, from the ask to the swap and to the tempo's full arrival,
+  // every instant on the set's own clock — read here every frame and drawn
+  // against that clock, so the fill closes exactly as the value is heard. It
+  // used to sample `settleIn` against the page's clock and take the greatest
+  // reading ever seen, so a reading of nought for one frame — the blend over,
+  // the glide after it not yet laid — closed the fill for good while the
+  // tempo went on arriving for ten bars.
+  const w = r && r.mix.wait && r.mix.wait.kind !== 'seam' ? r.mix.wait : null;
+  const nowC = r ? r.mix.clock : 0;
   // the hand's ask is out and not yet heard at the seam
   const dropWaits = !!r && cellNodes.some((x) => !x.pulling && !birdLanded(x.bird, r.spell));
   for (const c of cellNodes) {
     let active = false;
     let tempo = c.id === 'bpm';
     if (on && r) {
-      // its own ask, held or let go home, not yet heard, and changing the plan
+      // its own ask, held or let go home, not yet heard — and the transport
+      // handing over for it, or, before it has said so, changing the plan
       const own = !c.pulling && !birdLanded(c.bird, r.spell)
-        && (con ? planSig(con.theme.track) !== planSig(con.base.track) : c.impliedNext);
+        && (w ? true : con ? planSig(con.theme.track) !== planSig(con.base.track) : c.impliedNext);
       const moved = c.consequent && dropWaits;
-      // the tempo goes on arriving after the seam, for as long as the grid glides
-      const gliding = tempo && c.fillFrom >= 0 && tempoNow(r) !== r.bpm;
+      // the tempo goes on arriving after the seam, for as long as the transport says it does
+      const gliding = tempo && c.fillFrom >= 0 && !!w && w.heardAt > nowC;
       active = own || moved || gliding;
       // a tempo that is not changing waits for the seam like any reading
       if (tempo && con && con.theme.bpm === con.base.bpm && !gliding) tempo = false;
@@ -3916,21 +4251,43 @@ function paintHeld(r: Readout | null) {
       c.fillFrom = -1;
       c.fillP = 0;
       if (c.saidArc !== '') { c.saidArc = ''; put(c.pendFill, 'd', ''); }
+      // a bird under the hand has asked nothing yet: its marks are the ring's
+      // colour, and the walk starts from there at the drop (K43)
+      paintCellInk(c, on && c.pulling ? 0 : -1);
       continue;
     }
-    if (c.fillFrom < 0 || (dropAt > c.fillFrom && dropWaits)) { c.fillFrom = dropAt >= 0 ? dropAt : now; c.fillP = 0; }
-    const m = r!.mix;
+    // from its own drop; a later ask re-bases it only when it moved the plan
+    // (a second ask joining the hand-over leaves this bird's wait as it was)
+    if (c.fillFrom < 0 || (dropAt > c.fillFrom && dropWaits && (!w || w.plan !== c.fillPlan))) { c.fillFrom = dropAt >= 0 ? dropAt : nowC; c.fillP = 0; c.fillPlan = w ? w.plan : 0; }
     let p = c.fillP;
-    if (REDUCED) p = 1;
-    else {
-      // what is left, on the transport's own clock; nothing until the seam is laid
-      const left = tempo ? (m.settleIn || (m.cutting ? m.cutIn : 0)) : (m.cutting ? m.cutIn : 0);
-      if (left > 0 || !dropWaits) {
-        const end = now + left * 1000;
-        p = Math.max(p, clamp((now - c.fillFrom) / Math.max(1, end - c.fillFrom), 0, 1));
-      }
-    }
+    if (!w && dropWaits && c.fillPlan !== 0) {
+      // **The wait it was drawn against is gone** (the deep review of 10-08: a
+      // seek drops a hand-over in flight) and the ask is still not heard: the
+      // fill is empty rather than held where it stood, and a wait the
+      // transport lays again fills from the moment this one was lost
+      if (c.fillPlan > 0) c.fillFrom = nowC;
+      c.fillPlan = -1;
+      p = 0;
+    } else if (REDUCED) p = 1;
+    else if (w) {
+      // a genuine re-plan — the plan's number moved — may step the fill back;
+      // the clock running never does
+      if (w.plan !== c.fillPlan) { c.fillPlan = w.plan; c.fillP = 0; p = 0; }
+      const end = tempo ? Math.max(w.heardAt, w.swapAt) : w.swapAt;
+      p = Math.max(p, clamp((nowC - c.fillFrom) / Math.max(0.001, end - c.fillFrom), 0, 1));
+    } else if (!dropWaits) p = 1;
     c.fillP = p;
+    // **The colour walks on the same fill** (K43), and arrives where the ring's
+    // does — at the swap, where the gradient steps. That is the fill's own end
+    // for every reading but a tempo still gliding after the swap, whose fill
+    // runs on to the glide's end: its colour is the same fraction read against
+    // the swap instead, so it neither lags the ring's step nor jumps at it.
+    let wc = p;
+    if (w && tempo && !REDUCED && w.heardAt > w.swapAt) {
+      const end = w.heardAt;
+      wc = w.swapAt <= c.fillFrom ? 1 : clamp(p * (end - c.fillFrom) / (w.swapAt - c.fillFrom), 0, 1);
+    }
+    paintCellInk(c, wc);
     const key = p.toFixed(3);
     if (c.saidArc === key) continue;
     c.saidArc = key;
@@ -3969,7 +4326,7 @@ function setPull(c: CellNode, v: number, r: Readout | null) {
   if (c.value === next && c.pulling) return;
   c.pulling = true;
   c.value = next;
-  const i = cellNodes.indexOf(c);
+  const i = cellIndexOf(c);
   cellTo[i] = radiusFor(c.bird, next);
   // **Where the value is, and not where the finger is.** The two were one thing
   // while the node was under the pointer; since the hand travels a third of the
@@ -3988,7 +4345,7 @@ function stepPull(c: CellNode, v: number, r: Readout | null) {
   const next = v === HOUSE[c.bird] ? v : pulled(v);
   c.pulling = true;
   c.value = next;
-  cellTo[cellNodes.indexOf(c)] = radiusFor(c.bird, next);
+  cellTo[cellIndexOf(c)] = radiusFor(c.bird, next);
   cellsMoved = true;
   if (r) paintHand(c, r);
 }
@@ -4049,8 +4406,8 @@ function commitSpell(r: Readout | null, said: string, whole = false) {
   // the house written whole), so no bird rests at a roll again (R58).
   handSpell = true;
   if (rolled) { rolled = null; layoutCells(); }
-  // the wait every fill on the ring runs from (round K12c)
-  dropAt = performance.now();
+  // the wait every fill on the ring runs from (round K12c), on the set's own clock (round MIX-X1)
+  dropAt = r && r.mix ? r.mix.clock : -1;
   const before = heldSpell();
   const ask = whole ? before : spellToCommit();
   ringAsked = ask;
@@ -4082,11 +4439,13 @@ function commitSpell(r: Readout | null, said: string, whole = false) {
 // moved on the ring, out of the spell and out of the link. A commit armed for a
 // different bird now lets the waiting one go first, at once.
 const COMMIT_MS = 300;
-let pendingCommit: { c: CellNode; run: () => void; timer: number } | null = null;
-function armCommit(c: CellNode, run: () => void) {
+// (the run is handed the node standing for the bird when it runs: a rebuild
+// inside the wait re-points `c`, 10-08)
+let pendingCommit: { c: CellNode; run: (c: CellNode) => void; timer: number } | null = null;
+function armCommit(c: CellNode, run: (c: CellNode) => void) {
   settleCommit(c);
   const p = { c, run, timer: 0 };
-  p.timer = setTimeout(() => { if (pendingCommit === p) pendingCommit = null; run(); }, COMMIT_MS) as unknown as number;
+  p.timer = setTimeout(() => { if (pendingCommit === p) pendingCommit = null; run(liveCell(p.c)); }, COMMIT_MS) as unknown as number;
   pendingCommit = p;
 }
 /** Another bird's waiting commit is made now; this bird's own is dropped, for its caller to settle. */
@@ -4095,7 +4454,7 @@ function settleCommit(c: CellNode) {
   if (!p) return;
   clearTimeout(p.timer);
   pendingCommit = null;
-  if (p.c !== c) p.run();
+  if (p.c.id !== c.id) p.run(liveCell(p.c));
 }
 
 function cellKey(c: CellNode, ev: KeyboardEvent) {
@@ -4103,10 +4462,10 @@ function cellKey(c: CellNode, ev: KeyboardEvent) {
   const k = ev.key;
   let to: number | null = null;
   // To the next whole step of the percent, as the phone's Less and More (R64).
-  if (k === 'ArrowUp' || k === 'ArrowRight') to = stepPercent(c.bird, c.value, 1, PULL_STEP);
-  else if (k === 'ArrowDown' || k === 'ArrowLeft') to = stepPercent(c.bird, c.value, -1, PULL_STEP);
-  else if (k === 'PageUp') to = stepPercent(c.bird, c.value, 1, PULL_PAGE);
-  else if (k === 'PageDown') to = stepPercent(c.bird, c.value, -1, PULL_PAGE);
+  if (k === 'ArrowUp' || k === 'ArrowRight') to = stepBird(c, 1, PULL_STEP);
+  else if (k === 'ArrowDown' || k === 'ArrowLeft') to = stepBird(c, -1, PULL_STEP);
+  else if (k === 'PageUp') to = stepBird(c, 1, PULL_PAGE);
+  else if (k === 'PageDown') to = stepBird(c, -1, PULL_PAGE);
   else if (k === 'Backspace' || k === 'Delete') {
     if (!c.held && !c.pulling) return;
     ev.preventDefault();
@@ -4118,7 +4477,7 @@ function cellKey(c: CellNode, ev: KeyboardEvent) {
   ev.preventDefault();
   ev.stopPropagation();
   stepPull(c, clamp(to, 0, 1), last);
-  armCommit(c, () => endPull(c, last));
+  armCommit(c, (n) => endPull(n, last));
 }
 
 /** What one cell says to a screen reader: the reading, and the value where there is one. */
@@ -4152,7 +4511,7 @@ function sayCell(c: CellNode, r: Readout) {
 // and pause control on its own. A reload restores the seed and the position
 // but starts nothing, so it counts as untouched and the mark is there again.
 let started = false;
-const reading = (r: Readout | null) => started || !!(r && r.playing);
+const reading = (r: Readout | null) => started || sounding(r);
 
 // All seven are engraved by `buildCore`, which runs before anything reads one.
 let seedText!: Mark<SVGTextElement>, chordText!: Mark<SVGTextElement>,
@@ -4177,7 +4536,7 @@ function buildCore(r: Readout) {
   // which theme of the mix this is, and how long it runs
   themeText = txt(coreTextG, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`, C, C - 46, 14, { op: 0.6, ls: 0.28 });
   // the part of the theme playing now
-  sectionText = txt(coreTextG, r.section || '', C, C - 22, 12, { op: 0.5, ls: 0.32 });
+  sectionText = txt(coreTextG, sectionName(r), C, C - 22, 12, { op: 0.5, ls: 0.32 });
   // the chord sounding now
   chordText = txt(coreTextG, r.chord || '', C, C + 26, 30, { op: 0.95, ls: 0.16 });
   // the notes in it
@@ -4293,18 +4652,27 @@ function castTypedSeed(seed: string) {
   return String(seed);
 }
 
+/**
+ * The words under the needle: the section, and the sub-section the bar is in
+ * where it is in one (round DNB-1) — "drop · rolling snare", "main groove ·
+ * fill", "drop · drop-out".
+ */
+function sectionName(r: { section?: string; sub?: string }): string {
+  return r.sub ? `${r.section || ''} · ${r.sub}` : r.section || '';
+}
+
 function setText(node: Element, v: string | number) {
   const s = String(v).toUpperCase();
   if (node.textContent !== s) node.textContent = s;
 }
 
 function repaintCore(r: Readout) {
-  setPlayGlyph(r.playing);
+  setPlayGlyph(sounding(r));
   // one write, at the moment the set first starts — never during playback
   put(coreTextG, 'opacity', reading(r) ? 1 : 0);
   setText(seedText, `seed ${r.seed}`);
   setText(themeText, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`);
-  setText(sectionText, r.section || '');
+  setText(sectionText, sectionName(r));
   setText(chordText, r.chord || '');
   setText(notesText, (r.chordNotes || []).join(' '));
 }
@@ -4528,6 +4896,8 @@ let coronaG: Mark<SVGGElement> | null = null, coronaRays: Mark<SVGGElement> | nu
 let coronaFade: Mark<SVGElement> | null = null, coronaFadeIn!: Mark<SVGElement>, coronaFadeMid!: Mark<SVGElement>;
 let waveRings: Mark<SVGCircleElement>[] = [];
 let rimG: Mark<SVGGElement> | null = null;
+/** the point on the needle and its halo: what breathes while a start waits (K42) */
+let cursorDot!: Mark<SVGCircleElement>, cursorHalo!: Mark<SVGCircleElement>;
 let cursorG!: Mark<SVGGElement>,
   pulseRing2!: Mark<SVGCircleElement>, castRing!: Mark<SVGCircleElement>,
   breathDisc!: Mark<SVGCircleElement>, holdRing!: Mark<SVGCircleElement>,
@@ -4536,6 +4906,14 @@ let cursorG!: Mark<SVGGElement>,
 // bird lets every bird go: one hold for both (the birds' own copy of the same
 // 700 went in round (f) of the reconciled review of 09-24, D40).
 const HOLD_MS = 700;
+// **And a click draws nothing of it** (round MIX-X5, Eugene: *"a plain click
+// on the die shows the beginning of the reset circle"*). The sweep round the
+// die, and the one round a bird, is offered only once the pointer has been
+// still this long; the hold itself is counted from the pointer-down, so the
+// circle appears partway round and keeps its pace — at 700 ms the reset
+// fires exactly as it did, and a tap, which is over long before this, never
+// sees a ring at all. The birds' quarter second (K12d) is the same number.
+const HOLD_SHOW_MS = 250;
 const hold = { at: -1, fired: false };
 let bigPlay: Mark<SVGGElement> | null = null, bigPlayOp = 1, bigPlayPrev = 0;
 let tellPath: Mark<SVGPathElement> | null = null, tellText: Mark<SVGTextElement> | null = null,
@@ -4698,8 +5076,8 @@ function buildLive() {
   cursorG = el('g', { opacity: 0.95 }, gLive);
   ink(el('path', { d: `M${C} ${C - R_BAND_IN + 2} L${C} ${C - R_SEC - 8}`, 'stroke-width': 12, opacity: 0.14, fill: 'none', 'stroke-linecap': 'round' }, cursorG), 'stroke', '#ffe0a0');
   ink(el('path', { d: `M${C} ${C - R_BAND_IN} L${C} ${C - R_SEC - 10}`, 'stroke-width': 2, fill: 'none', 'stroke-linecap': 'round' }, cursorG), 'stroke', '#ffeec0');
-  ink(el('circle', { cx: C, cy: C - R_SEC, r: 10, fill: 'none', 'stroke-width': 6, opacity: 0.18 }, cursorG), 'stroke', '#ffe0a0');
-  ink(el('circle', { cx: C, cy: C - R_SEC, r: 4.2 }, cursorG), 'fill', '#ffeec0');
+  cursorHalo = ink(el('circle', { cx: C, cy: C - R_SEC, r: POINT_HALO_R, fill: 'none', 'stroke-width': 6, opacity: POINT_HALO_OP }, cursorG), 'stroke', '#ffe0a0');
+  cursorDot = ink(el('circle', { cx: C, cy: C - R_SEC, r: POINT_R }, cursorG), 'fill', '#ffeec0');
 
   // the time and the bar you are on, engraved beside the cursor
   engravePath = el('path', { id: 'engravePath', d: '', fill: 'none' }, gLive);
@@ -4709,6 +5087,54 @@ function buildLive() {
   engraveTP.setAttribute('startOffset', '50%');
   engraveTP.setAttribute('text-anchor', 'middle');
   engraveText.appendChild(engraveTP);
+}
+
+/** The core's pulse put down to its resting light, once until it beats again. */
+let pulseResting = false;
+function restPulse() {
+  if (pulseResting) return;
+  pulseResting = true;
+  pulseRestKey = '';
+  for (const p of pulseRings) put(p, 'opacity', '0.000');
+  for (const w of waveRings) put(w, 'opacity', '0.000');
+  if (coronaRays) put(coronaRays, 'opacity', 0);
+  put(pulseRing2, 'opacity', 0.16);
+  put(pulseRing2, 'r', R_CORE);
+  put(breathDisc, 'opacity', 0);
+}
+
+/**
+ * **The point on the needle while a start waits** (K42). A tick on the beat
+ * grid at the tempo the theme was planned at, the first of them at the press
+ * itself: the halo opens and brightens on each beat and settles back, the dot
+ * swells a little with it. It is the only thing that moves — the needle stays
+ * at its bar and the time stays where the music is, so nothing reads as
+ * progress before there is any. Under reduced motion the halo is lit and still.
+ */
+let pointFrom = -1;
+let pointLit = false;
+function breathePoint(now: number, r: Readout) {
+  if (pointFrom < 0) pointFrom = now;
+  pointLit = true;
+  if (REDUCED) {
+    put(cursorHalo, 'r', POINT_HALO_R + 3);
+    put(cursorHalo, 'opacity', 0.5);
+    return;
+  }
+  const beatMs = r.beat > 0 ? r.beat * 1000 : 500;
+  const e = Math.exp(-(((now - pointFrom) / beatMs) % 1) * 5);
+  put(cursorHalo, 'r', (POINT_HALO_R + 6 * e).toFixed(2));
+  put(cursorHalo, 'opacity', (POINT_HALO_OP + 0.5 * e).toFixed(3));
+  put(cursorDot, 'r', (POINT_R + 1.4 * e).toFixed(2));
+}
+/** and the point at rest again, the moment the clock runs or the start is let go */
+function restPoint() {
+  if (!pointLit) return;
+  pointLit = false;
+  pointFrom = -1;
+  put(cursorHalo, 'r', POINT_HALO_R);
+  put(cursorHalo, 'opacity', POINT_HALO_OP);
+  put(cursorDot, 'r', POINT_R);
 }
 
 // Where the cursor cuts the band: everything before it sits under the shade.
@@ -5460,7 +5886,7 @@ interface StarDrag {
   /** how far the hand has travelled on the screen, and where it last was: a cast is only a clear attempt */
   px: number; lx: number; ly: number;
 }
-interface ActionDrag { kind: 'action'; action: ActionNode }
+interface ActionDrag { kind: 'action'; action: ActionNode; played?: boolean }
 interface SeedDrag { kind: 'seed'; x: number; y: number }
 /**
  * A mouse or a pen on a cell, where a cell is a control. It keeps the press's
@@ -5482,7 +5908,7 @@ interface SeedDrag { kind: 'seed'; x: number; y: number }
  */
 function followHand(d: PullDrag) {
   const c = d.cell;
-  const i = cellNodes.indexOf(c);
+  const i = cellIndexOf(c);
   if (i < 0) return;
   const at = unturn(toSvg({ clientX: d.cx, clientY: d.cy } as PointerEvent, Z_INNER));
   const lo = radiusFor(c.bird, 0);
@@ -5498,9 +5924,11 @@ function followHand(d: PullDrag) {
   // hand one unit for one, as round K8 made it.
   const home = HOUSE[c.bird];
   const p = magnet(((hand / starR - pullIn) / (1 - pullIn)) * 100, c.value === home);
-  const R = p === 100 ? radiusFor(c.bird, home) : hand;
+  let R = p === 100 ? radiusFor(c.bird, home) : hand;
+  let v = p === 100 ? home : pulled(valueOfPercent(c.bird, clamp(p, 0, RIM_PERCENT)));
+  // Ember's notches are detents of their own (K40): held at one near it, under the hand between
+  if (c.bird === 'ember' && p !== 100) { const d = emberDetent(v); if (d !== v) { v = d; R = radiusFor(c.bird, d); } }
   cellR[i] = cellTo[i] = R;
-  const v = p === 100 ? home : pulled(valueOfPercent(c.bird, clamp(p, 0, RIM_PERCENT)));
   const was = c.value;
   c.pulling = true;
   c.value = v;
@@ -5518,10 +5946,10 @@ interface PullDrag {
   /** the still press has let every bird go, and the lift is not also a click */
   fired: boolean;
   /**
-   * Where the hand was along the spoke and across it when the pull began —
-   * taken at the moment the slop is passed, so the four pixels that tell a
-   * pull from a press are not also a jump; the node then moves exactly as far
-   * as the hand has since (`followHand`)
+   * Where the hand was along the spoke and across it when it took the bird —
+   * the press point, read when the slop is passed, so the first move counts
+   * whole; the node then moves exactly as far as the hand has since
+   * (`followHand`)
    */
   r0: number;
   a0: number;
@@ -5549,7 +5977,7 @@ interface PullDrag {
  * bird — the open face — is nothing. The same three outcomes on every square.
  */
 interface FingerDrag { kind: 'finger'; cell: CellNode | null; x: number; y: number; t0: number; f0: number; p0: Pt2; moved: boolean; fired: boolean; pointerId: number }
-interface CoreDrag { kind: 'core'; t0: number; armed: boolean; release: boolean }
+interface CoreDrag { kind: 'core'; t0: number; armed: boolean; release: boolean; played?: boolean }
 interface PlainDrag { kind: 'none' }
 type Drag = BandDrag | StarDrag | ActionDrag | SeedDrag | PullDrag | FingerDrag | CoreDrag | PlainDrag;
 
@@ -5966,7 +6394,7 @@ function newMix() {
  * whatever the key draws, so they call `runAction` directly.
  */
 /** Whether the key at twelve is the About now: nothing has played yet. */
-const aboutMode = () => playMode(!!(last && last.playing)) === 'about';
+const aboutMode = () => playMode(sounding(last)) === 'about';
 
 function pressAction(id: string) {
   if (id === 'play' && aboutMode()) {
@@ -5992,6 +6420,29 @@ function runAction(id: string) {
   else if (id === 'cast') { askCut(id); newMix(); }
 }
 
+/**
+ * **A press on play, answered at the press** (K42). A mouse's press is a
+ * gesture the browser lets sound start on, so the transport is asked now and
+ * the lift asks nothing: the context's resume goes out a click's length sooner
+ * and the face turns over in the same frame. A finger's press is not one — a
+ * phone lets sound start only on the lift — so the face turns over now
+ * (`pressingPlay`) and the lift asks the transport as it always did. So does a
+ * press on the centre with a bird held, which may yet be the long press that
+ * lets them all go (`now` false): the face turns over, a mouse wakes the
+ * context, and the lift decides. Returns whether the transport has been asked.
+ */
+function pressPlay(e: PointerEvent, now: boolean): boolean {
+  if (e.button !== 0) return false;
+  const mouse = e.pointerType === 'mouse';
+  if (mouse && now) { runAction('play'); return true; }
+  if (!sounding(last)) {
+    pressingPlay = true;
+    setPlayGlyph(true);
+    if (mouse && control.resumeContext) control.resumeContext();
+  }
+  return false;
+}
+
 // Holding the die starts the whole set again from its first seed.
 function resetAll() {
   spinAngle = 0;
@@ -6005,6 +6456,11 @@ function resetAll() {
 function runHold(now: number) {
   if (!holdRing) return;
   if (hold.at < 0) {
+    if (holdDim.getAttribute('opacity') !== '0') { put(holdDim, 'opacity', 0); put(holdRing, 'opacity', 0); }
+    return;
+  }
+  // nothing until the pointer has been still for `HOLD_SHOW_MS`: a click is a click
+  if (now - hold.at < HOLD_SHOW_MS) {
     if (holdDim.getAttribute('opacity') !== '0') { put(holdDim, 'opacity', 0); put(holdRing, 'opacity', 0); }
     return;
   }
@@ -6225,7 +6681,7 @@ function paintPanel() {
   // reading write it, and at the seam the two are the same theme.
   let handLine = '';
   if (waiting) {
-    impliedDie(c, last, performance.now(), c.impliedR == null || Math.abs(c.value - c.impliedFor) >= 0.004);
+    impliedDie(c, last, performance.now(), c.impliedR == null || pulled(c.value) !== c.impliedFor);
     if (c.impliedR) handLine = valueLine(c, c.value, { ...(heldSpell() || {}) } as Partial<Spell>, c.impliedR, last);
   }
   set(panelNow, handLine || restLine(c, last));
@@ -6272,13 +6728,13 @@ function panelSet(c: CellNode, v: number) {
   // (a second bird stepped inside the wait lets this one's commit go first)
   settleCommit(c);
   stepPull(c, v, last);
-  armCommit(c, () => { endPull(c, last, false); paintPanel(); });
+  armCommit(c, (n) => { endPull(n, last, false); paintPanel(); });
   paintPanel();
 }
 function panelStep(dir: number) {
   const c = panelCell;
   if (!c || !controls) return;
-  panelSet(c, stepPercent(c.bird, c.value, dir));
+  panelSet(c, stepBird(c, dir));
   nudge(0.12);
 }
 
@@ -6318,9 +6774,14 @@ if (panelSlider) {
     const c = panelCell;
     if (!c || !controls) return;
     const p = magnet(Number(panelSlider.value), c.value === HOUSE[c.bird]);
-    const snapped = p === 100 ? 100 : clamp(Math.round(p / TAP_STEP) * TAP_STEP, 0, RIM_PERCENT);
+    let snapped = p === 100 ? 100 : clamp(Math.round(p / TAP_STEP) * TAP_STEP, 0, RIM_PERCENT);
+    let v = snapped === 100 ? HOUSE[c.bird] : pulled(valueOfPercent(c.bird, snapped));
+    // Ember's grid is its notches of five BPM, where it has them (K40)
+    if (c.bird === 'ember' && p !== 100) {
+      const w = pulled(valueOfPercent(c.bird, clamp(p, 0, RIM_PERCENT)));
+      if (emberTempo(w, sparkNow(), true) >= NOTCHED_FROM) { v = emberNotchValue(w, sparkNow()); snapped = percentShown(c.bird, v); }
+    }
     panelSlider.value = String(snapped);
-    const v = snapped === 100 ? HOUSE[c.bird] : pulled(valueOfPercent(c.bird, snapped));
     if (v === c.value) return;
     // a drawing until the release: the bird, its words and the panel follow
     // (another bird's commit still waiting goes first; this bird's own is
@@ -6337,7 +6798,7 @@ if (panelSlider) {
     if (!c || !controls || !last) return;
     impliedDie(c, last, performance.now(), 'now');
     if (sliding) { sliding = false; slideCommit(); return; }
-    if (c.pulling) armCommit(c, () => { endPull(c, last, false); paintPanel(); });
+    if (c.pulling) armCommit(c, (n) => { endPull(n, last, false); paintPanel(); });
     paintPanel();
   });
   panelSlider.addEventListener('pointerdown', () => { sliding = true; });
@@ -6375,7 +6836,7 @@ let lastClick: { cell: CellNode | null; at: number } = { cell: null, at: 0 };
 
 /** Lift a bird off the table, or set it down: the node's size eases either way. */
 function liftCell(c: CellNode, on: boolean) {
-  const i = cellNodes.indexOf(c);
+  const i = cellIndexOf(c);
   if (i < 0) return;
   cellLiftTo[i] = on ? 1 : 0;
   // and set down, it floats back onto its own spoke: the play off the axis was
@@ -6390,13 +6851,12 @@ function liftCell(c: CellNode, on: boolean) {
  * held, because a hold that would let nothing go is not offered; and only after
  * the first quarter of a second, so a click draws nothing at all.
  */
-const BIRD_HOLD_SHOW = 250;
 let birdHoldDrawn = -1;
 function runBirdHold(now: number) {
   const d = dragging;
   const on = !!d && (d.kind === 'pull' || (d.kind === 'finger' && !!d.cell)) && !d.moved && !d.fired
-    && controls && heldValue.size > 0 && now - d.t0 >= BIRD_HOLD_SHOW;
-  const i = on ? cellNodes.indexOf((d as PullDrag | FingerDrag).cell!) : -1;
+    && controls && heldValue.size > 0 && now - d.t0 >= HOLD_SHOW_MS;
+  const i = on ? cellIndexOf((d as PullDrag | FingerDrag).cell!) : -1;
   if (birdHoldDrawn >= 0 && birdHoldDrawn !== i && cellNodes[birdHoldDrawn]) put(cellNodes[birdHoldDrawn].holdArc, 'opacity', 0);
   birdHoldDrawn = i;
   if (i < 0) return;
@@ -6452,6 +6912,7 @@ tiltEl.addEventListener('pointerdown', (e: PointerEvent) => {
     hoverAction(hit.action.id);
     dragging = { kind: 'action', action: hit.action };
     if (hit.action.id === 'cast') { hold.at = performance.now(); hold.fired = false; }
+    else if (hit.action.id === 'play' && !aboutMode()) dragging.played = pressPlay(e, true);
   }
   else if (hit.kind === 'seed') {
     // A cancelled press sends no mouse events after the touch, so the field
@@ -6498,6 +6959,9 @@ tiltEl.addEventListener('pointerdown', (e: PointerEvent) => {
     // Nothing is armed while the offer already stands, and nothing is armed
     // with no bird held: the centre is then the transport and only that.
     coreHold.at = !offered && controls && heldValue.size > 0 ? performance.now() : -1;
+    // with no long press to wait for, the centre is play and nothing else, so
+    // it is answered at the press (K42)
+    if (!offered) (dragging as CoreDrag).played = pressPlay(e, coreHold.at < 0);
   }
   else if (hit.kind === 'band') {
     dragFrac = hit.f;
@@ -6561,18 +7025,20 @@ function dragMove(e: PointerEvent): void {
     return;
   } else if (dragging.kind === 'pull') {
     const d = dragging;
-    const at = unturn(toSvg(e, Z_INNER));
     d.cx = e.clientX;
     d.cy = e.clientY;
     if (!d.moved) {
       // **What tells a drag from a click**: whether the hand moved at all.
       if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= PULL_SLOP) return;
       d.moved = true;
-      // The pull begins here and not at the press, so the four pixels that
-      // told it from a press are not also the first four pixels of travel.
-      d.r0 = alongSpoke(d.cell, at);
-      d.a0 = acrossSpoke(d.cell, at);
-      const i0 = cellNodes.indexOf(d.cell);
+      // **The pull counts from the press** (the deep review of 10-08): the
+      // point the hand took the bird by stays under the hand. It was taken
+      // here, at the move that passed the slop, and that whole move was lost —
+      // a quick 40-pixel first move left the bird where it stood.
+      const press = unturn(toSvg({ clientX: d.x, clientY: d.y } as PointerEvent, Z_INNER));
+      d.r0 = alongSpoke(d.cell, press);
+      d.a0 = acrossSpoke(d.cell, press);
+      const i0 = cellIndexOf(d.cell);
       d.R0 = cellR[i0];
       d.S0 = cellSide[i0];
       // the star's wander is held for this bird where it stands, so the hand
@@ -6598,6 +7064,12 @@ function dragMove(e: PointerEvent): void {
 window.addEventListener('pointerup', (e: PointerEvent) => {
   const d = dragging;
   dragging = null;
+  // a finger's press on play drew the face; the lift below asks the transport
+  // or, off the key, asks nothing — and the face then says so (K42)
+  if (pressingPlay) {
+    pressingPlay = false;
+    queueMicrotask(() => setPlayGlyph(sounding(last)));
+  }
   if (e.pointerType === 'touch') { tiltTX = 0; tiltTY = 0; hoverAction(null); pointCell(panelCell); }
   if (!d) return;
   const hit = hitAt(e);
@@ -6605,8 +7077,9 @@ window.addEventListener('pointerup', (e: PointerEvent) => {
     case 'action': {
       const held = d.action.id === 'cast' && hold.fired;
       hold.at = -1;
-      // a hold has already done its work; its release is not also a tap
-      if (!held && hit.kind === 'action' && hit.action.id === d.action.id) pressAction(d.action.id);
+      // a hold has already done its work; its release is not also a tap,
+      // and a play answered at the press is not asked twice
+      if (!held && !d.played && hit.kind === 'action' && hit.action.id === d.action.id) pressAction(d.action.id);
       hold.fired = false;
       break;
     }
@@ -6619,7 +7092,7 @@ window.addEventListener('pointerup', (e: PointerEvent) => {
       coreHold.at = -1;
       if (d.armed) break;
       if (d.release && onCore) { offerRelease(false); releaseAll(last); break; }
-      if (onCore) runAction('play');
+      if (onCore && !d.played) runAction('play');
       break;
     }
     case 'pull': {
@@ -6717,7 +7190,17 @@ window.addEventListener('pointerup', (e: PointerEvent) => {
 // capture lost to a scroll or a call — has to put the transport back exactly
 // as a lift does, or the cursor stays under a hand that is no longer there.
 function abandonDrag() {
-  if (dragging && dragging.kind === 'band') control.endScrub();
+  // **A press on the band that ends without a lift commits where the hand
+  // was**, as a lift does and as a pull does (10-05, Eugene: *"it works once
+  // in three times; most of the time the bar renders for a split second at the
+  // clicked place and then goes back to zero"* — the ring tilting under the
+  // pointer ended the press before the lift, and an abandoned scrub gave the
+  // position back, which on a ring not playing is the place before the
+  // press). A flick is a throw and asked for no position.
+  if (dragging && dragging.kind === 'band') {
+    if (flickOf(dragging)) control.endScrub();
+    else control.endScrub({ commit: true, fraction: dragging.acc });
+  }
   // A pull that ends without a lift **commits where the hand left it**, which
   // is what a lift does: the node is drawn at that radius, and a drawing the
   // spell does not carry is the one thing a ring of readings may not have.
@@ -6730,6 +7213,8 @@ function abandonDrag() {
   hold.at = -1;
   hold.fired = false;
   coreHold.at = -1;
+  // a finger taken off play by the system asked for nothing
+  if (pressingPlay) { pressingPlay = false; setPlayGlyph(sounding(last)); }
   tiltEl.style.cursor = 'default';
 }
 
@@ -6800,8 +7285,15 @@ function onReadout(r: Readout) {
   coverDue(r);
   if (wasPlaying !== null && wasPlaying !== r.playing) transportFlipped(r);
   wasPlaying = r.playing;
+  // **A start asked is a start** (the deep review of 10-08): the set counts as
+  // having run from the readout that says it is starting, so Space twice
+  // inside a start leaves the key at twelve the play it became, never the
+  // About again
+  if ((r.playing || r.starting) && !started) { started = true; paintLinkNote(); }
+  // the key first, whatever else this readout redraws: a press is answered in
+  // the readout that carries it (K42)
+  setPlayGlyph(sounding(r));
   if (!tapPrep || tapPrep.key !== tapKey()) prepTap();
-  if (r.playing && !started) { started = true; paintLinkNote(); }
   // Which engine is playing decides whether the cells are controls at all, and
   // the engine can change under a set (the machine view's one control, and the
   // preview's toggle). A ring that has just become the record's puts every
@@ -6831,6 +7323,9 @@ function onReadout(r: Readout) {
   // asked, whether a node was pressed or the star was thrown.
   if (!(r.mix && r.mix.cutting) || r.mix.themeNumber !== cutTheme) cutLanded();
   runCutFill(r);
+  // the engraving's "cut in" goes with the readout that drops it — a seek
+  // landing — and not a frame after (the deep review of 10-08)
+  if (!r.mix.cutInBars && engraveCut) paintEngrave(r);
   say(r);
   if (r.change.n !== lastChange) {
     const reason = r.change.reason;
@@ -6876,6 +7371,18 @@ function planKeyOf(r: Readout): string {
   const key = `${r.seed}:${r.mix.themeNumber}:${r.bars}:${r.plan.map((s) => s.kind + s.bars).join('')}`;
   planKeyFor = { plan: r.plan, seed: r.seed, theme: r.mix.themeNumber, bars: r.bars, key };
   return key;
+}
+
+/** The engraving over the needle: the time, the bar and, while a cut is coming, how far off it is. */
+let engraveCut = 0;
+function paintEngrave(r: Readout) {
+  const cut = r.mix.cutInBars;
+  engraveCut = cut;
+  const label = cut
+    ? `${r.time} · ${r.bar + 1}/${r.bars} · cut in ${cut}`
+    : `${r.time} · ${r.bar + 1}/${r.bars}`;
+  const up = label.toUpperCase();
+  if (engraveTP.textContent !== up) engraveTP.textContent = up;
 }
 
 function restate(r: Readout) {
@@ -7083,7 +7590,7 @@ const FRAME_REST_MS = 1000 / 30 - 3;
 /** the screen's own frame gap, eased (a 120 Hz screen's is 8.3 ms) */
 let rawAt = 0, rawGap = 1000 / 60;
 function atRest(now: number): boolean {
-  return !!last && !last.playing && !dragging && now - handAt > 1500 && !spinEase && !playOut
+  return !!last && !sounding(last) && !dragging && now - handAt > 1500 && !spinEase && !playOut
     && cast.t0 < 0 && castFreeze == null && wobA <= 0.001 && !cellNodes.some((c) => c.glyphOut || c.linesOut)
     // and no bird still travelling to where its value puts it, with its words following
     && !cellR.some((r, i) => Math.abs(r - cellTo[i]) > 0.05);
@@ -7205,14 +7712,18 @@ function frame(now: number) {
       const w = 0.075;
       engravePath.setAttribute('d', top ? arcPath(rr, f - w, f + w, 1) : arcPath(rr, f + w, f - w, 0));
     }
-    const cut = last.mix.cutInBars;
-    const label = cut
-      ? `${last.time} · ${last.bar + 1}/${last.bars} · cut in ${cut}`
-      : `${last.time} · ${last.bar + 1}/${last.bars}`;
-    const up = label.toUpperCase();
-    if (engraveTP.textContent !== up) engraveTP.textContent = up;
+    paintEngrave(last);
 
-    if (last.playing) {
+    if (waiting(last)) {
+      // **Asked, and not yet heard** (K42): the needle at full light where the
+      // music will begin, the core's pulse at rest — there is no beat to show
+      // yet — and the point on the needle ticking on the planned beat.
+      restPulse();
+      if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
+      breathePoint(now, last);
+    } else if (last.playing) {
+      restPoint();
+      pulseResting = false;
       // How far the pulse reaches is a curve of the tempo (`pulseTrace`): the
       // pulse the ring has always had at a house tempo and above, and a wide,
       // slow swell under sixty — rising and falling on a logarithm and fading
@@ -7239,15 +7750,10 @@ function frame(now: number) {
         for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === last.beatInBar ? 0.95 : 0.2);
       }
     } else {
+      restPoint();
       if (cursorFaded !== 0.6) {
         cursorFaded = 0.6;
-        pulseRestKey = '';
-        for (const p of pulseRings) put(p, 'opacity', '0.000');
-        for (const w of waveRings) put(w, 'opacity', '0.000');
-        if (coronaRays) put(coronaRays, 'opacity', 0);
-        put(pulseRing2, 'opacity', 0.16);
-        put(pulseRing2, 'r', R_CORE);
-        put(breathDisc, 'opacity', 0);
+        restPulse();
         cursorG.setAttribute('opacity', 0.6);
       }
     }
@@ -7523,7 +8029,7 @@ sizeControls(false);
 // own account of what it reads off the transport, so it is named here rather
 // than asserted again at every field.
 const first = control.readout() as Readout;
-if (first.playing) started = true;
+if (first.playing || first.starting) started = true;
 // and a link the page would not play in full is said once to a screen reader,
 // in the whole sentence the ring's one line is short for
 if (control.linkProblems.length) announce(control.linkProblems.map((p) => p.long).join('. '));
@@ -7664,7 +8170,8 @@ export interface RingHandle {
   pick(clientX: number, clientY: number, touch?: boolean): string | null;
   /** the star's turn in its two parts: the clamped continuous sway and a finger's spin on top */
   turn(): { sway: number; spin: number; star: number };
-  still(on?: boolean): void;
+  /** hold still for a picture; `at`, a second of the theme the ring is drawn at (M21: a stated frame) */
+  still(on?: boolean, at?: number): void;
   /** the tempo the pulse is drawn at, for a test; null gives it back to the grid */
   pulseAt(bpm: number | null): void;
   /**
@@ -7737,6 +8244,7 @@ window.ring = {
     if (step) { wearColour(next); return next.hex; }
     asked = next;
     askedTone.clear();
+    inkGen++;
     return next.hex;
   },
   toned: (e: number) => paintToned(clamp(Number(e), 0, 1)),
@@ -7795,8 +8303,14 @@ window.ring = {
   },
   turn: () => ({ sway: swayDeg, spin: +spinAngle.toFixed(3), star: starDeg }),
   pulseAt(bpm: number | null) { pulseBpmAsked = bpm; pulseRestKey = ''; },
-  still(on = true) {
+  still(on = true, at?: number) {
     if (!on) { if (frozen) { frozen = false; requestAnimationFrame(frame); } return; }
+    // **A stated frame** (M21): a photograph draws the ring as the set reads
+    // at the second it names — a bar's downbeat — and not at whatever instant
+    // the picture happened to be taken, so two photographs of one tree are one
+    // picture. Only the photographing tool asks it; a listener's ring is never
+    // held.
+    if (at != null) { const r = control.readout(at); if (r) last = r; }
     snapStill();
     frozen = false;
     frame(performance.now());          // one pass over the snapped values

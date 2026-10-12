@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "grainPad",
+  "revision": 1,
+  "topology": "grain-cloud",
+  "block": "grainPad",
+  "parameters": {
+    "sourceSeconds": 1,
+    "sourceHz": 110,
+    "sourcePartials": 24,
+    "sourceStretch": 0.0022,
+    "sourceTilt": 0.85,
+    "every": 0.035,
+    "grainSeconds": 0.09,
+    "grainLevel": 0.34,
+    "timeSpread": 0.8,
+    "rateSpread": 0.012,
+    "tiltHz": 3000,
+    "spread": 0.85,
+    "scanRate": 0.35,
+    "chord": [
+      0,
+      7,
+      12,
+      3,
+      19
+    ],
+    "attack": 0.7,
+    "release": 1.1,
+    "horizon": 24,
+    "trim": 3.02
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "grainPad": {
+        "family": "sustained",
+        "struck": false,
+        "hold": 0.8,
+        "brightnessHz": 2600,
+        "loudnessDb": -11
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "texture.ts",
+    "note": "A cloud of grains read out of one cached buffer. The source is rendered once per context; a grain is a buffer source, a window, a lid and a panner.",
+    "notes": {
+      "sourceSeconds": "The source: a second of a rich, slightly stretched harmonic series.",
+      "sourceStretch": "How far the partials are pushed off whole multiples, so that two grains from two places never line up.",
+      "every": "The cloud: one grain every `every` seconds, each `grainSeconds` long, with a jitter on the time, the rate, the level, the pan and the lid.",
+      "scanRate": "How fast the read head walks through the source: a grain is a place in one sound and not a sound of its own.",
+      "horizon": "How far ahead a held cloud lays grains down. Offline there is a whole timeline to fill; live there is not."
+    }
+  }
+}

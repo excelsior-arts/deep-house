@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/drop-into-breakdown",
+  "revision": 1,
+  "name": "drop into the breakdown",
+  "scope": "seam",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "seam": {
+    "from": "drop",
+    "to": "breakdown",
+    "out": {
+      "bars": 2,
+      "treatments": [
+        "drop-out",
+        "sweep"
+      ]
+    },
+    "in": {
+      "bars": 1,
+      "treatments": [
+        "swell-in"
+      ]
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:102+123 (bars 86-87), 8:1062+104 (bar 4), 8:3219+85",
+    "kind": "seam",
+    "where": "the line from a drop to a breakdown",
+    "reading": "two bars of drop-out with the air held, a sweep down, the pads in; the sub gone 20-50 dB for the breakdown",
+    "plays": "in part today: small/drop-out into a breakdown, the sweep down out of a section (the glue); a seam row is PLAN-TREATMENTS section 3, step 6",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear",
+    "note": "A candidate at nought: pinnable by link and drawn by nothing until the ear admits it (notes/rounds/treat-t1.md)."
+  }
+}

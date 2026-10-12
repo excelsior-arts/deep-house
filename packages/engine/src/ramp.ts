@@ -129,11 +129,13 @@ export interface Line {
   /** the segments that have not ended, for a gate that wants to read them */
   segments(): Segment[];
   /**
-   * Write a curve's points from `from` (`writePoints`), and keep them: the
-   * parameter is told exactly what a hand-over has always told it, and the
-   * line knows where it will be at every instant after, so the next command —
-   * a claim, a release, a seam abandoned — starts from there and not from
-   * `param.value`.
+   * Write a curve's points from `from` (`writePoints`), and keep them. It
+   * **replaces** the line's future from `from`: the parameter is cut there as
+   * `to` and `set` cut it (everything at or after `from` cancelled, the leg
+   * under way written back up to it), then told exactly what a hand-over has
+   * always told it, and the line knows where it will be at every instant
+   * after, so the next command — a claim, a release, a seam abandoned —
+   * starts from there and not from `param.value`.
    */
   write(pts: readonly WrittenPoint[], from: number): void;
 }
@@ -278,23 +280,35 @@ export function line(ctx: { currentTime: number }, param: Rampable, initial: num
     },
     segments: () => segs.map((s) => ({ ...s })),
     write(pts, from) {
+      // **A curve written from an instant replaces the line's future from
+      // there** (E03 of the outside review of 10-03), the contract `to` and
+      // `set` already keep: the parameter is cut at `from` exactly as `cut`
+      // cuts it — everything at or after it cancelled, the leg under way
+      // written back up to it — and the curve's points are written after.
+      // Until then a write cancelled nothing on the parameter and kept, in the
+      // history, every leg that *began* before `from`: a ramp crossing `from`
+      // stayed in both, its endpoint still scheduled on the parameter after
+      // the new curve's last point and its middle still what `at` read, so
+      // the parameter and its line disagreed from `from` on (0 to 1 over ten
+      // seconds, then .2 set at five and .3 at six: the parameter at 5.5 is
+      // .25 and the line read .55; at seven, .475 and .7). A seam written
+      // again in the middle of a blend (`joinBlend`) is where that happens,
+      // and where the two curves differ the old endpoint was a second gesture.
+      const w = Math.max(0, from);
+      const reached = cut(w);
       writePoints(param, pts, from);
-      // The history keeps what began before the instant written from; the
-      // points are appended after it, each leg starting where the last ended.
-      segs = segs.filter((s) => s.start < from);
       let i = 0;
       while (i < pts.length && pts[i].t <= from) i++;
-      if (i > 0) {
-        const v = foldedAt(pts, i, from);
-        const w = Math.max(0, from);
-        push({ from: v, to: v, start: w, end: w });
-      }
+      const v = i > 0 ? foldedAt(pts, i, from) : reached;
+      // Where the line stands at `from`, as the parameter does: the fold of
+      // the curve before it, or where the cut left it.
+      push({ from: v, to: v, start: w, end: w });
       for (; i < pts.length; i++) {
         const p = pts[i];
         const last = segs[segs.length - 1];
-        const start = last ? last.end : ctx.currentTime;
+        const start = last.end;
         if (p.k === 'set') push({ from: p.v, to: p.v, start: p.t, end: p.t });
-        else push({ from: at(start), to: p.v, start, end: Math.max(start, p.t), ...(p.k === 'exp' ? { exp: true } : {}) });
+        else push({ from: last.to, to: p.v, start, end: Math.max(start, p.t), ...(p.k === 'exp' ? { exp: true } : {}) });
       }
       fold();
     },

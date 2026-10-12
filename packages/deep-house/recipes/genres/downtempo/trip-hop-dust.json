@@ -1,0 +1,328 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "downtempo/trip-hop-dust",
+  "revision": 1,
+  "name": "Dusty boom-bap",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            7,
+            10,
+            16,
+            23,
+            26
+          ],
+          "accents": [
+            1,
+            0.7,
+            0.85,
+            1,
+            0.65,
+            0.85
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            12,
+            20,
+            27,
+            28
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            0.3,
+            1
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            2,
+            6,
+            10,
+            14
+          ],
+          "accents": [
+            0.5,
+            0.4,
+            0.55,
+            0.4
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.02,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.6,
+            "delay": {
+              "beats": 0.04
+            },
+            "timing": {
+              "beats": 0.015
+            },
+            "dynamics": 0.18
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "wave",
+          "intervals": {
+            "steps": [
+              0.3,
+              0.7
+            ],
+            "leaps": [
+              0.3,
+              0.7
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            0.4,
+            1
+          ],
+          "range": {
+            "semitones": [
+              3,
+              5
+            ]
+          },
+          "density": [
+            2,
+            2
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0,
+                -2,
+                -1
+              ],
+              "beats": [
+                2.5,
+                1.5,
+                2.5,
+                1.5
+              ],
+              "holds": [
+                2.25,
+                1.25,
+                2.25,
+                1.25
+              ],
+              "accents": [
+                1,
+                0.75,
+                0.9,
+                0.8
+              ]
+            }
+          ]
+        }
+      },
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "brightnessMin": 1500,
+          "brightnessMax": 2700
+        },
+        "prefer": {
+          "holdMin": 0.29,
+          "brightnessMax": 2000
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            0.5,
+            0.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0
+              ],
+              "beats": [
+                8
+              ],
+              "holds": [
+                6
+              ],
+              "accents": [
+                0.7
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.4,
+          0.5
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            2,
+            2
+          ]
+        },
+        "behavior": "ostinato",
+        "voicings": [
+          [
+            -7,
+            -4,
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    "ambience": {
+      "figure": "spacious"
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline",
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      80,
+      100
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown",
+    "drop"
+  ],
+  "provenance": {
+    "pattern": "trip-hop, the dusty boom-bap: a heavy kick on one, the a of two and three-and, a fat snare on two and four with a ghost before the last, lazy swung hats on the ands, a dark bass that sits on the root and falls, and one dark struck chord every two bars far back",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "Two bars: kick one, two-a, three-and; one, two-a, three-and; the snare on two and four at full weight with a ghost a sixteenth before bar two's four; the hats on the ands only, swung to 0.60 and late by a twenty-fifth of a beat with loose dynamics. The bass holds the root for most of a bar, drops a third and climbs back; a stacked-seventh chord on a dark struck keyboard lands on one every two bars and is left to ring. Played under the Trip Hop tile's spell at 85-95 (round G4), where the broken kit's own break and snare carry it.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -3.0,
+      "syncopationZ": -5.8,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
+  }
+}

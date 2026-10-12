@@ -89,7 +89,10 @@ test('a stable sustained bed retains the existing lead-entry rule instead of bec
     if(!support.sustained||support.figure)continue;
     checked++;
     for(const s of t.arrangement.sections.filter(s=>s.kind==='main'&&s.bars>=32)) {
-      const later=t.timeline.slice(s.startBar+16,s.startBar+s.bars);
+      // Since M1 (10-02) a main's later bars may sit inside a named sub-segment
+      // (a pad swap, the stabs out, a breath) that takes a layer for a phrase:
+      // the lead-entry rule holds on every bar outside one.
+      const later=t.timeline.slice(s.startBar+16,s.startBar+s.bars).filter(b=>!b.sub);
       assert.ok(later.every(b=>b.layers.includes('keys')&&b.layers.includes('pad')));
     }
   }
@@ -156,8 +159,10 @@ test('natural handovers finish the closing phrase and never round past the theme
 
 test('a mode outside its style context falls back to the base form and says so', () => {
   for (const spell of [{...HOUSE,spark:.9},{...HOUSE,ember:.05}]) for (const seed of [4,6,18]) for (const development of ['phrased','shaped','percussion'] as const) {
-    const t=planTheme(seed,0,{strategy:'house-v2',spell,development});
-    const base=planTheme(seed,0,{strategy:'house-v2',spell});
+    // the composer's own (GA5: a turn under a genre's key draws a track row,
+    // which a requested form keeps out; the fallback is the composer's base)
+    const t=planTheme(seed,0,{strategy:'house-v2',spell,development,library:[]});
+    const base=planTheme(seed,0,{strategy:'house-v2',spell,library:[]});
     assert.equal(t.dice.developmentRefused,development);
     assert.equal(t.dice.development,undefined);
     assert.deepEqual(t.events,base.events,'the fallback is the base form, event for event');

@@ -112,6 +112,8 @@ export interface LoudnessOverrides {
   kick?: Record<string, number>;
   bass?: Record<string, number>;
   hats?: { trimDb?: number };
+  /** the presence bell on the harmonic bus (round EQ-2), its most in dB */
+  harmonicBell?: { db?: number };
 }
 
 /** One bar of the timeline: which layers are sounding in it. */
@@ -144,6 +146,8 @@ export interface LoudnessTrack extends WindowTrack {
   progression?: { chords: unknown[] } | null;
   /** the music it was planned as; the three entry points default to it */
   style?: Style;
+  /** what the place said of the theme's sound (round DNB-4 reads its `targetLufs` and `measuredLufs`) */
+  sound?: { targetLufs?: number; measuredLufs?: number } | null;
   /**
    * **What the spell asked of each drawn voice's own ranges** — the seasoning,
    * by event name (PLAN-MODULATION M1). Absent at the house and under the
@@ -153,6 +157,8 @@ export interface LoudnessTrack extends WindowTrack {
    * did not know it would take the difference out of the whole theme.
    */
   knobs?: Record<string, Record<string, number>>;
+  /** the plan's curves, of which the model reads one: the bell's gain section by section (round EQ-5) */
+  automation?: { bell?: { t: number; value: number }[]; floors?: { t: number; keys?: number; pad?: number; piano?: number }[] } | null;
 }
 
 /**
@@ -218,6 +224,8 @@ export interface LoudnessFeatures {
   harmonicEnergyDb: number;
   /** what the spell's seasoning is worth, in dB, on the voices the harmonic sum does not hold */
   knobDb: number;
+  /** the presence bell on the harmonic bus over the window, in dB (round EQ-5): nought where there is none */
+  bellDb: number;
   rateKeys: number;
   ratePad: number;
   rateBass: number;
@@ -239,6 +247,18 @@ export interface LoudnessFeatures {
   gainHats: number;
   from: number;
   windowBars: number;
+  /** the kind of the section the window opens in ('main', 'drop', …) */
+  windowKind: string;
+  /**
+   * the level the theme's place asks its windows be trimmed to, in LUFS, or
+   * not a number where the place asks none (round DNB-4, `DrumsEntry.targetLufs`)
+   */
+  placeTargetLufs: number;
+  /**
+   * what the place's windows measure at a trim of nought, in LUFS, where its
+   * row says (round DNB-4, `DrumsEntry.measuredLufs`), else not a number
+   */
+  placeMeasuredLufs: number;
   /** one per gated lane, in the lane table's own words */
   [share: `share_${string}`]: number;
 }
@@ -287,7 +307,8 @@ export function loudnessWindow(track: WindowTrack, bars: number): { from: number
 // is left quieter there, which is a record breathing and not a record pumping.
 // The windows start past bar 2 for the measurement's pre-roll, as the first
 // rule's do, and ties go to the earlier window. A theme with no main long
-// enough takes the first rule.
+// enough reads its drops the same way, and one with neither takes the first
+// rule.
 //
 // What no column can see is what the sound stage puts on a note after the plan
 // is written. Its overdrive treatment on the pad (house-v2's rota) raises the
@@ -298,10 +319,21 @@ export function loudnessWindow(track: WindowTrack, bars: number): { from: number
 // The rule is the model block's (`settings.loudness.window`), not the window
 // table's: house-v1's block names none and reads `loudnessWindow` exactly as it
 // always has, so its trims do not move by a bit.
-function mainWindows(track: LoudnessTrack, bars: number): { from: number; bars: number }[] {
+//
+// **A theme with no main** (round LOUD-1) takes the same reading over its
+// drops. The Dubstep place's forms are intro, build, drop, breakdown and outro
+// with no main at all, and under the first rule's fallback its trim was fitted
+// at bars 2-10: an intro of kick and hats, which the fit (taught on mains)
+// read at -9.76 LUFS, louder than its drops, and trimmed the whole theme to the
+// -6 dB clamp. A drop is where such a form stands at its fullest, the part a
+// main is in a house form, so its loudest drop is the passage the one number is
+// right for. A theme with neither falls back to the first rule as before.
+const WINDOW_KINDS = ['main', 'drop'] as const;
+
+function mainWindows(track: LoudnessTrack, bars: number, kind: string = 'main'): { from: number; bars: number }[] {
   const out: { from: number; bars: number }[] = [];
   for (const s of (track.arrangement && track.arrangement.sections) || []) {
-    if (s.kind !== 'main' || s.bars < bars) continue;
+    if (s.kind !== kind || s.bars < bars) continue;
     for (let from = Math.max(2, s.startBar); from + bars <= Math.min(track.bars, s.startBar + s.bars); from++) out.push({ from, bars });
   }
   return out;
@@ -333,12 +365,14 @@ function chosenWindow(track: LoudnessTrack, style: Style): { w: { from: number; 
   const index = indexEvents(track);
   let best: { w: { from: number; bars: number }; f: LoudnessFeatures } | null = null;
   let loudest = -Infinity;
-  for (const w of mainWindows(track, bars)) {
-    const f = featuresAt(track, style, w, index);
-    const v = lufsOf(f, style);
-    if (v > loudest) { loudest = v; best = { w, f }; }
+  for (const kind of WINDOW_KINDS) {
+    for (const w of mainWindows(track, bars, kind)) {
+      const f = featuresAt(track, style, w, index);
+      const v = lufsOf(f, style);
+      if (v > loudest) { loudest = v; best = { w, f }; }
+    }
+    if (best) return best;
   }
-  if (best) return best;
   const w = loudnessWindow(track, bars);
   return { w, f: featuresAt(track, style, w, index) };
 }
@@ -384,9 +418,68 @@ function eventsNear(track: LoudnessTrack, index: EventIndex, from: number, bars:
   return at.map((i) => evs[i]);
 }
 
+// **Which model reads a window** (round LOUD-1). The house's block is fitted
+// on house mains, every one of them with a kick under it, and read anything
+// else from outside what it was taught: the held drone (no kick) and the
+// Dubstep place's drops (a form with no main) came back up to 3 LU off and on
+// the clamps (round EQ-6 §3). A style may carry a model of its own for each,
+// fitted on that family's own measured windows (`families` in the block,
+// written by `tools/loudness-fit.ts --with`): a window with no kick in it is
+// read by `drumless`, the drop a form with no main is levelled at by `drop`,
+// and every other window by the house's. The slopes, the clamps and the margin
+// are the block's for all three, so a decibel of trim is the same decibel
+// whichever model asked for it.
+//
+// **The target is the block's unless the family names its own** (round LOUD-2,
+// 10-04). Eugene's three records measured whole: the house at -14.95 LUFS, the
+// ambient at -12.28, the Oct 2 dubstep at -10.56 -- and the refit dubstep at
+// -13.51, which through the phone filter (`tools/mastering.py` `phone()`) loses
+// 11 LU where the house loses 7, half its energy being sub: on a phone it
+// became the quietest of the three (*"the previous one didn't clip ... sub was
+// boomy and this is what I wanted to trim, but now the whole thing is just
+// quieter"*). So `families.drop.targetLufs` is -11.5, by hand in the JSON. It
+// is a level asked for and not a fit, and nothing else of the trim moves: the
+// slopes, the clamps, the margin and the headroom gate stay the block's, so a
+// hotter target is still capped by the limiter's share.
+//
+// **A place that names its own level** (round DNB-4): where the theme's place
+// asks a target of its own (`DrumsEntry.targetLufs`, carried on the plan's
+// `sound`), its windows are the `placed` family — read at the level the place's
+// own windows measure at nought (`DrumsEntry.measuredLufs`, written off
+// `tools/loudness-fit.ts --spell … --measure` and its `--fit --with`, which
+// fits the family) and trimmed to the place's number. The place lifts its
+// drums and its bass on the events and clips them on the buses, and the
+// house's model, which never heard either, read those themes eight decibels
+// thin. The model is the place's and not the style's block, so a place that
+// measures itself moves no other theme's settings; a family the block does
+// fit (`families.placed`) is read where the row names no measurement.
+export function loudnessFamily(f: LoudnessFeatures): 'house' | 'drumless' | 'drop' | 'placed' {
+  if ((f.share_kick ?? 1) === 0) return 'drumless';
+  if (Number.isFinite(f.placeTargetLufs)) return 'placed';
+  if (f.windowKind === 'drop') return 'drop';
+  return 'house';
+}
+
+type LoudnessModel = { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+
+function modelOf(f: LoudnessFeatures, style: Style): { model: LoudnessModel; headroom: LoudnessModel | null; targetLufs: number; slopeUp?: number; slopeDown?: number } {
+  const M = style.settings.loudness;
+  const fam = M.families && M.families[loudnessFamily(f)];
+  const placed = Number.isFinite(f.placeTargetLufs) ? f.placeTargetLufs : undefined;
+  if (placed !== undefined && Number.isFinite(f.placeMeasuredLufs))
+    return { model: { intercept: f.placeMeasuredLufs, coef: {}, centre: {} }, headroom: null, targetLufs: placed };
+  if (fam) return { model: fam, headroom: fam.headroom ?? null, targetLufs: placed ?? fam.targetLufs ?? M.targetLufs, slopeUp: fam.slopeUp, slopeDown: fam.slopeDown };
+  return { model: M, headroom: M.headroom && M.headroom.coef ? M.headroom : null, targetLufs: placed ?? M.targetLufs };
+}
+
+/** The level a theme's trim aims its window at, in LUFS: its family's own target, else the block's. */
+export function trimTargetLufs(track: LoudnessTrack, style: Style = track.style!): number {
+  return modelOf(chosenWindow(track, style).f, style).targetLufs;
+}
+
 /** What the fit predicts for a features vector, in LUFS. */
 function lufsOf(f: LoudnessFeatures, style: Style): number {
-  const M = style.settings.loudness;
+  const M = modelOf(f, style).model;
   let v = M.intercept;
   for (const k of Object.keys(M.coef)) {
     const col = LOUDNESS_COLUMNS[k];
@@ -398,7 +491,8 @@ function lufsOf(f: LoudnessFeatures, style: Style): number {
 
 /** The headroom a features vector allows, in dB, or null for a model with none. */
 function headroomOf(f: LoudnessFeatures, style: Style): number | null {
-  const H = style.settings.loudness.headroom;
+  if (!style.settings.loudness.headroom) return null;
+  const H = modelOf(f, style).headroom;
   if (!H || !H.coef) return null;
   let v = H.intercept;
   for (const k of Object.keys(H.coef)) {
@@ -538,6 +632,20 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
   // the instruments' own blocks, nested in places, and only one number is taken
   // off each.
   const L: Record<string, number> = { ...BASE.levels, ...(over.levels || {}) };
+  // The floors keyed to the bed (round EQ-6): a role a section plays under the
+  // room's most is read at the window's own level, the mean of its bars' steps.
+  const floors = track.automation?.floors;
+  if (floors && floors.length) {
+    for (const key of ['keys', 'pad', 'piano'] as const) {
+      let sum = 0;
+      for (let b = w.from; b < w.from + w.bars; b++) {
+        let at: (typeof floors)[number] | null = null;
+        for (const st of floors) { if (st.t <= (b + 0.5) * bs) at = st; else break; }
+        sum += at?.[key] ?? 0;
+      }
+      if (sum) L[key] += sum / Math.max(1, w.bars);
+    }
+  }
   const SC: Record<string, number> = { ...BASE.sidechain, ...(over.sidechain || {}) };
   const KI = { ...BASE.kick, ...(over.kick || {}) };
   const BA = { ...BASE.bass, ...(over.bass || {}) };
@@ -641,11 +749,34 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     // `LOUDNESS_COLUMNS`' own rule says it: adding a column here does not change
     // the record, only `loudness.coef` decides what is read.
     knobDb: knobsElsewhere,
+    bellDb: bellOver(track, w),
     from: w.from,
     windowBars: w.bars,
+    windowKind: ((track.arrangement && track.arrangement.sections) || []).find((s) => s.startBar <= w.from && w.from < s.startBar + s.bars)?.kind ?? '',
+    placeTargetLufs: Number.isFinite(track.sound?.targetLufs) ? track.sound!.targetLufs! : NaN,
+    placeMeasuredLufs: Number.isFinite(track.sound?.measuredLufs) ? track.sound!.measuredLufs! : NaN,
   };
   for (const n of LAYERS) f[`share_${n}`] = share[n];
   return f;
+}
+
+// **The bell over a window** (round EQ-5): the presence bell's gain on the
+// harmonic bus, the mean over the window's bars at each bar's middle, off the
+// plan's own curve where the bell moves section by section and off the room's
+// one number where it does not. A number the plan declares, like a level.
+function bellOver(track: LoudnessTrack, w: { from: number; bars: number }): number {
+  const most = track.paramOverrides?.harmonicBell?.db ?? 0;
+  const pts = track.automation?.bell;
+  if (!most || !pts || pts.length < 2) return most;
+  let sum = 0;
+  for (let b = w.from; b < w.from + w.bars; b++) {
+    const t = (b + 0.5) * track.barSeconds;
+    let i = 0;
+    while (i < pts.length && pts[i].t <= t) i++;
+    const a = pts[Math.max(0, i - 1)], c = pts[Math.min(pts.length - 1, i)];
+    sum += i === 0 ? pts[0].value : i >= pts.length || c.t === a.t ? a.value : a.value + (c.value - a.value) * (t - a.t) / (c.t - a.t);
+  }
+  return sum / Math.max(1, w.bars);
 }
 
 // The columns a fit may draw on, by name. Every one is either a structural
@@ -691,6 +822,7 @@ export const LOUDNESS_COLUMNS: Record<string, LoudnessColumn> = {
   harmonicRoles: (f) => f.harmonicRoles,
   harmonicEnergyDb: (f) => f.harmonicEnergyDb,
   knobDb: (f) => f.knobDb,
+  bellDb: (f) => f.bellDb,
   rateKeys: (f) => f.rateKeys,
   ratePad: (f) => f.ratePad,
   rateBass: (f) => f.rateBass,
@@ -750,19 +882,24 @@ export function loudnessTrimDb(track: LoudnessTrack, style: Style = track.style!
   // One window and one vector for both halves (R31): the prediction and the
   // headroom are read off the same features, found once.
   const { f } = chosenWindow(track, style);
-  const need = M.targetLufs - lufsOf(f, style);
+  const mo = modelOf(f, style);
+  const need = mo.targetLufs - lufsOf(f, style);
   // Two slopes, because a limiter is a one-sided thing: driving a theme *into*
   // the ceiling gives back less of the decibel than pulling it back out of the
   // ceiling does, and one number in the middle over-trims everything quiet and
   // under-trims everything loud.
-  const s = (need >= 0 ? M.slopeUp : M.slopeDown) || 1;
+  const s = (need >= 0 ? mo.slopeUp ?? M.slopeUp : mo.slopeDown ?? M.slopeDown) || 1;
   // ...and never past the headroom, where the style's model has one: no more
   // trim than the window it is fitted for can take before the limiter works
   // past what the model allows. A decibel of trim is a decibel of peak, so this is
   // in the trim's own units and is not divided by the slope.
   const room = headroomOf(f, style);
   const want = room == null ? need / s : Math.min(need / s, room - M.headroom!.marginDb);
-  const db = +Math.max(-M.clampDb, Math.min(M.clampDb, want)).toFixed(3);
+  // A window with no kick in it (the held drone) is lifted no further than the
+  // style's `clampUpNoKickDb`, where it names one (round LOUD-1): the style
+  // says why.
+  const up = (f.share_kick ?? 1) > 0 || M.clampUpNoKickDb == null ? M.clampDb : Math.min(M.clampDb, M.clampUpNoKickDb);
+  const db = +Math.max(-M.clampDb, Math.min(up, want)).toFixed(3);
   // `+ 0` and not a comment about it: a trim that rounds to a negative
   // thousandth of a decibel is **-0**, which is a real double, is not the same
   // double as 0, and which JSON writes as `0` — so a digest blessed from one

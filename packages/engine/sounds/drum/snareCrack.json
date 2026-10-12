@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "snareCrack",
+  "revision": 1,
+  "topology": "snare",
+  "dice": 41.9,
+  "parameters": {
+    "shellHz": 231.0,
+    "shellFifth": 1.4632,
+    "shellLevel": 0.63,
+    "shellDecay": 0.0826,
+    "drop": 1.05,
+    "dropTime": 0.015,
+    "wireHp": 308.7,
+    "wireHz": 2800.0,
+    "wireQ": 0.4,
+    "wireLevel": 0.714,
+    "crackHz": 3000,
+    "crackQ": 0.8,
+    "crackDecay": 0.015,
+    "crackLevel": 0.8,
+    "lidHz": 18000,
+    "t10": 0.035,
+    "seconds": 0.4,
+    "variants": 3,
+    "variantCents": 22,
+    "attack": 0.004,
+    "trim": 1.4,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.18,
+    "velDecay": 0.3,
+    "pan": -0.05,
+    "room": 0.02
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "snareCrack": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 3000,
+        "loudnessDb": -22.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-7, the classic beat 10-05",
+    "module": "none",
+    "note": "a snare that is its crack, for the fast broken beat (his ear on DNB-6, 10-05: our drums' tone is far; DnB has a very particular classic beat): source 8's snare, read onset by onset at the drop and where the drums are exposed in its intro, has its body at 410 Hz and its crack 2-8 kHz 10-11 dB over its 120-500 Hz, falls 20 dB in 60 ms and stands 21-23 dB down 200 ms on; the dry snare's shell sat at 200 Hz, its crack a decibel under its body and its room 16 dB down; so the shell at 400 Hz and 600 under half the level, wires opened from 700 Hz and centred at 2.4 kHz at twice theirs, the crack at 3.5 kHz at twice, and half the room."
+  },
+  "measured": {
+    "clickStep": 0,
+    "snareDryGhost": {
+      "loudnessDb": -24.8,
+      "clickStep": 0
+    }
+  }
+}

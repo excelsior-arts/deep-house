@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/turnaround-ghost-pickup",
+  "revision": 2,
+  "name": "two ghosts in",
+  "scope": "treatment",
+  "applies": "turnaround",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "tempo": {
+    "bpm": [
+      160,
+      176
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "....X.......X.ox"
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:102+123, 8:590+116",
+    "kind": "turnaround",
+    "where": "the last bar of a four-bar group",
+    "reading": "ghosts added and the snare moved are half of every change in the drops (3.1 + 0.6 in 16 bars): the two and four, a ghost on four-and and a medium hit on four-a",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; revision 2 (the review of 10-08, B14): boxed to the fast broken places' tempo, 160-176 BPM, as the place's pattern rows are; with no box it was drawn at the house too",
+    "note": "A row of the library since 2026-10-02: drawn by its weight among the rows of its kind wherever the place table draws the kind (notes/rounds/treat-t1.md).",
+    "admitted": "admitted 2026-10-02 on the review of the links, at 0.5 beside the code's figure of its kind"
+  }
+}

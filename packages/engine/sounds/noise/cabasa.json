@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "cabasa",
+  "revision": 1,
+  "topology": "shaken",
+  "block": "cabasa",
+  "dice": 113.9,
+  "parameters": {
+    "hp": 3600,
+    "peakHz": 6000,
+    "q": 0.6,
+    "gapSeconds": 0.005,
+    "second": 0.7,
+    "t10": 0.018,
+    "seconds": 0.25,
+    "variants": 3,
+    "variantCents": 40,
+    "attack": 0.0012,
+    "trim": 0.95,
+    "rateSpread": 0.04,
+    "gainSpread": 0.12,
+    "decaySpread": 0.14,
+    "panSpread": 0.1,
+    "velBright": 0.3,
+    "velDecay": 0.2,
+    "pan": -0.14,
+    "room": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "cabasa": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 6000,
+        "loudnessDb": -18.6
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "perc.ts",
+    "note": "A cabasa: two bursts of high noise five milliseconds apart. The double burst is the instrument — the beads land on the way out and again on the way back — and one burst is a hat with the metal taken out."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

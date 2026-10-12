@@ -36,7 +36,8 @@ import { K4_VOICES } from './audition-voices-2.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Beside the other gates' ports and the ear's 7024, and never 6975.
 const PORT = 7049;
 const OUT = path.join(ROOT, 'tmp', 'ear', 'kitchen');

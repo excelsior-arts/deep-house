@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/form-two-drop",
+  "revision": 1,
+  "name": "The short two-drop: a mixing intro, two short drops round a breakdown",
+  "scope": "track",
+  "applies": null,
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "form": {
+    "order": [
+      "intro",
+      "build",
+      "drop",
+      "groove",
+      "breakdown",
+      "drop",
+      "groove",
+      "outro"
+    ],
+    "bars": [
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "stretch": [
+      "groove",
+      "breakdown"
+    ],
+    "fits": [
+      96,
+      236
+    ],
+    "prefers": {
+      "dnb/dnb-mix-intro": 4
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "dnb-6",
+    "knowledge": "authored: the territory's conventions (phrases of sixteen and thirty-two bars, a drop on a sixteen-bar line, a second drop that switches its bassline) and the form of source 8's first tune read four bars at a time (score-8.py read_form, notes/rounds/dnb-5.md and dnb-6.md); no record's arrangement copied",
+    "note": "The brief's short form: a 16-bar intro the drums lead, for mixing, a 16-bar build, 32 bars of drop, a 16-bar breakdown, 32 of the switched riff, a 16-bar outro; the grooves and the breakdown take up a longer theme by sixteens.",
+    "plays": "drawn by the fast broken places among the form rows whose window holds the theme's length (deep-house-places.ts FORM rows), off the theme's own stream; at nought nowhere else"
+  }
+}

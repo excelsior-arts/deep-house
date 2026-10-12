@@ -1,0 +1,611 @@
+{
+ "schema": 1,
+ "kind": "keys-densities",
+ "round": "liquid-keys",
+ "revision": 2,
+ "note": "When the keys land, by section, in Arc mode (the loop plays a phrase's own cycle). Each section kind has `ways`, drawn by the seed: `from` the bar of the first landing (0 the section line, \"half\" the section's half), `every` the gaps after it as [bars, weight] drawn in turn while they fit the section (none: one landing). A drop also says how the keys sit in it: `levelDb` on the keys, `send` and `dry` scaling the space's sends and its dry from the wetness chosen: low and very wet under the bass.",
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-density",
+   "id": "mood",
+   "revision": 1,
+   "name": "Mood",
+   "says": "Only at the section lines, a drop now and then once more at its half: four to six landings a track.",
+   "sections": {
+    "intro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": []
+      }
+     ]
+    },
+    "drop": {
+     "levelDb": -4,
+     "send": 1.35,
+     "dry": 0.7,
+     "ways": [
+      {
+       "weight": 2,
+       "from": 0,
+       "every": []
+      },
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [16, 1]
+       ]
+      }
+     ]
+    },
+    "breakdown": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": []
+      }
+     ]
+    },
+    "outro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": []
+      }
+     ]
+    }
+   }
+  },
+  {
+   "schema": 1,
+   "kind": "keys-density",
+   "id": "sparse",
+   "revision": 1,
+   "name": "Sparse",
+   "says": "Drops a landing every 16 to 32 bars, or none till the drop's half; the intro, the breakdown and the outro every 8 to 16.",
+   "sections": {
+    "intro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 2],
+        [16, 1]
+       ]
+      }
+     ]
+    },
+    "drop": {
+     "levelDb": -4,
+     "send": 1.35,
+     "dry": 0.7,
+     "ways": [
+      {
+       "weight": 2,
+       "from": 0,
+       "every": [
+        [16, 1],
+        [32, 1]
+       ]
+      },
+      {
+       "weight": 1,
+       "from": "half",
+       "every": []
+      }
+     ]
+    },
+    "breakdown": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 2],
+        [16, 1]
+       ]
+      }
+     ]
+    },
+    "outro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 1],
+        [16, 1]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "schema": 1,
+   "kind": "keys-density",
+   "id": "present",
+   "revision": 1,
+   "name": "Present",
+   "says": "A landing every 8 bars, every 4 in a breakdown; drops every 8 but low.",
+   "sections": {
+    "intro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 1]
+       ]
+      }
+     ]
+    },
+    "drop": {
+     "levelDb": -4,
+     "send": 1.35,
+     "dry": 0.7,
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 1]
+       ]
+      }
+     ]
+    },
+    "breakdown": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [4, 1]
+       ]
+      }
+     ]
+    },
+    "outro": {
+     "ways": [
+      {
+       "weight": 1,
+       "from": 0,
+       "every": [
+        [8, 1]
+       ]
+      }
+     ]
+    }
+   }
+  },
+ {
+  "schema": 1,
+  "kind": "keys-density",
+  "id": "track-mood",
+  "revision": 1,
+  "name": "Mood, over a whole track",
+  "scope": "track",
+  "says": "The lab's mood over a real form: the keys land on section lines and in the exposed, drum-free passages most, a drop once at its line and a long full passage once more at most; the first landing after the mixing intro's clean bars, none in the outro's last bars, and a budget for the whole track.",
+  "note": "A whole track's row (the app's three, `scope: track`; the lab's Arc reads the other three). `classes` maps a section's kind to its rule (`otherwise` for a kind the row does not name, so a form row's new kind lands somewhere); each rule's `ways` are drawn per section off a stream of its own, `from` the first landing (a bar of the section, or \"half\"), `every` the gaps after it as [bars, weight]. A landing in the first `cleanBars` of the track or its last `cleanEndBars` is not played (the mixing regions), nor one nearer than `minGapBars` to the one before. `budget.most` is the most landings a track has: past it, the class last in `keep` loses its landings first, a section's later ones before its line, the latest first. A rule's `levelDb`, `send` and `dry` are the keys low and very wet under a full section, as the lab's drops. `bed`: the bed around a landing, its `voices`, how far before a bare landing's strike its moving voice leaves (`bareLeadSteps`), how long after the strike it comes back (`returnSteps`), and the release it leaves on (`thinRelease`, seconds).",
+  "cleanBars": 16,
+  "cleanEndBars": 16,
+  "minGapBars": 4,
+  "budget": {
+   "most": 12,
+   "keep": [
+    "exposed",
+    "intro",
+    "outro",
+    "line",
+    "build",
+    "inside"
+   ]
+  },
+  "classes": {
+   "intro": "intro",
+   "build": "build",
+   "breakdown": "exposed",
+   "drop": "line",
+   "groove": "inside",
+   "main": "inside",
+   "outro": "outro",
+   "otherwise": "inside"
+  },
+  "sections": {
+   "intro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "build": {
+    "ways": [
+     {
+      "weight": 2,
+      "from": 0,
+      "every": []
+     },
+     {
+      "weight": 1,
+      "from": "half",
+      "every": []
+     }
+    ]
+   },
+   "exposed": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        2
+       ],
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "line": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": []
+     }
+    ]
+   },
+   "inside": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 2,
+      "from": "half",
+      "every": []
+     },
+     {
+      "weight": 1,
+      "from": 16,
+      "every": [
+       [
+        32,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "outro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": []
+     }
+    ]
+   }
+  },
+  "bed": {
+   "voices": 3,
+   "bareLeadSteps": 8,
+   "returnSteps": 16,
+   "thinRelease": 0.6
+  }
+ },
+ {
+  "schema": 1,
+  "kind": "keys-density",
+  "id": "track-sparse",
+  "revision": 1,
+  "name": "Sparse, over a whole track",
+  "scope": "track",
+  "says": "The lab's sparse over a real form: the intro, the exposed passages and the outro every 8 or 16 bars, a drop at its line and then every 16 or 32, or none till its half; at most twenty a track.",
+  "cleanBars": 16,
+  "cleanEndBars": 16,
+  "minGapBars": 4,
+  "budget": {
+   "most": 20,
+   "keep": [
+    "exposed",
+    "intro",
+    "outro",
+    "line",
+    "build",
+    "inside"
+   ]
+  },
+  "classes": {
+   "intro": "intro",
+   "build": "build",
+   "breakdown": "exposed",
+   "drop": "line",
+   "groove": "inside",
+   "main": "inside",
+   "outro": "outro",
+   "otherwise": "inside"
+  },
+  "sections": {
+   "intro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        2
+       ],
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "build": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "exposed": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        2
+       ],
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "line": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 2,
+      "from": 0,
+      "every": [
+       [
+        16,
+        1
+       ],
+       [
+        32,
+        1
+       ]
+      ]
+     },
+     {
+      "weight": 1,
+      "from": "half",
+      "every": []
+     }
+    ]
+   },
+   "inside": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 2,
+      "from": 0,
+      "every": [
+       [
+        16,
+        1
+       ],
+       [
+        32,
+        1
+       ]
+      ]
+     },
+     {
+      "weight": 1,
+      "from": "half",
+      "every": []
+     }
+    ]
+   },
+   "outro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ],
+       [
+        16,
+        1
+       ]
+      ]
+     }
+    ]
+   }
+  },
+  "bed": {
+   "voices": 3,
+   "bareLeadSteps": 8,
+   "returnSteps": 16,
+   "thinRelease": 0.6
+  }
+ },
+ {
+  "schema": 1,
+  "kind": "keys-density",
+  "id": "track-present",
+  "revision": 1,
+  "name": "Present, over a whole track",
+  "scope": "track",
+  "says": "The lab's present over a real form: a landing every 8 bars, every 4 in an exposed passage, the full sections every 8 but low and wet; at most thirty-six a track.",
+  "cleanBars": 16,
+  "cleanEndBars": 16,
+  "minGapBars": 4,
+  "budget": {
+   "most": 36,
+   "keep": [
+    "exposed",
+    "intro",
+    "outro",
+    "line",
+    "build",
+    "inside"
+   ]
+  },
+  "classes": {
+   "intro": "intro",
+   "build": "build",
+   "breakdown": "exposed",
+   "drop": "line",
+   "groove": "inside",
+   "main": "inside",
+   "outro": "outro",
+   "otherwise": "inside"
+  },
+  "sections": {
+   "intro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "build": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "exposed": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        4,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "line": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "inside": {
+    "levelDb": -4,
+    "send": 1.35,
+    "dry": 0.7,
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ]
+      ]
+     }
+    ]
+   },
+   "outro": {
+    "ways": [
+     {
+      "weight": 1,
+      "from": 0,
+      "every": [
+       [
+        8,
+        1
+       ]
+      ]
+     }
+    ]
+   }
+  },
+  "bed": {
+   "voices": 3,
+   "bareLeadSteps": 8,
+   "returnSteps": 16,
+   "thinRelease": 0.6
+  }
+ }
+ ]
+}

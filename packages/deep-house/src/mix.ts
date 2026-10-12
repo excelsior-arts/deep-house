@@ -28,13 +28,14 @@
 // imported from `./mix.ts` are still exported here.
 
 import { LEGACY_INTERPRETERS, requireCurrentCalibration } from './calibration.ts';
-import { generationOf } from './generation.ts';
-import { prepareLimiter } from '@deep-house/engine/master';
+import { generationOf, definitionOf } from './generation.ts';
+import { prepareLimiter, eqProfileOf, EQ_BANDS, warmRoom } from '@deep-house/engine/master';
+import { switchOn } from './lanes.ts';
 import { resolveSettings, settingsOf } from '@deep-house/engine/settings';
 import { prepareVoices } from '@deep-house/engine/voices';
 import { lateInfo, noteTransportStart, Offline, latencies } from '@deep-house/engine/dsp';
-import { seamPlan, seamFromHere, mixPointSeconds, blendBarsFor, blendAsked, compilePerformance, programOf, PHRASE_BARS, seamTempo, glideBarsFor, playsKick, sameFormTime } from './performance.ts';
-import type { SeamTempo } from './performance.ts';
+import { seamPlan, seamFromHere, mixPointSeconds, blendBarsFor, blendAsked, compilePerformance, programOf, PHRASE_BARS, ROOM_BARS, seamTempo, glideBarsFor, rideInRoom, lineWithRoom, handSeamBars, playsKick, sameFormTime, noteKnobs } from './performance.ts';
+import type { SeamTempo, HandSeamBars } from './performance.ts';
 import {
   applyBypass, readBypass, seamCurves, setOptions, swapAfterBars, themeSeed,
   planTheme as planThemeOf, presetOfTheme as presetOfThemeOf, setLayout as setLayoutOf, layOut as layOutOf,
@@ -43,7 +44,7 @@ import type { Bypass, MixOptions, SetPlan, SetTrack, Track } from './set-plan.ts
 // The knob tables of the voices a theme drew, asked of the plan and remembered
 // on it: the seasoning a note is re-given live is the seasoning it would have
 // been planned with, because it is one function.
-import { knobTablesOf } from './generator.ts';
+import { knobTablesOf, seasonOf } from './generator.ts';
 // **The one place the machine is told which music it is playing.** Round F of
 // PLAN-V1-NEXT put every deep house number in one file and left the engine
 // reading a style it is handed. Since round K5a of PLAN-KITCHEN the style is
@@ -60,12 +61,12 @@ import {
 // The spell layer, above the dice and below nothing: `createMix` reads a spell
 // off the page's query string the way it reads a bypass, so a URL, a bench and
 // a test all reach one the same way and the ring is not involved at all.
-import { HOUSE, isHouse, knobsFor, sameSpell, spellFromQuery, recipeFromQuery } from './spell.ts';
+import { HOUSE, asSpell, derive, isHouse, knobsFor, sameSpell, spellFromQuery, recipeFromQuery } from './spell.ts';
 import type { Spell } from './spell.ts';
 import { spellFrom, weightOf } from './recipe.ts';
 import type { Recipe } from './recipe.ts';
 import type { SourceMix } from '@deep-house/engine/source-mix';
-import { LIBRARY, GENRE_LIBRARY, PINNABLE, recipeById } from './recipes.ts';
+import { LIBRARY, PATTERN_LIBRARY, CANDIDATE_LIBRARY, PINNABLE, TRACK_LIBRARY, recipeById } from './recipes.ts';
 import { recipeRequest, accompanimentFor } from './recipe-request.ts';
 import { developmentFor } from './development.ts';
 import Rng from './rng.ts';
@@ -75,23 +76,28 @@ import Rng from './rng.ts';
 // begins, when the low end changes hands, which set a cast is arriving into —
 // and `src/ledger.ts` says why it runs whether or not anybody is reading it.
 import { keepPlace, note, outputClipWriter, report } from './ledger.ts';
+import { clockOf, minutesOf } from './length.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import { makeV1Master } from '@deep-house/engine/graph';
+import { roomOf, withStage } from '@deep-house/engine/stage';
+import type { StageHow } from '@deep-house/engine/stage';
 import {
-  claim, deckContextTime, deckThemeTime, gridBeat, holdCurves, lineAfter, makeDeck, pourDeck,
-  pumpDeck, relayDeck, release, seasonDeck, startDeck, teardown, writeSeam,
+  claim, deckContextTime, deckGraph, deckThemeTime, gridBeat, holdCurves, lineAfter, makeDeck, pourDeck,
+  pumpDeck, relayDeck, release, startDeck, teardown, writeSeam,
 } from '@deep-house/engine/deck';
+import type { DeckGraph } from '@deep-house/engine/deck';
 import { renderProgram, holdOpen, doorsOf } from '@deep-house/engine/scheduler';
 import type { RenderOptions } from '@deep-house/engine/scheduler';
-import { schedule, visitAt } from '@deep-house/engine/schedule';
+import { schedule, visitAt, visitOrder, sameVisitOrder } from '@deep-house/engine/schedule';
 import { themeInfo } from '@deep-house/engine/session';
-import type { MixState, TransportPoint } from '@deep-house/engine/session';
+import type { MixState, MixWait, TransportPoint } from '@deep-house/engine/session';
 import type { Deck } from '@deep-house/engine/deck';
 import type { SetClock } from '@deep-house/engine/set-clock';
 import { line as rampLine } from '@deep-house/engine/ramp';
 import type { Line } from '@deep-house/engine/ramp';
 import type { Room, Style } from '@deep-house/engine/style';
 import type { Strategy } from './strategies/index.ts';
+import { reachOf } from './library-draw.ts';
 // The tick, the look-ahead and the hidden stretch are the clock's: one clock
 // for this mix and for the single-theme player alike.
 import { TICK_MS, lookahead, startClock } from '@deep-house/engine/clock';
@@ -174,6 +180,10 @@ export function scheduleTransition(
     // A kick is holed only where the other deck has one to overlap it.
     fromKick: playsKick(from.program, o.swapGroup),
     toKick: playsKick(to.program, o.swapGroup),
+    // The two keys, for the harmonic cross (round MIX-X2): a seam between
+    // unrelated keys fades the harmony out before the swap and in after it.
+    fromKey: from.track.key,
+    toKey: to.track.key,
   }, o);
   return writeSeam(from, to, plan, sum, writeFrom == null ? at : writeFrom, sumLine);
 }
@@ -366,21 +376,26 @@ export function recipesFor(opts: Partial<MixOptions> = {}, library: Recipe[] = L
     say(`recipe: drew ${row.id} of ${pool.length}${parked.length ? `, parking ${parked.length}` : ''}`);
     return { spell: named ?? spellFrom(row, rng, calibrationFor(row)), track: row, name: row.name || row.id, parked };
   }
-  // A pin reaches the genre rows as well (`GENRE_LIBRARY`); the draw above
+  // A pin reaches the pattern rows as well (`PATTERN_LIBRARY`); the draw above
   // never does, because it reads `library` and the default is `LIBRARY`.
   const row = recipeById(id, library === LIBRARY ? PINNABLE : library);
   if (!row) {
     throw new Error(`Recipe ${id} is not in this build's library`);
   }
-  // A genre row carries no box of its own: the family key's spell is where it
-  // plays, and the link names it. Without one it would roll the house's box
-  // through a map this generator has not measured; said in words instead.
-  if (!named && GENRE_LIBRARY.includes(row))
-    throw new Error(`${row.id} is a genre pattern and plays under its family key's spell; the link needs spell=`);
+  // A pattern row carries no box of its own: the spell it was written for is
+  // where it plays, and the link names it. Without one it would roll the
+  // house's box through a map this generator has not measured; said in words.
+  // A mined pattern still at nought (`CANDIDATE_LIBRARY`'s track rows) is one too.
+  if (!named && (PATTERN_LIBRARY.includes(row) || (CANDIDATE_LIBRARY.includes(row) && row.scope === 'track')))
+    throw new Error(`${row.id} is a pattern row and plays under the spell it was written for; the link needs spell=`);
   const request = recipeRequest(row, accompanimentFor(opts));
+  // A whole theme of `TRACK_LIBRARY` (round GA2) plays at the house's place
+  // (`row-places.json`); with no spell on the link it plays at the house, and
+  // its mined box — readings — is never rolled as dice.
+  if (!named && TRACK_LIBRARY.includes(row)) return { spell: null, track: row, name: row.name || row.id, parked: [] };
   // A motif chooses a phrase, not eight new birds. Explicit birds and a
   // named recipe compose: the birds control the setting, the row keeps its wishes.
-  return { spell: named ?? (request.motif || request.pin ? null : spellFrom(row, rng, calibrationFor(row))), track: row, name: row.name || row.id, parked: [] };
+  return { spell: named ?? (request.motif || request.pin || request.treatment || request.section ? null : spellFrom(row, rng, calibrationFor(row))), track: row, name: row.name || row.id, parked: [] };
 }
 
 export function spellFor(opts: Partial<MixOptions> = {}, library: Recipe[] = LIBRARY): Partial<Spell> | null {
@@ -417,6 +432,17 @@ export function spellFor(opts: Partial<MixOptions> = {}, library: Recipe[] = LIB
 // that was paused at, and on a device with a small buffer the wait is 145 ms
 // where it was 150.
 export const START_LEAD = 0.12;
+
+/**
+ * **A start, timed** (K42): a `performance.mark` at each step a first Play
+ * waits on — the context's resume, the master, the first theme's plan and
+ * compile, its voices, the deck's first fill — so a bench (and the
+ * Performance panel) can read where the wait between a hand and the first
+ * sound goes. Named `dh:` and nothing else; a runtime with no marks is left alone.
+ */
+export function startMark(name: string, detail?: unknown): void {
+  try { if (typeof performance !== 'undefined' && performance.mark) performance.mark('dh:' + name, detail === undefined ? undefined : { detail }); } catch (e) { /* none */ }
+}
 
 // What a start anchors to, which is not quite what the machine says.
 // `renderHead` is the truth as reported, and on a cold start it under-reports:
@@ -479,7 +505,15 @@ const STOP_SILENT_MS = 400;
  * @param ctx — a set is played, so this is a live context and never an offline
  *   one; the render below is the offline half.
  */
-export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
+/**
+ * **What a set is planned under**, resolved from what it was asked: the
+ * strategy, the set's own numbers, the seed, the bypass and the spell. One
+ * function, so a set (`createMix`) and the first theme planned ahead of one
+ * (`primeStart`) resolve the same options in the same order; `loud` is the set
+ * announcing what it is under, which a plan made ahead never does.
+ */
+function setUp(opts: Partial<MixOptions>, loud: boolean) {
+  const say = (line: string) => { if (loud && typeof console !== 'undefined') console.log(line); };
   // Which music, before anything else: a strategy is the outermost choice a set
   // makes, and everything below — the set's own numbers, the master's room, the
   // spell, every plan — is made inside it. Nothing asked for is `house-v1`.
@@ -488,23 +522,13 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   o.strategy = strategy.id;
   o.accompaniment = accompanimentFor(opts);
   o.development = developmentFor(opts);
-  if (strategy.id !== DEFAULT_STRATEGY && typeof console !== 'undefined') {
-    console.log(`strategy: ${strategy.id} (${strategy.label})`);
-  }
-  // **The seed of the set that is playing**, and not of the set that has been
-  // asked for. Since 09-19 a cast is a hand-over rather than a stop (Eugene:
-  // "once the machine is started it never stops"), so for the length of a blend
-  // there are two sets up: this is the one under the needle, and it changes at
-  // the swap — the same instant the theme index and the readout change hands.
-  let masterSeed = String(opts.masterSeed ?? 1);
-  const destination = opts.destination || ctx.destination;
-
+  if (strategy.id !== DEFAULT_STRATEGY) say(`strategy: ${strategy.id} (${strategy.label})`);
+  const masterSeed = String(opts.masterSeed ?? 1);
   // A bypass is read once, announced once, and then lives in every theme's
   // audio overrides. The master is built after it is applied, so a bypassed
   // limiter or clipper is really bypassed.
   const bypass = opts.bypass !== undefined ? opts.bypass : readBypass();
-  if (bypass && typeof console !== 'undefined') console.log('bypass: ' + bypass.label);
-
+  if (bypass) say('bypass: ' + bypass.label);
   // The spell, read once and then carried by every theme this set plans. At the
   // house — which is where a set with nothing asked of it sits — the bias above
   // the dice is the identity and every plan is the plan it always was.
@@ -513,9 +537,83 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // The row travels with the set, so every theme it plans is planned under the
   // same `wants` (`src/interpret.ts`). `null` on every path the golden takes.
   o.recipe = cast.track;
-  if (o.spell && !isHouse(o.spell) && typeof console !== 'undefined') {
-    console.log('spell: ' + Object.entries(o.spell).map(([k, v]) => `${k} ${(+v).toFixed(3)}`).join(', '));
+  if (o.spell && !isHouse(o.spell)) say('spell: ' + Object.entries(o.spell).map(([k, v]) => `${k} ${(+v).toFixed(3)}`).join(', '));
+  return { o, masterSeed, bypass, cast };
+}
+
+/** A theme's place as a plan made ahead names it: the same six a set's `Place` has. */
+interface PrimedPlace {
+  seed: string;
+  index: number;
+  strategy: string;
+  style: Style;
+  spell: Partial<Spell> | null;
+  recipe: Recipe | null;
+}
+// A row is its resolved definition here as everywhere (`definitionOf`, R02 of
+// the review of 10-03): a plan made ahead from one revision of a row is
+// never handed to a set asked for another revision of the same id.
+const samePrimedPlace = (a: PrimedPlace, b: PrimedPlace) => a.seed === b.seed && a.index === b.index && a.strategy === b.strategy
+  && a.style === b.style && sameSpell(a.spell, b.spell) && definitionOf(a.recipe) === definitionOf(b.recipe);
+/** What a set was asked, as one string: the options a page hands `createMix`, the room's bypass beside them. */
+const askedKey = (opts: Partial<MixOptions>, bypass: Bypass | null): string =>
+  JSON.stringify(opts, (k, v) => (k === 'destination' || k === 'lookahead' ? undefined   // the scheduler's, not the plan's
+    : k === 'recipe' && v && typeof v === 'object' ? `#${definitionOf(v as Recipe)}` : v)) + '|' + (bypass ? bypass.label : '');
+
+/**
+ * **The first theme, planned and compiled before the hand asks for it** (K42).
+ * A first Play waited on the plan and the compile of the theme it opens on —
+ * MEASURED 15 ms on this machine and four times that on a phone — and nothing
+ * about either needs a context, so the page asks for it in an idle slot after
+ * it has drawn (`primeStart`), and the set that is then started takes the very
+ * plan it was going to make: the same options resolved by the same `setUp`, the
+ * same `planTheme` call `planAt` makes, so what plays is what would have played.
+ * One plan, taken once: a set that starts somewhere else, under anything else
+ * asked, plans for itself as it always did, and a plan is never handed to two
+ * sets (a set re-seasons its own notes).
+ */
+let primed: { key: string; preset: string | undefined; place: PrimedPlace; track: SetTrack } | null = null;
+export function primeStart(opts: Partial<MixOptions>, index: number): boolean {
+  if (opts.style) return false;   // a stated style is a bench's, and is planned where it is played
+  try {
+    const { o, masterSeed, bypass } = setUp(opts, false);
+    const key = askedKey(opts, bypass);
+    const place: PrimedPlace = {
+      seed: masterSeed, index: Math.max(0, index), strategy: o.strategy ?? DEFAULT_STRATEGY, style: o.style,
+      spell: o.spell ?? null, recipe: o.recipe ?? null,
+    };
+    if (primed && primed.key === key && primed.preset === o.preset && samePrimedPlace(primed.place, place)) return true;
+    const track = applyBypass(planTheme(place.seed, place.index,
+      { ...o, style: place.style, strategy: place.strategy, spell: place.spell, recipe: place.recipe }), bypass);
+    programOf(track);
+    primed = { key, preset: o.preset, place, track };
+    return true;
+  } catch (err) {
+    // the start plans for itself, and says whatever it has to say then
+    primed = null;
+    return false;
   }
+}
+/** The plan made ahead, if it is this one: taken, so no other set is handed it. */
+function takePrimed(key: string, preset: string | undefined, p: PrimedPlace): SetTrack | null {
+  if (!primed || primed.key !== key || primed.preset !== preset || !samePrimedPlace(primed.place, p)) return null;
+  const track = primed.track;
+  primed = null;
+  return track;
+}
+
+export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
+  startMark('mix');
+  const { o, bypass, cast, masterSeed: seed } = setUp(opts, true);
+  /** what this set was asked, for the plan a page made ahead of it */
+  const asked0 = askedKey(opts, bypass);
+  // **The seed of the set that is playing**, and not of the set that has been
+  // asked for. Since 09-19 a cast is a hand-over rather than a stop (Eugene:
+  // "once the machine is started it never stops"), so for the length of a blend
+  // there are two sets up: this is the one under the needle, and it changes at
+  // the swap — the same instant the theme index and the readout change hands.
+  let masterSeed = seed;
+  const destination = opts.destination || ctx.destination;
 
   // The master is the *set's* room, not a theme's: two decks pass through one
   // of these at a seam, so it can belong to neither. It used to be built on
@@ -531,6 +629,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   let masterSettings = resolveSettings({ base: o.style.base, room: masterPreset.params, bypass: bypass && bypass.params });
   const master = makeV1Master(ctx, masterSettings);
   master.out.connect(destination);
+  startMark('master');
   // **The limiter's processor, heard failing** (K33, the held-errors audit of
   // 09-26): a worklet that throws goes silent and says nothing anywhere. It is
   // the most serious fault the set can have, so it is a ledger line and a report.
@@ -565,16 +664,19 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     const room = presetOfTheme(p.seed, 0, o.preset, p.style, p.spell);
     const next = resolveSettings({ base: p.style.base, room: room.params, bypass: bypass && bypass.params });
     const M = next.master;
+    // The five gains are the master's profile (round E1) and walk through the
+    // master's own lines; the corners, the widths, the gain and the trim here.
     const moves: Array<[string, number]> = [
-      ['lowShelf.frequency', M.lowShelfHz], ['lowShelf.gain', M.lowShelfDb],
-      ['lowMid.frequency', M.lowMidHz], ['lowMid.gain', M.lowMidDb], ['lowMid.Q', M.lowMidQ],
-      ['mid.frequency', M.midHz], ['mid.gain', M.midDb], ['mid.Q', M.midQ],
-      ['presence.frequency', M.presenceHz], ['presence.gain', M.presenceDb], ['presence.Q', M.presenceQ],
-      ['air.frequency', M.airHz], ['air.gain', M.airDb],
+      ['lowShelf.frequency', M.lowShelfHz],
+      ['lowMid.frequency', M.lowMidHz], ['lowMid.Q', M.lowMidQ],
+      ['mid.frequency', M.midHz], ['mid.Q', M.midQ],
+      ['presence.frequency', M.presenceHz], ['presence.Q', M.presenceQ],
+      ['air.frequency', M.airHz],
       ['master.gain', M.gain], ['trim.gain', M.trim],
     ];
     const at = ctx.currentTime;
     const over = current ? current.program.barSeconds : 2;
+    master.setProfile(eqProfileOf(M), at, over);
     for (const [path, v] of moves) {
       const param = master.param(path) as unknown as Parameters<typeof rampLine>[1] | null;
       if (!param || !Number.isFinite(v)) continue;
@@ -585,6 +687,53 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // the processor measures the output past the trim, so it is told the new one
     if (limiterPort && Number.isFinite(M.trim)) limiterPort.postMessage({ post: { gain: M.trim } });
     masterSettings = next;
+  }
+
+  /**
+   * **The master's tone follows the theme** (round E1, `eqByTheme`): where the
+   * arriving theme's style says so, the five gains walk to the profile its own
+   * settings carry -- its room's, moved by the nearest row of the places' EQ
+   * table -- over `over` seconds from `at`. A bird moved mid-play plans the next
+   * theme, so it reaches the tone here, at that theme's boundary, and never
+   * mid-theme. The ledger carries the five numbers whenever they move. Under a
+   * style without the switch (house-v1) the tone is the set's room, as it
+   * always was, and nothing here writes a thing -- unless the engine was just
+   * handed back from one that follows, and then it walks home to the set's
+   * room under that style.
+   */
+  let toneFollowed = false;
+  function toneOfTheme(d: Deck, at: number, over: number): void {
+    const style = d.track.style as Style;
+    const follows = switchOn(style, 'eqByTheme');
+    if (!follows && !toneFollowed) return;
+    toneFollowed = follows;
+    const to = follows ? eqProfileOf(d.settings.master)
+      : eqProfileOf(resolveSettings({ base: style.base, room: presetOfTheme(masterSeed, 0, o.preset, style, o.spell).params, bypass: bypass && bypass.params }).master);
+    const was = master.profile();
+    master.setProfile(to, at, over);
+    if (EQ_BANDS.every((b) => Math.abs(was[b] - to[b]) < 1e-9)) return;
+    masterSettings = resolveSettings({ base: masterSettings as unknown as Parameters<typeof resolveSettings>[0]['base'], overrides: { master: to } });
+    note('theme', 'the master\'s tone moves to the theme\'s', {
+      lowShelfDb: +to.lowShelfDb.toFixed(2), lowMidDb: +to.lowMidDb.toFixed(2), midDb: +to.midDb.toFixed(2),
+      presenceDb: +to.presenceDb.toFixed(2), airDb: +to.airDb.toFixed(2), bars: +(over / d.program.barSeconds).toFixed(2),
+    });
+  }
+
+  /**
+   * **The limiter's release follows the theme** (the liquid bass rounds, 10-07): a place may
+   * ask the master limiter to let go sooner (`limiterReleaseMs`, written into the theme's
+   * room), which a theme's own render plays; the shared master is told so when such a theme
+   * becomes the one under the needle, and told back when the next is not. The house's rooms
+   * all say the base's 200 ms, so under them nothing is ever posted.
+   */
+  let masterRelease = masterSettings.master.limiter.releaseMs;
+  function releaseOfTheme(d: Deck): void {
+    const ms = d.settings.master.limiter.releaseMs;
+    if (!(typeof ms === 'number' && ms > 0)) return;
+    if (ms !== masterRelease && limiterPort) limiterPort.postMessage({ releaseMs: ms });
+    masterRelease = ms;
+    if (masterSettings.master.limiter.releaseMs !== ms)
+      masterSettings = resolveSettings({ base: masterSettings as unknown as Parameters<typeof resolveSettings>[0]['base'], overrides: { master: { limiter: { releaseMs: ms } } } });
   }
 
   // The sum's written history: the seam dips it and a seam abandoned brings it
@@ -598,18 +747,60 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   let current: Deck | null = null;
   let incoming: Deck | null = null;
   let sourceMix: SourceMix | null = null;
+  // **The desk's stage moves are laid on where a graph is built, and only
+  // there** (PLAN-DESK D2): the deck's graph is built from the program's room
+  // with them on (`withStage`, the very same object while nothing is moved),
+  // and everything else of the deck — its voices, its curves, its room — reads
+  // the program's own. So a cast, a stop and a start, or the next theme
+  // arrives with the moves already in its stage.
   function sourceDeck(...args: Parameters<typeof makeDeck>): Deck {
-    const deck = makeDeck(...args);
+    const [c, track, program, out, m, clk, atTime, perBeat] = args;
+    // the arriving deck's graph, where `ahead` built it for this plan (`makeDeck` takes it only where it fits);
+    // one built for another plan is let go, and `ahead` builds again for the next seam
+    const built = arrival && arrival.track === track ? arrival.built : null;
+    if (built) arrival = null; else dropArrival();
+    const deck = makeDeck(c, track, program, out, m, clk, atTime, perBeat, withStage(program.settings), built);
     if (sourceMix) deck.graph.setSourceMix(sourceMix);
     return deck;
   }
+  /**
+   * **The arriving deck's graph, built ahead** (the engine review of 10-08,
+   * F4): the record's own seam is known a theme ahead, and its deck's graph —
+   * sixty-odd nodes, two convolvers and the returns, 20 to 27 ms of the seam's
+   * tick on this Mac — is built by `ahead` in an idle slot in the seconds before
+   * the seam rather than on the tick that arms it. It is the graph `makeDeck`
+   * would build there, from the same plan, room, grid tempo and first bar
+   * line, and `makeDeck` takes it only where every one of those still holds; a
+   * graph a move or a ride made stale is let go and the tick builds its own.
+   */
+  let arrival: { track: SetTrack; built: DeckGraph } | null = null;
+  const BUILD_AHEAD_S = 3;
+  function dropArrival(): void {
+    if (arrival) arrival.built.graph.dispose();
+    arrival = null;
+  }
+  function buildArrival(): void {
+    if (!current || transition || incoming || !nextPlan || !clock) return;
+    const { at } = seamOfRecord();
+    const point = deckContextTime(current, at);
+    // not yet in reach, or already the tick's to arm
+    if (point - ctx.currentTime > BUILD_AHEAD_S || point <= startAt(ctx)) return;
+    // a far ride is laid first, as the tick lays it, and the grid it leaves is the one the graph is built on
+    const rule = rode.get(current) ?? seamTempo(heardBpm(current, point), nextPlan.bpm, o);
+    if (rule.ride > 0 && !rode.has(current)) return;
+    const program = compiled(nextPlan), settings = withStage(program.settings), perBeat = (current.perBeat ?? 1) * rule.perBeat;
+    const bpm = (60 / clock.spbAt(clock.beatAt(point))) * perBeat;
+    const had = arrival;
+    if (had && had.track === nextPlan && Math.abs(had.built.when - point) <= 1e-9 && Math.abs(had.built.bpm - bpm) <= 1e-9 * bpm && had.built.settings === settings) return;
+    dropArrival();
+    arrival = { track: nextPlan, built: deckGraph(ctx, program, master, clock, point, perBeat, settings) };
+  }
 
   let retiring: Deck | null = null; // the theme that has handed over and is playing out
-  // **What the seam in flight does with the tempo** (`seamTempo`): set as a
-  // hand-over begins and read by `settleIn` and a second move; `ride` is the
-  // bars the grid was really ridden over before the blend, which a theme too
-  // near its end to ride leaves at nought.
-  let seamRule: SeamTempo | null = null;
+  // ...and until when: the end of the blend that retired it. A hand-over
+  // asked for inside that tail leaves the tail to finish (round MIX-X1), so
+  // the instant is the deck's own and not the transition's.
+  let retiringUntil = 0;
   // The decks whose own seam has had its far ride laid, and the rule it was
   // laid under: the natural seam's ride is laid as the horizon reaches its
   // first bar and the blend is armed later, on the same rule.
@@ -617,9 +808,33 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // The tempo a deck is heard at, at a context instant: the grid's, times the
   // beats of the theme a beat of it carries.
   const heardBpm = (d: Deck, at: number): number => (60 / clock!.spbAt(clock!.beatAt(at))) * (d.perBeat ?? 1);
-  let transition: ReturnType<typeof scheduleTransition> | null = null;
+  /**
+   * **The hand-over in flight**: where it begins, swaps and ends on the
+   * context's clock, and what it does with the tempo (`seamTempo`) — `ride`
+   * being the bars the grid was really ridden over before the blend, which a
+   * theme too near its end to ride leaves at nought. The rule was a second
+   * variable beside this one until round MIX-X1; it is the hand-over's.
+   */
+  let transition: (ReturnType<typeof scheduleTransition> & { rule: SeamTempo; hand: HandSeamBars | null }) | null = null;
+  /**
+   * **The hand-over in flight as one wait** (round MIX-X1): asked when, the
+   * low end changing hands when, the tempo fully heard when — the ride, the
+   * blend and the glide after it in one number — on the context's clock. Set
+   * at the ask from the line the move will take, made exact when the seam is
+   * laid, moved again only by a genuine re-plan, and gone once everything it
+   * named has been heard. A face reads the whole of a bird's wait off it and
+   * never extrapolates from a value it sampled.
+   */
+  let wait: MixWait | null = null;
+  let waitPlan = 0;
   let timer: (() => void) | null = null;
   let running = false;
+  // **The start's lead** (K42): the context instant the record's first moment
+  // is laid at, and the second of the theme it is. Until the clock gets there
+  // the set says so (`leading`, `leadFrom`), and a face holds its needle where
+  // the set was started from; any move made in the meantime ends it.
+  let leadUntil = 0;
+  let leadFrom = 0;
   const listeners = new Set<(state: MixState) => void>();
   let nextPlan: SetTrack | null = null;
   // A start is a chain of awaits — a context to resume, a theme's voices to
@@ -667,10 +882,19 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     style: Style;
     spell: Partial<Spell> | null;
     recipe: Recipe | null;
+    /** how far a library turn's row may leak (round D1): one more field of the ask the plan reads, as the spell is */
+    reach: number;
   }
   const placed = new WeakMap<SetTrack, Place>();
+  // **A row is its resolved definition** (`definitionOf`, as a plan made ahead
+  // is matched, R02 of the review of 10-03): a new revision of a row, or a desk
+  // edit of it, under the same id is another place, and a plan made from the
+  // old one is never handed out for it (the deep review of 10-08).
+  const sameRow = (a: Recipe | null, b: Recipe | null) => a === b || definitionOf(a) === definitionOf(b);
   const samePlace = (a: Place, b: Place) => a.seed === b.seed && a.index === b.index && a.strategy === b.strategy
-    && a.style === b.style && sameSpell(a.spell, b.spell) && (a.recipe?.id ?? null) === (b.recipe?.id ?? null);
+    && a.style === b.style && sameSpell(a.spell, b.spell) && sameRow(a.recipe, b.recipe) && a.reach === b.reach;
+  /** the definition of the row a plan was made from, read when it was made: a row edited in place since is another row */
+  const placedRow = new WeakMap<SetTrack, string | null>();
 
   /**
    * **What a hand has asked of the set's sound, and nothing has played yet**:
@@ -682,6 +906,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * than stranded while the ring holds the bird.
    */
   let spellWanted: Partial<Spell> | null | undefined;
+  /** and a reach asked (round D1): a pull of its own, spent the same way */
+  let reachWanted: number | undefined;
   let engineWanted: { strategy: string; style: Style } | null = null;
 
   /**
@@ -711,6 +937,22 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * it. The one door every move comes in by.
    */
   function supersede(kind: NonNullable<typeof moving>['kind'] | null = null): number {
+    leadUntil = 0;
+    // **And what it had asked for goes too** (the deep review of 10-08). A
+    // move plans its landing and asks its wait before it waits for the landing
+    // to be built; overtaken there — a seek inside a pull's or a cast's
+    // preparation — it used to leave both behind, and the record's own next
+    // seam handed over into that plan: the pull's theme entering at its own
+    // outro, the abandoned cast's seed arriving a minute later, and the ring
+    // drawing a wait for a hand-over nobody was building. A wait not yet laid
+    // is only ever a move's in flight; the set's next theme is planned again,
+    // off the tick.
+    if (moving && moving.kind !== 'seek' && !incoming) {
+      nextPlan = null;
+      // a move asked now names its own; a seek or a stop names none
+      if (!kind || kind === 'seek') planAhead();
+    }
+    if (wait && !wait.laid) wait = null;
     moveToken += 1;
     seekingTo = null;
     moving = kind ? { token: moveToken, kind } : null;
@@ -737,9 +979,12 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // Six, since the theme after the one arriving is planned ahead during a blend
   // (`ahead`) and has to still be here at the swap.
   const recent: Array<{ track: SetTrack; preset: string | undefined }> = [];
+  // the reach the set was made at: a plan made ahead of it was made there (round D1)
+  const reach0 = reachOf(o.reach);
   /** A theme already planned at this place, or null: a lookup, never a plan. */
   function plannedAt(p: Place): SetTrack | null {
-    for (const r of recent) if (r.preset === o.preset && samePlace(placed.get(r.track)!, p)) return r.track;
+    const row = definitionOf(p.recipe);
+    for (const r of recent) if (r.preset === o.preset && samePlace(placed.get(r.track)!, p) && placedRow.get(r.track) === row) return r.track;
     return null;
   }
   function planAt(p: Place): SetTrack {
@@ -748,9 +993,10 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // A plan the tick had to make for itself: a seam that arrived before the
     // idle slot planning its theme did. Counted, so a scenario can say none did.
     if (ticking) tickWork += 1;
-    const track = applyBypass(planTheme(p.seed, p.index,
-      { ...o, style: p.style, strategy: p.strategy, spell: p.spell, recipe: p.recipe }), bypass);
+    const track = (!running && p.reach === reach0 && takePrimed(asked0, o.preset, p)) || applyBypass(planTheme(p.seed, p.index,
+      { ...o, style: p.style, strategy: p.strategy, spell: p.spell, recipe: p.recipe, reach: p.reach }), bypass);
     placed.set(track, p);
+    placedRow.set(track, definitionOf(p.recipe));
     recent.unshift({ track, preset: o.preset });
     if (recent.length > 6) recent.pop();
     return track;
@@ -758,7 +1004,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   /** The set as it is: the record's place. */
   const here = (): Place => ({
     seed: masterSeed, index: n, strategy: o.strategy ?? DEFAULT_STRATEGY, style: o.style,
-    spell: o.spell ?? null, recipe: o.recipe ?? null,
+    spell: o.spell ?? null, recipe: o.recipe ?? null, reach: reachOf(o.reach),
   });
   /** The place of a theme this set planned, or where it is if it did not plan it. */
   const placeOf = (track: SetTrack | null | undefined): Place => (track && placed.get(track)) || here();
@@ -768,6 +1014,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   const wish = (p: Place): Place => ({
     ...p,
     ...(spellWanted !== undefined ? { spell: spellWanted } : {}),
+    ...(reachWanted !== undefined ? { reach: reachWanted } : {}),
     ...(engineWanted ? engineWanted : {}),
   });
   /** An aim no hand-over has taken up yet: a cut or a cast still being built. */
@@ -830,6 +1077,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    */
   function ahead(): void {
     if (dead || !running || !current) return;
+    // a move waiting for its landing names the next seam's plan itself
+    if (moving && moving.kind !== 'seek') return;
     if (incoming) {
       const p = placeOf(incoming.track);
       compiled(planAt(wish({ ...p, index: p.index + 1 })));
@@ -837,10 +1086,22 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     }
     if (!nextPlan) nextPlan = plan(n + 1);
     ready(nextPlan);
+    // and, in the seconds before the record's own seam, the arriving deck's graph
+    buildArrival();
   }
 
   /** How many unplayed notes the last hand on a bird re-seasoned. A bench reading. */
   let seasoned = 0;
+  /** the event lists a deck has made its own by seasoning them, and the decks a seasoning has touched */
+  const ownLists = new WeakSet<object>();
+  const seasonedDecks = new WeakSet<Deck>();
+  /** two settings tables, the same numbers under the same names */
+  const sameKnobs = (a: Record<string, number>, b: Record<string, number>): boolean => {
+    const ka = Object.keys(a);
+    if (ka.length !== Object.keys(b).length) return false;
+    for (const k of ka) if (a[k] !== b[k]) return false;
+    return true;
+  };
 
   /**
    * **The immediate half of a held bird**, given to every note that has not yet
@@ -861,16 +1122,71 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * It is called again where a theme changes hands, and it has to be: a spell
    * asked while a seam was already in flight cannot reach the plan of the theme
    * that seam is carrying, so the ask is applied to that theme's notes when it
-   * becomes the one playing. At the house, and any time nothing has been asked
-   * for, it writes nothing and allocates nothing.
+   * becomes the one playing.
+   *
+   * **Nothing asked of a deck is nothing written to it** (the deep review of
+   * 10-08): a deck whose plan was made under the spell the hand asks — every
+   * swap and every seek with no pull in flight — plays its program as it was
+   * compiled, the locked one. It used to be re-seasoned at every swap and seek
+   * with `knobsFor` alone, which left out the plan's tempo lean on the bass and
+   * the place's bass mass and dropped each note's own knobs: MEASURED, live
+   * play left the locked program from theme 2 and after any seek in about one
+   * non-house theme in ten (`seed=1&v=2&spell=em:0.90`: 455 sub notes lost
+   * hold 0.39 and mass 0.5). A real pull seasons with the plan's own chain
+   * (`seasonOf`), each note's own knobs kept over it (`noteKnobs`), and a
+   * pull let go puts the program's own back.
    */
   function reseason(): number {
     const spell = wanted();
     let n = 0;
     for (const d of [current, incoming]) {
       if (!d) continue;
-      if (d === incoming && placeOf(d.track).seed !== masterSeed) continue;
-      n += seasonDeck(d, knobsFor(spell, knobTablesOf(d.track)));
+      const p = placeOf(d.track);
+      if (d === incoming && p.seed !== masterSeed) continue;
+      if (sameSpell(spell, p.spell)) {
+        // as compiled, unless a pull since let go had seasoned it
+        if (seasonedDecks.has(d)) n += seasonNotes(d, d.track.knobs ?? {});
+        continue;
+      }
+      n += seasonNotes(d, seasonOf(d.track, spell));
+    }
+    return n;
+  }
+
+  /**
+   * **Season the notes a deck has not played yet**, each to the seasoning of
+   * its voice with the note's own knobs over it, exactly as the compiler made
+   * them (`noteKnobs`). Everything from the scheduler's cursor on is a note
+   * nothing has been built for, so nothing that sounds is touched; the
+   * program the digest hashes is never written — the deck takes its own copy
+   * of the list the first time, and every later seasoning writes into it.
+   */
+  function seasonNotes(d: Deck, seasoning: Record<string, Record<string, number>>): number {
+    const events = d.program.events;
+    const from = Math.max(0, d.index | 0);
+    if (from >= events.length) return 0;
+    const order = visitOrder(d.program);
+    const plan = d.track.events as Array<{ p?: { knobs?: Record<string, number> } }>;
+    let own = ownLists.has(events);
+    let n = 0;
+    for (let k = from; k < events.length; k++) {
+      const i = order ? order[k] : k;
+      const ev = events[i];
+      const want = noteKnobs(seasoning[ev.voice], plan[ev.i]?.p?.knobs);
+      const had = ev.p && (ev.p.knobs as Record<string, number> | undefined);
+      if (!want && !had) continue;
+      if (want && had && sameKnobs(want, had)) continue;
+      if (!own) {
+        d.program = { ...d.program, events: events.slice() };
+        sameVisitOrder(events, d.program.events);
+        ownLists.add(d.program.events);
+        seasonedDecks.add(d);
+        own = true;
+      }
+      const q = { ...ev.p } as Record<string, unknown>;
+      if (want) q.knobs = want; else delete q.knobs;
+      d.program.events[i] = { ...ev, p: q } as typeof ev;
+      n++;
     }
     return n;
   }
@@ -899,6 +1215,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   /** One preparation pass: where it began, whether it has finished, and its promise. */
   interface Prepared { from: number; done: boolean; p: Promise<void> }
   const readied = new WeakMap<SetTrack, Prepared[]>();
+  const roomsWarmed = new WeakSet<object>();
   function passFor(track: SetTrack, from: number): Prepared | null {
     const list = readied.get(track);
     if (!list) return null;
@@ -925,6 +1242,13 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       note('prepare', 'a theme\'s voices could not be prepared and fall back to the live path',
         { from: +from.toFixed(2), why: String((err as Error)?.message ?? err).slice(0, 80) });
     }).then(() => { entry.done = true; });
+    // and the room's two impulse responses, in an idle slot of their own (`warmRoom`, the engine review of
+    // 10-08, F4): a hand's hand-over into another room builds its deck on the turn that lays it, and finds them
+    // made rather than computing them there. Not waited for: a deck built first computes them as it always did.
+    if (!roomsWarmed.has(program.settings)) {
+      roomsWarmed.add(program.settings);
+      idle(() => { if (!dead) { try { warmRoom(ctx, withStage(program.settings)); } catch (e) { /* the deck will say so */ } } });
+    }
     const list = readied.get(track) || [];
     list.push(entry);
     // Four windows of one theme is more than any transport asks for; the oldest
@@ -996,13 +1320,16 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       next: incoming ? infoOf(incoming.track) : nextPlan ? infoOf(nextPlan) : null,
       incoming: incoming ? infoOf(incoming.track) : null,
       elapsed: seekingTo != null ? seekingTo : current ? Math.max(0, deckThemeTime(current, ctx.currentTime)) : 0,
+      leading: running && ctx.currentTime < leadUntil,
+      leadFrom,
       themeSeconds: current ? current.track.bars * current.track.barSeconds : 0,
       // What a beat of the theme playing costs right now, which through a
       // seam, the glide after it or the ride before it is not what that
       // theme's own tempo says: read off the one clock both decks are on, over
       // the beats of the theme a beat of it carries (two at double time).
       beatSeconds: current ? current.clock.spbAt(current.clock.beatAt(ctx.currentTime)) / (current.perBeat ?? 1) : 0,
-      settleIn: settleIn(),
+      settleIn: Math.max(0, heardAt() - ctx.currentTime),
+      wait,
       transition: transition
         ? Math.max(0, Math.min(1, (ctx.currentTime - transition.at) / (transition.end - transition.at)))
         : 0,
@@ -1017,41 +1344,143 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     };
   }
 
-  // **When the grid will count at the tempo it is heading for** (round K12c),
-  // by the seam's tempo rule (`seamTempo`, the fault pass of 09-24):
+  // **When the tempo the set is heading for is fully heard** (round K12c, made
+  // one number in round MIX-X1), on the context's clock:
   //
-  //   a far jump is ridden before the blend, so the tempo is on its target
-  //   before the arriving theme sounds and is the theme's own at the swap,
-  //   which is where the readout turns over to it: the wait is the swap's;
-  //   every other seam blends on the pinned grid and glides after the blend,
-  //   by its ratio (sixteen bars for a drift, a bar a percent for a near move,
-  //   what is left of a half or double one): the rest of the blend and then
-  //   that glide, on the glide's own arithmetic (linear in BPM);
-  //   after it, the rest of the glide the clock is carrying.
+  //   the clock knows where it stops changing (`steadyAt`): the end of the
+  //   glide after a blend — laid with the blend since MIX-X1, so it is known
+  //   from the hand-over's first instant — or of the ride before a far one;
+  //   the readout turns over at the swap, so a far jump, ridden onto the
+  //   arriving tempo before a note of it sounds, is heard at the swap;
+  //   and a hand-over asked for and not yet laid is the line's own arithmetic.
   //
-  // A face reads the whole wait off this.
-  function settleIn(): number {
-    if (!current) return 0;
-    const clk = current.clock;
+  // The greatest of the three. A face reads the whole wait off this.
+  function heardAt(): number {
+    let at = clock ? clock.steadyAt() : -Infinity;
+    if (transition) at = Math.max(at, transition.swapAt);
+    if (wait && !wait.laid) at = Math.max(at, wait.heardAt);
+    return at;
+  }
+
+  // How long a glide takes on the clock: linear in BPM over `overBeats`, the
+  // clock's own integral (`set-clock.ts`), for a hand-over not yet laid.
+  const glideSeconds = (spb0: number, spb1: number, overBeats: number): number => {
+    const m0 = 60 / spb0;
+    const m1 = 60 / spb1;
+    if (Math.abs(m1 - m0) < 1e-6 || !(overBeats > 0)) return 0;
+    return (60 / ((m1 - m0) / overBeats)) * Math.log(m1 / m0);
+  };
+
+  /**
+   * **The hand-over a hand asks for, before it is laid** — the one arithmetic
+   * `foresee` reads and `move` lays (round MIX-X3): the line the move takes
+   * (`seamFromHere`), the far ride in the room the record has left past it
+   * (`rideInRoom`), the grid as it will stand at the blend — ridden towards the
+   * arriving tempo, or as it is at the line — the hand's own bars at that grid
+   * (`handSeamBars`: the swap and the cross by the style's seconds, the blend
+   * twice the swap) and the blend from where the ride ends, no longer than
+   * the hand's bars and no longer than the record has left.
+   */
+  function handOver(arriving: SetTrack, unit: number) {
+    const m = current!.perBeat ?? 1;
+    const bs = current!.track.barSeconds;
+    const from = deckThemeTime(current!, moveFloor());
+    const line = seamFromHere(current!.track, from, arriving, { unit });
+    const lineAt = Math.max(moveFloor(), deckContextTime(current!, line.at));
+    const rule = seamTempo(heardBpm(current!, lineAt), arriving.bpm, o);
+    const r = rideInRoom(rule, current!.track.bars - line.bar, o);
+    const spbLine = clock!.spbAt(clock!.beatAt(lineAt));
+    const spb = r.ride > 0 ? (r.glide === 0 ? arriving.beat * m : spbLine / r.ridden) : spbLine;
+    const hand = handSeamBars(o.handSeam, (spb * 4) / m, o.harmonicCross, o.swapAfterBars);
+    const s = r.ride > 0
+      ? seamFromHere(current!.track, (line.bar + r.ride) * bs, arriving, { unit: 1, most: hand.blend })
+      : seamFromHere(current!.track, from, arriving, { unit, most: hand.blend });
+    return { m, bs, line, lineAt, rule: { ...rule, ride: r.ride, glide: r.glide }, r, spbLine, spb, hand, s };
+  }
+
+  /**
+   * **What a hand-over a hand asks for will be**, before it is laid: the line
+   * `move` will take, the ride before it where the tempo is far, the blend's
+   * bars on the grid as it will stand, and from those the swap and the instant
+   * the tempo is fully heard — the same arithmetic `move` lays (`handOver`),
+   * so what the face is told at the drop is what the seam does, and a landing
+   * that takes longer than its line is the one case the numbers move.
+   */
+  function foresee(arriving: SetTrack, unit: number, cut: boolean, kind: MixWait['kind']): { swapAt: number; heardAt: number } {
     const now = ctx.currentTime;
-    // (before the swap the arriving deck is `incoming`; after it, `current`,
-    // with the outgoing one still sounding until the blend ends)
-    if (transition) {
-      if (seamRule && seamRule.ride > 0) return Math.max(0, transition.swapAt - now);
-      const arriving = incoming ?? current;
-      const to = gridBeat(arriving);
-      const spb = clk.spbAt(clk.beatAt(Math.max(now, transition.end)));
-      const over = Math.max(1, (glideBarsFor(spb / to, o) * 4) / (arriving.perBeat ?? 1));
-      const m0 = 60 / spb;
-      const m1 = 60 / to;
-      const glide = Math.abs(m1 - m0) < 1e-6 ? 0 : (60 / ((m1 - m0) / over)) * Math.log(m1 / m0);
-      return Math.max(0, transition.end - now) + (glide > 0 ? glide : 0);
+    // A pull inside a hand-over joins it (`joinBlend`, `keepRide`), and so
+    // does a cast (round MIX-X5): the swap and the end are the hand-over's
+    // own, unchanged.
+    if ((kind === 'spell' || kind === 'cast') && wait && wait.laid && incoming && (blending() || ridingAhead())) {
+      return { swapAt: wait.swapAt, heardAt: wait.heardAt };
     }
-    const segs = clk.segments;
-    const open = segs[segs.length - 1];
-    const prev = segs[segs.length - 2];
-    if (prev && Number.isFinite(prev.beats) && Math.abs(prev.spb1 - prev.spb0) > 1e-12 && open.t0 > now) return open.t0 - now;
-    return 0;
+    if (cut) {
+      const at = cutAt();
+      const swapAt = lineAfter(current!, at + 1e-3, current!.track.barSeconds);
+      return { swapAt, heardAt: Math.max(swapAt, now) };
+    }
+    const { m, lineAt, rule, r, spbLine, spb, hand, s } = handOver(arriving, unit);
+    // A far jump is ridden in the room the record has left past the line
+    // (`rideInRoom`, round MIX-X3), and the blend begins where the ride ends:
+    // as many seconds past the line as the glide takes over the ride's bars,
+    // which on a record being slowed is more than its bars said.
+    let at = lineAt;
+    if (r.ride > 0) {
+      const beats = (r.ride * 4) / m;
+      at = lineAt + (Math.abs(spb - spbLine) < 1e-9 ? beats * spbLine : glideSeconds(spbLine, spb, beats));
+    }
+    const barSeconds = (spb * 4) / m;
+    const swapAt = at + swapAfterBars(s.bars, { swapAfterBars: hand.swap }) * barSeconds;
+    const end = at + s.bars * barSeconds;
+    const perBeat = m * rule.perBeat;
+    const target = arriving.beat * perBeat;
+    const over = Math.max(1, (glideBarsFor(spb / target, o) * 4) / perBeat);
+    // ridden all the way, the tempo is heard at the swap, where the readout turns over; otherwise at the end of the glide after the blend
+    const heard = r.ride > 0 && r.glide === 0 ? swapAt : end + glideSeconds(spb, target, over);
+    return { swapAt, heardAt: Math.max(swapAt, heard) };
+  }
+
+  /** The plan's number: the one before, unless the instants moved by more than a tenth of a second. */
+  const planOf = (swapAt: number, heard: number): number =>
+    (wait && Math.abs(wait.swapAt - swapAt) <= 0.1 && Math.abs(wait.heardAt - heard) <= 0.1 ? wait.plan : ++waitPlan);
+
+  /**
+   * The wait begins: a hand has asked, and this is what it will take.
+   *
+   * **A hand-over that carries a cast is a cast's wait, whoever asked last**
+   * (round MIX-X5). A bird pulled while the dice are in the air joins the
+   * cast's hand-over, and that one hand-over is what the cast's node and
+   * every bird's fill run on — so its kind stays the cast's, which is what
+   * the face draws the node's fill from; the birds draw theirs whatever the
+   * kind. A spell asked into the set's own seed is a spell's wait as before.
+   */
+  function askWait(kind: MixWait['kind'], arriving: SetTrack, unit: number, cut: boolean, into: Place): void {
+    const { swapAt, heardAt: heard } = foresee(arriving, unit, cut, kind);
+    const carries: MixWait['kind'] = kind === 'spell' && into.seed !== masterSeed ? 'cast' : kind;
+    wait = { askedAt: ctx.currentTime, swapAt, heardAt: heard, plan: planOf(swapAt, heard), kind: carries, laid: false };
+  }
+
+  /**
+   * The wait is exact: the seam is laid, so the swap is the seam's and the
+   * tempo's arrival is read off the clock. A hand-over nobody asked for — the
+   * set's own — is a wait too, so a face reads the drift's glide the same way.
+   * The instants moving by more than a tenth of a second is a re-plan — a
+   * landing that missed its line — and says so, in the plan's number and in
+   * the ledger.
+   */
+  function layWait(): void {
+    if (!transition) return;
+    const heard = Math.max(clock!.steadyAt(), transition.swapAt);
+    const plan = planOf(transition.swapAt, heard);
+    if (!wait || wait.laid) {
+      wait = { askedAt: transition.at, swapAt: transition.swapAt, heardAt: heard, plan, kind: 'seam', laid: true };
+      return;
+    }
+    if (plan !== wait.plan) note('seam', 'the landing missed its line, and the wait was planned again', {
+      swapWas: +(wait.swapAt - ctx.currentTime).toFixed(2), swapIs: +(transition.swapAt - ctx.currentTime).toFixed(2),
+      heardWas: +(wait.heardAt - ctx.currentTime).toFixed(2), heardIs: +(heard - ctx.currentTime).toFixed(2),
+    });
+    wait = { ...wait, swapAt: transition.swapAt, heardAt: heard, plan, laid: true };
   }
 
   // Where a cut starts: the next beat of the record that is playing, past
@@ -1080,7 +1509,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // arriving deck comes in at its own offset rather than at its first bar, and
   // every curve is written from the value it had reached instead of from its
   // beginning, so nothing jumps and nothing is played twice.
-  function beginTransition(bars: number, whenTime: number, cut = false, stage = 0, rule: SeamTempo | null = null) {
+  function beginTransition(bars: number, whenTime: number, cut = false, stage = 0, rule: SeamTempo | null = null, hand: HandSeamBars | null = null) {
     if (incoming) return transition;
     const next = nextPlan || plan(n + 1);
     nextPlan = null;
@@ -1091,7 +1520,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // that rode the grid first, and otherwise read here, off the tempo the
     // outgoing theme is heard at as the blend begins.
     const m = current!.perBeat ?? 1;
-    seamRule = rule ?? seamTempo(heardBpm(current!, at + stage), next.bpm, o);
+    const tempo = rule ?? seamTempo(heardBpm(current!, at + stage), next.bpm, o);
     // MEASURED: nothing changes tempo across a seam. The grid is held where it
     // stands for the length of the blend — a seam that begins in the middle of
     // a glide keeps whatever the glide had reached — and the arriving theme is
@@ -1099,7 +1528,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // its beats to one at double time (`perBeat`). A bar here is the outgoing
     // theme's, which is what the blend is counted in.
     const barSeconds = (moveGrid(clock!.beatAt(at + stage), 0, (b) => clock!.pin(b)) * 4) / m;
-    incoming = sourceDeck(ctx, next, compiled(next), mixOut, master, clock!, at + stage, m * seamRule.perBeat);
+    incoming = sourceDeck(ctx, next, compiled(next), mixOut, master, clock!, at + stage, m * tempo.perBeat);
     // **A move in place enters where the record is** (Eugene, 09-24: *"a bird
     // move keeps the place"*): the theme playing, planned again under the
     // asked spell, comes in at the bar the outgoing plan is at as the blend
@@ -1109,18 +1538,44 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     const inPlace = to.seed === masterSeed && to.index === n && to.strategy === (o.strategy ?? DEFAULT_STRATEGY);
     const entry = inPlace ? sameFormTime(current!.track, next, Math.max(0, deckThemeTime(current!, at))) : 0;
     startDeck(ctx, incoming, at + stage, entry + stage);
-    transition = scheduleTransition(ctx, current!, incoming, at, bars, barSeconds, o, mixOut, cut, at + stage, sumLine);
+    // A hand's seam swaps and crosses on its own bars (`set.handSeam`, round
+    // MIX-X3); the set's own, and a cut, on the planned seam's.
+    transition = { ...scheduleTransition(ctx, current!, incoming, at, bars, barSeconds, seamOptions(hand), mixOut, cut, at + stage, sumLine), rule: tempo, hand };
+    // **A record with nothing left under the blend hands over at full** (round
+    // MIX-X1). The arriving theme fades up from nothing over the blend's first
+    // bars so that it comes in under a record that is still playing; where the
+    // record has already run out — a scrub into its last bar, a move asked
+    // there — that fade is a bar of silence, so the arriving theme is heard
+    // from its first note instead.
+    if (deckThemeTime(current!, at + stage) >= current!.track.bars * current!.track.barSeconds - 1e-3) {
+      const fader = incoming.lineOf('fader.gain');
+      if (fader) fader.write([{ v: 1, t: at + stage, k: 'set' }], at + stage);
+      note('seam', 'the record had run out, so the arriving theme comes in at full');
+    }
+    // **The glide after the blend is laid with the blend** (round MIX-X1), at
+    // the blend's end — exactly where `layOut` lays it for a render, so the
+    // live grid and the rendered one are one grid — rather than when the blend
+    // ends: the clock knows from the hand-over's first instant when the tempo
+    // will be the arriving theme's own, and a face reads the whole wait off
+    // it. Nothing before the blend's end moves, and nothing after it has been
+    // handed to the audio clock yet.
+    glideAfter(transition.end, incoming);
+    layWait();
     note('seam', cut ? 'a cut began' : 'a hand-over began', {
       bars,
       into: String(next.seed),
-      tempo: `${seamRule.kind} ${+seamRule.ratio.toFixed(3)}`,
+      tempo: `${tempo.kind} ${+tempo.ratio.toFixed(3)}`,
       ...(inPlace ? { inPlaceAtBar: +(entry / next.barSeconds).toFixed(2) } : {}),
       inSeconds: +(at - ctx.currentTime).toFixed(2),
       swapInSeconds: +(transition.swapAt - ctx.currentTime).toFixed(2),
+      ...(incoming.builtAhead ? { graph: 'built ahead' } : {}),
     });
     emit();
     return transition;
   }
+
+  /** The seam's numbers for a hand-over: the hand's bars where a hand asked for it, the style's where the set did. */
+  const seamOptions = (hand: HandSeamBars | null) => (hand ? { ...o, swapAfterBars: hand.swap, harmonicCross: hand.cross } : o);
 
   // Where this theme's own hand-over falls, in its own seconds. A seam is a
   // function of the plan alone — the theme, the blend it rolled, the line it
@@ -1166,7 +1621,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * @param kind which move this is, for `supersede` and the ledger
    * @param unit the line a hand-over begins on, in bars; a cut takes a beat
    */
-  async function move(resolve: () => Place, kind: NonNullable<typeof moving>['kind'], unit = 1): Promise<TransportPoint | null> {
+  async function move(resolve: () => Place, kind: NonNullable<typeof moving>['kind'], unit = 1, asked: MixWait['kind'] = kind === 'cut' ? 'skip' : kind as MixWait['kind']): Promise<TransportPoint | null> {
     if (!running || !current) return null;
     const cut = kind === 'cut';
     const token = supersede(kind);
@@ -1178,6 +1633,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       let dest = resolve();
       let arriving = planAt(dest);
       nextPlan = arriving;
+      // The wait begins at the ask, from the line this move will take.
+      askWait(asked, arriving, unit, cut, dest);
       // The landing is built before a deck is: a theme nobody has warmed renders
       // its piano's strings on the scheduling tick otherwise, which is the one
       // thing a hand-over must not do to the theme that is still playing — and
@@ -1198,20 +1655,36 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // moved it — the record keeps sounding through it, and the plan asked
       // now blends in at the ride's end, as though both values had been in
       // the first ask.
-      if (kind === 'spell' && ridingAhead()) {
+      // **And so does a cast** (round MIX-X5): the dice thrown while a bird's
+      // ride runs re-aim the ride at the new set's tempo and blend into it
+      // where the bird's blend was to begin; a bird pulled while a cast's ride
+      // runs is the same join the other way round.
+      if ((kind === 'spell' || kind === 'cast') && ridingAhead()) {
         const kept = keepRide(dest, arriving);
         if (kept) return kept;
       }
-      if (!cut || transition) interruptSeam(cut);
+      // **A second ask inside a blend joins it** (round MIX-X1): before the
+      // swap the plan asked now takes the arriving theme's place under the
+      // same curves, at the same bar; after it, the record is the theme that
+      // arrived and the ask hands over from there on the next phrase line
+      // while the theme it replaced plays out its tail as written. A cast
+      // joins too (round MIX-X5), its theme entering at the bar the blend is
+      // on, so that the record is never cut for a throw.
+      if ((kind === 'spell' || kind === 'cast') && blending()) {
+        const joined = joinBlend(dest, arriving);
+        if (joined) return joined;
+      }
+      if (!cut || transition) interruptSeam(cut, cut);
       if (stale()) return null;
       // Reached already: a seam that landed on the way — its own, armed while
       // the landing was built with the theme this move had planned — brought
       // the very place it asked for, and a second hand-over into the theme
       // after it would be a move nobody made.
       const h = here();
-      if (dest.seed === h.seed && dest.index === h.index && dest.strategy === h.strategy && sameSpell(dest.spell, h.spell)) {
+      if (dest.seed === h.seed && dest.index === h.index && dest.strategy === h.strategy && sameSpell(dest.spell, h.spell) && dest.reach === h.reach) {
         if (aim && aim.seed === h.seed && aim.index === h.index) aim = null;
         const now = ctx.currentTime;
+        if (wait && !wait.laid) wait = { ...wait, swapAt: now, heardAt: Math.max(now, heardAt()), laid: true };
         return { at: now, end: now, swapAt: now, bars: 0, themeIndex: n };
       }
       const again = resolve();
@@ -1225,35 +1698,31 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       aim = dest;
       nextPlan = arriving;
       if (cut) return beginTransition(o.skipBars, cutAt(), true);
-      const from = deckThemeTime(current!, moveFloor());
-      // One phrase past the swap at the most: see `seamFromHere`. The low end
-      // changes hands `swapAfterBars` into any blend, and a hand-over a hand
-      // asked for is over a phrase after that rather than two minutes later.
-      const most = o.swapAfterBars * 2;
-      const s = seamFromHere(current!.track, from, arriving, { unit, most });
+      // The hand's hand-over (`handOver`): its line, the far ride in the room
+      // past it, the hand's own bars at the grid the blend is played on
+      // (`set.handSeam`, round MIX-X3: the swap about fourteen seconds in, the
+      // blend twice that, no longer than the record has left), and the blend
+      // from where the ride ends.
+      const ho = handOver(arriving, unit);
       // **A far jump is ridden first** (`seamTempo`): from the line, the grid
-      // takes the record to the arriving theme's tempo over the rule's bars —
-      // fewer where the record has not that many left before its last three —
-      // and the blend begins where the ride ends, on a bar line of the record,
-      // at the arriving theme's own tempo.
-      const rule = seamTempo(heardBpm(current!, deckContextTime(current!, s.at)), arriving.bpm, o);
-      if (rule.ride > 0) {
-        const ride = Math.max(0, Math.min(rule.ride, Math.floor(current!.track.bars - s.bar - 3)));
-        const m = current!.perBeat ?? 1;
-        if (ride > 0) {
-          const beats = (ride * 4) / m;
-          const target = arriving.beat * m;
-          moveGrid(clock!.beatAt(deckContextTime(current!, s.at)), beats, (b) => clock!.glide(b, target, beats));
-          const t = seamFromHere(current!.track, (s.bar + ride) * current!.track.barSeconds, arriving, { unit: 1, most });
-          note('seam', 'the record rides to the arriving tempo before the blend',
-            { from: +heardBpm(current!, deckContextTime(current!, s.at - 1e-3)).toFixed(1), to: arriving.bpm, bars: ride });
-          return beginTransition(t.bars, deckContextTime(current!, t.at), false, 0, { ...rule, ride });
-        }
-        // No room to ride: blended on the grid and glided after, as a near move.
-        return beginTransition(s.bars, Math.max(moveFloor(), deckContextTime(current!, s.at)), false, 0,
-          { ...rule, ride: 0, glide: glideBarsFor(rule.ratio, o) });
+      // takes the record towards the arriving theme's tempo, and the blend
+      // begins where the ride ends, on a bar line of the record. **In the room
+      // the record has left** (round MIX-X3, `rideInRoom`): a ride the room
+      // cuts short keeps its slope and reaches part of the way, and what it did
+      // not cover is the glide after the blend; with no room for a bar of it,
+      // no ride at all — blended on the grid and glided after, as a near move.
+      if (ho.r.ride > 0) {
+        const beats = (ho.r.ride * 4) / ho.m;
+        const lineBeat = clock!.beatAt(ho.lineAt);
+        moveGrid(lineBeat, beats, (b) => clock!.glide(b, ho.spb, beats));
+        note('seam', ho.r.glide > 0
+          ? 'the record rides part of the way to the arriving tempo in the room it has left, and the rest is glided after the blend'
+          : 'the record rides to the arriving tempo before the blend',
+          { from: +heardBpm(current!, ho.lineAt - 1e-3).toFixed(1), to: arriving.bpm, bars: ho.r.ride,
+            ...(ho.r.glide > 0 ? { ridesTo: +((60 / ho.spb) * ho.m).toFixed(1), glideBars: ho.r.glide } : {}) });
+        return beginTransition(ho.s.bars, deckContextTime(current!, ho.s.at), false, 0, ho.rule, ho.hand);
       }
-      return beginTransition(s.bars, Math.max(moveFloor(), deckContextTime(current!, s.at)), false, 0, rule);
+      return beginTransition(ho.s.bars, Math.max(moveFloor(), deckContextTime(current!, ho.s.at)), false, 0, ho.rule, ho.hand);
     } finally {
       if (moving && moving.token === token) moving = null;
     }
@@ -1269,19 +1738,78 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   function takenBack(): boolean {
     const want = asked();
     const h = here();
-    if (!sameSpell(want.spell, h.spell) || want.strategy !== h.strategy || want.style !== h.style) return false;
+    if (!sameSpell(want.spell, h.spell) || want.strategy !== h.strategy || want.style !== h.style || want.reach !== h.reach) return false;
     if (pendingAim()) return false;
     if (incoming) {
       const p = placeOf(incoming.track);
-      if (!sameSpell(p.spell, h.spell) || p.strategy !== h.strategy) return false;
+      if (!sameSpell(p.spell, h.spell) || p.strategy !== h.strategy || p.reach !== h.reach) return false;
     }
     spellWanted = undefined;
+    reachWanted = undefined;
     engineWanted = null;
     return true;
   }
 
-  /** Where the music is heading — or the aim not yet taken up — under what has been asked: a pull's place. */
-  const inPlace = (): Place => wish(pendingAim() ?? heading());
+  /**
+   * **An ask taken back leaves nothing behind**: the plan it had named for the
+   * next seam and a wait it had asked and not laid (F7 of the deep review of
+   * 10-08: a bird pulled and put back inside its own preparation left a fill
+   * running to an instant nothing was coming at). The set's next theme is
+   * planned again, off the tick.
+   */
+  function letGoOfAsk(): void {
+    nextPlan = null;
+    if (wait && !wait.laid) wait = null;
+    if (running) planAhead();
+  }
+
+  /**
+   * Where the music is heading — or the aim not yet taken up — under what has
+   * been asked: a pull's place.
+   *
+   * **In place only while the record has somewhere to re-enter** (round
+   * MIX-X1). Past the bar the arrangement hands this theme over on, the theme
+   * is in its outro: the plan asked for, entered at the same bar, would come in
+   * at the end of its own and run out under the hand-over that followed —
+   * MEASURED, a bird moved in the last bars of seed 1's first theme: the
+   * record ended at bar 152, the arriving theme entered at its 152, and the
+   * next theme faded in from nothing over 1.5 s of silence. So from the
+   * hand-over bar on, a pull goes where the arrangement was about to go: the
+   * next theme, planned under the ask, from its first bar.
+   */
+  const inPlace = (): Place => {
+    const pending = pendingAim();
+    if (pending) return wish(pending);
+    const h = heading();
+    if (!incoming && current && placeOf(current.track).index === h.index && placeOf(current.track).seed === h.seed) {
+      const next = wish({ ...h, index: h.index + 1 });
+      const from = deckThemeTime(current, moveFloor());
+      const bs = current.track.barSeconds;
+      // The line the move will take (`seamFromHere`, a phrase line with room):
+      // at or past the record's own hand-over bar, the arrangement was about
+      // to hand over there, and so does the move (round MIX-X3; it used to read
+      // the floor, so a pull two bars before the seam went in place onto the
+      // seam's own line).
+      const line = lineWithRoom(Math.max(0, from) / bs, [PHRASE_BARS, 1], current.track.bars) * bs;
+      if (line >= seamOfRecord().at - 1e-6) return next;
+      // **And the same place in the plan asked must have room of its own**
+      // (round MIX-X3; Eugene, 10-02, seed 1 at 4:50 of a 5:50 theme, Ember to
+      // nought: *"the track bar shifted to 0 and didn't move for a while, then
+      // the previous track ended and a new one started"*). A spell can change
+      // a theme's length — Ember at nought plans seed 1's first theme as 84
+      // bars where the house has 152 — and `sameFormTime` then puts the
+      // record's bar 128 into the asked plan's last section, clamped to its
+      // last bar: MEASURED, the arriving theme entered at 423 s of its 403,
+      // the sum fell under -30 dB for eight seconds as the record faded with
+      // nothing under it, and the next theme came in at full. The rule is the
+      // one above, read on the plan the pull would enter: a place past that
+      // plan's own hand-over bar is a place the arrangement would hand over
+      // from, so the pull goes to the next theme, from its first bar.
+      const asked = wish(h);
+      if (!samePlace(asked, h) && sameFormTime(current.track, planAt(asked), from) >= seamOf(planAt(asked)).at - 1e-6) return next;
+    }
+    return wish(h);
+  };
 
   /** The next theme after where the music is heading, or the aim not yet taken up, under what has been asked. */
   const onward = (): Place => {
@@ -1319,7 +1847,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // was arriving and threw the listener back to the start of it.
   /** A far move's ride is running, and its blend has not begun. */
   function ridingAhead(): boolean {
-    return !!(transition && incoming && seamRule && seamRule.ride > 0 && ctx.currentTime < transition.at);
+    return !!(transition && incoming && transition.rule.ride > 0 && ctx.currentTime < transition.at);
   }
 
   /**
@@ -1333,16 +1861,23 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * takes the set back where it is) is not kept, and the move drops it.
    */
   function keepRide(dest: Place, arriving: SetTrack): TransportPoint | null {
-    if (!clock || !current || !transition) return null;
+    if (!clock || !current || !transition || !incoming) return null;
     const h = here();
-    if (dest.seed !== h.seed || dest.strategy !== h.strategy) return null;
-    if (dest.index === h.index && sameSpell(dest.spell, h.spell)) return null;
+    // what is arriving is what is asked: nothing to re-aim
+    if (samePlace(dest, placeOf(incoming.track))) return transition;
+    // the ask takes the set back where it is: not kept, the move drops the ride
+    if (dest.seed === h.seed && dest.strategy === h.strategy && dest.index === h.index && sameSpell(dest.spell, h.spell) && dest.reach === h.reach) return null;
     const endBeat = clock.beatAt(transition.at);
-    const bars = transition.bars;
+    const { bars, hand } = transition;
     const m = current.perBeat ?? 1;
-    const target = arriving.beat * m;
     const from = clock.beatAt(Math.max(ctx.currentTime + 0.5, current.pumpedTo || 0));
     if (!(endBeat > from + 1)) return null;
+    // The ride that is left, re-aimed from the tempo reached: in the room it
+    // has (`rideInRoom`, round MIX-X3), the rest glided after the blend.
+    const left = ((endBeat - from) * m) / 4;
+    const rule = seamTempo((60 / clock.spbAt(from)) * m, arriving.bpm, o);
+    const r = rideInRoom(rule, left + ROOM_BARS, o);
+    const target = r.glide === 0 && r.ride > 0 ? arriving.beat * m : clock.spbAt(from) / r.ridden;
     // the arriving deck has not sounded: it goes at once, and the record's
     // seam lines — its fade, its filter, its holes — are the record's again
     letGo(incoming!, 0.02);
@@ -1350,16 +1885,83 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     transition = null;
     claim(ctx, current, 0.08, `buses.${o.bassGroup}.dry.gain`);
     resetSum();
-    if (Math.abs(clock.spbAt(endBeat) - target) > 1e-9) {
+    if (Math.abs(clock.spbAt(endBeat) - target) > 1e-9 || Math.abs(clock.spbAt(from) - target) > 1e-9) {
       const beats = endBeat - from;
       moveGrid(from, beats, (b) => clock!.glide(b, target, beats));
     }
     aim = dest;
     nextPlan = arriving;
-    const left = (endBeat - clock.beatAt(ctx.currentTime)) * m / 4;
-    const rule = seamTempo(heardBpm(current, clock.timeAt(endBeat) - 1e-3), arriving.bpm, o);
-    note('seam', 'a second ask joined the ride', { to: arriving.bpm, bars: +left.toFixed(1) });
-    return beginTransition(bars, clock.timeAt(endBeat), false, 0, { ...rule, ride: Math.max(rule.ride, left, 1e-6) });
+    note('seam', 'a second ask joined the ride', { to: arriving.bpm, bars: +left.toFixed(1), ...(r.glide > 0 ? { glideBars: r.glide } : {}) });
+    return beginTransition(bars, clock.timeAt(endBeat), false, 0, { ...rule, ride: Math.max(left, 1e-6), glide: r.ride > 0 ? r.glide : glideBarsFor(rule.ratio, o) }, hand);
+  }
+
+  /** A blend is running and the low end has not changed hands: the arriving theme is up, under the record. */
+  function blending(): boolean {
+    return !!(transition && incoming && ctx.currentTime >= transition.at && ctx.currentTime < transition.swapAt);
+  }
+
+  /**
+   * **Join a blend that is running** (round MIX-X1; Eugene: *"sometimes when
+   * I change a bird close to a song's end it mixes into silence"*). A pull
+   * asked while the set's own hand-over was already under way used to land
+   * that hand-over at once — the record cut off in 80 ms, the theme arriving
+   * promoted from its intro at whatever its fader had reached — and then hand
+   * over again a phrase later; MEASURED on seed 1 two seconds before the seam,
+   * the sum fell from -17 to -27 dB at the cut. Now the theme that was
+   * arriving is let go where it stands, before it has the low end, and the
+   * plan asked now comes in at the same bar of the same form (`sameFormTime`)
+   * under the same curves — the record's lines where they stand, the fresh
+   * deck's from the value the old one's had reached, the sum from its own
+   * line — with the same swap and the same end, as though the ask had been in
+   * the plan from the start. The grid is pinned through a blend, so a plan
+   * whose tempo would have been ridden to is blended here and glided to
+   * after, the way a move with no room to ride is.
+   *
+   * Only the theme the blend is bringing can be joined: a pull is a plan of
+   * that theme under another spell. Anything else — another seed, another
+   * theme — is not a join, and the caller lands the hand-over as before.
+   */
+  function joinBlend(dest: Place, arriving: SetTrack): TransportPoint | null {
+    if (!clock || !current || !transition || !incoming || !blending()) return null;
+    const was = placeOf(incoming.track);
+    // what is arriving is what is asked: nothing to join
+    if (samePlace(dest, was)) return transition;
+    const old = incoming;
+    const m = current.perBeat ?? 1;
+    const { at, bars, swapAt, hand } = transition;
+    const when = startAt(ctx);
+    const rule = seamTempo(heardBpm(current, when), arriving.bpm, o);
+    const joined: SeamTempo = rule.ride > 0 ? { ...rule, ride: 0, glide: glideBarsFor(rule.ratio, o) } : rule;
+    const fresh = sourceDeck(ctx, arriving, compiled(arriving), mixOut, master, clock, when, m * joined.perBeat);
+    // The same theme under another spell comes in at the same place in the
+    // same form; another theme altogether — a cast thrown inside the blend
+    // (round MIX-X5) — comes in at the bar the blend is on, counted from its
+    // first, so its bar lines are the record's and the swap is where the
+    // blend said.
+    const sameTheme = dest.seed === was.seed && dest.index === was.index && dest.strategy === was.strategy;
+    const entry = sameTheme
+      ? sameFormTime(old.track, arriving, Math.max(0, deckThemeTime(old, when)))
+      : Math.max(0, clock.beatAt(when) - clock.beatAt(at)) * gridBeat(fresh);
+    startDeck(ctx, fresh, when, entry);
+    letGo(old, 0.08);
+    incoming = fresh;
+    // The same hand-over, written again from this instant: `writeSeam` folds
+    // every point before `when` into the value the line had reached there,
+    // so nothing steps. The record's holes are added again with the same
+    // bounds, which `schedule` reads as the one hole they are.
+    const barSeconds = (clock.spbAt(clock.beatAt(at)) * 4) / m;
+    transition = { ...scheduleTransition(ctx, current, fresh, at, bars, barSeconds, seamOptions(hand), mixOut, false, when, sumLine), rule: joined, hand };
+    aim = dest;
+    nextPlan = null;
+    planAhead();
+    glideAfter(transition.end, fresh);
+    layWait();
+    note('seam', 'a second ask joined the hand-over', {
+      into: String(arriving.seed), atBar: +(entry / arriving.barSeconds).toFixed(2),
+      swapInSeconds: +(swapAt - ctx.currentTime).toFixed(2), tempo: `${joined.kind} ${+joined.ratio.toFixed(3)}`,
+    });
+    emit();
+    return transition;
   }
 
   function dropSeam(seconds = 0.08, replan = true) {
@@ -1374,8 +1976,16 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     incoming = null;
     retiring = null;
     transition = null;
-    seamRule = null;
     seamFreeAt = ctx.currentTime;
+    // **An ask in flight keeps its wait** (round MIX-X5). A move drops the
+    // hand-over it is taking over *after* it has asked its own wait and before
+    // it lays its own seam; nulling that unlaid wait here left `layWait` with
+    // nothing to make exact, so it wrote the set's own kind of wait — which
+    // the ring does not draw — and every bird's fill froze where it stood
+    // (MEASURED: Ember pulled and the dice thrown 300 ms later, the fills at
+    // 0.01 for 53 s while the cast's node ran). A laid wait is this hand-over's
+    // and goes with it.
+    if (wait && wait.laid) wait = null;
     glideToCurrent();
     resetSum();
     // A hand-over that is about to be built has its own arriving theme, so it
@@ -1388,15 +1998,43 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // A skip or a back landing inside a blend: the hand-over in flight lands at
   // once — the arriving theme is the record — and the seam that was shaping it
   // is dropped rather than left running underneath the new cut.
-  function interruptSeam(replan = true) {
+  function interruptSeam(replan = true, hard = true) {
     if (!transition && !incoming && !retiring) return;
     // **A ride the blend has not reached is dropped, not landed.** The theme
     // it was riding to has not sounded — it starts where the ride ends, as
     // much as sixteen bars away — so landing it would let the record go and
     // leave silence until then. The record stays, and leans back from where
     // the ride had got to (`dropSeam`).
-    if (seamRule && seamRule.ride > 0 && transition && incoming && ctx.currentTime < transition.at) {
+    //
+    // **And so is any hand-over whose blend has not begun** (round MIX-X5),
+    // under an ask that is not a cut. The arriving deck starts at the blend's
+    // own instant and has not sounded; the record has not begun to fade.
+    // Landing it here cut the record off in 80 ms and put the arriving theme
+    // on from its first bar at once — MEASURED, the dice thrown and Ember
+    // pulled 260 ms later: the seed turned over at the pull, forty seconds
+    // before the hand-over a listener was promised. The record stays, and the
+    // ask lays its own hand-over from here, into the place that was arriving.
+    if (ridingAhead() || (!hard && incoming && transition && ctx.currentTime < transition.at)) {
       dropSeam(0.08, replan);
+      return;
+    }
+    // **A hand-over past its swap is left to play out** (round MIX-X1). The
+    // record is the theme that arrived; the one it replaced is on its way out
+    // on the curves the seam wrote it, and a pull asked now has no reason to
+    // cut that tail off in 80 ms — only the seam's bookkeeping is let go, so
+    // the pull's own hand-over can be laid from the record, and the sum comes
+    // back over what is left of the tail rather than in a step. A cut (a skip,
+    // a back) still lands everything at once: it is a hand asking for a
+    // record now.
+    if (!hard && !incoming && transition && retiring) {
+      note('seam', 'a hand-over was left to play out under a new ask', { tailSeconds: +(retiringUntil - ctx.currentTime).toFixed(2) });
+      claim(ctx, current!, 0.08, `buses.${o.bassGroup}.dry.gain`);
+      transition = null;
+      seamFreeAt = ctx.currentTime;
+      if (wait && wait.laid) wait = null;
+      try { sumLine.to(1, ctx.currentTime, Math.max(0.12, retiringUntil - ctx.currentTime)); } catch (e) { /* already gone */ }
+      glideToCurrent();
+      if (replan && !nextPlan) planAhead();
       return;
     }
     promote(); // a no-op if the swap has already happened
@@ -1413,8 +2051,12 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // why the index did not move until the very end of a cut.
   function promote() {
     if (!incoming) return;
-    if (retiring) teardown(retiring);
+    // A tail still playing out from the hand-over before this one — a pull
+    // asked inside that tail laid this one — goes with a short fade rather
+    // than a cut: its fader is on its way to nought already.
+    if (retiring) letGo(retiring, 0.3);
     retiring = current;
+    retiringUntil = transition ? transition.end : ctx.currentTime;
     current = incoming;
     incoming = null;
     current.gaps = null;
@@ -1440,6 +2082,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       masterSeed = p.seed;
       o.spell = p.spell;
       o.recipe = p.recipe;
+      o.reach = p.reach;
       o.strategy = p.strategy;
       o.style = p.style;
       // **An ask is spent only by the theme that carries it.** A spell asked
@@ -1447,8 +2090,12 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // its own, and forgetting it here would put the ring's held birds and the
       // set's own answer out of step for a whole theme.
       if (spellWanted !== undefined && sameSpell(spellWanted, p.spell)) spellWanted = undefined;
+      if (reachWanted !== undefined && reachWanted === p.reach) reachWanted = undefined;
       if (engineWanted && engineWanted.strategy === p.strategy && engineWanted.style === p.style) engineWanted = null;
     }
+    // ...and the master's tone turns over with it, over a bar of the arriving theme.
+    toneOfTheme(current, ctx.currentTime, current.program.barSeconds);
+    releaseOfTheme(current);
     n = current.track.index != null ? current.track.index : n + 1;
     // The aim is reached: from here a press counts from the music again.
     if (aim && aim.seed === masterSeed && aim.index === n) aim = null;
@@ -1457,7 +2104,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // note and setting for setting, and the ledger said it changed hands on
     // every one of them.
     if (!retiring || lowEndDiffers(retiring.track, current.track))
-      note('seam', 'the low end changed hands', { theme: n + 1, key: current.track.key.name, bpm: current.track.bpm });
+      note('seam', 'the low end changed hands', { theme: n + 1, key: current.track.key.name, bpm: current.track.bpm,
+        bars: current.track.bars, length: clockOf(minutesOf(current.track.bars, current.track.bpm)) });
     // **And the theme that has just arrived takes the hand's seasoning.** A
     // spell asked while this seam was already in flight could not reach the
     // plan the seam was carrying — that theme was built before the ask — so the
@@ -1470,15 +2118,50 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     emit();
   }
 
+  /**
+   * **The swap taken back** — `promote` the other way, while the theme it let
+   * go still plays out its tail: that deck is the record again and the one
+   * that arrived is arriving again, the set's place turns back to the theme
+   * the record is, and an ask the swap had spent — a pull, a reach or an
+   * engine switch carried by a theme of this same set — is asked again, so a
+   * seek after this lays it again (`seek`). A cast's swap taken back is a cast
+   * abandoned, as a seek inside one has always been (R20).
+   */
+  function unpromote(): void {
+    if (!retiring || !current) return;
+    const back = placed.get(retiring.track);
+    if (!back) return;
+    const gone = placed.get(current.track);
+    if (gone && gone.seed === back.seed) {
+      if (spellWanted === undefined && !sameSpell(gone.spell, back.spell)) spellWanted = gone.spell;
+      if (reachWanted === undefined && gone.reach !== back.reach) reachWanted = gone.reach;
+      if (!engineWanted && (gone.strategy !== back.strategy || gone.style !== back.style)) engineWanted = { strategy: gone.strategy, style: gone.style };
+    }
+    if (back.seed !== masterSeed) {
+      note('cast', 'the set changed hands back', { from: masterSeed, to: back.seed });
+      retuneMaster(back);
+    }
+    masterSeed = back.seed;
+    o.spell = back.spell;
+    o.recipe = back.recipe;
+    o.reach = back.reach;
+    o.strategy = back.strategy;
+    o.style = back.style;
+    incoming = current;
+    current = retiring;
+    retiring = null;
+    n = current.track.index != null ? current.track.index : back.index;
+    nextPlan = null;
+    note('seam', 'the swap was taken back: the theme it let go is the record again', { theme: n + 1 });
+  }
+
   function finishTransition() {
     promote(); // a no-op if the swap has already happened
     note('seam', 'the hand-over landed');
-    teardown(retiring!);
+    if (retiring) teardown(retiring);
     retiring = null;
     transition = null;
-    seamRule = null;
     seamFreeAt = ctx.currentTime;
-    glideToCurrent();
     emit();
   }
 
@@ -1487,7 +2170,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // scheduled, over what the seam's rule gives what is left (`glideBarsFor`):
   // sixteen bars for a drift, a bar a percent for anything more, in the
   // theme's own bars; nothing at all after a far jump, which was ridden onto
-  // this theme's tempo before it sounded. A set never jumps; it leans.
+  // this theme's tempo before it sounded. A set never jumps; it leans (a seek aside: `jump`).
   //
   // **Past everything already handed to the audio clock** (R82): the glide
   // used to begin half a second out while a hidden page fills a second and a
@@ -1511,8 +2194,21 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // before the change and laid again after it, from the instant it begins, and
   // the dotted-eighth delay leans with the tempo over the `over` beats the
   // change takes. Hands back what the change does.
+  /**
+   * The grid leans to the arriving theme's own tempo from the blend's end, over
+   * what the seam's rule gives what is left (`glideBarsFor`): sixteen bars for
+   * a drift, a bar a percent for anything more, in the arriving theme's own
+   * bars; nothing at all after a far jump, whose ride ended on this tempo.
+   */
+  function glideAfter(end: number, arriving: Deck) {
+    const beat = clock!.beatAt(end);
+    const target = gridBeat(arriving);
+    const over = Math.max(1, (glideBarsFor(clock!.spbAt(beat) / target, o) * 4) / (arriving.perBeat ?? 1));
+    moveGrid(beat, over, (b) => clock!.glide(b, target, over));
+  }
+
   function moveGrid<T>(beat: number, over: number, change: (beat: number) => T): T {
-    const held = [current, retiring].filter((d): d is Deck => !!d).map(holdCurves);
+    const held = [current, incoming, retiring].filter((d): d is Deck => !!d).map(holdCurves);
     const out = change(beat);
     const from = clock!.timeAt(beat);
     const until = clock!.timeAt(beat + over);
@@ -1548,6 +2244,26 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // hand-over: the next seam is planned from here.
   let seamFreeAt = 0;
 
+  /**
+   * **Where the record hands over on its own**, in its own seconds: the bar a
+   * seek re-armed it on, or the one the arrangement chose — on a line, never
+   * before the blend that has just ended, and never where the record has run
+   * out (`seamPlan`). The tick arms the set's own seam here, and a pull reads
+   * it to know whether the record still has a place to re-enter.
+   */
+  function seamOfRecord(): { at: number; bars: number } {
+    const notBefore = Math.max(0, deckThemeTime(current!, seamFreeAt));
+    // the plan's seam is a function of the plan and the floor alone, so it is worked out once a record and floor
+    // and not forty times a second (the engine review of 10-08, F11)
+    let planned = plannedSeams.get(current!);
+    if (!planned || planned.notBefore !== notBefore) {
+      planned = { notBefore, seam: seamPlan(current!.track, blendAsked(current!.track), { boundaryBars: o.boundaryBars, notBefore }) };
+      plannedSeams.set(current!, planned);
+    }
+    return { at: current!.seamAt ?? planned.seam.at, bars: current!.seamBars || planned.seam.bars };
+  }
+  const plannedSeams = new WeakMap<Deck, { notBefore: number; seam: ReturnType<typeof seamPlan> }>();
+
   function step() {
     const horizon = ctx.currentTime + lookahead(ctx, o.lookahead);
     if (current) pumpDeck(ctx, current, horizon);
@@ -1558,20 +2274,20 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
 
     if (transition && incoming && ctx.currentTime >= transition.swapAt) promote();
     if (transition && ctx.currentTime >= transition.end) finishTransition();
+    // a tail left to play out under a new ask (`interruptSeam`) ends where its own blend did
+    if (retiring && ctx.currentTime >= retiringUntil) { teardown(retiring); retiring = null; }
+    // and the wait is over once everything it named has been heard
+    if (wait && wait.laid && !transition && ctx.currentTime >= Math.max(wait.swapAt, wait.heardAt)) wait = null;
 
     // MEASURED: schedule the seam where the outgoing theme has its last
     // breakdown, so the dip is structural rather than an effect applied over
     // the top of a track that is still going full.
-    if (!transition && current) {
-      // `seamAt` is set by a seek that landed past the point the arrangement
-      // chose; without it the seam is where the plan puts it — on a line, and
-      // never before the blend that has just ended.
-      const planned = seamPlan(current.track, blendAsked(current.track), {
-        boundaryBars: o.boundaryBars,
-        notBefore: Math.max(0, deckThemeTime(current, seamFreeAt)),
-      });
-      const bars = current.seamBars || planned.bars;
-      const at = current.seamAt ?? planned.at;
+    // **Never while a seek is being built** (the deep review of 10-08): the
+    // seam would be laid on the deck the seek is about to replace, and the
+    // swap then retired the sought deck and cut it dead at the blend's end.
+    // The seek re-arms the seam on the deck it builds.
+    if (!transition && current && !(moving && moving.kind === 'seek')) {
+      const { at, bars } = seamOfRecord();
       // A far jump into the theme planned next is ridden over the bars before
       // the line (`seamTempo`), laid as the horizon reaches the ride's first
       // bar, and the blend begins on the line itself.
@@ -1593,7 +2309,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // start the incoming theme a second off the bar.
       if (horizon + 0.25 >= point) {
         beginTransition(bars, Math.max(startAt(ctx), point), false, 0, rode.get(current) ?? null);
-      }
+      } else if (point - ctx.currentTime <= BUILD_AHEAD_S && !(arrival && arrival.track === nextPlan)) planAhead();
     }
     emit();
   }
@@ -1625,15 +2341,23 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // up, so the seam the plan puts there is worked out first and the
     // hand-over is rebuilt at the stage it had reached: before it, one deck as
     // ever; inside it, both; past it, the theme that arrived is the record.
-    async start(themeIndex = 0, fromSeconds = 0): Promise<MixState> {
+    //
+    // `woken` (K42) is a context the caller is already waking: the device's
+    // start — MEASURED 80 ms to a whole second before a fresh context's clock
+    // runs — is then waited for only where it is needed, at the anchor, and the
+    // plan, the compile and the voices are built while it wakes rather than
+    // after. Nothing is anchored before it settles, so the record starts where
+    // and as it always did; it only stops waiting in series.
+    async start(themeIndex = 0, fromSeconds = 0, woken?: Promise<unknown>): Promise<MixState> {
       if (running || dead) return state();
       const token = ++startToken;
       const cancelled = () => dead || token !== startToken;
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (!woken && ctx.state === 'suspended') await ctx.resume();
       if (cancelled()) return state();
       n = Math.max(0, themeIndex);
       let from = Math.max(0, Number(fromSeconds) || 0);
       let first = plan(n);
+      startMark('planned');
       let seam = seamOf(first);
       let stage: number | null = null;  // seconds since the seam began, when we are inside one
       let ended = 0;     // how long ago the blend before this theme finished
@@ -1654,7 +2378,10 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // next theme's on their way while the first plays — and when the set is
       // being picked up inside a blend, the arriving theme's before it is
       // built, because it is about to sound too.
+      compiled(first);
+      startMark('compiled');
       await ready(first, from);
+      startMark('voices');
       // Stopped while that was rendering: nothing is built, no clock is
       // started, and what a second gesture asked for is the set that plays.
       if (cancelled()) return state();
@@ -1663,6 +2390,10 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
         if (cancelled()) return state();
       } else {
         ready(nextPlan);
+      }
+      if (woken) {
+        await woken;
+        if (cancelled()) return state();
       }
       // One grid for the night, starting at the tempo the first theme was
       // drawn at.
@@ -1678,7 +2409,13 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // owns the room it took: the next seam is planned from where it ended.
       seamFreeAt = ended > 0 ? at - ended : 0;
       current = sourceDeck(ctx, first, programOf(first), mixOut, master, clock);
+      // The set opens at its first theme's own tone, before a note of it sounds.
+      toneOfTheme(current, ctx.currentTime, 0);
+      releaseOfTheme(current);
       startDeck(ctx, current, at, from);
+      leadUntil = at;
+      leadFrom = from;
+      startMark('deck', { at });
       running = true;
       // The hand-over the position was inside, built again at the stage it had
       // reached: both decks at their own offsets, the grid pinned as it was,
@@ -1699,9 +2436,11 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       keepPlace(placeNow);
       note('transport', 'the set started', {
         theme: n + 1, from: +from.toFixed(2), bpm: first.bpm, key: first.key.name,
+        bars: first.bars, length: clockOf(minutesOf(first.bars, first.bpm)),
         room: first.presetLabel, strategy: o.strategy ?? DEFAULT_STRATEGY,
       });
       tick();
+      startMark('pumped');
       return state();
     },
     // A stop is a fade, and the fade and the letting go are one operation.
@@ -1722,6 +2461,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // asked for is claimed by nobody.
       supersede();
       spellWanted = undefined;
+      reachWanted = undefined;
       engineWanted = null;
       aim = null;
       running = false;
@@ -1729,10 +2469,12 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       timer = null;
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', tick);
       for (const d of [current, incoming, retiring]) if (d) letGo(d, STOP_FADE);
+      dropArrival();
       current = null;
       incoming = null;
       retiring = null;
       transition = null;
+      wait = null;
       emit();
       listeners.clear();
       setTimeout(() => {
@@ -1775,7 +2517,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       const want: Place = { ...f, index: f.index + 1 };
       aim = want;
       note('transport', 'a skip was asked for', { from: n + 1, to: want.index + 1, ...(want.seed !== masterSeed ? { seed: want.seed } : {}) });
-      return move(() => wish(want), 'cut');
+      return move(() => wish(want), 'cut', 1, 'skip');
     },
     // Cheap because a theme is only a seed: go back one and blend into it.
     async back(): Promise<TransportPoint | null> {
@@ -1784,7 +2526,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       const want: Place = { ...f, index: Math.max(0, f.index - 1) };
       aim = want;
       note('transport', 'a back was asked for', { from: n + 1, to: want.index + 1, ...(want.seed !== masterSeed ? { seed: want.seed } : {}) });
-      return move(() => wish(want), 'cut');
+      return move(() => wish(want), 'cut', 1, 'back');
     },
     /** The theme a press would count from: what is aimed at, or where the music is heading. */
     get aim() {
@@ -1828,7 +2570,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       const was = asked();
       const place: Place = {
         seed: next, index: i, strategy: engine ? engine.id : was.strategy, style: engine ? engine.style : was.style,
-        spell: under, recipe: recipe ?? null,
+        spell: under, recipe: recipe ?? null, reach: was.reach,
       };
       // The spell a cast names is what the hand has asked for from here.
       if (spell !== undefined && spellWanted !== undefined) spellWanted = under;
@@ -1888,12 +2630,14 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // the move that was carrying it is cancelled and nothing is planned.
       if (takenBack()) {
         if (moving && moving.kind === 'spell') supersede();
-        nextPlan = null;
+        letGoOfAsk();
         emit();
         return Promise.resolve(null);
       }
       note('spell', 'a spell was set', {
         ...(spell ? Object.fromEntries(Object.entries(spell).map(([k, v]) => [k, +(+(v as number)).toFixed(3)])) : { at: 'the house' }),
+        // the tempo the spell's Ember stands at, the notch the ring reads (K40)
+        bpm: Math.round(derive(asSpell({ ...HOUSE, ...(spell || {}) })).tempoCentre),
         into: onward().index + 1,
       });
       // **In place** (Eugene, 09-24: *"a bird move keeps the place"*): the
@@ -1946,7 +2690,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       engineWanted = { strategy: next.id, style: next.style };
       if (takenBack()) {
         if (moving && moving.kind === 'engine') supersede();
-        nextPlan = null;
+        letGoOfAsk();
         emit();
         return Promise.resolve(null);
       }
@@ -2063,13 +2807,18 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // landing instead of stopping at it. What is left is one bar at most of a
     // pad that is missing its own beginning, and the scenario measures the seam
     // for a step rather than asserting the note is there.
-    async seek(seconds: number): Promise<number | null> {
+    async seek(seconds: number, made: SetTrack | null = null): Promise<number | null> {
       if (!current) return null;
       const token = supersede('seek');
       // A seek is a move inside the record, so a seam in flight is over: the
       // theme that was arriving has not arrived, one fresh deck plays, and the
       // hand is where it has just put itself — the aim goes with the seam.
       aim = null;
+      // **A seek made on the theme the swap has just let go** (a drag along
+      // the band that spanned the swap, the deep review of 10-08) is a seek
+      // inside that theme: the swap is taken back while its tail still plays,
+      // and the seek goes on from there as from any record.
+      if (made && made !== current.track && retiring && retiring.track === made) unpromote();
       // And the record is claimed from the seam as it is let go (R83): a seek
       // is waited on, and a skip that overtakes the wait finds nothing in
       // flight and cuts from this deck — which still had the seam's curves on
@@ -2081,18 +2830,37 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // Where the transport has been told to be, while its landing is built:
       // without it the cursor fell back to the position being left for as long
       // as the preparation took and then jumped.
-      seekingTo = Math.max(0, Number(seconds) || 0);
+      //
+      // **And never inside the record's last two bars** (round MIX-X1): a
+      // landing there leaves the hand-over no bar of the record to begin under,
+      // and the band's last two bars are the hand-over in any case — a scrub to
+      // the very end lands where that hand-over begins.
+      seconds = Math.min(Math.max(0, Number(seconds) || 0), Math.max(0, (deck.track.bars - 2) * deck.track.barSeconds));
+      seekingTo = seconds;
       await readyEnough(deck.track, seekingTo);
       if (moving && moving.token === token) moving = null;
       // Overtaken: whatever overtook it has cleared `seekingTo` (`supersede`).
       if (token !== moveToken || dead || current !== deck) return null;
+      // Nothing hands over under a seek being built (`step`); whatever did is let go here.
+      if (transition || incoming || retiring) {
+        dropSeam();
+        claim(ctx, current, 0.08, `buses.${o.bassGroup}.dry.gain`);
+      }
       const now = ctx.currentTime;
-      const fresh = sourceDeck(ctx, deck.track, programOf(deck.track), mixOut, master, clock!, null, deck.perBeat ?? 1);
       // The same lead as a start: a seek used to land its first events 70 ms
       // past the clock, which on a device with a large buffer is behind the
       // render head, so every jump wrote a late note of its own. The deck
       // being left goes out where this one comes in rather than at once.
       const at = startAt(ctx);
+      // **The grid lands at the theme's own tempo with it** (the deep review
+      // of 10-08, B12). A seek out of a far ride or its blend used to keep the
+      // grid the ride had reached and glide home from there over as much as
+      // sixteen bars — seed 1's theme at 174 BPM leaning back to 104 for 26 s.
+      // The seek is a cut, so the clock jumps where the landing comes in, and
+      // the deck and its delay are built on the tempo it lands on.
+      const program = programOf(deck.track);
+      clock!.jump(clock!.beatAt(at), program.beat * (deck.perBeat ?? 1));
+      const fresh = sourceDeck(ctx, deck.track, program, mixOut, master, clock!, at, deck.perBeat ?? 1);
       // **And it goes out under the landing rather than before it.** MEASURED
       // (chromium, seed 1, a seek to 55 % of a theme): a 40 ms fade ending
       // where the new deck comes in left **12.7 ms of true silence** in a set
@@ -2137,6 +2905,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       }
       current = fresh;
       seekingTo = null;
+      toneOfTheme(current, ctx.currentTime, bs);
+      releaseOfTheme(current);
       // **And the hand's seasoning goes with it** (R11). The fresh deck is the
       // theme's program as it was compiled, cached and never touched; the deck
       // it replaces had been seasoned by a pull, so a scrub after a pull played
@@ -2148,6 +2918,23 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
         at: +seconds.toFixed(2), bar: Math.floor(seconds / bs) + 1,
         reArmed: fresh.seamAt != null ? Math.round(fresh.seamAt / bs) + 1 : null,
       });
+      // **The hand's ask is laid again from where the seek landed** (the deep
+      // review of 10-08; Eugene: *"how it works if birds are in mixing mode
+      // but user clicks on track scroll"*). The seek dropped the hand-over a
+      // pull, a reach or an engine switch had laid, and nothing laid it again:
+      // the ring held the bird as pending while the record played to its own
+      // end and then jumped, at the far tempo, into the next theme. The ask is
+      // still the set's (`spellWanted`, `reachWanted`, `engineWanted`), so it
+      // takes its own door again, from here: a pull or a reach in place on the
+      // next phrase line with room, an engine switch into the next theme. A
+      // cut or a cast in flight is not an ask the seek keeps — the seek is
+      // where the hand has put itself (R20).
+      const want = asked(), h = here();
+      const engine = want.strategy !== h.strategy || want.style !== h.style;
+      if (engine || !sameSpell(want.spell, h.spell) || want.reach !== h.reach) {
+        note('transport', 'a seek laid the hand\'s ask again from where it landed', { kind: engine ? 'engine' : 'spell', theme: n + 1 });
+        void move(engine ? onward : inPlace, engine ? 'engine' : 'spell', PHRASE_BARS);
+      }
       emit();
       return seconds;
     },
@@ -2162,6 +2949,44 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     },
     get preset() {
       return o.preset || 'auto';
+    },
+    /**
+     * **How far a library turn's row may leak beyond its place** (round D1),
+     * changed while the set plays — `setSpell`'s shape, because it is one more
+     * field of the ask the plan reads: the theme the music is on is planned
+     * again at the asked reach and handed over in place from the next phrase
+     * line (same section, same bar), joining a hand-over in flight as a second
+     * pull does; the ledger names it. `null` is the style's own again. A
+     * private-tier hand (the machine view's slider, `reach=`); the shipped
+     * page never calls it.
+     */
+    setReach(reach: number | null): Promise<TransportPoint | null> {
+      const r = reachOf(reach ?? (o.style.set as { reach?: number }).reach);
+      if (r === asked().reach) return Promise.resolve(null);
+      reachWanted = r;
+      if (!running || !current) {
+        o.reach = r;
+        reachWanted = undefined;
+        nextPlan = null;
+        emit();
+        return Promise.resolve(null);
+      }
+      if (takenBack()) {
+        if (moving && moving.kind === 'spell') supersede();
+        letGoOfAsk();
+        emit();
+        return Promise.resolve(null);
+      }
+      note('spell', 'the reach was set', { reach: r, from: reachOf(o.reach), theme: n + 1 });
+      return move(inPlace, 'spell', PHRASE_BARS);
+    },
+    /** the reach the playing theme was planned at */
+    get reach() {
+      return reachOf(o.reach);
+    },
+    /** and the one the hand has asked for, which is the playing one until a pull is spent */
+    get reachAsked() {
+      return asked().reach;
     },
     planTheme: (i: number) => themeInfo(plan(i)),
     // The set's own room, as the value it was resolved to. Two sets in one
@@ -2185,6 +3010,31 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
      */
     get record() {
       return current;
+    },
+    /**
+     * **A hand on a stage block** (PLAN-DESK D2): the one write the desk makes
+     * on the decks, through each graph's own door (`V1Graph.stage`) — the
+     * record, the theme arriving and the one playing out — ramped over 40 ms
+     * from now. `null` puts the line back to each deck's own room. Answers
+     * how it reached the record: `live`, or why not (heard from the next
+     * theme, a program's line writes it, the record has no such box).
+     */
+    stage(path: string, value: number | null): StageHow {
+      // with no record up there is nothing to answer for: the layer alone holds the move
+      let said: StageHow = 'unknown';
+      const at = ctx.currentTime;
+      for (const d of [current, incoming, retiring]) {
+        if (!d) continue;
+        const v = value ?? roomOf(d.settings, path);
+        let how: StageHow;
+        try {
+          how = v === null ? d.graph.stageHow(path) : d.graph.stage(path, v, at, 0.04);
+        } catch (e) {
+          how = 'absent'; // a graph already let go
+        }
+        if (d === current) said = how;
+      }
+      return said;
     },
     /** And the theme that has handed over and is playing out under it, while it does. For looking only. */
     get playingOut() {
@@ -2293,7 +3143,8 @@ export async function renderMix({
   mixOut.gain.value = 1;
   mixOut.connect(master.input);
 
-  const decks = plans.map((t, i) => makeDeck(ctx, t, programOf(t), mixOut, master, clock, starts[i], perBeats[i]));
+  // the desk's stage moves where the graphs are built, as the live set lays them (D2); none moved, the program's own
+  const decks = plans.map((t, i) => { const p = programOf(t); return makeDeck(ctx, t, p, mixOut, master, clock, starts[i], perBeats[i], withStage(p.settings)); });
   decks.forEach((d, i) => startDeck(ctx, d, starts[i], entries?.[i] ?? 0));
   // What the graph is actually given, which is what gets reported: the swap
   // time used to be worked out a second time from the wrong end of the blend,
@@ -2301,6 +3152,15 @@ export async function renderMix({
   const scheduled = seams.map((s) =>
     scheduleTransition(ctx, decks[s.from], decks[s.to], s.at, s.bars, s.barSeconds, o, mixOut)
   );
+  // The master's tone turns over where the live set turns it (round E1): at
+  // each swap, over a bar of the arriving theme, where its style says so.
+  // A theme whose style does not follow keeps the tone it found, unless the
+  // one before it followed: then it walks to its own room's.
+  scheduled.forEach((t, i) => {
+    const d = decks[seams[i].to];
+    const follows = (x: typeof d) => switchOn(x.track.style as Style, 'eqByTheme');
+    if (follows(d) || follows(decks[seams[i].from])) master.setProfile(eqProfileOf(d.settings.master), t.swapAt, d.program.barSeconds);
+  });
   // The very first deck has no one handing it the bass, so it keeps its own;
   // every other deck keeps both of its gaps, the one it arrives under and the
   // one it leaves under.

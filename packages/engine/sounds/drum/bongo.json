@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bongo",
+  "revision": 1,
+  "topology": "membrane",
+  "block": "bongo",
+  "dice": 23.9,
+  "parameters": {
+    "highHz": 432,
+    "lowHz": 324,
+    "mode": 1.58,
+    "modeLevel": 0.3,
+    "modeDecay": 0.16,
+    "drop": 1.3,
+    "dropTime": 0.03,
+    "bodyLevel": 0.55,
+    "bodyLp": 3600,
+    "slapHz": 3100,
+    "slapHzHard": 4400,
+    "slapQ": 1.9,
+    "slapDecay": 0.016,
+    "slapOpen": 0.35,
+    "slapHard": 1.45,
+    "slapBody": 0.7,
+    "t10Open": 0.075,
+    "t10Slap": 0.035,
+    "lowRing": 1.2,
+    "seconds": 0.55,
+    "variants": 3,
+    "variantCents": 16,
+    "attack": 0.0018,
+    "trim": 1.05,
+    "rateSpread": 0.035,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.09,
+    "velBright": 0.14,
+    "velDecay": 0.22,
+    "pan": -0.18,
+    "room": 0.04
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "controls": {
+      "headHz": {
+        "unit": "hz",
+        "min": 100,
+        "max": 500,
+        "default": null
+      },
+      "bend": {
+        "unit": "ratio",
+        "min": 1,
+        "max": 1.4,
+        "default": null
+      },
+      "bendSeconds": {
+        "unit": "seconds",
+        "min": 0.004,
+        "max": 0.08,
+        "default": null
+      },
+      "headCutoff": {
+        "unit": "hz",
+        "min": 700,
+        "max": 6000,
+        "default": null
+      },
+      "headLevel": {
+        "unit": "level",
+        "min": 0.1,
+        "max": 0.8,
+        "default": null
+      },
+      "modeRatio": {
+        "unit": "ratio",
+        "min": 1.3,
+        "max": 1.9,
+        "default": null
+      },
+      "modeLevel": {
+        "unit": "level",
+        "min": 0,
+        "max": 0.65,
+        "default": null
+      },
+      "modeDecay": {
+        "unit": "seconds",
+        "min": 0.015,
+        "max": 0.35,
+        "default": null
+      },
+      "skin": {
+        "unit": "level",
+        "min": 0,
+        "max": 1,
+        "default": null
+      },
+      "handLevel": {
+        "unit": "level",
+        "min": 0,
+        "max": 1.5,
+        "default": null
+      },
+      "handHz": {
+        "unit": "hz",
+        "min": 700,
+        "max": 6000,
+        "default": null
+      },
+      "handDecay": {
+        "unit": "seconds",
+        "min": 0.004,
+        "max": 0.06,
+        "default": null
+      },
+      "damping": {
+        "unit": "seconds",
+        "min": 0.035,
+        "max": 0.28,
+        "default": null
+      }
+    },
+    "timbres": {
+      "bongo": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 3400,
+        "loudnessDb": -18.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "congas.ts",
+    "note": "Bongos: the same builder, smaller heads. Higher, drier, a harder slap and no room to speak of — a bongo in a mix is a click with a pitch."
+  },
+  "measured": {
+    "clickStep": 0.0006,
+    "bongoSlap": {
+      "loudnessDb": -22.9,
+      "clickStep": 0
+    }
+  }
+}

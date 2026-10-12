@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/bass-out",
+  "revision": 1,
+  "name": "bass out",
+  "scope": "treatment",
+  "applies": "drop-out",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "bassline": {
+        "clear": 0
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "drop-out",
+    "where": "the bar before a sixteen-bar line inside a main, and the bar into a drop or a breakdown",
+    "reading": "the low end (20-250 Hz) six decibels under the cycles before while the kick plays, 0.28 bars in 16 of the reference mains (cuts 1:100 bars 61-63, 1:2080 bars 42-45)",
+    "idiom": "the bass out for a bar and the kick staying, so the bass's return is the line",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02: a row of the house's mains, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

@@ -132,6 +132,12 @@ export interface EffectInstance {
   /** connect this onward */
   output: AudioNode;
   /**
+   * a door into the effect's own processing that does not pass its dry path,
+   * where an effect has one (round DUB-4: the bass drive's, which a part sends
+   * to the copy alone); absent on every other
+   */
+  side?: AudioNode;
+  /**
    * every knob the descriptor declares, by the name it declares it under. A
    * setter clamps to the declared range on every write (`guardParams`); an
    * AudioParam handed over raw is the stated escape hatch and does not
@@ -201,6 +207,26 @@ export type EffectBuilder = (
 ) => EffectInstance;
 
 /**
+ * **A knob a bird moves, on an effect** (round B1, after PLAN-MODULATION's
+ * voice knobs): which bird, the two ends and which way the bird pulled up
+ * goes. There is no default here, unlike a voice's: the default is **the
+ * place's number** — what the composer's table writes for the theme — and a
+ * bird at the place's own value leaves it there. `of` says what the ends
+ * are: a `value` is in the parameter's units (a drive of 0.5 to 1), a
+ * `multiplier` is on the place's number (a corner at three quarters to twice
+ * what the table wrote). The composer does the arithmetic
+ * (`src/places.ts`, `placedKnob`); the effect only declares the range.
+ */
+export interface EffectKnob {
+  bird: string;
+  of: 'value' | 'multiplier';
+  min: number;
+  max: number;
+  /** +1 where the bird pulled up opens the knob, -1 where it closes it */
+  sense: 1 | -1;
+}
+
+/**
  * One effect, as the module that makes it describes it.
  */
 export interface EffectDescriptor {
@@ -254,6 +280,8 @@ export interface EffectDescriptor {
    * 96f81df). A signal effect is never built as a note's insert.
    */
   output?: 'signal';
+  /** the knobs a bird moves, by parameter name (`EffectKnob`); absent is none */
+  knobs?: Record<string, EffectKnob>;
   build: EffectBuilder;
 }
 

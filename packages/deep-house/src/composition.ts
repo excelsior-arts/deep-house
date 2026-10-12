@@ -1,3 +1,4 @@
+import { lanesAtTempo } from './lanes.ts';
 // Draw compatible musical components from a style's catalogue. No recipe
 // interpreter, bird names, named family or taste constants belong here.
 import type { Style } from '@deep-house/engine/style';
@@ -20,6 +21,8 @@ export interface Composition {
     texture?: { is: Texture; held: string[] };
     /** the theme's one foreground (`ScenePolicy`): `air` on an airy texture */
     scene?: Scene;
+    /** the drone in front on a soft grid (`ScenePolicy.floor`); absent everywhere else */
+    floor?: true;
     skipped: Array<{ family: string; reason: string }> };
 }
 /** Which logical roles a candidate writes, including their treatment. */
@@ -92,7 +95,13 @@ export interface Pace {
   /** how long each note is held, in seconds */
   ring: number;
 }
-export interface SceneContext { policy: ScenePolicy; bpm: number; drumsOn: boolean; characters?: SoundCharacters }
+/**
+ * The scene a part is put to: the policy, the tempo, the grid, and whether the
+ * drone in front stands on a soft one (`floor`, `ScenePolicy.floor`). The
+ * floor moves no answer of `realWorld` — the class beside the drone is the
+ * class it was — it is what the lanes read (`Lane.floor`).
+ */
+export interface SceneContext { policy: ScenePolicy; bpm: number; drumsOn: boolean; characters?: SoundCharacters; floor?: boolean }
 export function realWorld(pace: Pace, ctx: SceneContext): boolean {
   const r = ctx.policy.realWorld;
   return ctx.drumsOn && pace.struck && !(pace.hold !== undefined && pace.hold >= r.holdBelow)
@@ -163,7 +172,7 @@ export function partUsage(parts: MusicalParts, style: Style): PartUsage {
   const names = new Set<string>(), sounds = charactersOf(style);
   const sends = [...Object.values(parts.ambience).map(name => sounds?.ambience[name]),
     ...(parts.texture ? [sounds?.pulse.space[parts.texture.ambience]] : [])];
-  for (const send of sends) for (const name of ['background', 'immersed']) if (send?.[name as keyof typeof send]) names.add(name);
+  for (const send of sends) for (const name of ['background', 'immersed', 'echo']) if (send?.[name as keyof typeof send]) names.add(name);
   return { upperParts: parts.struckFigures.length + Number(!!parts.texture),
     sparseUpper: parts.struckFigures.filter(p => p.behavior !== 'ostinato').length + Number(!!parts.texture),
     rhythmParts: parts.rhythm.length, spatialReturns: names.size };
@@ -198,6 +207,8 @@ function validatePolicy(policy: CompositionPolicy, bias: Bias): void {
     || !(sc.realWorld.sparseSeconds > 0) || !(sc.realWorld.ringCovers > 0 && sc.realWorld.ringCovers <= 1)))
     throw new Error('composition: a scene needs a texture policy and a real-world pace (hold line and ring share inside (0, 1], a positive gap)');
   if (sc) valueOf(sc.forward, bias);
+  if (sc?.floor && (!(sc.floor.centreBelow > 0) || !Array.isArray(sc.floor.kits) || !sc.floor.kits.length))
+    throw new Error('composition: a scene\'s floor is a positive tempo centre and a non-empty list of kits');
   if (sc?.always && (!Array.isArray(sc.always) || sc.always.some(set => !Array.isArray(set) || !set.length || set.some(w => typeof w !== 'string'))))
     throw new Error('composition: a scene\'s always-forward sets are non-empty lists of held words');
   const validateWhen = (when: Conditions | undefined) => {
@@ -267,12 +278,19 @@ export function validateStyle(style: Style): void {
  *                  family that only follows a withdrawn one goes with it, and
  *                  a family the palette's own draw left out stays out.
  *
+ * `withheld` names the families a place does not draw (round DNB-3, the
+ * support table's `withhold`): skipped for the place before their streams are
+ * read, and a family that requires one goes with it.
+ *
  * A pin is explicit and always plays, so a pinned theme on a sustained
  * texture is drone-back whatever its number said: the pad sits under what the
  * listener asked for (`?recipe=house/hand-conversation&accompaniment=auto`).
  * The number is drawn anyway, so a pin moves no stream.
  */
-export function composeParts(style: Style, seed: Seed, bias: Bias, density: string, bpm: number, pin?: PartPin, bed?: TextureBed): Composition | null {
+export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: string, bpm: number, pin?: PartPin, bed?: TextureBed,
+  withheld?: ReadonlySet<string>): Composition | null {
+  // The lanes as read at this tempo (`lanesAtTempo`): a family a lane withdraws here is no candidate for a part either.
+  const style = lanesAtTempo(styleIn, bpm, bias.spell as unknown as Record<string, number>);
   const policy = (style as Style & { composition?: CompositionPolicy }).composition;
   if (!policy) {
     if (pin) throw new Error('composition: this style has no accompaniment policy');
@@ -323,6 +341,8 @@ export function composeParts(style: Style, seed: Seed, bias: Bias, density: stri
     for (const family of policy.families) {
       const skip = (reason: string) => skipped.push({ family: family.id, reason });
       if (!permitted(family.when, bias, density, bpm)) { skip('compatibility'); continue; }
+      // A family the place withholds (round DNB-3, `SupportEntry.withhold`): its own stream is not read.
+      if (withheld?.has(family.id)) { skip('place'); continue; }
       if (family.requires?.some(id => !selected[id]) || family.excludes?.some(id => selected[id])) { skip('compatibility'); continue; }
       if (withdrawn && family.variants.every(v => asksRealWorld(v.request, withdrawn))) { skip('scene'); continue; }
       const rng = new Rng(`${seed}::parts:${policy.version}:${family.id}`);
@@ -372,6 +392,13 @@ export function composeParts(style: Style, seed: Seed, bias: Bias, density: stri
     const endless = (policy.scene.always || []).some(set => set.every(word => texture.held.includes(word)));
     scene = texture.is === 'air' ? 'air' : !bias.derived.drumsOn || ((forward || endless) && !pin) ? 'drone-forward' : 'drone-back';
   }
+  // **The drone in front on a soft grid** (`ScenePolicy.floor`, Eugene 10-01):
+  // the grid on, a kit the floor names, and the birds' tempo centre on the slow
+  // side of the curve. Read off the derived state alone, so no stream moves;
+  // the redraw below is the redraw it was, and the lanes do the rest.
+  const fl = policy.scene?.floor;
+  const floor = scene === 'drone-forward' && !!fl && bias.derived.drumsOn
+    && fl.kits.includes(bias.derived.kit) && bias.derived.tempoCentre < fl.centreBelow;
   const drawn = scene === 'drone-forward'
     ? draw({ policy: policy.scene!, bpm, drumsOn: bias.derived.drumsOn, characters: charactersOf(style) }, whole) : whole;
   const { selected, skipped, recipes } = drawn;
@@ -408,5 +435,6 @@ export function composeParts(style: Style, seed: Seed, bias: Bias, density: stri
       bpm, kit: bias.derived.kit, drums: bias.derived.drumsOn } } : {}),
     ...(texture ? { texture } : {}),
     ...(scene ? { scene } : {}),
+    ...(floor ? { floor: true as const } : {}),
   } };
 }

@@ -200,6 +200,14 @@ const PULL = `
     bubbles: true, pointerId: 9, clientX: p.x, clientY: p.y, pointerType: 'mouse', ...opt,
   }));
   const cells = () => window.ring.cells();
+  // a point off a cell's spoke by \`px\` screen pixels, square to it: where a
+  // hand passes the slop without moving the value (a move across the spoke
+  // reads nothing), since the pull counts from the press (10-08)
+  const aside = (i, rad, px) => {
+    const p = spoke(i, rad);
+    const a = (i / 8) * Math.PI * 2;
+    return { x: p.x + Math.cos(a) * px, y: p.y + Math.sin(a) * px };
+  };
   // **A hand asks for a value, and the bird stands under the hand** (round
   // K8): the node moves one unit for one with the hand along its spoke, so a
   // scenario says which value it wants and this asks the page which radius
@@ -214,21 +222,21 @@ const PULL = `
     const way = Math.sign(d) || 1;
     hand('pointerdown', spoke(i, from), el('tilt'));
     await sleep(30);
-    // The first move is the four screen pixels that tell a pull from a press,
-    // and the travel is measured from where it lands rather than from the
-    // press — so this arms the pull and everything after it is the distance.
-    // (eight units or six screen pixels, whichever is more: past the slop on any square)
-    const w = document.getElementById('star').getBoundingClientRect().width || 1000;
-    const base = from + way * Math.max(8, 6 / (w / 1000));
-    hand('pointermove', spoke(i, base), window);
+    // The first move is the screen pixels that tell a pull from a press, and
+    // since the deep review of 10-08 the travel is measured from the press
+    // itself, that first move included — so it is made across the spoke, six
+    // pixels, where it moves no value, and the walk is back on the spoke:
+    // the hand's place from the press is the whole of the distance.
+    void way;
+    hand('pointermove', aside(i, from, 6), window);
     await sleep(25);
     const seen = [];
     for (let k = 1; k <= steps; k++) {
-      hand('pointermove', spoke(i, base + (d * k) / steps), window);
+      hand('pointermove', spoke(i, from + (d * k) / steps), window);
       await sleep(pause);
       if (watch) seen.push(watch());
     }
-    hand('pointerup', spoke(i, base + d), window);
+    hand('pointerup', spoke(i, from + d), window);
     await sleep(140);
     return seen;
   };
@@ -707,6 +715,64 @@ export const SCENARIOS = [
   },
 
   {
+    name: 'a pause and a play at the needle inside the first drop sound the bass and the pad within a beat',
+    area: 'transport',
+    // PLAN-DESK D1b, Eugene 10-04: *"you need to pause then play, but even
+    // that doesn't start all instruments, so it becomes a fairly big hassle
+    // to retry the same song segment with changed params."* A start began at
+    // the first event after the needle, so the chord and the bass note that
+    // were sounding there were silent until their next onsets — the held
+    // chord of seed 6's drop for up to ten seconds. A start inside a theme now
+    // fires every note that spans the point, re-timed to begin there
+    // (`spanning` in the engine's `deck.ts`), so the segment comes back whole.
+    // Read on the record's own buses, tapped as the machine view taps them:
+    // the bass (the sub bus) and the chord (the melodic and keys buses) each
+    // above −60 dBFS within one beat of the record going on again, three
+    // pauses and plays at three needles of the drop.
+    deadline: 120000,
+    query: 'seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+    page: body(`
+      const dh = window.deepHouse;
+      await started();
+      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 158.3, 20000);
+      const beat = ctl.mix.record.program.beat;
+      const loud = (b) => b ? b.peak : -120;
+      const tries = [];
+      for (let i = 0; i < 3; i++) {
+        await sleep(600 + 450 * i);
+        ctl.stop();
+        await sleep(420);
+        const from = ctl.state.position;
+        await started();
+        const taps = dh.attachTaps(ctl.mix.record.graph, null, { periodMs: 50 });
+        const ctx = ctl.state.ctx || ctl.mix.mixOut.context;
+        const rows = [];
+        // from the moment the record is at the needle again, a beat and a reading's width
+        await waitFor(() => ctl.mix && ctl.mix.state.elapsed >= from, 8000);
+        const t0 = ctx.currentTime;
+        while (ctx.currentTime - t0 < beat + 0.1) {
+          await sleep(25);
+          const f = taps.read();
+          rows.push({ dt: +(ctx.currentTime - t0).toFixed(3), sub: loud(f.buses.sub), chord: Math.max(loud(f.buses.melodic), loud(f.buses.keys)) });
+        }
+        taps.dispose();
+        const first = (k) => { const r = rows.find((x) => x[k] > -60); return r ? r.dt : null; };
+        tries.push({ from: +from.toFixed(2), bass: first('sub'), chord: first('chord'), spanned: ctl.mix.record.spanned ?? null, rows: rows.length });
+      }
+      ctl.stop();
+      return { tries, beat, late: dh.late.count };
+    `),
+    judge: (r) => {
+      const bad = r.tries.filter((t) => t.bass === null || t.chord === null || t.bass > r.beat + 0.06 || t.chord > r.beat + 0.06);
+      return {
+        ok: !bad.length && r.tries.length === 3,
+        why: bad.length ? `at ${bad.map((t) => `${t.from} s the bass ${t.bass === null ? 'stayed silent' : `came in at +${Math.round(t.bass * 1000)} ms`} and the chord ${t.chord === null ? 'stayed silent' : `at +${Math.round(t.chord * 1000)} ms`} (${t.spanned} notes spanned)`).join('; ')}, a beat being ${Math.round(r.beat * 1000)} ms` : `${r.tries.length} pauses`,
+        note: `three pauses and plays inside seed 6's first drop at the half-time spell (${r.tries.map((t) => `${t.from} s`).join(', ')}): the bass back within ${Math.round(Math.max(...r.tries.map((t) => t.bass)) * 1000)} ms and the chord within ${Math.round(Math.max(...r.tries.map((t) => t.chord)) * 1000)} ms of the record going on, a beat being ${Math.round(r.beat * 1000)} ms; ${r.tries.map((t) => t.spanned).join(', ')} notes sounded from inside their length`,
+      };
+    },
+  },
+
+  {
     name: 'ten pause/play cycles inside a blend leave the late counter at zero',
     area: 'transport',
     // seed 1 by name, which the layout below is of: since K16 a bare page rolls its seed
@@ -1158,8 +1224,11 @@ export const SCENARIOS = [
     // whose swell at 67.3 s the glue gates admit (round S14): seed 1's first
     // theme, the row's fixture before, is a house cast the gates refuse, and
     // has no anticipatory event left to watch. The program is the deck's own.
+    // Since GA6 the driving spell stands nearest the driving four's place,
+    // whose form (grooves and one breakdown) builds no swell, so the row is
+    // at Ember .6, where 21323's second theme swells at 148 s.
     deadline: 120000,
-    query: 'v=2&seed=21323&theme=2&spell=em:0.75,sp:0.30',
+    query: 'v=2&seed=21323&theme=2&spell=em:0.60,sp:0.30',
     page: body(`
       const dh = window.deepHouse;
       await started();
@@ -1641,7 +1710,165 @@ export const SCENARIOS = [
       };
     },
   },
+  // (10-05, Eugene on a back that walked the journal and filled the die: *"since the
+  // Prev button is clicked it must fill right to left, to emphasize going backward,
+  // but at the same time show progress on the dice too, to underline this will be
+  // going to the previous seed, and use the opposite radial fill"*)
+  {
+    name: 'a step that walks the journal fills its own chevron the way it goes, and beside it the die — anticlockwise under a back, clockwise under a next — where the walk leaves the seed; a plain step fills the chevron alone and a throw the die alone',
+    area: 'seam',
+    query: 'v=2&seed=6',
+    deadline: 300000,
+    page: body(`
+      const wedge = () => document.querySelector('#cutFill rect.fill');
+      const twin = () => document.querySelector('#cutFill path.fill[data-twin]');
+      const spiral = () => document.querySelector('#cutFill path.fill:not([data-twin])');
+      const mid = () => waitFor(() => { const m = ctl.readout().mix; return m.cutting && m.cutSpan > 0 && m.cutSpan - m.cutIn > 0.8; }, 20000);
+      const done = async () => { await waitFor(() => !ctl.readout().mix.cutting, 90000); await sleep(600); };
+      const read = () => {
+        const m = ctl.readout().mix; const w = wedge(); const t = twin();
+        return { seed: ctl.state.seed, theme: ctl.state.themeIndex + 1, kind: m.cutKind, asked: m.cutAsked, casts: m.cutCasts,
+          wedgeX: w ? +w.getAttribute('x') : null, twin: t ? t.getAttribute('data-twin') : null,
+          mirrored: t ? t.getAttribute('transform') === 'scale(-1 1)' : null, spiral: !!spiral() };
+      };
+      const at = () => ({ seed: ctl.state.seed, theme: ctl.state.themeIndex + 1 });
+      await started();
+      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 15000);
+      const out = {};
+      // the set's own next: a chevron alone
+      window.ring.skip(); await mid(); out.step = read(); await done();
+      // back, which walks the journal onto the theme before: a cast to the transport, the back chevron to the hand
+      window.ring.back(); await mid(); out.walkSame = read(); await done();
+      // the dice
+      window.ring.newMix(); await mid(); out.dice = read(); await done();
+      out.cast = at();
+      // back onto the seed before the throw: the chevron, and the die beside it the other way round
+      window.ring.back(); await mid(); out.walkBack = read(); await done();
+      out.back = at();
+      // and forward onto the thrown seed again
+      window.ring.skip(); await mid(); out.walkForward = read(); await done();
+      out.forward = at();
+      ctl.stop(); await sleep(300);
+      return out;
+    `),
+    judge: (r) => {
+      const bad = [];
+      const s = r.step; if (!(s.asked === 'skip' && s.kind === 'skip' && s.wedgeX != null && s.wedgeX < 0 && !s.twin && !s.spiral)) bad.push(`a plain next drew ${JSON.stringify(s)}`);
+      const w = r.walkSame; if (!(w.asked === 'back' && w.kind === 'cast' && !w.casts && w.wedgeX != null && w.wedgeX > 0 && !w.twin && !w.spiral)) bad.push(`a back onto the theme before drew ${JSON.stringify(w)}`);
+      const d = r.dice; if (!(d.asked === 'cast' && d.casts && d.spiral && d.wedgeX == null && !d.twin)) bad.push(`the dice drew ${JSON.stringify(d)}`);
+      const b = r.walkBack; if (!(b.asked === 'back' && b.kind === 'cast' && b.casts && b.wedgeX != null && b.wedgeX > 0 && b.twin === 'back' && b.mirrored === true && !b.spiral)) bad.push(`a back onto the seed before drew ${JSON.stringify(b)}`);
+      const f = r.walkForward; if (!(f.asked === 'skip' && f.casts && f.wedgeX != null && f.wedgeX < 0 && f.twin === 'skip' && f.mirrored === false && !f.spiral)) bad.push(`a next onto the thrown seed drew ${JSON.stringify(f)}`);
+      if (!(r.cast.seed !== '6' && r.back.seed === '6' && r.forward.seed === r.cast.seed)) bad.push(`the walk went ${r.cast.seed} → ${r.back.seed} → ${r.forward.seed}`);
+      return { ok: !bad.length, why: bad[0],
+        note: `a next fills its chevron from x ${s.wedgeX}; a back that walks the journal onto the theme before is a cast to the transport and fills the back chevron from x ${w.wedgeX} with no die; `
+          + `the dice fill their sector alone; a back onto the seed before the throw (${r.cast.seed} → ${r.back.seed}) fills the chevron from x ${b.wedgeX} and the die anticlockwise beside it, `
+          + `and a next back onto ${r.forward.seed} fills its chevron and the die clockwise` };
+    },
+  },
 
+  {
+    name: 'five quick nexts write into the journal only the themes that sounded a beat, and a back walks over none of the others',
+    area: 'journal',
+    query: 'seed=1',
+    // The deep review of 10-08 (ring finding 5): five nexts pressed sixty
+    // milliseconds apart journalled three themes nobody heard — each promoted by
+    // the next press before its cut had begun — and a back then walked onto
+    // one of them. A theme is an entry once a beat of it has played.
+    deadline: 300000,
+    page: body(`
+      ctl.journal.clear();
+      await started();
+      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 15000);
+      const c = ctl.state.ctx;
+      const from = ctl.state.themeIndex;
+      // how long each theme was the record, from the instant its deck was laid
+      const heard = {};
+      let watching = true;
+      (async () => {
+        while (watching) {
+          const r = ctl.mix && ctl.mix.record;
+          if (r) { const k = r.track.index; heard[k] = Math.max(heard[k] ?? -1, c.currentTime - (r.laidFrom ?? c.currentTime)); }
+          await sleep(10);
+        }
+      })();
+      const beat = ctl.mix.state.beatSeconds;
+      for (let k = 0; k < 5; k++) { ctl.skip(); await sleep(60); }
+      const landed = await waitFor(() => ctl.mix.state.theme.index === from + 5 && !ctl.mix.state.incoming && !ctl.mix.playingOut, 90000);
+      await sleep(1500);
+      const walk = ctl.journal.entries.map((e) => e.theme);
+      ctl.back();
+      await waitFor(() => !ctl.mix.state.incoming && ctl.mix.state.theme.index !== from + 5, 90000);
+      await sleep(1500);
+      watching = false;
+      const out = { from, beat, landed, heard, walk, backTo: ctl.mix.state.theme.index, at: ctl.journal.at, late: window.deepHouse.late.count };
+      ctl.stop();
+      return out;
+    `),
+    judge: (r) => {
+      const unheard = Object.keys(r.heard).map(Number).filter((k) => r.heard[k] < r.beat - 0.05);
+      const written = r.walk.filter((k) => unheard.includes(k));
+      // and a theme that plainly sounded is written (half a beat of margin for the page's frames)
+      const missing = Object.keys(r.heard).map(Number).filter((k) => k <= r.from + 5 && r.heard[k] >= r.beat * 1.5 && !r.walk.includes(k));
+      const backHeard = (r.heard[r.backTo] ?? 0) >= r.beat - 0.05;
+      const ok = r.landed && unheard.length > 0 && !written.length && !missing.length && r.walk.includes(r.from) && r.walk.includes(r.from + 5) && backHeard;
+      return {
+        ok,
+        why: !r.landed ? 'five nexts never landed five ahead'
+          : !unheard.length ? `every theme the presses passed sounded a beat (${JSON.stringify(r.heard)}), so nothing was asked of the journal`
+          : written.length ? `the journal wrote theme ${written.map((k) => k + 1).join(', ')}, which sounded less than a beat (walk ${r.walk.map((k) => k + 1).join(' ')})`
+          : missing.length ? `theme ${missing.map((k) => k + 1).join(', ')} sounded ${missing.map((k) => r.heard[k].toFixed(2)).join(', ')} s and is not in the walk ${r.walk.map((k) => k + 1).join(' ')}`
+          : !backHeard ? `a back walked onto theme ${r.backTo + 1}, which sounded ${(r.heard[r.backTo] ?? 0).toFixed(2)} s`
+          : `the walk ${r.walk.map((k) => k + 1).join(' ')} is missing the theme it began or ended on`,
+        note: `five nexts 60 ms apart passed theme ${unheard.map((k) => k + 1).join(', ')} without a beat of it, and the journal is ${r.walk.map((k) => k + 1).join(' ')}; a back walked onto theme ${r.backTo + 1}, which had sounded`,
+      };
+    },
+  },
+  {
+    name: 'a drag along the band that spans the swap commits into the theme it was made in',
+    area: 'transport',
+    query: 'seed=1',
+    // The deep review of 10-08 (F9): the theme under the finger turned over at
+    // the swap while the drag was held, and the lift sought the theme that had
+    // arrived, at the fraction the hand held on the one that left. While the
+    // theme the drag was made on still plays out its tail, the lift takes the
+    // swap back and lands there.
+    deadline: 300000,
+    page: body(`
+      ctl.setMinutes(1);
+      await sleep(250);
+      await started();
+      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 15000);
+      const c = ctl.state.ctx;
+      // inside the set's own blend, a second before its swap
+      await waitFor(() => { const w = ctl.mix.state.wait; return !!(w && w.laid && ctl.mix.state.incoming && w.swapAt - c.currentTime < 1); }, 120000);
+      const made = ctl.mix.record.track;
+      const was = { index: made.index, seconds: made.bars * made.barSeconds };
+      const f = 0.3;
+      ctl.seekTo(f, false);            // the press on the band, held
+      await waitFor(() => ctl.mix.playingOut && ctl.mix.record.track !== made, 10000);
+      const swapped = ctl.mix.record.track.index;
+      ctl.seekTo(f, false);            // still held, across the swap
+      ctl.endScrub({ commit: true, fraction: f });
+      await sleep(1500);
+      const s = ctl.mix.state;
+      const out = { was, swapped, f, index: s.themeIndex, elapsed: s.elapsed, outNow: !!ctl.mix.playingOut, shown: ctl.state.themeIndex, late: window.deepHouse.late.count };
+      ctl.stop();
+      return out;
+    `),
+    judge: (r) => {
+      const want = r.f * r.was.seconds;
+      const ok = r.swapped !== r.was.index && r.index === r.was.index && r.shown === r.was.index && Math.abs(r.elapsed - want) < 3 && !r.outNow;
+      return {
+        ok,
+        why: r.swapped === r.was.index ? 'the swap never happened under the hand'
+          : r.index !== r.was.index ? `the lift landed on theme ${r.index + 1}, not theme ${r.was.index + 1} it was made on`
+          : r.shown !== r.was.index ? `the face says theme ${r.shown + 1}`
+          : Math.abs(r.elapsed - want) >= 3 ? `the lift landed at ${r.elapsed.toFixed(1)} s, not ${want.toFixed(1)} s of theme ${r.was.index + 1}`
+          : 'the theme that arrived is still playing out',
+        note: `a drag held across the swap into theme ${r.swapped + 1} landed at ${r.elapsed.toFixed(1)} s of theme ${r.was.index + 1}, ${Math.round(r.f * 100)} % along it as the hand held it`,
+      };
+    },
+  },
   {
     name: 'the journal walks back across casts, and a reload keeps it',
     area: 'journal',
@@ -2068,17 +2295,18 @@ export const SCENARIOS = [
     name: 'a half and a double tempo move are counted two to one on the shared grid, with no glide in the blend',
     area: 'seam',
     // The fault pass of 09-24, half and double: Ember 104 → 54 on seed 1 is
+    // (Since GA5 Ember is a tempo curve: 0.40 is 104 and 0.14 is 54 on seed 1, the pair this was written on.)
     // 0.52, a half; 54 → 104 back is 1.92, a double. The arriving theme is
     // counted one of its beats to two of the grid's (and two to one), so its
     // first note is at its own tempo within the 4 % left, which glides after.
     deadline: 400000,
-    query: 'v=2&seed=1&spell=ember:0.5',
+    query: 'v=2&seed=1&spell=ember:0.40',
     page: body(SEAM_TEMPO + `
       await started();
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 12000);
-      const half = await measureSeam(() => ctl.setSpell({ ember: 0 }));
+      const half = await measureSeam(() => ctl.setSpell({ ember: 0.14 }));
       await sleep(1500);
-      const double = await measureSeam(() => ctl.setSpell({ ember: 0.5 }));
+      const double = await measureSeam(() => ctl.setSpell({ ember: 0.40 }));
       ctl.stop();
       return { half, double };
     `),
@@ -2164,19 +2392,20 @@ export const SCENARIOS = [
     name: 'a drummed theme arriving over a drone brings its kick from its first bar, and a drone arriving under a drummed theme leaves it its kick to the end',
     area: 'seam',
     // The fault pass of 09-24, the entry: the arriving theme's kick was holed
+    // (Since GA5: Ember 0.14 is 54 BPM with no drums, 0.40 is 104 with them, the half move this was written on.)
     // from its first bar to the swap and the outgoing one's from a bar before
     // it, so two kicks could never overlap — and with a drone on the other deck
     // there is only one kick, so a drummed theme came in over a drone as eight
     // bars of groove with no kick and then dropped its kick at the swap. Seed 1:
     // Ember at nought is a drone at 54 BPM, at 0.5 a drummed theme at 104.
     deadline: 400000,
-    query: 'v=2&seed=1&spell=ember:0',
+    query: 'v=2&seed=1&spell=ember:0.14',
     page: body(SEAM_TEMPO + `
       await started();
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 12000);
-      const into = await measureSeam(() => ctl.setSpell({ ember: 0.5 }), { kicks: true });
+      const into = await measureSeam(() => ctl.setSpell({ ember: 0.40 }), { kicks: true });
       await sleep(1500);
-      const out = await measureSeam(() => ctl.setSpell({ ember: 0 }), { kicks: true });
+      const out = await measureSeam(() => ctl.setSpell({ ember: 0.14 }), { kicks: true });
       ctl.stop();
       return { into, out };
     `),
@@ -2264,7 +2493,10 @@ export const SCENARIOS = [
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed >= 20 * ctl.readout().barSeconds && ctl.mix.state.elapsed < 22 * ctl.readout().barSeconds, 20000);
       await sleep(500);
       const before = { theme: ctl.readout().mix.themeNumber, bar: ctl.readout().bar, section: ctl.readout().section };
-      ctl.setSpell({ ...ctl.mix.spell, root: 0.43 });
+      // Root to the rim (GA6: Root at 0.43 now stands nearest a place whose
+      // form has a shorter intro, so the arriving plan's bar numbers are not
+      // the outgoing plan's; the rule is about one form, and the rim keeps it)
+      ctl.setSpell({ ...ctl.mix.spell, root: 1 });
       const armed = await waitFor(() => ctl.state.cut && ctl.state.cut.kind === 'spell', 8000);
       const cut = armed ? { ...ctl.state.cut } : null;
       if (!cut) { ctl.stop(); return { noSeam: true }; }
@@ -2292,7 +2524,7 @@ export const SCENARIOS = [
       if (r.noSeam) return { ok: false, why: 'the move armed no hand-over' };
       const bad = [];
       if (r.landed.theme !== r.before.theme) bad.push(`the move brought theme ${r.landed.theme} where theme ${r.before.theme} was playing`);
-      if (Math.abs(r.landed.root - 0.43) > 1e-6) bad.push(`the set plays root ${r.landed.root}`);
+      if (Math.abs(r.landed.root - 1) > 1e-6) bad.push(`the set plays root ${r.landed.root}`);
       const after = r.seen.filter((x) => x.rec === 'in');
       if (!after.length) bad.push('the arriving plan never became the record');
       else {
@@ -2310,7 +2542,7 @@ export const SCENARIOS = [
       return {
         ok: !bad.length,
         why: bad[0],
-        note: `Root to 60 % at bar ${r.before.bar + 1} of theme ${r.before.theme} (${r.before.section}): the same theme under the asked root came in on the phrase line and was the record at bar ${first.bar + 1}, `
+        note: `Root to the rim at bar ${r.before.bar + 1} of theme ${r.before.theme} (${r.before.section}): the same theme under the asked root came in on the phrase line and was the record at bar ${first.bar + 1}, `
           + `${first.section}, as the outgoing plan was — no intro — and a cast from there started seed 1 from its first bar (bar ${r.castBar.bar + 1}, ${r.castBar.since.toFixed(1)} bars after its blend began)`,
       };
     },
@@ -2406,6 +2638,7 @@ export const SCENARIOS = [
     name: 'a second ask inside a far ride keeps the ride: the record never falls quiet, the swap is at the target and the plan is both values',
     area: 'seam',
     // Eugene on the landed tip (69fccab): *"on 50 BPM I move Ember to 105 BPM —
+    // (Since GA5: Ember 0.30 is 88 BPM and 0.55 is 111 on 51757, a far move; 0.16 and 0.55 are a double now.)
     // I know it takes time — then I move Loom, and the music drops quiet for a
     // few seconds and then starts playing at 100 BPM."* Seed 51757 at a drone
     // spell (43 BPM): Ember to 0.55 (101) is a far move, ridden before the
@@ -2414,7 +2647,7 @@ export const SCENARIOS = [
     // grid at the swap, the plan playing after it, and what settleIn said at
     // the second ask against when the readout was on the target.
     deadline: 300000,
-    query: 'v=2&seed=51757&spell=ember:0.16,tide:1.00,root:0.81',
+    query: 'v=2&seed=51757&spell=ember:0.30,tide:1.00,root:0.81',
     page: body(`
       const dh = window.deepHouse;
       await started();
@@ -2856,8 +3089,13 @@ export const SCENARIOS = [
       // under either engine plays that engine, and a plan asked under nothing
       // is house-v1
       const program = dh.programOf(dh.planTheme(seed, index, { strategy: ctl.state.strategy }));
-      const offline = dh.schedule(program, dh.offsetGrid(0), dh.firstEvent(program, from)).events
-        .map((s) => ({ voice: s.pe.voice, at: s.at }));
+      // ...with what was sounding at the point fired first (D1b): a render laid
+      // out from a point sounds the notes that span it before its schedule
+      const grid = dh.offsetGrid(0);
+      const offline = [
+        ...dh.spanning(program, from).map((pe) => ({ voice: pe.voice, at: grid.at(pe.onset) })),
+        ...dh.schedule(program, grid, dh.firstEvent(program, from)).events.map((s) => ({ voice: s.pe.voice, at: s.at })),
+      ];
 
       // The live deck is somewhere on the context's clock and the render starts
       // at nought, so the two are compared from their own first note.
@@ -2928,7 +3166,7 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'a flick and a cancelled drag both end the scrub',
+    name: 'a flick and a cancelled drag both end the scrub: a flick gives the position back, a cancelled press keeps the place the hand pressed',
     area: 'transport',
     // seed 1 by name: since K16 a bare page throws the die
     query: 'seed=1',
@@ -2936,29 +3174,36 @@ export const SCENARIOS = [
     // a cancelled gesture, a pointer capture the system took away. Before
     // this, a throw or a cancellation left the cursor, the elapsed time, the
     // remembered position and the rating window frozen while the set played on.
+    // (10-05, Eugene, the ring tilting under the pointer during a click: a
+    // press the browser cancels before the lift used to give the position
+    // back — on a ring not playing, to nought — so a click on the band took
+    // "once in three times"; a cancelled press commits where the hand was now,
+    // as a lift does and as a pull does. A flick still asks for no position.)
     page: body(`
       const out = {};
-      // a cancelled drag along the band, with nothing playing
+      // a cancelled press on the band, with nothing playing: the place stays
       const r = box('tilt');
       el('tilt').dispatchEvent(pev('pointerdown', r.x + r.width * 0.89, r.y + r.height * 0.5, 61));
-      out.cancel = { during: ctl.state.scrubbing };
+      out.cancel = { during: ctl.state.scrubbing, pressed: ctl.state.position };
       window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 61 }));
       out.cancel.after = ctl.state.scrubbing;
+      out.cancel.kept = ctl.state.position;
       // a flick across the band
       const a = onRing(0.39, 1.0), b = onRing(0.39, 1.45);
       el('tilt').dispatchEvent(pev('pointerdown', a.x, a.y, 62));
       window.dispatchEvent(pev('pointermove', b.x, b.y, 62));
       window.dispatchEvent(pev('pointerup', b.x, b.y, 62));
       out.flick = { scrubbing: ctl.state.scrubbing };
-      // and the same two while a set is playing: the cursor has to go back to
-      // where the audio actually is
+      // and the same two while a set is playing: a cancelled press is the
+      // place the hand pressed, and the audio follows from there
       await started();
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1.5, 10000);
-      el('tilt').dispatchEvent(pev('pointerdown', r.x + r.width * 0.89, r.y + r.height * 0.5, 63));
+      // pressed on the band's far side from where the audio is, so the two are told apart
+      const heard = ctl.mix.state.elapsed;
+      el('tilt').dispatchEvent(pev('pointerdown', r.x + r.width * 0.11, r.y + r.height * 0.5, 63));
       const previewed = ctl.state.position;
       window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: 63 }));
       const restored = ctl.state.position;
-      const heard = ctl.mix.state.elapsed;
       await sleep(900);
       out.playing = { previewed, restored, heard, later: ctl.state.position, heardLater: ctl.mix.state.elapsed, scrubbing: ctl.state.scrubbing };
       ctl.stop();
@@ -2966,12 +3211,13 @@ export const SCENARIOS = [
       return out;
     `),
     judge: (r) => {
-      const back = Math.abs(r.playing.restored - r.playing.heard) < 0.5;
+      const keptStill = r.cancel.pressed > 1 && Math.abs(r.cancel.kept - r.cancel.pressed) < 0.01;
+      const kept = Math.abs(r.playing.restored - r.playing.previewed) < 0.5 && Math.abs(r.playing.previewed - r.playing.heard) > 2;
       const follows = r.playing.later > r.playing.restored && Math.abs(r.playing.later - r.playing.heardLater) < 0.5;
       return {
-        ok: r.cancel.during && !r.cancel.after && !r.flick.scrubbing && !r.playing.scrubbing && back && follows,
-        why: `cancelled: scrubbing ${r.cancel.during} then ${r.cancel.after}; flicked: ${r.flick.scrubbing}; playing: previewed ${r.playing.previewed.toFixed(1)} s, restored ${r.playing.restored.toFixed(1)}, the audio at ${r.playing.heard.toFixed(1)}, a second later ${r.playing.later.toFixed(1)} against ${r.playing.heardLater.toFixed(1)}`,
-        note: `a cancel and a flick both leave the scrub closed, and a cancel over a playing set puts the cursor back on the audio at ${r.playing.restored.toFixed(1)} s and lets it follow`,
+        ok: r.cancel.during && !r.cancel.after && keptStill && !r.flick.scrubbing && !r.playing.scrubbing && kept && follows,
+        why: `cancelled: scrubbing ${r.cancel.during} then ${r.cancel.after}, pressed at ${r.cancel.pressed.toFixed(1)} s and kept ${r.cancel.kept.toFixed(1)}; flicked: ${r.flick.scrubbing}; playing: previewed ${r.playing.previewed.toFixed(1)} s, kept ${r.playing.restored.toFixed(1)}, the audio had been at ${r.playing.heard.toFixed(1)}, a second later ${r.playing.later.toFixed(1)} against ${r.playing.heardLater.toFixed(1)}`,
+        note: `a cancel and a flick both leave the scrub closed; a cancelled press keeps the place the hand pressed — ${r.cancel.kept.toFixed(1)} s on a ring not playing, and over a playing set ${r.playing.restored.toFixed(1)} s where the audio had been at ${r.playing.heard.toFixed(1)} s, the audio following from there`,
       };
     },
   },
@@ -3614,20 +3860,23 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'a second spell asked inside a seam is what the address carries when the first lands, and after its own',
+    name: 'a second spell asked inside a seam is what the address carries at once, and it joins the hand-over in flight: the first never lands as its own',
     area: 'link',
     // The fault pass of 09-24, Agent B's first item: a spell asked while the
-    // seam of an earlier one is in flight lands the earlier one at once and
-    // hands over again into the second — and the arrival of the first wrote
-    // the first back into the address (`arrived` → `writePlaceSpell`), so the
-    // ring showed the second while the link carried the first until the second
-    // landed too. The link is what is asked as well as what plays: the address
-    // carries the newest spell asked from the moment it is asked.
+    // seam of an earlier one is in flight used to land the earlier one at once
+    // and hand over again into the second, and the arrival of the first wrote
+    // the first back into the address. The link is what is asked as well as
+    // what plays: the address carries the newest spell asked from the moment
+    // it is asked. Since MIX-X1 (10-02) the second ask *joins* the hand-over
+    // in flight (`joinBlend`): before the swap the arriving deck is swapped for
+    // the asked plan at the same bar under the same curves, so the first ask
+    // never lands as its own and the record is never cut twice.
     deadline: 120000,
     query: 'v=2&seed=1',
     page: body(`
       const A = { veil: 0.85 };
       const B = { veil: 0.2, tide: 0.7 };
+      const HOUSE = { ember: 0.5, gleam: 0.5, veil: 0.5, spark: 0.5, loom: 0.5, tide: 0.5, root: 0.5, zephyr: 0.5 };
       const said = () => ctl.link.raw('spell');
       const same = (x, y) => !!x && !!y && Object.keys({ ...x, ...y }).every((k) => Math.abs((x[k] ?? 0.5) - (y[k] ?? 0.5)) < 1e-3);
       await started();
@@ -3639,32 +3888,31 @@ export const SCENARIOS = [
       const inFlight = { url: said(), readout: ctl.readout().spell };
       ctl.setSpell(B);
       const asked = said();
-      // the first lands: the readout's spell is A's
-      const landedA = await waitFor(() => same(ctl.readout().spell, { ...{ ember: 0.5, gleam: 0.5, veil: 0.5, spark: 0.5, loom: 0.5, tide: 0.5, root: 0.5, zephyr: 0.5 }, ...A }), 30000);
-      await sleep(300);
-      const afterA = said();
-      const readoutAfterA = ctl.readout().spell;
-      // and the second lands after it
-      const landedB = await waitFor(() => same(ctl.readout().spell, { ...{ ember: 0.5, gleam: 0.5, veil: 0.5, spark: 0.5, loom: 0.5, tide: 0.5, root: 0.5, zephyr: 0.5 }, ...B }), 60000);
+      // the second lands; on the way, the readout never turns over to the first
+      let sawA = false;
+      const landedB = await waitFor(() => {
+        if (same(ctl.readout().spell, { ...HOUSE, ...A })) sawA = true;
+        return same(ctl.readout().spell, { ...HOUSE, ...B });
+      }, 90000);
       await sleep(300);
       const afterB = said();
+      const readoutAfterB = ctl.readout().spell;
       ctl.stop();
       await sleep(300);
-      return { inFlight, asked, landedA, afterA, readoutAfterA, landedB, afterB, late: window.deepHouse.late.count };
+      return { inFlight, asked, sawA, landedB, afterB, readoutAfterB, late: window.deepHouse.late.count };
     `),
     judge: (r) => {
       if (r.noSeam) return { ok: false, why: `the first spell's seam never began (armed ${r.armed})` };
       const isB = (u) => !!u && /ve:0\.2/.test(u) && /ti:0\.7/.test(u);
-      const ok = isB(r.asked) && r.landedA && isB(r.afterA) && r.landedB && isB(r.afterB);
+      const ok = isB(r.asked) && !r.sawA && r.landedB && isB(r.afterB);
       return {
         ok,
         why: !isB(r.asked) ? `asking the second wrote "${r.asked}"`
-          : !r.landedA ? 'the first spell never landed'
-          : !isB(r.afterA) ? `when the first spell landed the address said "${r.afterA}", not the second asked (readout ${JSON.stringify(r.readoutAfterA)})`
-          : !r.landedB ? 'the second spell never landed'
+          : r.sawA ? 'the first spell landed as its own before the second (the second did not join its hand-over)'
+          : !r.landedB ? `the second spell never landed (readout ${JSON.stringify(r.readoutAfterB)})`
           : `when the second landed the address said "${r.afterB}"`,
         note: `the first spell in flight read "${r.inFlight.url}"; the second asked inside its seam was written at once ("${r.asked}"), `
-          + `stayed when the first landed and after its own landing ("${r.afterB}")`,
+          + `joined the hand-over and landed as the one arrival ("${r.afterB}"); the first never landed as its own`,
       };
     },
   },
@@ -4280,7 +4528,13 @@ export const SCENARIOS = [
   {
     name: 'the view lists every lane house-v2 declares',
     area: 'view',
-    query: 'v=2&seed=99895',
+    // Seed 99894 since GA2: 99895's first theme is the library's turn and draws
+    // bright-eighths, whose bright lean puts the formant pad and the reed organ
+    // on the pad and the keys — voices the view lists as sources of their own
+    // outside those two lanes (it does so on 116 of seeds 1-200's first themes
+    // with the library out of reach: a view question, not this round's). 99894's
+    // first theme is the composer's alone and every voice it plays is a lane's.
+    query: 'v=2&seed=99894',
     page: body(`
       // A stopped set has no graph and so no buses: what the view has to list is
       // every lane *with the wire to the bus it lands on*, which is a fact about
@@ -6709,24 +6963,25 @@ SCENARIOS.push({
                y: b.y + b.height / 2 - Math.cos(a) * b.height * (rad / 1000) + Math.sin(a) * b.height * (s / 1000) }; };
     mouse('pointerdown', at(from, 0), el('tilt'));
     await sleep(30);
+    // (the pull counts from the press since 10-08: this first move is travel)
     mouse('pointermove', at(from - 8, 0));
     await sleep(30);
     // in, to the middle of the spoke, straight
-    for (let k = 1; k <= 5; k++) { mouse('pointermove', at(from - 8 - 8 * k, 0)); await sleep(30); }
+    for (let k = 1; k <= 5; k++) { mouse('pointermove', at(from - 8 * k, 0)); await sleep(30); }
     const straight = { value: cells()[i].value, side: cells()[i].side };
     // and the same radius with the hand sixty pixels to one side
-    for (let k = 1; k <= 5; k++) { mouse('pointermove', at(from - 48, (side * k) / 5)); await sleep(30); }
+    for (let k = 1; k <= 5; k++) { mouse('pointermove', at(from - 40, (side * k) / 5)); await sleep(30); }
     const across = { value: cells()[i].value, side: cells()[i].side };
     // out to the rim with the hand still to the side: it locks to the axis. The
     // hand's travel for a whole bird is its own scale (a third of the star's
     // radius, never under 120 screen pixels), so the rim is that far out.
-    const rimAt = from - 8 + 1.15 * travelUnits();
-    for (let k = 1; k <= 8; k++) { mouse('pointermove', at(from - 48 + ((rimAt - from + 48) * k) / 8, side)); await sleep(30); }
+    const rimAt = from + 1.15 * travelUnits();
+    for (let k = 1; k <= 8; k++) { mouse('pointermove', at(from - 40 + ((rimAt - from + 40) * k) / 8, side)); await sleep(30); }
     const rim = { value: cells()[i].value, side: cells()[i].side };
     // back to the middle, to the side, and let go there
-    for (let k = 1; k <= 8; k++) { mouse('pointermove', at(rimAt - ((rimAt - from + 48) * k) / 8, side)); await sleep(30); }
+    for (let k = 1; k <= 8; k++) { mouse('pointermove', at(rimAt - ((rimAt - from + 40) * k) / 8, side)); await sleep(30); }
     const again = { value: cells()[i].value, side: cells()[i].side };
-    mouse('pointerup', at(from - 48, side));
+    mouse('pointerup', at(from - 40, side));
     await sleep(90);
     const dropped = cells()[i].side;
     await sleep(900);
@@ -7081,8 +7336,11 @@ SCENARIOS.push({
       mouse('pointermove', p, el('stage'));
       mouse('pointerdown', p, el('tilt'));
       await sleep(30);
-      // past the slop, inward
-      p = { x: p.x - out.x * 6, y: p.y - out.y * 6 };
+      // past the slop across the spoke and back to the press: the pull counts
+      // from the press since 10-08, so the walk starts with the bird where
+      // the hand took it and its whole play either side
+      mouse('pointermove', { x: p.x + side.x * 6, y: p.y + side.y * 6 });
+      await raf();
       mouse('pointermove', p);
       await raf(); await raf();
       const c0 = centre(i);
@@ -8082,6 +8340,551 @@ SCENARIOS.push({
 });
 
 SCENARIOS.push({
+  // DESK-UX1: the device is always shown, and the DEVICE key that showed it is gone
+  name: 'a strip\'s popover opens with the instrument\'s device: every parameter of its row with a value, no ledger line for looking, no DEVICE key, and the same on the next strip',
+  area: 'view',
+  query: 'v=2&seed=1',
+  page: body(OPEN_VIEW + `
+    const strips = () => [...document.querySelectorAll('#machine [role="button"][aria-label^="Strip "]')].filter((g) => g.getAttribute('aria-disabled') !== 'true');
+    // a strip whose instrument is a row (the kick's always is); the legacy module voices have no device to list
+    const key = strips().find((g) => g.getAttribute('aria-label') === 'Strip kick') || strips()[0];
+    const label = key.getAttribute('aria-label').replace('Strip ', '');
+    // a hand presses a key it sees: on the phone's one long page the strip is scrolled to first
+    key.scrollIntoView({ block: 'center' });
+    await sleep(100);
+    key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(150);
+    const pop = document.querySelector('.desk-pop');
+    const lines0 = window.ring.machine.snapshot().ledger.filter((e) => e.kind === 'desk').length;
+    const keyless = !pop.querySelector('button[aria-label^="Device "]');
+    const panels = [...pop.querySelectorAll('.desk-device')];
+    const rows = panels.flatMap((p) => [...p.querySelectorAll('tbody tr')]);
+    const empty = rows.filter((r) => !r.querySelector('th').textContent || !r.querySelector('td.v').textContent).length;
+    // the value alone, before the mark that may ride after it (the ring's number, next note)
+    const units = rows.filter((r) => /(Hz|ms|s|dB|ct|×)$/.test(r.querySelector('td.v').firstChild.textContent)).length;
+    const ranged = rows.filter((r) => /, in -?[\\d.]+–-?[\\d.]+/.test(r.title)).length;
+    const knobRows = rows.filter((r) => r.classList.contains('knob')).length;
+    const heads = panels.map((p) => p.querySelector('.desk-device-facts').textContent);
+    const voices = panels.map((p) => p.dataset.voice);
+    const box = pop.getBoundingClientRect();
+    const fits = box.top >= 0 && box.bottom <= innerHeight + 0.5;
+    const pane = document.querySelector('.pane.graph').getBoundingClientRect(); const a = key.getBoundingClientRect();
+    const geom = { top: Math.round(box.top), bottom: Math.round(box.bottom), vh: innerHeight, pane: [Math.round(pane.top), Math.round(pane.bottom)], key: [Math.round(a.top), Math.round(a.bottom)], zoom: getComputedStyle(pop).zoom, maxH: getComputedStyle(pop).maxHeight };
+    const scrolls = getComputedStyle(pop).overflowY === 'auto';
+    const lines1 = window.ring.machine.snapshot().ledger.filter((e) => e.kind === 'desk').length;
+    // closed by a press outside, the next strip opens with the device already showing
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await sleep(100);
+    const closed = !document.querySelector('.desk-pop');
+    const other = strips().find((g) => g !== key) || key;
+    other.scrollIntoView({ block: 'center' });
+    await sleep(100);
+    other.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(200);
+    const pop2 = document.querySelector('.desk-pop');
+    const again = pop2 ? pop2.querySelectorAll('.desk-device').length : -1;
+    const keyless2 = pop2 ? !pop2.querySelector('button[aria-label^="Device "]') : false;
+    window.ring.machine.close(); ctl.stop();
+    return { label, keyless, panels: panels.length, voices, rows: rows.length, empty, units, ranged, knobRows, heads, fits, geom, scrolls, desk: lines1 - lines0, closed, again, keyless2 };
+  `),
+  judge: (r) => ({
+    ok: r.keyless && r.panels >= 1 && r.panels === r.voices.length && r.rows >= 5 && r.empty === 0 && r.units >= 3 && r.ranged >= 3 && r.fits && r.scrolls
+      && r.desk === 0 && r.heads.every((h) => /rev \d+ · (\w+ block|frozen row) · \w+ bus · level \w+ [-+]?[\d.]+ dB/.test(h)) && r.closed && r.again >= 1 && r.keyless2,
+    why: `${r.label}: no DEVICE key ${r.keyless}, ${r.panels} devices at open for ${r.voices.join(', ')}, ${r.rows} parameter lines (${r.empty} empty, ${r.units} in a unit, ${r.ranged} with their range in the title, ${r.knobRows} under a knob), heads ${JSON.stringify(r.heads)}, `
+      + `fits ${r.fits} (${JSON.stringify(r.geom)}), scrolls ${r.scrolls}, ${r.desk} desk lines written; closed ${r.closed}, the next strip opened with ${r.again} devices (no key ${r.keyless2})`,
+    note: `${r.label}'s popover opened with ${r.rows} parameters of ${r.voices.join(' and ')} under its keys — each with a value, ${r.units} in a unit and ${r.knobRows} marked as the ring's — under a head saying the topology, revision, block, bus and level; `
+      + `no DEVICE key, no ledger line for looking, and the next strip the same`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a device line is a setter: the reese\'s cutoffHz moves a step a press for its next note, one desk line a press, the row key puts it back, and the view closing lets it go',
+  area: 'view',
+  query: 'v=2&seed=6&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+  page: body(OPEN_VIEW + `
+    const strips = () => [...document.querySelectorAll('#machine [role="button"][aria-label^="Strip "]')].filter((g) => g.getAttribute('aria-disabled') !== 'true');
+    const closePop = async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await sleep(100); };
+    // the strip whose popover holds the reese: the bass's, at the first drop of the half-time spell
+    const openReese = async () => {
+      for (const key of strips()) {
+        key.scrollIntoView({ block: 'center' });
+        key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await sleep(150);
+        const pop = document.querySelector('.desk-pop');
+        const names = pop ? [...pop.querySelectorAll('.desk-row .desk-name')].map((n) => n.textContent) : [];
+        const voice = names.find((n) => /^reese/.test(n));
+        if (voice) return { pop, voice, label: key.getAttribute('aria-label').replace('Strip ', '') };
+        await closePop();
+      }
+      return null;
+    };
+    const desk = () => window.ring.machine.snapshot().ledger.filter((e) => e.kind === 'desk');
+    const got = await openReese();
+    if (!got) { window.ring.machine.close(); ctl.stop(); return { found: false }; }
+    const { pop, voice, label } = got;
+    // the device is under the strip's keys from the open (DESK-UX1): no key to press
+    const line = () => pop.querySelector('tr[aria-label="Set ' + voice + ' cutoffHz"]');
+    const valueOf = () => line().querySelector('td.v').textContent;
+    const settable = pop.querySelectorAll('.desk-device[data-voice="' + voice + '"] tr.set').length;
+    const readOnly = pop.querySelectorAll('.desk-device[data-voice="' + voice + '"] tbody tr:not(.set)').length;
+    const at0 = valueOf();
+    line().click();
+    await sleep(150);
+    const opened = pop.querySelectorAll('.desk-device-set').length;
+    const lines0 = desk().length;
+    const up = pop.querySelector('.desk-device-set button[aria-label="cutoffHz up a step"]');
+    for (let i = 0; i < 3; i++) { up.click(); await sleep(60); }
+    await sleep(150);
+    const at1 = valueOf();
+    const moved = line().classList.contains('moved');
+    const said = desk().slice(lines0).map((e) => e.what);
+    const s = window.ring.machine.snapshot();
+    const box = s.part.nodes.find((n) => n.kind === 'lane' && n.readings.some((r) => r.name === 'cutoffHz'));
+    const reading = box ? box.readings.find((r) => r.name === 'cutoffHz') : null;
+    // a second line opened closes the first: one open at a time
+    const drive = pop.querySelector('tr[aria-label="Set ' + voice + ' saws"]');
+    if (drive) { drive.click(); await sleep(150); }
+    const openAfter = pop.querySelectorAll('.desk-device-set').length;
+    if (drive) { drive.click(); await sleep(100); }
+    line().click();
+    await sleep(150);
+    const lines1 = desk().length;
+    pop.querySelector('.desk-device-set button[aria-label="Row ' + voice + ' cutoffHz"]').click();
+    await sleep(150);
+    const at2 = valueOf();
+    const back = desk().slice(lines1).map((e) => e.what);
+    const unmoved = !line().classList.contains('moved');
+    // moved again, then the view closes: the next open reads the row
+    pop.querySelector('.desk-device-set button[aria-label="cutoffHz up a step"]').click();
+    await sleep(100);
+    const before = valueOf();
+    await closePop();
+    window.ring.machine.close();
+    await sleep(300);
+    await bounded(window.ring.machine.open(), 12000);
+    await sleep(500);
+    const again = await openReese();
+    const after = again ? again.pop.querySelector('tr[aria-label="Set ' + voice + ' cutoffHz"] td.v').textContent : null;
+    window.ring.machine.close(); ctl.stop();
+    return { found: true, label, voice, settable, readOnly, at0, opened, at1, moved, said, reading, openAfter, at2, back, unmoved, before, after };
+  `),
+  judge: (r) => ({
+    ok: r.found && r.settable >= 10 && r.opened === 1 && r.at1 !== r.at0 && r.moved && r.said.length === 3
+      && r.said.every((w) => new RegExp('^' + r.voice + "'s cutoffHz went to [\\d.]+ Hz \\(the row's " + r.at0.replace(/[.]/g, '\\.') + '\\)$').test(w))
+      && !!r.reading && r.openAfter === 1 && r.at2 === r.at0 && r.unmoved && r.back.length === 1 && /went back to the row$/.test(r.back[0])
+      && r.before !== r.at0 && r.after === r.at0,
+    why: r.found ? `${r.label}/${r.voice}: ${r.settable} settable lines and ${r.readOnly} readings; cutoffHz ${r.at0} → ${r.at1} after three presses (moved ${r.moved}, ${r.opened} line open), lines ${JSON.stringify(r.said)}, the box reads ${JSON.stringify(r.reading)}; `
+      + `a second line opened left ${r.openAfter} open; the row key put it at ${r.at2} (unmoved ${r.unmoved}, ${JSON.stringify(r.back)}); moved to ${r.before} and the view closed, it reopened at ${r.after}` : 'no strip of the half-time spell held a reese',
+    note: `on seed 6 at the half-time spell the ${r.label} strip's device moved ${r.voice}'s cutoffHz ${r.at0} → ${r.at1} in three presses of +, one ledger line a press ("${(r.said || [])[0]}"), the lane's box reading it raw; the row key put it back with one line, and closing the view let the move go`,
+  }),
+});
+
+SCENARIOS.push({
+  // round DESK-UX1 (Eugene, 10-05, on the strip's popover: "let's do a round of UX clean-ups"): the device always shown,
+  // the box placed once and never moved by its own growth, the open line drawn once, one reset word, the key a device
+  name: 'the reese\'s strip opens with its device shown, and a line opened at the foot of the table opens in the box without moving it: its fader has no head and opens no manual page, its reset reads reset to the row\'s number, and the strip\'s key reads a percent',
+  area: 'view',
+  query: 'v=2&seed=6&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+  page: body(OPEN_VIEW + `
+    const strips = () => [...document.querySelectorAll('#machine [role="button"][aria-label^="Strip "]')].filter((g) => g.getAttribute('aria-disabled') !== 'true');
+    const closePop = async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await sleep(100); };
+    let got = null;
+    for (const key of strips()) {
+      key.scrollIntoView({ block: 'center' });
+      key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await sleep(200);
+      const pop = document.querySelector('.desk-pop');
+      const dev = pop ? pop.querySelector('.desk-device[data-voice^="reese"]') : null;
+      if (dev) { got = { pop, dev, key, voice: dev.dataset.voice, label: key.getAttribute('aria-label').replace('Strip ', '') }; break; }
+      await closePop();
+    }
+    if (!got) { window.ring.machine.close(); ctl.stop(); return { found: false }; }
+    const { pop, dev, key, voice, label } = got;
+    const keyText = key.querySelector('text').textContent;
+    const glyph = key.querySelectorAll('.glyph line').length;
+    const deviceKey = !!pop.querySelector('button[aria-label^="Device "]');
+    const paras = [...pop.querySelectorAll('p')].map((p) => p.textContent.trim()).filter((t) => /^(All parts playing|Press a number)/.test(t));
+    // a line near the foot of the reese's table
+    const lines = [...dev.querySelectorAll('tbody tr.set')];
+    const line = lines[lines.length - 1];
+    const path = line.querySelector('th').textContent;
+    const value = line.querySelector('td.v').firstChild.textContent;
+    const top0 = pop.getBoundingClientRect().top;
+    line.click();
+    await sleep(300);
+    const box = pop.getBoundingClientRect();
+    const set = pop.querySelector('.desk-device-set');
+    const s = set ? set.getBoundingClientRect() : null;
+    const inBox = !!s && s.top >= box.top - 0.5 && s.bottom <= box.bottom + 0.5;
+    const nameCell = set ? set.querySelectorAll('.desk-row .desk-name, .desk-row output').length : -1;
+    const reset = set ? set.querySelector('button[aria-label="Row ' + voice + ' ' + path + '"]') : null;
+    const resetText = reset ? reset.textContent : null;
+    const small = reset ? reset.classList.contains('desk-reset') : false;
+    // a hand on the open line's range, dragging it: no manual page opens (his word, 10-05: it came up every time)
+    const range = set ? set.querySelector('input[type="range"]') : null;
+    const mouse = { bubbles: true, pointerType: 'mouse', pointerId: 1, isPrimary: true };
+    let helpOnDrag = null;
+    if (range) {
+      const r = range.getBoundingClientRect();
+      const at = { ...mouse, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+      range.dispatchEvent(new PointerEvent('pointerover', at));
+      range.dispatchEvent(new PointerEvent('pointerenter', { ...at, bubbles: false }));
+      range.dispatchEvent(new PointerEvent('pointerdown', at));
+      const put = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      for (let i = 1; i <= 5; i++) { put.call(range, String(Number(range.value) + 1)); range.dispatchEvent(new Event('input', { bubbles: true })); await sleep(60); }
+      range.dispatchEvent(new PointerEvent('pointerup', at));
+      await sleep(1000);
+      helpOnDrag = document.querySelector('#machine .help') ? document.querySelector('#machine .help').getAttribute('data-help') : '';
+      range.dispatchEvent(new PointerEvent('pointerout', at));
+      range.dispatchEvent(new PointerEvent('pointerleave', { ...at, bubbles: false }));
+      await sleep(300);
+    }
+    const top1 = pop.getBoundingClientRect().top;
+    // the page is the device head's now: a pointer resting on the head opens it
+    const head = dev.querySelector('.desk-device-head');
+    const h = head.getBoundingClientRect();
+    const onHead = { ...mouse, clientX: h.left + 4, clientY: h.top + 4 };
+    head.dispatchEvent(new PointerEvent('pointerover', onHead));
+    head.dispatchEvent(new PointerEvent('pointerenter', { ...onHead, bubbles: false }));
+    await sleep(1000);
+    const helpOnHead = document.querySelector('#machine .help') ? document.querySelector('#machine .help').getAttribute('data-help') : '';
+    head.dispatchEvent(new PointerEvent('pointerout', onHead));
+    head.dispatchEvent(new PointerEvent('pointerleave', { ...onHead, bubbles: false }));
+    // the strip's one reset puts back the line the drag moved, and is dark again after
+    const one = pop.querySelector('button[aria-label="Reset ' + label + '"]');
+    const oneText = one ? one.textContent : null;
+    const live = one ? !one.disabled : false;
+    if (one) one.click();
+    await sleep(200);
+    const dark = one ? one.disabled : false;
+    const allRow = pop.querySelectorAll('button[aria-label="Row ' + voice + '"]').length;
+    await closePop();
+    window.ring.machine.close(); ctl.stop();
+    return { found: true, label, voice, keyText, glyph, deviceKey, paras, path, value, top0, top: box.top, top1, inBox, nameCell, resetText, small, helpOnDrag, helpOnHead, oneText, live, dark, allRow };
+  `),
+  judge: (r) => ({
+    ok: r.found && /%$/.test(r.keyText) && r.glyph === 3 && !r.deviceKey && !r.paras.length
+      && Math.abs(r.top - r.top0) < 0.5 && Math.abs(r.top1 - r.top0) < 0.5 && r.inBox && r.nameCell === 0
+      && r.resetText === 'reset to ' + r.value && r.small && r.helpOnDrag === '' && r.helpOnHead === 'key:param'
+      && r.oneText === 'reset' && r.live && r.dark && r.allRow === 0,
+    why: r.found ? `${r.label}/${r.voice}: the key reads "${r.keyText}" with ${r.glyph} glyph lines; a DEVICE key ${r.deviceKey}; paragraphs ${JSON.stringify(r.paras)}; `
+      + `${r.path} (${r.value}) opened at the foot: the box's top ${r.top0} → ${r.top} → ${r.top1} after the drag, the set row in the box ${r.inBox}, ${r.nameCell} name cells, the reset "${r.resetText}" (small ${r.small}); `
+      + `a page on the drag "${r.helpOnDrag}", on the head "${r.helpOnHead}"; the strip's reset "${r.oneText}" live ${r.live} and dark after ${r.dark}; ${r.allRow} per-device resets`
+      : 'no strip of the half-time spell held a reese',
+    note: `on seed 6 at the half-time spell the ${r.label} strip ("${r.keyText}") opened with ${r.voice}'s device and no DEVICE key; ${r.path} at the table's foot opened its fader inside the box, the box's top unmoved (${r.top0}), with no head and "${r.resetText}" under it in the small key; `
+      + `dragging it opened no manual page and the head opened key:param; the strip's one reset put the line back and went dark`,
+  }),
+});
+
+SCENARIOS.push({
+  // round SOUNDS-R3: the sustained role is a dispatcher over rows, and its strip shows the row its timbre plays
+  name: 'the drone pad\'s device is its dispatcher and the strings row it plays: the breath under the saws a line, moved a step a press for the next chord, one desk line a press, the row key putting it back',
+  area: 'view',
+  query: 'v=2&seed=27191&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&t=60',
+  page: body(OPEN_VIEW + `
+    const strips = () => [...document.querySelectorAll('#machine [role="button"][aria-label^="Strip "]')].filter((g) => g.getAttribute('aria-disabled') !== 'true');
+    const closePop = async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await sleep(100); };
+    // the strip whose popover holds the pad: the drone's, on the benchmark's first theme, where it plays strings
+    let got = null;
+    for (const key of strips()) {
+      key.scrollIntoView({ block: 'center' });
+      key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await sleep(150);
+      const pop = document.querySelector('.desk-pop');
+      const names = pop ? [...pop.querySelectorAll('.desk-row .desk-name')].map((n) => n.textContent) : [];
+      if (names.includes('pad')) { got = { pop, label: key.getAttribute('aria-label').replace('Strip ', '') }; break; }
+      await closePop();
+    }
+    if (!got) { window.ring.machine.close(); ctl.stop(); return { found: false }; }
+    const { pop, label } = got;
+    // the device is under the strip's keys from the open (DESK-UX1): no key to press
+    const panels = [...pop.querySelectorAll('.desk-device')].map((p) => ({ voice: p.dataset.voice, through: p.dataset.through || null, timbre: p.dataset.timbre || null, head: p.querySelector('.desk-device-head').textContent }));
+    const own = pop.querySelector('.desk-device[data-voice="pad"]');
+    const ownSettable = own ? own.querySelectorAll('tr.set').length : -1;
+    const ownLines = own ? [...own.querySelectorAll('tbody th')].map((t) => t.textContent) : [];
+    const row = pop.querySelector('.desk-device[data-voice="stringsPad"]');
+    if (!row) { await closePop(); window.ring.machine.close(); ctl.stop(); return { found: true, label, panels, ownSettable, ownLines, strings: false }; }
+    const lines = [...row.querySelectorAll('tbody th')].map((t) => t.textContent);
+    const line = () => row.querySelector('tr[aria-label="Set stringsPad breath.level"]');
+    const valueOf = () => line().querySelector('td.v').textContent;
+    const desk = () => window.ring.machine.snapshot().ledger.filter((e) => e.kind === 'desk');
+    const at0 = valueOf();
+    line().click();
+    await sleep(150);
+    const lines0 = desk().length;
+    const up = row.querySelector('.desk-device-set button[aria-label="breath.level up a step"]');
+    for (let i = 0; i < 3; i++) { up.click(); await sleep(60); }
+    await sleep(150);
+    const at1 = valueOf();
+    const moved = line().classList.contains('moved');
+    const said = desk().slice(lines0).map((e) => e.what);
+    const s = window.ring.machine.snapshot();
+    const box = s.part.nodes.find((n) => n.kind === 'lane' && n.readings.some((r) => r.name === 'breath.level'));
+    const reading = box ? box.readings.find((r) => r.name === 'breath.level') : null;
+    const lines1 = desk().length;
+    row.querySelector('.desk-device-set button[aria-label="Row stringsPad breath.level"]').click();
+    await sleep(150);
+    const at2 = valueOf();
+    const back = desk().slice(lines1).map((e) => e.what);
+    await closePop();
+    window.ring.machine.close(); ctl.stop();
+    return { found: true, strings: true, label, panels, ownSettable, ownLines, lines, at0, at1, moved, said, reading, at2, back };
+  `),
+  judge: (r) => ({
+    ok: r.found && r.strings && r.ownSettable === 0 && r.ownLines.includes('by') && r.ownLines.includes('strings')
+      && r.panels.some((p) => p.voice === 'stringsPad' && p.through === 'pad' && /strings/.test(p.timbre || '') && /voiced by strings/.test(p.head))
+      && ['breath.level', 'breath.loHz', 'breath.hiHz', 'cutoffHz', 'voices', 'detuneCents'].every((l) => r.lines.includes(l))
+      && r.at0 === '0' && r.at1 !== r.at0 && r.moved && r.said.length === 3
+      && r.said.every((w) => /^stringsPad's breath\.level went to [\d.]+ \(the row's 0\)$/.test(w))
+      && !!r.reading && r.at2 === r.at0 && r.back.length === 1 && /^stringsPad's breath\.level went back to the row$/.test(r.back[0]),
+    why: r.found ? `${r.label}: panels ${JSON.stringify(r.panels)}; the pad's own lines ${JSON.stringify(r.ownLines)} (${r.ownSettable} settable)`
+      + (r.strings ? `; the strings row's lines ${JSON.stringify(r.lines)}; breath.level ${r.at0} → ${r.at1} after three presses (moved ${r.moved}), lines ${JSON.stringify(r.said)}, the box reads ${JSON.stringify(r.reading)}; the row key put it at ${r.at2} (${JSON.stringify(r.back)})` : '; no strings row under the pad')
+      : 'no strip of the benchmark held the pad',
+    note: `on the benchmark's first theme the ${r.label} strip's device read the pad's table and the strings row it plays; the breath under the saws went ${r.at0} → ${r.at1} in three presses of +, one ledger line a press ("${(r.said || [])[0]}"), the lane's box reading it raw, and the row key put it back with one line`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a stage line is a setter: the bass drive\'s blend moves live a step a press, one desk line a press, the duck under the knock deepens from the next kick, the room key puts each back, and the view closing lets them go',
+  area: 'view',
+  query: 'v=2&seed=6&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+  page: body(OPEN_VIEW + `
+    const closePop = async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await sleep(100); };
+    const desk = () => window.ring.machine.snapshot().ledger.filter((e) => e.kind === 'desk');
+    const record = () => ctl.mix && ctl.mix.record;
+    const openBox = async (label) => {
+      const key = document.querySelector('#machine [role="button"][aria-label="Stage ' + label + '"]');
+      if (!key) return null;
+      key.scrollIntoView({ block: 'center' });
+      key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await sleep(200);
+      return document.querySelector('.desk-pop');
+    };
+    const drive = await openBox('BASS DRIVE');
+    if (!drive) { window.ring.machine.close(); ctl.stop(); return { found: false }; }
+    const line = (who, name) => document.querySelector('.desk-pop tr[aria-label="Set ' + who + ' ' + name + '"]');
+    const value = (who, name) => { const l = line(who, name); return l ? l.querySelector('td.v').textContent : null; };
+    const mark = (who, name) => { const l = line(who, name); return l ? (l.dataset.mark || '') : null; };
+    const settable = drive.querySelectorAll('.desk-device[data-stage="bassDrive"] tr.set').length;
+    const wobble = { beats: value('the bass drive', 'wobbleBeats'), depth: value('the bass drive', 'wobbleDepth'), live: !line('the bass drive', 'wobbleBeats').classList.contains('waits') };
+    const side = { mark: mark('the bass drive', 'side'), waits: line('the bass drive', 'side').classList.contains('waits') };
+    const blend0 = value('the bass drive', 'blend');
+    const note0 = record().graph.describe().nodes.find((n) => n.id === 'bassDrive').note;
+    line('the bass drive', 'blend').click();
+    await sleep(150);
+    const opened = drive.querySelectorAll('.desk-device-set').length;
+    const lines0 = desk().length;
+    const up = drive.querySelector('.desk-device-set button[aria-label="blend up a step"]');
+    for (let i = 0; i < 3; i++) { up.click(); await sleep(60); }
+    await sleep(200);
+    const blend1 = value('the bass drive', 'blend');
+    const moved = line('the bass drive', 'blend').classList.contains('moved');
+    const said = desk().slice(lines0).map((e) => e.what);
+    const note1 = record().graph.describe().nodes.find((n) => n.id === 'bassDrive').note;
+    const s = window.ring.machine.snapshot();
+    const box = s.part.nodes.find((n) => n.id === 'bassDrive');
+    const reading = box ? box.readings.find((r) => r.name === 'blend') : null;
+    const lines1 = desk().length;
+    drive.querySelector('.desk-device-set button[aria-label="Room the bass drive blend"]').click();
+    await sleep(150);
+    const blend2 = value('the bass drive', 'blend');
+    const back = desk().slice(lines1).map((e) => e.what);
+    await closePop();
+    // the duck under the knock: eight steps down, read off the record's own shape
+    const low = await openBox('DUCK LOW');
+    const depth0 = value('the low duck', 'lowDepthDb');
+    line('the low duck', 'lowDepthDb').click();
+    await sleep(150);
+    const lines2 = desk().length;
+    const down = low.querySelector('.desk-device-set button[aria-label="lowDepthDb down a step"]');
+    for (let i = 0; i < 8; i++) { down.click(); await sleep(40); }
+    await sleep(200);
+    const depth1 = value('the low duck', 'lowDepthDb');
+    const floor = () => +(20 * Math.log10(Math.min(...record().graph.duckShape.filter((p) => p.p === 'duckLow.gain').map((p) => p.v)))).toFixed(2);
+    const shaped = floor();
+    const duckSaid = desk().slice(lines2).map((e) => e.what);
+    const duckNote = record().graph.describe().nodes.find((n) => n.id === 'duckLow').note;
+    // moved again, then the view closes: the next open reads the room
+    await closePop();
+    const drive2 = await openBox('BASS DRIVE');
+    line('the bass drive', 'blend').click();
+    await sleep(100);
+    drive2.querySelector('.desk-device-set button[aria-label="blend up a step"]').click();
+    await sleep(150);
+    const before = value('the bass drive', 'blend');
+    await closePop();
+    window.ring.machine.close();
+    await sleep(300);
+    const after = { note: record().graph.describe().nodes.find((n) => n.id === 'bassDrive').note, floor: floor() };
+    await bounded(window.ring.machine.open(), 12000);
+    await sleep(500);
+    await openBox('BASS DRIVE');
+    const reopened = value('the bass drive', 'blend');
+    window.ring.machine.close(); ctl.stop();
+    return { found: true, settable, wobble, side, blend0, note0, opened, blend1, moved, said, note1, reading, blend2, back, depth0, depth1, shaped, duckSaid, duckNote, before, after, reopened };
+  `),
+  judge: (r) => ({
+    ok: r.found && r.settable >= 8 && r.wobble.beats === '2' && r.wobble.depth === '0.5' && r.wobble.live && r.side.waits && r.side.mark === 'next theme'
+      && r.blend0 === '0.45' && r.opened === 1 && r.blend1 !== r.blend0 && r.moved && r.said.length === 3
+      && r.said.every((w) => /^the bass drive's blend went to [\d.]+ \(the room's 0\.45\)$/.test(w)) && r.note1 !== r.note0 && !!r.reading
+      && r.blend2 === '0.45' && r.back.length === 1 && /went back to the room$/.test(r.back[0])
+      && r.depth0 === '-5 dB' && r.depth1 !== r.depth0 && r.shaped < -5.5 && r.duckSaid.length === 8 && /^the low duck's lowDepthDb went to /.test(r.duckSaid[0]) && /-[56]\.?\d* dB/.test(r.duckNote)
+      && r.before !== '0.45' && /-6\.94 dB/.test(r.after.note) && Math.abs(r.after.floor + 5) < 0.01 && r.reopened === '0.45',
+    why: r.found ? `${r.settable} settable lines; wobble ${JSON.stringify(r.wobble)}, side ${JSON.stringify(r.side)}; blend ${r.blend0} → ${r.blend1} (moved ${r.moved}, ${r.opened} open), lines ${JSON.stringify(r.said)}, the note "${r.note0}" → "${r.note1}", the box reads ${JSON.stringify(r.reading)}; `
+      + `the room key put it at ${r.blend2} (${JSON.stringify(r.back)}); the low duck ${r.depth0} → ${r.depth1}, the record's shape at ${r.shaped} dB, ${r.duckSaid.length} lines, the box "${r.duckNote}"; moved to ${r.before} and the view closed: ${JSON.stringify(r.after)}, reopened at ${r.reopened}` : 'no BASS DRIVE key on the half-time spell',
+    note: `on seed 6 at the half-time spell the BASS DRIVE box moved the copy's blend ${r.blend0} → ${r.blend1} in three presses, live ("${r.note1}"), one ledger line a press; the wobble's two beats and 0.5 live, the copy's feed marked for the next theme; `
+      + `DUCK LOW went ${r.depth0} → ${r.depth1} and the record's own shape to ${r.shaped} dB; the room keys and the view closing put both back`,
+  }),
+});
+
+SCENARIOS.push({
+  // round DESK-D3: nothing outlives the view unless saved by name; a saved desk is a scene, per viewer, never in a link
+  name: 'a scene keeps the desk by name in this browser: the reese\'s cutoffHz, the bass drive\'s blend, the hats muted and the air leant, saved, put back by RESET, recalled whole with one ledger line a layer, listed and recalled on a second page, its bands leant again after a cast, and deleted on a second press',
+  area: 'view',
+  deadline: 300000,
+  query: 'v=2&seed=6&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+  page: body(`try { localStorage.removeItem('deep-house.machine.scenes'); } catch (e) { /* nothing kept */ }` + OPEN_VIEW + `
+    const KEY = 'deep-house.machine.scenes';
+    const snap = () => window.ring.machine.snapshot();
+    const desk = () => snap().ledger.filter((e) => e.kind === 'desk');
+    const lastN = () => Math.max(0, ...snap().ledger.map((e) => e.n));
+    const since = (n) => desk().filter((e) => e.n > n).map((e) => e.what);
+    const closePop = async () => { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await sleep(100); };
+    const press = (el) => { el.scrollIntoView({ block: 'center' }); el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); };
+    const strips = () => [...document.querySelectorAll('#machine [role="button"][aria-label^="Strip "]')].filter((g) => g.getAttribute('aria-disabled') !== 'true');
+    const layers = () => { const d = snap().desk; return { mix: JSON.stringify(ctl.sourceMix), bands: JSON.stringify(d.bands), device: JSON.stringify(d.device), stage: JSON.stringify(d.stage) }; };
+    // (1) the reese's cutoffHz, three steps up through its strip's device (D1)
+    let reese = null;
+    for (const key of strips()) {
+      press(key);
+      await sleep(150);
+      const pop = document.querySelector('.desk-pop');
+      const voice = pop ? [...pop.querySelectorAll('.desk-row .desk-name')].map((n) => n.textContent).find((n) => /^reese/.test(n)) : null;
+      if (voice) { reese = { pop, voice }; break; }
+      await closePop();
+    }
+    if (!reese) { window.ring.machine.close(); ctl.stop(); return { found: false }; }
+    // the device is under the strip's keys from the open (DESK-UX1): no key to press
+    reese.pop.querySelector('tr[aria-label="Set ' + reese.voice + ' cutoffHz"]').click();
+    await sleep(150);
+    for (let i = 0; i < 3; i++) { reese.pop.querySelector('.desk-device-set button[aria-label="cutoffHz up a step"]').click(); await sleep(60); }
+    await closePop();
+    // (2) the bass drive's blend, three steps up (D2)
+    press(document.querySelector('#machine [role="button"][aria-label="Stage BASS DRIVE"]'));
+    await sleep(200);
+    document.querySelector('.desk-pop tr[aria-label="Set the bass drive blend"]').click();
+    await sleep(150);
+    for (let i = 0; i < 3; i++) { document.querySelector('.desk-pop .desk-device-set button[aria-label="blend up a step"]').click(); await sleep(60); }
+    await closePop();
+    // (3) the hats muted, on their strip's M
+    const hats = snap().lanes.find((l) => l.playing.some((v) => /^hat/i.test(v)));
+    const mute = hats ? document.querySelector('#machine [role="button"][aria-label="Mute ' + hats.id + '"]') : null;
+    if (mute) { mute.scrollIntoView({ block: 'center' }); mute.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+    await sleep(150);
+    // (4) the master's air leant up a decibel
+    press(document.querySelector('#machine [role="button"][aria-label="Band AIR"]'));
+    await sleep(150);
+    const airUp = document.querySelector('.desk-pop button[aria-label$="up a step"]');
+    airUp.click(); await sleep(30); airUp.click();
+    await sleep(300);
+    await closePop();
+    const moved = layers();
+    // (5) saved under a name: the field, then SAVE
+    const field = document.querySelector('#machine .scene-name');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(field, 'warm drop');
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(100);
+    const n0 = lastN();
+    document.querySelector('#machine button[aria-label="Save the desk as a scene"]').click();
+    await sleep(200);
+    const saved = since(n0);
+    const stored = (() => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } })();
+    const listed = [...document.querySelectorAll('#machine .scene-list .scene')].map((li) => li.dataset.scene);
+    const inLink = /scene|warm/.test(location.search) || /scene|warm/.test(ctl.link.withTime());
+    // (6) RESET: everything back
+    const reset = document.querySelector('#machine [role="button"][aria-label="Reset the desk"]');
+    reset.scrollIntoView({ block: 'center' });
+    reset.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await sleep(300);
+    const cleaned = layers();
+    // (7) recalled: everything as saved, one line a layer under one for the whole
+    const n1 = lastN();
+    document.querySelector('#machine button[aria-label="Recall warm drop"]').click();
+    await sleep(400);
+    const recalled = layers();
+    const recallSaid = since(n1);
+    const row = () => document.querySelector('#machine .scene[data-scene="warm drop"]');
+    const armed = { on: row().classList.contains('armed'), dirty: row().classList.contains('dirty'), mark: (row().querySelector('.scene-mark') || {}).textContent || '' };
+    // (8) a second page of this origin, which is what a reload is: the scene is listed there and recalls
+    const f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;left:-9999px;width:1280px;height:900px;border:0';
+    f.src = location.pathname + '?v=2&seed=6&out=silent';
+    document.body.appendChild(f);
+    let there = { up: false };
+    if (await waitFor(() => { try { return !!(f.contentWindow && f.contentWindow.ring && f.contentWindow.ring.control.readout()); } catch (e) { return false; } }, 25000)) {
+      const w = f.contentWindow;
+      await bounded(w.ring.machine.open(), 12000);
+      await sleep(500);
+      const names = [...w.document.querySelectorAll('#machine .scene-list .scene')].map((li) => li.dataset.scene);
+      const key = w.document.querySelector('#machine button[aria-label="Recall warm drop"]');
+      if (key) key.click();
+      await sleep(400);
+      const d = w.ring.machine.snapshot().desk;
+      there = { up: true, names, mix: JSON.stringify(w.ring.control.sourceMix), device: JSON.stringify(d.device), stage: JSON.stringify(d.stage),
+        waits: w.ring.machine.snapshot().ledger.some((e) => /^the scene 'warm drop' will lean the master when a set plays/.test(e.what)) };
+      w.ring.machine.close();
+    }
+    f.remove();
+    // (9) a cast to another seed: the bands go back to the room before it, and the armed scene's are leant again after it
+    const n2 = lastN();
+    ctl.setSeed('27191');
+    await waitFor(() => ctl.readout().seed === '27191', 150000);
+    await waitFor(() => since(n2).some((w) => /leant again after the cast/.test(w)), 20000);
+    await sleep(300);
+    const castSaid = since(n2);
+    const afterCast = layers();
+    const armedAfter = { on: row().classList.contains('armed'), dirty: row().classList.contains('dirty') };
+    const air = snap().part.nodes.find((n) => n.id === 'm:air');
+    const lean = air ? (air.readings.find((r) => r.name === 'lean') || {}).value : null;
+    const fit = { out: +row().dataset.out, lines: +row().dataset.lines };
+    // (10) deleted on a second press, never a dialog
+    document.querySelector('#machine button[aria-label="Delete warm drop"]').click();
+    await sleep(100);
+    const asked = !!document.querySelector('#machine button[aria-label="Press again to delete warm drop"]') && !!row();
+    const n3 = lastN();
+    document.querySelector('#machine button[aria-label="Press again to delete warm drop"]').click();
+    await sleep(200);
+    const gone = !row() && !((JSON.parse(localStorage.getItem(KEY) || '{}').scenes || {})['warm drop']);
+    const deleteSaid = since(n3);
+    window.ring.machine.close(); ctl.stop();
+    return { found: true, hats: hats ? hats.id : null, moved, saved, stored: stored ? { schema: stored.schema, names: Object.keys(stored.scenes || {}) } : null, listed, inLink,
+      cleaned, recalled, recallSaid, armed, there, castSaid, afterCast, armedAfter, lean, fit, asked, gone, deleteSaid };
+  `),
+  judge: (r) => {
+    const same = (a, b) => ['mix', 'bands', 'device', 'stage'].every((k) => a[k] === b[k]);
+    const ok = r.found && !!r.hats
+      && /"mute":\[[^\]]*hat/i.test(r.moved.mix) && /"air":1/.test(r.moved.bands) && /cutoffHz/.test(r.moved.device) && /bass\.parallel\.blend/.test(r.moved.stage)
+      && r.saved.length === 1 && /^the scene 'warm drop' was saved: \d+ strips?, 1 band, 1 device line, 1 stage line$/.test(r.saved[0])
+      && r.stored && r.stored.schema === 1 && r.stored.names.join() === 'warm drop' && r.listed.join() === 'warm drop' && !r.inLink
+      && r.cleaned.mix === '{"mute":[],"solo":[],"dry":[]}' && r.cleaned.bands === '{}' && r.cleaned.device === '{}' && r.cleaned.stage === '{}'
+      && same(r.recalled, r.moved) && r.recallSaid.length === 5 && r.recallSaid.every((w) => w.startsWith("the scene 'warm drop' "))
+      && r.armed.on && !r.armed.dirty && /armed/.test(r.armed.mark)
+      && r.there.up && r.there.names.includes('warm drop') && r.there.mix === r.moved.mix && r.there.device === r.moved.device && r.there.stage === r.moved.stage && r.there.waits
+      && /^a cast is arriving/.test(r.castSaid.find((w) => /cast is arriving/.test(w)) || '') && r.castSaid.includes("the armed scene's bands were leant again after the cast")
+      && same(r.afterCast, r.moved) && r.armedAfter.on && !r.armedAfter.dirty && r.lean === 1
+      && r.asked && r.gone && r.deleteSaid.length === 1 && r.deleteSaid[0] === "the scene 'warm drop' was deleted";
+    return {
+      ok,
+      why: r.found ? `moved ${JSON.stringify(r.moved)}; saved ${JSON.stringify(r.saved)}, stored ${JSON.stringify(r.stored)}, listed ${r.listed}, in the link ${r.inLink}; RESET ${JSON.stringify(r.cleaned)}; `
+        + `recalled ${JSON.stringify(r.recalled)} in ${JSON.stringify(r.recallSaid)}, armed ${JSON.stringify(r.armed)}; the second page ${JSON.stringify(r.there)}; the cast ${JSON.stringify(r.castSaid)}, after it ${JSON.stringify(r.afterCast)}, armed ${JSON.stringify(r.armedAfter)}, the air's lean ${r.lean}, ${r.fit.out} of ${r.fit.lines} lines not in the benchmark's theme; `
+        + `the delete asked ${r.asked}, gone ${r.gone}, ${JSON.stringify(r.deleteSaid)}` : 'no strip of the half-time spell held a reese',
+      note: `on seed 6 at the half-time spell a desk of four moves (the reese's cutoffHz, the bass drive's blend, the ${r.hats} muted, the air +1 dB) was saved as 'warm drop' into the browser's one table and not the link, put back by RESET, `
+        + `and recalled whole in ${r.recallSaid ? r.recallSaid.length : 0} ledger lines; a second page listed it and recalled it, its bands waiting for a set; a cast to the benchmark let the bands go and leant the armed scene's again ("${(r.castSaid || []).find((w) => /leant again/.test(w)) || ''}"), ${r.fit ? r.fit.out : 0} of ${r.fit ? r.fit.lines : 0} lines greyed there; a second press deleted it`,
+    };
+  },
+});
+
+SCENARIOS.push({
   name: 'the WAV tool is in a strip\'s popover and nowhere else',
   area: 'view',
   query: 'v=2&seed=1',
@@ -8414,7 +9217,7 @@ SCENARIOS.push({
 // bands where a header and a footer would be and the corners past the ring
 // black to the last channel, and the rim in the ring's own colour.
 SCENARIOS.push({
-  name: 'a video frame is the ring alone on black: no transport key, no tell, black bands top and bottom, and the rim in the ring\'s colour',
+  name: 'a video frame is the player by default, the ring with its four keys on black, and the ring alone when asked: black bands top and bottom, the rim in the ring\'s colour',
   area: 'view',
   query: 'v=2&seed=32&theme=1&spell=ember:0.90,spark:0.80',
   page: body(OPEN_VIEW + `
@@ -8423,32 +9226,48 @@ SCENARIOS.push({
     if (!R) { window.ring.machine.close(); ctl.stop(); return { absent: true }; }
     // a quarter of the way in, so the engraved time rides at three o'clock and not through a band
     const quarter = ctl.state.track.bars * ctl.state.track.barSeconds / 4;
-    const st = await R.openStage(R.place().link, 1080);
-    for (let i = 0; i < 30; i++) await st.drawAt(quarter - 1 + i / 30);
-    const markup = st.markup();
-    const g = st.canvas.getContext('2d'), W = 1080, C = 540;
-    const img = g.getImageData(0, 0, W, W).data;
-    let edge = 0, n = 0, r = 0, gg = 0, b = 0;
-    for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
-      const i = (y * W + x) * 4, d = Math.hypot(x - C, y - C) / W;
-      if (y < 40 || y >= W - 40 || d > 0.5) edge = Math.max(edge, img[i], img[i + 1], img[i + 2]);
-      else if (d >= 0.36 && d <= 0.46 && Math.max(img[i], img[i + 1], img[i + 2]) >= 120) { n++; r += img[i]; gg += img[i + 1]; b += img[i + 2]; }
-    }
-    st.close();
-    const out = { absent: false, controls: (markup.match(/data-action=/g) || []).length, tell: /class="tell"/.test(markup), cut: /id="cutFill"/.test(markup),
-      readings: /seed 32/i.test(markup), edge, rim: { n, rgb: [r / n, gg / n, b / n].map(Math.round) }, hex: window.ring.colour().hex };
+    const take = async (frame) => {
+      const st = await R.openStage(R.place().link, 1080, frame ? { frame } : {});
+      for (let i = 0; i < 30; i++) await st.drawAt(quarter - 1 + i / 30);
+      const markup = st.markup();
+      const g = st.canvas.getContext('2d'), W = 1080, C = 540;
+      const img = g.getImageData(0, 0, W, W).data;
+      let edge = 0, n = 0, r = 0, gg = 0, b = 0;
+      for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4, d = Math.hypot(x - C, y - C) / W;
+        if (y < 40 || y >= W - 40 || d > 0.5) edge = Math.max(edge, img[i], img[i + 1], img[i + 2]);
+        else if (d >= 0.36 && d <= 0.46 && Math.max(img[i], img[i + 1], img[i + 2]) >= 120) { n++; r += img[i]; gg += img[i + 1]; b += img[i + 2]; }
+      }
+      // the light where each key stands, as the page lays them out on the stage
+      const sd = document.querySelector('iframe').contentDocument;
+      const keyLight = {};
+      for (const k of sd.querySelectorAll('[data-action]')) {
+        const m = /translate\\(([-\\d.]+)[ ,]+([-\\d.]+)\\)/.exec(k.getAttribute('transform') || '');
+        if (!m) continue;
+        const kx = Math.round((+m[1] + 32) * W / 1064), ky = Math.round((+m[2] + 32) * W / 1064);
+        let lit = 0;
+        for (let y = ky - 30; y <= ky + 30; y++) for (let x = kx - 30; x <= kx + 30; x++) { const i = (y * W + x) * 4; if (Math.max(img[i], img[i + 1], img[i + 2]) >= 150) lit++; }
+        keyLight[k.getAttribute('data-action')] = lit;
+      }
+      st.close();
+      return { keys: [...markup.matchAll(/data-action="(\\w+)"/g)].map((x) => x[1]), top: (/aria-label="(pause|play|About)"/.exec(markup) || [])[1] || null,
+        tell: /class="tell"/.test(markup), readings: /seed 32/i.test(markup), edge, keyLight, rim: { n, rgb: [r / n, gg / n, b / n].map(Math.round) } };
+    };
+    const out = { absent: false, player: await take(null), ring: await take('ring'), hex: window.ring.colour().hex };
     window.ring.machine.close(); ctl.stop();
     return out;
   `),
   judge: (r) => {
     if (r.absent) return { ok: true, note: 'this build is the release tier: no stage to draw a frame on' };
     const hue = (rgb) => { const [R, G, B] = rgb.map((x) => x / 255), M = Math.max(R, G, B), m = Math.min(R, G, B), d = M - m; if (!d) return 0; const h = M === R ? ((G - B) / d) % 6 : M === G ? (B - R) / d + 2 : (R - G) / d + 4; return (h * 60 + 360) % 360; };
-    const want = hue([1, 3, 5].map((i) => parseInt(r.hex.slice(i, i + 2), 16))), seen = hue(r.rim.rgb);
-    const apart = Math.min(Math.abs(seen - want) % 360, 360 - (Math.abs(seen - want) % 360));
+    const want = hue([1, 3, 5].map((i) => parseInt(r.hex.slice(i, i + 2), 16)));
+    const good = (f) => { const seen = hue(f.rim.rgb); const apart = Math.min(Math.abs(seen - want) % 360, 360 - (Math.abs(seen - want) % 360)); return f.readings && f.edge === 0 && f.rim.n > 500 && apart <= 15; };
+    const p = r.player, g = r.ring;
+    const keysDrawn = ['play', 'skip', 'cast', 'back'].every((k) => p.keyLight[k] > (g.keyLight[k] || 0) + 40);
     return {
-      ok: !r.controls && !r.tell && !r.cut && r.readings && r.edge === 0 && r.rim.n > 500 && apart <= 15,
+      ok: good(p) && good(g) && ['play', 'skip', 'cast', 'back'].every((k) => p.keys.includes(k)) && p.top === 'pause' && keysDrawn && !g.keys.length && !g.tell,
       why: JSON.stringify(r),
-      note: `a frame a quarter of the way in holds none of the ring's four keys, no tell and no wait fill, and still the seed; the 40-pixel bands top and bottom and everything past the ring's circle are black to the last channel (brightest ${r.edge}), and the rim reads rgb(${r.rim.rgb.join(', ')}), ${seen.toFixed(0)}° against the ring's ${r.hex} at ${want.toFixed(0)}°`,
+      note: `the default frame is the player: the ring with its keys ${p.keys.join(', ')} (the top one pause, the set playing on the stage), each lit where it stands (${Object.entries(p.keyLight).map(([k, v]) => `${k} ${v} px`).join(', ')} against ${Object.entries(g.keyLight).map(([k, v]) => `${v}`).join(', ')} in the ring-only frame); frame: 'ring' holds none of them; in both the 40-pixel bands and everything past the ring are black (brightest ${p.edge}, ${g.edge}) and the rim is the ring's colour (rgb(${p.rim.rgb.join(', ')}) against ${r.hex})`,
     };
   },
 });
@@ -9059,7 +9878,7 @@ SCENARIOS.push({
       const ratio = r.on[k].ink / r.off[k].ink;
       if (ratio < 0.8 || ratio > 1.2) bad.push(`the lit ${k.toUpperCase()}'s letter has ${(ratio * 100).toFixed(0)} % of the unlit one's ink`);
     }
-    if (r.level.text !== '100' || !r.level.mark || r.level.markText !== 'D' || !r.level.markApart) bad.push(`the level key reads "${r.level.text}" with the mark ${JSON.stringify(r.level)}`);
+    if (r.level.text !== '100 %' || !r.level.mark || r.level.markText !== 'D' || !r.level.markApart) bad.push(`the level key reads "${r.level.text}" with the mark ${JSON.stringify(r.level)}`);
     return {
       ok: !bad.length,
       why: bad[0],
@@ -9244,13 +10063,15 @@ SCENARIOS.push({
   },
 });
 
-// **The root's centre is the style that plays** (M17, Eugene's genre lift):
-// proper case on the tiles and the tier's name, one lamp — the centre's — and
-// a sub-genre chosen inside a family takes the root's centre, lit while its
-// spell plays, kept by this browser through a reload, unlit when a bird moves,
-// and given back to Deep House when Deep House is chosen.
+// **The selected style carries the one dot** (M17, rewritten for GA8's one
+// level in the merge round, Reconcile 1; Eugene: *"tiles change position. Fix
+// all tiles in place, add a green dot to the selected one. Simple UX."*): the
+// nine stand where they stand, Deep House in the centre; a fresh view dots the
+// centre, lit; Techno pressed takes the dot, lit while its spell plays, kept by
+// this browser through a reload, dark when a bird moves, and Deep House pressed
+// takes it back. No key moves, and every name is in proper case.
 SCENARIOS.push({
-  name: 'the genres root shows the style that plays in its centre: Tech House chosen inside House stands there lit, a reload keeps it, a bird move unlights it, and Deep House takes it back',
+  name: 'the nine genre tiles stand fixed and the selected style carries the one dot: Techno pressed takes it lit, a reload keeps it, a bird move darkens it, and Deep House takes it back',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 180000,
@@ -9262,20 +10083,23 @@ SCENARIOS.push({
       try {
         const read = () => p.evaluate(() => {
           const keys = [...document.querySelectorAll('#machine .genres button')];
-          return { caption: document.querySelector('#machine .genre-block .caption').textContent, centre: keys[4] && keys[4].dataset.genre, centreLit: keys[4] && keys[4].getAttribute('aria-pressed'),
-            lamps: document.querySelectorAll('#machine .genres [data-lamp]').length, lampOnCentre: !!(keys[4] && keys[4].querySelector('[data-lamp]')),
-            labels: keys.map((k) => k.dataset.genre), upper: keys.filter((k) => getComputedStyle(k).textTransform === 'uppercase').length };
+          const dotted = keys.filter((k) => k.querySelector('[data-lamp]'));
+          const d = dotted[0];
+          return { labels: keys.map((k) => k.dataset.genre), upper: keys.filter((k) => getComputedStyle(k).textTransform === 'uppercase').length,
+            dots: dotted.length, dot: d ? d.dataset.genre : null, dotLit: d ? d.getAttribute('aria-pressed') : null,
+            dotFill: d ? d.querySelector('[data-lamp] circle').getAttribute('fill') : null,
+            pressed: keys.filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre),
+            boxes: keys.map((k) => { const b = k.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)].join(':'); }).join(' '),
+            back: !!document.querySelector('#machine [aria-label="Back to the genre families"]') };
         });
         const press = async (genre) => { await p.evaluate((g) => [...document.querySelectorAll('#machine .genres button')].find((k) => k.dataset.genre === g).click(), genre); await p.waitForTimeout(250); };
         await p.evaluate(() => { try { localStorage.removeItem('deep-house.machine.genre'); } catch (e) {} });
         await p.evaluate(body(OPEN_VIEW + 'return 1;'));
         const fresh = await read();
-        await press('House');
-        await press('Tech House');
+        await press('Techno');
+        const asked = await read();
         // the move lands at the next phrase line
-        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')].find((x) => x.dataset.genre === 'Tech House'); return k && k.getAttribute('aria-pressed') === 'true'; }, null, { timeout: 100000 });
-        await p.evaluate(() => document.querySelector('#machine [aria-label="Back to the genre families"]').click());
-        await p.waitForTimeout(250);
+        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')].find((x) => x.dataset.genre === 'Techno'); return k && k.getAttribute('aria-pressed') === 'true'; }, null, { timeout: 100000 });
         const chosen = await read();
         // a reload: the link carries the spell, this browser the choice
         await p.evaluate(() => window.ring.machine.close());
@@ -9284,36 +10108,44 @@ SCENARIOS.push({
         await p.evaluate(async () => { await window.ring.machine.open(); });
         await p.waitForTimeout(800);
         const reloaded = await read();
-        // a bird moved off the style: the centre keeps it, unlit
+        // a bird moved off the style: the dot stays on Techno, dark
         await p.evaluate(() => { const c = window.ring.control; const now = c.readout().spell || {}; c.setSpell({ ...now, loom: 0.12 }); });
-        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')][4]; return k && k.getAttribute('aria-pressed') === 'false'; }, null, { timeout: 100000 });
+        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')].find((x) => x.dataset.genre === 'Techno'); return k && k.getAttribute('aria-pressed') === 'false'; }, null, { timeout: 100000 });
         const moved = await read();
-        // Deep House chosen inside House takes the centre back
-        await press('House');
         await press('Deep House');
-        await p.evaluate(() => document.querySelector('#machine [aria-label="Back to the genre families"]').click());
-        await p.waitForTimeout(250);
+        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')][4]; return k && k.getAttribute('aria-pressed') === 'true'; }, null, { timeout: 100000 });
         const home = await read();
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { fresh, chosen, reloaded, moved, home };
+        out[name] = { fresh, asked, chosen, reloaded, moved, home };
       } finally { await own.close(); }
     }
     return out;
   },
   judge: (r) => {
     const bad = [];
+    // (G4) the cells in tempo order: fast above, slow below, Trip Hop on Disco's tile
+    const NINE = 'Drum & Bass,Dubstep,Trance,Techno,Deep House,Breaks,Downtempo,Trip Hop,Ambient';
     for (const [k, x] of Object.entries(r)) {
-      if (x.fresh.caption !== 'Families' || x.fresh.upper || x.fresh.labels.join() !== 'House,Techno,Ambient & Downtempo,DnB & Dub,Deep House,Trance,Breaks & Big Beat,Disco & Nu-Disco,Misc') bad.push(`${k}: the root reads ${x.fresh.caption} over ${x.fresh.labels.join(', ')} (${x.fresh.upper} in upper case)`);
-      if (x.fresh.lamps !== 1 || !x.fresh.lampOnCentre || x.fresh.centre !== 'Deep House') bad.push(`${k}: a fresh root has ${x.fresh.lamps} lamps, the centre ${x.fresh.centre}`);
-      if (x.chosen.centre !== 'Tech House' || x.chosen.centreLit !== 'true' || x.chosen.lamps !== 1) bad.push(`${k}: after Tech House the centre is ${x.chosen.centre}, lit ${x.chosen.centreLit}, ${x.chosen.lamps} lamps`);
-      if (x.reloaded.centre !== 'Tech House' || x.reloaded.centreLit !== 'true') bad.push(`${k}: after a reload the centre is ${x.reloaded.centre}, lit ${x.reloaded.centreLit}`);
-      if (x.moved.centre !== 'Tech House' || x.moved.centreLit !== 'false') bad.push(`${k}: with a bird moved the centre is ${x.moved.centre}, lit ${x.moved.centreLit}`);
-      if (x.home.centre !== 'Deep House') bad.push(`${k}: Deep House chosen left the centre ${x.home.centre}`);
+      const states = [['fresh', x.fresh], ['asked', x.asked], ['chosen', x.chosen], ['moved', x.moved], ['home', x.home]];
+      for (const [when, y] of states) {
+        if (y.labels.join() !== NINE || y.upper) bad.push(`${k}, ${when}: the tiles read ${y.labels.join(', ')} (${y.upper} in upper case)`);
+        if (y.boxes !== x.fresh.boxes) bad.push(`${k}, ${when}: a tile moved (${x.fresh.boxes} -> ${y.boxes})`);
+        if (y.dots !== 1) bad.push(`${k}, ${when}: ${y.dots} dots`);
+        if (y.back) bad.push(`${k}, ${when}: a way back is on the grid`);
+      }
+      if (x.reloaded.labels.join() !== NINE || x.reloaded.dots !== 1) bad.push(`${k}: after a reload the tiles read ${x.reloaded.labels.join(', ')} with ${x.reloaded.dots} dots`);
+      if (x.fresh.dot !== 'Deep House' || x.fresh.dotLit !== 'true') bad.push(`${k}: a fresh grid dots ${x.fresh.dot}, lit ${x.fresh.dotLit}`);
+      // pressed, the spell lands at the next phrase line; until then the dot is the playing style's
+      if (x.asked.dot !== 'Deep House') bad.push(`${k}: Techno pressed moved the dot to ${x.asked.dot} before its spell played`);
+      if (x.chosen.dot !== 'Techno' || x.chosen.dotLit !== 'true' || x.chosen.pressed.join() !== 'Techno') bad.push(`${k}: with Techno playing the dot is on ${x.chosen.dot}, lit ${x.chosen.dotLit}, pressed ${x.chosen.pressed.join(', ')}`);
+      if (x.reloaded.dot !== 'Techno' || x.reloaded.dotLit !== 'true') bad.push(`${k}: after a reload the dot is on ${x.reloaded.dot}, lit ${x.reloaded.dotLit}`);
+      if (x.moved.dot !== 'Techno' || x.moved.dotLit !== 'false' || x.moved.pressed.length || x.moved.dotFill === x.chosen.dotFill) bad.push(`${k}: with a bird moved the dot is on ${x.moved.dot}, lit ${x.moved.dotLit}, ${x.moved.dotFill} (was ${x.chosen.dotFill}), pressed ${x.moved.pressed.join(', ')}`);
+      if (x.home.dot !== 'Deep House' || x.home.dotLit !== 'true') bad.push(`${k}: Deep House pressed left the dot on ${x.home.dot}, lit ${x.home.dotLit}`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and on a phone the root reads "${r['1440'].fresh.caption}" in proper case with one lamp, the centre's; Tech House chosen inside House took the root's centre lit, a reload kept it, Loom moved off it left it unlit, and Deep House chosen gave the centre back to Deep House`,
+      note: `at 1440 and on a phone the nine read ${r['1440'].fresh.labels.join(' · ')} in proper case and never moved; one dot, the centre's, lit on a fresh grid; Techno pressed took it, lit once its spell played, a reload kept it, Loom moved off it darkened it (${r['1440'].chosen.dotFill} to ${r['1440'].moved.dotFill}), and Deep House pressed took it back`,
     };
   },
 });
@@ -9769,12 +10601,15 @@ SCENARIOS.push({
 // **Nothing moves when a header's key comes or goes** (M10, Eugene: *"both
 // BACK on genres and the LEDGER buttons, when present, stretch the header
 // vertically, and the page wiggles on pressing them"*): each header is one
-// height with its key and without it, and pressing BACK on the genres, LEDGER
-// and HIDE moves none of the ring box, the genre grid or the readings by a
-// pixel, at 390 and 1440 — read in the page's own coordinates, and the ring box,
-// pinned on a phone, where it stands in the window.
+// height with its key and without it, and pressing a genre tile, LEDGER and
+// HIDE moves none of the ring box, the genre grid or the readings by a pixel,
+// at 390 and 1440 — read in the page's own coordinates, and the ring box,
+// pinned on a phone, where it stands in the window. Since GA8 the genres are
+// one level and have no BACK (rewritten in the merge round, Reconcile 1): the
+// GENRES header carries no key and is the READINGS header's height without its
+// LEDGER, and a tile pressed moves nothing.
 SCENARIOS.push({
-  name: 'a header is one height with its key or without, and pressing BACK, LEDGER or HIDE moves nothing above or beside it',
+  name: 'a header is one height with its key or without, and pressing a genre tile, LEDGER or HIDE moves nothing above or beside it',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 120000,
@@ -9804,17 +10639,14 @@ SCENARIOS.push({
           return pre;
         };
         const families = await read();
-        await p.evaluate(() => document.querySelector('#machine .genres button[data-genre="House"]').click());
-        await p.waitForTimeout(250);
-        const sub = await read();
-        const preBack = await press('#machine [aria-label="Back to the genre families"]');
+        const preBack = await press('#machine .genres button[data-genre="Techno"]');
         const backed = await read();
         const preShow = await press('#machine [aria-label="Show the ledger"]');
         const shown = await read();
         const preHide = await press('#machine [aria-label="Hide the ledger"]');
         const hidden = await read();
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { families, sub, preBack, backed, preShow, shown, preHide, hidden };
+        out[name] = { families, preBack, backed, preShow, shown, preHide, hidden };
       } finally { await own.close(); }
     }
     return out;
@@ -9823,11 +10655,11 @@ SCENARIOS.push({
     const bad = [];
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     for (const [k, x] of Object.entries(r)) {
-      if (!x.sub.back || x.families.back) bad.push(`${k}: BACK was not there on the sub-genre tier alone`);
-      if (x.sub.gHead[3] !== x.families.gHead[3]) bad.push(`${k}: the GENRES header is ${x.families.gHead[3]} px without BACK and ${x.sub.gHead[3]} with it`);
+      if (x.families.back || x.backed.back) bad.push(`${k}: a BACK key is on the genres`);
+      if (x.backed.gHead[3] !== x.families.gHead[3] || x.families.gHead[3] !== x.shown.rHead[3]) bad.push(`${k}: the GENRES header is ${x.families.gHead[3]} px, ${x.backed.gHead[3]} after a tile, and the READINGS header without its key ${x.shown.rHead[3]}`);
       if (!x.families.key || x.shown.key) bad.push(`${k}: LEDGER stood over the readings ${x.families.key}, after it was pressed ${x.shown.key}`);
       if (x.shown.rHead[3] !== x.families.rHead[3]) bad.push(`${k}: the READINGS header is ${x.families.rHead[3]} px with LEDGER and ${x.shown.rHead[3]} without it`);
-      for (const [a, b, what] of [[x.preBack, x.backed, 'BACK'], [x.preShow, x.shown, 'LEDGER'], [x.preHide, x.hidden, 'HIDE']]) {
+      for (const [a, b, what] of [[x.preBack, x.backed, 'a genre tile'], [x.preShow, x.shown, 'LEDGER'], [x.preHide, x.hidden, 'HIDE']]) {
         // on a phone the ledger is the page's end: put away, the page is shorter by it and the browser takes the
         // scroll back by as much, which is the page ending and not a wiggle — the pinned ring rides that scroll
         const clamp = k === '390' && what === 'HIDE' ? a.scroll - b.scroll : 0;
@@ -9841,17 +10673,21 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and on a phone the GENRES header is ${r['1440'].families.gHead[3]} and ${r['390'].families.gHead[3]} px with BACK or without, the READINGS header ${r['1440'].families.rHead[3]} and ${r['390'].families.rHead[3]} px with LEDGER or without, and pressing BACK, LEDGER and HIDE moved the ring box, the genre grid and the readings by nothing; on a phone HIDE, the page's last block, shortens the page by ${r['390'].preHide.height - r['390'].hidden.height} px and the browser takes the scroll back by ${r['390'].preHide.scroll - r['390'].hidden.scroll}, which is the page ending`,
+      note: `at 1440 and on a phone the GENRES header is ${r['1440'].families.gHead[3]} and ${r['390'].families.gHead[3]} px with no key, the READINGS header ${r['1440'].families.rHead[3]} and ${r['390'].families.rHead[3]} px with LEDGER or without, and pressing Techno, LEDGER and HIDE moved the ring box, the genre grid and the readings by nothing; on a phone HIDE, the page's last block, shortens the page by ${r['390'].preHide.height - r['390'].hidden.height} px and the browser takes the scroll back by ${r['390'].preHide.scroll - r['390'].hidden.scroll}, which is the page ending`,
     };
   },
 });
 
 // **An untuned genre key presses nothing** (M10, Eugene: *"the tiles we do not
-// support completely need to be disabled and not clickable"*): Liquid pressed
-// by a hand at 390 and 1440 asks no spell, changes no address, writes no ledger
-// line and lights no lamp; Tech House, tuned, still plays.
+// support completely need to be disabled and not clickable"*). Since GA8 the
+// grid is nine fixed tiles and none is untuned today (rewritten in the merge
+// round, Reconcile 1): at 390 and 1440 every tile presses, none is marked
+// untuned; Drum & Bass, which plays by its rows, pressed by a hand writes its
+// ledger line and its spell into the address and lights on arrival, its
+// tooltip saying so with no bird in it; Techno, on its measured spell, pressed
+// writes its line and its spell.
 SCENARIOS.push({
-  name: 'an untuned genre key is disabled: pressed, it changes no spell, link, ledger line or lamp, and a tuned one still plays',
+  name: 'no genre tile is untuned today: every one of the nine presses, a tile with rows plays them and lights on arrival, and a tuned one plays its spell',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 120000,
@@ -9871,26 +10707,16 @@ SCENARIOS.push({
           if (name === '390') await p.touchscreen.tap(c.x, c.y); else await p.mouse.click(c.x, c.y);
           await p.waitForTimeout(400);
         };
-        // (M18) an untuned family's whole tier: Breaks & Big Beat
-        await press('Breaks & Big Beat');
-        const keys = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].map((k) => [k.dataset.genre, k.getAttribute('aria-disabled')]));
+        const keys = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].map((k) => [k.dataset.genre, k.getAttribute('aria-disabled'), k.hasAttribute('data-untuned'), k.disabled]));
         const before = await state();
-        await press('Big Beat');
-        const after = await state();
-        await p.evaluate(() => document.querySelector('#machine [aria-label="Back to the genre families"]').click());
-        await p.waitForTimeout(200);
-        await press('House');
-        const house = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].filter((k) => k.getAttribute('aria-disabled') !== 'true').map((k) => k.dataset.genre));
-        const b2 = await state();
-        await press('Tech House');
+        await press('Drum & Bass');
+        // its key lights when the spell arrives, a turn later
+        await p.waitForFunction(() => document.querySelector('#machine .genres button[data-genre="Drum & Bass"]').getAttribute('aria-pressed') === 'true', null, { timeout: 30000 }).catch(() => {});
+        const dnb = { ...(await state()), about: await p.evaluate(() => document.querySelector('#machine .genres button[data-genre="Drum & Bass"]').title) };
+        await press('Techno');
         const tuned = await state();
-        // (M11) Trance, which took Breaks' cell: every key of its tier disabled, and none lit
-        await p.evaluate(() => document.querySelector('#machine [aria-label="Back to the genre families"]').click());
-        await p.waitForTimeout(200);
-        await press('Trance');
-        const trance = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].map((k) => [k.dataset.genre, k.getAttribute('aria-disabled'), k.getAttribute('aria-pressed')]));
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { keys, before, after, house, b2, tuned, trance };
+        out[name] = { keys, before, dnb, tuned };
       } finally { await own.close(); }
     }
     return out;
@@ -9898,17 +10724,15 @@ SCENARIOS.push({
   judge: (r) => {
     const bad = [];
     for (const [k, x] of Object.entries(r)) {
-      const on = x.keys.filter(([, d]) => d !== 'true').map(([g]) => g);
-      if (on.length) bad.push(`${k}: on Breaks & Big Beat's tier ${on.join(', ')} still press`);
-      if (JSON.stringify(x.before) !== JSON.stringify(x.after)) bad.push(`${k}: Big Beat pressed changed ${JSON.stringify(x.before)} to ${JSON.stringify(x.after)}`);
-      if (x.house.sort().join() !== 'Deep House,House,Tech House') bad.push(`${k}: on House's tier ${x.house.join(', ')} press`);
-      if (x.tuned.lines !== x.b2.lines + 1 || x.tuned.url === x.b2.url) bad.push(`${k}: Tech House pressed wrote ${x.tuned.lines - x.b2.lines} lines and the address ${x.tuned.url}`);
-      if (x.trance.length !== 9 || x.trance[4][0] !== 'Trance' || x.trance.some(([, d, l]) => d !== 'true' || l === 'true')) bad.push(`${k}: Trance's tier reads ${JSON.stringify(x.trance)}`);
+      const off = x.keys.filter(([, d, u, dis]) => d === 'true' || u || dis).map(([g]) => g);
+      if (x.keys.length !== 9 || off.length) bad.push(`${k}: of ${x.keys.length} tiles ${off.join(', ')} are disabled`);
+      if (x.dnb.lines !== x.before.lines + 1 || x.dnb.url === x.before.url || x.dnb.lamps !== 'Drum & Bass' || !/plays its recipes on a turn/.test(x.dnb.about) || /bird/i.test(x.dnb.about)) bad.push(`${k}: Drum & Bass pressed read ${JSON.stringify(x.dnb)}`);
+      if (x.tuned.lines !== x.dnb.lines + 1 || x.tuned.url === x.dnb.url) bad.push(`${k}: Techno pressed wrote ${x.tuned.lines - x.dnb.lines} lines and the address ${x.tuned.url}`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and on a phone every key of Breaks & Big Beat's tier is disabled and Big Beat pressed left the spell, the address, the ledger and the lamps as they were; on House's tier ${r['1440'].house.join(', ')} press, and Tech House pressed wrote its line and its spell into the address; Trance's tier is its nine keys, every one disabled and none lit`,
+      note: `at 1440 and on a phone the nine tiles all press and none is marked untuned; Drum & Bass pressed played by its rows ("${r['1440'].dnb.about}") and lit ${r['1440'].dnb.lamps} on arrival; Techno pressed wrote its line and its spell into the address`,
     };
   },
 });
@@ -10002,7 +10826,8 @@ SCENARIOS.push({
       if (!x.inView.view) bad.push(`${k}: the open view is not on the address`);
       if (!/work in progress/i.test(x.inView.tag) || !x.inView.oneLine || !x.inView.whole || !x.inView.between) bad.push(`${k}: the tag "${x.inView.tag}" on the title's line ${x.inView.oneLine}, whole ${x.inView.whole}, between the title and the keys ${x.inView.between}`);
       if (!/^copy at \d+:\d\d,copy link,close$/.test(x.inView.order.join()) || !x.inView.inRow || !x.inView.underRing || x.inView.right < 7.5 || x.inView.right > 16) bad.push(`${k}: the toolbar reads ${x.inView.order.join(' · ')}, in one row ${x.inView.inRow}, under the ring ${x.inView.underRing}, ${x.inView.right} px from its right`);
-      if (!/\d+ sub-genres? (are|is) tuned/.test(x.inView.tagTitle)) bad.push(`${k}: the tag's tooltip says "${x.inView.tagTitle}"`);
+      // since GA8 the tooltip counts the tiles, not a tier's sub-genres (rewritten in the merge round, Reconcile 1)
+      if (!/^Work in progress: \d+ of the \d+ genres play/.test(x.inView.tagTitle)) bad.push(`${k}: the tag's tooltip says "${x.inView.tagTitle}"`);
       if (!/^close$/i.test(x.inView.key) || !/closes the machine view/.test(x.inView.keyTitle)) bad.push(`${k}: the key reads "${x.inView.key}" ("${x.inView.keyTitle}")`);
       if (x.inView.rings) bad.push(`${k}: ${x.inView.rings} RING or BACK keys outside the genres are still on the page`);
       // (M14) a plain group of tab stops: a toolbar role promises arrow keys, and the page's one key is Space
@@ -10172,14 +10997,17 @@ SCENARIOS.push({
     // Measured on seed 1 at 390 px, from the effects' foot to the meters' tops:
     // M1, which drew the sends as one bar, 96 px; M2, a lane each, 224; M3, one
     // trunk lane, 110. Since M4 the rail keeps room for fourteen wires through
-    // a set, so the meters never move (RAIL_LANES): at most 40 over M1's.
+    // a set, so the meters never move (RAIL_LANES): 134. Since VIEW-STILL the
+    // send lanes over the rail keep one lane's room whether or not a send
+    // rides it (SR_LANES), which is what a send asked for: still 134, at most
+    // 40 over M1's.
     const area = r.finger.sendArea;
-    if (!(area <= 96 + 40)) bad.push(`the phone's send area is ${area} px, where M1's was 96, M2's 224 and M3's 110`);
+    if (!(area <= 96 + 40)) bad.push(`the phone's send area is ${area} px, where M1's was 96, M2's 224, M3's 110 and M4's 134`);
     return {
       ok: !bad.length,
       why: bad[0],
       note: `a mouse and a finger on the kick's branch into the delay lit that wire alone — off its own port, along both runs of the trunk ${r.mouse.riders} sends ride, into its own port — `
-        + `with the kick bus and the delay lit and the other branches and the trunk at 0.15; a press on the bare trunk lit nothing; the phone's send area is ${area} px (M1 96, M2 224, M3 110)`,
+        + `with the kick bus and the delay lit and the other branches and the trunk at 0.15; a press on the bare trunk lit nothing; the phone's send area is ${area} px (M1 96, M2 224, M3 110, M4 134)`,
     };
   },
 });
@@ -10368,6 +11196,79 @@ SCENARIOS.push({
       why: `the meters stood at ${ys.join(', ')} and the effects area was ${effects.join(', ')} tall over ${r.length} looks (${sends.join('/')} returns, ${inserts.join('/')} inserts)`,
       note: `over ${r.length} looks across three themes and four places in each, with ${sends.join(' or ')} returns and ${inserts.join(' or ')} inserts on the desk, `
         + `the meters stood at y ${ys[0]} and the effects area ${effects[0]} units tall every time`,
+    };
+  },
+});
+
+// --- round VIEW-STILL (10-05): the graph stands still through a set ---------
+//
+// Eugene, 10-05, two screenshots of the graph with and without a CRUSH lane
+// insert: *"the dynamic lane inserts are pushing the rest of the layout … which
+// makes the screen shake back and forward through the track as lane inserts
+// come and go quickly."* Every channel the wires size keeps a reserve now
+// (`M_LANES`, `SR_LANES`, `UNDER_LANES`, `GUTTER_LANES` beside `RAIL_LANES`);
+// tools/check.ts holds the layouts to the pixel without a browser, and this
+// reads the drawn page: seed 1 under house-v2, the first three themes, four
+// places in each, the kick strip's and the BASS DRIVE box's rects (where the
+// theme has one — the house's own drive row is at nought since EQ-5, so a
+// theme at the house may draw none) and every other stage box's, and the bus
+// column's left edge.
+SCENARIOS.push({
+  name: 'through the first three themes of a set the kick strip, the stage boxes and the bus column stand still to the pixel while lane inserts come and go',
+  area: 'view',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      return await p.evaluate(body(OPEN_VIEW + `
+        const rect = (sel) => { const e = document.querySelector('#machineDiagram ' + sel); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * 10) / 10); };
+        const look = () => ({
+          theme: ctl.readout().mix.themeNumber, bar: ctl.readout().bar + 1,
+          kick: rect('[data-box="bus:kick"]'), drive: rect('[data-box="bassDrive"]'),
+          stage: Object.fromEntries([...document.querySelectorAll('#machineDiagram [data-box]')].filter((g) => ['duckLow', 'bassDrive', 'bassBody', 'bassComp', 'push', 'glue', 'harmonicBell', 'duck', 'width', 'macro'].includes(g.getAttribute('data-box')))
+            .map((g) => [g.getAttribute('data-box'), rect('[data-box="' + g.getAttribute('data-box') + '"]')])),
+          busLeft: rect('[data-area="effects"]')[0],
+          inserts: [...document.querySelectorAll('#machineDiagram [data-box^="treat:"]')].map((g) => g.getAttribute('data-box')),
+          sends: document.querySelectorAll('#machineDiagram [data-box^="send:"]').length,
+        });
+        const seen = [];
+        for (let k = 0; k < 3; k++) {
+          if (k) {
+            const theme = ctl.readout().mix.themeNumber;
+            ctl.skip();
+            await waitFor(() => ctl.readout().mix.themeNumber !== theme, 15000);
+            await sleep(600);
+          }
+          // the theme's start, then three places through it
+          for (const at of [0.01, 0.3, 0.55, 0.8]) { ctl.seekTo(at, true); await sleep(500); seen.push(look()); }
+        }
+        window.ring.machine.close(); ctl.stop();
+        return seen;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const same = (f, what) => { const v = [...new Set(r.map(f).filter((x) => x != null).map((x) => JSON.stringify(x)))]; if (v.length > 1) bad.push(`${what} stood at ${v.join(', ')}`); return v; };
+    const kick = same((x) => x.kick, 'the kick strip');
+    same((x) => x.busLeft, 'the bus column\'s left edge');
+    same((x) => x.drive, 'the BASS DRIVE box');
+    // every stage box against itself in the other looks, where both draw it, and the stack the same
+    const stacks = [...new Set(r.map((x) => Object.keys(x.stage).join(' ')))];
+    for (const id of new Set(r.flatMap((x) => Object.keys(x.stage)))) same((x) => x.stage[id], `the ${id} box`);
+    const themes = [...new Set(r.map((x) => x.theme))];
+    if (themes.length < 3 || r.length < 12) bad.push(`${r.length} looks over themes ${themes.join(', ')}`);
+    if (!r.every((x) => x.kick)) bad.push('a look found no kick strip');
+    const insertsBy = themes.map((t) => `theme ${t}: ${[...new Set(r.filter((x) => x.theme === t).map((x) => x.inserts.join('+') || 'none'))].join(' / ')}`);
+    const drive = r.filter((x) => x.drive).map((x) => x.theme);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `over ${r.length} looks across themes ${themes.join(', ')}, four places each, with the lane inserts ${insertsBy.join('; ')} and ${[...new Set(r.map((x) => x.sends))].join(' or ')} returns, `
+        + `the kick strip stood at ${kick[0]}, the bus column's left edge at ${r[0].busLeft} and every stage box where it was (${stacks.length === 1 ? 'one stack' : `${stacks.length} stacks`}); `
+        + `BASS DRIVE ${drive.length ? `drawn in theme ${[...new Set(drive)].join(', ')} at ${JSON.stringify(r.find((x) => x.drive).drive)}` : 'drawn in none of them'}`,
     };
   },
 });
@@ -10588,7 +11489,9 @@ SCENARIOS.push({
           const lk = document.querySelector('#machine [role="button"][aria-label="Strip kick"]');
           lk.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
           await sleep(150);
-          const pops = [...document.querySelectorAll('.desk-pop .desk-keys button, .desk-pop .desk-fader button')].map((b) => { const r = b.getBoundingClientRect(); return { h: r.height, w: r.width, f: parseFloat(getComputedStyle(b).fontSize) }; });
+          const pops = [...document.querySelectorAll('.desk-pop .desk-keys button:not(.desk-reset), .desk-pop .desk-fader button')].map((b) => { const r = b.getBoundingClientRect(); return { h: r.height, w: r.width, f: parseFloat(getComputedStyle(b).fontSize) }; });
+          // (DESK-UX1) a reset is a peripheral: one step smaller than a working key, 16 high for 20, in letters half a point under
+          const resets = [...document.querySelectorAll('.desk-pop .desk-reset')].map((b) => { const r = b.getBoundingClientRect(); return { h: r.height, f: parseFloat(getComputedStyle(b).fontSize) }; });
           document.querySelector('.desk-pop').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
           // the spell's cells
           const cells = [...document.querySelectorAll('#machine .spell-grid .cell')];
@@ -10598,16 +11501,17 @@ SCENARIOS.push({
           const pad = (el) => { const cs = getComputedStyle(el); return [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map((x) => Math.round(parseFloat(x) * 10) / 10).join(' '); };
           const spellTile = document.querySelector('#machine .fact.spell'); const seedTile = document.querySelector('#machine .fact[data-fact="seed"]');
           const lab = spellTile.querySelector('.spell-head .k').getBoundingClientRect(); const seedLab = seedTile.querySelector('.k').getBoundingClientRect();
-          const sw = spellTile.querySelector('.spell-head .swatch').getBoundingClientRect();
+          const sw = spellTile.querySelector('.fact.spell > .swatch').getBoundingClientRect();
           const cellBoxes = cells.map((c) => c.getBoundingClientRect());
+          const gridBox = spellTile.querySelector('.spell-grid').getBoundingClientRect();
           const widths = cellBoxes.map((b) => +b.width.toFixed(1));
           const tile = { pad: pad(spellTile), seedPad: pad(seedTile),
             labelIn: +(lab.left - spellTile.getBoundingClientRect().left).toFixed(1), seedLabelIn: +(seedLab.left - seedTile.getBoundingClientRect().left).toFixed(1),
             labelTop: +(lab.top - spellTile.getBoundingClientRect().top).toFixed(1), seedLabelTop: +(seedLab.top - seedTile.getBoundingClientRect().top).toFixed(1),
-            cellsIn: +(cellBoxes[0].left - lab.left).toFixed(1), swatchAfter: +(sw.left - lab.right).toFixed(1), swatchMid: +((sw.top + sw.bottom) / 2 - (lab.top + lab.bottom) / 2).toFixed(1),
+            cellsIn: +(cellBoxes[0].left - lab.left).toFixed(1), swatchSpan: +(sw.width - gridBox.width).toFixed(1), swatchLeft: +(sw.left - gridBox.left).toFixed(1), swatchBetween: sw.top >= lab.bottom - 0.5 && sw.bottom <= Math.min(...cellBoxes.map((b) => b.top)) + 0.5, swatchH: +sw.height.toFixed(1),
             widths: Math.max(...widths) - Math.min(...widths) };
           const out = { sideW, graphW, tileH, listH, present, cellOneLine, t: +t.toFixed(3), inset: +inset.toFixed(1), fills: +(svg.getBoundingClientRect().width - pane.width).toFixed(0),
-            grClash, cutRack, keyH: +key.height.toFixed(1), keyFont: +keyFont.toFixed(1), pops, cells: cells.length, cellRows, cellCut, tile };
+            grClash, cutRack, keyH: +key.height.toFixed(1), keyFont: +keyFont.toFixed(1), pops, resets, cells: cells.length, cellRows, cellCut, tile };
           window.ring.machine.close(); ctl.stop();
           return out;
         `));
@@ -10635,20 +11539,22 @@ SCENARIOS.push({
       if (x.cutRack.length) bad.push(`${w}: rack values cut: ${x.cutRack.join(' | ')}`);
       // a popover is zoomed with the type step, so its letters are drawn at their size times the key's height over 20
       if (x.pops.some((b) => Math.abs(b.h - x.keyH) > 0.6 || b.w < x.keyH * 1.2 - 0.6 || Math.abs((b.f * b.h) / 20 - x.keyFont) > 0.3)) bad.push(`${w}: popover keys ${JSON.stringify(x.pops)} against a strip key ${x.keyH} high in ${x.keyFont} px`);
+      if (!x.resets.length || x.resets.some((b) => Math.abs(b.h - x.keyH * 16 / 20) > 0.6 || Math.abs((b.f * b.h) / 16 - x.keyFont * 9 / 9.5) > 0.3)) bad.push(`${w}: popover resets ${JSON.stringify(x.resets)} against a strip key ${x.keyH} high in ${x.keyFont} px`);
       if (x.cells !== 8 || x.cellCut) bad.push(`${w}: the spell has ${x.cells} cells, ${x.cellCut} of them cut`);
       // (M8: one row at every width, a phone's too)
       if (x.cellRows !== 1) bad.push(`${w}: the spell's cells stand in ${x.cellRows} rows`);
       const T = x.tile;
       if (T.pad !== T.seedPad || Math.abs(T.labelIn - T.seedLabelIn) > 0.6 || Math.abs(T.labelTop - T.seedLabelTop) > 0.6) bad.push(`${w}: the spell tile is padded ${T.pad} with its name ${T.labelIn},${T.labelTop} in, where a tile is ${T.seedPad} and ${T.seedLabelIn},${T.seedLabelTop}`);
       if (Math.abs(T.cellsIn) > 0.6 || T.widths > 0.6) bad.push(`${w}: the spell's cells start ${T.cellsIn} px off its name's left edge, their widths differ by ${T.widths}`);
-      if (T.swatchAfter < 0 || T.swatchAfter > 12 || Math.abs(T.swatchMid) > 1.5) bad.push(`${w}: the swatch stands ${T.swatchAfter} px after the name and ${T.swatchMid} px off its middle`);
+      // (10-05) the spell's colour is a line under the name across all eight cells, not a swatch after the name
+      if (Math.abs(T.swatchSpan) > 0.6 || Math.abs(T.swatchLeft) > 0.6 || !T.swatchBetween || T.swatchH < 1) bad.push(`${w}: the spell's colour line spans ${T.swatchSpan} px off the cells' width, starts ${T.swatchLeft} px off their left edge, ${T.swatchH} px tall, ${T.swatchBetween ? 'between' : 'not between'} the name and the cells`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
       note: `at 390, 1440, 1900 and 2560 the drawing is shown at ${r['390'].t}, ${r['1440'].t}, ${r['1900'].t} and ${r['2560'].t} and a row stands ${r['390'].inset}, ${r['1440'].inset}, ${r['1900'].inset} and ${r['2560'].inset} px in its frame (8 × 1, 1.5, 1.7, 2); the left column is ${r['1440'].sideW} px at 1440 and at 1900, where the graph has ${r['1900'].graphW - r['1440'].graphW} px more, and ${r['2560'].sideW} at 2560, one step up; on a phone a tile is one line, ${r['390'].tileH} px against the desktop's ${r['1440'].tileH}, the readings ${r['390'].listH} px tall for all ${r['390'].present}; `
         + `at 2560 the canvas fills its pane by its gutters; the limiter's bar never lies on its number; no rack value is cut; the popover's keys are the strips' ${r['1440'].keyH} px keys in their ${r['1440'].keyFont} px letters; `
-        + `the spell is eight cells in one row at every width, every value raw (0.00 to 1.00), the tile padded ${r['390'].tile.pad} px like every tile, its name where a tile's name is, the swatch ${r['1440'].tile.swatchAfter} px after it on its middle, and the cells in equal columns from the name's left edge`,
+        + `the spell is eight cells in one row at every width, every value raw (0.00 to 1.00), the tile padded ${r['390'].tile.pad} px like every tile, its name where a tile's name is, its colour a ${r['1440'].tile.swatchH} px line under the name across the cells, and the cells in equal columns from the name's left edge`,
     };
   },
 });
@@ -10806,10 +11712,11 @@ SCENARIOS.push({
           const outer = keys[0];
           outer.click();
           await sleep(300);
+          const caption = document.querySelector('#machine .genre-block .caption');
           const r = { disabled: keys.filter((k) => k.disabled).map((k) => k.dataset.genre), centreLit: keys[4].getAttribute('aria-pressed'), centre: keys[4].dataset.genre,
-            opened: document.querySelector('#machine .genre-block .caption').dataset.tier === 'sub',
+            outer: outer.dataset.genre, labels: [...document.querySelectorAll('#machine .genres button')].map((k) => k.dataset.genre).join(),
             lines: lines() - before, asked: ctl.mix && ctl.mix.spellAsked ? Object.keys(ctl.mix.spellAsked).length : 0,
-            caption: document.querySelector('#machine .genre-block .caption').textContent };
+            caption: caption ? caption.textContent : null };
           window.ring.machine.close(); ctl.stop();
           return r;
         `));
@@ -10820,69 +11727,60 @@ SCENARIOS.push({
   judge: (r) => {
     const v1 = r['v=1&seed=1']; const v2 = r['v=2&seed=1'];
     return {
-      // (since M8 the first tier is the eight families round Deep House)
-      ok: v1.disabled.length === 8 && v1.centre === 'Deep House' && v1.centreLit === 'true' && v1.lines === 0 && /house-v2 only/.test(v1.caption) && v2.disabled.length === 0 && v2.lines === 0 && v2.opened,
+      // (since GA8 the grid is one level, nine fixed tiles round Deep House: under
+      // house-v2 an outer tile pressed plays its spell, and no tier opens;
+      // rewritten in the merge round, Reconcile 1)
+      ok: v1.disabled.length === 8 && v1.centre === 'Deep House' && v1.centreLit === 'true' && v1.lines === 0 && /house-v2 only/.test(v1.caption || '')
+        && v2.disabled.length === 0 && v2.lines === 1 && v2.asked > 0 && v2.labels === v1.labels && v2.caption === null,
       why: JSON.stringify(r),
-      note: `under house-v1 the outer keys are disabled ("${v1.caption}"), the centre is lit, and a press on one wrote nothing and asked no spell; under house-v2 the same press opened that family's sub-genres`,
+      note: `under house-v1 the outer keys are disabled ("${v1.caption}"), the centre is lit, and a press on one wrote nothing and asked no spell; under house-v2 the same press on ${v2.outer} wrote its line and asked its spell, and the nine stayed where they stand`,
     };
   },
 });
 
+// **The genres are one level** (GA8, Eugene: *"focus only on a few genres for
+// now, the most abstract; remove sub-views and have only 9 top-level tiles"*;
+// this row was M8's two tiers, rewritten in the merge round, Reconcile 1): the
+// nine stand round Deep House, the centre and the house lit with the dot; the
+// centre pressed plays the house and nothing moves; Dubstep pressed plays its
+// rows' place, writes its line, and the address carries no genre word.
 SCENARIOS.push({
-  name: 'the genres are two tiers: a family pressed opens its sub-genres round it, an untuned one is disabled, a tuned one plays its spell, and back returns to the families',
+  name: 'the genres are one level of nine tiles round Deep House: the centre plays the house, a tile plays its spell or its rows, no tier opens and no genre word reaches the address',
   area: 'view',
   query: 'v=2&seed=1',
   page: body(OPEN_VIEW + `
     const keys = () => [...document.querySelectorAll('#machine .genres button')];
-    const tier = () => ({ caption: document.querySelector('#machine .genre-block .caption').textContent.toLowerCase(),
-      centre: keys()[4] && keys()[4].dataset.genre, labels: keys().map((k) => k.dataset.genre), back: !!document.querySelector('#machine [aria-label="Back to the genre families"]') });
-    const t1 = tier();
+    const grid = () => ({ caption: document.querySelector('#machine .genre-block .caption'), centre: keys()[4] && keys()[4].dataset.genre, labels: keys().map((k) => k.dataset.genre),
+      back: !!document.querySelector('#machine [aria-label="Back to the genre families"]'), opens: document.querySelectorAll('#machine .genres [data-opens]').length });
+    const t1 = grid();
+    t1.caption = !!t1.caption;
     t1.lit = keys().filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    // (M8) the centre is Deep House, and pressed it plays the house and opens nothing
     const houseLines = window.ring.machine.snapshot().ledger.filter((e) => /genre preset: Deep House/.test(e.what)).length;
     keys()[4].click();
     await sleep(200);
-    t1.pressed = { tier: tier(), line: window.ring.machine.snapshot().ledger.filter((e) => /genre preset: Deep House/.test(e.what)).length - houseLines };
-    keys().find((k) => k.dataset.genre === 'DnB & Dub').click();
-    await sleep(200);
-    const t2 = tier();
+    const t2 = grid();
+    t2.caption = !!t2.caption;
+    t2.line = window.ring.machine.snapshot().ledger.filter((e) => /genre preset: Deep House/.test(e.what)).length - houseLines;
     const lines = () => window.ring.machine.snapshot().ledger.filter((e) => /genre preset/.test(e.what)).map((e) => e.what);
-    // (M10) Liquid is not tuned: its key is disabled, and a press on it does nothing
-    const askedBefore = ctl.mix && ctl.mix.spellAsked ? JSON.stringify(ctl.mix.spellAsked) : null;
-    const linesBefore = lines().length; const urlBefore = location.search;
-    const liquid = keys().find((k) => k.dataset.genre === 'Liquid');
-    liquid.click();
-    await sleep(400);
-    const refused = { disabled: liquid.getAttribute('aria-disabled'), asked: (ctl.mix && ctl.mix.spellAsked ? JSON.stringify(ctl.mix.spellAsked) : null) === askedBefore,
-      lines: lines().length - linesBefore, url: location.search === urlBefore, lit: liquid.getAttribute('aria-pressed'), about: liquid.title };
-    document.querySelector('#machine [aria-label="Back to the genre families"]').click();
-    await sleep(200);
-    const t3 = tier();
-    // a tuned one still plays: DnB & Dub → Dub Techno (M18: the merged family)
-    keys().find((k) => k.dataset.genre === 'DnB & Dub').click();
-    await sleep(200);
-    const dubCentre = { genre: keys()[4].dataset.genre, disabled: keys()[4].getAttribute('aria-disabled') };
-    keys().find((k) => k.dataset.genre === 'Dub Techno').click();
+    keys().find((k) => k.dataset.genre === 'Dubstep').click();
     await waitFor(() => ctl.mix && ctl.mix.spellAsked, 3000);
     await sleep(300);
+    const t3 = grid();
+    t3.caption = !!t3.caption;
     const played = { asked: ctl.mix && ctl.mix.spellAsked ? JSON.stringify(ctl.mix.spellAsked) : null, line: lines().pop() || '', url: location.search };
     window.ring.machine.close(); ctl.stop();
-    return { t1, t2, refused, t3, dubCentre, played };
+    return { t1, t2, t3, played };
   `),
   judge: (r) => {
-    const ok = r.t1.caption === 'families' && r.t1.centre === 'Deep House' && !r.t1.back
-      && r.t1.labels.length === 9 && r.t1.labels.join() === 'House,Techno,Ambient & Downtempo,DnB & Dub,Deep House,Trance,Breaks & Big Beat,Disco & Nu-Disco,Misc' && !r.t1.labels.includes('Dub Techno') && !r.t1.labels.includes('UK Garage') && [...r.t1.lit].sort().join() === 'Deep House,House'
-      && r.t1.pressed.tier.caption === 'families' && r.t1.pressed.tier.centre === 'Deep House' && r.t1.pressed.line === 1
-      && r.t2.centre === 'DnB & Dub' && r.t2.labels.includes('Liquid') && r.t2.labels.includes('Dub Techno') && r.t2.back && r.t2.caption === 'dnb & dub'
-      && r.refused.disabled === 'true' && r.refused.asked && r.refused.lines === 0 && r.refused.url && r.refused.lit === 'false' && /not tuned yet/.test(r.refused.about) && /Disabled until it is tuned/.test(r.refused.about)
-      && r.t3.caption === 'families' && r.t3.centre === 'Deep House' && !r.t3.back
-      && r.dubCentre.genre === 'DnB & Dub' && r.dubCentre.disabled === 'true'
-      && r.played.asked && /genre preset: Dub Techno/.test(r.played.line) && !/dub|techno/i.test(decodeURIComponent(r.played.url));
+    // (G4) the cells in tempo order: fast above, slow below, Trip Hop on Disco's tile
+    const NINE = 'Drum & Bass,Dubstep,Trance,Techno,Deep House,Breaks,Downtempo,Trip Hop,Ambient';
+    const same = [r.t1, r.t2, r.t3].every((t) => t.labels.join() === NINE && t.centre === 'Deep House' && !t.back && !t.opens && !t.caption);
+    const ok = same && r.t1.lit.join() === 'Deep House' && r.t2.line === 1
+      && r.played.asked && /genre preset: Dubstep/.test(r.played.line) && !/dub|step|genre/i.test(decodeURIComponent(r.played.url));
     return {
       ok,
       why: JSON.stringify(r),
-      note: `the first tier is the eight families round ${r.t1.centre}, ${r.t1.lit.join(' and ')} lit at the house, and ${r.t1.centre} pressed played the house and opened nothing; DnB & Dub pressed took the centre with ${r.t2.labels.filter((x) => x !== 'DnB & Dub').join(', ')} round it; Liquid, not tuned, is disabled — a press asked no spell, wrote no line and changed no address, its tooltip "${r.refused.about}"; `
-        + `back returned to the families with ${r.t3.centre} in the centre, not the family visited; the merged family's own key is disabled (no spell of its own), and Dub Techno played ${r.played.asked} ("${r.played.line}") with no genre word in the address`,
+      note: `the grid is ${r.t1.labels.join(' · ')} round ${r.t1.centre}, ${r.t1.lit.join(' and ')} lit at the house, no tier caption and no way back; the centre pressed played the house and moved nothing; Dubstep pressed asked ${r.played.asked} ("${r.played.line}") with no genre word in the address, and the nine stood where they stood`,
     };
   },
 });
@@ -11318,8 +12216,11 @@ SCENARIOS.push({
       if (!v) break;
       v.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       await sleep(150);
+      // the strip's one reset is dark while nothing on the popover is moved (DESK-UX1): a step up first, so it takes the focus
+      const up = document.querySelector('.desk-pop .desk-row button[aria-label$="up a step"]');
+      if (up) { up.click(); await sleep(60); }
       const reset = document.querySelector('.desk-pop button[aria-label^="Reset "]');
-      if (!reset) continue;
+      if (!reset || reset.disabled) continue;
       reset.focus();
       const before = rows();
       const theme = ctl.readout().mix.themeNumber;
@@ -11706,24 +12607,33 @@ const K11 = HAND + `
   // a mouse on bird i, past the slop, then walked through the hand's own percents
   const walkBird = async (i, walk, watch) => {
     const from = cells()[i].radius * 316;
-    hand('pointermove', spoke(i, from), el('stage'));
-    hand('pointerdown', spoke(i, from), el('tilt'));
+    // **the square as it stands before the hand leans it** (10-08): the pull
+    // counts from the press, so the press and every step are read off one
+    // square — the leaning ring's box, read again at each step, moved the
+    // hand's own percent by half a point against the press
+    const b0 = tilt();
+    const on = (rad, px = 0) => {
+      const a = (i / 8) * Math.PI * 2;
+      return { x: b0.x + b0.width / 2 + Math.sin(a) * b0.width * (rad / 1000) + Math.cos(a) * px,
+               y: b0.y + b0.height / 2 - Math.cos(a) * b0.height * (rad / 1000) + Math.sin(a) * px };
+    };
+    hand('pointermove', on(from), el('stage'));
+    hand('pointerdown', on(from), el('tilt'));
     await sleep(30);
-    const w = el('star').getBoundingClientRect().width || 1000;
-    const way = Math.sign(radiusOfPercent(i, walk[0]) - from) || 1;
-    const base = from + way * Math.max(8, 6 / (w / 1000));
-    hand('pointermove', spoke(i, base), window);
+    // past the slop across the spoke, where no value moves, and back on it:
+    // the hand at a percent's radius is the bird there
+    hand('pointermove', on(from, 6), window);
     await frames();
     const seen = [];
-    let at = base;
+    let at = from;
     for (const p of walk) {
-      at = base + radiusOfPercent(i, p) - from;
-      hand('pointermove', spoke(i, at), window);
+      at = radiusOfPercent(i, p);
+      hand('pointermove', on(at), window);
       await frames();
       const c = cells()[i];
       seen.push({ hand: p, value: c.value, percent: c.percent, home: c.value === c.house, off: +Math.abs(c.radius * 316 - radiusOfPercent(i, p)).toFixed(2), ...(watch ? watch() : {}) });
     }
-    hand('pointerup', spoke(i, at), window);
+    hand('pointerup', on(at), window);
     await sleep(400);
     const c = cells()[i];
     return { seen, held: c.held, percent: c.percent, value: c.value, url: decodeURIComponent(location.search) };
@@ -11790,7 +12700,8 @@ SCENARIOS.push({
   // nothing; after the drop the reading holds until the seam; the line along
   // the track is the long form, never "now" or "next".
   deadline: 120000,
-  query: 'v=2&seed=15576',
+  // (theme 2 since GA5: 15576's first is the library's turn at the house)
+  query: 'v=2&seed=15576&theme=2',
   page: body(K11 + `
     await started();
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
@@ -11805,6 +12716,13 @@ SCENARIOS.push({
     const atRest = cells()[i].reading;
     const walk = [];
     for (let p = 104; p <= 130; p += 1) walk.push(p);
+    // **The hand rests at the rim before it lets go** (K38): the label is worked
+    // out at most eleven times a second behind a moving hand (\`IMPLIED_MS\`),
+    // and a hand at rest is read within that. Under Ember's bands the last
+    // move's answer, a move behind, was the same word; under GA5's continuous
+    // tempo curve a move at the rim is four to fifteen beats a minute, so the
+    // last move is read after the rest the rule allows, which is when it is whole.
+    for (let k = 0; k < 6; k++) walk.push(130);
     let fades = 0;
     const drag = await walkBird(i, walk, () => {
       const c = cells()[i];
@@ -12591,11 +13509,20 @@ SCENARIOS.push({
   // need to show, appropriate to each bird's change speed, a radial progress in
   // each bird circle that is transitioning now."* Seed 15576: Ember to the rim
   // changes Zephyr's keys (round K11b).
+  //
+  // K39: since GA5's tempo curve the same move also changes Spark's reading
+  // (ROLLING OFFBEAT · 4 HITS to ROLLING SIXTEENTHS · 16 HITS at 164 BPM), and
+  // the row held Spark to drawing nothing. The ring's rule is a bird fills
+  // until its own reading is what plays, so the row now reads every bird
+  // before the drop and after the landing: each whose reading moved fills
+  // and lets go at the seam, each whose reading did not draws nothing.
+  // Zephyr is still required among the moved, which is the round's premise.
   deadline: 200000,
   query: 'v=2&seed=15576',
   page: body(K11 + `
     await started();
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
+    const before = cells().map((c) => c.reading);
     const walk = [];
     for (let p = 104; p <= 130; p += 2) walk.push(p);
     await walkBird(0, walk);
@@ -12608,19 +13535,28 @@ SCENARIOS.push({
       seen.push({ t: +((performance.now() - t0) / 1000).toFixed(2), bpm: r.bpm, grid: r.gridBpm, fills: cs.map((c) => (c.fill.on ? c.fill.p : -1)), zRead: cs[2].reading });
       if (cs.every((c) => !c.fill.on) && seen.length > 10) break;
     }
+    const after = cells().map((c) => c.reading);
     ctl.stop();
     window.ring.release(null);
-    return { seen, names: cells().map((c) => c.name) };
+    return { seen, names: cells().map((c) => c.name), before, after };
   `),
   judge: (r) => {
     const s = r.seen;
     const seam = s.find((x, k) => k > 0 && x.bpm !== s[k - 1].bpm);
     const bad = [];
     if (!seam) return { ok: false, why: 'no seam was seen' };
+    // every bird but the hand's: its reading before the drop against its reading landed
+    const movedBirds = [1, 2, 3, 4, 5, 6, 7].filter((k) => r.before[k] !== r.after[k]);
+    const stillBirds = [1, 2, 3, 4, 5, 6, 7].filter((k) => r.before[k] === r.after[k]);
+    if (!movedBirds.includes(2)) bad.push(`Zephyr's reading did not move (${r.before[2]} to ${r.after[2]}), so the row no longer tests what it says`);
+    for (const k of movedBirds) {
+      const on = s.filter((x) => x.fills[k] >= 0);
+      const off = s.find((x, j) => j > 0 && x.fills[k] < 0 && s[j - 1].fills[k] >= 0);
+      if (!on.length || !off) bad.push(`${r.names[k]}, whose reading the move changes (${r.before[k]} to ${r.after[k]}), drew no fill`);
+      else if (Math.abs(off.t - seam.t) > 0.35) bad.push(`${r.names[k]}'s fill ended at ${off.t} s and the seam came at ${seam.t} s`);
+    }
     const zOn = s.filter((x) => x.fills[2] >= 0);
     const zOff = s.find((x, k) => k > 0 && x.fills[2] < 0 && s[k - 1].fills[2] >= 0);
-    if (!zOn.length || !zOff) bad.push('Zephyr, whose keys the move changes, drew no fill');
-    else if (Math.abs(zOff.t - seam.t) > 0.35) bad.push(`Zephyr's fill ended at ${zOff.t} s and the seam came at ${seam.t} s`);
     const eOff = s.find((x, k) => k > 0 && x.fills[0] < 0 && s[k - 1].fills[0] >= 0);
     // Ember's fill ends when its tempo is heard: after the glide for a near
     // move, at the swap for a far one, which is ridden before the blend (the
@@ -12628,13 +13564,13 @@ SCENARIOS.push({
     const eReach = s.find((x) => x.t >= seam.t && Math.abs(x.grid - x.bpm) < 0.1);
     const bar = 240 / s[s.length - 1].bpm;
     if (!eOff || !eReach || Math.abs(eOff.t - eReach.t) > bar + 0.2) bad.push(`Ember's fill ended at ${eOff && eOff.t} s and its tempo was heard at ${eReach && eReach.t} s (the seam at ${seam.t} s)`);
-    const others = [1, 3, 4, 5, 6, 7].filter((k) => s.some((x) => x.fills[k] >= 0));
+    const others = stillBirds.filter((k) => s.some((x) => x.fills[k] >= 0));
     if (others.length) bad.push(`${others.map((k) => r.names[k]).join(', ')}, which the move does not change, filled`);
     return {
       ok: !bad.length,
       why: bad[0],
       note: `Ember dropped at the rim: Zephyr filled to ${zOn.length ? zOn[zOn.length - 1].fills[2] : '-'} and let go at ${zOff && zOff.t} s with the seam at ${seam.t} s; `
-        + `Ember filled until its tempo was heard and let go at ${eOff && eOff.t} s; no other bird filled`,
+        + `Ember filled until its tempo was heard and let go at ${eOff && eOff.t} s; the other birds whose reading moved (${movedBirds.map((k) => `${r.names[k]}: ${r.before[k]} to ${r.after[k]}`).join('; ')}) filled to the seam, and ${stillBirds.map((k) => r.names[k]).join(', ')} drew nothing`,
     };
   },
 });
@@ -12706,9 +13642,11 @@ SCENARIOS.push({
   area: 'panel',
   // The phone's half of *"Loom from 100 % to 130 % and there was no radial
   // indicator"*: a finger opens Loom's panel while the set plays, slides it to
-  // 130 % and lifts; Loom's fill runs from the lift.
+  // 130 % and lifts; Loom's fill runs from the lift. (The second theme since
+  // GA5: 15576's first is the library's turn at the house, a mined whole theme
+  // whose plan Loom at the rim does not change, so there is nothing to fill.)
   deadline: 90000,
-  query: 'v=2&seed=15576',
+  query: 'v=2&seed=15576&theme=2',
   page: body(K11 + `
     await started();
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
@@ -12784,7 +13722,14 @@ SCENARIOS.push({
   name: 'every bird\'s big word changes when its own bird is dragged to either wall, and the subtitle carries the locked reading and its role',
   area: 'words',
   deadline: 240000,
-  query: 'v=2&seed=15576',
+  // Seed 15577 since GA2: 15576's first theme is the library's turn, and at
+  // the house it draws a mined whole theme whose dark lean already puts the
+  // pulse lead on the keys — the word Zephyr's rim reads — so the rim could not
+  // change a word the draw had already turned (its second and third themes'
+  // Zephyr reads the piano at the house and at the rim alike). 15577's first
+  // theme is the composer's alone, and every bird's word turns at both walls
+  // (planned in node before the page was asked).
+  query: 'v=2&seed=15577',
   page: body(K11 + `
     await sleep(600);
     const out = [];
@@ -13151,8 +14096,8 @@ SCENARIOS.push({
   // K14, Eugene's pick: *"the faint trace"*. While a bird is held, every line
   // along which another bird reaches it — an edge into it, by the model — is
   // the dash at `TRACE_OP`, distinct from the lit lines to the birds its move
-  // changes. Seed 15576: Zephyr to the rim traces what feeds it and lights
-  // nothing; Ember to the rim lights Ember–Zephyr and traces what feeds Ember.
+  // changes. Seed 15576: Zephyr to the rim traces what feeds it and lights only what it changes (nothing before GA6,
+  // Root since); Ember to the rim lights Ember–Zephyr and traces what feeds Ember.
   // At rest, before and after, no line is traced or lit.
   deadline: 120000,
   query: 'v=2&seed=15576',
@@ -13184,7 +14129,11 @@ SCENARIOS.push({
     if (r.rest0.length) bad.push(`at rest ${r.rest0.join(', ')} were drawn`);
     if (!zIn.length) bad.push('the model sends nothing into Zephyr');
     if (JSON.stringify(z.traced) !== JSON.stringify(zIn)) bad.push(`Zephyr held traced ${z.traced} where the lines into it are ${zIn}`);
-    if (z.lit.length) bad.push(`Zephyr held lit ${z.lit}`);
+    // Zephyr at the rim lights exactly the birds whose reading its move
+    // changes (since GA6 its rim stands nearest a place, whose chords Root
+    // reads: seed 15576's Root); the rule, not a count
+    const zLit = z.cons.map((c, i) => (c && i !== 2 ? [Math.min(2, i), Math.max(2, i)].join('-') : null)).filter(Boolean).sort();
+    if (JSON.stringify(z.lit) !== JSON.stringify(zLit)) bad.push(`Zephyr held lit ${z.lit} where the readings it changes are ${zLit}`);
     if (!e.lit.includes('0-2')) bad.push(`Ember held lit ${e.lit}, not Ember–Zephyr`);
     if (JSON.stringify(e.traced) !== JSON.stringify(eIn)) bad.push(`Ember held traced ${e.traced} where the lines into it are ${eIn}`);
     if (e.traced.some((k) => e.lit.includes(k))) bad.push('a line both lit and traced');
@@ -13193,7 +14142,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `nothing at rest; Zephyr held traced ${z.traced.join(', ')} at ${z.traceOp} and lit nothing; Ember held lit ${e.lit.join(', ')} and traced ${e.traced.join(', ') || 'nothing'}; nothing drawn once each let go`,
+      note: `nothing at rest; Zephyr held traced ${z.traced.join(', ')} at ${z.traceOp} and lit ${z.lit.join(', ') || 'nothing'}; Ember held lit ${e.lit.join(', ')} and traced ${e.traced.join(', ') || 'nothing'}; nothing drawn once each let go`,
     };
   },
 });
@@ -13955,7 +14904,7 @@ SCENARIOS.push({
   name: 'the fast beat is the ring\'s first — the rim lifted on each beat and settling — lighter at 75, none at 54, and the inner ring breathes in every band',
   area: 'ring',
   deadline: 150000,
-  query: 'v=2&seed=7&spell=ember:0.65',
+  query: 'v=2&seed=7&spell=ember:0.72', // (GA5: Ember 0.72 plays 120-130 on the curve)
   page: body(HAND + `
     const beat = () => { const c = document.querySelectorAll('#coronaWave > circle')[1]; return { r: +c.getAttribute('r'), op: +c.getAttribute('opacity') }; };
     const breath = () => { const m = window.ring.motion(); return { br: +m.breathR, bo: +m.breathOp }; };
@@ -14147,19 +15096,16 @@ SCENARIOS.push({
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
     await bounded(window.ring.machine.open(), 12000);
     await sleep(300);
-    // (M7: two tiers; M8: Deep House the first tier's centre) the first tier
-    // is the eight families round Deep House; House opens its sub-genres,
-    // among them Deep House, the house itself
+    // (GA8: one level, rewritten in the merge round, Reconcile 1) the nine
+    // tiles round Deep House, the house itself, and none opens a tier
     const first = [...document.querySelectorAll('#machine .genres button.genre')].map((k) => k.dataset.genre);
     const litFirst = [...document.querySelectorAll('#machine .genres button.genre')].filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    document.querySelector('#machine .genres button[data-genre="House"]').click();
-    await sleep(200);
     const keys = [...document.querySelectorAll('#machine .genres button.genre')];
     const labels = keys.map((k) => k.dataset.genre);
     const centre = keys.find((k) => k.dataset.genre === 'Deep House');
     const litAtHouse = keys.filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    // a tuned sub-genre that is not the house
-    const key = keys.find((k) => k.dataset.genre === 'Tech House') || keys[0];
+    // a tuned tile that is not the house
+    const key = keys.find((k) => k.dataset.genre === 'Techno') || keys[0];
     const genre = key.dataset.genre;
     key.click();
     await sleep(200);
@@ -14181,8 +15127,7 @@ SCENARIOS.push({
   `),
   judge: (r) => {
     const bad = [];
-    if (r.first[4] !== 'Deep House' || !r.first.includes('House') || [...r.litFirst].sort().join() !== 'Deep House,House') bad.push(`the first tier ${r.first.join(', ')} with ${r.litFirst.join(', ') || 'nothing'} lit`);
-    if (r.labels.length !== 9 || r.labels[4] !== 'House') bad.push(`House opened ${r.labels.join(', ')}`);
+    if (r.first.length !== 9 || r.first[4] !== 'Deep House' || r.litFirst.join() !== 'Deep House') bad.push(`the grid ${r.first.join(', ')} with ${r.litFirst.join(', ') || 'nothing'} lit`);
     if (r.litAtHouse.join() !== 'Deep House') bad.push(`at the house the lit keys were ${r.litAtHouse.join(', ') || 'none'}`);
     if (!/[?&]spell=/.test(r.url)) bad.push(`the key wrote no spell into the address: ${r.url}`);
     if (/genre|Dub|Techno|House|Ambient|Trance|Garage|Bass|Downtempo|Breaks|Disco|Misc/i.test(decodeURIComponent(r.url).replace(/v=\d/, ''))) bad.push(`a genre word reached the address: ${r.url}`);
@@ -14193,7 +15138,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `the families round Deep House, Deep House and House lit at the house; House opened nine keys, Deep House among them and lit; ${r.genre} wrote "${r.url}", the ledger said "${r.line}", and the key lit when the spell arrived; Deep House asked for the house again ("${r.urlHome}") with "${r.lineHome}"`,
+      note: `the nine round Deep House, Deep House lit at the house; ${r.genre} wrote "${r.url}", the ledger said "${r.line}", and the key lit when the spell arrived; Deep House asked for the house again ("${r.urlHome}") with "${r.lineHome}"`,
     };
   },
 });
@@ -15269,10 +16214,12 @@ SCENARIOS.push({
 });
 
 // **Round K32: the link with the time** (Eugene: *"another Copy Link with
-// time"*). A page opened with `t` starts the theme at the bar line at or before
-// that second, says so in the ledger, drops `t` from its address at once, and a
-// `t` past where the theme plays starts at its last phrase line; the view's
-// writer (`control.link.withTime`) is the canonical link plus the second.
+// time"*). A page opened with `t` starts the theme on that second (the deep
+// review of 10-08: it started at the bar line before it, and every copy lost a
+// bar), says so in the ledger, drops `t` from its address at once, and a `t`
+// past where the theme plays starts at its last phrase line; the view's writer
+// (`control.link.withTime`) is the canonical link plus the second, and a copy
+// made before the set starts writes the `t` it was opened with.
 SCENARIOS.push({
   name: 'a link with the time starts the theme at that bar, says where it started, and leaves no time in the address',
   area: 'link',
@@ -15287,7 +16234,7 @@ SCENARIOS.push({
       await page.waitForTimeout(500);
       out[name] = await page.evaluate(async (tAsked) => {
         const ctl = window.ring.control;
-        const before = { search: location.search, seconds: ctl.readout().seconds, bar: ctl.readout().bar, barSeconds: ctl.readout().barSeconds, bars: ctl.readout().bars, duration: ctl.readout().duration };
+        const before = { search: location.search, seconds: ctl.readout().seconds, bar: ctl.readout().bar, barSeconds: ctl.readout().barSeconds, bars: ctl.readout().bars, duration: ctl.readout().duration, copied: ctl.link.read(new URL(ctl.link.withTime()).search).t };
         await Promise.race([ctl.start(), new Promise((r) => setTimeout(r, 15000))]);
         await new Promise((r) => setTimeout(r, 1500));
         const r = ctl.readout();
@@ -15309,6 +16256,7 @@ SCENARIOS.push({
     const a = r['at 252'], p = r['past the end'];
     const want = Math.floor(252 / a.before.barSeconds);
     if (Math.abs(a.before.bar - want) > 0 || Math.abs(a.after.bar - want) > 1) bad.push(`t=252 opened at bar ${a.before.bar + 1} and played at ${a.after.bar + 1}, where the bar at 252 s is ${want + 1}`);
+    if (a.before.seconds !== 252 || a.before.copied !== 252) bad.push(`t=252 opened at ${a.before.seconds} s and its copy wrote t=${a.before.copied}`);
     for (const [k, x] of Object.entries(r)) if (/(^|[?&])t=/.test(x.before.search) || /(^|[?&])t=/.test(x.after.search)) bad.push(`${k}: the address kept the time: ${x.after.search}`);
     if (!a.lines.some((l) => /^started at \d+:\d\d/.test(l))) bad.push(`the ledger said nothing of the start (${a.lines.slice(-3).join(' | ')})`);
     const lastBar = Math.max(0, Math.floor(p.before.duration / p.before.barSeconds) - 1);
@@ -15646,6 +16594,315 @@ SCENARIOS.push({
       note: `under deephouse.test each of ${kinds.join(', ')} forced once made one warning event with the kind, the line, the error's words, the engine and the link, and a second time none; with the switch off nothing; the About says "${r.line}"`,
     };
   },
+});
+
+// **The deep review of 10-08, group A2: the ring and the machine view.** One
+// row a fix, each the review's own probe made a rule: the key at twelve after
+// Space twice inside a start; a pull's first move counted from the press; a
+// theme landing under a hand; a seek dropping a hand-over in flight (the fill
+// and the engraving's cut); the stopped ring's invisible paths; the cut's
+// drawing gone from `#inner` once it lands; the machine view on a bypass
+// link, during a hand-over, and its popovers and keys at a phone's width.
+SCENARIOS.push({
+  name: 'Space twice inside a start leaves the key at twelve a play, never the About again, and a third press plays',
+  area: 'ring',
+  query: 'v=2&seed=1',
+  page: body(`
+    const space = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+    const label = () => el('actions').querySelector('[data-action="play"]').getAttribute('aria-label');
+    const first = label();
+    space();
+    const s1 = { starting: ctl.state.starting, label: label() };
+    await sleep(30);
+    space();
+    await sleep(1500);
+    const s2 = { starting: ctl.state.starting, playing: ctl.state.playing, label: label() };
+    space();
+    await waitFor(() => ctl.playing, DEADLINE);
+    const s3 = { playing: ctl.state.playing, label: label(), about: !!el('about').open };
+    ctl.stop();
+    return { first, s1, s2, s3 };
+  `),
+  judge: (r) => ({
+    ok: r.first === 'About' && r.s1.label === 'pause' && r.s2.label === 'play' && !r.s2.playing && r.s3.playing && r.s3.label === 'pause' && !r.s3.about,
+    why: JSON.stringify(r),
+    note: `the key read ${r.first}, then ${r.s1.label} at the first Space, ${r.s2.label} once the second cancelled the start, and ${r.s3.label} with the set playing after the third; the About stayed shut`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a pull\'s first move counts from the press: one quick move carries the bird as far as the hand went',
+  area: 'birds',
+  query: 'v=2&seed=1',
+  page: body(PULL + `
+    const i = cells().findIndex((c) => c.bird === 'tide');
+    // off the house, out of the magnet's lock, in the spoke's open middle
+    window.ring.pull(i, 0.5);
+    await sleep(600);
+    const from = cells()[i].radius * 316;
+    hand('pointermove', spoke(i, from), el('stage'));
+    hand('pointerdown', spoke(i, from), el('tilt'));
+    await sleep(30);
+    // one move of thirty units inward: past the slop and the whole of the travel
+    hand('pointermove', spoke(i, from - 30), window);
+    await frame(); await frame();
+    const moved = +(from - cells()[i].radius * 316).toFixed(2);
+    hand('pointerup', spoke(i, from - 30), window);
+    await sleep(300);
+    return { from: +from.toFixed(1), moved };
+  `),
+  judge: (r) => ({
+    ok: Math.abs(r.moved - 30) <= 2,
+    why: `one move of 30 units carried the bird ${r.moved}`,
+    note: `Tide pressed at ${r.from} units and moved 30 inward in one event: the bird went ${r.moved} (until 10-08 that move was lost whole)`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a theme landing under a hand keeps the bird under it: the drag goes on drawing on the rebuilt bird and the drop sets it down',
+  area: 'birds',
+  query: 'v=2&seed=1',
+  deadline: 180000,
+  page: body(`
+    ctl.setMinutes(1);
+    await sleep(200);
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, DEADLINE);
+    const i = window.ring.cells().findIndex((c) => c.bird === 'loom');
+    const r = el('tilt').getBoundingClientRect();
+    const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+    await waitFor(() => { const w = ctl.mix.state.wait; return !!(w && w.laid && (w.swapAt - ctl.state.ctx.currentTime) < 2.5); }, 120000);
+    const cell0 = document.querySelectorAll('#starCells > g')[i];
+    const kb = cell0.querySelector('circle').getBoundingClientRect();
+    const kx = kb.x + kb.width / 2, ky = kb.y + kb.height / 2;
+    const a = Math.atan2(kx - cx, -(ky - cy));
+    const at = (k) => ({ x: kx + Math.sin(a) * k, y: ky - Math.cos(a) * k });
+    const ev = (type, p) => new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, clientX: p.x, clientY: p.y, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1 });
+    el('tilt').dispatchEvent(ev('pointerdown', at(0)));
+    const swap = ctl.mix.state.wait.swapAt;
+    let k = 0;
+    while (ctl.state.ctx.currentTime < swap + 1.2 && k < 400) { k++; window.dispatchEvent(ev('pointermove', at(Math.min(30, k)))); await sleep(16); }
+    const rebuilt = document.querySelectorAll('#starCells > g')[i] !== cell0;
+    const c1 = window.ring.cells()[i];
+    const during = { pulling: c1.pulling, lift: c1.lift };
+    window.dispatchEvent(ev('pointerup', at(30)));
+    await sleep(900);
+    const c2 = window.ring.cells()[i];
+    const after = { held: c2.held, pulling: c2.pulling, lift: c2.lift };
+    ctl.stop();
+    return { rebuilt, moves: k, during, after };
+  `),
+  judge: (r) => ({
+    ok: r.rebuilt && r.during.pulling && r.during.lift > 0 && !r.after.pulling && r.after.lift === 0 && r.after.held,
+    why: JSON.stringify(r),
+    note: `the cells were rebuilt under the hand (${r.moves} moves across the swap): the new Loom was still under the pull (lift ${r.during.lift}), and at the drop it was held and set down (lift ${r.after.lift})`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a seek that drops a hand-over in flight leaves no frozen fill on the bird, and the engraving\'s cut goes with the readout that drops it',
+  area: 'ring',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  page: body(`
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1.5, DEADLINE);
+    const i = window.ring.cells().findIndex((c) => c.bird === 'ember');
+    window.ring.pull(i, 0.95);
+    const laid = await waitFor(() => { const w = ctl.mix.state.wait; return !!(w && w.laid && w.kind === 'spell'); }, 60000);
+    await sleep(500);
+    const tp = () => (document.querySelector('#live textPath') || {}).textContent || '';
+    const before = { p: window.ring.cells()[i].fill.p, engrave: tp(), cut: ctl.readout().mix.cutInBars };
+    const r0 = ctl.readout();
+    ctl.seekTo(Math.min(0.9, (r0.seconds + 20) / r0.duration), true);
+    const at = { cut: ctl.readout().mix.cutInBars, engrave: tp() };
+    await frame(); await frame(); await sleep(120);
+    const w1 = ctl.readout().mix.wait;
+    const f1 = { p: window.ring.cells()[i].fill.p, wait: !!w1 };
+    await sleep(1500);
+    const w2 = ctl.readout().mix.wait;
+    const f2 = { p: window.ring.cells()[i].fill.p, wait: !!w2, held: window.ring.cells()[i].held };
+    ctl.stop();
+    return { laid, before, at, f1, f2 };
+  `),
+  judge: (r) => {
+    const bad = [];
+    if (!r.laid) bad.push('the hand-over was never laid');
+    const said = /CUT IN (\d+)/.exec(r.at.engrave);
+    if ((said ? Number(said[1]) : 0) !== r.at.cut) bad.push(`at the seek the readout said cut in ${r.at.cut} and the engraving "${r.at.engrave}"`);
+    // no wait: the fill is empty; a wait laid again (the seek re-arming the ask): the fill moves
+    if (!r.f1.wait && !r.f2.wait) { if (r.f1.p !== 0 || r.f2.p !== 0) bad.push(`with no wait the fill stood at ${r.f1.p} and ${r.f2.p}`); }
+    else if (r.f1.p > 0 && r.f1.p === r.f2.p) bad.push(`the fill held at ${r.f1.p} across 1.5 s`);
+    return {
+      ok: !bad.length,
+      why: bad.join('; '),
+      note: `before the seek the fill was ${r.before.p} and the engraving "${r.before.engrave}"; on the seek's readout "${r.at.engrave}" (cut in ${r.at.cut}); after it the fill read ${r.f1.p} then ${r.f2.p} with ${r.f2.wait ? 'a wait laid again' : 'no wait'}`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a stopped ring writes no path the eye cannot see: the lit and traced lines are moved only while they show',
+  area: 'ring',
+  query: 'v=2&seed=1',
+  page: body(`
+    await sleep(1500);
+    let total = 0, hidden = 0, dots = 0;
+    const mo = new MutationObserver((list) => {
+      for (const m of list) {
+        total++;
+        const t = m.target, cls = t.getAttribute('class') || '';
+        if (m.attributeName !== 'd') continue;
+        if (/dot/.test(cls)) dots++;
+        if (/lit|trace/.test(cls) && Number(t.getAttribute('opacity') || 0) === 0) hidden++;
+      }
+    });
+    mo.observe(el('starLines'), { attributes: true, subtree: true });
+    await sleep(3000);
+    mo.disconnect();
+    return { hidden, dots, perSecond: Math.round(total / 3) };
+  `),
+  judge: (r) => ({
+    ok: r.hidden === 0 && r.dots > 0,
+    why: `${r.hidden} writes to a path at opacity 0 in 3 s (the dotted lines ${r.dots})`,
+    note: `at rest the star's lines took ${r.perSecond} writes a second, the dotted lines' paths ${r.dots} in 3 s and no path the eye cannot see`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a cut\'s drawing goes from the inner layer once it lands: the node it filled is not kept hidden',
+  area: 'ring',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  page: body(`
+    ctl.setMinutes(1);
+    await sleep(200);
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, DEADLINE);
+    const n0 = el('inner').querySelectorAll('*').length;
+    const was = ctl.mix.state.theme.index;
+    window.ring.skip();
+    await waitFor(() => ctl.readout().mix.cutting, 5000);
+    await frame(); await frame();
+    const during = el('cutFill') ? el('cutFill').childNodes.length : -1;
+    const landed = await waitFor(() => ctl.mix.state.theme.index > was && !ctl.readout().mix.cutting, 90000);
+    await frame(); await frame();
+    const after = el('cutFill') ? el('cutFill').childNodes.length : 0;
+    const n1 = el('inner').querySelectorAll('*').length;
+    ctl.stop();
+    return { n0, n1, during, after, landed };
+  `),
+  judge: (r) => ({
+    ok: r.landed && r.during > 0 && r.after === 0 && r.n1 - r.n0 <= 1,
+    why: JSON.stringify(r),
+    note: `the skip's fill drew ${r.during} groups while it waited and none once it landed; the inner layer went ${r.n0} → ${r.n1} nodes`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'the machine view on a bypass link reads the plan that plays: the voice the bypass put back, and no swapped line',
+  area: 'view',
+  query: 'v=2&seed=6&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,gl:0.36,ve:0.15,sp:0.10,lo:0.80&roles=classic&strings=1000',
+  deadline: 120000,
+  page: body(`
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.record, DEADLINE);
+    await sleep(1000);
+    await window.ring.machine.open();
+    await sleep(800);
+    const voices = (t) => [...new Set(t.events.filter((e) => e.layer === 'bass').map((e) => e.voice))].sort().join('+');
+    const snap = window.ring.machine.snapshot();
+    const t = ctl.readout().track;
+    const out = { readout: voices(t), sounding: voices(ctl.mix.record.track), swapped: !!(t.sound && t.sound.roles && t.sound.roles.swapped),
+      lanes: snap.lanes.filter((l) => l.group === 'bass').map((l) => l.playing.join('+')).join('|') };
+    window.ring.machine.close();
+    ctl.stop();
+    return out;
+  `),
+  judge: (r) => ({
+    ok: r.readout === r.sounding && !r.swapped && r.sounding.split('+').every((v) => r.lanes.includes(v)),
+    why: JSON.stringify(r),
+    note: `under roles=classic the ring's plan plays ${r.readout} on the bass, the record ${r.sounding}, and the view's bass lanes read ${r.lanes}`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'a genre key arriving says so, the arriving deck is drawn beside the record, and the Drum & Bass key\'s words are the listener\'s',
+  area: 'view',
+  query: 'v=2&seed=1',
+  deadline: 120000,
+  page: body(`
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, DEADLINE);
+    await window.ring.machine.open();
+    await sleep(1000);
+    const tile = () => document.querySelector('#machine button.genre[data-genre="Drum & Bass"]');
+    const title0 = tile().getAttribute('title');
+    tile().click();
+    const arriving = await waitFor(() => tile().classList.contains('arriving') && !!ctl.mix.arriving, 30000);
+    await sleep(600);
+    const snap = window.ring.machine.snapshot();
+    const rows = snap.part.nodes.filter((n) => n.id.startsWith('arriving:')).map((n) => n.label).join(',');
+    const title1 = (tile().querySelector('.vh') || { textContent: '' }).textContent;
+    const lamp = tile().querySelector('[data-arriving] circle');
+    const out = { title0, title1, arriving, rows, lamp: lamp ? lamp.getAttribute('fill') : null, asked: !!snap.asked };
+    window.ring.machine.close();
+    ctl.stop();
+    return out;
+  `),
+  judge: (r) => {
+    const bad = [];
+    if (/his word|Eugene|not reached/i.test(r.title0)) bad.push(`the key's words: "${r.title0}"`);
+    if (!r.arriving || !/arriving/.test(r.title1 || '') || !r.lamp) bad.push(`the key arriving: ${r.arriving}, its words "${r.title1}", lamp ${r.lamp}`);
+    if (r.rows !== 'IN HP,IN LP,IN FADER') bad.push(`the arriving deck's rows: ${r.rows}`);
+    return { ok: !bad.length, why: bad.join('; '), note: `"${r.title0}"; pressed, it told a reader "${r.title1.trim()}" with its lamp ${r.lamp}, and the rack drew ${r.rows}` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'the machine view at a phone\'s width: a strip key is found by a press over 32 pixels, a popover keeps the focus, and the scrolled readings are named',
+  area: 'view',
+  query: 'v=2&seed=1',
+  deadline: 90000,
+  page: body(`
+    await started();
+    await window.ring.machine.open();
+    await sleep(1200);
+    // a key's reach: how far from its middle a press still finds it, across and down
+    const muteKey = document.querySelector('#machine g[role="button"][aria-label^="Mute "]');
+    const soloKey = document.querySelector('#machine g[role="button"][aria-label^="Solo "]');
+    muteKey.scrollIntoView({ block: 'center', inline: 'center' });
+    await sleep(200);
+    const kb = muteKey.getBoundingClientRect();
+    const mx = kb.x + kb.width / 2, my = kb.y + kb.height / 2;
+    const finds = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest('g[role="button"]'); };
+    const reach = (dx, dy) => { let k = 0; while (k < 40 && finds(mx + dx * (k + 1), my + dy * (k + 1)) === muteKey) k++; return k; };
+    const mute = { width: reach(-1, 0) + reach(1, 0) + 1, height: reach(0, -1) + reach(0, 1) + 1 };
+    // and the press just past its reach toward Solo finds Solo, never the two at once
+    const solo = { found: finds(mx + reach(1, 0) + 1, my) === soloKey, drawn: [Math.round(kb.width), Math.round(kb.height)] };
+    const strip = document.querySelector('#machine g[role="button"][aria-label^="Strip "]');
+    strip.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await sleep(300);
+    const pop = document.querySelector('#machine .desk-pop');
+    const keys = [...pop.querySelectorAll('button, input, select, summary, [tabindex]')].filter((k) => k.tabIndex >= 0 && !k.disabled && k.getClientRects().length > 0);
+    const tab = (shift) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true, cancelable: true }));
+    keys[keys.length - 1].focus();
+    tab(false);
+    const wrapped = document.activeElement === keys[0];
+    tab(true);
+    const back = document.activeElement === keys[keys.length - 1];
+    const out = { modal: pop.getAttribute('aria-modal'), keys: keys.length, wrapped, back,
+      mute: [mute.width, mute.height], drawn: solo.drawn, overlap: !solo.found,
+      facts: (document.querySelector('#machine .facts') || { getAttribute: () => null }).getAttribute('aria-label') };
+    window.ring.machine.close();
+    ctl.stop();
+    return out;
+  `),
+  judge: (r) => ({
+    ok: r.modal === 'true' && r.wrapped && r.back && r.mute[0] >= 32 && r.mute[1] >= 32 && !r.overlap && r.facts === 'readings',
+    why: JSON.stringify(r),
+    note: `the Mute key, drawn ${r.drawn.join(' × ')}, is found by a press over ${r.mute.join(' × ')} px, and past it the press finds Solo; the strip's popover is modal and Tab went round its ${r.keys} keys both ways; the readings are a region named "${r.facts}"`,
+  }),
 });
 
 export default SCENARIOS;

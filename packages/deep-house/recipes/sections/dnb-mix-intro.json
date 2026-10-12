@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/dnb-mix-intro",
+  "revision": 2,
+  "name": "kick and hats first",
+  "scope": "section",
+  "applies": "intro",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 16,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "clap"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      }
+    ],
+    "admits": {
+      "fill": "last"
+    },
+    "kit": "gated"
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "dnb-6",
+    "moved": "round DNB-6 (2026-10-05): written as a row in the treatment contract, never code; revision 2 (liquid-space, 2026-10-11): the kit gated (`section.kit`) — the place's kit plays what the phrases switch on, the kick and the hats from the first bar, where its intro rule had kept only the hats over the last four bars, so the promised mixing intro has its drums in the final events",
+    "kind": "section",
+    "knowledge": "authored: the territory's intro built for mixing — the kick and the hats a DJ lays the outgoing tune's end over, the break joining them, the line and the pads on the last phrase; no record's arrangement copied",
+    "plays": "preferred by the form rows that ask for it (dnb/form-two-drop, dnb/form-rolling) beside the fast broken place's intro rows; at nought in itself, pinnable (?recipe=dnb/dnb-mix-intro)"
+  }
+}

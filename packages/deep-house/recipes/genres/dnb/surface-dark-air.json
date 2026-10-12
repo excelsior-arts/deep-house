@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/surface-dark-air",
+  "revision": 1,
+  "name": "A dark air under the exposed passages",
+  "scope": "surface",
+  "applies": "texture",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "surface": {
+      "voice": "airBed",
+      "present": {
+        "exposed": 0,
+        "intro": -5,
+        "outro": -7
+      },
+      "segmentBars": 8,
+      "leastBars": 8,
+      "level": [
+        [
+          0,
+          -9
+        ],
+        [
+          0.45,
+          0
+        ],
+        [
+          1,
+          -7
+        ]
+      ],
+      "bright": [
+        [
+          0,
+          0.45
+        ],
+        [
+          0.45,
+          1.0
+        ],
+        [
+          1,
+          0.55
+        ]
+      ],
+      "tailS": 2.5,
+      "midi": 60,
+      "vel": 0.7,
+      "reverb": 0.25,
+      "note": "One bed at a time, under the exposed passages (a breakdown with no fast drums), lower under an intro and an outro, absent in every full passage. A span is laid in events of eight bars that overlap by the bed's own fades, so a seek resumes the same surface on the next one; its level and its brightness follow one slow arc over the span, darker and lower at its ends."
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's N1 (dark air) and N4 (one slow arc a section), on the vinyl topology's dark row (packages/engine/sounds/noise/airBed.json)."
+  }
+}

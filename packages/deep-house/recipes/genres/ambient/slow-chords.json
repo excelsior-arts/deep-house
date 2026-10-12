@@ -164,7 +164,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -192,6 +192,12 @@
   "provenance": {
     "pattern": "ambient: slow, sustained chords that change every four bars and swell in and out, with a sparse high bell far back in the room — no drums, no pulse",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Sixteen bars: four chords on a held ensemble, each four bars long and voiced wide, swelling in over a beat and out over two. Over it an immersed bell, one note every few bars, above 2 kHz — the top octave the research found missing from the ambient key. Plays under the Ambient key, where the drums are off; the row asks for no drums and claims no rhythm."
+    "note": "Sixteen bars: four chords on a held ensemble, each four bars long and voiced wide, swelling in over a beat and out over two. Over it an immersed bell, one note every few bars, above 2 kHz — the top octave the research found missing from the ambient key. Plays under the Ambient key, where the drums are off; the row asks for no drums and claims no rhythm.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 2,
+      "syncopationZ": null,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

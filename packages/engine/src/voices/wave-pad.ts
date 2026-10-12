@@ -39,6 +39,12 @@ import { insert } from './treat.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf, provePatch, withDesk } from './sound.ts';
+import { centsOf, liveOf, side } from './live.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, int, list, num, pos, DB, HZ, LEVEL, LFO_HZ, SECONDS, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 /** The two frames a morph runs between. */
 interface Frames {
@@ -55,7 +61,7 @@ const waveCache = new WeakMap<BaseAudioContext, Map<string, Frames>>();
 /**
  * The two frames, as `PeriodicWave`s, cached per context and spec.
  */
-export function frames(ctx: BaseAudioContext, S: Settings['wavePad']): Frames {
+export function frames(ctx: BaseAudioContext, S: WavePadPatch): Frames {
   let per = waveCache.get(ctx);
   if (!per) { per = new Map(); waveCache.set(ctx, per); }
   const key = `${S.partials}:${S.hollow}:${S.humpDb}:${S.humpAt}:${S.humpWidth}`;
@@ -96,7 +102,7 @@ function stack(
   time: number,
   end: number | null,
   hz: number,
-  S: Settings['wavePad'],
+  S: WavePadPatch,
   spread: number,
 ) {
   const w = frames(ctx, S);
@@ -105,6 +111,7 @@ function stack(
   const a = ctx.createGain();
   const b = ctx.createGain();
   nodes.push(a, b);
+  const layers: Array<{ lvl: GainNode; pn: StereoPannerNode; level: number; pan: number }> = [];
   for (const [octave, level, pan] of S.layers) {
     for (const [wave, gainNode] of [[w.from, a], [w.to, b]] as [PeriodicWave, GainNode][]) {
       const o = ctx.createOscillator();
@@ -120,14 +127,16 @@ function stack(
       if (end != null) o.stop(end);
       sources.push(o);
       nodes.push(lvl, pn);
+      layers.push({ lvl, pn, level, pan });
     }
   }
   a.connect(into);
   b.connect(into);
-  return { a, b, sources, nodes };
+  return { a, b, sources, nodes, layers };
 }
 
-export function wavePad(
+function wavePad(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -135,7 +144,7 @@ export function wavePad(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.wavePad;
+  const S = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.3, p.dur ?? 3.5);
   const vel = p.vel ?? 0.7;
@@ -187,6 +196,31 @@ export function wavePad(
   drift.start(time);
   drift.stop(end + 0.05);
 
+  // **What this chord can still take** (PLAN-DESK D1b): the corner and its
+  // opening by velocity, as a `detune` on the filter (the drift riding its
+  // frequency scaled with it, as the note scales it), the Q, the drift's rate
+  // and depth, the spread, and the level against the trim it was built at.
+  // The two frames, the morph's walk and the envelope are the build's.
+  const live = liveOf(ctx);
+  if (live) {
+    const built = lp.frequency.value;
+    const cur = { cutoff: S.cutoff, veloOpen: S.veloOpen, trim: S.trim };
+    const corner = (): Array<[AudioParam, number]> => [[lp.detune, centsOf(Math.min(12000, cur.cutoff * (1 + cur.veloOpen * vel) * (p.cutoffMul ?? 1)), built)]];
+    live
+      .on('cutoff', (v) => { cur.cutoff = v; return corner(); })
+      .on('veloOpen', (v) => { cur.veloOpen = v; return corner(); })
+      .on('q', (v) => [[lp.Q, v]])
+      .on('driftHz', (v) => [[drift.frequency, v]])
+      .on('driftDepth', (v) => [[driftDepth.gain, built * v]])
+      .on('spread', (v) => (p.spread != null ? [] : st.layers.map(({ pn, pan }) => [pn.pan, side(pan * v * (p.spreadMul ?? 1))] as [AudioParam, number])))
+      .on('trim', (v) => {
+        if (!(S.trim > 0)) return [];
+        cur.trim = v;
+        return st.layers.map(({ lvl, level }) => [lvl.gain, level * (v / S.trim)] as [AudioParam, number]);
+      })
+      .keep(row.id, row, settings, end + 0.05);
+  }
+
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: 1, delay: p.delay ?? 0.08, reverb: p.reverb ?? 0.55 });
   return end;
@@ -205,7 +239,8 @@ export function holdWavePad(
   p: NoteParams = {},
   settings: Settings,
 ): HeldVoice {
-  const S = settings.wavePad;
+  // the held pad is the record's own `wavePad`, the room's copy of its row
+  const S = withDesk('wavePad', provePatch(settings.wavePad, PARAMETERS, 'the settings\' wavePad block', true), PARAMETERS, 'the settings\' wavePad block', true);
   const time = startTime(ctx, at);
   const hz = midiToHz(p.midi ?? 57);
   const level = (p.vel ?? 0.8) * (p.gain ?? 1) * S.trim;
@@ -255,31 +290,59 @@ export function holdWavePad(
     },
     sources: st.sources,
     nodes: [...st.nodes, lp, g],
+    // D1b: the row's corner is this drone's brightness, and its trim its level
+    live: { voice: 'wavePad', settings, paths: {
+      cutoff: (v) => [['brightness', Math.min(12000, v * (p.cutoffMul ?? 1))]],
+      trim: (v) => [['gain', (p.vel ?? 0.8) * (p.gain ?? 1) * v]],
+    } },
   });
 }
 
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const WAVE_PAD_TIMBRES = {
-  wavePad: { family: 'sustained', struck: false, hold: 0.9, brightnessHz: 2200, loudnessDb: -11 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  /** how many partials each frame is drawn with: the length of its table */
+  partials: int(1, 256),
+  hollow: num(0, 4),
+  humpAt: num(0, 256),
+  /** the hump's width, in partials: it is squared into a denominator */
+  humpWidth: pos(256),
+  /** not decibels: a linear lift over one (see `frames`) */
+  humpDb: num(0, 64),
+  /** the layers: `[octave, level, pan]` each */
+  layers: list(list(num(-8, 16), 3), 1, 8),
+  morphFrom: UNIT,
+  morphTo: UNIT,
+  morphTime: SECONDS,
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  cutoff: HZ,
+  q: DB,
+  veloOpen: num(0, 8),
+  driftHz: LFO_HZ,
+  driftDepth: UNIT,
+  spread: UNIT,
+  trim: LEVEL,
+}, (w) => w.layers.flatMap(([octave, level, pan], i) => [
+  ...(octave >= -4 && octave <= 4 ? [] : [`layers[${i}]'s octave ${octave} is more than four octaves from the note`]),
+  ...(level >= 0 && level <= 16 ? [] : [`layers[${i}]'s level ${level} is not a level`]),
+  ...(pan >= -1 && pan <= 1 ? [] : [`layers[${i}]'s pan ${pan} is past the edge of the field`]),
+]));
 
-export const descriptor: Descriptor = {
-  name: 'wavePad',
+/** What a row of this topology carries, as its contract types it. */
+export type WavePadPatch = PatchOf<typeof PARAMETERS.fields>;
+
+/**
+ * The wavetable pad topology: two spectra and a morph between them
+ * (`sounds/ensemble/wavePad.json` since round R2). Its held entry,
+ * `holdWavePad`, reads the same block.
+ */
+export const WAVETABLE_PAD: Topology = {
+  id: 'wavetable-pad',
   cost: 'dear',
-  family: 'ensemble',
-  roles: ['sustained'],
-  bus: 'melodic',
-  level: 'pad',
-  layer: 'pad',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: wavePad,
-  timbres: WAVE_PAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  // D1b: the corner and its opening, the Q, the drift, the spread and the level; the frames, the morph's walk and the envelope are the build's
+  live: { cutoff: 'hz', veloOpen: 'x', q: 'db', driftHz: 'hz', driftDepth: 'ratio', spread: 'ratio', trim: 'level' },
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => wavePad(row, ctx, out, time, p, settings),
 };
-
-export default wavePad;

@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "crash",
+  "revision": 1,
+  "topology": "cymbal",
+  "block": "crash",
+  "dice": 97.7,
+  "parameters": {
+    "ratios": [
+      1,
+      1.63,
+      2.21,
+      3.07,
+      4.13,
+      5.41
+    ],
+    "base": 380,
+    "detune": 30,
+    "metal": 0.32,
+    "hp": 1800,
+    "peakHz": 7000,
+    "q": 0.2,
+    "tilt": 3,
+    "lidHz": 12000,
+    "pingHz": 0,
+    "pingLevel": 0,
+    "pingDecay": 0.05,
+    "bellPing": 1,
+    "bellWash": 1,
+    "bellRing": 1,
+    "t10": 0.75,
+    "seconds": 3.2,
+    "variants": 2,
+    "variantCents": 30,
+    "attack": 0.004,
+    "trim": 0.72,
+    "rateSpread": 0.02,
+    "gainSpread": 0.06,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.2,
+    "velDecay": 0.5,
+    "pan": -0.25,
+    "room": 0.18
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "drums",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "crash": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.22,
+        "brightnessHz": 7000,
+        "loudnessDb": -10.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "cymbals.ts",
+    "note": "A crash: the same builder with a wider ladder, more noise and no ping. It is the kitchen's one `texture` instrument, because what a crash does in an arrangement is mark a section rather than keep a rhythm."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

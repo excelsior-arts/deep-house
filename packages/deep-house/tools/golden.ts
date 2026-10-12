@@ -172,6 +172,22 @@ function countEvents(x) {
   return Object.values(x.masters).reduce((a, plans) => a + plans.reduce((b, p) => b + eventCount(p), 0), 0);
 }
 
+// How much of the digest moved, as a count a bless can state (V1-1, 10-02:
+// house-v1's section is blessed with its counts like house-v2's, so the first
+// line that moved is not enough on its own): the theme lines whose hash is
+// not the saved one, or which the saved section does not hold.
+function movedCount(saved, fresh) {
+  const a = (saved && saved.masters) || {};
+  let moved = 0, total = 0;
+  for (const m of Object.keys(fresh.masters)) {
+    fresh.masters[m].forEach((p, i) => {
+      total++;
+      if (!a[m] || !a[m][i] || a[m][i].hash !== p.hash) moved++;
+    });
+  }
+  return `${moved} of ${total} theme lines`;
+}
+
 // First differing path, so a failure says where and not just "different".
 function firstDiff(a, b, at = '') {
   if (a === b) return null;
@@ -254,13 +270,15 @@ if (mode === '--check') {
     console.error('Restore it from git, or run `node tools/golden.ts --bless` if the generator is where Eugene wants it.');
     process.exit(2);
   }
-  const digest = digestDiff(sectionOf(JSON.parse(fs.readFileSync(DIGEST, 'utf8')), strategy.id), digestOf(fresh, strategy));
+  const section = sectionOf(JSON.parse(fs.readFileSync(DIGEST, 'utf8')), strategy.id);
+  const digest = digestDiff(section, digestOf(fresh, strategy));
   // The full snapshot is a scratch file and may not be here. When it is, it
   // turns "the hash moved" into the bar and the field that moved. It is one
   // file per strategy, because it is one strategy's every note.
   const detail = fs.existsSync(FILE) ? firstDiff(JSON.parse(fs.readFileSync(FILE, 'utf8')), fresh, 'golden') : null;
   if (digest || detail) {
     console.error(`the generator has moved:\n  ${digest || 'the digest agrees, but the full snapshot does not'}`);
+    if (digest) console.error(`  moved: ${movedCount(section, digestOf(fresh, strategy))}`);
     if (detail) console.error(`  ${detail}`);
     else if (digest) console.error('  (no full snapshot under tmp/golden/; --bless one on a known-good checkout to read the note that moved)');
     console.error('\nIf that is intended and Eugene has re-blessed it: node tools/golden.ts --bless');

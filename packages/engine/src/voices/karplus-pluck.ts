@@ -59,9 +59,43 @@ import { insert } from './treat.ts';
 import type { Descriptor, NoteParams, PrepareOptions } from './descriptor.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, int, num, pos, CENTS, HZ, LEVEL, SECONDS, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-/** The settings' own `karplusPluck` block: what one string is made of. */
-type Karplus = Settings['karplusPluck'];
+/**
+ * What one string is made of: what a row of this topology carries, exactly,
+ * each in its range (`schema.ts`). The decay divides (`10^(-3/(decay x
+ * rate))`), the buffer is as long as the shorter of the decay and
+ * `maxSeconds`, and the cache holds `cacheLimit` of them, so each has a
+ * ceiling.
+ */
+const PARAMETERS = contract({
+  burst: pos(0.1),
+  damp: UNIT,
+  dampVel: UNIT,
+  decay: pos(30),
+  maxSeconds: pos(10),
+  ringLevel: LEVEL,
+  peakCeiling: LEVEL,
+  detuneCents: CENTS,
+  spread: UNIT,
+  attack: SECONDS,
+  release: SECONDS,
+  cutoff: HZ,
+  veloOpen: num(0, 8),
+  hpHz: HZ,
+  cacheLimit: int(1, 512),
+  trim: LEVEL,
+});
+
+/** What one string is made of, as the contract types it. */
+type Karplus = PatchOf<typeof PARAMETERS.fields>;
+
+/** The rows of this topology, by event name, as the registry admitted them. */
+const ROWS = new Map<string, SoundRow>();
 
 const strings = new WeakMap<BaseAudioContext, Map<string, AudioBuffer>>();
 
@@ -72,7 +106,7 @@ const velBucket = (vel: number | undefined): number => Math.max(0, Math.min(3, M
  * One plucked string, as samples. Deterministic from a fixed seed, one channel,
  * normalised to a peak of one.
  *
- * @param K the settings' `karplusPluck` block
+ * @param K the row's patch, resolved (`patchOf`)
  */
 export function stringBuffer(ctx: BaseAudioContext, midi: number, vel: number, K: Karplus): AudioBuffer {
   let per = strings.get(ctx);
@@ -173,21 +207,31 @@ export function prepareKarplus(
   opts: PrepareOptions = {},
 ): Promise<void> {
   if (!events || !events.length) return Promise.resolve();
-  const K = settings.karplusPluck;
   const from = opts.from ?? 0;
-  const seen = new Set<string>();
+  // Each event's own row, resolved as the note will resolve it (E06 of the
+  // outside review of 10-03): this read `settings.karplusPluck` whatever row the
+  // event named, so a variant with numbers of its own was warmed as the
+  // incumbent string and computed its real one on the play path. The strings
+  // are keyed by what they are computed from, so two rows with one string
+  // share it; each row warms at most its own cache's worth.
+  const seen = new Map<string, Set<string>>();
   for (const e of events) {
     if (!e.p || e.p.midi == null || (e.t ?? 0) < from) continue;
+    const row = ROWS.get(e.voice);
+    if (!row) continue;
+    const K = patchOf(settings, row, PARAMETERS);
+    let mine = seen.get(row.id);
+    if (!mine) seen.set(row.id, (mine = new Set()));
     const k = `${e.p.midi}:${velBucket(e.p.vel)}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    if (seen.size > K.cacheLimit) break;
+    if (mine.has(k) || mine.size >= K.cacheLimit) continue;
+    mine.add(k);
     stringBuffer(ctx, e.p.midi, e.p.vel ?? 1, K);
   }
   return Promise.resolve();
 }
 
-export function karplusPluck(
+function karplusPluck(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -195,7 +239,7 @@ export function karplusPluck(
   settings: Settings,
 ): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const K = settings.karplusPluck;
+  const K = patchOf(settings, row, PARAMETERS);
   const vel = p.vel ?? 1;
   const dur = Math.max(0.05, p.dur ?? 0.4);
 
@@ -243,33 +287,15 @@ export function karplusPluck(
 }
 
 /**
- * MEASURED by the gate (`tools/test-voices.ts --bless`). `hold` is what is
- * left of the string at the bar line at this decay — a string is not an
- * envelope's sustain fraction, so this one is read off the decay the loop is
- * given rather than copied out of a table — and `brightnessHz` is the body
- * filter's corner.
+ * The Karplus string topology: a burst through a damped delay line,
+ * computed once per pitch and held in the string cache
+ * (`sounds/keyboard/karplusPluck.json` since round R2).
  */
-export const KARPLUS_TIMBRES = {
-  karplusPluck: { family: 'harmonic', struck: true, hold: 0.22, brightnessHz: 3200, loudnessDb: -13.2 },
-};
-
-export const descriptor: Descriptor = {
-  name: 'karplusPluck',
+export const KARPLUS: Topology = {
+  id: 'karplus',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['figure', 'melody'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
+  parameters: PARAMETERS,
   prepare: prepareKarplus,
-  render: karplusPluck,
-  timbres: KARPLUS_TIMBRES,
-  dispatches: [],
-  mood: [],
+  rows: ROWS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => karplusPluck(row, ctx, out, time, p, settings),
 };
-
-export default karplusPluck;

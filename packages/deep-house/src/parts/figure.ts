@@ -79,7 +79,7 @@ export function phrasePhase(starts: readonly number[], count: number, index: num
 // interpreter, never to a recipe. Omitted requests retain every old default.
 export const AMBIENCE_ROLES = ['backbeat', 'sixteenth', 'figure'] as const;
 export const PRESENCE_ROLES = [...AMBIENCE_ROLES, 'sustained'] as const;
-export const AMBIENCE_NAMES = ['intimate', 'spacious', 'distant'] as const;
+export const AMBIENCE_NAMES = ['intimate', 'spacious', 'distant', 'echo'] as const;
 export type Ambience = Partial<Record<typeof AMBIENCE_ROLES[number], typeof AMBIENCE_NAMES[number]>>;
 export type Presence = Partial<Record<typeof PRESENCE_ROLES[number], 'supporting' | 'background'>>;
 

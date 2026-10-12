@@ -29,16 +29,31 @@
 // velocity on the rate and the decay, five dice off the strike time — and none
 // of them is reachable by any die.
 
-import { strike, warmDrums, drumNoise, filter, tuned, transient } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import { GAIN_FLOOR } from '../dsp.ts';
-import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import { kit, kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { contract, list, num, CENTS, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
 import type { Settings } from '../settings.ts';
 
-/** The four settings blocks this module reads, as the one union `common` walks. */
-type PercBlock = Settings['cabasa'] | Settings['tambourine'] | Settings['cowbell'] | Settings['woodblock'];
+// What a row of each of the four carries, each in its range (`schema.ts`): the
+// kit's shared fields and the instrument's own. A tambourine's jingles share
+// one level among their ratios, so there is at least one.
+const SHARED = {
+  t10: KIT.t10, seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents, attack: KIT.attack,
+  trim: KIT.trim, rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread, decaySpread: KIT.decaySpread,
+  panSpread: KIT.panSpread, velBright: KIT.velBright, velDecay: KIT.velDecay, pan: KIT.pan, room: KIT.room,
+} as const;
+const CABASA = contract({ hp: HZ, peakHz: HZ, q: Q, gapSeconds: SECONDS, second: LEVEL, ...SHARED });
+const TAMBOURINE = contract({
+  hp: HZ, peakHz: HZ, q: Q, ratios: list(RATIO, 1, 16), jingleHz: HZ, jingleLevel: LEVEL, skinHz: HZ, skinLevel: LEVEL,
+  skinDecay: SECONDS, ...SHARED,
+});
+const COWBELL = contract({ lowHz: HZ, highHz: HZ, detune: CENTS, hp: HZ, band: HZ, q: Q, ...SHARED });
+/** a woodblock: two resonators rung by one burst, `boost` the first's gain and `second` the other's against it */
+const WOODBLOCK = contract({ boost: num(0, 64), hz: HZ, secondHz: HZ, second: LEVEL, q: Q, strikeDecay: SECONDS, ...SHARED });
+
+/** The four patches this module reads, as the one union `common` walks. */
+type PercBlock = PatchOf<typeof CABASA.fields> | PatchOf<typeof TAMBOURINE.fields> | PatchOf<typeof COWBELL.fields> | PatchOf<typeof WOODBLOCK.fields>;
 
 /** The knobs every one of the four shares, off its own block. */
 const common = (P: PercBlock) => ({
@@ -62,7 +77,7 @@ const common = (P: PercBlock) => ({
 
 // --- the cabasa -------------------------------------------------------------
 
-const cabasaSpec = (P: Settings['cabasa']): DrumSpec => ({ ...common(P), hz: P.peakHz, q: P.q, hp: P.hp, gapSeconds: P.gapSeconds, second: P.second });
+const cabasaSpec = (P: PatchOf<typeof CABASA.fields>): DrumSpec => ({ ...common(P), hz: P.peakHz, q: P.q, hp: P.hp, gapSeconds: P.gapSeconds, second: P.second });
 
 const shakerVariant = (spec: DrumSpec, k: number): DrumSpec => (k ? {
   ...spec,
@@ -89,7 +104,7 @@ function cabasaBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: n
 
 // --- the tambourine ---------------------------------------------------------
 
-const tambSpec = (P: Settings['tambourine']): DrumSpec => ({ ...common(P), hz: P.peakHz, q: P.q, hp: P.hp, ratios: P.ratios, jingleHz: P.jingleHz, jingleLevel: P.jingleLevel, skinHz: P.skinHz, skinLevel: P.skinLevel, skinDecay: P.skinDecay });
+const tambSpec = (P: PatchOf<typeof TAMBOURINE.fields>): DrumSpec => ({ ...common(P), hz: P.peakHz, q: P.q, hp: P.hp, ratios: P.ratios, jingleHz: P.jingleHz, jingleLevel: P.jingleLevel, skinHz: P.skinHz, skinLevel: P.skinLevel, skinDecay: P.skinDecay });
 
 const tambVariant = (spec: DrumSpec, k: number): DrumSpec => (k ? {
   ...spec,
@@ -141,7 +156,7 @@ function tambBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: num
 
 // --- the cowbell ------------------------------------------------------------
 
-const bellSpec = (P: Settings['cowbell']): DrumSpec => ({ ...common(P), lowHz: P.lowHz, highHz: P.highHz, detune: P.detune, band: P.band, q: P.q, hp: P.hp });
+const bellSpec = (P: PatchOf<typeof COWBELL.fields>): DrumSpec => ({ ...common(P), lowHz: P.lowHz, highHz: P.highHz, detune: P.detune, band: P.band, q: P.q, hp: P.hp });
 
 const bellVariant = (spec: DrumSpec, k: number): DrumSpec => (k ? {
   ...spec,
@@ -163,7 +178,7 @@ function bellBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: num
 
 // --- the woodblock ----------------------------------------------------------
 
-const blockSpec = (P: Settings['woodblock']): DrumSpec => ({ ...common(P), hz: P.hz, q: P.q, second: P.second, secondHz: P.secondHz, strikeDecay: P.strikeDecay, boost: P.boost });
+const blockSpec = (P: PatchOf<typeof WOODBLOCK.fields>): DrumSpec => ({ ...common(P), hz: P.hz, q: P.q, second: P.second, secondHz: P.secondHz, strikeDecay: P.strikeDecay, boost: P.boost });
 
 const blockVariant = (spec: DrumSpec, k: number): DrumSpec => (k ? {
   ...spec,
@@ -194,122 +209,28 @@ function blockBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: nu
 }
 
 // --- the four ---------------------------------------------------------------
+//
+// Four builds and four topologies (round R2: `sounds/noise/cabasa.json`,
+// `tambourine.json`, `sounds/drum/cowbell.json`, `woodblock.json`), warmed in
+// the one pass they always shared. All four play the sixteenth role on the
+// shaker layer, which is the layer this record's own sixteenth already writes,
+// so the H lane reads them and no layer lands in two lanes.
 
-const CABASA: DrumInstrument = { id: 'cabasa', seed: 113.9, spec: (p, s) => cabasaSpec(s.cabasa), variant: shakerVariant, build: cabasaBody };
-const TAMB: DrumInstrument = { id: 'tambourine', seed: 127.3, spec: (p, s) => tambSpec(s.tambourine), variant: tambVariant, build: tambBody };
-const COWBELL: DrumInstrument = { id: 'cowbell', seed: 139.7, spec: (p, s) => bellSpec(s.cowbell), variant: bellVariant, build: bellBody };
-const BLOCK: DrumInstrument = { id: 'woodblock', seed: 149.1, spec: (p, s) => blockSpec(s.woodblock), variant: blockVariant, build: blockBody };
+const PERC = kit();
 
-const INSTS = { cabasa: CABASA, tambourine: TAMB, cowbell: COWBELL, woodblock: BLOCK };
-
-export const preparePerc = (ctx: BaseAudioContext, settings: Settings, events: ProgramEvent[]): Promise<void> =>
-  warmDrums(ctx, settings, events, INSTS);
-
-export function cabasa(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, CABASA, settings, at);
-}
-export function tambourine(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, TAMB, settings, at);
-}
-export function cowbell(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, COWBELL, settings, at);
-}
-export function woodblock(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, BLOCK, settings, at);
-}
-
-/** MEASURED, all four, and written by `tools/test-drums.ts --bless`. */
-export const PERC_MEASURED = {
-  cabasa: { loudnessDb: -18.6, clickStep: 0 },
-  tambourine: { loudnessDb: -19, clickStep: 0 },
-  cowbell: { loudnessDb: -19.3, clickStep: GAIN_FLOOR },
-  woodblock: { loudnessDb: -30.1, clickStep: 0 },
-};
-
-/** What the four are worth to a meter. */
-export const PERC_TIMBRES = {
-  cabasa: { family: 'noise', struck: true, hold: 0, brightnessHz: 6000, loudnessDb: PERC_MEASURED.cabasa.loudnessDb },
-  tambourine: { family: 'noise', struck: true, hold: 0.03, brightnessHz: 7500, loudnessDb: PERC_MEASURED.tambourine.loudnessDb },
-  cowbell: { family: 'drum', struck: true, hold: 0.01, brightnessHz: 2600, loudnessDb: PERC_MEASURED.cowbell.loudnessDb },
-  woodblock: { family: 'drum', struck: true, hold: 0, brightnessHz: 1400, loudnessDb: PERC_MEASURED.woodblock.loudnessDb },
-};
-
-/**
- * The four, on the sixteenth role and the shaker layer — which is the layer
- * this record's own sixteenth already writes, so the H lane reads them and no
- * layer lands in two lanes.
- */
-export const descriptors: Descriptor[] = [
-  {
-    name: 'cabasa',
-    cost: 'mid',
-    family: 'noise',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: preparePerc,
-    render: cabasa,
-    timbres: { cabasa: PERC_TIMBRES.cabasa },
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'tambourine',
-    cost: 'mid',
-    family: 'noise',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: preparePerc,
-    render: tambourine,
-    timbres: { tambourine: PERC_TIMBRES.tambourine },
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'cowbell',
-    cost: 'mid',
-    family: 'drum',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: preparePerc,
-    render: cowbell,
-    timbres: { cowbell: PERC_TIMBRES.cowbell },
-    dispatches: [],
-    mood: [],
-  },
-  {
-    name: 'woodblock',
-    cost: 'mid',
-    family: 'drum',
-    roles: ['sixteenth'],
-    bus: 'drums',
-    level: 'shaker',
-    layer: 'shaker',
-    plays: null,
-    mono: false,
-    treat: false,
-    anticipates: null,
-    prepare: preparePerc,
-    render: woodblock,
-    timbres: { woodblock: PERC_TIMBRES.woodblock },
-    dispatches: [],
-    mood: [],
-  },
-];
+export const SHAKEN = kitTopology({
+  id: 'shaken', cost: 'mid', kit: PERC, spec: cabasaSpec, variant: shakerVariant, build: cabasaBody,
+  parameters: CABASA,
+});
+export const JINGLE = kitTopology({
+  id: 'jingle', cost: 'mid', kit: PERC, spec: tambSpec, variant: tambVariant, build: tambBody,
+  parameters: TAMBOURINE,
+});
+export const BELL = kitTopology({
+  id: 'bell', cost: 'mid', kit: PERC, spec: bellSpec, variant: bellVariant, build: bellBody,
+  parameters: COWBELL,
+});
+export const BLOCK = kitTopology({
+  id: 'block', cost: 'mid', kit: PERC, spec: blockSpec, variant: blockVariant, build: blockBody,
+  parameters: WOODBLOCK,
+});

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/riser-every-two",
+  "revision": 1,
+  "name": "riser every two",
+  "scope": "treatment",
+  "applies": "lead-in",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "glue": {
+      "slot": "riser",
+      "bars": 2,
+      "level": 0.5
+    }
+  },
+  "place": {
+    "sections": [
+      "drop"
+    ],
+    "every": 2
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:2608+154",
+    "kind": "noise",
+    "where": "the two bars before a line, over a drop of 16 or more bars",
+    "reading": "cut 25 runs a riser every two bars (7.7 in 16); the drops elsewhere 0.2-0.8 in 16, the breakdowns 3-8",
+    "plays": "not yet: the lead-ins space their risers (generator.ts momentAt); a lead-in row is PLAN-TREATMENTS section 3, step 5",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear",
+    "note": "A candidate at nought: pinnable by link and drawn by nothing until the ear admits it (notes/rounds/treat-t1.md)."
+  }
+}

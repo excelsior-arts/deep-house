@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pianoElectric",
+  "revision": 1,
+  "topology": "bright-piano",
+  "parameters": {
+    "partials": 8,
+    "inharmonicity": 0.0011,
+    "attack": 0.002,
+    "decay": 2.2,
+    "partialDecay": 0.72,
+    "tilt": 0.45,
+    "upper": 0.04,
+    "release": 0.45,
+    "lpHz": 2000,
+    "veloOpen": 0.4,
+    "hammerHz": 1800,
+    "hammerLevel": 0.06,
+    "hammerTime": 0.003,
+    "spread": 0.3,
+    "trim": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "piano",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "returns": [],
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys-2.ts",
+    "round": "liquid-keys",
+    "note": "An electric grand: short stiff strings read by a pickup, so ten partials sharp of the harmonics with a zing at the strike, a quick plucky fall and no soundboard bloom; the lid soft at 2.8 kHz.",
+    "notes": {
+      "copiedFrom": "brightPiano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

@@ -1,0 +1,227 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "tracks/dark-sixteenths",
+  "revision": 1,
+  "name": "Dark sixteenths: four on the floor, sixteenth hats, a dark mix with decaying tails",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.231,
+      0.595
+    ],
+    "tide": [
+      0.434,
+      0.717
+    ],
+    "zephyr": [
+      0.255,
+      0.626
+    ],
+    "root": [
+      0.638,
+      0.824
+    ],
+    "gleam": [
+      0.23,
+      0.527
+    ],
+    "veil": [
+      0.65,
+      0.891
+    ],
+    "spark": [
+      0.517,
+      0.807
+    ],
+    "loom": [
+      0.302,
+      0.502
+    ]
+  },
+  "wants": {
+    "rates": {
+      "figure": {
+        "perBar": 4.563,
+        "min": 3.969,
+        "max": 5.266
+      },
+      "offbeat": {
+        "perBar": 7.531,
+        "min": 6.219,
+        "max": 9.469
+      }
+    },
+    "timbres": {
+      "lead": {
+        "brightnessClass": "dark",
+        "holdClass": "decaying"
+      },
+      "pad": {
+        "brightnessClass": "dark"
+      },
+      "stab": {
+        "brightnessClass": "dark",
+        "holdClass": "decaying"
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.522,
+  "score": {
+    "chef": 2,
+    "likes": 0
+  },
+  "verdicts": [
+    {
+      "seed": "1",
+      "verdict": "hit",
+      "at": "2026-09-19T15:07:32.686Z",
+      "by": "review:mined",
+      "theme": 3,
+      "bar": 60
+    }
+  ],
+  "provenance": {
+    "tool": "packages/deep-house/tools/imprint/mine-v2.ts",
+    "reading": "packages/deep-house/tools/imprint/mine_sources.py",
+    "date": "2026-09-19",
+    "anchors": "anchors.json@1e899ba4",
+    "sources": {
+      "1": "sha256:bd44e7431c7c52da05d9100140bd4ee5",
+      "2": "sha256:db5f7babce1c66231d854ac09734a0de",
+      "3": "sha256:c074ae92426c703bb83a27b0e3db77d1"
+    },
+    "segmentation": "key-stability segments >=150 s from a 20 s/45 s chroma key track; up to two 96 s groove chunks per track",
+    "segmentationNote": "v1's own coherent stretches, reused and not re-cut (CORPUS.md: a key segment is not guaranteed to be one track \u2014 two tracks in the same key back to back merge into one entry and a track that modulates splits into two).",
+    "medoidSet": 2,
+    "medoidStart": 8965,
+    "medoidDuration": 1305,
+    "medoidWindowFrom": 8965,
+    "medoidWindowSeconds": 1305,
+    "medoidBars": null,
+    "members": 24,
+    "pool": 46,
+    "box": "the members' 2.5th to 97.5th percentile on every bird \u2014 the middle half widened symmetrically until at least 50% of the members sit inside on all eight birds at once \u2014 then stretched to include the medoid; the coverage is in reading.coverage",
+    "rates": "onsets per bar in three bands \u2014 40-120 Hz, 300-2000 Hz, 6-11 kHz \u2014 keyed by the role each band stands in for. They are band proxies and not source separation: a bassline that moves inside the low band is a low-band onset and a clap is a mid-band one.",
+    "words": "every class word is a tercile of the corpus itself; the cut points are in notes/analysis/mining-v2.md",
+    "name": "the class words at least half the members agree on, and the medoid's own where they do not \u2014 so a name may describe the medoid where `wants` stays silent, which is the honest way round: a name is a description and a want is an instruction.",
+    "note": "A candidate, not a row of the library. Only `score` and `verdicts` are the listener's own, and no tool writes them.",
+    "scopeOf": "track",
+    "k": 2,
+    "silhouette": 0.101,
+    "stability": 0.547,
+    "unit": "one coherent stretch, taken as the median of its own eight-bar windows",
+    "identity": "mined:track@set2:8965+1305",
+    "mined": {
+      "id": "mined/track-01-four-on-the-floor-hats-on-the-sixteenths-a-dark-mix-fu",
+      "name": "four on the floor, hats on the sixteenths, a dark mix, full low end, decaying tails, a centred stage",
+      "interpreter": "v1",
+      "wants": {
+        "rates": {
+          "kick": {
+            "perBar": 4.688,
+            "min": 4.344,
+            "max": 5.344
+          },
+          "figure": {
+            "perBar": 4.563,
+            "min": 3.969,
+            "max": 5.266
+          },
+          "offbeat": {
+            "perBar": 7.531,
+            "min": 6.219,
+            "max": 9.469
+          }
+        },
+        "figures": {
+          "brightness": "dark",
+          "sustain": "decaying"
+        }
+      }
+    },
+    "port": {
+      "round": "genres GA2, 2026-09-26 (notes/rounds/genres-ga2.md)",
+      "read": "rates.figure and rates.offbeat lean the stab and hat masks (and the figure rate the density budget); figures.brightness and figures.sustain are class words, a tercile of the list each leans (brightness on the lead, pad and stab lists, sustain on the lead and stab)",
+      "lost": [
+        "rates.kick {\"perBar\":4.688,\"min\":4.344,\"max\":5.344}: the 40-120 Hz band is the kick and the bass together, and a four-floor kick is four a bar"
+      ],
+      "admitted": "by its family key's region (House / Deep House, the house spell +/- 0.15 on every bird); the mined box is readings and is never held against dice",
+      "placement": "GA5: the mined sets are four on the floor with the drums in; a drumless theme (Ember under 0.18) is not one, so the row places only where the drums play"
+    }
+  },
+  "reading": {
+    "confidence": {
+      "ember": 1,
+      "tide": 1,
+      "zephyr": 1,
+      "root": 1,
+      "gleam": 0.642,
+      "veil": 1,
+      "spark": 1,
+      "loom": 1
+    },
+    "coverage": {
+      "quantile": 0.025,
+      "members": {
+        "inside": 14,
+        "of": 24
+      },
+      "pool": {
+        "inside": 20,
+        "of": 46
+      },
+      "every": {
+        "inside": 20,
+        "of": 51
+      },
+      "medoidInside": true
+    },
+    "centre": {
+      "ember": 0.392,
+      "tide": 0.537,
+      "zephyr": 0.445,
+      "root": 0.714,
+      "gleam": 0.364,
+      "veil": 0.792,
+      "spark": 0.648,
+      "loom": 0.405
+    },
+    "medoid": {
+      "birds": {
+        "ember": 0.3752,
+        "tide": 0.5657,
+        "zephyr": 0.3834,
+        "root": 0.7209,
+        "gleam": 0.3703,
+        "veil": 0.7978,
+        "spark": 0.706,
+        "loom": 0.4423
+      },
+      "confidence": {
+        "ember": 1,
+        "tide": 1,
+        "zephyr": 1,
+        "root": 1,
+        "gleam": 1,
+        "veil": 1,
+        "spark": 1,
+        "loom": 1
+      },
+      "note": "one member of the cluster, the nearest to its middle \u2014 not an average"
+    }
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "offbeat"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true
+  }
+}

@@ -1,4 +1,8 @@
-import { piano, preparePiano } from '../src/voices/piano.ts';
+import { preparePiano } from '../src/voices/piano.ts';
+import { VOICES } from '../src/voices/index.ts';
+
+// the piano is a row over its topology (round SOUNDS-R3): its note is the registry's
+const piano = VOICES.piano;
 import type { Settings } from '../src/settings.ts';
 import type { ProgramEvent } from '../src/program.ts';
 

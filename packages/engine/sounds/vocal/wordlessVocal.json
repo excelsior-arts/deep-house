@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "wordlessVocal",
+  "revision": 1,
+  "topology": "wordless-vocal",
+  "parameters": {
+    "attack": 0.065,
+    "release": 0.16,
+    "sustain": 0.82,
+    "vowelFrom": 0.15,
+    "vowelTo": 0.85,
+    "breath": 0.055,
+    "vibratoCents": 4,
+    "vibratoHz": 4.7,
+    "sourceTilt": null,
+    "detuneCents": 3,
+    "spread": 0.16,
+    "dry": 0.8,
+    "reverb": 0.6,
+    "delay": 0.08
+  },
+  "descriptor": {
+    "family": "vocal",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "attack": {
+        "unit": "seconds",
+        "min": 0.005,
+        "max": 1,
+        "default": 0.065
+      },
+      "release": {
+        "unit": "seconds",
+        "min": 0.02,
+        "max": 2,
+        "default": 0.16
+      },
+      "vowelFrom": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": 0.15
+      },
+      "vowelTo": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": 0.85
+      },
+      "vowelSeconds": {
+        "unit": "seconds",
+        "min": 0.01,
+        "max": 4,
+        "default": null
+      },
+      "breath": {
+        "unit": "level",
+        "min": 0,
+        "max": 0.3,
+        "default": 0.055
+      },
+      "vibratoCents": {
+        "unit": "cents",
+        "min": 0,
+        "max": 20,
+        "default": 4
+      },
+      "vibratoHz": {
+        "unit": "hz",
+        "min": 1,
+        "max": 8,
+        "default": 4.7
+      },
+      "vibratoDelay": {
+        "unit": "seconds",
+        "min": 0,
+        "max": 2,
+        "default": null
+      },
+      "dry": {
+        "unit": "send",
+        "min": 0,
+        "max": 2,
+        "default": 0.8
+      },
+      "fadeCurve": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      },
+      "sourceTilt": {
+        "unit": "ratio",
+        "min": 1,
+        "max": 3,
+        "default": null
+      },
+      "formantScale": {
+        "unit": "ratio",
+        "min": 0.6,
+        "max": 1.4,
+        "default": 1
+      },
+      "formantWidth": {
+        "unit": "ratio",
+        "min": 0.5,
+        "max": 2,
+        "default": 1
+      },
+      "vocalDetune": {
+        "unit": "cents",
+        "min": 0,
+        "max": 6,
+        "default": 3
+      },
+      "open": {
+        "unit": "hz",
+        "min": 700,
+        "max": 8000,
+        "default": 4600
+      }
+    },
+    "timbres": {
+      "wordlessVocal": {
+        "family": "vocal",
+        "struck": false,
+        "hold": 0.82,
+        "brightnessHz": 4600,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "wordless-vocal.ts",
+    "round": "sounds-r3",
+    "note": "A wordless sung syllable over the formant pad's body: notes keep the pitch asked for; a mouth opening, a delayed vibrato and breath shape the syllable, and the composer supplies the phrase's entrances and endings. Its own numbers — the envelope, the mouth's walk, the breath, the vibrato, its detune and width over the body, the tilt of its source, its sends — were its note controls' defaults and literals in its module; the body (vowels, formants, lid) is the room's `formantPad` block, which the formant pad's row owns.",
+    "notes": {
+      "sourceTilt": "Null is the plain sawtooth, which no tilt is; a phrase writes one (1 to 3) for a smoother source.",
+      "sustain": "The fraction a held syllable keeps; the timbre's hold is read off it.",
+      "timbres": "Its loudness is MEASURED by the gate every kitchen voice is held to (tools/test-voices.ts --bless): the voice alone on its fixture's melody through the real graph, both engines, both rates, less its table's level. It was typed as -12 while the voice waited for a fixture and read four decibels quieter when it got one (the engine review of 09-22, finding 5). The brightness is the mouth's default opening, the formant body's own corner.",
+      "cost": "MEASURED by tools/budget.ts --bless: 25 nodes a note and 46.6x the reference a minute on its fixture."
+    }
+  }
+}

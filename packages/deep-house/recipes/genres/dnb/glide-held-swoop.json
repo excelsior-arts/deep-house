@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/glide-held-swoop",
+  "revision": 2,
+  "name": "The held line and its swoop",
+  "scope": "motif",
+  "applies": "bass",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "wave",
+      "intervals": {
+        "steps": [
+          0.6,
+          0.85
+        ],
+        "leaps": [
+          0.15,
+          0.4
+        ]
+      },
+      "cell": {
+        "beats": [
+          4,
+          8
+        ]
+      },
+      "onGrid": [
+        0.8,
+        1
+      ],
+      "range": {
+        "semitones": [
+          3,
+          12
+        ]
+      },
+      "density": [
+        1,
+        2
+      ],
+      "returns": {
+        "bars": [
+          1,
+          4
+        ]
+      },
+      "glide": {
+        "pedal": false
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8: cuts 2, 4, 8, 21, 22, 25 and 27, as statistics (score-8.py --territory)",
+    "reading": "packages/mining/tools/score-8.py, the sub's pitch every 5 ms as a curve; the round's numbers in notes/rounds/dnb-7.md",
+    "knowledge": "mined: a grammar of gestures from the territory's statistics (time on home, time gliding, a half bar's span, the swoop, a glide's length), no curve of any record; nothing sampled, no audio copied",
+    "kind": "bass glide grammar",
+    "note": "Home held longer, a short glide up a third late in the bar, a swoop every four bars, the home on each chord's root where the chord changes.",
+    "trimmed": "revision 2 (riff-trim, 10-10): the glide grammar taken out but for pedal (reach, shapes, answer, held, swoop and over); since the phrased cells and the riff's phrase play the line, the place's draw of this row decides whether the bass glides at all and its pedal where its home sits, and nothing has read the rest since the review of 10-08 (A4), so every program plays as before; the note above is what the grammar said"
+  }
+}

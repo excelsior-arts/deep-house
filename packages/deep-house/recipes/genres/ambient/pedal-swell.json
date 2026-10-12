@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "ambient/pedal-swell",
+  "revision": 1,
+  "name": "Pedal and swell",
+  "scope": "track",
+  "applies": null,
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "harmony": {
+      "movement": "pedal"
+    },
+    "figures": {
+      "figure": {
+        "follows": "harmony",
+        "articulation": "sustained",
+        "register": "mid",
+        "families": [
+          "ensemble"
+        ],
+        "properties": {
+          "struck": false,
+          "holdMin": 0.7,
+          "brightnessMin": 2000
+        },
+        "prefer": {
+          "brightnessMin": 4000
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              32,
+              32
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            0.25,
+            0.25
+          ],
+          "returns": {
+            "bars": [
+              8,
+              8
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0,
+                0
+              ],
+              "beats": [
+                16,
+                16
+              ],
+              "holds": [
+                15,
+                15
+              ],
+              "accents": [
+                0.6,
+                0.65
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.35,
+          0.45
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            8,
+            8
+          ]
+        },
+        "behavior": "phrase",
+        "duration": {
+          "beats": [
+            15,
+            15
+          ]
+        },
+        "voicings": [
+          [
+            -7,
+            -3,
+            0,
+            4
+          ]
+        ]
+      },
+      "texture": {
+        "follows": "harmony",
+        "articulation": "pulse",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "brightnessMin": 5000
+        },
+        "strength": [
+          0.3,
+          0.4
+        ],
+        "spacing": {
+          "bars": [
+            3,
+            5
+          ]
+        },
+        "entry": {
+          "beats": [
+            2,
+            6
+          ]
+        },
+        "duration": {
+          "beats": [
+            2,
+            4
+          ]
+        },
+        "ambience": "distant"
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "figure"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": false
+  },
+  "tempo": {
+    "bpm": [
+      46,
+      70
+    ]
+  },
+  "sections": [
+    "main",
+    "breakdown",
+    "intro",
+    "outro"
+  ],
+  "provenance": {
+    "pattern": "ambient: one chord held for the whole piece, a bright pad holding over it in long swells, and a far bell now and then above 2 kHz - no drums, no pulse",
+    "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
+    "note": "The harmony is a pedal: one chord, never moved. Over it a sustained part asked for bright and long-held - the formant pad preferred, the wide saw, the grain and the wave pads admitted - holds sixteen beats at a time, wide-voiced, re-entering every eight bars; a distant bell on a bright keyboard sounds once every three to five bars. Plays under the Ambient tile's spell, where the drums are off; the row asks for no drums and claims no rhythm. The shimmer above 4 kHz is the composer's own at the floating place (GA6) and not a lead a row can ask for.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -0.5,
+      "syncopationZ": null,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
+  }
+}

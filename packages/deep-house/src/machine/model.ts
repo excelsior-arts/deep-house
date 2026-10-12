@@ -15,7 +15,7 @@
 // render both ask for, so asking for one here costs nothing and compiles
 // nothing twice.
 
-import { BY_NAME, VOICE_KNOBS, returnsOf } from '@deep-house/engine/voices';
+import { BY_NAME, VOICE_KNOBS, returnsOf, rowOfTimbre, timbreOfNote } from '@deep-house/engine/voices';
 import { clockSource } from '@deep-house/engine/clock';
 import { dropInfo } from '@deep-house/engine/deck';
 import { lateInfo } from '@deep-house/engine/dsp';
@@ -24,17 +24,20 @@ import { describeDeck, describeGraph, describeMaster, joinParts } from '@deep-ho
 import { settingsOf } from '@deep-house/engine/settings';
 import type { MachineEdge, MachineNode, MachinePart, Unit } from '@deep-house/engine/describe';
 import type { Lane } from '@deep-house/engine/style';
-import { programOf } from '../performance.ts';
+import { fxOfSegment, programOf } from '../performance.ts';
 import type { StageRow, TreatmentSegment } from '../performance.ts';
 import { ringColour } from '../ring-colour.ts';
 import { calibrationStatus, forwardSpell } from '../calibration.ts';
-import { asSpell } from '../spell.ts';
+import { asSpell, sameSpell } from '../spell.ts';
 import { strategyById } from '../strategies/index.ts';
 import { lines } from '../ledger.ts';
 import type { Entry } from '../ledger.ts';
 import type { Control, Readout } from '../control.ts';
 import type { MeterFrame } from '@deep-house/engine/taps';
 import { BAND_OF, deskFor } from './desk.ts';
+import { unitOfLine } from '@deep-house/engine/device';
+import { STAGE, stageVersion, withStage } from '@deep-house/engine/stage';
+import type { FieldUnit } from '@deep-house/engine/voices/schema';
 import type { DeskState } from './desk.ts';
 
 export type { MachineEdge, MachineNode, MachinePart };
@@ -81,8 +84,12 @@ export interface LaneRow {
   on: boolean;
   /** where the stage has put it, where the stage has a view: front, back, hold… */
   stage: string | null;
-  /** the treatment on it now, and the settings the rota rolled for it */
-  treatment: { kind: string; settings: Record<string, number> } | null;
+  /**
+   * the treatment on it now, and the settings the rota rolled for it; where it
+   * is an effect instance, the effect and the knobs the rolls are written on
+   * (`fxOfSegment`), which the insert's panel lists against its `ParamSpec`s
+   */
+  treatment: { kind: string; settings: Record<string, number>; fx?: { id: string; params: Record<string, number> } | null } | null;
   /**
    * **What the spell asked of this lane's own instrument** (PLAN-MODULATION
    * M1): one entry per knob the voice playing it declares and the spell moved,
@@ -90,6 +97,12 @@ export interface LaneRow {
    * knob is at the number the descriptor measured and there is nothing to say.
    */
   knobs: Array<{ name: string; value: number; unit: Unit }>;
+  /**
+   * **The timbres playing** (round SOUNDS-R3): for each voice on the lane that
+   * dispatches by timbre (`pad`, `keys`), the timbres this theme's events of it
+   * name, so the strip's device can show the row each renders through
+   */
+  timbres: Record<string, string[]>;
   /** the family of the instrument on it, off the registry: `drum`, `bass`… */
   family: string | null;
   /** the framed group that family puts it in, by the table below */
@@ -119,6 +132,13 @@ export interface MachineSnapshot {
   castTo: string | null;
   /** the spell the set was cast under, and the one colour in the whole view */
   spell: Record<string, number> | null;
+  /**
+   * **The spell a hand has asked and the set has not arrived at**, while a
+   * hand-over runs toward it (`{}` is the house asked); `null` with nothing
+   * on its way. The genre key it is lights as arriving (the deep review of
+   * 10-08: the tile said nothing for the whole of the wait).
+   */
+  asked: Record<string, number> | null;
   spellHex: string;
   /**
    * **What the map says that spell will measure as** — the other half of the
@@ -217,11 +237,16 @@ const layersOf = (names: string[]): string[] => {
  * and a clone — and walked the program's events for the returns). A track is
  * an immutable plan, so its description is too.
  */
-const stoppedGraphs = new WeakMap<object, ReturnType<typeof describeGraph>>();
+const stoppedGraphs = new WeakMap<object, { version: number; g: ReturnType<typeof describeGraph> }>();
 function stoppedGraph(track: Readout['track']): ReturnType<typeof describeGraph> {
   const key = track as unknown as object;
-  let g = stoppedGraphs.get(key);
-  if (!g) { g = describeGraph(null, settingsOf(track), returnsOf(programOf(track).events)); stoppedGraphs.set(key, g); }
+  // the graph the next start would build: the room with the desk's stage moves on it (D2), once per move
+  let had = stoppedGraphs.get(key);
+  if (!had || had.version !== stageVersion()) {
+    had = { version: stageVersion(), g: describeGraph(null, withStage(settingsOf(track)), returnsOf(programOf(track).events)) };
+    stoppedGraphs.set(key, had);
+  }
+  const g = had.g;
   // a copy of its boxes each time: the desk's readings are pushed onto them below
   return { nodes: g.nodes.map((n) => ({ ...n, readings: n.readings.slice() })), edges: g.edges.slice() };
 }
@@ -251,6 +276,8 @@ interface ThemeIndex {
   voices: Map<string, Set<string>>;
   perBar: Map<string, Uint16Array>;
   sources: Map<string, { bus: string; perBar: Uint16Array }>;
+  /** the timbres the events of each dispatching voice name, in the order first heard (round SOUNDS-R3) */
+  timbres: Map<string, string[]>;
 }
 const indexed = new WeakMap<object, ThemeIndex>();
 
@@ -261,8 +288,15 @@ function indexOf(program: ReturnType<typeof programOf>): ThemeIndex {
   const perBar = new Map<string, Uint16Array>();
   const sources: ThemeIndex['sources'] = new Map();
   const unreserved = new Set<string>();
+  const timbres = new Map<string, string[]>();
   for (const e of program.events) {
     if (e.treatment !== 'none') unreserved.add(e.voice);
+    const t = timbreOfNote(e.voice, e.p);
+    if (t !== null) {
+      let ts = timbres.get(e.voice);
+      if (!ts) timbres.set(e.voice, (ts = []));
+      if (!ts.includes(t)) ts.push(t);
+    }
     let set = voices.get(e.layer);
     if (!set) voices.set(e.layer, (set = new Set()));
     set.add(e.voice);
@@ -276,7 +310,7 @@ function indexOf(program: ReturnType<typeof programOf>): ThemeIndex {
     if (!source) sources.set(e.voice, source={bus:e.bus,perBar:new Uint16Array(program.bars+1)});
     if (e.bar != null && e.bar>=0 && e.bar<source.perBar.length) source.perBar[e.bar]++;
   }
-  const made = { voices, perBar, sources, unreserved };
+  const made = { voices, perBar, sources, unreserved, timbres };
   indexed.set(program as unknown as object, made);
   return made;
 }
@@ -315,6 +349,15 @@ function knobsOfLane(
   return out;
 }
 
+/** The timbres the theme's events of each dispatching voice playing name, by voice. */
+const timbresOf = (index: ThemeIndex, playing: string[]): Record<string, string[]> =>
+  Object.fromEntries(playing.filter((v) => index.timbres.has(v)).map((v) => [v, [...index.timbres.get(v)!]]));
+
+/** Every desk id a voice's moves can sit under: its own, and the rows its playing timbres render through. */
+export const deskIdsOf = (voice: string, timbres: Record<string, string[]>): string[] =>
+  [voice, ...(timbres[voice] ?? []).map((t) => rowOfTimbre(voice, t)).filter((id): id is string => !!id && id !== voice)]
+    .filter((id, i, all) => all.indexOf(id) === i);
+
 /**
  * Every lane the strategy declares, with the voice each is playing now.
  *
@@ -333,6 +376,47 @@ export function lanesOfTheme(readout: Readout): LaneRow[] {
   const on = track.timeline[bar] ? track.timeline[bar].layers : [];
   const index = indexOf(program);
 
+  // **A voice a place swapped onto a lane is that lane's** (Eugene, 10-04, on
+  // seed 6 at the half-time spell: *"why are these two rows, and one is
+  // disabled?"*): the place table puts the wobble reese on the bass layer in
+  // the drawn bass's stead (`roles.ts`, the DUB rounds), and the lane's own
+  // candidate list does not name it — so the lane read empty and disabled,
+  // and the reese was drawn again as a loose part. A voice sounding on the
+  // very layer a lane's gate names, that no lane lists as a candidate, plays
+  // that lane **where the plan says it was swapped in** — the roles pass writes
+  // what it swapped on `sound.roles.swapped` (the swapped voice to the drawn
+  // one), and a drawn voice in the lane's list makes the swap the lane's; the
+  // kit's sound-word swap (`DrumsEntry.sounds`) writes nothing, so a drum of
+  // the lane's own role on a lane whose list plays nothing is read as swapped
+  // too. An explicit part added beside the lane's own voice (a third pitched
+  // part, the vocal) keeps its own box and its own strip. Two lanes on one
+  // layer still split by their lists.
+  //
+  // **And a voice the lane's own timbre die drew is that lane's** (Eugene,
+  // 10-05, on seed 6 at the half-time spell, theme 4: *"I can't control Drone
+  // for some reason"*): the drone's die drew the formant pad and the figure's
+  // the vibes — kitchen voices that play no gate, so no candidate list names
+  // them — and the lanes read empty and disabled while the two played as loose
+  // parts beside them. The plan writes what each die drew (`dice.padTimbre`,
+  // `dice.stabTimbre`), so the voice that renders that timbre on the lane's
+  // layer plays the lane.
+  //
+  // **And a voice the plan gave a lane is that lane's** (his screenshot, 10-07,
+  // the liquid link: a greyed *bassline —* strip and a loose *reeseSub* one):
+  // the place's bass sound puts the liquid sine on the bassline lane in the
+  // drawn sub's stead (`generator.ts`, *the bass's sound by place*), a swap of
+  // the lane's own voice that is no role turn, so `roles.swapped` never named
+  // it. The plan writes every lane it gave a voice other than its own draw
+  // (`sound.lanes`: the bass sound, the glue sound, the broken backbeat), so
+  // that voice, sounding on the lane's layer, plays the lane. A place's kit
+  // strikes its hats in voices of their own on a layer no lane gates (the
+  // liquid kit's `hatSoft` and `hatShut` on `hats`, loose beside the emptied
+  // offbeat lanes); the plan gives them their group's first lane, so a voice
+  // given a lane plays it on its own layer too.
+  const claimed = new Set(lanes.flatMap(candidatesOf));
+  const dice: Record<string, unknown> = (track as { dice?: Record<string, unknown> }).dice ?? {};
+  const swapped: Record<string, string> = (track as { sound?: { roles?: { swapped?: Record<string, string> } } }).sound?.roles?.swapped ?? {};
+  const given: Record<string, string[]> = (track as { sound?: { lanes?: Record<string, string[]> } }).sound?.lanes ?? {};
   const declared = lanes.map((lane): LaneRow => {
     const candidates = candidatesOf(lane);
     const layers = layersOf(candidates);
@@ -342,6 +426,25 @@ export function lanesOfTheme(readout: Readout): LaneRow[] {
       for (const v of index.voices.get(layer) || []) {
         if (!candidates.includes(v)) continue;
         if (!playing.includes(v)) playing.push(v);
+        fires += index.perBar.get(`${layer}\u0000${v}`)?.[bar] ?? 0;
+      }
+    }
+    const mine = given[lane.id] ?? [];
+    if (lane.gate) {
+      const ownPlays = playing.length > 0;
+      // the gate's layer, then the own layer of a voice the plan gave the lane where it sounds elsewhere
+      const elsewhere = [...new Set(mine.map((v) => BY_NAME[v]?.layer).filter((l): l is string => !!l && l !== lane.gate))];
+      for (const layer of [lane.gate, ...elsewhere]) for (const v of index.voices.get(layer) || []) {
+        if (claimed.has(v) || playing.includes(v)) continue;
+        const d = BY_NAME[v];
+        if (!d || d.layer !== layer || (layer !== lane.gate && !mine.includes(v))) continue;
+        const drawn = swapped[v];
+        const timbre = lane.timbre ? dice[lane.timbre] : undefined;
+        const ownDraw = typeof timbre === 'string' && (v === timbre || timbre in (d.timbres ?? {}));
+        const swap = ownDraw || mine.includes(v)
+          || (drawn ? candidates.includes(drawn) : !ownPlays && d.family === 'drum' && (d.roles as readonly string[]).includes(lane.role));
+        if (!swap) continue;
+        playing.push(v);
         fires += index.perBar.get(`${layer}\u0000${v}`)?.[bar] ?? 0;
       }
     }
@@ -372,11 +475,12 @@ export function lanesOfTheme(readout: Readout): LaneRow[] {
       // and never by notes on a layer the lane only shares: two lanes can draw
       // the same instrument onto one layer (the closed and the open hat), and a
       // note alone cannot say whose it is.
-      on: lane.gate ? on.includes(lane.gate) || candidates.some((v) => (index.perBar.get(`${lane.gate}\u0000${v}`)?.[bar] ?? 0) > 0) : fires > 0,
+      on: lane.gate ? on.includes(lane.gate) || playing.some((v) => (index.perBar.get(`${mine.includes(v) ? BY_NAME[v]?.layer ?? lane.gate : lane.gate}\u0000${v}`)?.[bar] ?? 0) > 0) : fires > 0,
       stage: row && row.role && key ? row.role[key] ?? null : null,
       treatment: seg && seg.kind && playing.some(v=>index.unreserved.has(v))
-        ? { kind: seg.kind, settings: settingsOfSegment(seg) } : null,
+        ? { kind: seg.kind, settings: settingsOfSegment(seg), fx: fxOfSegment(seg) } : null,
       knobs: knobsOfLane(track.knobs, playing),
+      timbres: timbresOf(index, playing),
       family,
       group: groupOf(family, bus),
     };
@@ -388,7 +492,7 @@ export function lanesOfTheme(readout: Readout): LaneRow[] {
     const d=BY_NAME[voice], firing=source.perBar[bar] ?? 0;
     declared.push({id:voice,role:d.roles[0] ?? 'figure',gate:d.plays,figure:'part',bus:source.bus,
       candidates:1,playing:[voice],firing,on:firing>0,stage:row?.role[d.layer] ?? null,
-      treatment:null,knobs:knobsOfLane(track.knobs,[voice]),family:d.family,group:groupOf(d.family,d.bus)});
+      treatment:null,knobs:knobsOfLane(track.knobs,[voice]),timbres:timbresOf(index,[voice]),family:d.family,group:groupOf(d.family,d.bus)});
   }
   return declared;
 }
@@ -433,7 +537,8 @@ export function lanePart(rows: LaneRow[], built = true): MachinePart {
       kind: 'lane',
       stage: 'sources',
       group: lane.group,
-      made: lane.playing.join(' · ') || '—',
+      // the row a dispatcher plays this theme is the instrument the strip names: `pad strings`, not `pad`
+      made: lane.playing.map((v) => (lane.timbres[v]?.length ? `${v} ${lane.timbres[v].join('/')}` : v)).join(' · ') || '—',
       readings: [
         { name: 'events', value: lane.firing, unit: '' },
         { name: 'of', value: lane.candidates, unit: '' },
@@ -482,11 +587,12 @@ export function lanePart(rows: LaneRow[], built = true): MachinePart {
  * counters — which is exactly what there is to say about a machine at rest.
  */
 export function describeMachine(
-  control: Control, readout: Readout, meters: MeterFrame | null, n: number,
+  control: Control, readout0: Readout, meters: MeterFrame | null, n: number,
 ): MachineSnapshot {
   const state = control.state;
   const mix = state.mix;
   const ctx = state.ctx;
+  const readout = heardReadout(control, readout0);
   const lanes = lanesOfTheme(readout);
   const built = !!mix;
   const parts: MachinePart[] = [lanePart(lanes, built)];
@@ -509,6 +615,12 @@ export function describeMachine(
   // at rest, the returns the program sends to are still drawn, idle (R56)
   parts.push(deck ? deck.graph.describe() : stoppedGraph(readout.track));
   parts.push(describeDeck(deck));
+  // **And the deck arriving, while a hand-over runs** (the deep review of
+  // 10-08: only the record was drawn, so a blend of sixteen bars showed one
+  // deck): its high-pass, its low-pass and its fader, read off its own nodes,
+  // summing into the master beside the record's
+  const coming = mix ? mix.arriving : null;
+  if (coming && coming !== deck) parts.push(arrivingDeck(coming));
   const master = mixMaster(mix);
   parts.push(master ? master.describe() : describeMaster(null));
 
@@ -532,6 +644,9 @@ export function describeMachine(
   });
   part.edges.push({ from: 'm:out', to: 'sink', kind: 'signal' });
 
+  // a field's unit as a reading's (D1): a time in seconds is `s`; cents, a
+  // level, a count say nothing a bare number does not
+  const UNIT_OF: Partial<Record<FieldUnit | '', Unit>> = { hz: 'hz', seconds: 's', ms: 'ms', db: 'db', ratio: 'ratio', x: 'x' };
   // **What the desk has done, as readings on the boxes it did it to** (M1): a
   // bus says it is muted, soloed or dry where every instrument on it is, and a
   // band of the master says how far it is leant over the room. Its own gain is
@@ -555,6 +670,18 @@ export function describeMachine(
     if (gains.some((g) => g !== 1)) n.readings.push({ name: 'gain', value: +gains[0].toFixed(3), unit: '' });
     const band = BAND_OF[n.id];
     if (band && desk.bands[band] != null) n.readings.push({ name: 'lean', value: desk.bands[band]!, unit: 'db' });
+    // a device line a hand has moved (D1), raw, on the box of the lane that
+    // plays the instrument: its path, the number the next note renders from,
+    // and the unit the field is in where the readings have a word for it
+    // (a dispatching voice's moves sit on the rows its timbres render through: the strings pad's breath, round SOUNDS-R3)
+    if (lane) for (const v of lane.playing) for (const id of deskIdsOf(v, lane.timbres)) for (const [path, value] of Object.entries(desk.device[id] ?? {}))
+      n.readings.push({ name: path, value: +value.toPrecision(6), unit: UNIT_OF[unitOfLine(id, path)] ?? '' });
+    // a stage line a hand has moved (D2), raw, on its own box: the line's
+    // name and the number on the desk's layer, whether the graph that is up
+    // holds it live or the next theme's will
+    const box = n.stage === 'stage' ? STAGE[n.id] : undefined;
+    if (box) for (const line of box.lines) if (desk.stage[line.path] !== undefined)
+      n.readings.push({ name: line.name, value: +desk.stage[line.path].toPrecision(6), unit: UNIT_OF[line.unit] ?? '' });
   }
 
   const colour = ringColour(readout.spell as never);
@@ -569,7 +696,9 @@ export function describeMachine(
     theme: readout.mix.themeNumber,
     bar: readout.bar + 1,
     bars: readout.bars,
-    section: readout.section,
+    // the section — its row's own name after the kind's word where the row has one (round T2) —
+    // and the sub-section the bar is in where it is in one (round DNB-1)
+    section: [readout.section, readout.sectionName, readout.sub].filter(Boolean).join(' · '),
     bpm: readout.bpm,
     seconds: readout.seconds,
     key: readout.key,
@@ -577,6 +706,7 @@ export function describeMachine(
     transition: readout.mix.transition,
     castTo: state.castTo,
     spell: (readout.spell as Record<string, number> | null) ?? null,
+    asked: mix && !sameSpell(mix.spellAsked, mix.spell) ? { ...(mix.spellAsked ?? {}) } as Record<string, number> : null,
     spellHex: colour.hex,
     reads: readout.spell && calibrationStatus(strategy.calibration, strategy.generation) === 'current'
       ? forwardSpell(strategy.calibration, asSpell(readout.spell as never))
@@ -606,6 +736,33 @@ export function describeMachine(
 }
 
 type LiveMix = NonNullable<Control['state']['mix']>;
+
+/**
+ * **The readout over the plan the record plays** (the deep review of 10-08):
+ * where the record is the theme the readout names, its own plan — the one the
+ * deck compiled, under the link's bypass — so the view and the scribe read
+ * the voice that plays and compile nothing a second time (`programOf` is
+ * memoised by plan). With nothing playing, or the record another theme, the
+ * readout's own.
+ */
+export function heardReadout(control: Control, r: Readout): Readout {
+  const rec = control.state.mix ? control.state.mix.record : null;
+  const track = rec ? rec.track as Readout['track'] : null;
+  if (!track || track === r.track || track.index !== r.track.index || track.bars !== r.track.bars) return r;
+  return { ...r, track };
+}
+
+/** The deck arriving, as rows of the master's rack: its own filters and fader, its theme named. */
+function arrivingDeck(d: NonNullable<LiveMix['arriving']>): MachinePart {
+  const p = describeDeck(d, 'arriving');
+  const theme = d.track ? (d.track.index ?? 0) + 1 : null;
+  for (const n of p.nodes) {
+    n.label = `IN ${n.label}`;
+    n.note = theme ? `the deck arriving: theme ${theme}` : 'the deck arriving';
+  }
+  // its own theme's trim is not drawn: the chain starts at its filters
+  return { nodes: p.nodes, edges: p.edges.filter((e) => e.from !== 'themeOut') };
+}
 
 // The two handles a description is taken of, off the facade that hands them
 // out. Both are read on the frame they are wanted and neither is held, so a set

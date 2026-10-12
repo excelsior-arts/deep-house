@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keys",
+  "revision": 1,
+  "topology": "dispatch",
+  "parameters": {
+    "by": "preset",
+    "none": "rhodes",
+    "otherwise": "rhodes",
+    "timbres": {
+      "rhodes": {
+        "row": "keysRhodes",
+        "sustain": false
+      },
+      "glass": {
+        "row": "keysGlass",
+        "sustain": false
+      },
+      "ep": {
+        "row": "keysEp",
+        "sustain": false
+      },
+      "organ": {
+        "row": "keysOrgan",
+        "sustain": false
+      },
+      "pluck": {
+        "row": "keysPluck",
+        "sustain": false
+      }
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": "keys",
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 600,
+        "default": 2000,
+        "max": 9000,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.000038
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.06,
+        "default": 0.32,
+        "max": 0.95,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 10.4
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.004,
+        "default": 0.022,
+        "max": 0.32,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -1.42
+      },
+      "grain": {
+        "unit": "ratio",
+        "min": 0,
+        "default": 1,
+        "max": 2.5,
+        "bird": "spark",
+        "sense": 1,
+        "slopeDb": 0.002
+      }
+    },
+    "timbres": {
+      "rhodes": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.3,
+        "brightnessHz": 1900,
+        "loudnessDb": -7.3
+      },
+      "glass": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.32,
+        "brightnessHz": 2600,
+        "loudnessDb": -4.6
+      },
+      "ep": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.37,
+        "brightnessHz": 1800,
+        "loudnessDb": -8.5
+      },
+      "organ": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.72,
+        "brightnessHz": 2500,
+        "loudnessDb": -4.7
+      },
+      "pluck": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.048,
+        "brightnessHz": 2000,
+        "loudnessDb": -12.6
+      }
+    },
+    "dispatches": [
+      "rhodes",
+      "glass",
+      "ep",
+      "organ",
+      "pluck"
+    ],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "sounds-r3",
+    "note": "The rhythmic half of the harmonic layer, one event name for five keyboard patches that `p.preset` chooses between — the electric piano, the rhodes, the glass, the organ and the pluck — each a row of its own; a note that names none, or one the table has not, plays the rhodes.",
+    "notes": {
+      "timbres": "Timbre to row, each struck as it is.",
+      "knobs": "The keyboard's ranges (PLAN-MODULATION M1): five patches behind one name, so each default is the median of the five — 1900/2600/1800/2500/2000 Hz of corner, 0.30/0.32/0.37/0.72/0.048 of sustain, 30/22/24/9/11 ms of attack — and what a knob moves is a factor on whichever patch is playing; a setting in absolute hertz would make one instrument out of five. The ceiling on brightness is the one the voice has always had: the note's own lowpass is clamped at 9 kHz. The grain (round SPARK-1) is a factor on the edge and the strike a place writes, one at the house; its measured slope is the keys alone under the house's edge against none, seed 1 theme two, +0.002 LU."
+    }
+  }
+}

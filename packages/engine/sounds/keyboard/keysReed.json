@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keysReed",
+  "revision": 1,
+  "topology": "keys",
+  "parameters": {
+    "cutoff": 2400,
+    "det": 3,
+    "attack": 0.006,
+    "decay": 0.7,
+    "sustain": 0.3,
+    "formant": [
+      1100,
+      5
+    ],
+    "ratio": 2,
+    "index": [
+      0.7,
+      1
+    ],
+    "indexDecay": 0.5,
+    "tine": null,
+    "tineIndex": null,
+    "tineDecay": null,
+    "tremolo": true,
+    "rotary": false,
+    "organ": false,
+    "pluck": false,
+    "hpHz": 90,
+    "tremoloHz": 5.6,
+    "tremoloDepth": 0.18,
+    "tremoloPan": 0,
+    "rotaryHz": 5,
+    "rotaryDepth": 0.1,
+    "edge": {
+      "level": 0,
+      "hz": 2000,
+      "decay": 0.15,
+      "tine": 3,
+      "hold": 0.3,
+      "chiff": 0,
+      "chiffHz": 4500,
+      "chiffDecay": 0.01
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "liquid-keys",
+    "note": "A reed electric piano: the modulator at twice the note, so the body is odd harmonics like a struck reed, a nasal lift at 1.1 kHz and a mono amplifier tremolo at 5.6 Hz.",
+    "notes": {
+      "copiedFrom": "keysRhodes, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

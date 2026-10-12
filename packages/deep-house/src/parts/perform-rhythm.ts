@@ -38,6 +38,8 @@ export interface RhythmPerformer {
   laneOn: (lane: Lane, layers: Record<string, boolean | undefined>) => boolean;
   voiceOf: (lane: Lane) => string;
   trimOf: (lane: Lane, voice: string) => Record<string, number>;
+  /** the trim an asked cell's voice plays at: its level word's own lane's (round GA3) */
+  cellTrimOf?: (lane: Lane, voice: string) => Record<string, number>;
   push: (voice: string, t: number, p: NoteParams, meta: EventMeta) => void;
   characters: SoundCharacters | undefined;
   pinned: PartPin | null;
@@ -72,7 +74,7 @@ export function kickPickupHits({ rhythmMotion, rhythmPolicy, pinned }: RhythmPer
 
 /** A requested part replaces its role's mask, keeping its gate and palette. */
 export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy, arrangement, at, beat, barSeconds,
-  laneOn, voiceOf, trimOf, push, characters, pinned, selectedRecipeFor }: RhythmPerformer): FigureSource {
+  laneOn, voiceOf, trimOf, cellTrimOf, push, characters, pinned, selectedRecipeFor }: RhythmPerformer): FigureSource {
   return (g, c) => {
     for (const lane of g.lanes) {
       if (!laneOn(lane, c.layers)) continue;
@@ -91,7 +93,7 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
       const voice = voiceOf(lane);
       if (lane.role === 'kick' && !c.kickThisBar) continue;
       const character = part.character === undefined ? undefined : characters?.rhythm?.[part.character];
-      const trim = trimOf(lane, voice);
+      const trim = (cellTrimOf ?? trimOf)(lane, voice);
       part.steps.forEach((s, i) => {
         if (s < offset || s >= offset + STEPS_PER_BAR) return;
         const step = s - offset;

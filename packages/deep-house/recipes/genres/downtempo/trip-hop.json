@@ -190,7 +190,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -213,10 +213,6 @@
     "bpm": [
       75,
       94
-    ],
-    "nearest": [
-      95,
-      105
     ]
   },
   "sections": [
@@ -225,8 +221,14 @@
     "drop"
   ],
   "provenance": {
-    "pattern": "trip-hop: a slow, heavy breakbeat — kick one and the a of two and three-and, a big snare on two and four — with swung eighth hats and a dark, held bass that moves once a bar",
+    "pattern": "trip-hop: a slow, heavy breakbeat \u2014 kick one and the a of two and three-and, a big snare on two and four \u2014 with swung eighth hats and a dark, held bass that moves once a bar",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: kick one, two-a, three-and; one, one-and, three-and; the snare on two and four at full weight with a ghost before the second; eighth hats swung and a little behind the beat. The bass holds the root for most of a bar and steps down a third at its end. Played under the Downtempo key at 96-100: trip-hop wants 75-94, where no band is (the house band starts at 95)."
+    "note": "Two bars: kick one, two-a, three-and; one, one-and, three-and; the snare on two and four at full weight with a ghost before the second; eighth hats swung and a little behind the beat. The bass holds the root for most of a bar and steps down a third at its end. Since round G4 it plays under the Trip Hop tile's spell at 85-95 on the broken kit (it audited under the Downtempo key at 96-100 before, where it leaned: event rate -1.7, syncopation -0.6).",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.6,
+      "syncopationZ": -3.5,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

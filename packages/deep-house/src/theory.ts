@@ -330,12 +330,24 @@ export interface Chord {
   /** what a readout calls it, by name and by numeral */
   label: string;
   roman: string;
+  /**
+   * The bass line's home pitch class under this chord, where the harmony says one
+   * (liquid-space round 1, `src/keys-phrase.ts`: the phrase row's `bass`, a pedal or the
+   * chord's own root); absent, the line's own rule decides.
+   */
+  bassPc?: number;
 }
 
 export interface Progression {
   changeEvery: number;
   loopBars: number;
   chords: Chord[];
+  /**
+   * **Chords by bar, not by loop** (liquid-space round 1): where present, the chord
+   * in force from each listed bar on (the list in order, its first at bar 0), and the
+   * loop says nothing. A harmony that changes where the keys land, not on a clock.
+   */
+  states?: Array<{ bar: number; chord: Chord }>;
   root: number;
   scaleName: string;
   scale: number[];
@@ -351,6 +363,8 @@ export interface ProgressionOptions {
   degreeBias?: Weighted<number>[];
   loopBars?: number;
   changeEvery?: number;
+  /** a place's own chord cycle (round GA6): the degrees in order, a degree the scale cannot voice a fifth on being the tonic */
+  degrees?: number[];
 }
 
 export function makeProgression(
@@ -387,6 +401,8 @@ export function makeProgression(
   let degrees: number[];
   if (opts.pedal) {
     degrees = [0];
+  } else if (opts.degrees && opts.degrees.length) {
+    degrees = Array.from({ length: slots }, (_, i) => opts.degrees![i % opts.degrees!.length]).map((d) => (usable.includes(d) ? d : 0));
   } else if (opts.degreeBias) {
     const pool = opts.degreeBias.filter((o) => usable.includes(o.v));
     degrees = [0];
@@ -456,6 +472,11 @@ export function makeProgression(
 
 // Which chord is sounding in a given bar of the track.
 export function chordAtBar(progression: Progression, bar: number): Chord {
+  if (progression.states?.length) {
+    let at = progression.states[0].chord;
+    for (const s of progression.states) { if (s.bar > bar) break; at = s.chord; }
+    return at;
+  }
   const loop = progression.loopBars || 8;
   const inLoop = ((bar % loop) + loop) % loop;
   for (let i = progression.chords.length - 1; i >= 0; i--) {
@@ -470,4 +491,50 @@ export function foldTo(midi: number, low: number, high: number): number {
   while (m < low) m += 12;
   while (m > high) m -= 12;
   return m;
+}
+
+/** A note folded by octaves under a ceiling, then over a floor: where the window is under an octave the floor wins (a bass line's register; `foldTo` lets the ceiling win). */
+export function foldInto(midi: number, floor: number, ceiling: number): number {
+  let m = midi;
+  while (m > ceiling) m -= 12;
+  while (m < floor) m += 12;
+  return m;
+}
+
+// --- two keys, and how much they share ---------------------------------------
+//
+// What a hand-over between two themes wants to know about their keys is not
+// the interval between the roots but **how many notes the two scales have in
+// common**: seven is one set of notes under two names (A dorian is E minor's
+// notes), six is a neighbour on the wheel (a fifth either way, or the same
+// root in the other mode), five is a whole tone off, and a tritone or a
+// semitone apart leaves two. The harmonic cross in `set-plan.ts` reads this,
+// and the wheel arithmetic the set's key draw walks is stated here beside it.
+
+/** The pitch classes a key sounds, as a set of 0..11. */
+export function keyPitchClasses(key: { root: number; scale: number[] }): Set<number> {
+  return new Set(key.scale.map((s) => (((key.root + s) % 12) + 12) % 12));
+}
+
+/** How many pitch classes two keys share, 0..7. */
+export function keysShared(a: { root: number; scale: number[] }, b: { root: number; scale: number[] }): number {
+  const pa = keyPitchClasses(a);
+  let n = 0;
+  for (const pc of keyPitchClasses(b)) if (pa.has(pc)) n++;
+  return n;
+}
+
+/**
+ * **Where a key sits on the wheel**, as the root of the minor key that sounds
+ * its notes: a minor key's own root, and a dorian key's root up a fifth (D
+ * dorian is A minor's notes). Two keys a fifth apart on this wheel share six
+ * notes; the same place is the same seven.
+ */
+export function wheelRoot(root: number, scaleName: string): number {
+  return (((root + (scaleName === 'dorian' ? 7 : 0)) % 12) + 12) % 12;
+}
+
+/** The root a key on the wheel takes in a given mode: `wheelRoot`'s inverse. */
+export function rootOnWheel(wheel: number, scaleName: string): number {
+  return (((wheel - (scaleName === 'dorian' ? 7 : 0)) % 12) + 12) % 12;
 }

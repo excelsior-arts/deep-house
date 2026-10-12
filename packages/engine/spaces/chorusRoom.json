@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "chorusRoom",
+  "revision": 2,
+  "name": "Chorus and a room",
+  "says": "A slow three-voice chorus, a third wet, spread wide, then a short warm room: the keys widen and float without a tail.",
+  "dry": 1,
+  "trimDb": 5.48,
+  "inserts": [
+    {
+      "effect": "chorus",
+      "params": {
+        "rateHz": 0.45,
+        "depthMs": 3.5,
+        "voices": 3,
+        "spread": 0.9,
+        "mix": 0.35
+      }
+    }
+  ],
+  "sends": [
+    {
+      "id": "room",
+      "level": 0.45,
+      "effect": "reverb",
+      "params": {
+        "mode": 0,
+        "decaySeconds": 1.4,
+        "predelayMs": 12,
+        "lowCutHz": 260,
+        "dampHz": 5200,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet.",
+    "sparse": "liquid-space round 1: trimDb 3.2 -> 5.48 (+2.28 dB), the sparse-writing match the keys lab's round 3 left open: its level on the sparse writing (keys alone, the close grand, i9 to VImaj9, the mean of its three wetness steps) brought to the three very wet spaces' mean, -26.65 LUFS"
+  }
+}

@@ -2,7 +2,13 @@
 // edits invalidate automatically; changes to generation/render semantics bump
 // ALGORITHM_REVISION. Calibration itself is excluded (fitting is not sound).
 import type { Style } from '@deep-house/engine/style';
-const ALGORITHM_REVISION = 'composer-21/spaces-1/keys-1/phrases-1/piano-2/envelopes-1/vocal-2/membranes-1/duck-2';
+import { weightOf, type Recipe } from './recipe.ts';
+import { switchOn } from './lanes.ts';
+import { LIBRARY, PATTERN_LIBRARY, TRACK_LIBRARY, TREATMENTS, SECTION_LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY } from './recipes.ts';
+import { RIFF_ROWS, PHRASED_ROWS } from './glide.ts';
+import { KIT_ROWS } from './kit.ts';
+import ROW_PLACES from './row-places.json' with { type: 'json' };
+const ALGORITHM_REVISION = 'composer-21/spaces-1/keys-1/phrases-1/piano-2/envelopes-1/vocal-2/membranes-1/duck-2/place-push-1/phrase-body-1';
 // **Code-valued style is read by what it answers** (the measurement review of
 // 09-22, #5). A style carries functions — a section kind's `layers(i, n)`, the
 // development bridge's `layers()` — and until this round they were filtered
@@ -32,11 +38,63 @@ function canonical(value: any, at = 'style'): any {
     .map(key => [key, canonical(value[key], `${at}.${key}`)]));
   return value;
 }
-export function generationOf(style: Style): string {
-  const { candidates, ...data } = style;
-  const text = JSON.stringify(canonical(data));
-  // Portable identity, not a security hash. Render files retain SHA-256/build ids.
+/** FNV-1a over a text: a portable identity, not a security hash. Render files retain SHA-256/build ids. */
+function fnv(text: string): string {
   let hash = 2166136261;
   for (let i=0;i<text.length;i++) hash = Math.imul(hash ^ text.charCodeAt(i),16777619) >>> 0;
-  return `${ALGORITHM_REVISION}/${hash.toString(16).padStart(8,'0')}`;
+  return hash.toString(16).padStart(8,'0');
+}
+
+/**
+ * **What the draws a style makes can reach, outside the style** (the
+ * September review's third contract fault, kept open in NEXT and rechecked by
+ * the review of 10-03): the library's rows are drawn by weight and placed
+ * by `row-places.json`, and neither is style data, so a weight or a place moved
+ * every plan a library turn makes and left the stamp where it was. Each row a
+ * die can reach is read by its resolved definition (`definitionOf`: id,
+ * revision and content, so an edit the revision did not mark moves the stamp
+ * too) and its share (`weightOf`, the chef's hand and the likes in it), the
+ * place table whole; only what the style's own switches draw from — house-v1
+ * draws from none of it and its stamp does not read it. The place tables'
+ * own rows are read the same way (review of 10-08, A4): the riffs, the
+ * phrased cells, the kits, the glide rows and the forms.
+ */
+function reachOf(style: Style): unknown {
+  const rows = (list: readonly unknown[]) => (list as readonly Recipe[]).map((r) => [definitionOf(r), weightOf(r)]);
+  const out: Record<string, unknown> = {};
+  if (switchOn(style, 'libraryDraw')) {
+    out.library = rows([...LIBRARY, ...PATTERN_LIBRARY, ...TRACK_LIBRARY]);
+    out.places = canonical(ROW_PLACES, 'row-places');
+  }
+  if (switchOn(style, 'subSections')) out.treatments = rows(TREATMENTS);
+  if (switchOn(style, 'placeTables')) {
+    out.sections = rows(SECTION_LIBRARY);
+    out.riffs = rows(RIFF_ROWS);
+    out.phrased = rows(PHRASED_ROWS);
+    out.kits = rows(KIT_ROWS);
+    out.glides = rows(GLIDE_LIBRARY);
+    out.forms = rows(FORM_LIBRARY);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+export function generationOf(style: Style): string {
+  const { candidates, ...data } = style;
+  const reach = reachOf(style);
+  const text = JSON.stringify(canonical(reach ? { ...data, reach } : data));
+  return `${ALGORITHM_REVISION}/${fnv(text)}`;
+}
+
+/**
+ * **A row's resolved definition** (R02 of the review of 10-03): its id
+ * names the musical work and its revision and content say which definition of
+ * it was played. Two rows are one definition when this is equal — the id, the
+ * revision and a fingerprint of the whole canonical row — so a pinned section
+ * row of the grammar's own id but a new revision is played and not taken for
+ * the grammar's own, and a plan made ahead is reused only for the definition
+ * it was made from (`mix.ts`). One helper, for every place that asks.
+ */
+export function definitionOf(row: Recipe | null | undefined): string | null {
+  if (!row) return null;
+  return `${row.id}@${row.revision ?? 1}#${fnv(JSON.stringify(canonical(row, row.id)))}`;
 }

@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/dnb-breakdown",
+  "revision": 2,
+  "name": "pads, the break, pads",
+  "scope": "section",
+  "applies": "breakdown",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "pad",
+          "keys"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "pad",
+          "keys",
+          "clap"
+        ]
+      },
+      {
+        "at": "penult",
+        "on": [
+          "pad",
+          "keys"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "pad",
+          "keys",
+          "kick",
+          "hatClosed",
+          "clap"
+        ]
+      }
+    ],
+    "admits": {
+      "fill": "last",
+      "lead-in": "last"
+    },
+    "flags": {
+      "sweepFirst": true,
+      "riserLast": 2,
+      "lift": true
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:225+63, 8:1062+104, 8:3219+85",
+    "kind": "section",
+    "where": "between the drops",
+    "reading": "the sub 50 dB down and the bass 22, the low-mids forward, a snare roll building and a riser every five bars",
+    "plays": "since round T2: a breakdown row the fast broken place prefers beside the house's (deep-house-places.ts SECTIONS, src/sections.ts); the form draws the kind, the place says which row",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; round T2 (2026-10-02): played \u2014 preferred by the fast broken place at twice the house row's share, the row's own weight still nought so no other place draws it; round DNB-4 (2026-10-05): revision 2 \u2014 the shape of source 8's own breakdown (8:225+63: `nokick12 A4 B4 C4 D4 nokick4 drop4 nokick8`, the sub 50 dB down, the drums 38 dB under the pads): the pads alone for the first phrase, the break back under them for the middle phrases with no bass, the pads alone again a phrase ahead of the end, and the snare's roll on the last; the bed lifted and thinned of its bottom at the place (`BedEntry.liftDb`, `thinHz`)",
+    "note": "A row at nought in itself: pinnable by link (?recipe=dnb/dnb-breakdown) and drawn only where a place prefers it (notes/rounds/treat-t2.md)."
+  }
+}

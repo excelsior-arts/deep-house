@@ -23,7 +23,7 @@
 import { clockSource } from '@deep-house/engine/clock';
 import { dropInfo } from '@deep-house/engine/deck';
 import { lateInfo } from '@deep-house/engine/dsp';
-import { lanesOfTheme } from './model.ts';
+import { heardReadout, lanesOfTheme } from './model.ts';
 import { note } from '../ledger.ts';
 import { sceneOfDice, textureOfDice } from '../composition.ts';
 import type { Control, Readout } from '../control.ts';
@@ -42,7 +42,8 @@ export function startScribe(control: Control): () => void {
 
   function lanes(r: Readout, first: boolean): void {
     let rows;
-    try { rows = lanesOfTheme(r); } catch (e) { return; }
+    // the record's own plan where it is this theme (10-08): compiled once, by the deck
+    try { rows = lanesOfTheme(heardReadout(control, r)); } catch (e) { return; }
     const nowTreated = new Map<string, string>();
     for (const lane of rows) {
       const was = gated.get(lane.id);
@@ -86,7 +87,16 @@ export function startScribe(control: Control): () => void {
       // A section turning over inside one theme; a new theme is the transport's
       // line (`theme`, `seam`) and its first section is not a turn.
       if (!first && !turned && lastSection !== null && r.section !== lastSection) {
-        note('section', `the section turned over to ${r.section}`, { bar: r.bar + 1, from: lastSection });
+        // ...named by its row where the row has a name of its own (round T2).
+        note('section', `the section turned over to ${r.section}${r.sectionName ? ` (${r.sectionName})` : ''}`, { bar: r.bar + 1, from: lastSection });
+      }
+      // **What a theme drew** (liquid-space, 10-11): where the composer planned its phrases, the drawn identity in one
+      // line — the form and its draws, the kit states, the auxiliary part, the surface, the bass, the moves — so a mix
+      // heard as bad can be flagged by its link and its rows or weights trimmed. A readout of the plan, the first
+      // theme's too: it is what the theme is, not something the machine did.
+      if (turned) {
+        const drew = (r.track as { development?: { summary?: string } }).development?.summary;
+        if (drew) note('theme', `the theme drew ${drew}`, { bar: r.bar + 1 });
       }
       track = r.track;
       lastBar = r.bar;

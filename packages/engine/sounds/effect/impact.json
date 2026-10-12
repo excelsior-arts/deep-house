@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "impact",
+  "revision": 1,
+  "topology": "thump",
+  "parameters": {
+    "fromHz": 90,
+    "toHz": 34,
+    "dropTime": 0.5,
+    "gain": 0.6,
+    "attack": 0.004,
+    "hold": 0.1,
+    "release": 0.7,
+    "reverb": 0.25
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fx.ts",
+    "note": "A low impact on the downbeat: a sine falling from 90 Hz to 34 over half a second."
+  }
+}

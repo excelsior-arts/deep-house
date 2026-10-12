@@ -33,6 +33,8 @@ import type { Calibration } from './calibration.ts';
 import { HOUSE_FAMILIES, REGISTERS } from './motif.ts';
 import type { MotifFamily } from './motif.ts';
 import { rhythmProblems } from './parts/rhythm.ts';
+import { FIGURE_KINDS, figureProblems, placeProblems, sectionProblems, seamProblems } from './treatment.ts';
+import type { Figure, TreatmentPlace, SectionBlock, SeamBlock } from './treatment.ts';
 import { ambienceProblems, presenceProblems } from './parts/figure.ts';
 import { textureProblems, toneProblems } from './parts/texture.ts';
 
@@ -153,6 +155,18 @@ export interface Recipe {
   weight?: number;
   /** which interpretation the row was captured under; a newer one is allowed */
   interpreter?: string;
+  /** a `treatment` row's figure, what it does to the bars it is laid on (`src/treatment.ts`, round T1) */
+  figure?: Figure;
+  /** ...and where its kind's rule may lay it; absent is the kind's own rule */
+  place?: TreatmentPlace;
+  /** the tempo window a row is drawn in, where it names one: `bpm` lo..hi (the pattern rows' and the treatments') */
+  tempo?: { bpm: [number, number]; nearest?: [number, number] };
+  /** a `section` row's block: a kind of section in the grammar's own words (stored and validated; PLAN-TREATMENTS §3) */
+  section?: SectionBlock;
+  /** a `seam` row's block: a hand-over's character (stored and validated; PLAN-TREATMENTS §3) */
+  seam?: SeamBlock;
+  /** a `track` row's form (round DNB-6, `FormBlock`): a section order laid in whole blocks of bars */
+  form?: FormBlock;
   /** the chef's own hand and the listeners' likes; never derived */
   score?: Score;
   /** whether the chef keeps it, for a row that is still a candidate */
@@ -359,8 +373,10 @@ export interface Vocabulary {
   fxPalettes: readonly string[];
   /** the section kinds and labels a `section` scope may apply to */
   sections: readonly string[];
-  /** the stage's gestures, which a `treatment` scope may name */
+  /** the stage's gestures and the composer's figure kinds, which a `treatment` scope may name */
   treatments: readonly string[];
+  /** the layers the grammar gates, which a `section` row's phrases switch on */
+  gates: readonly string[];
 }
 
 /**
@@ -391,7 +407,8 @@ export function vocabularyOf(style: Style, registry: any): Vocabulary {
       ...Object.values(kinds).map((k: any) => k.label),
       ...Object.keys(style.sections?.labelToKind || {}),
     ],
-    treatments: style.stage?.treatments || [],
+    treatments: [...(style.stage?.treatments || []), ...FIGURE_KINDS],
+    gates: style.lanes ? style.lanes.flatMap((l: any) => (l.gate ? [l.gate] : [])) : [],
   };
 }
 
@@ -453,6 +470,29 @@ export function validate(recipe: any, vocab: Vocabulary): string[] {
     say(`applies ${JSON.stringify(recipe.applies)} is not a register (${REGISTERS.join(', ')})`);
   }
   if (recipe.scope === 'motif' && recipe.applies == null) say('a motif recipe has to say which register states it');
+
+  // --- the three scoped blocks (round T1, `src/treatment.ts`) ---
+  // A treatment carries a figure, a section its block, a seam its own; each is
+  // held exactly, and a block on a row of another scope is a row that says
+  // what it is not.
+  if (recipe.scope === 'treatment') {
+    if (recipe.figure === undefined) say('a treatment recipe has to carry a figure');
+    else figureProblems(recipe.figure).forEach(say);
+    placeProblems(recipe.place, vocab.sections, recipe.applies).forEach(say);
+  } else if (recipe.figure !== undefined || recipe.place !== undefined) say(`a ${recipe.scope} recipe carries no figure and no place`);
+  // A section or a seam row may still be a listener's mark alone (the bench's
+  // `recipe-from-mark`): its block is held exactly where it carries one.
+  if (recipe.scope === 'section') { if (recipe.section !== undefined) sectionProblems(recipe.section, vocab.gates).forEach(say); }
+  else if (recipe.section !== undefined) say(`a ${recipe.scope} recipe carries no section block`);
+  if (recipe.scope === 'seam') { if (recipe.seam !== undefined) seamProblems(recipe.seam, vocab.sections).forEach(say); }
+  else if (recipe.seam !== undefined) say(`a ${recipe.scope} recipe carries no seam block`);
+  if (recipe.scope === 'track') { if (recipe.form !== undefined) formProblems(recipe.form).forEach(say); }
+  else if (recipe.form !== undefined) say(`a ${recipe.scope} recipe carries no form block`);
+  if (recipe.tempo !== undefined) {
+    const t = recipe.tempo;
+    const band = (b: unknown) => Array.isArray(b) && b.length === 2 && b.every((n) => Number.isFinite(n) && n > 0) && b[0] <= b[1];
+    if (!t || typeof t !== 'object' || !band(t.bpm) || (t.nearest !== undefined && !band(t.nearest))) say('tempo.bpm is not a window of beats per minute');
+  }
 
   // --- the box ---
   if (!recipe.birds || typeof recipe.birds !== 'object' || Array.isArray(recipe.birds)) say('birds is not an object of ranges');
@@ -653,3 +693,65 @@ export async function loadRecipes(
 }
 
 export default HOUSE_RECIPE;
+
+
+/**
+ * **A track's form as a row** (round DNB-6; his ear on DNB-5, 10-05: *"we use
+ * deep house track structure … we need to come up with a few archetypical
+ * track structures to follow the style closely"*): the order of the form's
+ * labels (intro, build, drop, groove, breakdown, outro), each laid at the
+ * row's bars — whole phrases, so a drop lands on the line the row puts it on —
+ * the labels that take up the theme's length beyond or short of them, sixteen
+ * bars at a time (`stretch`; what is left under sixteen goes to the outro), the
+ * theme lengths the row is drawn for (`fits`, in bars), and the section rows it
+ * prefers by kind beside the place's (`prefers`, by row id).
+ */
+export interface FormBlock {
+  order: string[];
+  bars: number[];
+  stretch: string[];
+  fits: [number, number];
+  prefers?: Record<string, number>;
+  /**
+   * The form's alternatives (liquid-space, 10-11; the research manual's §4), each drawn once a theme off a stream of
+   * its own (`resolveForm`, `src/phrase-development.ts`): per position of the order, the lengths it may take by weight
+   * (`[bars, weight]`, null keeps `bars`), the state it plays in (a state, or states by weight: a full passage in
+   * half-time, an exposed one with no drums, with hints of them or a restrained pulse), and the return's one new feature.
+   */
+  choices?: Array<Array<[number, number]> | null>;
+  states?: Array<Array<[string, number]> | string | null>;
+  features?: Record<string, Array<[string, number]>>;
+}
+/** The states a form may put a section in: a full passage's and an exposed one's (`src/phrase-development.ts`). */
+export const FORM_STATES: readonly string[] = Object.freeze(['half-time', 'developed', 'bed', 'hints', 'pulse']);
+/** The features a form's return may draw, which the development row says how to play. */
+export const FORM_FEATURES: readonly string[] = Object.freeze(['aux', 'bass-answer', 'bright-drums', 'half-time']);
+/** The edit vocabularies a form's developed passages may draw (the development row's `developed.edits`). */
+export const FORM_EDITS: readonly string[] = Object.freeze(['ghosts', 'rolls', 'exchanges']);
+export const FORM_LABELS: readonly string[] = Object.freeze(['intro', 'build', 'drop', 'groove', 'breakdown', 'outro']);
+export function formProblems(form: any): string[] {
+  const bad: string[] = [];
+  if (!form || typeof form !== 'object' || Array.isArray(form)) return ['form is not an object'];
+  if (Object.keys(form).some((k) => !['order', 'bars', 'stretch', 'fits', 'prefers', 'choices', 'states', 'features'].includes(k)))
+    bad.push('form says something other than order, bars, stretch, fits, prefers, choices, states and features');
+  if (!Array.isArray(form.order) || form.order.length < 2 || form.order.some((l: any) => !FORM_LABELS.includes(l))) bad.push(`form.order: two or more of ${FORM_LABELS.join(', ')}`);
+  if (!Array.isArray(form.bars) || form.bars.length !== form.order?.length || form.bars.some((b: any) => !Number.isInteger(b) || b < 4 || b % 4 !== 0))
+    bad.push('form.bars: one length a label, whole four-bar phrases');
+  if (!Array.isArray(form.stretch) || !form.stretch.length || form.stretch.some((l: any) => !form.order?.includes(l))) bad.push('form.stretch: one or more of the order\'s labels');
+  if (!Array.isArray(form.fits) || form.fits.length !== 2 || !form.fits.every((n: any) => Number.isInteger(n) && n > 0) || form.fits[0] > form.fits[1]) bad.push('form.fits: a window of bars');
+  if (form.prefers !== undefined && (!form.prefers || typeof form.prefers !== 'object' || Object.values(form.prefers).some((w: any) => !Number.isFinite(w) || w < 0)))
+    bad.push('form.prefers: section rows by id, each a weight of nought or more');
+  const n = Array.isArray(form.order) ? form.order.length : 0;
+  const weights = (list: any, ok: (v: any) => boolean) => Array.isArray(list) && list.length > 0
+    && list.every((e: any) => Array.isArray(e) && e.length === 2 && ok(e[0]) && Number.isFinite(e[1]) && e[1] > 0);
+  if (form.choices !== undefined && (!Array.isArray(form.choices) || form.choices.length !== n
+    || form.choices.some((c: any) => c !== null && !weights(c, (b) => Number.isInteger(b) && b >= 4 && b % 4 === 0))))
+    bad.push('form.choices: one per label, null or lengths of whole four-bar phrases by weight');
+  if (form.states !== undefined && (!Array.isArray(form.states) || form.states.length !== n
+    || form.states.some((c: any) => c !== null && !(typeof c === 'string' && FORM_STATES.includes(c)) && !weights(c, (v) => FORM_STATES.includes(v)))))
+    bad.push(`form.states: one per label, null, a state or states by weight, of ${FORM_STATES.join(', ')}`);
+  if (form.features !== undefined && (!form.features || typeof form.features !== 'object' || Array.isArray(form.features)
+    || Object.entries(form.features).some(([k, v]) => !(k === 'return' && weights(v, (f) => FORM_FEATURES.includes(f))) && !(k === 'edits' && weights(v, (f) => FORM_EDITS.includes(f))))))
+    bad.push(`form.features: the return's, by weight, of ${FORM_FEATURES.join(', ')}; the edits, by weight, of ${FORM_EDITS.join(', ')}`);
+  return bad;
+}

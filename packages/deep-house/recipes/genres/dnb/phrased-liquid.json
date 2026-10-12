@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/phrased-liquid",
+  "revision": 1,
+  "name": "The liquid phrased cells",
+  "scope": "riff",
+  "applies": "bass",
+  "origin": "authored",
+  "weight": 0,
+  "wants": {
+    "phrased": {
+      "note": "The line where the riff does not play: two-bar cells against the two-step (kick on 0 and 10, snare on 4 and 12), notes of three sixteenths and longer, rests where the drums take the stage, a slide into a note where the cell says so. A note is [step over the two bars, length, scale degree over home, 's' to slide in]. A phrase of `phrase` cells, each `cellBars` long: the statement is rolled once per theme by weight, the answer and the turn per phrase. In the drops, mains and grooves the whole phrase; in a build only `build` on its last bar; in an outro `outro.bars` (the bar of the phrase each outro bar plays) every `outro.everyPhrases` phrases, resting its last `outro.restBars` bars.",
+      "cellBars": 2,
+      "phrase": [
+        "statement",
+        "answer",
+        "statement",
+        "turn"
+      ],
+      "statements": [
+        {
+          "note": "hold and push: home, home again on the second kick, a slide up a third and back",
+          "w": 3,
+          "v": [
+            [0,9,0],
+            [10,5,0],
+            [16,6,0],
+            [22,4,2,"s"],
+            [26,6,0,"s"]
+          ]
+        },
+        {
+          "note": "the lift: up to the fifth on the second kick, the third, back home",
+          "w": 2,
+          "v": [
+            [0,6,0],
+            [6,3,0],
+            [10,6,4],
+            [16,9,2,"s"],
+            [26,6,0,"s"]
+          ]
+        },
+        {
+          "note": "the octave answer: home, a slide to the octave and down",
+          "w": 2,
+          "v": [
+            [0,8,0],
+            [8,2,7,"s"],
+            [10,5,0,"s"],
+            [16,7,0],
+            [24,2,4],
+            [26,6,2,"s"]
+          ]
+        },
+        {
+          "note": "rolling dotted eighths: 3 + 3 + 4, the second bar opening out",
+          "w": 1,
+          "v": [
+            [0,3,0],
+            [3,3,0],
+            [6,4,0],
+            [10,6,0],
+            [16,3,0],
+            [19,3,2],
+            [22,4,0],
+            [26,6,4,"s"]
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "w": 2,
+          "v": [
+            [0,6,0],
+            [6,4,2],
+            [10,6,3,"s"],
+            [16,10,4,"s"],
+            [26,6,2,"s"]
+          ]
+        },
+        {
+          "w": 2,
+          "v": [
+            [0,10,-1],
+            [10,6,0,"s"],
+            [16,6,0],
+            [22,4,-3],
+            [26,6,-1,"s"]
+          ]
+        },
+        {
+          "w": 1.5,
+          "v": [
+            [0,4,0],
+            [10,6,0],
+            [16,12,4],
+            [28,4,2,"s"]
+          ]
+        },
+        {
+          "w": 1,
+          "v": [
+            [3,7,0],
+            [10,6,2],
+            [16,6,0],
+            [22,3,0],
+            [26,6,5,"s"]
+          ]
+        }
+      ],
+      "turns": [
+        {
+          "note": "space: two notes, then the drums alone, back on a pickup from the fifth under",
+          "w": 2,
+          "v": [
+            [0,4,0],
+            [10,6,0],
+            [26,6,-3]
+          ]
+        },
+        {
+          "note": "the drop-out: one hit, the drums alone, a late pickup",
+          "w": 1.5,
+          "v": [
+            [0,3,0],
+            [28,4,-1]
+          ]
+        },
+        {
+          "note": "the long slide: a held note sliding up to the third and back over the bar line",
+          "w": 1.5,
+          "v": [
+            [0,14,0],
+            [16,12,2,"s"],
+            [28,4,0,"s"]
+          ]
+        },
+        {
+          "note": "the walk down to the turn: home, the seventh under, the sixth, a pickup home",
+          "w": 1,
+          "v": [
+            [0,8,0],
+            [10,6,-1],
+            [16,6,-2,"s"],
+            [22,4,-3,"s"],
+            [26,6,-1]
+          ]
+        }
+      ],
+      "build": [
+        [10,6,0]
+      ],
+      "outro": {
+        "everyPhrases": 2,
+        "restBars": 4,
+        "bars": [
+          0,
+          1,
+          2,
+          3,
+          0,
+          1,
+          0,
+          1
+        ]
+      }
+    }
+  },
+  "provenance": {
+    "round": "the phrased line, 10-06 (hands-on, after DNB-7); a row since 10-07",
+    "reading": "authored against the two-step, not mined"
+  }
+}

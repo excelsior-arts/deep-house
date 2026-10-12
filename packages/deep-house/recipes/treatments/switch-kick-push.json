@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/switch-kick-push",
+  "revision": 1,
+  "name": "kick push",
+  "scope": "treatment",
+  "applies": "switch-up",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "bars": 1,
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "....X..o.o..X..."
+        ]
+      },
+      "kick": {
+        "clear": 0,
+        "mask": [
+          "X......k..k....."
+        ]
+      }
+    },
+    "letters": {
+      "k": {
+        "level": 0.95,
+        "absolute": true
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 2,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:590+116, its bars that keep the one",
+    "kind": "switch-up",
+    "reading": "the kick pushed to two-a, the one kept",
+    "from": "src/subsections.ts SWITCH_FIGURES kick-push (round DNB-1, 2026-10-02), weight 2 of 11; the pushed kicks at 0.95, the one at its own level",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/switch-rolling-snare",
+  "revision": 1,
+  "name": "rolling snare",
+  "scope": "treatment",
+  "applies": "switch-up",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "bars": 2,
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "..o.X.o...o.X.o.",
+          "o.o.X.o...o.X.o."
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 3,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:102+123 (bars 38-52)",
+    "kind": "switch-up",
+    "reading": "ghosts on every off-beat eighth around the two and four, the snare rolling through the bar",
+    "from": "src/subsections.ts SWITCH_FIGURES rolling-snare (round DNB-1, 2026-10-02), weight 3 of 11 at the fast broken place",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

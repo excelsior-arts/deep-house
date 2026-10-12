@@ -213,14 +213,33 @@ export function linkRead(search: string, opts: LinkOptions = {}): { link: Link; 
         without.delete(param);
         return refusal(without) === null;
       });
-      if (one) refuseFor(one, why);
+      let now: string | null = why;
+      if (one) { refuseFor(one, why); now = null; }
       else {
-        let now: string | null = why;
         for (const param of ['recipe', 'development', 'accompaniment']) {
           if (!q.has(param)) continue;
           refuseFor(param, now);
           if ((now = refusal(q)) === null) break;
         }
+      }
+      // **Nothing optional left and the plan still refuses** (I01 of the
+      // review of 10-03): the link was handed back clean and the page planned
+      // into the same failure. The theme is the one count left that the plan
+      // reads, so it goes next, with the planner's own reason; where even
+      // theme one will not plan, the link is not clean and says so — a
+      // problem on the ring's line and a fault in the ledger — rather than a
+      // link that looks like it plays.
+      if (now !== null && q.has('theme')) {
+        const without = new URLSearchParams(q);
+        without.delete('theme');
+        if (refusal(without) === null) {
+          refuse('theme', 'theme refused · theme one', `theme ${echo(q.get('theme') || '')} was refused: ${now}; the page opens on theme one`);
+          now = null;
+        }
+      }
+      if (now !== null) {
+        note('fault', 'the planner refused a link with nothing left to take off', { error: now.slice(0, 120) });
+        problems.push({ param: 'plan', short: 'this link will not plan', long: `the planner refused this link and nothing on it could be taken off: ${now}` });
       }
     }
   }
@@ -389,16 +408,32 @@ export function linkAt(state: LinkState, bar: number, base = ''): string {
 /**
  * **The link with the time** (round K32, Eugene: *"another Copy Link with
  * time"*): the canonical link a state writes, and `t`, whole seconds into the
- * theme. The page opened on it starts the theme at the bar line at or before
- * that second and drops `t` from its address; the canonical link, a digest row
- * and the address the page keeps never carry it (`linkWrite` drops it from a
- * base, as it drops the bar). The machine view's key calls this with the
- * transport's second.
+ * theme. The page opened on it starts the theme on that second
+ * (`linkTimeStart`) and drops `t` from its address; the canonical link, a
+ * digest row and the address the page keeps never carry it (`linkWrite` drops
+ * it from a base, as it drops the bar). The machine view's key calls this with
+ * the transport's second, so a copy of a page opened on a time link writes the
+ * same `t` back.
  */
 export function linkWithTime(state: LinkState, seconds: number, base = ''): string {
   const q = linkQuery(linkWrite(state, base));
   q.set('t', String(Math.max(0, Math.floor(Number(seconds) || 0))));
   return plain(q);
+}
+
+/**
+ * **Where a time link starts** (the deep review of 10-08): the second `t`
+ * names, where the theme plays that far; a time past where it plays starts at
+ * its last phrase line (four bars) inside it. Until 10-08 the page started at
+ * the bar line at or before `t`, and the copy floored that again, so every
+ * copy of a copy lost up to a bar. Read here so the page and `check-link`'s
+ * round trip read it one way.
+ */
+export function linkTimeStart(t: number, barSeconds: number, playable: number): number {
+  const second = Math.max(0, Math.floor(Number(t) || 0));
+  if (second < playable) return second;
+  const lastBar = Math.max(0, Math.floor(playable / barSeconds) - 1);
+  return Math.floor(lastBar / 4) * 4 * barSeconds;
 }
 
 /** The address without one of its rows (the time link's `t` once read): every other row where it stands. */

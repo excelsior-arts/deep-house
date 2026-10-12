@@ -15,6 +15,7 @@
 import type Rng from './rng.ts';
 import type { Style } from '@deep-house/engine/style';
 import type { Settings } from '@deep-house/engine/settings';
+import type { Admits, RowKind } from './sections.ts';
 
 /** One eight-bar phrase of a section: where it starts, and what plays in it. */
 export interface Phrase {
@@ -41,7 +42,21 @@ export interface Section {
   impactFirst: boolean;
   riserLast: number;
   lift: boolean;
+  /** the figure kinds this section takes and where (round T2, `src/sections.ts`): its row's `admits` */
+  admits: Admits;
+  /** the section row it plays (round T2), where its kind is a row */
+  row?: string;
+  /** the row's own name, where it is not the kind's word: the ledger's, never the ring's */
+  name?: string;
   index: number;
+  /**
+   * The drawn section whose harmonic roll this one plays (`<seed>::harm:<roll>`),
+   * where it is not its own index: S25's rule puts a section between two
+   * mains alike (`mainsApart`), and every section after it keeps the roll it
+   * was drawn with. Absent, the roll is the index's, which is every section of
+   * the record.
+   */
+  roll?: number;
 }
 
 /** The shape of the whole track: its sections, and how long it came out. */
@@ -67,10 +82,52 @@ export interface BarPoint {
 export interface ArrangementCorpus {
   sectionOrders: string[][];
   sectionBars: Record<string, { p25: number; p75: number; median: number }>;
+  /**
+   * A form laid in whole blocks (round DNB-6, a track row's `form`): the one
+   * order's bars as the row writes them, the labels that take up the rest of
+   * the theme sixteen bars at a time, the remainder under sixteen to the outro.
+   */
+  sectionBlocks?: { bars: readonly number[]; stretch: readonly string[] };
 }
 
 /** A short theme's outro, where it has one (R38, `sectionPhrases`): a phrase. */
 export const SHORT_OUTRO_BARS = 8;
+
+/**
+ * **The form is counted in time, not in bars** (round L3, Eugene, 10-01: *"our
+ * mains are long and boring generally … time-based metrics"*). Until L3 a
+ * theme took one section per 22 drawn bars, which is one per 53 seconds at the
+ * house's 100 BPM and one per 106 at the benchmark's 50: a 9-minute theme there
+ * had the sections of a 4.5-minute house theme. The window is now **seconds at
+ * the played tempo**, calibrated on the house:
+ *
+ *   window = `windowBars` at the tempo the house would play the theme
+ *            (`houseTempoOf`, `src/spell.ts`: the room's draw, 95-105)
+ *          = windowBars × played / house tempo, in bars
+ *
+ * so at the house the ratio is exactly 1 and every form is the record's; at
+ * 50 BPM a section comes per ~11 bars, at DnB's 172 per ~38.
+ *
+ * **The floors are bars at every tempo** (a phrase is a phrase, however slow):
+ * the shortest a section is drawn at, the corpus's own p25 on the phrase grid,
+ * and a main the cut's two phrases (`CUT_FLOORS`). Since round T2 the floor
+ * is the kind's row's (`recipes/sections/`, `floor`), read through the
+ * grammar, which holds a row for every kind (`grammarFromRows`). Where counting in time
+ * would lay a section under its floor, the window gives one section fewer,
+ * down to two, and nothing is squeezed: a breakdown, a build or a drop is never
+ * 4 bars because the tempo is slow. At the house the window is the record's
+ * and the floors are not read there, so its few drops and builds that the
+ * record's scaling lays at 4 stay where they are.
+ */
+export const SECTION_TIME = Object.freeze({
+  /** one section per this many bars at the tempo the house would play the theme (52.8 s at 100 BPM) */
+  windowBars: 22,
+});
+
+/** The section window in bars at a played tempo, for a theme the house would play at `houseBpm`; exactly `windowBars` at the house. */
+export function sectionWindowBars(bpm: number, houseBpm: number): number {
+  return bpm === houseBpm ? SECTION_TIME.windowBars : SECTION_TIME.windowBars * (bpm / houseBpm);
+}
 
 // Round to whole 4-bar phrases: MEASURED, 85% of section boundaries land on a
 // multiple of 4.
@@ -112,88 +169,192 @@ export function makeArrangement(
   barsMul = 1,
   silent: readonly string[] = [],
   shortOutro = 0,
-  fitBars: number | null = null
+  fitBars: number | null = null,
+  cutRule: CutRule | null = null,
+  windowBars: number = SECTION_TIME.windowBars,
+  mains = false
 ): Arrangement {
   const orders = corpus.sectionOrders.filter((o) => o.length >= 2);
   // A draw off a list with something in it, which the filter above leaves: the
   // sampler answers `undefined` only for a list nothing can be drawn from.
-  let order = rng.pickWeighted(orders)!.slice();
+  const drawn = rng.pickWeighted(orders)!;
+  // Counted in time away from the house (L3): the window is the record's 22
+  // bars only where the theme plays at the tempo the house would.
+  const timed = windowBars !== SECTION_TIME.windowBars;
+  // The floor is the kind's row's (T2): every kind of the grammar is read off a row that states one.
+  const floorOf = (label: string) => (grammar.kinds[grammar.labelToKind[label] || 'main'] as Partial<RowKind> | undefined)?.floor ?? 8;
+
+  // One window of the drawn run, laid: its sections, their lengths off the
+  // measured distributions, scaled to the length asked, settled and cut.
+  function layWindow(order: string[], wantSections: number): { order: string[]; bars: number[]; fits: boolean } {
+    if (order.length > wantSections) {
+      // Start the window on a groove, so the track does not open on the far side
+      // of a breakdown that never happened.
+      const grooveStarts = order
+        .map((l, i) => (l === 'groove' && i <= order.length - wantSections ? i : -1))
+        .filter((i) => i >= 0);
+      const start = grooveStarts.length
+        ? rng.pickWeighted(grooveStarts)!
+        : rng.int(0, order.length - wantSections + 1);
+      order = order.slice(start, start + wantSections);
+    }
+    // An outro that is not last is a key-segment boundary in the middle of a
+    // DJ set, not a section of this track.
+    order = order.filter((l, i) => l !== 'outro' || i === order.length - 1);
+    if (!['intro', 'build'].includes(order[0])) order.unshift('intro');
+    if (order[1] && ['drop', 'breakdown'].includes(order[1])) order.splice(1, 0, 'groove');
+    const endsOpen = order[order.length - 1] !== 'outro';
+    if (totalBars >= 96 && endsOpen) order.push('outro');
+    const shortEnd = totalBars < 96 && endsOpen && shortOutro > 0;
+    if (shortEnd) order.push('outro');
+
+    const dist = corpus.sectionBars;
+    const raw = order.map((label) => {
+      const d = dist[label] || { p25: 8, p75: 16, median: 12 };
+      return Math.max(4, rng.float(d.p25 * barsMul, d.p75 * barsMul));
+    });
+
+    const rawTotal = raw.reduce((a, b) => a + b, 0);
+    const scale = totalBars / rawTotal;
+    // Away from the house no section is laid under its floor (L3): it keeps
+    // the floor, and the bars come off the mains below.
+    const soloRoom = timed ? mainsOf(order, cutRule).soloRoom : () => 0;
+    const floorAt = (i: number) => Math.max(floorOf(order[i]), soloRoom(i));
+    const bars = raw.map((b, i) => (timed ? Math.max(floorAt(i), toPhrases(b * scale)) : toPhrases(b * scale)));
+    if (shortEnd) bars[bars.length - 1] = Math.max(bars[bars.length - 1], shortOutro);
+
+    // Settle the remainder on the longest groove, which is where a real set
+    // absorbs it too.
+    // Settle the remainder round-robin over the grooves — the way a set absorbs
+    // it — rather than piling it all onto one, which makes a 4-minute track that
+    // is eighty bars of the same loop.
+    let total = bars.reduce((a, b) => a + b, 0);
+    const grooves = order.map((l, i) => (l === 'groove' ? i : -1)).filter((i) => i >= 0);
+    const pool = grooves.length ? grooves : order.map((_, i) => i);
+    let turn = 0;
+    let guard = 0;
+    // The lowest the settling takes a section to: the record's 8 at the
+    // house, the section's own floor where the window is counted in time.
+    const least = (i: number) => (timed ? floorAt(i) : 8);
+    while (total !== totalBars && guard++ < 500) {
+      const idx = pool[turn % pool.length];
+      turn++;
+      if (total < totalBars) {
+        bars[idx] += 4;
+        total += 4;
+      } else if (bars[idx] - 4 >= least(idx)) {
+        bars[idx] -= 4;
+        total -= 4;
+      } else if (guard > pool.length * 3) {
+        let big = -1;
+        for (let i = 0; i < bars.length; i++) if (bars[i] - 4 >= least(i) && (big < 0 || bars[i] > bars[big])) big = i;
+        if (big < 0) break;
+        bars[big] -= 4;
+        total -= 4;
+      }
+    }
+
+    if (fitBars != null && fitBars < total) {
+      cutMainsFirst(order, bars, total - fitBars, cutRule);
+      // A theme cut under 96 bars that ends on a drawn outro keeps the short
+      // outro such a theme is given (R16, R38): its bars come off the mains too.
+      const last = bars.length - 1;
+      if (fitBars < 96 && shortOutro > 0 && order[last] === 'outro' && bars[last] < shortOutro) {
+        const need = shortOutro - bars[last];
+        bars[last] = shortOutro;
+        cutMainsFirst(order, bars, need, cutRule);
+      }
+    }
+    // It fits where the floors left the length that was asked, and the cut
+    // the length that was heard.
+    const laidBars = bars.reduce((a, b) => a + b, 0);
+    return { order, bars, fits: total === totalBars && (fitBars == null || laidBars <= fitBars || fitBars >= totalBars) };
+  }
 
   // Long mined runs are whole DJ stretches; take a window that suits the
-  // length we want rather than squeezing eleven sections into two minutes.
-  const wantSections = Math.max(2, Math.min(order.length, Math.round(totalBars / 22)));
-  if (order.length > wantSections) {
-    // Start the window on a groove, so the track does not open on the far side
-    // of a breakdown that never happened.
-    const grooveStarts = order
-      .map((l, i) => (l === 'groove' && i <= order.length - wantSections ? i : -1))
-      .filter((i) => i >= 0);
-    const start = grooveStarts.length
-      ? rng.pickWeighted(grooveStarts)!
-      : rng.int(0, order.length - wantSections + 1);
-    order = order.slice(start, start + wantSections);
+  // length we want rather than squeezing eleven sections into two minutes —
+  // one section per `windowBars`, which is time at the played tempo (L3,
+  // `SECTION_TIME`). Away from the house every section keeps its floor, and a
+  // window whose floors the length cannot hold gives one section fewer and is
+  // laid again, on the same die.
+  // **A form in blocks** (round DNB-6): the row's order whole, at its bars, so
+  // its drops land on the lines it puts them on; the stretch labels take up the
+  // theme's length sixteen bars at a time, by turns, never under their floor,
+  // and what is left under sixteen goes to the outro (or the last stretch).
+  if (corpus.sectionBlocks && corpus.sectionBlocks.bars.length === drawn.length) {
+    // a block under its kind's floor is laid at the floor (the review of 10-08, B10: the two-drop row's 16-bar intro
+    // under the pads-first intro's 24 lost its middle phrase); the bars come back off the remainder below
+    const order = drawn.slice(), bars = corpus.sectionBlocks.bars.map((b, i) => Math.max(b, floorOf(order[i])));
+    const pool = order.map((l, i) => (corpus.sectionBlocks!.stretch.includes(l) ? i : -1)).filter((i) => i >= 0);
+    // laid to the length heard: a theme cut to fit (a set's trim) is laid at that length, not cut after
+    let diff = Math.min(totalBars, fitBars ?? Infinity) - bars.reduce((a, b) => a + b, 0);
+    for (let turn = 0, idle = 0; Math.abs(diff) >= 16 && pool.length && idle < pool.length; turn++) {
+      const i = pool[turn % pool.length];
+      if (diff > 0) { bars[i] += 16; diff -= 16; idle = 0; }
+      else if (bars[i] - 16 >= Math.max(8, floorOf(order[i]))) { bars[i] -= 16; diff += 16; idle = 0; }
+      else idle++;
+    }
+    const out = order.lastIndexOf('outro');
+    const rest = [out, ...pool.slice().reverse(), ...order.map((_, i) => i)].find((i) => i >= 0 && bars[i] + diff >= 4);
+    if (rest != null) bars[rest] += diff;
+    if (fitBars != null && fitBars < bars.reduce((a, b) => a + b, 0)) cutMainsFirst(order, bars, bars.reduce((a, b) => a + b, 0) - fitBars, cutRule);
+    const rolls = order.map((_, i) => i);
+    if (mains) mainsApart(order, bars, rolls, cutRule, order.length);
+    return sectionsFrom(order.map((label, i) => ({ kind: grammar.labelToKind[label] || 'main', bars: bars[i], roll: rolls[i] })), grammar, silent);
   }
-  // An outro that is not last is a key-segment boundary in the middle of a
-  // DJ set, not a section of this track.
-  order = order.filter((l, i) => l !== 'outro' || i === order.length - 1);
-  if (!['intro', 'build'].includes(order[0])) order.unshift('intro');
-  if (order[1] && ['drop', 'breakdown'].includes(order[1])) order.splice(1, 0, 'groove');
-  const endsOpen = order[order.length - 1] !== 'outro';
-  if (totalBars >= 96 && endsOpen) order.push('outro');
-  const shortEnd = totalBars < 96 && endsOpen && shortOutro > 0;
-  if (shortEnd) order.push('outro');
+  let want = Math.max(2, Math.min(drawn.length, Math.round(totalBars / windowBars)));
+  let laid = layWindow(drawn.slice(), want);
+  while (timed && want > 2 && !laid.fits) laid = layWindow(drawn.slice(), --want);
+  const { order, bars } = laid;
+  // Each section plays its own drawn index's harmonic roll, which S25's rule
+  // (house-v2's `mainsApart`) keeps with its main when it parts two alike.
+  const rolls = order.map((_, i) => i);
+  if (mains) mainsApart(order, bars, rolls, cutRule, order.length);
+  return sectionsFrom(order.map((label, i) => ({ kind: grammar.labelToKind[label] || 'main', bars: bars[i], roll: rolls[i] })), grammar, silent);
+}
 
-  const dist = corpus.sectionBars;
-  const raw = order.map((label) => {
-    const d = dist[label] || { p25: 8, p75: 16, median: 12 };
-    return Math.max(4, rng.float(d.p25 * barsMul, d.p75 * barsMul));
-  });
-
-  const rawTotal = raw.reduce((a, b) => a + b, 0);
-  const scale = totalBars / rawTotal;
-  const bars = raw.map((b) => toPhrases(b * scale));
-  if (shortEnd) bars[bars.length - 1] = Math.max(bars[bars.length - 1], shortOutro);
-
-  // Settle the remainder on the longest groove, which is where a real set
-  // absorbs it too.
-  // Settle the remainder round-robin over the grooves — the way a set absorbs
-  // it — rather than piling it all onto one, which makes a 4-minute track that
-  // is eighty bars of the same loop.
-  let total = bars.reduce((a, b) => a + b, 0);
-  const grooves = order.map((l, i) => (l === 'groove' ? i : -1)).filter((i) => i >= 0);
-  const pool = grooves.length ? grooves : order.map((_, i) => i);
-  let turn = 0;
-  let guard = 0;
-  while (total !== totalBars && guard++ < 500) {
-    const idx = pool[turn % pool.length];
-    turn++;
-    if (total < totalBars) {
-      bars[idx] += 4;
-      total += 4;
-    } else if (bars[idx] > 8) {
-      bars[idx] -= 4;
-      total -= 4;
-    } else if (guard > pool.length * 3) {
-      const big = bars.indexOf(Math.max(...bars));
-      if (bars[big] <= 8) break;
-      bars[big] -= 4;
-      total -= 4;
+/**
+ * **Two mains alike never stand side by side** (round S25, Eugene of 27191's
+ * third theme: *"the solo comes at the very end, after two main segments one
+ * after another"*). Where the laid run puts a main directly after a main of
+ * the same texture (L2's: the sustained layer held or away, and the figure on
+ * or not, `MainTexture.key`) — a repeat with no relief — a section goes
+ * between them; two mains of different textures side by side are a
+ * progression and stay as drawn. The section goes between them at its floor
+ * (`CUT_FLOORS`, 8 bars): a breakdown, or a build where a drop follows the
+ * second main. Its bars come off the longer of the two, the later of two of a
+ * length (L2's order: the second of two alike is the repeat), so long as the
+ * giver keeps the main's floor (16); the other gives where the first cannot.
+ * Where neither can, the two merge into one main of both their bars, playing
+ * the first's roll. The intro → main and main → outro edges are not mains
+ * side by side and are never touched. No die: the same run is always parted
+ * the same way; the length of the theme never moves. The inserted section
+ * plays a roll of its own (`fresh` on), since it was never drawn. Written in
+ * place.
+ */
+export function mainsApart(order: string[], bars: number[], rolls: number[], rule: CutRule | null, fresh: number): void {
+  const tex = (i: number): MainTexture => (rule ? rule.texture(rolls[i]) : { key: 'main', open: false });
+  const floor = CUT_FLOORS.groove;
+  for (let a = 0; a + 1 < order.length; ) {
+    const b = a + 1;
+    if (order[a] !== 'groove' || order[b] !== 'groove' || tex(a).key !== tex(b).key) { a++; continue; }
+    const label = order[b + 1] === 'drop' ? 'build' : 'breakdown';
+    const gap = CUT_FLOORS[label];
+    const first = bars[a] > bars[b] ? a : b;
+    const giver = [first, first === a ? b : a].find((i) => bars[i] - gap >= floor);
+    if (giver != null) {
+      bars[giver] -= gap;
+      order.splice(b, 0, label);
+      bars.splice(b, 0, gap);
+      rolls.splice(b, 0, fresh++);
+      a = b + 1;
+    } else {
+      bars[a] += bars[b];
+      order.splice(b, 1);
+      bars.splice(b, 1);
+      rolls.splice(b, 1);
     }
   }
-
-  if (fitBars != null && fitBars < total) {
-    cutMainsFirst(order, bars, total - fitBars);
-    // A theme cut under 96 bars that ends on a drawn outro keeps the short
-    // outro such a theme is given (R16, R38): its bars come off the mains too.
-    const last = bars.length - 1;
-    if (fitBars < 96 && shortOutro > 0 && order[last] === 'outro' && bars[last] < shortOutro) {
-      const need = shortOutro - bars[last];
-      bars[last] = shortOutro;
-      cutMainsFirst(order, bars, need);
-    }
-  }
-
-  return sectionsFrom(order.map((label, i) => ({ kind: grammar.labelToKind[label] || 'main', bars: bars[i] })), grammar, silent);
 }
 
 /**
@@ -205,43 +366,99 @@ export function makeArrangement(
 export const CUT_FLOORS: Readonly<Record<string, number>> = Object.freeze({ groove: 16, breakdown: 8, build: 8, drop: 8, intro: 8, outro: 8 });
 
 /**
+ * **What the cut knows of a main before its bars are laid** (round L2): its
+ * texture, read off the plan's own harmonic roll for that section
+ * (`<seed>::harm:<index>`, the draw the bars will play) — whether the
+ * sustained layer holds under it, and whether the figure plays in it.
+ */
+export interface MainTexture {
+  /** the texture as a word: two mains with the same word repeat each other */
+  key: string;
+  /** no sustained layer under it: a passage the bass could solo over (`src/solo.ts`) */
+  open: boolean;
+}
+
+/** The cut's reading of a theme (round L2): each main's texture, and the bars a solo asks of its section. */
+export interface CutRule {
+  /** the texture of the main at this index of the drawn order */
+  texture: (index: number) => MainTexture;
+  /**
+   * The bars an open main whose texture is the theme's only one keeps, where
+   * the theme may solo (`SOLO_SECTION_BARS`: the slow side, no drums, at
+   * least `soloMinBars` at the played tempo); 0 where it may not.
+   */
+  soloBars: number;
+}
+
+/**
  * Cut `cut` bars off a drawn arrangement, **the mains first** (S19, Eugene:
  * *"bias the trimming toward the longer segments and away from the breaks and
- * bridges, which are already a lot shorter than the main runs"*). In order:
+ * bridges, which are already a lot shorter than the main runs"*), and **the
+ * repeats before the variety** (L2, Eugene of 27191: *"those pads were making
+ * the track diverse — reducing the length by increasing repetitive main
+ * segments is actually a less interesting scenario"*). In order:
  *
- *   1. the mains, a whole phrase (8 bars) at a time, always off the longest
- *      one that stays at or over its floor — so a main longer than the others
- *      shortens first and no breakdown, build or drop loses a bar while a main
- *      can still give one;
- *   2. then the breakdowns, the builds and the drops, four bars at a time off
+ *   1. the mains whose texture another main of the theme shares (`CutRule`:
+ *      the same sustained layer, held or away, and the same figure), a whole
+ *      phrase (8 bars) at a time, then four, always off the longest one that
+ *      stays at or over its floor, and between two of a length off the later
+ *      one — the second of two alike is the repeat;
+ *   2. then the mains whose texture is the theme's only one, the same way.
+ *      An open one (no sustained layer: where the bass can solo) keeps the
+ *      section a solo asks (`CutRule.soloBars`) when the theme may solo;
+ *   3. then the breakdowns, the builds and the drops, four bars at a time off
  *      the longest, down to their floor;
- *   3. then the intro past its first phrase and the outro past its last line.
+ *   4. then the intro past its first phrase and the outro past its last line.
  *
- * A cut that the floors cannot take whole leaves the theme that much longer.
- * Written in place on `bars`; the order of the sections never changes.
+ * No die: the same plan is always cut the same way. Without a rule every main
+ * is read as a repeat, which is S19's cut. A cut that the floors cannot take
+ * whole leaves the theme that much longer. Written in place on `bars`; the
+ * order of the sections never changes.
  */
-function cutMainsFirst(order: readonly string[], bars: number[], cut: number): void {
-  const floor = (i: number) => CUT_FLOORS[order[i]] ?? 8;
-  const take = (labels: readonly string[], step: number) => {
+export function cutMainsFirst(order: readonly string[], bars: number[], cut: number, rule: CutRule | null = null): void {
+  const { repeats, only, soloRoom } = mainsOf(order, rule);
+  const floor = (i: number) => Math.max(CUT_FLOORS[order[i]] ?? 8, soloRoom(i));
+  const take = (at: readonly number[], step: number, later = false) => {
     while (cut >= step) {
       let best = -1;
-      for (let i = 0; i < bars.length; i++) {
-        if (!labels.includes(order[i]) || bars[i] - step < floor(i)) continue;
-        if (best < 0 || bars[i] > bars[best]) best = i;
+      for (const i of at) {
+        if (bars[i] - step < floor(i)) continue;
+        if (best < 0 || bars[i] > bars[best] || (later && bars[i] === bars[best])) best = i;
       }
       if (best < 0) return;
       bars[best] -= step;
       cut -= step;
     }
   };
-  take(['groove'], 8);
-  take(['groove'], 4);
-  take(['breakdown', 'build', 'drop'], 4);
-  take(['intro', 'outro'], 4);
+  // The sections that are not mains keep S19's order exactly: the longest,
+  // the first of two of a length.
+  const of = (labels: readonly string[]) => order.flatMap((l, i) => (labels.includes(l) ? [i] : []));
+  take(repeats, 8, true);
+  take(repeats, 4, true);
+  take(only, 8, true);
+  take(only, 4, true);
+  take(of(['breakdown', 'build', 'drop']), 4);
+  take(of(['intro', 'outro']), 4);
+}
+
+/**
+ * The mains of a drawn order as the cut reads them (L2): those whose texture
+ * another main shares, those whose texture is the theme's only one, and the
+ * bars a main keeps for the bass's solo — an open main that is the only one
+ * of its texture, where the theme may solo (`CutRule.soloBars`); 0 elsewhere.
+ */
+export function mainsOf(order: readonly string[], rule: CutRule | null) {
+  const mains = order.flatMap((l, i) => (l === 'groove' ? [i] : []));
+  const texture = new Map(mains.map((i) => [i, rule ? rule.texture(i) : { key: 'main', open: false }]));
+  const alike = (i: number) => mains.some((j) => j !== i && texture.get(j)!.key === texture.get(i)!.key);
+  const repeats = mains.filter(alike);
+  const only = mains.filter((i) => !alike(i));
+  const soloRoom = (i: number) => (rule && only.includes(i) && texture.get(i)!.open ? rule.soloBars : 0);
+  return { repeats, only, soloRoom };
 }
 
 /** Realize declared section spans without another draw or another clock. */
-export function sectionsFrom(rows: readonly { kind: string; bars: number }[], grammar: Style['sections'], silent: readonly string[] = []): Arrangement {
+export function sectionsFrom(rows: readonly { kind: string; bars: number; roll?: number }[], grammar: Style['sections'], silent: readonly string[] = []): Arrangement {
   // The gates this theme holds off. A theme with none — the record's every
   // theme, and every theme at the house — is handed the grammar's own object
   // back, so nothing about the phrase is a copy of anything.
@@ -255,9 +472,9 @@ export function sectionsFrom(rows: readonly { kind: string; bars: number }[], gr
 
   const sections: Section[] = [];
   let bar = 0;
-  rows.forEach(({ kind: kindName, bars }) => {
+  rows.forEach(({ kind: kindName, bars, roll }) => {
     if (bars <= 0) return;
-    const kind = grammar.kinds[kindName];
+    const kind = grammar.kinds[kindName] as Partial<RowKind> & Style['sections']['kinds'][string];
     const section: Section = {
       kind: kindName,
       label: kind.label,
@@ -269,8 +486,12 @@ export function sectionsFrom(rows: readonly { kind: string; bars: number }[], gr
       impactFirst: !!kind.impactFirst,
       riserLast: kind.riserLast || 0,
       lift: !!kind.lift,
+      admits: kind.admits ?? {},
       index: sections.length,
     };
+    if (kind.row) section.row = kind.row;
+    if (kind.name) section.name = kind.name;
+    if (roll != null && roll !== section.index) section.roll = roll;
     // Phrases of 8 bars, with a 4-bar remainder allowed at the end.
     const n = Math.max(1, Math.ceil(bars / 8));
     for (let j = 0; j < n; j++) {
@@ -354,8 +575,12 @@ export function pushCurve(arrangement: Arrangement, push: Settings['push'], edge
   pts.push({ bar: arrangement.bars, value: 0 });
   pts.sort((a, b) => a.bar - b.bar);
   // Strictly increasing, so the curve is a list of ramps and not a stack of
-  // events at one instant.
-  return pts.filter((p, i) => i === 0 || p.bar > pts[i - 1].bar);
+  // events at one instant. Of two points at one bar the later one stands (the
+  // sort is stable, so it is the later section's): a drop straight after a
+  // drop keeps its own push where the first drop's drive ends on its line
+  // (the review of 10-08, A4; the first point used to stand, and the second
+  // drop played without its drive).
+  return pts.filter((p, i) => i === pts.length - 1 || p.bar < pts[i + 1].bar);
 }
 
 export function sectionAtBar(arrangement: Arrangement, bar: number): Section {

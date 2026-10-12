@@ -13,14 +13,25 @@
 //
 // Registered and reachable by nothing.
 
-import { strike, warmDrums, drumNoise, filter, tuned, transient } from './drumkit.ts';
-import type { DrumInstrument, DrumSpec } from './drumkit.ts';
-import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
-import type { ProgramEvent } from '../program.ts';
+import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { contract, num, table, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { DrumSpec } from './drumkit.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 
-function tomSpec(T: Settings['tom'], p: NoteParams): DrumSpec {
+/** What a row of this topology carries, each in its range (`schema.ts`): a head in three sizes, and how a size rings off its tuning. */
+const PARAMETERS = contract({
+  hz: table({ high: HZ, mid: HZ, low: HZ }),
+  ringPower: num(0, 4),
+  mode: RATIO, modeLevel: LEVEL, modeDecay: SECONDS, drop: RATIO, dropTime: SECONDS, bodyLevel: LEVEL, bodyLp: HZ,
+  stickHz: HZ, stickQ: Q, stickDecay: SECONDS, stickLevel: LEVEL,
+  t10: KIT.t10, seconds: KIT.seconds, variants: KIT.variants, variantCents: KIT.variantCents, attack: KIT.attack,
+  trim: KIT.trim, rateSpread: KIT.rateSpread, gainSpread: KIT.gainSpread, decaySpread: KIT.decaySpread,
+  panSpread: KIT.panSpread, velBright: KIT.velBright, velDecay: KIT.velDecay, pan: KIT.pan, room: KIT.room,
+});
+
+function tomSpec(T: PatchOf<typeof PARAMETERS.fields>, p: NoteParams): DrumSpec {
   const size = p.size === 'high' || p.size === 'low' ? p.size : 'mid';
   const hz = T.hz[size as keyof typeof T.hz];
   return {
@@ -93,50 +104,17 @@ function tomBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: numb
   n.stop(at + spec.seconds);
 }
 
-const TOM: DrumInstrument = {
+/**
+ * The tom topology: a head in three sizes with a stick on it, struck through
+ * the kit (`sounds/drum/tom.json` since round R2).
+ */
+export const TOM = kitTopology({
   id: 'tom',
-  seed: 103.1,
-  spec: (p: NoteParams, settings: Settings) => tomSpec(settings.tom, p),
+  cost: 'cheap',
+  parameters: PARAMETERS,
+  spec: tomSpec,
   variant: tomVariant,
   build: tomBody,
-};
+});
 
-export const prepareToms = (ctx: BaseAudioContext, settings: Settings, events: ProgramEvent[]): Promise<void> =>
-  warmDrums(ctx, settings, events, { tom: TOM });
-
-export function tom(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number {
-  return strike(ctx, out, time, p, TOM, settings, at);
-}
-
-/** MEASURED, on each size, and written by `tools/test-drums.ts --bless`. */
-export const TOM_MEASURED = {
-  tom: { loudnessDb: -13, clickStep: 0.0008 },
-  tomHigh: { loudnessDb: -12.5, clickStep: 0.0006 },
-  tomLow: { loudnessDb: -11.6, clickStep: 0.0012 },
-};
-
-/** What it is worth to a meter, on the middle size. */
-export const TOM_TIMBRES = {
-  tom: { family: 'drum', struck: true, hold: 0.03, brightnessHz: 1400, loudnessDb: TOM_MEASURED.tom.loudnessDb },
-};
-
-export const descriptor: Descriptor = {
-  name: 'tom',
-  cost: 'cheap',
-  family: 'drum',
-  roles: ['sixteenth'],
-  bus: 'drums',
-  level: 'shaker',
-  layer: 'shaker',
-  plays: null,
-  mono: false,
-  treat: false,
-  anticipates: null,
-  prepare: prepareToms,
-  render: tom,
-  timbres: TOM_TIMBRES,
-  dispatches: [],
-  mood: [],
-};
-
-export default tom;
+export default TOM;

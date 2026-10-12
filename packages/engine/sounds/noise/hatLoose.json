@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "hatLoose",
+  "revision": 3,
+  "topology": "kit-hat",
+  "block": "hatLoose",
+  "dice": 67.9,
+  "parameters": {
+    "ratios": [
+      1,
+      1.5,
+      2.08,
+      2.72,
+      3.4,
+      4.11
+    ],
+    "base": 620,
+    "detune": 16,
+    "metal": 0.44,
+    "hp": 3200,
+    "peakHz": 6600,
+    "q": 0.28,
+    "tilt": 2,
+    "lidHz": 12700,
+    "t10": 0.2,
+    "seconds": 1.1,
+    "variants": 3,
+    "variantCents": 30,
+    "attack": 0.0025,
+    "trim": 1.13,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.14,
+    "panSpread": 0.08,
+    "velBright": 0.3,
+    "velDecay": 0.35,
+    "pan": -0.12,
+    "room": 0.05,
+    "delay": 0.05,
+    "top": 0,
+    "air": 0,
+    "airHz": 8000,
+    "tail": 0
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatOpen",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "hatLoose": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 6600,
+        "loudnessDb": -12.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "hats-kit.ts",
+    "note": "The loose one: five times the ring, the lid open, and the noise share up — a hat left loose breathes, and most of what breathes is the noise outlasting the metal.",
+    "notes": {
+      "grain": "SPARK-2: the grain (`hat-grain.ts`): the upper ladder's share of the metal, the air past the lid from `airHz`, the tail after -10 dB. Nought here builds nothing; a place voices the block."
+    }
+  },
+  "measured": {
+    "clickStep": 0.0049
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/double-kick-two-step",
+  "revision": 1,
+  "name": "The double-kick two-step",
+  "scope": "track",
+  "applies": null,
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "rhythm": {
+      "kick": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            1,
+            16,
+            17,
+            20
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "drum"
+          ]
+        }
+      ],
+      "backbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            4,
+            7,
+            9,
+            10,
+            13,
+            15,
+            20,
+            23,
+            25,
+            26,
+            29,
+            31
+          ],
+          "accents": [
+            1,
+            0.3,
+            0.3,
+            1,
+            0.65,
+            0.3,
+            1,
+            0.3,
+            0.3,
+            1,
+            0.65,
+            0.3
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "brightnessMin": 1500,
+            "brightnessMax": 2600
+          },
+          "prefer": {
+            "brightnessMax": 2000
+          },
+          "feel": {
+            "swing": 0.55,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ],
+      "offbeat": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            23,
+            24,
+            26,
+            28,
+            30,
+            31
+          ],
+          "accents": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0.3,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.05,
+            "brightnessMin": 6000
+          },
+          "prefer": {
+            "brightnessMin": 7500
+          },
+          "feel": {
+            "swing": 0.55,
+            "delay": {
+              "beats": 0
+            },
+            "timing": {
+              "beats": 0.004
+            },
+            "dynamics": 0.08
+          }
+        }
+      ]
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              8,
+              8
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            0.5,
+            0.5
+          ],
+          "returns": {
+            "bars": [
+              2,
+              2
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                0
+              ],
+              "beats": [
+                8
+              ],
+              "holds": [
+                7.5
+              ],
+              "accents": [
+                1
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "presence": {
+      "backbeat": "supporting"
+    }
+  },
+  "forbids": [],
+  "weight": 0.25,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "placement": {
+    "roles": [
+      "kick",
+      "backbeat",
+      "offbeat",
+      "bassline"
+    ],
+    "grammar": "house-phrases-1",
+    "beatsPerBar": 4,
+    "drums": true,
+    "kits": [
+      "breaks"
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      168,
+      176
+    ]
+  },
+  "sections": [
+    "main",
+    "drop"
+  ],
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:2608+154",
+    "bars": "30\u2013108",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "drum beat",
+    "pattern": "the kick doubled on the one and nothing more, the second backbeat pushed a sixteenth late to four-e with ghosts around it, sixteenth hats, a sub held for two bars",
+    "note": "The cut runs a riser into its drop every two bars and the snare's second hit is displaced: the drop leans forward.",
+    "gap": "the risers every two bars are an FX rate the lead-ins do not reach (they are spaced by `momentAt`); noted, not built",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -0.5,
+      "syncopationZ": -1.6,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    },
+    "admitted": "admitted 2026-10-05 on the brief of round DNB-3 (his word of 10-05, liquid first) at the weight the round gave it",
+    "weighed": "round DNB-3 (2026-10-05): 0 -> 0.25, admitted on the brief of round DNB-3 (his word of 10-05, liquid first): DNB-2 proposed 0.25; the two-step thinned, its sub held long, is the liquid side of the mined rows"
+  }
+}

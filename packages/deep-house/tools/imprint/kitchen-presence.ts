@@ -19,7 +19,9 @@
 // under the hats. A theme with another part on the lane's layer in the window
 // (a hand row) is refused rather than metered as the lane.
 //
-// One headless Chromium, one render at a time, reniced, on port 7093 and
+// One headless Chromium, reniced, one render at a time for now (the standing
+// rule since 10-04 is six pages inside the browser, as tools/loudness-fit.ts
+// does; this tool has not been given --pages yet — notes/TODO.md), on port 7093 and
 // never 6975. A scratch build, never docs/.
 
 import fs from 'node:fs';

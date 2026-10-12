@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/drop-out",
+  "revision": 1,
+  "name": "drop-out",
+  "scope": "treatment",
+  "applies": "drop-out",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "kick": {
+        "clear": 0
+      },
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "..............e."
+        ]
+      },
+      "offbeat": {
+        "clear": 0
+      },
+      "sixteenth": {
+        "clear": 0
+      }
+    },
+    "letters": {
+      "e": {
+        "level": 0.8
+      }
+    },
+    "stroke": {
+      "level": 0.85
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:590+116 (bar 19), 8:706+84 (bars 19, 35, 51), 8:102+123 (86-87)",
+    "kind": "drop-out",
+    "reading": "104 drop-outs in the mix, 82 of them one bar; the bar after carries a crash or a riser's end a third of the time",
+    "from": "src/subsections.ts drop-out (round DNB-1, 2026-10-02): the drums out for the bar, a snare on four-and at 0.8, the stroke on the next one at 0.85 where the place lands one",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "kickPunchHigh",
+  "revision": 2,
+  "topology": "kit-kick",
+  "dice": 171.3,
+  "parameters": {
+    "hz": 52,
+    "drop": 2.6,
+    "dropTime": 0.012,
+    "bodyLevel": 0.85,
+    "bodyLp": 1500,
+    "drive": 0,
+    "clickHz": 3500,
+    "clickQ": 0.3,
+    "clickDecay": 0.006,
+    "clickLevel": 3,
+    "t10": 0.11,
+    "seconds": 0.45,
+    "variants": 2,
+    "variantCents": 6,
+    "attack": 0.003,
+    "trim": 0.45,
+    "rateSpread": 0.012,
+    "gainSpread": 0.05,
+    "decaySpread": 0.07,
+    "velBright": 0.1,
+    "velDecay": 0.2,
+    "skinHz": 250,
+    "skinLevel": 1.5,
+    "skinDecay": 0.02,
+    "holdS": null,
+    "releaseS": null,
+    "wobbleCents": 0,
+    "harmonics": [
+      0.141,
+      0.035,
+      0.018,
+      0,
+      0.022
+    ]
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "kick"
+    ],
+    "bus": "kick",
+    "level": "kick",
+    "layer": "kick",
+    "plays": null,
+    "mono": true,
+    "treat": false,
+    "cost": "cheap",
+    "contour": {
+      "seconds": 0.5,
+      "depth": 1,
+      "points": [
+        [0,0.35],
+        [0.024,1,"sine"],
+        [0.035,1],
+        [0.065,0.65,"smooth"],
+        [0.105,0.25,"smooth"],
+        [0.16,0.05,"smooth"],
+        [0.25,0.02,"smooth"]
+      ]
+    },
+    "timbres": {
+      "kickPunchHigh": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 400,
+        "loudnessDb": -19
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dnb-7, the classic beat 10-05",
+    "module": "none",
+    "note": "a short kick whose punch sits over the line's sub, for the fast broken beat (his ear on DNB-6, 10-05: our drums' tone is far): source 8's kick read at its drop, onset by onset with what sounded before it taken out, has its body at 100 Hz and stands within 8 dB of its peak from 63 to 400 Hz, -15 at 400-630 and -21 at 630 Hz-1 kHz, where the tight kick's body sat at 65 Hz and fell 18-22 dB by 160-400 Hz and 40-50 by 400 Hz-1 kHz; so the drop onto 70 Hz from twice it over 30 ms, the body open to 900 Hz and driven 1.0 for the partials over it, the click at 3 kHz, and the ring a little longer (t10 45 ms). Revision 2 (the liquid bass rounds, 10-07): a rounded output contour over every hit — from 0.35 to full over 24 ms, held to 35 ms, then down through 0.65 at 65 ms, 0.25 at 105, 0.05 at 160 and 0.02 at 250 ms — so the kick's pressure is one short rounded push and not a long flat top under the line. Its depth (the liquid knobs, 10-07) is a desk line, `contour.depth`: 1 is that pillow, 0 is revision 1's kick, flat; how much of the contour each hit is played with, every gain g heard as g x depth + (1 - depth)."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

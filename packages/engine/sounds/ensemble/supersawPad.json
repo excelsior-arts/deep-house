@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "supersawPad",
+  "revision": 1,
+  "topology": "supersaw-pad",
+  "block": "supersawPad",
+  "parameters": {
+    "voices": 7,
+    "detuneCents": 22,
+    "voiceLevel": 0.42,
+    "spread": 0.95,
+    "cutoff": 850,
+    "sweepTo": 2500,
+    "sweepTime": 4.5,
+    "q": 1.1,
+    "attack": 0.7,
+    "decay": 1.6,
+    "sustain": 0.7,
+    "release": 1.1,
+    "hpHz": 110,
+    "driftHz": 0.07,
+    "driftCents": 6,
+    "trim": 0.6
+  },
+  "descriptor": {
+    "family": "ensemble",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "supersawPad": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.7,
+        "brightnessHz": 2500,
+        "loudnessDb": -10.7
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "supersaw-pad.ts",
+    "note": "A supersaw pad: seven saws spread across a fifth of a semitone and across the stereo picture, under a lowpass that opens over the first seconds of the note. It is the widest and the most expensive voice in the engine, and it is the sustained role's second family: `strings` is an ensemble of five with a chorus on it, this is one instrument with seven oscillators in it.",
+    "notes": {
+      "detuneCents": "The spread of the stack, end to end. A supersaw's whole character is that the detune is *even* across the voices and wide enough that the beats are a texture rather than a wobble.",
+      "cutoff": "The slow sweep. It opens from `cutoff` to `sweepTo` over `sweepTime`, which is seconds and not milliseconds: on a pad this is the arrangement and not the attack.",
+      "driftHz": "The stack drifts: the outer voices wander a few cents at a fourteenth of a Hertz, so the width breathes instead of standing still."
+    }
+  }
+}

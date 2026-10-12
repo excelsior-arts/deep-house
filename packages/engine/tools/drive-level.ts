@@ -83,7 +83,7 @@ export async function driveLevel(id: string, settings: Settings, params: Record<
 }
 
 /** The drive-family effects, and the knob each one drives with. */
-export const DRIVES: Record<string, string> = { overdrive: 'drive', distortion: 'drive', fuzz: 'drive', filter: 'drive', ladder: 'drive', crush: 'drive' };
+export const DRIVES: Record<string, string> = { overdrive: 'drive', distortion: 'drive', fuzz: 'drive', filter: 'drive', ladder: 'drive', crush: 'drive', drive: 'drive' };
 
 /**
  * What each drive is held to. A drive proper is held to its **input**: the
@@ -93,7 +93,7 @@ export const DRIVES: Record<string, string> = { overdrive: 'drive', distortion: 
  * takes away is the filter.
  */
 export const NEUTRAL_TO: Record<string, 'input' | 'undriven'> = {
-  overdrive: 'input', distortion: 'input', fuzz: 'input', crush: 'input', filter: 'undriven', ladder: 'undriven',
+  overdrive: 'input', distortion: 'input', fuzz: 'input', crush: 'input', filter: 'undriven', ladder: 'undriven', drive: 'input',
 };
 
 /**

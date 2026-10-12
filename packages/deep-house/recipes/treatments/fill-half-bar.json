@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/fill-half-bar",
+  "revision": 2,
+  "name": "half-bar roll",
+  "scope": "treatment",
+  "applies": "fill",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "tempo": {
+    "bpm": [
+      160,
+      176
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "....X...xxeeXXXX"
+        ]
+      }
+    },
+    "letters": {
+      "e": {
+        "level": 0.8
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0.5,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:225+63, 8:1864+126",
+    "kind": "fill",
+    "where": "the bar before a section line, the bigger lines",
+    "reading": "the breakdown's roll into the first drop (cut 3) and the jungle cuts' last bars",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; revision 2 (the review of 10-08, B14): boxed to the fast broken places' tempo, 160-176 BPM, as the place's pattern rows are; with no box it was drawn at the house too",
+    "note": "A row of the library since 2026-10-02: drawn by its weight among the rows of its kind wherever the place table draws the kind (notes/rounds/treat-t1.md).",
+    "admitted": "admitted 2026-10-02 on the review of the links, at 0.5 beside the code's figure of its kind"
+  }
+}

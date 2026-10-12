@@ -77,6 +77,12 @@ export const SCENES_FX: EffectScene[] = [
   { id: 'width', source: 'strings', probe: { what: 'the side, against the mid', params: { width: 2 } } },
   { id: 'haas', source: 'strings', probe: { what: 'what the mono sum loses' } },
   { id: 'mono', source: 'strings', probe: { what: 'the side under the corner' } },
+  // round KV1
+  { id: 'drive', source: 'pluck', probe: { what: 'what the clip does to the crest factor, and the trims', params: { drive: 1 } } },
+  { id: 'lofi', source: 'strings', probe: { what: 'the top it takes off, and how far the head makes a held tone wander' } },
+  // round B1 of the bass: the parallel drive, on the drive family's fixture.
+  // Registered on 10-02 without a row, so until this one it had no gate at all.
+  { id: 'bassDrive', source: 'pluck' },
 ];
 
 /** The ids, in the registry's order: what `test-effects-2.ts` walks. */

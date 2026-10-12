@@ -231,7 +231,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -263,6 +263,12 @@
   "provenance": {
     "pattern": "breakbeat (nu-skool and big beat): a funk break's syncopated kick under a firm two-and-four snare at 125-135, sixteenth hats with an open hat at the end of the phrase",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Breaks is not a family in genres.json any more; it lives under drum and bass, which is where the break came to rest. Two bars: kick one, two-a, three-and; then one, one-and, three-e, four-and. Snare on two and four with ghosts on two-a and four-a. Closed sixteenths, accented on the eighths and lightly swung, and a loose hat opening on the last and of each second bar. The bass is a syncopated funk line inside a fifth."
+    "note": "Breaks is not a family in genres.json any more; it lives under drum and bass, which is where the break came to rest. Two bars: kick one, two-a, three-and; then one, one-and, three-e, four-and. Snare on two and four with ghosts on two-a and four-a. Closed sixteenths, accented on the eighths and lightly swung, and a loose hat opening on the last and of each second bar. The bass is a syncopated funk line inside a fifth.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": 0.4,
+      "syncopationZ": -0.7,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

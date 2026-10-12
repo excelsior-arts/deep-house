@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pulseLead",
+  "revision": 1,
+  "topology": "pulse-lead",
+  "block": "pulseLead",
+  "parameters": {
+    "attack": 0.004,
+    "decay": 0.16,
+    "sustain": 0.5,
+    "release": 0.1,
+    "detuneCents": 9,
+    "pwmWidth": 0.16,
+    "pwmDepth": 0.55,
+    "pwmHz": 0.31,
+    "pwmMix": 0.9,
+    "cutoff": 2100,
+    "envMult": 4.2,
+    "envTime": 0.1,
+    "q": 7.5,
+    "veloOpen": 0.7,
+    "hpHz": 150,
+    "subLevel": 0.22,
+    "spread": 0.45,
+    "trim": 0.592
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "melody",
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "pulseLead": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.5,
+        "brightnessHz": 1800,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "wave-leads.ts",
+    "note": "A narrow pulse, which is the same comb trick as the saw lead at a very different setting: `pwmWidth` is the pulse's duty, and 0.16 is nasal where the saw lead's 0.42 is hollow.",
+    "notes": {
+      "subLevel": "The octave below, as a plain square. A narrow pulse has almost nothing at its own fundamental — the duty sets the first null — so without this the instrument has no bottom at all."
+    }
+  }
+}

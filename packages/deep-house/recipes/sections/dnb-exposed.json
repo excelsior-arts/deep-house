@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/dnb-exposed",
+  "revision": 1,
+  "name": "the harmony alone",
+  "scope": "section",
+  "applies": "breakdown",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "pad",
+          "keys"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "pad",
+          "keys"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "pad",
+          "keys"
+        ]
+      }
+    ],
+    "admits": {
+      "lead-in": "last"
+    },
+    "flags": {
+      "sweepFirst": true,
+      "lift": true
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "kind": "section",
+    "knowledge": "authored: the research manual's exposed passage (§4, §7 item 6) — no fast subdivisions, the harmony and the space continuous; no record's arrangement copied",
+    "note": "The pads and the keys alone, the bass and the fast drums gone; the bed lifted as a breakdown's is. What else plays is the passage's state, drawn by the form (src/phrase-development.ts): nothing (bed), a soft kick and a rim on the half-time backbeat (hints), or a restrained pulse (pulse), each the kit's own state, never on the passage's last bar, so the return is the lead-in logic's to announce. A row at nought in itself: drawn only where a form row prefers it.",
+    "plays": "preferred by the liquid-space form rows (dnb/form-two-return, dnb/form-roller, dnb/form-islands, dnb/form-half-time-dialogue, dnb/form-broken-air); at nought in itself",
+    "moved": "round liquid-space (2026-10-11): written as a row in the treatment contract, at nought, preferred by the new form rows alone"
+  }
+}

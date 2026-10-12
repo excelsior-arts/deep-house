@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sub",
+  "revision": 1,
+  "topology": "sub",
+  "block": "bass",
+  "parameters": {
+    "drive": 0.3,
+    "cutoff": 360,
+    "triangle": 0.035,
+    "octave": 0.04,
+    "even": 0.12,
+    "attack": 0.008,
+    "decay": 0.22,
+    "sustain": 0.6,
+    "bodyDecay": 0.1,
+    "bodyFloor": 0.42,
+    "glide": 0.03,
+    "openMult": 2.4,
+    "openTime": 0.08
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": "bass",
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 140,
+        "default": 360,
+        "max": 1100,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.000266
+      },
+      "hold": {
+        "unit": "ratio",
+        "min": 0.18,
+        "default": 0.6,
+        "max": 0.95,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": 9.5
+      },
+      "attack": {
+        "unit": "seconds",
+        "min": 0.002,
+        "default": 0.008,
+        "max": 0.05,
+        "bird": "ember",
+        "sense": -1,
+        "slopeDb": -0.0987
+      },
+      "mass": {
+        "unit": "ratio",
+        "min": 0,
+        "default": 1,
+        "max": 2,
+        "bird": "root",
+        "sense": 1,
+        "slopeDb": 0.0075
+      }
+    },
+    "controls": {
+      "bodyFloor": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 0.6,
+        "default": 0.42
+      },
+      "bodyOctave": {
+        "unit": "level",
+        "min": 0,
+        "max": 0.3,
+        "default": 0.04
+      }
+    },
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "bass.ts",
+    "note": "the record's own sub, MEASURED off the two benchmark minutes and the listener's ear; the bus's half of the bass block (comp, body EQ, tilt, floor) is master.ts's and stays in params.ts"
+  }
+}

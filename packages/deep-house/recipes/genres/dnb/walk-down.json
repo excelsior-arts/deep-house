@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/walk-down",
+  "revision": 4,
+  "name": "The walk down",
+  "scope": "motif",
+  "applies": "bass",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "motif": {
+      "contour": "wave",
+      "intervals": {
+        "steps": [
+          0.75,
+          0.75
+        ],
+        "leaps": [
+          0.25,
+          0.25
+        ]
+      },
+      "cell": {
+        "beats": [
+          8,
+          8
+        ]
+      },
+      "onGrid": [
+        1,
+        1
+      ],
+      "range": {
+        "semitones": [
+          6,
+          6
+        ]
+      },
+      "density": [
+        2.5,
+        2.5
+      ],
+      "returns": {
+        "bars": [
+          2,
+          2
+        ]
+      },
+      "paths": [
+        {
+          "degrees": [
+            1,
+            0,
+            -1,
+            -2,
+            0
+          ],
+          "beats": [
+            1,
+            1,
+            1,
+            1,
+            4
+          ],
+          "holds": [
+            0.75,
+            0.75,
+            0.75,
+            0.75,
+            3.5
+          ],
+          "accents": [
+            1,
+            0.85,
+            0.85,
+            0.85,
+            0.85
+          ]
+        }
+      ]
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:1864+126, 8:1990+115",
+    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
+    "kind": "bass riff",
+    "note": "A tone above the root and down by steps a beat at a time to a tone under it and back: the jungle cuts' bass. Revision 4 (round DNB-7): revision 1 again — round DNB-6 had given it a riff grammar a place played the bass by; the place now plays a glide line (dnb/glide-*), and the row waits among the candidates as it did.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -3.0,
+      "syncopationZ": -1.2,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md §5); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+    }
+  }
+}

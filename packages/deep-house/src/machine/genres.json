@@ -1,8 +1,69 @@
 {
  "kind": "genre-presets",
  "schema": 2,
- "note": "The genre keys under the ring in the machine view (PLAN-GENRES; notes/analysis/genres-2026-09-25.md). A key is a spell and nothing else: `spell` names the birds away from the house, `reachable` false means the birds cannot reach the genre and the spell is the nearest the search found, `about` is the key's tooltip. Measured, never typed by hand: re-run tools/genres.ts and tools/genres.py before changing a spell. Since M7 (schema 2): two tiers. `families` are the grid's first tier, each with its own measured `spell`, `reachable` and `about`, and up to eight `subs`, its second tier; a sub with `tuned: true` carries a measured spell of its own, and one with `tuned: false` has none yet and plays its family's. The tuning of the subs is for a genres session. Since M10 a family carries `tuned` too: whether its own spell is one to play — measured and reached by the ring's controls (false where `reachable` is false, and for Dub, which borrows Dub Techno's). A key whose spell is not tuned is drawn disabled and does nothing; a family on the first tier still opens its tier. Since M18 a family or a sub-genre may carry `recipes`: the ids of the recipe library's rows (`packages/deep-house/recipes/genres/`) that belong to it, the library's own ids and never renamed, so the grid can later show which styles have recipes.",
+ "note": "The genre keys under the ring in the machine view (PLAN-GENRES; notes/analysis/genres-2026-09-25.md). A key is a spell and nothing else: `spell` names the birds away from the house, `reachable` false means the birds cannot reach the genre and the spell is the nearest the search found, `about` is the key's tooltip. Measured, never typed by hand: re-run tools/genres.ts and tools/genres.py before changing a spell. Since M7 (schema 2): two tiers. `families` are the grid's first tier, each with its own measured `spell`, `reachable` and `about`, and up to eight `subs`, its second tier; a sub with `tuned: true` carries a measured spell of its own, and one with `tuned: false` has none yet and plays its family's. The tuning of the subs is for a genres session. Since M10 a family carries `tuned` too: whether its own spell is one to play — measured and reached by the ring's controls (false where `reachable` is false, and for Dub, which borrows Dub Techno's). A key whose spell is not tuned is drawn disabled and does nothing; a family on the first tier still opens its tier. Since M18 a family or a sub-genre may carry `recipes`: the ids of the recipe library's rows (`packages/deep-house/recipes/genres/`) that belong to it, the library's own ids and never renamed, so the grid can later show which styles have recipes. Since GA8 (Eugene, 2026-10-01: *\"only nine top-level tiles, no sub-views\"*) the view draws `grid` and nothing else: one level, its `centre` (the home family's style, Deep House) and the eight `around` it in reading order. A tile names its `label` and the `family` it stands for, and, where two tiles share one family, the `styles` of that family it gathers; it plays the family's own preset (its tuned spell, or the place its rows share) or, with `styles`, the first tuned of them or the place their rows share, and the family's first tuned style where the family has no preset of its own; a tile that reaches none of those is drawn disabled. Swapping a tile is one line here. Since G4 (Eugene, 10-02: *\"the nine tiles should roughly assume above are fast beats and below are slow beats\"*) `around` is in tempo order: the three fastest tiles on the top row, the mid-tempo pair beside Deep House, the three slowest on the bottom row, each by the tempo centre its spell plays (the round note's table); Disco is given up and Trip Hop has its tile. The `families` and their `subs` stay as the table of what is measured and claimed, and are not drawn.",
  "home": "House",
+ "grid": {
+  "centre": {
+   "family": "House",
+   "style": "Deep House"
+  },
+  "around": [
+   {
+    "label": "Drum & Bass",
+    "family": "DnB & Dub",
+    "styles": [
+     "Liquid",
+     "Jungle",
+     "Neurofunk",
+     "Jump-up",
+     "Halftime"
+    ]
+   },
+   {
+    "label": "Dubstep",
+    "family": "DnB & Dub",
+    "styles": [
+     "Dubstep"
+    ]
+   },
+   {
+    "label": "Trance",
+    "family": "Trance"
+   },
+   {
+    "label": "Techno",
+    "family": "Techno"
+   },
+   {
+    "label": "Breaks",
+    "family": "Breaks & Big Beat"
+   },
+   {
+    "label": "Downtempo",
+    "family": "Ambient & Downtempo",
+    "styles": [
+     "Downtempo",
+     "Lo-fi",
+     "Chillout"
+    ]
+   },
+   {
+    "label": "Trip Hop",
+    "family": "Ambient & Downtempo",
+    "styles": [
+     "Trip Hop"
+    ]
+   },
+   {
+    "label": "Ambient",
+    "family": "Ambient & Downtempo",
+    "styles": [
+     "Ambient"
+    ]
+   }
+  ]
+ },
  "families": [
   {
    "label": "House",
@@ -19,7 +80,11 @@
      "label": "Deep House",
      "spell": {},
      "tuned": true,
-     "about": "Deep House: the house spell, every control at home. The record the other eight are measured against."
+     "about": "Deep House: the house spell, every control at home. The record the other eight are measured against.",
+     "recipes": [
+      "tracks/dark-sixteenths",
+      "tracks/bright-eighths"
+     ]
     },
     {
      "label": "Tech House",
@@ -75,6 +140,9 @@
      "tuned": false,
      "about": "Bass House: not tuned yet — plays the family's spell."
     }
+   ],
+   "recipes": [
+    "house/disco-house"
    ]
   },
   {
@@ -148,7 +216,7 @@
    "spell": {},
    "reachable": true,
    "tuned": false,
-   "about": "Ambient & Downtempo: the slow and the beatless, one family since M18 (his word: Ambient and Downtempo join). Its two measured spells are its Ambient and Downtempo keys; the family's own key has no spell of its own.",
+   "about": "Ambient & Downtempo: the slow and the beatless, one family since M18 (his word: Ambient and Downtempo join). Its three measured spells are its Ambient, Downtempo and Trip Hop keys; the family's own key has no spell of its own.",
    "subs": [
     {
      "label": "Ambient",
@@ -164,26 +232,41 @@
      "tuned": true,
      "about": "Ambient: no drums (Ember 0.10), slow and wet (Tide 0.85), bright (Zephyr 0.90), long form (Loom 0.80). The ring's controls reach the form — no kick, 48–55 BPM, long tails — but nothing sounds above 4 kHz: the pads are the whole record and a texture or shimmer voice would be the top. The catalogue has no beatless window to hold it to; its 'ambient' is its slowest band, with a kick.",
      "recipes": [
-      "ambient/slow-chords"
+      "ambient/slow-chords",
+      "ambient/pedal-swell"
      ]
     },
     {
      "label": "Downtempo",
      "spell": {
-      "ember": 0.3,
+      "ember": 0.35,
       "tide": 0.7,
       "root": 0.55
      },
      "tuned": true,
-     "about": "Downtempo, as near as the ring's controls get: a lighter pulse (Ember 0.30), wetter (Tide 0.70), less mass (Root 0.55). Measured 1.2–1.8 from the catalogue's downtempo windows on five seeds, where they sit 0.8 from their own middle and the house spell 1.6: the ring's controls cannot slow the kick under 95 BPM (the seed picks 95–105), and the sets are busier and more syncopated than any spell makes the record — a rhythm family's work, not a control's."
+     "about": "Downtempo at 95 (Ember 0.35: 90-100 by seed), wetter (Tide 0.70), less mass (Root 0.55). Measured 2.86 from the catalogue's downtempo windows (91-102 BPM) on five seeds against 2.18 at Ember 0.30 (90): nearer in tempo, further in the reading (off-grid +12.8 on four seeds, the sets busier and more syncopated: syncIndex -2.5, on_low -3.0); chosen at 95 so Downtempo stands above Trip Hop's 85. The sets' density is the rows' to bring, not a control's.",
+     "recipes": [
+      "downtempo/chillout-groove"
+     ]
     },
     {
      "label": "Trip Hop",
-     "tuned": false,
-     "about": "Trip Hop: not tuned yet — plays the family's spell.",
+     "tuned": true,
+     "about": "Trip Hop: a slow broken beat (Ember 0.27 with Spark 0.60: 85 BPM on the breaks kit), dark (Zephyr 0.30, Gleam 0.20), heavy underneath (Root 0.80), a little drier than the house (Tide 0.55), slow to change (Veil 0.25). The spell that measured nearest at 90 (1.85 from a rule target written for it: 85-95 on a broken kit, the kick forward, syncopated, darker than the catalogue's downtempo windows; 1.60 from those windows) with Ember a notch down so it sits under Downtempo, the two spread by tempo. Missing: the syncopation and the busy low end the style has - the kit's own break is straighter than a trip-hop break, which the rows bring.",
      "recipes": [
-      "downtempo/trip-hop"
-     ]
+      "downtempo/trip-hop",
+      "downtempo/trip-hop-dust",
+      "downtempo/trip-hop-halfstep"
+     ],
+     "spell": {
+      "ember": 0.27,
+      "spark": 0.6,
+      "tide": 0.55,
+      "zephyr": 0.3,
+      "root": 0.8,
+      "veil": 0.25,
+      "gleam": 0.2
+     }
     },
     {
      "label": "Lo-fi",
@@ -223,16 +306,46 @@
    "about": "DnB & Dub (drum and bass and dub): the bass-weight family since M18 (his word: DnB and Dub join). Dub Techno is its one measured spell; drum and bass itself is not reached by the ring's controls yet (the break and the reese are the composer's to add), so the family's own key has no spell.",
    "recipes": [
     "dnb/two-step",
-    "dnb/breakbeat"
+    "dnb/two-step-ghosts",
+    "dnb/rolling-snare",
+    "dnb/doubled-snare",
+    "dnb/stepper-roll",
+    "dnb/sparse-half-step",
+    "dnb/semitone-lean",
+    "dnb/glide-and-back",
+    "dnb/glide-over-the-bar",
+    "dnb/glide-held-swoop"
    ],
    "subs": [
     {
      "label": "Liquid",
-     "tuned": false,
-     "about": "Liquid: not tuned yet — plays the family's spell.",
+     "tuned": true,
+     "about": "Liquid: the fast broken place groomed by ear and by numbers against a liquid reference on 2026-10-06 (the two-step kit, its fills and lift, the clean sine line). The Drum & Bass tile opens here.",
      "recipes": [
-      "dnb/liquid-roller"
-     ]
+      "dnb/liquid-roller",
+      "dnb/liquid-ghosts",
+      "dnb/swung-sixteenths",
+      "dnb/kit-liquid-two-step",
+      "dnb/riff-liquid-mined",
+      "dnb/riff-liquid-held",
+      "dnb/riff-liquid-stairs",
+      "dnb/phrased-liquid",
+      "dnb/phrase-development-liquid",
+      "dnb/aux-liquid-quiet",
+      "dnb/surface-dark-air",
+      "dnb/surface-hiss",
+      "dnb/surface-air-swell",
+      "dnb/bass-answers-liquid"
+     ],
+     "spell": {
+      "ember": 0.95,
+      "tide": 0.45,
+      "zephyr": 0.6,
+      "root": 0.75,
+      "veil": 0.6,
+      "spark": 0.85,
+      "loom": 0.85
+     }
     },
     {
      "label": "Jungle",
@@ -240,23 +353,37 @@
      "about": "Jungle: not tuned yet — plays the family's spell.",
      "recipes": [
       "dnb/jungle-chop",
-      "dnb/amen"
+      "dnb/amen",
+      "dnb/jungle-rush",
+      "dnb/walk-down"
      ]
     },
     {
      "label": "Neurofunk",
      "tuned": false,
-     "about": "Neurofunk: not tuned yet — plays the family's spell."
+     "about": "Neurofunk: not tuned yet — plays the family's spell.",
+     "recipes": [
+      "dnb/reese-roller",
+      "dnb/stepping-riff",
+      "dnb/octave-fall",
+      "dnb/off-beat-kick",
+      "dnb/bright-sixteenths"
+     ]
     },
     {
      "label": "Jump-up",
      "tuned": false,
-     "about": "Jump-up: not tuned yet — plays the family's spell."
+     "about": "Jump-up: not tuned yet — plays the family's spell.",
+     "recipes": [
+      "dnb/hatless-riff",
+      "dnb/fifth-pop-pedal",
+      "dnb/double-kick-two-step"
+     ]
     },
     {
      "label": "Dub Techno",
      "spell": {
-      "ember": 0.72,
+      "ember": 0.73,
       "spark": 0.1,
       "tide": 0.9,
       "zephyr": 0.25,
@@ -265,7 +392,7 @@
       "loom": 0.8
      },
      "tuned": true,
-     "about": "Dub techno: the fast band four to the floor (Ember 0.72, Spark 0.10), very wet (Tide 0.90), dark (Zephyr 0.25), heavy (Root 0.85), slow change and long form. Measured 1.6–2.0 against a rule target (no dub in the catalogue: 118–126 BPM, long tails, darker than techno), 3.9 on one seed; the house spell reads 3.2. Missing: the tails are still short (decay 3.5 spreads under) — the dub chord through a long delay is a part and a treatment, not a control.",
+     "about": "Dub techno: the fast band four to the floor (Ember 0.73, Spark 0.10), very wet (Tide 0.90), dark (Zephyr 0.25), heavy (Root 0.85), slow change and long form. Measured 1.6–2.0 against a rule target (no dub in the catalogue: 118–126 BPM, long tails, darker than techno), 3.9 on one seed; the house spell reads 3.2. Missing: the tails are still short (decay 3.5 spreads under) — the dub chord through a long delay is a part and a treatment, not a control.",
      "recipes": [
       "dub/dub-techno-chord"
      ]
@@ -284,8 +411,8 @@
      "tuned": false,
      "about": "Roots Dub: not tuned yet — plays the family's spell.",
      "recipes": [
-      "dub/one-drop",
-      "dub/steppers"
+      "dub/steppers",
+      "dub/one-drop"
      ]
     },
     {
@@ -293,7 +420,9 @@
      "tuned": false,
      "about": "Halftime: not tuned yet — plays the family's spell.",
      "recipes": [
-      "dnb/halftime"
+      "dnb/halftime",
+      "dnb/half-time-roller",
+      "dnb/broken-half-time"
      ]
     }
    ]
@@ -376,7 +505,10 @@
     {
      "label": "Breakbeat",
      "tuned": false,
-     "about": "Breakbeat: not tuned yet — plays the family's spell."
+     "about": "Breakbeat: not tuned yet — plays the family's spell.",
+     "recipes": [
+      "dnb/breakbeat"
+     ]
     },
     {
      "label": "Nu Skool Breaks",
@@ -407,58 +539,6 @@
      "label": "Funky Breaks",
      "tuned": false,
      "about": "Funky Breaks: not tuned yet — plays the family's spell."
-    }
-   ]
-  },
-  {
-   "label": "Disco & Nu-Disco",
-   "spell": {},
-   "reachable": false,
-   "tuned": false,
-   "about": "Disco & Nu-Disco: the four-on-the-floor with a bassline that moves and a chord that plays, from disco house to indie dance. Not tuned yet: the moving bass and the chord part are the composer's to add. No spell is measured for it, so it has none.",
-   "subs": [
-    {
-     "label": "Nu-Disco",
-     "tuned": false,
-     "about": "Nu-Disco: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Disco House",
-     "tuned": false,
-     "about": "Disco House: not tuned yet — plays the family's spell.",
-     "recipes": [
-      "house/disco-house"
-     ]
-    },
-    {
-     "label": "French House",
-     "tuned": false,
-     "about": "French House: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Italo Disco",
-     "tuned": false,
-     "about": "Italo Disco: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Indie Dance",
-     "tuned": false,
-     "about": "Indie Dance: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Cosmic Disco",
-     "tuned": false,
-     "about": "Cosmic Disco: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Boogie",
-     "tuned": false,
-     "about": "Boogie: not tuned yet — plays the family's spell."
-    },
-    {
-     "label": "Space Disco",
-     "tuned": false,
-     "about": "Space Disco: not tuned yet — plays the family's spell."
     }
    ]
   },

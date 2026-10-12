@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "washFiltered",
+  "revision": 2,
+  "name": "Low-passed wash",
+  "says": "A seven-and-a-half-second hall and half-note echoes feeding it, the whole return low-passed at 1.7 kHz: the chord dissolves into a dark wash.",
+  "dry": 0.85,
+  "trimDb": 3.13,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "echo",
+      "level": 0.12,
+      "effect": "tapeDelay",
+      "params": {
+        "timeBeats": 2,
+        "feedback": 0.45,
+        "lowpassHz": 1500,
+        "highpassHz": 350,
+        "wow": 0.3,
+        "pingPong": 1,
+        "mix": 1
+      },
+      "into": {
+        "wash": 0.6
+      }
+    },
+    {
+      "id": "wash",
+      "level": 0.5,
+      "effect": "reverb",
+      "params": {
+        "mode": 1,
+        "decaySeconds": 7.5,
+        "predelayMs": 70,
+        "lowCutHz": 350,
+        "dampHz": 3200,
+        "level": 1.2,
+        "mix": 1
+      },
+      "after": [
+        {
+          "effect": "filter",
+          "params": {
+            "mode": 0,
+            "cutoffHz": 1700,
+            "resonanceDb": 0,
+            "drive": 0,
+            "level": 1,
+            "mix": 1
+          }
+        }
+      ]
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet.",
+    "sparse": "liquid-space round 1: trimDb 1.6 -> 3.13 (+1.53 dB), the sparse-writing match the keys lab's round 3 left open: its level on the sparse writing (keys alone, the close grand, i9 to VImaj9, the mean of its three wetness steps) brought to the three very wet spaces' mean, -26.65 LUFS"
+  }
+}

@@ -192,7 +192,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -224,6 +224,12 @@
   "provenance": {
     "pattern": "acid house (Chicago, 1987): a drum machine's four, clap and offbeat hat under a sixteenth bass-synth line with accents off the beat",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar: the kit plain and swung a touch (0.54, a drum machine's swing), the line in sixteenths with rests, climbing to the third and falling back, accented against the beat. As with techno's acid line, the resonant filter and the slides that make it acid are not in the kitchen; this is the line on the sub."
+    "note": "One bar: the kit plain and swung a touch (0.54, a drum machine's swing), the line in sixteenths with rests, climbing to the third and falling back, accented against the beat. As with techno's acid line, the resonant filter and the slides that make it acid are not in the kitchen; this is the line on the sub.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.5,
+      "syncopationZ": -0.5,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

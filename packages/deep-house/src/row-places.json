@@ -1,0 +1,754 @@
+{
+ "note": "Where each row the library's turn can draw sits, keyed by the row's own id (rounds GA2-GA5): the birds it plays at (dice, over the house where a bird is not named) and the tempi it plays at (its own window, the row's `tempo.bpm`; the house's 95-105 for the two mined whole themes). A turn takes the rows nearest the playing birds and tempo (`src/library-draw.ts`: Euclidean over the eight birds, the tempo outside a row's window at one bird step of 0.15 per ten BPM) \u2014 no radius, no dead zone. A pattern row's birds are the spell it was audited at (the audit table under tools/); nothing here names a style, only the rows.",
+ "tempoStep": {
+  "bpm": 10,
+  "bird": 0.15
+ },
+ "near": 0.075,
+ "rows": {
+  "tracks/dark-sixteenths": {
+   "birds": {},
+   "tempo": [
+    95,
+    105
+   ]
+  },
+  "tracks/bright-eighths": {
+   "birds": {},
+   "tempo": [
+    95,
+    105
+   ]
+  },
+  "dnb/two-step": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    170,
+    176
+   ]
+  },
+  "dnb/amen": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    160,
+    176
+   ]
+  },
+  "dnb/jungle-chop": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    160,
+    170
+   ]
+  },
+  "dnb/liquid-roller": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    170,
+    176
+   ]
+  },
+  "dnb/halftime": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    170,
+    176
+   ]
+  },
+  "dnb/breakbeat": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    125,
+    135
+   ]
+  },
+  "dub/dub-techno-chord": {
+   "birds": {
+    "ember": 0.73,
+    "spark": 0.1,
+    "tide": 0.9,
+    "zephyr": 0.25,
+    "root": 0.85,
+    "veil": 0.15,
+    "loom": 0.8
+   },
+   "tempo": [
+    118,
+    126
+   ]
+  },
+  "dub/one-drop": {
+   "birds": {
+    "ember": 0.27,
+    "spark": 0.6,
+    "tide": 0.55,
+    "zephyr": 0.3,
+    "root": 0.8,
+    "veil": 0.25,
+    "gleam": 0.2
+   },
+   "tempo": [
+    70,
+    80
+   ]
+  },
+  "dub/dubstep-halftime": {
+   "birds": {
+    "ember": 0.92,
+    "spark": 0.1,
+    "tide": 0.9,
+    "zephyr": 0.25,
+    "root": 0.85,
+    "veil": 0.15,
+    "loom": 0.8
+   },
+   "tempo": [
+    138,
+    142
+   ]
+  },
+  "dub/deep-dubstep": {
+   "birds": {
+    "ember": 0.92,
+    "spark": 0.1,
+    "tide": 0.9,
+    "zephyr": 0.25,
+    "root": 0.85,
+    "veil": 0.15,
+    "loom": 0.8
+   },
+   "tempo": [
+    138,
+    142
+   ]
+  },
+  "dub/steppers": {
+   "birds": {
+    "ember": 0.92,
+    "spark": 0.1,
+    "tide": 0.9,
+    "zephyr": 0.25,
+    "root": 0.85,
+    "veil": 0.15,
+    "loom": 0.8
+   },
+   "tempo": [
+    130,
+    145
+   ]
+  },
+  "trance/offbeat-bass": {
+   "birds": {
+    "ember": 0.88,
+    "root": 0.6,
+    "zephyr": 0.6,
+    "veil": 0.6,
+    "tide": 0.7
+   },
+   "tempo": [
+    136,
+    140
+   ]
+  },
+  "trance/rolling-bass": {
+   "birds": {
+    "ember": 0.88,
+    "root": 0.6,
+    "zephyr": 0.6,
+    "veil": 0.6,
+    "tide": 0.7
+   },
+   "tempo": [
+    138,
+    148
+   ]
+  },
+  "trance/supersaw-anthem": {
+   "birds": {
+    "ember": 0.88,
+    "root": 0.6,
+    "zephyr": 0.6,
+    "veil": 0.6,
+    "tide": 0.7
+   },
+   "tempo": [
+    136,
+    140
+   ]
+  },
+  "trance/gated-chords": {
+   "birds": {
+    "ember": 0.88,
+    "root": 0.6,
+    "zephyr": 0.6,
+    "veil": 0.6,
+    "tide": 0.7
+   },
+   "tempo": [
+    130,
+    138
+   ]
+  },
+  "trance/build-roll": {
+   "birds": {
+    "ember": 0.88,
+    "root": 0.6,
+    "zephyr": 0.6,
+    "veil": 0.6,
+    "tide": 0.7
+   },
+   "tempo": [
+    136,
+    140
+   ]
+  },
+  "garage/2-step": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    130,
+    136
+   ]
+  },
+  "garage/speed-garage": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    130,
+    138
+   ]
+  },
+  "garage/bassline": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    135,
+    142
+   ]
+  },
+  "garage/uk-funky": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    128,
+    132
+   ]
+  },
+  "techno/driving-four": {
+   "birds": {
+    "ember": 0.75,
+    "root": 0.6,
+    "zephyr": 0.5,
+    "veil": 0.6
+   },
+   "tempo": [
+    128,
+    140
+   ]
+  },
+  "techno/minimal": {
+   "birds": {
+    "ember": 0.75,
+    "root": 0.6,
+    "zephyr": 0.5,
+    "veil": 0.6
+   },
+   "tempo": [
+    124,
+    130
+   ]
+  },
+  "techno/detroit-chords": {
+   "birds": {
+    "ember": 0.75,
+    "root": 0.6,
+    "zephyr": 0.5,
+    "veil": 0.6
+   },
+   "tempo": [
+    125,
+    135
+   ]
+  },
+  "techno/acid-line": {
+   "birds": {
+    "ember": 0.75,
+    "root": 0.6,
+    "zephyr": 0.5,
+    "veil": 0.6
+   },
+   "tempo": [
+    125,
+    135
+   ]
+  },
+  "downtempo/trip-hop": {
+   "birds": {
+    "ember": 0.27,
+    "spark": 0.6,
+    "tide": 0.55,
+    "zephyr": 0.3,
+    "root": 0.8,
+    "veil": 0.25,
+    "gleam": 0.2
+   },
+   "tempo": [
+    75,
+    94
+   ]
+  },
+  "downtempo/lo-fi": {
+   "birds": {
+    "ember": 0.27,
+    "spark": 0.6,
+    "tide": 0.55,
+    "zephyr": 0.3,
+    "root": 0.8,
+    "veil": 0.25,
+    "gleam": 0.2
+   },
+   "tempo": [
+    70,
+    90
+   ]
+  },
+  "ambient/slow-chords": {
+   "birds": {
+    "ember": 0.1,
+    "tide": 0.85,
+    "zephyr": 0.9,
+    "root": 0.5,
+    "veil": 0.3,
+    "loom": 0.8,
+    "spark": 0.0
+   },
+   "tempo": [
+    48,
+    70
+   ]
+  },
+  "house/minimal-house": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    120,
+    128
+   ]
+  },
+  "house/afro-house": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    118,
+    125
+   ]
+  },
+  "house/disco-house": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    120,
+    126
+   ]
+  },
+  "house/acid-house": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    118,
+    126
+   ]
+  },
+  "house/progressive-house": {
+   "birds": {
+    "ember": 0.7,
+    "spark": 0.4,
+    "zephyr": 0.6,
+    "root": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    122,
+    128
+   ]
+  },
+  "bigbeat/breaks-four": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    120,
+    140
+   ]
+  },
+  "bigbeat/riff-bass": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    120,
+    140
+   ]
+  },
+  "bigbeat/stab-siren": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    120,
+    140
+   ]
+  },
+  "bigbeat/dropout-build": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    120,
+    140
+   ]
+  },
+  "bigbeat/hardcore-break": {
+   "birds": {
+    "ember": 0.72,
+    "spark": 0.7,
+    "tide": 0.45,
+    "zephyr": 0.65
+   },
+   "tempo": [
+    135,
+    150
+   ]
+  },
+  "downtempo/trip-hop-dust": {
+   "birds": {
+    "ember": 0.27,
+    "spark": 0.6,
+    "tide": 0.55,
+    "zephyr": 0.3,
+    "root": 0.8,
+    "veil": 0.25,
+    "gleam": 0.2
+   },
+   "tempo": [
+    80,
+    100
+   ]
+  },
+  "downtempo/trip-hop-halfstep": {
+   "birds": {
+    "ember": 0.27,
+    "spark": 0.6,
+    "tide": 0.55,
+    "zephyr": 0.3,
+    "root": 0.8,
+    "veil": 0.25,
+    "gleam": 0.2
+   },
+   "tempo": [
+    80,
+    100
+   ]
+  },
+  "downtempo/chillout-groove": {
+   "birds": {
+    "ember": 0.35,
+    "tide": 0.7,
+    "root": 0.55
+   },
+   "tempo": [
+    80,
+    100
+   ]
+  },
+  "ambient/pedal-swell": {
+   "birds": {
+    "ember": 0.1,
+    "tide": 0.85,
+    "zephyr": 0.9,
+    "root": 0.5,
+    "veil": 0.3,
+    "loom": 0.8,
+    "spark": 0.0
+   },
+   "tempo": [
+    46,
+    70
+   ]
+  },
+  "dnb/stepper-roll": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/half-time-roller": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/reese-roller": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/off-beat-kick": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/fifth-pop-pedal": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/two-step-ghosts": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/rolling-snare": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/doubled-snare": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/liquid-ghosts": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/swung-sixteenths": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/jungle-rush": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/sparse-half-step": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  },
+  "dnb/double-kick-two-step": {
+   "birds": {
+    "ember": 0.95,
+    "spark": 0.85,
+    "zephyr": 0.6,
+    "root": 0.75,
+    "veil": 0.6,
+    "tide": 0.45
+   },
+   "tempo": [
+    168,
+    176
+   ]
+  }
+ }
+}

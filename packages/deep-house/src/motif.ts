@@ -35,6 +35,7 @@
 // Nothing in this file knows an instrument, a bus, a level or a hertz.
 
 import { SCALES } from './theory.ts';
+import type { GlideWants } from './glide.ts';
 
 /** Which part of the register states the theme. A role, never a voice. */
 export type Register = 'bass' | 'mid' | 'lead';
@@ -105,6 +106,8 @@ export interface MotifBox {
   density: Span;
   /** how many bars before it comes back */
   returns: { bars: Span };
+  /** a bass family's glide line (round DNB-7, `src/glide.ts`): its `pedal`, read where a place plays the bass as a glide line, inert elsewhere */
+  glide?: GlideWants;
 }
 
 /** A family as the library carries one: a box, a register, a name and a share. */

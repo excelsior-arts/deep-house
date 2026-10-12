@@ -1,0 +1,474 @@
+{
+ "schema": 1,
+ "kind": "keys-phrases",
+ "round": "liquid-keys",
+ "revision": 2,
+ "note": "Sparse keys, approved in the keys lab (round 3) and read by the app since liquid-space round 1 (`src/keys-phrase.ts`); place-neutral rows a place table admits. Mostly two chords, each struck once where it lands and left to ring into the space. `chords` play in turn, each for its `bars` (8 and 8 by default at 174 BPM, a 16-bar cycle; a row may say 4 and 4). `left` and `right` are the plain voicing as MIDI notes (the root low and alone or with a shell fifth or seventh; a rootless right hand, wide), `deep` the landing voicing a pickup sinks into (the left hand spread to root, fifth and tenth or a low octave, the right a little lower or fuller), `scale` the pitch classes a motif over the chord draws from, `retouch` at most one quiet right-hand touch inside the chord's bars, `vel` a softer strike. `root` is the chord's root by name; the bed's sub reads `left[0]`. `fromProgressions` maps round 2's progressions to the nearest phrase, for his old links. `levelDb` is the keys' level on this writing, under the bed and with headroom for a strike in a wet space. In the app (revision 2) a theme draws one row by its `weight` among those whose notes fit its key (moved by the semitones that take its key root onto the theme's, or onto the degree that fits), the chords change only where the keys land, and each chord's `bass` is the bass line's home under it: `key` the row's key root held as a pedal (only where it is a tone of the chord), `root` the chord's own root. Chosen by measurement (liquid-space round 1, the round note has the table): the share of the liquid riffs' time (their bar shapes, by length) that lands on a tone of the chord over each home first — the riff is the line the bass plays for bars, and its minor shape over the tonic pedal sits on a VI chord's third, fifth and seventh — and where the two are within 0.02, the low register (`lowClash`: the chord's notes under E3 that beat with the home).",
+ "levelDb": -3,
+ "touch": {
+  "left": 0.46,
+  "right": 0.5,
+  "top": 0.58,
+  "rollMs": 16,
+  "jitterMs": 5,
+  "velJitter": 0.035,
+  "seed": 7
+ },
+ "fromProgressions": {
+  "minor-two-five-one": "cm9-abmaj9",
+  "minor-loop-six-three-seven": "fm9-dbmaj9",
+  "dorian-vamp": "dm9-g13",
+  "four-to-three-planing": "fmaj9-em9",
+  "lydian-float": "ebmaj9s11-bbmaj9",
+  "backdoor-home": "ebmaj9-fm9",
+  "minor-line-cliche": "am11-am9",
+  "minor-six-rock": "em11-dmaj9"
+ },
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "cm9-abmaj9",
+   "revision": 1,
+   "name": "i9 to VImaj9",
+   "key": "C minor",
+   "mood": "dark to warm",
+   "weight": 1.3,
+   "says": "Cm9 for eight bars, then Abmaj9 for eight: the minor home falling a major third onto its sixth, E flat, G and B flat held through both.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Cm9",
+     "root": "C",
+     "bars": 8,
+     "bass": "key",
+     "left": [36, 43],
+     "right": [63, 70, 74, 79],
+     "deep": {
+      "left": [36, 43, 51],
+      "right": [58, 63, 67, 70, 74]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.5
+     }
+    },
+    {
+     "symbol": "Abmaj9",
+     "root": "Ab",
+     "bars": 8,
+     "bass": "key",
+     "left": [44, 51],
+     "right": [60, 67, 70, 75],
+     "deep": {
+      "left": [32, 39, 48],
+      "right": [60, 63, 67, 70]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "am9-dm9",
+   "revision": 1,
+   "name": "i9 to iv9",
+   "key": "A minor",
+   "mood": "dark",
+   "weight": 1,
+   "says": "Am9 to Dm9: the minor home up a fourth to its four, the top E held, G and B rising a step to A and C.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Am9",
+     "root": "A",
+     "bars": 8,
+     "bass": "key",
+     "left": [45, 52],
+     "right": [60, 67, 71, 76],
+     "deep": {
+      "left": [33, 40, 48],
+      "right": [60, 64, 67, 71]
+     },
+     "scale": [9, 11, 0, 2, 4, 5, 7]
+    },
+    {
+     "symbol": "Dm9",
+     "root": "D",
+     "bars": 8,
+     "bass": "root",
+     "left": [38, 45],
+     "right": [65, 69, 72, 76],
+     "deep": {
+      "left": [38, 45, 53],
+      "right": [60, 65, 69, 72]
+     },
+     "scale": [9, 11, 0, 2, 4, 5, 7]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "dm9-g13",
+   "revision": 1,
+   "name": "Dorian m9 to 13",
+   "key": "D Dorian",
+   "mood": "warm",
+   "weight": 1,
+   "says": "Dm9 to G13 a fourth up: the Dorian vamp slowed to eight bars a chord, one voice moving, C to B, the top E held.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Dm9",
+     "root": "D",
+     "bars": 8,
+     "bass": "key",
+     "left": [38, 45],
+     "right": [65, 69, 72, 76],
+     "deep": {
+      "left": [38, 45, 53],
+      "right": [60, 64, 69, 72]
+     },
+     "scale": [2, 4, 5, 7, 9, 11, 0]
+    },
+    {
+     "symbol": "G13",
+     "root": "G",
+     "bars": 8,
+     "bass": "root",
+     "left": [43, 53],
+     "right": [65, 69, 71, 76],
+     "deep": {
+      "left": [31, 38, 47],
+      "right": [59, 65, 69, 76]
+     },
+     "scale": [2, 4, 5, 7, 9, 11, 0],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.45
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "fmaj9-em9",
+   "revision": 1,
+   "name": "IVmaj9 down to iii9",
+   "key": "C major",
+   "mood": "warm to dark",
+   "weight": 1,
+   "says": "Fmaj9 to Em9 a semitone down: every voice of the major seventh slides a step down into the minor one, E, A, C, G to D, G, B, F sharp.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Fmaj9",
+     "root": "F",
+     "bars": 8,
+     "bass": "key",
+     "left": [41, 48],
+     "right": [64, 69, 72, 79],
+     "deep": {
+      "left": [41, 48, 57],
+      "right": [60, 64, 67, 69, 76]
+     },
+     "scale": [0, 2, 4, 5, 7, 9, 11]
+    },
+    {
+     "symbol": "Em9",
+     "root": "E",
+     "bars": 8,
+     "bass": "root",
+     "left": [40, 47],
+     "right": [62, 67, 71, 78],
+     "deep": {
+      "left": [40, 47, 55],
+      "right": [59, 62, 66, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 1, 2]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "em11-dmaj9",
+   "revision": 1,
+   "name": "m11 to bVIImaj9",
+   "key": "E Dorian",
+   "mood": "dark to warm",
+   "weight": 1,
+   "says": "Em11 to Dmaj9 a tone down: the minor eleventh, G, A, D and F sharp over the root, settling onto the major chord a tone under it, A and F sharp common to both.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Em11",
+     "root": "E",
+     "bars": 8,
+     "bass": "key",
+     "left": [40, 47],
+     "right": [67, 69, 74, 78],
+     "deep": {
+      "left": [40, 47, 55],
+      "right": [62, 66, 69, 74]
+     },
+     "scale": [4, 6, 7, 9, 11, 1, 2]
+    },
+    {
+     "symbol": "Dmaj9",
+     "root": "D",
+     "bars": 8,
+     "bass": "root",
+     "left": [38, 45],
+     "right": [64, 69, 73, 78],
+     "deep": {
+      "left": [38, 45, 54],
+      "right": [61, 64, 69, 73]
+     },
+     "scale": [4, 6, 7, 9, 11, 1, 2]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "em9-fmaj7s11",
+   "revision": 1,
+   "name": "m9 up to maj7#11",
+   "key": "E Phrygian",
+   "mood": "dark",
+   "weight": 1,
+   "says": "Em9 to Fmaj7#11 a semitone up: the Phrygian lift, B held as the raised eleventh, D and G climbing a step, the top F sharp falling to E.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Em9",
+     "root": "E",
+     "bars": 8,
+     "bass": "key",
+     "left": [40, 47],
+     "right": [62, 67, 71, 78],
+     "deep": {
+      "left": [40, 47, 55],
+      "right": [59, 62, 66, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 1, 2]
+    },
+    {
+     "symbol": "Fmaj7#11",
+     "root": "F",
+     "bars": 8,
+     "bass": "key",
+     "left": [41, 48],
+     "right": [64, 69, 71, 76],
+     "deep": {
+      "left": [29, 41, 48],
+      "right": [59, 64, 67, 71]
+     },
+     "scale": [5, 7, 9, 11, 0, 2, 4],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.45
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "ebmaj9-fm9",
+   "revision": 1,
+   "name": "maj9 up to m9",
+   "key": "E flat major",
+   "mood": "warm",
+   "weight": 1,
+   "says": "Ebmaj9 to Fm9 a tone up: one to two, every voice rising a step or a semitone, the top F to G.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Ebmaj9",
+     "root": "Eb",
+     "bars": 8,
+     "bass": "key",
+     "left": [39, 46],
+     "right": [62, 67, 70, 77],
+     "deep": {
+      "left": [39, 46, 55],
+      "right": [58, 62, 65, 70]
+     },
+     "scale": [3, 5, 7, 8, 10, 0, 2]
+    },
+    {
+     "symbol": "Fm9",
+     "root": "F",
+     "bars": 8,
+     "bass": "root",
+     "left": [41, 48],
+     "right": [63, 68, 72, 79],
+     "deep": {
+      "left": [41, 48, 56],
+      "right": [60, 63, 67, 72]
+     },
+     "scale": [3, 5, 7, 8, 10, 0, 2]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "am11-am9",
+   "revision": 1,
+   "name": "One m11 opening to m9",
+   "key": "A Dorian",
+   "mood": "dark",
+   "weight": 1,
+   "says": "A single chord, Am11, whose top voice falls from D to B after eight bars to colour it Am9; the second strike softer.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Am11",
+     "root": "A",
+     "bars": 8,
+     "bass": "key",
+     "left": [45, 52],
+     "right": [60, 64, 67, 74],
+     "deep": {
+      "left": [33, 40, 48],
+      "right": [60, 64, 67, 71, 74]
+     },
+     "scale": [9, 11, 0, 2, 4, 6, 7]
+    },
+    {
+     "symbol": "Am9",
+     "root": "A",
+     "bars": 8,
+     "bass": "key",
+     "left": [45, 52],
+     "right": [60, 64, 67, 71],
+     "deep": {
+      "left": [33, 40, 48],
+      "right": [59, 64, 67, 71]
+     },
+     "scale": [9, 11, 0, 2, 4, 6, 7],
+     "vel": 0.82
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "fm9-dbmaj9",
+   "revision": 1,
+   "name": "i9 to VImaj9, four and four",
+   "key": "F minor",
+   "mood": "dark to warm",
+   "weight": 1,
+   "says": "Fm9 four bars, Dbmaj9 four: the liquid loop's first two chords at half its pace, E flat, A flat and C held through.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 8,
+   "chords": [
+    {
+     "symbol": "Fm9",
+     "root": "F",
+     "bars": 4,
+     "bass": "key",
+     "left": [41, 48],
+     "right": [63, 68, 72, 79],
+     "deep": {
+      "left": [41, 48, 56],
+      "right": [60, 63, 67, 72]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3]
+    },
+    {
+     "symbol": "Dbmaj9",
+     "root": "Db",
+     "bars": 4,
+     "bass": "key",
+     "left": [37, 44],
+     "right": [63, 68, 72, 77],
+     "deep": {
+      "left": [37, 44, 53],
+      "right": [60, 63, 68, 72]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "ebmaj9s11-bbmaj9",
+   "revision": 1,
+   "name": "Lydian four to one",
+   "key": "B flat major",
+   "mood": "warm",
+   "weight": 1,
+   "says": "Ebmaj9#11 to Bbmaj9: the raised eleventh floating eight bars, then settling a fourth down onto home.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 16,
+   "chords": [
+    {
+     "symbol": "Ebmaj9#11",
+     "root": "Eb",
+     "bars": 8,
+     "bass": "key",
+     "left": [39, 46],
+     "right": [65, 69, 74, 79],
+     "deep": {
+      "left": [39, 46, 55],
+      "right": [62, 65, 69, 74]
+     },
+     "scale": [10, 0, 2, 3, 5, 7, 9]
+    },
+    {
+     "symbol": "Bbmaj9",
+     "root": "Bb",
+     "bars": 8,
+     "bass": "key",
+     "left": [46, 53],
+     "right": [62, 69, 72, 77],
+     "deep": {
+      "left": [34, 41, 50],
+      "right": [60, 65, 69, 74]
+     },
+     "scale": [10, 0, 2, 3, 5, 7, 9],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.5
+     }
+    }
+   ]
+  }
+ ]
+}

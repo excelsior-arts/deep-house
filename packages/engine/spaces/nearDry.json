@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "nearDry",
+  "revision": 1,
+  "name": "Near dry",
+  "says": "A small dark room just behind the keys, a tenth of the level: the instrument as it is.",
+  "dry": 1,
+  "trimDb": -0.1,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "room",
+      "level": 0.46,
+      "effect": "reverb",
+      "params": {
+        "mode": 0,
+        "decaySeconds": 0.8,
+        "predelayMs": 8,
+        "lowCutHz": 300,
+        "dampHz": 5000,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet."
+  }
+}

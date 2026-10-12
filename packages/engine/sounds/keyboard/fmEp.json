@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmEp",
+  "revision": 1,
+  "topology": "fm-key",
+  "block": "fmEp",
+  "parameters": {
+    "ratio": 1,
+    "index": [
+      0.6,
+      2.2
+    ],
+    "indexDecay": 0.42,
+    "indexFloor": 0.05,
+    "modulator2": null,
+    "tine": {
+      "ratio": 14,
+      "index": 1.1,
+      "level": 0.22,
+      "decay": 0.03
+    },
+    "attack": 0.003,
+    "decay": 0.9,
+    "sustain": 0.18,
+    "release": 0.45,
+    "lpHz": 7000,
+    "hpHz": 90,
+    "detuneCents": 4,
+    "spread": 0.35,
+    "trim": 1.063,
+    "dur": 0.5,
+    "minDur": 0.08,
+    "delay": 0.18,
+    "reverb": 0.3
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "fmEp": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.2,
+        "brightnessHz": 5200,
+        "loudnessDb": -12.2
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fm-keys.ts",
+    "note": "The ratio back on a whole number, which is what makes a pitched electric piano rather than a bell, plus a tine: a short, high, inharmonic second pair that is the hammer on the metal."
+  }
+}

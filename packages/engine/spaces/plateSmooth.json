@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "plateSmooth",
+  "revision": 2,
+  "name": "Smooth long plate",
+  "says": "A plate, dense from the first sample and bright to its end, 3.4 s with a 22 ms gap so the strike stays in front.",
+  "dry": 1,
+  "trimDb": 1.04,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "plate",
+      "level": 0.73,
+      "effect": "reverb",
+      "params": {
+        "mode": 2,
+        "decaySeconds": 3.4,
+        "predelayMs": 22,
+        "lowCutHz": 280,
+        "dampHz": 5200,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet.",
+    "sparse": "liquid-space round 1: trimDb 1.4 -> 1.04 (-0.36 dB), the sparse-writing match the keys lab's round 3 left open: its level on the sparse writing (keys alone, the close grand, i9 to VImaj9, the mean of its three wetness steps) brought to the three very wet spaces' mean, -26.65 LUFS"
+  }
+}

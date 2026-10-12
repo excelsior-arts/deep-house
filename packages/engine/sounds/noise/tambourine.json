@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "tambourine",
+  "revision": 1,
+  "topology": "jingle",
+  "block": "tambourine",
+  "dice": 127.3,
+  "parameters": {
+    "hp": 4200,
+    "peakHz": 7500,
+    "q": 0.5,
+    "ratios": [
+      1,
+      1.27,
+      1.51,
+      1.73,
+      1.94
+    ],
+    "jingleHz": 6200,
+    "jingleLevel": 0.4,
+    "skinHz": 480,
+    "skinLevel": 0.22,
+    "skinDecay": 0.02,
+    "t10": 0.055,
+    "seconds": 0.7,
+    "variants": 3,
+    "variantCents": 28,
+    "attack": 0.0018,
+    "trim": 0.63,
+    "rateSpread": 0.035,
+    "gainSpread": 0.1,
+    "decaySpread": 0.14,
+    "panSpread": 0.1,
+    "velBright": 0.28,
+    "velDecay": 0.3,
+    "pan": 0.2,
+    "room": 0.06
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "tambourine": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.03,
+        "brightnessHz": 7500,
+        "loudnessDb": -19
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "perc.ts",
+    "note": "A tambourine: the same burst under five inharmonic jingle pairs between 6 and 11 kHz, with a shimmer that outlasts the strike, and a low thud where the hand lands."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

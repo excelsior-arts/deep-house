@@ -20,17 +20,30 @@
 
 import { buildGraph, buildMaster, paramOf } from './master.ts';
 import { describeGraph, describeMaster } from './describe.ts';
-import type { AutomationTarget, Buses, GraphOptions, MasterChain, ThemeGraph } from './master.ts';
+import type { AutomationTarget, Bus, Buses, EqProfile, GraphOptions, MasterChain, ThemeGraph } from './master.ts';
 import type { MachinePart } from './describe.ts';
 import type { Settings } from './settings.ts';
 import type { DuckPoint } from './program.ts';
 import { isCleanSourceMix, makeSourceMixer } from './source-mix.ts';
+import { duckShape } from './program.ts';
+import { line } from './ramp.ts';
+import type { Line } from './ramp.ts';
+import { stageLine, settingsWith } from './stage.ts';
+import type { StageHow } from './stage.ts';
 import type { SourceMix } from './source-mix.ts';
 import type { VoiceOut } from './dsp.ts';
 
 /** One theme's graph, as everything outside this file may know about it. */
 export interface V1Graph {
-  sourceOutput(source: string, bus: string): VoiceOut;
+  /**
+   * Where a source's note goes in: its bus, or (round PIANO-2) where the note
+   * is struck, the bus's struck door, whose dry takes the shallow duck.
+   */
+  sourceOutput(source: string, bus: string, struck?: boolean): VoiceOut;
+  /** the struck door of a harmonic bus, built on the first ask; `null` for a bus with none (`ThemeGraph.struckBus`) */
+  struckBus(bus: string): Bus | null;
+  /** whether the struck path has been built; looking never builds one */
+  hasStruck(): boolean;
   /**
    * The listening controls. True when this call put channels into the graph,
    * which is when notes already scheduled straight to their buses have to be
@@ -47,10 +60,31 @@ export interface V1Graph {
   beat: number;
   /** one automation target by the path a program's line names */
   param(path: string): AutomationTarget | null;
-  /** whether the piano's hall has been built; looking never builds one */
-  hasHall(): boolean;
+  /**
+   * **How a move on a declared stage line would reach this graph** (PLAN-DESK
+   * D2, `stage.ts`): `live`, `build` (heard from the next theme), `line` (a
+   * program's line writes that parameter here), `absent` (this graph did not
+   * build the box) or `unknown`. A question: it writes nothing.
+   */
+  stageHow(path: string): StageHow;
+  /**
+   * **A hand on a stage block** (D2): the one door the desk moves the stage
+   * through, over the declared lines and nothing else. Where the line is live
+   * here the value is ramped onto the parameter it names from `at` over `over`
+   * (the bass drive's own setter where the line is the effect's; the duck's
+   * shape worked out again where the line is a depth, so the next kick writes
+   * it); otherwise nothing is written and the answer says why.
+   */
+  stage(path: string, value: number, at: number, over?: number): StageHow;
+  /** whether the piano's hall has been built — either, or the one named (round PIANO-2); looking never builds one */
+  hasHall(which?: 'held' | 'struck'): boolean;
+  /** whether the outgoing harmony's close has been built (round MIX-X4); looking never builds one */
+  hasHarmonicLp(): boolean;
   hasBackground(): boolean;
   hasImmersed(): boolean;
+  hasEcho(): boolean;
+  /** whether the part's own space has been built (`settings.partSpace`); looking never builds one */
+  hasPartSpace(): boolean;
   /**
    * The boxes and the wires of this graph, as it stands this instant
    * (`src/describe.ts`). It reads nodes and writes nothing, so a caller may ask
@@ -76,6 +110,14 @@ export interface V1Master {
   settings: Settings;
   limiterIsWorklet: boolean;
   param(path: string): AutomationTarget | null;
+  /** walk the five tone gains to a profile over `over` seconds from `at` (`MasterChain.setProfile`) */
+  setProfile(profile: EqProfile, at: number, over?: number): number;
+  /** a hand's offset on one band over the profile, kept through the next `setProfile` (`MasterChain.lean`) */
+  lean(band: keyof EqProfile, offset: number, at: number, over?: number): number;
+  /** the profile last asked for, without a hand's lean */
+  profile(): EqProfile;
+  /** where the five tone gains stand at `t` */
+  profileAt(t: number): EqProfile;
   /** the tail's own boxes and wires, read off the chain (`src/describe.ts`) */
   describe(): MachinePart;
   dispose(): void;
@@ -117,8 +159,42 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
   // the deck was disposed.
   let sources: ReturnType<typeof makeSourceMixer> | null = null;
   let retired: ReturnType<typeof makeSourceMixer> | null = null;
+  // **The stage's door** (PLAN-DESK D2). What a writer has reached for by
+  // path — a program's lines, the duck, a seam — is a parameter the desk
+  // leaves alone: two writers on one parameter is the fault the ramp lines
+  // exist to prevent. What the desk has moved here since the build is kept
+  // beside the settings the graph was built from, so the description reads
+  // the number that is playing and the duck's shape is worked out from it.
+  const asked = new Set<string>();
+  const staged = new Map<string, number>();
+  const lines = new WeakMap<AudioParam, Line>();
+  const built = graph.duckShape;
+  const stagedSettings = (): Settings => settingsWith(settings, staged);
+  const rampTo = (p: AudioParam, v: number, at: number, over: number): void => {
+    let l = lines.get(p);
+    if (!l) { l = line(ctx, p, p.value); lines.set(p, l); }
+    l.to(v, at, over);
+  };
+  const stageHow = (path: string): StageHow => {
+    const found = stageLine(path);
+    if (!found) return 'unknown';
+    const { box, line: decl } = found;
+    if (!box.builds(settings)) return 'absent';
+    if (decl.how === 'build' || (decl.liveIf && !decl.liveIf(settings))) return 'build';
+    if (decl.how === 'effect' && !graph.bassDrive) return 'absent';
+    if (decl.how === 'param' && decl.target && asked.has(decl.target)) return 'line';
+    if (decl.how === 'param' && decl.target && !graph.stageParams(decl.target).length) return 'build';
+    // a setter with no stage under it: a graph built before the desk came up, at a room with no edge (DESK-EDGE)
+    if (decl.how === 'setter' && decl.target && !graph.stageSetters(decl.target).length) return 'build';
+    return 'live';
+  };
   const made: V1Graph = {
-    sourceOutput: (source, bus) => sources ? sources.output(source, bus) : graph.buses[bus],
+    sourceOutput: (source, bus, struck = false) => {
+      const door = (struck && graph.struckBus(bus)) || null;
+      return sources ? sources.output(source, bus, door) : door ?? graph.buses[bus];
+    },
+    struckBus: (bus) => graph.struckBus(bus),
+    hasStruck: () => graph.hasStruck(),
     setSourceMix(state) {
       if (isCleanSourceMix(state)) {
         if (sources) { sources.set(state); retired = sources; sources = null; }
@@ -138,11 +214,35 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
     buses: graph.buses,
     duckShape: graph.duckShape,
     beat: graph.beat,
-    param: (path) => paramOf(graph, path),
-    hasHall: () => graph.hasHall(),
+    param: (path) => { asked.add(path); return paramOf(graph, path); },
+    stageHow,
+    stage(path, value, at, over = 0.04) {
+      const how = stageHow(path);
+      if (how !== 'live') return how;
+      const decl = stageLine(path)!.line;
+      const v = Math.max(decl.min, Math.min(decl.max, value));
+      if (decl.how === 'effect') {
+        const p = graph.bassDrive!.params[decl.target!];
+        if (typeof p === 'function') p(v, at, over); else if (p) rampTo(p, v, at, over);
+      } else if (decl.how === 'param') {
+        for (const p of graph.stageParams(decl.target!)) rampTo(p, v, at, over);
+      } else if (decl.how === 'setter') {
+        for (const set of graph.stageSetters(decl.target!)) set(v, at, over);
+      }
+      const was = settingsWith(settings, [[path, v]]) === settings;
+      if (was) staged.delete(path); else staged.set(path, v);
+      // the duck's five points per kick, from the moved depth; the shape it was built with where nothing is moved
+      if (decl.how === 'duck') made.duckShape = [...staged.keys()].some((k) => k.startsWith('sidechain.')) ? duckShape(stagedSettings(), graph.beat) : built;
+      return 'live';
+    },
+    hasHall: (which) => graph.hasHall(which),
+    hasHarmonicLp: () => graph.hasHarmonicLp(),
     hasBackground: () => graph.hasBackground(),
     hasImmersed: () => graph.hasImmersed(),
-    describe: () => describeGraph(made, settings),
+    hasEcho: () => graph.hasEcho(),
+    hasPartSpace: () => graph.hasPartSpace(),
+    // the settings it was built from, with what the desk has moved on it since (D2)
+    describe: () => describeGraph(made, stagedSettings()),
     // A graph that has been torn down keeps its LFOs running unless they are
     // stopped: a running source holds everything downstream of it alive, so the
     // width and chorus chains of every retired theme were still being
@@ -188,6 +288,10 @@ export function makeV1Master(ctx: BaseAudioContext, settings: Settings): V1Maste
     settings: master.settings,
     limiterIsWorklet: master.limiterIsWorklet,
     param: (path) => paramOf(master, path),
+    setProfile: (profile, at, over) => master.setProfile(profile, at, over),
+    lean: (band, offset, at, over) => master.lean(band, offset, at, over),
+    profile: () => master.profile(),
+    profileAt: (t) => master.profileAt(t),
     describe: () => describeMaster(made),
     dispose() {
       // Every node of the chain, in the order the signal passes through them

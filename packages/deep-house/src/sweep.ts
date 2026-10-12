@@ -79,7 +79,7 @@ export const RELEASE_BARS = 0.25;
 
 /** One sweep, and what the gates made of it. */
 export interface SweepMove {
-  kind: 'entry' | 'exit' | 'breath';
+  kind: 'entry' | 'exit' | 'breath' | 'hold';
   stage: 'hp' | 'lp';
   /** the bar it starts on, and how many bars it runs */
   bar: number;
@@ -183,7 +183,8 @@ export function sweepsOf(input: SweepInput): SweepMove[] {
   }
 
   // One at a time on the bus: a move that would overlap one already laid keeps out.
-  out.sort((a, b) => a.bar - b.bar || a.kind.localeCompare(b.kind));
+  // ties by the kind's code points, never the runtime's locale (the review of 10-08, A4)
+  out.sort((a, b) => a.bar - b.bar || (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
   let busyTo = -1;
   for (const m of out) {
     if (!m.laid) continue;
@@ -208,35 +209,72 @@ export interface BusSweepCurves { hp: SweepStageCurves | null; lp: SweepStageCur
  * the wet at nought — so a stage is the bus to the sample outside its moves.
  * `null` where no move is laid, which is what keeps a theme without one from
  * building the stage at all.
+ *
+ * **Moves end to end are chained** (the review of 10-08, B11): where a move on a
+ * stage starts on the line the one before it ends on, the stage stays engaged
+ * across the line and the corner steps from the first's last value to the
+ * second's first over the engage's length, ending on the line. Laid one after
+ * the other as two separate moves, the first's let-go landed after the second's
+ * engage — the points stepped back in time, and the engine, which sorts them,
+ * played the second entry's high-pass with the wet at nought.
  */
 export function sweepCurves(moves: readonly SweepMove[], barSeconds: number): BusSweepCurves {
+  // every kind chains end to end: the fast places' holds too (the review of 10-08, B1: a place's held band, laid
+  // section by section, played as a sweep from the open corner down over each whole section)
+  const chains = (_m: SweepMove) => true;
   const curves = (stage: 'hp' | 'lp') => {
-    const laid = moves.filter((m) => m.laid && m.stage === stage);
+    const laid = moves.filter((m) => m.laid && m.stage === stage).slice().sort((x, y) => x.bar - y.bar);
     if (!laid.length) return null;
     const open = OPEN[stage];
     const cutoff: Pt[] = [{ t: 0, value: open }];
     const wet: Pt[] = [{ t: 0, value: 0 }];
-    for (const m of laid) {
+    // each move as its engage (`lead`), its body and its let-go (`tail`), and the line it ends on
+    const parts = laid.map((m) => {
       const a = m.bar * barSeconds;
       const b = (m.bar + m.bars) * barSeconds;
       if (m.kind === 'entry') {
         // In at the line, already thin: the crossfade and the corner's rise
         // land together on the downbeat, and the corner opens down over the span.
-        wet.push({ t: a - ENGAGE_S, value: 0 }, { t: a, value: 1 }, { t: b, value: 1 }, { t: b + ENGAGE_S, value: 0 });
-        cutoff.push({ t: a - ENGAGE_S, value: open }, { t: a, value: m.hz }, { t: b, value: open });
-      } else if (m.kind === 'exit') {
+        return { m, a, end: b, lead: { wet: [{ t: a - ENGAGE_S, value: 0 }], cutoff: [{ t: a - ENGAGE_S, value: open }] },
+          body: { wet: [{ t: a, value: 1 }, { t: b, value: 1 }], cutoff: [{ t: a, value: m.hz }, { t: b, value: open }] },
+          tail: { wet: [{ t: b + ENGAGE_S, value: 0 }], cutoff: [] as Pt[] }, first: m.hz };
+      }
+      if (m.kind === 'exit') {
         // Engaged open, closed over the span onto the breakdown's line, and let
         // go over a quarter of a bar on its downbeat.
         const r = b + RELEASE_BARS * barSeconds;
-        wet.push({ t: a, value: 0 }, { t: a + ENGAGE_S, value: 1 }, { t: r, value: 1 }, { t: r + ENGAGE_S, value: 0 });
-        cutoff.push({ t: a + ENGAGE_S, value: open }, { t: b, value: m.hz }, { t: r, value: open });
-      } else {
-        // Down and back, half the span each way.
-        const mid = (a + b) / 2;
-        wet.push({ t: a, value: 0 }, { t: a + ENGAGE_S, value: 1 }, { t: b, value: 1 }, { t: b + ENGAGE_S, value: 0 });
-        cutoff.push({ t: a + ENGAGE_S, value: open }, { t: mid, value: m.hz }, { t: b, value: open });
+        return { m, a, end: r, lead: { wet: [{ t: a, value: 0 }], cutoff: [] as Pt[] },
+          body: { wet: [{ t: a + ENGAGE_S, value: 1 }, { t: r, value: 1 }], cutoff: [{ t: a + ENGAGE_S, value: open }, { t: b, value: m.hz }, { t: r, value: open }] },
+          tail: { wet: [{ t: r + ENGAGE_S, value: 0 }], cutoff: [] as Pt[] }, first: open };
       }
-    }
+      if (m.kind === 'hold') {
+        // Held at its corner across the span (round DNB-4, a place's thinned
+        // breakdown): engaged at the corner on the line, let go on the next.
+        const lead = Math.max(0, a - ENGAGE_S);
+        return { m, a, end: b, lead: { wet: [{ t: lead, value: 0 }], cutoff: [{ t: lead, value: m.hz }] },
+          body: { wet: [{ t: a, value: 1 }, { t: b - ENGAGE_S, value: 1 }], cutoff: [{ t: b, value: m.hz }] },
+          tail: { wet: [{ t: b, value: 0 }], cutoff: [{ t: b + ENGAGE_S, value: open }] }, first: m.hz };
+      }
+      // Down and back, half the span each way.
+      const mid = (a + b) / 2;
+      return { m, a, end: b, lead: { wet: [{ t: a, value: 0 }], cutoff: [] as Pt[] },
+        body: { wet: [{ t: a + ENGAGE_S, value: 1 }, { t: b, value: 1 }], cutoff: [{ t: a + ENGAGE_S, value: open }, { t: mid, value: m.hz }, { t: b, value: open }] },
+        tail: { wet: [{ t: b + ENGAGE_S, value: 0 }], cutoff: [] as Pt[] }, first: open };
+    });
+    parts.forEach((p, i) => {
+      const prev = parts[i - 1], next = parts[i + 1];
+      const fromPrev = !!prev && chains(prev.m) && chains(p.m) && Math.abs(prev.end - p.a) < 1e-6;
+      const intoNext = !!next && chains(p.m) && chains(next.m) && Math.abs(p.end - next.a) < 1e-6;
+      if (!fromPrev) { wet.push(...p.lead.wet); cutoff.push(...p.lead.cutoff); }
+      // chained in: the corner arrives at this move's first value on the line
+      else if (p.body.cutoff[0]?.t !== p.a && cutoff[cutoff.length - 1].value !== p.first) cutoff.push({ t: p.a, value: p.first });
+      wet.push(...p.body.wet);
+      const body = p.body.cutoff.slice();
+      // chained out: this move's last corner lands an engage before the line, and the next one's value on it
+      if (intoNext && body[body.length - 1].value !== next.first) body[body.length - 1] = { t: p.end - ENGAGE_S, value: body[body.length - 1].value };
+      cutoff.push(...body);
+      if (!intoNext) { wet.push(...p.tail.wet); cutoff.push(...p.tail.cutoff); }
+    });
     return { cutoff, wet };
   };
   return { hp: curves('hp'), lp: curves('lp') };

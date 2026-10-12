@@ -1,0 +1,284 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/phrase-development-liquid",
+  "revision": 1,
+  "name": "Liquid phrase development: one move a phrase, chosen and coordinated",
+  "scope": "phrase-development",
+  "applies": "drums",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "development": {
+      "unitBars": 8,
+      "families": [
+        {
+          "family": "continue",
+          "w": 45
+        },
+        {
+          "family": "subtract",
+          "w": 20,
+          "slot": "foreground",
+          "cooldown": 1,
+          "variants": [
+            {
+              "id": "final-snare-out",
+              "w": 2,
+              "drums": "final-snare-out",
+              "at": [
+                8
+              ],
+              "bass": "glide"
+            },
+            {
+              "id": "final-half-bar-out",
+              "w": 1,
+              "drums": "final-half-bar-out",
+              "at": [
+                8
+              ],
+              "bass": "glide"
+            },
+            {
+              "id": "kick-out",
+              "w": 1,
+              "drums": "kick-out",
+              "at": [
+                4
+              ]
+            },
+            {
+              "id": "hat-gap",
+              "w": 1,
+              "drums": "hat-gap",
+              "at": [
+                4,
+                8
+              ]
+            }
+          ]
+        },
+        {
+          "family": "answer",
+          "w": 20,
+          "slot": "foreground",
+          "variants": [
+            {
+              "id": "turnaround",
+              "w": 2,
+              "drums": "turnaround",
+              "at": [
+                4,
+                8
+              ]
+            },
+            {
+              "id": "ghost-pickup",
+              "w": 2,
+              "drums": "ghost-pickup",
+              "at": [
+                8
+              ],
+              "bass": "rest"
+            },
+            {
+              "id": "ghost-pickup-mid",
+              "w": 1,
+              "drums": "ghost-pickup",
+              "at": [
+                4
+              ]
+            },
+            {
+              "id": "accent-moved",
+              "w": 1,
+              "drums": "accent-moved",
+              "at": [
+                4,
+                8
+              ]
+            },
+            {
+              "id": "open-hat-pickup",
+              "w": 2,
+              "drums": "open-hat-pickup",
+              "at": [
+                4,
+                8
+              ]
+            },
+            {
+              "id": "kick-push",
+              "w": 1,
+              "drums": "kick-push",
+              "at": [
+                4,
+                8
+              ]
+            },
+            {
+              "id": "ghost-drag",
+              "w": 2,
+              "drums": "ghost-drag",
+              "at": [
+                4,
+                8
+              ]
+            },
+            {
+              "id": "late-snare",
+              "w": 1,
+              "drums": "late-snare",
+              "at": [
+                4
+              ]
+            },
+            {
+              "id": "ghost-roll",
+              "w": 1,
+              "drums": "ghost-roll",
+              "at": [
+                8
+              ],
+              "bass": "rest"
+            }
+          ]
+        },
+        {
+          "family": "support-change",
+          "w": 10,
+          "slot": "support",
+          "cooldown": 1,
+          "variants": [
+            {
+              "id": "aux-in",
+              "w": 3,
+              "aux": [
+                1,
+                2
+              ]
+            },
+            {
+              "id": "open-hat-lift",
+              "w": 2,
+              "lift": "variation"
+            }
+          ]
+        },
+        {
+          "family": "effect",
+          "w": 5,
+          "slot": "foreground",
+          "cooldown": 2,
+          "variants": [
+            {
+              "id": "backbeat-throw",
+              "w": 2,
+              "throw": "mid"
+            },
+            {
+              "id": "rim-throw",
+              "w": 1,
+              "throw": "aux"
+            }
+          ]
+        }
+      ],
+      "budget": {
+        "foreground": 1,
+        "support": 1
+      },
+      "features": {
+        "aux": {
+          "family": "support-change",
+          "variant": "aux-in"
+        },
+        "bass-answer": {
+          "family": "subtract",
+          "variant": "final-snare-out"
+        },
+        "bright-drums": {
+          "lift": "variation"
+        },
+        "half-time": {
+          "state": "half-time"
+        }
+      },
+      "fills": {
+        "destination": true,
+        "bass": "rest"
+      },
+      "note": "At each eligible eight-bar phrase of a full passage (never its first, which plays the skeleton whole) one family, then one variant: continue; subtract (the drums open the end of the phrase and the bass completes a glide across the gap, or a kick taken out of bar four); answer (the end of bar four or eight changed: the turnaround, a ghost pickup with the bass resting under it, an accent moved); support-change (the one auxiliary part enters for one or two phrases with its exit planned, or the open hat lifts over the phrase's second half); effect (one backbeat or rim throw, after the place's own end throw is checked). A fill plays only into a change, and the bass rests under it. features: what each of a form's return features plays. stateVariants: the kit state a track plays where its form asks a state, drawn once a track (each a kit state). developed: a full passage the form marks for development (broken-air) leans to answers and subtractions, and the track's edit vocabulary (drawn once, off the form's features.edits) multiplies its variants' weights.",
+      "stateVariants": {
+        "half-time": [
+          [
+            "half-time",
+            3
+          ],
+          [
+            "half-time-rolling",
+            2
+          ],
+          [
+            "half-time-sparse",
+            2
+          ]
+        ],
+        "hints": [
+          [
+            "hints",
+            2
+          ],
+          [
+            "hints-brushed",
+            1
+          ]
+        ],
+        "pulse": [
+          [
+            "pulse",
+            2
+          ],
+          [
+            "pulse-soft",
+            1
+          ]
+        ]
+      },
+      "developed": {
+        "lean": {
+          "continue": 0.4,
+          "answer": 2,
+          "subtract": 1.5,
+          "effect": 1.5
+        },
+        "edits": {
+          "ghosts": {
+            "answer.ghost-drag": 3,
+            "answer.ghost-pickup": 2,
+            "answer.ghost-roll": 2,
+            "answer.ghost-pickup-mid": 2
+          },
+          "rolls": {
+            "answer.ghost-roll": 3,
+            "subtract.final-half-bar-out": 2,
+            "subtract.hat-gap": 2,
+            "answer.kick-push": 2
+          },
+          "exchanges": {
+            "answer.open-hat-pickup": 3,
+            "answer.accent-moved": 2,
+            "answer.late-snare": 2,
+            "support-change.open-hat-lift": 2
+          }
+        }
+      }
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's §5 phrase decision at its own weights (45/20/20/10/5); the variants are the kit's answers (kit-liquid-two-step revision 4), the auxiliary row's parts and the kit's own moves."
+  }
+}

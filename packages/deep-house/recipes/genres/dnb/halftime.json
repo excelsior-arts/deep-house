@@ -162,7 +162,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.25,
   "score": {
     "chef": 0,
     "likes": 0
@@ -194,6 +194,13 @@
   "provenance": {
     "pattern": "halftime drum and bass: the tempo stays at 170 and the snare moves to the third beat, one backbeat a bar, so the groove is felt at 85",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: kick on one and a pickup kick just before the next bar's one, snare only on beat three (step 8), a ghost before the second snare; eighth hats on the offbeat. The sub holds long notes, a step down in the second bar. This is also as near as the kitchen comes to dubstep's grid: dubstep is this pattern at 140, and 140 is out of every band."
+    "note": "Two bars: kick on one and a pickup kick just before the next bar's one, snare only on beat three (step 8), a ghost before the second snare; eighth hats on the offbeat. The sub holds long notes, a step down in the second bar. This is also as near as the kitchen comes to dubstep's grid: dubstep is this pattern at 140, and 140 is out of every band.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -2.1,
+      "syncopationZ": 0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    },
+    "weighed": "round DNB-3 (2026-10-05): 0.5 -> 0.25, reachable, not dominant: liquid is the territory's first character"
   }
 }

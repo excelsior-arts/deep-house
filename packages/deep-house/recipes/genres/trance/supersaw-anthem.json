@@ -283,7 +283,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -307,10 +307,6 @@
     "bpm": [
       136,
       140
-    ],
-    "nearest": [
-      125,
-      130
     ]
   },
   "sections": [
@@ -319,8 +315,14 @@
     "breakdown"
   ],
   "provenance": {
-    "pattern": "uplifting trance: a four-bar anthem line on a bright sawtooth lead — long notes climbing to the fifth and falling back through the scale — over four on the floor and the offbeat bass",
+    "pattern": "uplifting trance: a four-bar anthem line on a bright sawtooth lead \u2014 long notes climbing to the fifth and falling back through the scale \u2014 over four on the floor and the offbeat bass",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Four bars of lead: a dotted climb (root, third, fifth) held over the bar, a step past it and down through the scale to rest on the third — the shape of a trance hook, not any one tune. The lead is the stacked, detuned supersaw — in this kitchen an ensemble (a pad) and not a keyboard, because the sustained player draws only bed-capable voices and the saw lead is declared a keyboard that does not sustain as a bed. With the offbeat bass under it."
+    "note": "Four bars of lead: a dotted climb (root, third, fifth) held over the bar, a step past it and down through the scale to rest on the third \u2014 the shape of a trance hook, not any one tune. The lead is the stacked, detuned supersaw \u2014 in this kitchen an ensemble (a pad) and not a keyboard, because the sustained player draws only bed-capable voices and the saw lead is declared a keyboard that does not sustain as a bed. With the offbeat bass under it.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.9,
+      "syncopationZ": -0.0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

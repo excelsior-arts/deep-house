@@ -43,11 +43,15 @@ import type { VoiceOut } from '../dsp.ts';
 import { SEND_CONTROL, withControls } from './descriptor.ts';
 import type { Controls, Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, list, map, name, names, num, CENTS, HZ, LEVEL, RATIO, SECONDS, UNIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-export function fmBell(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
-  p = withControls(p, FM_BELL_CONTROLS);
+function fmBell(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+  p = withControls(p, row.descriptor.controls ?? {});
   time = startTime(ctx, time); // never in the past: a step if it is
-  const S = settings.fmBell;
+  const S = patchOf(settings, row, PARAMETERS);
   const ratio = S.ratios[p.tone as keyof typeof S.ratios] ?? S.ratios[S.tone as keyof typeof S.ratios];
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.08, p.dur ?? 0.6);
@@ -120,45 +124,34 @@ export function fmBell(ctx: BaseAudioContext, out: VoiceOut, time: number, p: No
   return end;
 }
 
-/**
- * MEASURED by the gate, on the default tone. See `tools/test-voices.ts
- * --bless`; `hold` is the envelope's own sustain fraction and `brightnessHz`
- * the lid the voice puts on itself.
- */
-export const FM_BELL_TIMBRES = {
-  fmBell: { family: 'harmonic', struck: true, hold: 0.07, brightnessHz: 6200, loudnessDb: -12 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  /** the modulator's ratio to the note, by tone; `tone` names the one a note plays when it asks for none */
+  ratios: map(RATIO, 1, 16),
+  tone: name(),
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  /** how far the modulator throws the carrier: at nought, and per unit of velocity */
+  index: list(num(0, 64), 2),
+  indexDecay: SECONDS,
+  indexFloor: LEVEL,
+  detuneCents: CENTS,
+  spread: UNIT,
+  lpHz: HZ,
+  hpHz: HZ,
+  trim: LEVEL,
+}, (b) => names(b, 'tone', 'ratios'));
 
 /**
- * What a part may write on a bell note (the texture pulse): the two quiet
- * spaces it may be sent to, and how far the note throws its modulator — the
- * index's fraction, 1 the full struck bell and the floor a near sine.
+ * The FM bell topology: operator pairs at inharmonic ratios, the index
+ * velocity's (`sounds/keyboard/fmBell.json` since round R2). Its note controls
+ * — the two sends and `indexMul` — are the row's.
  */
-export const FM_BELL_CONTROLS: Controls = {
-  background: { ...SEND_CONTROL, default: 0 },
-  immersed: { ...SEND_CONTROL, default: 0 },
-  indexMul: { unit: 'ratio', min: 0.02, max: 1, default: 1 },
-};
-
-export const descriptor: Descriptor = {
-  name: 'fmBell',
+export const FM_BELL: Topology = {
+  id: 'fm-bell',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['melody', 'figure'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: fmBell,
-  controls: FM_BELL_CONTROLS,
-  noteControls: Object.keys(FM_BELL_CONTROLS),
-  timbres: FM_BELL_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => fmBell(row, ctx, out, time, p, settings),
 };
-
-export default fmBell;

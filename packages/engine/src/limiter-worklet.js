@@ -97,6 +97,10 @@ class LookaheadLimiter extends AudioWorkletProcessor {
     this.wsum = this.look;
     this.worst = 0; // most gain reduction seen, in dB, for the meter
     this.since = 0;
+    // whether anything reached the input since the last post, and what was posted last: a meter post
+    // goes out while the record plays, and with nothing coming in only when it says something new
+    this.heard = false;
+    this.posted = NaN;
     // The output's full scale, as this node's own level (S16): below `fast` a
     // sample cannot reach it through the clipper and the trim, so the test is
     // one comparison a sample and the curve is worked out only above it.
@@ -118,6 +122,8 @@ class LookaheadLimiter extends AudioWorkletProcessor {
     this.port.onmessage = (e) => {
       if (e.data && e.data.finish && this.tail < 0) this.tail = this.look + 1;
       if (e.data && e.data.post) this.setPost(e.data.post);
+      // a theme whose room lets go sooner or later (the liquid bass rounds, 10-07): the release from here on
+      if (e.data && typeof e.data.releaseMs === 'number' && e.data.releaseMs > 0) this.rel = Math.exp(-1 / Math.max(1, e.data.releaseMs * 0.001 * sampleRate));
     };
   }
 
@@ -162,6 +168,7 @@ class LookaheadLimiter extends AudioWorkletProcessor {
     // freezing them — a frozen delay plays its stale samples out on the next
     // reconnection, which is how an impulse came back after a gap.
     const silent = !input || !input.length;
+    if (!silent) this.heard = true;
     const ceil = Math.max(0.02, parameters.ceiling[0]);
     const nch = Math.min(output.length, this.delay.length);
     for (let i = 0; i < n; i++) {
@@ -215,10 +222,18 @@ class LookaheadLimiter extends AudioWorkletProcessor {
       }
       this.di = this.di + 1 === this.look ? 0 : this.di + 1;
     }
-    // A meter, a few times a second: what the ceiling actually had to do.
+    // A meter, a few times a second: what the ceiling actually had to do — at
+    // the same cadence while anything is coming in (the scene gate and the bench
+    // read the posts as a timeline), and with nothing coming in (a set let go,
+    // its tail draining) only a change: the engine review of 10-08, F10.
     this.since += n;
     if (this.since >= sampleRate / 8) {
-      this.port.postMessage({ reduction: +this.worst.toFixed(2) });
+      const r = +this.worst.toFixed(2);
+      if (this.heard || r !== this.posted) {
+        this.port.postMessage({ reduction: r });
+        this.posted = r;
+      }
+      this.heard = false;
       this.worst = 0;
       this.since = 0;
     }

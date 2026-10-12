@@ -1,0 +1,615 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/riff-liquid-mined",
+  "revision": 16,
+  "name": "The liquid mined riff",
+  "scope": "riff",
+  "applies": "bass",
+  "origin": "mined",
+  "weight": 0,
+  "wants": {
+    "riff": {
+      "articulation": {
+        "lowerNeighbor": 2,
+        "slide": 0.035,
+        "change": 0.008
+      },
+      "entrance": {
+        "steps": [
+          4
+        ],
+        "level": 0.5,
+        "cents": 700,
+        "seconds": 0.18
+      },
+      "note": "An eight-bar riff of five bar shapes, with held runs, rests and turns around home. A note is [step, length, semitones over home, 's' to slide in]. Each theme writes its own riff in the grammar: every non-home note may move to a neighbour in the vocabulary (moveP), one place at oneStepP or else two. articulation: how far under E1 a lower neighbour may reach, in semitones, and the seconds a marked slide and an ordinary change take; entrance: a low onset of its own on a run that starts on one of these steps after a rest (level, cents above the note, seconds). phrase: where the drops play, `bars` of held runs in place of the bar shapes. A run is one note from `step` for `len` sixteenths, its knots in sixteenths from its start: anchors [step, shape, note] or [step, \"home\"] are the notes its gestures belong to, a note of the theme's rolled shapes or home, held between two knots naming one note and travelled in a straight line between two naming two, each at its rolled interval over the line's home (home folded into the register once, as the line's notes are); pitch [step, semitones] is the gesture's own shape over that path (the falls, the flicks, the settling), the same on every theme; level [step, gain] is the note's output; pair [step, share] the voice's pair level as a share of its own; optional body [step, gain] scales its third harmonic without raising the fundamental. A kick inside a run marked press, while the run holds through the kick's duck, takes the low duck at pressDb. afterKick: where a run is still held, flat and without its pair, from the bar's kick on step through the snare on snare (its pair share at the snare under pairUnder, its path within flatSt of the snare's pitch for clearSteps after it and no rise over flatSt between the two), the line flicks up to flickSt over the higher of the note held into the kick and the snare's, peakSteps after the kick, back on the path fallSteps later, then sags at sagStPerStep to the run's next travel, at most sagMaxSt deep, lifted, never cut, over the register's floor less underFloorSt; its knobs are flickSt, sagStPerStep and sagMaxSt. knobs: the phrase's gestures as declared ranges, the written phrase at their defaults (a setting none yet writes; birds later): scoop scales every pitch knot's residual over its anchor path, afterKick's flick and sag with it, never the anchors (0: the anchors' plain path), swell every level knot's distance from 1 (0: flat), pairOnHold every pair share (0: no pair), edge every body knot's distance from 1 (0: no accent), pressDb the low duck a pressed kick asks. play: how the line is played — the lowest note (floor, MIDI; E1) and the most over the register's ceiling (ceilingOver, semitones); the accent on its steps (on) and elsewhere (off); the line stepping aside under each backbeat (dips: steps, dB, from earlyS seconds before); the release into the next run or the bar's end (touching) and into a rest (resting); a run that touches holds holdS seconds over, one that rests lets go at restShare of its length; a change takes at most changeShare of its gap; a phrase run ends phraseGapS before its length; outside the riff a note holds into the next where the gap is gapSteps or less (joined, of the onsets' distance) and else plays detached of its length, a slide in held slideOverS over the next onset.",
+      "play": {
+        "floor": 28,
+        "ceilingOver": 2,
+        "accent": {
+          "steps": [
+            0,
+            10
+          ],
+          "on": 1,
+          "off": 0.86
+        },
+        "dips": {
+          "steps": [
+            4,
+            12
+          ],
+          "db": -8,
+          "earlyS": 0.012
+        },
+        "release": {
+          "touching": 0.02,
+          "resting": 0.03
+        },
+        "touch": {
+          "holdS": 0.004,
+          "restShare": 0.98
+        },
+        "changeShare": 0.4,
+        "phraseGapS": 0.004,
+        "legato": {
+          "gapSteps": 4,
+          "joined": 0.98,
+          "detached": 0.95,
+          "slideOverS": 0.002
+        },
+        "pairClock": {
+          "perBeat": 2,
+          "trough": 0
+        }
+      },
+      "shapes": {
+        "A": [
+          [0,1,5],
+          [1,1,3,"s"],
+          [2,7,0,"s"],
+          [9,2,3],
+          [11,1,-1],
+          [12,4,0]
+        ],
+        "B": [
+          [0,2,3],
+          [4,1,4],
+          [5,5,3,"s"],
+          [10,1,4],
+          [11,1,3],
+          [12,1,0],
+          [13,3,-1]
+        ],
+        "C": [
+          [0,1,4],
+          [1,1,5],
+          [4,1,3],
+          [5,1,1,"s"],
+          [6,3,0,"s"],
+          [9,1,1],
+          [10,1,5],
+          [11,1,7,"s"],
+          [12,3,9,"s"],
+          [15,1,8]
+        ],
+        "D": [
+          [0,2,4],
+          [4,4,10],
+          [8,2,9,"s"],
+          [10,1,6],
+          [11,1,4,"s"],
+          [12,1,0,"s"],
+          [13,3,-1]
+        ],
+        "E": [
+          [0,1,4],
+          [1,1,5],
+          [4,1,4],
+          [5,3,3,"s"],
+          [8,3,5],
+          [11,1,4],
+          [12,1,0],
+          [13,1,1],
+          [14,2,0]
+        ]
+      },
+      "form": [
+        "A",
+        "B",
+        "C",
+        "A",
+        "B",
+        "D",
+        "C",
+        "E"
+      ],
+      "vocab": [
+        -2,
+        -1,
+        0,
+        1,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        10
+      ],
+      "moveP": 0.5,
+      "oneStepP": 0.7,
+      "phrase": {
+        "bars": 8,
+        "knobs": {
+          "scoop": { "unit": "x", "min": 0, "max": 1.5, "default": 1 },
+          "swell": { "unit": "x", "min": 0, "max": 1.5, "default": 1 },
+          "pairOnHold": { "unit": "x", "min": 0, "max": 2, "default": 1 },
+          "edge": { "unit": "x", "min": 0, "max": 3, "default": 1 },
+          "pressDb": { "unit": "db", "min": -18, "max": 0, "default": -8 }
+        },
+        "afterKick": {
+          "step": 10,
+          "snare": 12,
+          "pairUnder": 0.6,
+          "flatSt": 1.0,
+          "clearSteps": 1.5,
+          "peakSteps": 0.35,
+          "fallSteps": 0.85,
+          "underFloorSt": 0.39,
+          "knobs": {
+            "flickSt": { "unit": "st", "min": 0, "max": 12, "default": 7.0 },
+            "sagStPerStep": { "unit": "st", "min": 0, "max": 1, "default": 0.31 },
+            "sagMaxSt": { "unit": "st", "min": 0, "max": 3, "default": 1.2 }
+          }
+        },
+        "runs": [
+          {
+            "step": 4,
+            "len": 30,
+            "anchors": [
+              [0,"B",1],
+              [3.3176,"B",1],
+              [3.7816,"B",2],
+              [5.7536,"B",2],
+              [6.9716,"home"],
+              [30,"home"]
+            ],
+            "pitch": [
+              [0,1.688641],
+              [0.8236,0.7959399],
+              [1.0298222,0.6443704],
+              [1.2360444,0.5044094],
+              [1.4422667,0.3763511],
+              [1.6484889,0.2604697],
+              [1.8547111,0.1570172],
+              [2.0609333,0.0662221],
+              [2.2671556,-0.0117124],
+              [2.4733778,-0.0766099],
+              [2.6796,-0.1283222],
+              [2.7956,-0.2717431],
+              [2.9696,-0.7008535],
+              [3.1436,2.7132286],
+              [3.3176,10.4994971],
+              [3.4916,5.6632385],
+              [3.6656,1.1555308],
+              [3.7816,0.6539558],
+              [4.0007111,0.5020269],
+              [4.2198222,0.3638113],
+              [4.4389333,0.2396501],
+              [4.6580444,0.1298555],
+              [4.8771556,0.0347076],
+              [5.0962667,-0.0455472],
+              [5.3153778,-0.1106988],
+              [5.5344889,-0.1605747],
+              [5.7536,-0.1950421],
+              [6.9716,0],
+              [8.8276,0],
+              [8.8528,0.0493485],
+              [9.0268,0.0324645],
+              [9.2008,3.2092438],
+              [9.3748,10.0287954],
+              [9.5236,7.4112457],
+              [9.5488,6.890951],
+              [9.7228,3.581212],
+              [9.8388,3.4456105],
+              [9.8716,3.3692265],
+              [10.0891,2.9447632],
+              [10.3066,2.5308102],
+              [10.5241,2.1276476],
+              [10.7416,1.7355394],
+              [10.9591,1.3547329],
+              [11.1766,0.985456],
+              [11.3941,0.6279167],
+              [11.6116,0.2823013],
+              [11.8108,0.0242837],
+              [12.1916,0],
+              [30,0]
+            ],
+            "level": [
+              [0,0.7428571],
+              [0.8236,0.7531381],
+              [1.0427111,0.8174269],
+              [1.2618222,0.8718659],
+              [1.4809333,0.9164552],
+              [1.7000444,0.9511947],
+              [1.9191556,0.9760845],
+              [2.1382667,0.9911245],
+              [2.3573778,0.9963148],
+              [2.5764889,0.9916553],
+              [2.7956,0.977146],
+              [3.7816,0.7643462],
+              [4.0007111,0.833685],
+              [4.2198222,0.8938966],
+              [4.4389333,0.9449809],
+              [4.6580444,0.9869379],
+              [4.8771556,1.0197677],
+              [5.0962667,1.0434702],
+              [5.3153778,1.0580454],
+              [5.5344889,1.0634934],
+              [5.7536,1.0598141],
+              [6.9716,0.9285714],
+              [8.8276,0.9],
+              [9.5236,0.7142857],
+              [9.8716,0.7804319],
+              [10.0891,0.8596697],
+              [10.3066,0.927255],
+              [10.5241,0.9831879],
+              [10.7416,1.0274684],
+              [10.9591,1.0600964],
+              [11.1766,1.0810719],
+              [11.3941,1.090395],
+              [11.6116,1.0880657],
+              [13.9316,1],
+              [30,1]
+            ],
+            "pair": [
+              [0,0],
+              [11.8436,0],
+              [13.8156,1],
+              [30,1]
+            ],
+            "body": [
+              [0,1],
+              [2.9696,1],
+              [3.1436,2],
+              [3.4916,2],
+              [3.7816,1],
+              [9.0268,1],
+              [9.2008,2],
+              [9.5488,2],
+              [9.8388,1],
+              [30,1]
+            ]
+          },
+          {
+            "step": 36,
+            "len": 10,
+            "press": true,
+            "anchors": [
+              [0,"B",1],
+              [5.8812,"B",1],
+              [6.7512,"home"],
+              [10,"home"]
+            ],
+            "pitch": [
+              [0,1.688641],
+              [1.0672,0.6091141],
+              [1.2992,0.4505615],
+              [1.5312,0.3108217],
+              [1.7632,0.1903647],
+              [1.9952,0.0896029],
+              [2.2272,0.0088864],
+              [2.4592,-0.0515007],
+              [2.6912,-0.0913441],
+              [2.8252,-0.102409],
+              [2.9232,-0.287943],
+              [2.9992,-0.2519561],
+              [3.1732,2.6439003],
+              [3.3472,8.7488657],
+              [3.5032,6.4185546],
+              [3.5212,6.0864224],
+              [3.6952,3.1249203],
+              [3.8112,2.974942],
+              [4.0252,2.4796077],
+              [4.2572,2.1477355],
+              [4.4892,1.7953298],
+              [4.7212,1.4220324],
+              [4.9532,1.0274042],
+              [5.1852,0.6109198],
+              [5.4172,0.1719607],
+              [5.6492,-0.2901924],
+              [5.7832,-0.5710019],
+              [5.8812,-0.6700507],
+              [6.7512,0.4709725],
+              [7.7952,0],
+              [10,0]
+            ],
+            "level": [
+              [0,0.7428571],
+              [1.0672,0.7693613],
+              [1.2992,0.8719286],
+              [1.5312,0.9497754],
+              [1.7632,1.0029017],
+              [1.9952,1.0313074],
+              [2.2272,1.0349926],
+              [2.4592,1.0139573],
+              [2.6912,0.9682014],
+              [2.9232,0.8977251],
+              [3.5032,0.6857143],
+              [4.0252,0.6924077],
+              [4.2572,0.8535886],
+              [4.4892,0.9704051],
+              [4.7212,1.0428571],
+              [4.9532,1.0709448],
+              [5.1852,1.054668],
+              [5.4172,0.9940268],
+              [5.6492,0.8890213],
+              [5.8812,0.7396513],
+              [6.7512,0.9142857],
+              [7.7952,1],
+              [10,1]
+            ],
+            "pair": [
+              [0,0],
+              [7.2152,0],
+              [8.3752,1],
+              [10,1]
+            ],
+            "body": [
+              [0,1],
+              [2.9992,1],
+              [3.1732,2],
+              [3.5212,2],
+              [3.8112,1],
+              [10,1]
+            ]
+          },
+          {
+            "step": 52,
+            "len": 28,
+            "press": true,
+            "anchors": [
+              [0,"home"],
+              [5.6028,"home"],
+              [6.4148,"D",1],
+              [11.4028,"D",1],
+              [12.7948,"home"],
+              [28,"home"]
+            ],
+            "pitch": [
+              [0,2.5321687],
+              [1.4268,1.0874857],
+              [2.3548,0.4602236],
+              [3.3988,1.0767287],
+              [4.6748,0.8297924],
+              [5.6028,0.391192],
+              [6.4148,0.5804772],
+              [7.6908,0.1307807],
+              [9.5468,-0.5664547],
+              [10.3384,-0.7715752],
+              [10.5124,-1.1998306],
+              [10.6864,1.7936961],
+              [10.8604,8.6901931],
+              [11.0344,5.0005516],
+              [11.2084,1.6138803],
+              [11.3244,1.5749113],
+              [11.4028,1.4511503],
+              [12.7948,1.7197301],
+              [13.2964,0.295479],
+              [13.4908,0],
+              [28,0]
+            ],
+            "level": [
+              [0,0.743],
+              [0.928,0.82],
+              [1.856,1],
+              [2.784,0.99],
+              [3.48,0.79],
+              [4.64,1],
+              [5.684,0.96],
+              [6.38,0.79],
+              [7.772,1.04],
+              [9.628,1.07],
+              [11.368,0.98],
+              [12.76,0.81],
+              [14.384,1],
+              [28,1]
+            ],
+            "pair": [
+              [0,0],
+              [6.7,0],
+              [7.4,2],
+              [7.7,2],
+              [8,0.55],
+              [8.4,2],
+              [11.2,2],
+              [12.4,0.35],
+              [13.34,0],
+              [15.08,1],
+              [28,1]
+            ],
+            "body": [
+              [0,1],
+              [10.5124,1],
+              [10.6864,2],
+              [11.0344,2],
+              [11.3244,1],
+              [28,1]
+            ]
+          },
+          {
+            "step": 84,
+            "len": 12,
+            "press": true,
+            "anchors": [
+              [0,"home"],
+              [12,"home"]
+            ],
+            "pitch": [
+              [0,2.283066],
+              [1.3224,0.7175507],
+              [2.4824,-0.0698926],
+              [2.8608,0.365521],
+              [3.0348,0.2230149],
+              [3.2088,3.1411028],
+              [3.2944,6.2940746],
+              [3.3828,9.4029066],
+              [3.5568,6.053388],
+              [3.7308,2.9748596],
+              [3.8468,2.9071112],
+              [4.9184,1.0901983],
+              [5.8188,0.1914545],
+              [7.3544,0.4709725],
+              [8.7464,0.0116275],
+              [10.7184,-0.3856431],
+              [12,-0.3856431]
+            ],
+            "level": [
+              [0,0.743],
+              [0.928,0.83],
+              [1.856,1],
+              [2.784,0.98],
+              [3.364,0.78],
+              [4.64,1],
+              [6.032,1.03],
+              [7.308,0.93],
+              [8.584,1.02],
+              [10.556,1],
+              [12,1]
+            ],
+            "pair": [
+              [0,0],
+              [12,0]
+            ],
+            "body": [
+              [0,1],
+              [3.0348,1],
+              [3.2088,2],
+              [3.5568,2],
+              [3.8468,1],
+              [12,1]
+            ]
+          },
+          {
+            "step": 100,
+            "len": 12,
+            "press": true,
+            "anchors": [
+              [0,"D",1],
+              [5.278,"D",1],
+              [7.83,"home"],
+              [12,"home"]
+            ],
+            "pitch": [
+              [0,2.3711893],
+              [1.45,0.8060591],
+              [2.842,0.4266482],
+              [3.77,0.2443047],
+              [5.278,0.0165074],
+              [6.438,-1.2402449],
+              [7.83,0],
+              [12,0]
+            ],
+            "level": [
+              [0,0.743],
+              [0.928,0.83],
+              [1.856,1],
+              [2.784,1.02],
+              [3.944,0.98],
+              [5.22,0.95],
+              [6.612,0.78],
+              [8.12,1],
+              [9.628,1],
+              [12,1]
+            ],
+            "pair": [
+              [0,0],
+              [1.1,0],
+              [1.8,1.85],
+              [5.4,1.85],
+              [7,0.55],
+              [8.236,0.55],
+              [9.512,1],
+              [12,1]
+            ]
+          },
+          {
+            "step": 116,
+            "len": 12,
+            "press": true,
+            "anchors": [
+              [0,"home"],
+              [4.9416,"home"],
+              [5.9856,"C",6],
+              [9.1176,"C",6],
+              [9.8136,"home"],
+              [12,"home"]
+            ],
+            "pitch": [
+              [0,2.5321687],
+              [1.4616,1.0578877],
+              [3.3176,0.2708276],
+              [4.9416,-0.0133203],
+              [5.9856,-0.7856994],
+              [6.9136,-0.1560904],
+              [8.3056,0.1503307],
+              [8.6884,-0.2909406],
+              [8.8624,-1.0385977],
+              [9.0364,3.0992897],
+              [9.1176,7.6308386],
+              [9.2104,13.3449328],
+              [9.3844,8.9442061],
+              [9.5584,4.9760536],
+              [9.6744,5.4985888],
+              [9.8136,5.8786597],
+              [11.4376,2.6405437],
+              [11.6464,2.2471855],
+              [12,2.2471855]
+            ],
+            "level": [
+              [0,0.743],
+              [0.928,0.82],
+              [1.856,1],
+              [2.784,1.01],
+              [4.06,0.97],
+              [5.336,0.79],
+              [6.844,1.03],
+              [8.352,1.05],
+              [9.28,0.78],
+              [10.44,1],
+              [11.6,1],
+              [12,1]
+            ],
+            "pair": [
+              [0,0],
+              [12,0]
+            ],
+            "body": [
+              [0,1],
+              [8.8624,1],
+              [9.0364,2],
+              [9.3844,2],
+              [9.6744,1],
+              [12,1]
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "provenance": {
+    "source": "the catalog's source 9, a liquid drum and bass tune (mining id 9)",
+    "reading": "the drop's bass line transcribed per sixteenth in memory (pitch per cycle under 150 Hz), shapes and intervals kept as a grammar, never the line",
+    "phrase": "the drop's eight-bar phrase read off source 9 by analysis and resynthesis, its runs and their knots from the liquid bass rounds of 10-06/07 (notes/rounds/liquid-v.md)",
+    "doubleSlides": "revision 10 (liquid-d, re-encoded on liquid-d-fix): the opening run's double slide (a dip, a flick up, a fall back, home to the path in 0.255 s) recurs in five more runs at phrase bar:step 0:13.5, 2:7.5, 3:15.0, 5:7.5 and 7:13.3, where source 9's per-cycle pitch shows a one-cycle flick clear of kick and snare (six per eight bars, its own at 0:7.4); each is part of its run's residual over the anchor path, riding the note its gesture belongs to, scaled to the source's flick height there over 10.1 st (0.73 to 1.27)",
+    "anchors": "revision 9 (notes/rounds/liquid-fix.md): each gesture of S anchored to the note it belongs to in S's final phrase, read from the liquid bass rounds' source notes (the bodies of R's opening on B[1] and B[2], the answer's target on B[1], the high bodies on D[1], the turn on C[6], the low bodies, landings and the bar 85 answer on home), the pitch knots the residual over that path; seed 1's line unchanged within 1e-7 semitones",
+    "afterKick": "revision 11 (liquid-k10, notes/rounds/liquid-k10.md): his rule that one bass note does not go unchanged across two drum hits held over source 9's drops but for the step-10 kick and step-12 snare, where the drums hide the line; its drum-free break (bars 176-191, the drop's line where both show) flicks on the kick there and sags through the snare. A run held flat and without its pair from the kick through the snare takes that gesture over its own path: up flickSt (the break's median peak over the landed note, 9.3 st, range 7.0-21.4) peakSteps after the kick (10.35, range 10.24-10.58), back fallSteps later (0.85, 0.70-0.97); then a sag to its next travel at sagStPerStep (the drops' 28.41 to 27.47 over steps 12.5-15.5, 22 repeats; the break 0.35), at most sagMaxSt (the break's landing 28.7 to 27.5 by step 15.5), lifted where it would take the line under the floor less S's own 0.39 settle. pairUnder is the hold rule's wobble (a pair ratio of 0.2 over the row's 0.33); flatSt the semitone its bend counts as a move, clearSteps its window after a hit",
+    "body": "revision 12 (liquid-definition, notes/rounds/liquid-definition.md): at the peak of each of the six double-slide flicks the third harmonic rises briefly to twice the row's own (+6 dB on that harmonic alone, not on the line), the timing of the E letter at a quarter of its added amplitude; the anchors, the residual pitch, the pair, the level and afterKick unchanged. A candidate for the ear, not a recovered source value",
+    "wobblePlacement": "revision 13 (liquid-definition): the two high gestures wobble inside — the step-52 run's pair rises to 2 of the row's share (ratio 0.66) through its higher body, the step-100 run's to 1.85 (0.6105) into its high slide, each back to the low body's motion after, and under afterKick.pairUnder at their snares so the after-kick gesture stays. Source 9 flexes deeply in both high gestures, its drum-free break too; a two-tone fit there reads ratios about 0.75 and 0.65 at 7.5-7.9 Hz on under three cycles, support for stronger motion, not recovered controls. The other runs, the low tail near the bar-81 landing among them, unchanged",
+    "shortLanding": "revision 14 (liquid-definition): the step-36 run ends at its step 10, not 12, its curves' last knots with it, so the settled low landing holds about 186 ms instead of 358 at 174 BPM and lets go about 146 ms before the next kick; its earlier knots and the other runs unchanged. A phrasing choice by ear, not a claim that source 9 cuts that tail",
+    "pairClock": "revision 15 (liquid-clock, an audition): every note the riff plays beats its pair on the grid, two cycles a beat (play.pairClock perBeat 2: 5.8 Hz at 174 BPM, riding the grid on a tempo ride) instead of the voice's own 6.59 Hz, its troughs on the eighths and its swells between them (trough 0), so the kick and the snare meet the pair low and never its strongest crest; the pair's level, its knots and every other control of the line unchanged. On a mixed-output proxy of the kick-to-snare join (25-120 Hz RMS 55-135 ms after the snare against 100-40 ms before it) the full mix of the liquid drop's bars 80-95 at 174 BPM reads -2.73 dB, where revision 14 reads -4.42 and source 9 -1.42. It changes the low body's rate, not only where a gesture starts, so it is the ear's call against revision 14",
+    "trimmed": "revision 16 (riff-trim, 10-10): bridges and play.growl taken out of the row; nothing has read them since the review of 10-08 (A4) took out the code that laid them (the mined bars' bridges, the growl over the line), so every program plays as before"
+  }
+}

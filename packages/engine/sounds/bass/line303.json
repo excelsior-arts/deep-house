@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "line303",
+  "revision": 1,
+  "topology": "line303",
+  "parameters": {
+    "trim": 0.125,
+    "attack": 0.003,
+    "release": 0.03,
+    "cutoffHz": 420,
+    "resonanceDb": 14,
+    "envAmount": 4,
+    "decay": 0.22,
+    "glide": 0.06,
+    "accentGain": 1.6,
+    "accentEnv": 2.2,
+    "accentDecay": 0.8,
+    "squareLevel": 0.7,
+    "hpHz": 30
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "mid",
+    "knobs": {
+      "brightnessHz": {
+        "unit": "hz",
+        "min": 160,
+        "default": 420,
+        "max": 1400,
+        "bird": "zephyr",
+        "sense": 1,
+        "slopeDb": -0.0012
+      },
+      "resonanceDb": {
+        "unit": "db",
+        "min": 4,
+        "default": 14,
+        "max": 20,
+        "bird": "veil",
+        "sense": 1,
+        "slopeDb": 0.102
+      },
+      "envAmount": {
+        "unit": "ratio",
+        "min": 0.5,
+        "default": 4,
+        "max": 8,
+        "bird": "ember",
+        "sense": 1,
+        "slopeDb": -0.0336
+      },
+      "decay": {
+        "unit": "seconds",
+        "min": 0.06,
+        "default": 0.22,
+        "max": 0.9,
+        "bird": "tide",
+        "sense": 1,
+        "slopeDb": -0.486
+      },
+      "glide": {
+        "unit": "seconds",
+        "min": 0.02,
+        "default": 0.06,
+        "max": 0.2,
+        "bird": "loom",
+        "sense": 1,
+        "slopeDb": 0.366
+      }
+    },
+    "controls": {
+      "accent": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      },
+      "square": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      }
+    },
+    "timbres": {
+      "line303": {
+        "family": "bass",
+        "struck": true,
+        "hold": 0.9,
+        "brightnessHz": 420,
+        "loudnessDb": -11.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "line-303.ts",
+    "note": "round KV1: one oscillator through two cascaded low-passes, the first resonant, with the envelope on the corner, an accent and a glide"
+  }
+}

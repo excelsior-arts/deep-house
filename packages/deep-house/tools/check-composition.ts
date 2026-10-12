@@ -21,6 +21,10 @@ import { insideBox, rollMotif, motifFromPath, readMotif, pathProblems, develop, 
 import Rng from '../src/rng.ts';
 import { rhythmProblems } from '../src/parts/rhythm.ts';
 import { stepToBeats } from '../src/patterns.ts';
+import { planSubSections, playSubSections, clashes } from '../src/subsections.ts';
+import { treat } from '../src/parts/treat.ts';
+import { recipeById } from '../src/recipes.ts';
+import { fixture } from './fixtures/programs.ts';
 
 const choiceOf = (track: ReturnType<typeof planTheme>) => JSON.parse(String(track.dice.composition));
 /** Ordinary themes whose composition drew the ringing keyboard part, first theme of each seed. */
@@ -369,19 +373,31 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
   const quietOk = { ...(style.switches as Record<string, boolean>), neverSilent: false };
   const unscened = { ...style, switches: quietOk, composition: { ...style.composition, scene: undefined } };
   const unscenedWithout = { ...without, switches: quietOk, composition: { ...without.composition, scene: undefined } };
+  // Restated in round L2: since L2 the cut reads each main's cast (a lead
+  // that plays through the theme is on in every main), so a ringing part can
+  // move which main the cut takes its bars from, and nothing else of the form:
+  // the same sections in the same order, the same length, every section that
+  // is not a main its bars. Where the form is whole, only the pad's level
+  // moves outside the keyboard.
+  let whole = 0;
   for (const theme of ringingThemes(unscened, spell).slice(0, 2)) {
     const before = planTheme(theme.seed, 0, { style: unscenedWithout, spell });
     const after = planTheme(theme.seed, 0, { style: unscened, spell });
     assert.ok(choiceOf(after).selected['ringing-keys']);
     assert.ok(after.events.some(e => e.voice === after.dice.struckFigureVoice));
     assert.ok(after.events.every(e => e.p.preset !== 'ep' && e.voice !== 'grainPad'));
-    assert.deepEqual(after.arrangement, before.arrangement);
+    const form = (t: typeof after) => t.arrangement.sections.map(x => x.kind === 'main' ? 'main' : `${x.kind} ${x.bars}`);
+    assert.deepEqual(form(after), form(before), `${theme.seed}: the ringing part moved a section that is not a main`);
+    assert.equal(after.bars, before.bars);
+    if (JSON.stringify(after.arrangement) !== JSON.stringify(before.arrangement)) continue;
+    whole++;
     // The figure lane's own instrument in either theme is what the part replaces.
     const figureVoices = [voicePlaying('keys', String(before.dice.stabTimbre)), String(after.dice.struckFigureVoice)];
     const other = (t: typeof after) => t.events.filter(e => !figureVoices.includes(e.voice))
       .map(e => e.layer === 'pad' ? { ...e, p: { ...e.p, gain: undefined } } : e);
     assert.deepEqual(other(after), other(before), 'only the accompanying pad level changes outside the keyboard');
   }
+  assert.ok(whole >= 1, 'a ringing theme whose form the part leaves whole');
   // An ordinary variant on its own stream: every other family draws the same
   // with or without it, it never joins a fast learned figure, and it plays on
   // about the share of themes its chance states. No timbre is consulted.
@@ -390,8 +406,12 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
     const bias = biasFor(spell, style);
     const old = composeParts(without, seed, bias, 'medium', bpm)!;
     const next = composeParts(style, seed, bias, 'medium', bpm)!;
+    // GA4's families draw last and take what is left: a part the ringing keys
+    // held the space or the budget for is theirs to lose, and theirs only.
+    const GA4 = ['held-mid', 'perc-loop', 'lazy-kit', 'ghost-backbeat', 'bright-stab', 'lead-line', 'arp-line', 'stab-and-two-tone', 'echo-chord', 'wide-chords'];
+    const drop = (sel: Record<string, string>) => Object.fromEntries(Object.entries(sel).filter(([k]) => !GA4.includes(k)));
     const { 'ringing-keys': replacement, ...other } = next.trace.selected;
-    assert.deepEqual(other, old.trace.selected);
+    assert.deepEqual(drop(other), drop(old.trace.selected));
     if (replacement) assert.equal(old.trace.selected.figure, undefined);
     if (!old.trace.selected.figure) { eligible++; if (replacement) replaced++; }
   }
@@ -549,7 +569,7 @@ test('bird endpoints and intermediate positions preserve finite compilation, arr
   let plans = 0;
   for (const bird of BIRDS) for (const value of [0,.5,1]) for (let i=1;i<=32;i++) {
     const spell = {...HOUSE,[bird]:value};
-    const track = planTheme(String(i),0,{strategy:'house-v2',spell}), program = programOf(track);
+    const track = planTheme(String(i),0,{strategy:'house-v2',spell,library:[]}), program = programOf(track);
     const choice = choiceOf(track).selected, derived = biasFor(spell,style).derived;
     if (!derived.drumsOn) assert.equal(program.events.filter(e => BY_NAME[e.voice].roles.some(r => ['kick','backbeat','offbeat','sixteenth'].includes(r))).length,0);
     if (derived.kit === 'breaks') assert.ok(!choice.bass && !choice.percussion);
@@ -734,4 +754,92 @@ test('a percussion role in front is no longer a want, and a held bass is an ordi
     const chord=t.progression.chords.find(c=>e.bar!%t.progression.loopBars>=c.startBar&&e.bar!%t.progression.loopBars<c.startBar+c.bars)!;
     assert.equal(e.p.midi%12,chord.rootMidi%12);
   }
+});
+
+// --- the treatments' edit contract (the review of 10-03, C01–C04) -------------
+// Small direct cases, each the review's own probe: one strike per added slot, a
+// part's role kept whole, a shortened note the same note, a fallback rechecked.
+const at4=(bar:number,step:number)=>bar*4+step/4;
+const subOf=(row:any,startBar=0,bars=1,alternates:any[]=[])=>({kind:row.applies,row,startBar,bars,alternates,figure:row.id,label:row.name});
+const studyRow=(id:string,kind:string,lanes:any)=>({id,name:id,scope:'treatment',applies:kind,figure:{lanes},weight:1});
+const hatsOf=(t:any)=>{const seen=new Map<string,number>();for(const e of t.events.filter((e:any)=>e.layer==='hats')){const k=`${e.voice}|${e.bar}|${e.step}`;seen.set(k,(seen.get(k)??0)+1);}return [...seen].filter(([,n])=>n>1).map(([k])=>k);};
+
+test('a treatment adds one strike per slot: a mask is add-if-absent on its role, a roll replaces the hit it lands on', () => {
+  // The review's house seed 1, bar 83 step 6: the open-and variation over an open hat already there.
+  for(const recipe of [null,recipeById('mains/hats-open-and')]) for(const seed of [1,2,3])
+    assert.deepEqual(hatsOf(planTheme(seed,0,{strategy:'house-v2',spell:HOUSE,recipe} as any)),[],`seed ${seed}${recipe?' pinned':''}: a hat struck twice`);
+  // Only the onset the figure opens is added, and it says which row wrote it.
+  const ev:any[]=[{t:at4(0,6),bar:0,step:6,voice:'hatOpen',layer:'hats',p:{vel:.7}}];
+  const heard=playSubSections(ev,[subOf(recipeById('mains/hats-open-and'))] as any,at4,null,{roles:{open:{layer:'hats',voices:new Set(['hatOpen']),borrow:true}}});
+  assert.deepEqual(ev.map(e=>e.step),[6,14]);
+  assert.equal(ev[1].by,'mains/hats-open-and');
+  assert.equal(heard.length,1);
+  // A roll over a hit it did not clear: the climb's level, once.
+  const snare:any[]=[{t:at4(0,12),bar:0,step:12,voice:'clap',layer:'clap',p:{vel:1}}];
+  playSubSections(snare,[subOf(studyRow('study/roll','fill',{backbeat:{roll:{from:12,base:.4,rise:.4}}}))] as any,at4,null);
+  assert.deepEqual(snare.map(e=>e.step).sort((a,b)=>a-b),[12,13,14,15]);
+  assert.ok(Math.abs(snare.find(e=>e.step===12).p.vel-.5)<1e-9,'the roll replaced the hit on its first step');
+});
+
+test('a role an explicit part owns gets no added hit: a pinned kick is exact through the sub-sections, and a derived hit never wears the part\'s name', () => {
+  // The direct case: a quarter mask over four protected quarters adds nothing and is not named.
+  const ev:any[]=[0,4,8,12].map(step=>({t:at4(0,step),bar:0,step,voice:'kick',layer:'kick',part:'human-approved-cell',p:{vel:.8}}));
+  const heard=playSubSections(ev,[subOf(studyRow('study/quarter-rewrite','switch-up',{kick:{clear:0,mask:['X...X...X...X...']}}))] as any,at4,null);
+  assert.equal(ev.length,4); assert.deepEqual(heard,[]);
+  // The generator's held roles (no part on the events) are kept the same way.
+  const held:any[]=[0,8].map(step=>({t:at4(0,step),bar:0,step,voice:'kick',layer:'kick',p:{vel:.8}}));
+  playSubSections(held,[subOf(recipeById('small/turn-double-kick'))] as any,at4,null,{held:new Set(['kick'])});
+  assert.equal(held.length,2);
+  // The review's pinned-kick table: the pin's events are the same count with and without the sub-sections.
+  const pin:any=structuredClone(fixture('calm-piano-part-02'));
+  pin.id='study/review-pinned-kick'; pin.applies='kick'; delete pin.placement;
+  pin.wants={rhythm:{kick:[{bars:1,steps:[0,4,8,12],accents:[.8,.8,.8,.8],families:['drum']}]}};
+  const off={...style,switches:{...style.switches,subSections:false}};
+  for(const seed of [2,3,6]){
+    const o:any={strategy:'house-v2',spell:HOUSE,accompaniment:'auto',recipe:pin,development:'percussion'};
+    const without=planTheme(seed,0,{...o,style:off}).events.filter((e:any)=>e.part===pin.id).length;
+    const t=planTheme(seed,0,o);
+    assert.equal(t.events.filter((e:any)=>e.part===pin.id).length,without,`seed ${seed}: the pinned kick gained a hit`);
+    assert.ok(!t.events.some((e:any)=>e.part&&e.by),`seed ${seed}: a derived hit under a part's name`);
+  }
+});
+
+test('a held note shortened by a breath is the same note: only its length changes, its part, room and articulation survive', () => {
+  const e:any={t:0,bar:0,step:0,voice:'test-upper',layer:'keys',p:{dur:8,vel:.5}};
+  const ev=[e], upper=new Set([e]), params=new Map([[e,{ring:3}]]);
+  playSubSections(ev,[subOf(recipeById('mains/breath'),1)] as any,at4,null,{roles:{figure:{layer:'keys',held:true}}});
+  treat({style,S:{},parts:{presence:{},ambience:{figure:'spacious'},tone:{}},characters:{ambience:{spacious:{reverb:.91,delay:.4}}},
+    events:ev,upperEvents:upper,phraseParameters:params,LANES:[],voiceOf:(l:any)=>l.voice,UPPERS:[{}],TEXTURE:null} as any);
+  assert.equal(ev[0],e,'the cut kept the event');
+  assert.ok(upper.has(ev[0]));
+  assert.equal(ev[0].p.dur,4);
+  assert.equal(ev[0].p.ring,3,'the phrase\'s articulation');
+  assert.equal(ev[0].p.reverb,.91,'the part\'s room');
+});
+
+test('a variation\'s fallback passes the overlap check its first row did, and a fill still plays over a switch-up', () => {
+  const sw:any=studyRow('study/switch-open','switch-up',{open:{clear:0,mask:['..X...X...X...X.']}}); sw.place={kit:'four'};
+  const miss=studyRow('study/vary-closed','variation',{sixteenth:{clear:0,mask:['X...X...X...X...']}});
+  const conflict=studyRow('study/vary-open','variation',{open:{clear:0,mask:['X...X...X...X...']}});
+  const arrangement:any={sections:[{index:0,startBar:0,bars:32,kind:'main',admits:{'switch-up':['span'],variation:['halves']}}]};
+  const rates:any={switchUp:1,switchBars:[16],turnaround:0,fill:0,dropOut:0,crash:false,variation:1,variationBars:[8]};
+  const subs=planSubSections(0,arrangement,rates,{drums:true,broken:false},[sw,miss,conflict] as any);
+  const s=subs.find(x=>x.kind==='switch-up')!;
+  const v=subs.find(x=>x.kind==='variation'&&x.startBar<s.startBar+s.bars&&s.startBar<x.startBar+x.bars)!;
+  assert.ok(v&&v.row.id===miss.id,'seed 0 lays the closed-hat variation inside the switch-up');
+  assert.ok(!v.alternates!.some(r=>r.id===conflict.id),'the open-hat fallback is not offered over the switch-up');
+  const ev:any[]=Array.from({length:32},(_,bar)=>({t:at4(bar,2),bar,step:2,layer:'hats',voice:'openhat',p:{vel:.5}}));
+  playSubSections(ev,subs,at4,null,{roles:{open:{layer:'hats',voices:new Set(['openhat'])}}});
+  assert.deepEqual(ev.filter(e=>e.bar===v.startBar).map(e=>e.step).sort((a,b)=>a-b),[2,6,10,14],'the switch-up\'s offbeats');
+  // The footprint reads the without blocks, the layers and the open hat inside the offbeat.
+  const span={startBar:0,bars:8}, over:any=[{kind:'switch-up',startBar:0,bars:16,row:studyRow('study/hats','switch-up',{offbeat:{clear:0}})}];
+  assert.ok(clashes(studyRow('study/o','variation',{open:{clear:0}}) as any,span,over));
+  assert.ok(clashes({...studyRow('study/w','variation',{kick:{clear:4}}),figure:{lanes:{kick:{clear:4}},without:{kick:{lanes:{offbeat:{clear:0}}}}}} as any,span,over));
+  assert.ok(clashes({...studyRow('study/l','variation',{}),figure:{layers:{off:['figure']}}} as any,span,[{...over[0],row:{...over[0].row,figure:{layers:{swap:['figure','drone']}}}}]));
+  assert.ok(!clashes(studyRow('study/f','fill',{kick:{clear:0}}) as any,span,over));
+  // The precedence: a fill on a switch-up's bar plays over it.
+  const both=[{...over[0],row:sw,startBar:0,bars:2},subOf(recipeById('small/fill'),1)];
+  const bar:any[]=[0,1].flatMap(b=>[{t:at4(b,4),bar:b,step:4,voice:'clap',layer:'clap',p:{vel:1}},{t:at4(b,2),bar:b,step:2,layer:'hats',voice:'openhat',p:{vel:.5}}]);
+  const heard=playSubSections(bar,both as any,at4,null,{roles:{open:{layer:'hats',voices:new Set(['openhat'])}}});
+  assert.ok(heard.some(x=>x.kind==='fill')&&bar.filter(e=>e.bar===1&&e.layer==='clap').length===5,'the roll from twelve over the bar');
 });

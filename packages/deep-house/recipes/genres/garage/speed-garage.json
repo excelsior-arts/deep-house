@@ -229,7 +229,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -261,6 +261,12 @@
   "provenance": {
     "pattern": "speed garage: four on the floor with a snare on two and four, open hats on every offbeat and swung sixteenths between, under a bass that jumps between the root and the fifth on the offbeats",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar of drums: the house kick, a snare (not a clap) on two and four, a loose hat opening on each and, and swung closed sixteenths under it. The bass is the genre's bounce: short notes on the offbeats and the a of each beat, root and fifth. The warp of its famous bass (a pitch-bent, filtered patch) is not in the kitchen."
+    "note": "One bar of drums: the house kick, a snare (not a clap) on two and four, a loose hat opening on each and, and swung closed sixteenths under it. The bass is the genre's bounce: short notes on the offbeats and the a of each beat, root and fifth. The warp of its famous bass (a pitch-bent, filtered patch) is not in the kitchen.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.8,
+      "syncopationZ": 0.9,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

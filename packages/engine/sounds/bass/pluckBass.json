@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "pluckBass",
+  "revision": 1,
+  "topology": "pluck-bass",
+  "block": "pluckBass",
+  "parameters": {
+    "attack": 0.003,
+    "decay": 0.3,
+    "sustain": 0.18,
+    "release": 0.08,
+    "cutoff": 900,
+    "openMult": 3.6,
+    "openCeiling": 5200,
+    "openTime": 0.07,
+    "q": 0.9,
+    "body": 0.34,
+    "square": 0.4,
+    "detuneCents": 7,
+    "drive": 0.35,
+    "even": 0.1,
+    "oversample": "none",
+    "trim": 0.42,
+    "pickLevel": 0.16,
+    "pickDecay": 0.008,
+    "pickTilt": 0.45,
+    "pickHz": 2200,
+    "pickQ": 1.1,
+    "hpHz": 70
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "melodic",
+    "level": "keys",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "pluckBass": {
+        "family": "bass",
+        "struck": true,
+        "hold": 0.18,
+        "brightnessHz": 900,
+        "loudnessDb": -14.8
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "pluck-bass.ts",
+    "note": "The plucked mid bass (src/voices/pluck-bass.ts), an octave over the sub. **These are not measurements.** Every other block in this file carries numbers taken off the reference sets or off a benchmark minute, and this one carries numbers chosen to make a plucked bass: the instrument is an audition (round G of PLAN-V1-NEXT), no die can draw it and no record contains it, so there is nothing yet to have measured it against. The one number of it that *is* measured is the timbre's `loudnessDb`, and that is written by the gate that measures it, in the voice's own module. The reasoning behind each, since it is not a measurement:",
+    "notes": {
+      "attack": "A pluck is its attack. Three milliseconds up, most of the note gone in a third of a second, and a low sustain to hold the tail of a long one: the keys' own `pluck` preset is the nearest thing in the catalogue and it sits at 0.048 — this is a bass and is allowed to stay a little longer under a chord.",
+      "cutoff": "The body filter's corner, and how far over it the note starts. Mid bass: the fundamental of the register it plays is 90-200 Hz, so a corner at 900 Hz is four or five harmonics of it — which is the 500 Hz - 2 kHz this voice exists to put something into. `openCeiling` keeps the start of the sweep out of the hats' octave however high the corner is pushed.",
+      "body": "The body, under the note: a saw at this level and a square under it, detuned either way, saturated together. `bass.ts`'s lesson an octave up — the fundamental is a sine and never reaches a shaper — with a little more drive than the sub gets, because a saw driven is colour where a sine driven is fuzz.",
+      "oversample": "**Not oversampled, and that is a measurement and not a default.** Every other shaper in this engine asks for 2x or 4x, which is the right answer for a stage whose input is broadband; here the shaped signal is a saw and a square under 200 Hz going straight into a 900 Hz lowpass, so there is very little to alias — and MEASURED, an oversampled shaper is the one thing in this voice the two engines do not agree about. The same eight bars, metered at the bus: at `2x` Chromium reads -21.87 LUFS and Firefox -18.03, at `4x` -19.61 and -18.03, and at `none` **-17.97 and -17.95**. Four decibels between two engines is not a timbre, it is two implementations of an up-sampler, and a voice whose declared loudness has to hold to a decibel in both cannot be built on one.",
+      "trim": "What the voice is worth at a gain of one. MEASURED: without this it peaks at 2.37x the peak its own envelope was given, because the note, the body and the pick all land on the same instant and the body filter is at its most open there. Every other voice in this engine peaks at about the gain it is handed, and a level table is only a level table if they all do — at -10.5 dB this one was playing seven and a half decibels over everything else at the same level. The trim is the reciprocal of that measurement and nothing else.",
+      "pickLevel": "The pick: high-passed noise, gone in eight milliseconds, band-passed where a plucked string's attack lives. `pickTilt` is the one-pole corner the noise is tilted about; the buffer holds the burst already shaped.",
+      "hpHz": "The bottom belongs to the sub. This voice starts where that one stops carrying the fundamental."
+    }
+  }
+}

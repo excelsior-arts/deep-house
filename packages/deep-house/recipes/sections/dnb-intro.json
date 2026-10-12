@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/dnb-intro",
+  "revision": 3,
+  "name": "pads, then the break",
+  "scope": "section",
+  "applies": "intro",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 24,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "pad",
+          "hatClosed"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "pad",
+          "hatClosed",
+          "clap"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      }
+    ],
+    "admits": {
+      "fill": "last"
+    },
+    "flags": {
+      "lift": true
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:0+102",
+    "kind": "section",
+    "where": "the first 24-32 bars",
+    "reading": "pads and a filtered beat (air 34 dB under the level), the kick sparse (1.7 a bar) and gone for long stretches \u2014 four bars at a time: drop4 nokick8 A4 nokick4 B4 nokick4 C4 D28 \u2014 the full break from 0:44, a breakdown at 1:28",
+    "plays": "since round T2: a intro row the fast broken place prefers beside the house's (deep-house-places.ts SECTIONS, src/sections.ts); the form draws the kind, the place says which row",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; round T2 (2026-10-02): played \u2014 preferred by the fast broken place at twice the house row's share, the row's own weight still nought so no other place draws it; round DNB-3 (2026-10-05): revision 2 \u2014 the middle phrases are the break without its kick (the pad, the hats and the snare with its ghosts), the kick and the sub enter on the last phrase, and the floor is 24 bars, so the intro has the cut's long no-kick stretch; preferred at three times the house row's share; round DNB-4 (2026-10-05): revision 3 \u2014 the pads lifted as a breakdown's are (`flags.lift`), since the cut's opening is the pads' (the low-mids 3.8 dB under the level, the presence 23 under), where the place's bed sat 13 dB under the house's floor and the hats led",
+    "note": "A row at nought in itself: pinnable by link (?recipe=dnb/dnb-intro) and drawn only where a place prefers it (notes/rounds/treat-t2.md)."
+  }
+}

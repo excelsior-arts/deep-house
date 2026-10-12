@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/form-classic",
+  "revision": 1,
+  "name": "The classic: a long intro, a breath, a long drop, a long breakdown and the switch",
+  "scope": "track",
+  "applies": null,
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "form": {
+    "order": [
+      "intro",
+      "build",
+      "breakdown",
+      "drop",
+      "groove",
+      "breakdown",
+      "drop",
+      "groove",
+      "outro"
+    ],
+    "bars": [
+      32,
+      32,
+      16,
+      16,
+      64,
+      48,
+      16,
+      64,
+      32
+    ],
+    "stretch": [
+      "groove"
+    ],
+    "fits": [
+      240,
+      480
+    ],
+    "prefers": {
+      "dnb/dnb-main": 0
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "round": "dnb-6",
+    "knowledge": "authored: the territory's conventions (phrases of sixteen and thirty-two bars, a drop on a sixteen-bar line, a second drop that switches its bassline) and the form of source 8's first tune read four bars at a time (score-8.py read_form, notes/rounds/dnb-5.md and dnb-6.md); no record's arrangement copied",
+    "note": "Read off source 8's first tune and corrected from the brief's proposal: 32 bars of pads and isolated hits, 32 of the break with hints of the line, a 16-bar breath of the pads alone, the drop on bar 80 and 80 bars of it, a 48-bar breakdown, the second drop with the riff switched and as long, a 32-bar outro for mixing out. The grooves take up the theme's length. Its grooves are the house's main row (the place's mined main opens on the kick, the line and the pads alone), so the drop holds its full state as the source's first drop holds it for 80 bars.",
+    "plays": "drawn by the fast broken places among the form rows whose window holds the theme's length (deep-house-places.ts FORM rows), off the theme's own stream; at nought nowhere else"
+  }
+}

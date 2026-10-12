@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/switch-doubled-snare",
+  "revision": 1,
+  "name": "doubled snare",
+  "scope": "treatment",
+  "applies": "switch-up",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "bars": 2,
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "...xX..o.o..X...",
+          "...xX..o.o..X.o."
+        ]
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 3,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:102+123 (bars 54-85)",
+    "kind": "switch-up",
+    "reading": "a second snare a sixteenth before the two, ghosts on two-a and three-e",
+    "from": "src/subsections.ts SWITCH_FIGURES doubled-snare (round DNB-1, 2026-10-02), weight 3 of 11",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

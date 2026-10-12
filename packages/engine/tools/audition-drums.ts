@@ -114,6 +114,7 @@ export const DRUM_SCENES: DrumScene[] = [
   { id: 'snare', voice: 'snare', pattern: 'backbeat', role: 'backbeat' },
   { id: 'snareGhost', voice: 'snare', pattern: 'sixteenth', p: { hit: 'ghost' }, role: 'backbeat', also: true },
   { id: 'rimshot', voice: 'rimshot', pattern: 'backbeat', role: 'backbeat' },
+  { id: 'clap', voice: 'clap', pattern: 'backbeat', role: 'backbeat' },
   { id: 'hatTight', voice: 'hatTight', pattern: 'offbeat', role: 'offbeat' },
   { id: 'hatLoose', voice: 'hatLoose', pattern: 'offbeat', role: 'offbeat' },
   { id: 'hatSizzle', voice: 'hatSizzle', pattern: 'offbeat', role: 'offbeat' },
@@ -129,6 +130,18 @@ export const DRUM_SCENES: DrumScene[] = [
   { id: 'woodblock', voice: 'woodblock', pattern: 'perc', role: 'sixteenth' },
   { id: 'kickLong', voice: 'kickLong', pattern: 'four', role: 'kick' },
   { id: 'kickPunch', voice: 'kickPunch', pattern: 'four', role: 'kick' },
+  // Round DNB-2: the short kick and the dry snare a place swaps in at the fast broken beat.
+  { id: 'kickTight', voice: 'kickTight', pattern: 'four', role: 'kick' },
+  // Round DUB-1: the knock a place swaps in where the bass line carries the sub.
+  { id: 'kickKnock', voice: 'kickKnock', pattern: 'four', role: 'kick' },
+  { id: 'snareDry', voice: 'snareDry', pattern: 'backbeat', role: 'backbeat' },
+  { id: 'snareDryGhost', voice: 'snareDry', pattern: 'sixteenth', p: { hit: 'ghost' }, role: 'backbeat', also: true },
+  // The liquid kit (dnb-3, 10-06): the kick, the snare, its ghost and the two closed hats refit to a liquid reference.
+  { id: 'kickPunchHigh', voice: 'kickPunchHigh', pattern: 'four', role: 'kick' },
+  { id: 'snareCrack', voice: 'snareCrack', pattern: 'backbeat', role: 'backbeat' },
+  { id: 'snareGhost', voice: 'snareGhost', pattern: 'sixteenth', p: { hit: 'ghost' }, role: 'backbeat' },
+  { id: 'hatShut', voice: 'hatShut', pattern: 'offbeat', role: 'offbeat' },
+  { id: 'hatSoft', voice: 'hatSoft', pattern: 'offbeat', role: 'offbeat' },
 ];
 
 export const DRUMS = DRUM_SCENES.filter((s) => !s.also).map((s) => s.id);

@@ -5,6 +5,7 @@
 //   nice -n 18 node tools/genre-recipes.ts --family dnb --site tmp/recipes-g1/site --out tmp/recipes-g1 --port 7261
 //   ... --shard 0/2 --port 7261 & ... --shard 1/2 --port 7262     two at a time, and no more
 //   ... --links                                                print the audit links and render nothing
+//   ... --audit tools/genre-audit-candidates.json              another points file (DNB-1's candidates)
 //
 // The points are `tools/genre-audit.json`. Each row is planned exactly as its
 // link plays it — `recipesFor` over the link's own search, then `planTheme` —
@@ -27,7 +28,9 @@ const arg = (k: string, d: string | null = null) => { const i = process.argv.ind
 const flag = (k: string) => process.argv.includes(`--${k}`);
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const ROOT = path.join(HERE, '..', '..', '..');
-const AUDIT = JSON.parse(fs.readFileSync(path.join(HERE, 'genre-audit.json'), 'utf8'));
+// `--audit <file>` reads another points file of the same shape (round DNB-1:
+// `genre-audit-candidates.json`, the mined candidates under the DnB key).
+const AUDIT = JSON.parse(fs.readFileSync(arg('audit') ? path.resolve(arg('audit')!) : path.join(HERE, 'genre-audit.json'), 'utf8'));
 
 export interface AuditPoint { id: string; seed: string; theme: number; key: string; spell: string; search: string }
 /** Every audit point, as the link that plays it (a written link: every sound row, `v=2`, never a bar). */

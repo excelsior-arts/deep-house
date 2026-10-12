@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/turn-ghost-pickup",
+  "revision": 2,
+  "name": "ghost pickup",
+  "scope": "treatment",
+  "applies": "turnaround",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "backbeat": {
+        "mask": [
+          "..............og"
+        ],
+        "insert": "replace"
+      }
+    },
+    "letters": {
+      "g": {
+        "level": 0.45,
+        "ghost": true
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:102+123, 8:590+116",
+    "kind": "turnaround",
+    "reading": "ghosts added and the snare moved are half of every change in the drops (3.1 + 0.6 in 16 bars)",
+    "from": "src/subsections.ts TURNAROUNDS ghost pickup (round DNB-1, 2026-10-02): ghost snares on four-and and four-a at 0.3 and 0.45 of the backbeat",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move; round CX-A (2026-10-03): where the backbeat already plays a ghost on the step, the pickup re-levels it as an accent (insert: replace) rather than staying silent"
+  }
+}

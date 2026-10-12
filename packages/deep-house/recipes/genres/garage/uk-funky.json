@@ -228,7 +228,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -261,6 +261,12 @@
   "provenance": {
     "pattern": "UK funky: a four-on-the-floor kick with soca and afro-house percussion rolling round it — hand drums and toms in a syncopated sixteenth pattern — a clap on two and four with extra ghost claps, and a sparse sub",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: the kick keeps four; the hand drums play a tresillo-shaped line (the three-three-two) over the two bars with fills between; claps on two and four and a ghost on the a of three; closed hats on the offbeat, lightly swung. A sub held on the root with one move a bar."
+    "note": "Two bars: the kick keeps four; the hand drums play a tresillo-shaped line (the three-three-two) over the two bars with fills between; claps on two and four and a ghost on the a of three; closed hats on the offbeat, lightly swung. A sub held on the root with one move a bar.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -1.4,
+      "syncopationZ": -0.4,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

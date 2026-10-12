@@ -51,6 +51,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { stripTypeScriptTypes } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { updateRow } from './rows.ts';
 import { playwright, launchOptions, renice, finish } from './harness.ts';
 import { K4_VOICES, SCENES_2 } from './audition-voices-2.ts';
 import { uncovered, coverage } from './tables.ts';
@@ -62,9 +63,10 @@ import type { HeldVoice } from '../src/voices/voice-contract.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
-const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE };
+// `/sounds/` is the rows the registry imports (rounds R1 and R2).
+const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
 // Beside the voices' 7045, the effects' 7046 and the ear's 7024, and never
-// 6975, which is Eugene's.
+// 6975, the dev server.
 const PORT = 7048;
 
 const arg = (k: string, d: string | null = null): string | null => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
@@ -389,16 +391,8 @@ server.close();
 // rates — rounded to a tenth of a decibel, and the band the gate then holds it
 // to is a whole decibel, so a number blessed here passes everywhere it was
 // measured by construction.
-const MODULES: Record<string, string> = {
-  pulseLead: 'wave-leads.ts', triLead: 'wave-leads.ts',
-  subSoft: 'subs.ts', subTri: 'subs.ts',
-  sawPad: 'saw-pad.ts',
-  fmGlass: 'fm-keys.ts', fmEp: 'fm-keys.ts', fmPluck: 'fm-keys.ts',
-  marimba: 'mallets.ts', vibes: 'mallets.ts',
-  brightPiano: 'keys-2.ts', reedOrgan: 'keys-2.ts',
-  vinylBed: 'texture.ts', grainPad: 'texture.ts', sweepUp: 'texture.ts',
-  wavePad: 'wave-pad.ts',
-};
+// every instrument of this table is a row (rounds R1 and R2) and is written in it
+const MODULES: Record<string, string> = {};
 if (BLESS) {
   console.log('\nblessing');
   for (const id of WANT) {
@@ -406,6 +400,12 @@ if (BLESS) {
     if (rows.length < 2) { console.log(`  ${id}: ${rows.length} readings, not blessed`); continue; }
     const mean = rows.reduce((a: number, r: Reading) => a + r.loudnessDb, 0) / rows.length;
     const now = Math.round(mean * 10) / 10;
+    if (!MODULES[id]) {
+      let was: number | undefined;
+      if (!updateRow(id, (r) => { was = r.descriptor.timbres[id].loudnessDb; r.descriptor.timbres[id].loudnessDb = now; })) { console.log(`  ${id}: no module and no row`); continue; }
+      console.log(`  ${id}: ${was} -> ${now}  (${id}.json; ${rows.map((r: Reading) => `${r.engine}@${r.rate / 1000}k ${r.loudnessDb}`).join(', ')})`);
+      continue;
+    }
     const file = path.join(SRC, 'voices', MODULES[id]);
     const text = fs.readFileSync(file, 'utf8');
     const re = new RegExp(`(${id}: \\{[^}]*loudnessDb: )(-?[0-9.]+)`);

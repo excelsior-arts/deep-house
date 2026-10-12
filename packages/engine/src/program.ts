@@ -90,7 +90,7 @@ export interface ProgramEvent {
   /** The compiler reserved this note from rotating stage treatments. */
   treatment?: 'none';
   /** Optional musical role, independent of the physical voice/layer. */
-  role?: 'texture';
+  role?: 'texture' | 'sparse-keys';
   i: number;
   voice: string;
   layer: string;
@@ -171,18 +171,96 @@ export function duckShape(settings: Settings, beat: number): DuckPoint[] {
   const low = Math.pow(10, (P.lowDepthDb ?? P.depthDb) / 20);
   const out: DuckPoint[] = [];
   for (const p of ['duck.gain', 'duckLow.gain']) {
-    const depth = p === 'duckLow.gain' ? low : Math.pow(10, P.depthDb / 20);
-    out.push({ p, op: 'set', dt: -0.001, v: 1 });
-    out.push({ p, op: 'lin', dt: P.attack, v: depth * 1.12 });
-    out.push({ p, op: 'lin', dt: P.minimumAt, v: depth });
+    const v = duckValues(p === 'duckLow.gain' ? low : Math.pow(10, P.depthDb / 20));
+    out.push({ p, op: 'set', dt: -0.001, v: v[0] });
+    out.push({ p, op: 'lin', dt: P.attack, v: v[1] });
+    out.push({ p, op: 'lin', dt: P.minimumAt, v: v[2] });
     // Two legs on the way back: most of the recovery happens in the first half
     // of the beat, which is what puts the envelope's minimum where the
     // reference sets have it instead of halfway to the next kick.
-    out.push({ p, op: 'lin', dt: beat * 0.45, v: depth + (1 - depth) * 0.6 });
-    out.push({ p, op: 'lin', dt: beat * P.recoverBy, v: 1 });
+    out.push({ p, op: 'lin', dt: beat * (P.firstLeg ?? 0.45), v: v[3] });
+    out.push({ p, op: 'lin', dt: beat * P.recoverBy, v: v[4] });
+  }
+  out.push(...struckDuckShape(settings, beat));
+  return out;
+}
+
+/** The five values of one duck line at a depth: from one, past the depth on the attack, the depth, most of the way back, one. */
+const duckValues = (depth: number): number[] => [1, depth * 1.12, depth, depth + (1 - depth) * 0.6, 1];
+
+/**
+ * **A kick's own low duck** (the liquid bass rounds, 10-07): a kick event may
+ * ask the low line at a depth of its own (`p.duckLowDb`, decibels, -24 to 0),
+ * to make room in a bass already held under it. The shape is the room's, its
+ * times and its other lines untouched; only the low line's values move. A
+ * request out of bounds, or none, is the room's shape itself.
+ */
+export function duckFor(shape: DuckPoint[], p: object | null | undefined): DuckPoint[] {
+  const db = (p as { duckLowDb?: unknown } | null | undefined)?.duckLowDb;
+  if (typeof db !== 'number' || !Number.isFinite(db) || db > 0 || db < -24) return shape;
+  let per = deeper.get(shape);
+  if (!per) deeper.set(shape, (per = new Map()));
+  let out = per.get(db);
+  if (!out) {
+    const v = duckValues(Math.pow(10, db / 20));
+    let i = 0;
+    out = shape.map((d) => (d.p === 'duckLow.gain' ? { ...d, v: v[i++] } : d));
+    per.set(db, out);
   }
   return out;
 }
+const deeper = new WeakMap<DuckPoint[], Map<number, DuckPoint[]>>();
+
+/**
+ * **The struck voices' duck** (round PIANO-2, `notes/rounds/piano-2.md`): the
+ * duck's depth follows the voice's envelope. A held chord takes the pump the
+ * shape above writes on `duck`; a struck note — the piano, the plucks, the
+ * stabs, the mallets, whatever its descriptor's timbre says arrives as a hit —
+ * takes a shallow dip of its own on `struckDuck`, and only *after* the strike:
+ * the gain holds at one for `struckAfter` seconds, so a note on the kick keeps
+ * its hammer, falls to `struckDepthDb` at the pads' minimum (or 30 ms after the
+ * hold, where the room's minimum comes sooner), and recovers on the pads' two
+ * legs. MEASURED on seed 6's third theme, 45 piano notes: on the pads' duck a
+ * note struck on a kick lost its hammer and body together and a note half a
+ * beat off took the duck as a hole in its sustain, so alike notes came out
+ * five to six decibels apart by where in the bar they fell.
+ *
+ * A room that does not say (`struckDepthDb` absent) writes the pads' own shape
+ * here, so its struck voices duck as everything melodic always did.
+ */
+export function struckDuckShape(settings: Settings, beat: number): DuckPoint[] {
+  const P = settings.sidechain;
+  const p = 'struckDuck.gain';
+  if (P.struckDepthDb == null) {
+    const depth = Math.pow(10, P.depthDb / 20);
+    return [
+      { p, op: 'set', dt: -0.001, v: 1 },
+      { p, op: 'lin', dt: P.attack, v: depth * 1.12 },
+      { p, op: 'lin', dt: P.minimumAt, v: depth },
+      { p, op: 'lin', dt: beat * (P.firstLeg ?? 0.45), v: depth + (1 - depth) * 0.6 },
+      { p, op: 'lin', dt: beat * P.recoverBy, v: 1 },
+    ];
+  }
+  const depth = Math.pow(10, P.struckDepthDb / 20);
+  const after = P.struckAfter ?? STRUCK_AFTER;
+  // Each point after the one before it: a short room's legs (the fast broken
+  // beat's, round DNB-1) can fall inside the hold and the dip, and a ramp may
+  // not end before the one it follows.
+  const hold = after;
+  const low = Math.max(P.minimumAt, hold + 0.03);
+  const leg = Math.max(beat * (P.firstLeg ?? 0.45), low + 0.005);
+  const back = Math.max(beat * P.recoverBy, leg + 0.005);
+  return [
+    { p, op: 'set', dt: -0.001, v: 1 },
+    { p, op: 'lin', dt: hold, v: 1 },
+    { p, op: 'lin', dt: low, v: depth },
+    { p, op: 'lin', dt: leg, v: depth + (1 - depth) * 0.6 },
+    { p, op: 'lin', dt: back, v: 1 },
+  ];
+}
+
+/** How long a struck note's duck holds off after the kick, in seconds, where the room does not say: past the hammer. */
+export const STRUCK_AFTER = 0.018;
 
 /** One trigger's requested shape; the writer resolves overlapping recoveries. */
 export function duckAt(shape: DuckPoint[], at: number): AutomationPoint[] {

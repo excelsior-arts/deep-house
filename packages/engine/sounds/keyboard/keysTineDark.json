@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keysTineDark",
+  "revision": 1,
+  "topology": "keys",
+  "parameters": {
+    "cutoff": 1800,
+    "det": 3,
+    "attack": 0.008,
+    "decay": 1.4,
+    "sustain": 0.45,
+    "formant": [
+      700,
+      3
+    ],
+    "ratio": 1,
+    "index": [
+      0.3,
+      1.8
+    ],
+    "indexDecay": 0.22,
+    "tine": 14,
+    "tineIndex": [
+      0.3,
+      0.6
+    ],
+    "tineDecay": 0.03,
+    "tremolo": false,
+    "rotary": false,
+    "organ": false,
+    "pluck": false,
+    "hpHz": 60,
+    "tremoloHz": 4.4,
+    "tremoloDepth": 0,
+    "tremoloPan": 0,
+    "rotaryHz": 5,
+    "rotaryDepth": 0.1,
+    "edge": {
+      "level": 0,
+      "hz": 2000,
+      "decay": 0.15,
+      "tine": 3,
+      "hold": 0.3,
+      "chiff": 0,
+      "chiffHz": 4500,
+      "chiffDecay": 0.01
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "liquid-keys",
+    "note": "An older, darker tine electric piano: a 1:1 woody body with a soft bark that velocity brings and 220 ms takes away, the tine a faint knock, the lid at 1.5 kHz and no tremolo.",
+    "notes": {
+      "copiedFrom": "keysRhodes, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmBell",
+  "revision": 1,
+  "topology": "fm-bell",
+  "block": "fmBell",
+  "parameters": {
+    "ratios": {
+      "bell": 3.51,
+      "glass": 2.76,
+      "tube": 1.41,
+      "metal": 5.06
+    },
+    "tone": "bell",
+    "attack": 0.004,
+    "decay": 1.5,
+    "sustain": 0.07,
+    "release": 0.9,
+    "index": [
+      0.9,
+      2.6
+    ],
+    "indexDecay": 0.55,
+    "indexFloor": 0.04,
+    "detuneCents": 4,
+    "spread": 0.55,
+    "lpHz": 6200,
+    "hpHz": 170,
+    "trim": 1
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "melody",
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "background": {
+        "unit": "send",
+        "min": 0,
+        "max": 2,
+        "default": 0
+      },
+      "immersed": {
+        "unit": "send",
+        "min": 0,
+        "max": 2,
+        "default": 0
+      },
+      "indexMul": {
+        "unit": "ratio",
+        "min": 0.02,
+        "max": 1,
+        "default": 1
+      }
+    },
+    "timbres": {
+      "fmBell": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.07,
+        "brightnessHz": 6200,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fm-bell.ts",
+    "note": "A two-operator FM bell: one sine modulating another, at a ratio that is not a whole number, which is what makes a struck bar inharmonic and a sawtooth not. The index is velocity's — a bell hit harder is brighter and not just louder — and it falls away inside a second, so the clang is the attack and the tail is nearly a sine. The tail is the point of the voice: nothing else in this engine rings for two seconds after a note.",
+    "notes": {
+      "ratios": "The ratio table. A ratio near a small integer sounds like an organ pipe; these four are the ones that ring. `tone` is what a note asks for by name, and the declared loudness is measured on the default.",
+      "index": "The index, in units of the carrier's own frequency: how far the modulator throws it. The first number is what a note at no velocity gets and the second is what velocity adds."
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "marimba",
+  "revision": 1,
+  "topology": "mallet",
+  "block": "marimba",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.9,
+        1
+      ],
+      [
+        4,
+        0.12,
+        0.34
+      ],
+      [
+        9.2,
+        0.06,
+        0.14
+      ]
+    ],
+    "attack": 0.002,
+    "release": 0.08,
+    "ringLevel": 0.55,
+    "tremoloHz": 0,
+    "tremoloDepth": 0,
+    "malletHz": 2100,
+    "malletLevel": 0.5,
+    "malletTime": 0.004,
+    "spread": 0.4,
+    "trim": 0.746,
+    "delay": 0.14,
+    "reverb": 0.24
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "marimba": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.05,
+        "brightnessHz": 3000,
+        "loudnessDb": -12
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "mallets.ts",
+    "note": "Marimba: wooden bars, whose second partial the maker tunes down to exactly 4 by carving an arch out of the underside. `[ratio, decay, level]`.",
+    "notes": {
+      "ringLevel": "The resonator under the bar: it holds the fundamental and nothing else.",
+      "malletHz": "A hard mallet head, as a band of noise four milliseconds long."
+    }
+  }
+}

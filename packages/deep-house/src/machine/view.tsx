@@ -35,13 +35,15 @@ import type { Entry } from '../ledger.ts';
 import { STAGE_ABOUT } from '@deep-house/engine/describe';
 import { STRATEGIES, STRATEGY_IDS } from '../strategies/index.ts';
 import { BIRDS, HOUSE, SPELL_SAME, asSpell, derive } from '../spell.ts';
+import { clockOf, minutesOf } from '../length.ts';
 import type { Control } from '../control.ts';
 import type { MachineStore } from './store.ts';
 import { GROUPS } from './model.ts';
-import { BandControl, BusControls, ResetAll, STRIP_CONTROLS_W, SourceControls } from './source-controls.tsx';
+import { BandControl, BusControls, InsertControl, ResetAll, STAGE_KEYS, STRIP_CONTROLS_W, SourceControls, StageControl } from './source-controls.tsx';
 import { BAND_OF } from './desk.ts';
 import { Help, manualKey, said, showingOf, useHelp } from './help.tsx';
 import { GenreKeys } from './genres.tsx';
+import { Scenes } from './scenes.tsx';
 import type { Showing } from './help.tsx';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { MachineEdge, MachineNode, MachineSnapshot } from './model.ts';
@@ -186,7 +188,11 @@ function SourceRowShape({ node, place, snap, control, lit = false, ask = NO_ASK 
   // them (M4); the layout said which when it gave the row its height
   const two = h > SOURCE_H;
   const line = SOURCE_H / 2;
-  const label = cut(node.label, two ? room : Math.min(room * 0.55, 104), 8.5, 0.6);
+  // on one line the name has what the instrument leaves it, as the layout reckoned
+  // when it chose one line (`oneLine`), and never less than half the room and a
+  // bit: DESK-UX1's wider level key took ten units, and OFFBEATOPEN, the longest
+  // name, would have been cut at the fixed 55 % where it fits beside its hats
+  const label = cut(node.label, two ? room : Math.min(Math.max(room * 0.55, room - 7 - node.made.length * 7.5 * CHAR), 104), 8.5, 0.6);
   const labelW = label.length * (8.5 * CHAR + 0.6);
   return (
     <g transform={`translate(${place.x} ${place.y})`} data-box={node.id} data-state={node.state} data-lit={lit ? '' : undefined} data-lines={two ? 2 : 1} {...hp}>
@@ -204,7 +210,7 @@ function SourceRowShape({ node, place, snap, control, lit = false, ask = NO_ASK 
       </g>
       {/* the strip is drawn at full strength on a resting source: a control a
           hand can press is never dimmed into looking like it cannot be */}
-      {strip ? <SourceControls control={control!} voices={source!.playing} label={source!.id} width={w} height={SOURCE_H} /> : null}
+      {strip ? <SourceControls control={control!} voices={source!.playing} timbres={source!.timbres} label={source!.id} width={w} height={SOURCE_H} /> : null}
     </g>
   );
 }
@@ -213,7 +219,7 @@ function SourceRowShape({ node, place, snap, control, lit = false, ask = NO_ASK 
  * A box: a title row with the lamp and what the machine made there, then its
  * readings and the descriptor's sentence, each line with the width to itself.
  */
-function BoxShape({ node, place, snap, lit = false, ask = NO_ASK }: { node: MachineNode; place: Place; snap: MachineSnapshot; lit?: boolean; ask?: Ask }) {
+function BoxShape({ node, place, snap, control, lit = false, ask = NO_ASK }: { node: MachineNode; place: Place; snap: MachineSnapshot; control?: Control; lit?: boolean; ask?: Ask }) {
   const hp = useHelp(ask);
   const dim = resting(node);
   const lamp = lampFor(node, snap);
@@ -221,9 +227,13 @@ function BoxShape({ node, place, snap, lit = false, ask = NO_ASK }: { node: Mach
   const made = cut(node.made, w - 72, 7);
   const labelWidth = w - 26 - made.length * 7 * CHAR;
   const values = rowValue(valueText(node), w - 12, 8);
+  // a stage box whose block the engine declares is a key (PLAN-DESK D2), drawn
+  // at full strength over a resting box, as a strip's keys are
+  const key = !!control && node.stage === 'stage' && STAGE_KEYS.has(node.id);
   return (
-    <g transform={`translate(${place.x} ${place.y})`} data-box={node.id} data-state={node.state} opacity={dim ? REST_BOX : 1}
+    <g transform={`translate(${place.x} ${place.y})`} data-box={node.id} data-state={node.state}
       data-lit={lit ? '' : undefined} {...hp}>
+      <g opacity={dim ? REST_BOX : 1}>
       <rect width={w} height={h} fill={INK.panel} stroke={dim ? INK.line : INK.edge} strokeWidth={1} />
       <rect width={w} height={15} fill={INK.sunken} />
       <line x1={0} y1={15} x2={w} y2={15} stroke={dim ? INK.line : INK.edge} strokeWidth={1} />
@@ -238,19 +248,24 @@ function BoxShape({ node, place, snap, lit = false, ask = NO_ASK }: { node: Mach
         <text key={i} className="v" data-value="" x={6} y={values.length === 1 ? 28 : 27 + i * 9.5} fill={dim ? INK.dim : INK.type} fontSize={8} fontFamily="inherit">{t}</text>
       ))}
       {values.length === 1 ? <Note text={node.note || ''} x={6} y={40} w={w - 12} size={7.5} /> : null}
+      </g>
+      {key ? <StageControl control={control!} box={node.id} label={node.label} width={w} height={h} /> : null}
     </g>
   );
 }
 
 /** A lane insert or a send: a chip, a title and two short lines. */
-function ChipShape({ node, place, snap, accent, lit = false, ask = NO_ASK }: { node: MachineNode; place: Place; snap: MachineSnapshot; accent: boolean; lit?: boolean; ask?: Ask }) {
+function ChipShape({ node, place, snap, control, accent, lit = false, ask = NO_ASK }: { node: MachineNode; place: Place; snap: MachineSnapshot; control?: Control; accent: boolean; lit?: boolean; ask?: Ask }) {
   const hp = useHelp(ask);
   const { w, h } = place;
   const dim = node.state !== 'live';
   const settings = accent ? node.readings.map((r) => `${r.name} ${r.value}`).join('  ') : readingText(node);
+  // a lane insert's chain, read (D2): the effect's declared knobs behind the chip
+  const lane = accent && control ? snap.lanes.find((l) => `treat:${l.id}` === node.id) : undefined;
   return (
-    <g transform={`translate(${place.x} ${place.y})`} data-box={node.id} data-state={node.state} opacity={dim ? REST : 1}
+    <g transform={`translate(${place.x} ${place.y})`} data-box={node.id} data-state={node.state}
       data-lit={lit ? '' : undefined} {...hp}>
+      <g opacity={dim ? REST : 1}>
       <rect width={w} height={h} fill={INK.sunken} stroke={INK.edge} strokeWidth={1} />
       {/* an insert's amber edge says it is on the lane's own wire, which a return is not */}
       {accent ? <rect width={3} height={h} fill={INK.amber} opacity={dim ? 0.3 : 0.85} /> : null}
@@ -260,6 +275,8 @@ function ChipShape({ node, place, snap, accent, lit = false, ask = NO_ASK }: { n
       </text>
       <Note text={settings} x={accent ? 9 : 7} y={25} w={w - 14} size={7.5} role="v" />
       <Note text={node.note || ''} x={accent ? 9 : 7} y={35} w={w - 14} size={7} />
+      </g>
+      {lane && lane.treatment ? <InsertControl lane={lane.id} treatment={lane.treatment} width={w} height={h} /> : null}
     </g>
   );
 }
@@ -848,10 +865,10 @@ export function Diagram({ snap, fit, id = 'machineDiagram', control }: { snap: M
           const ask = askOf(node.id, p);
           if (shape === 'source') return <SourceRow key={node.id} node={node} place={p} snap={snap} control={control} lit={on} ask={ask} />;
           if (shape === 'strip') return <Strip key={node.id} node={node} place={p} snap={snap} control={control} lit={on} ask={ask} />;
-          if (shape === 'chip') return <Chip key={node.id} node={node} place={p} snap={snap} accent lit={on} ask={ask} />;
+          if (shape === 'chip') return <Chip key={node.id} node={node} place={p} snap={snap} control={control} accent lit={on} ask={ask} />;
           if (shape === 'send') return <Chip key={node.id} node={node} place={p} snap={snap} accent={false} lit={on} ask={ask} />;
           if (shape === 'row') return <Row key={node.id} node={node} place={p} snap={snap} control={control} lit={on} ask={ask} />;
-          return <Box key={node.id} node={node} place={p} snap={snap} lit={on} ask={ask} />;
+          return <Box key={node.id} node={node} place={p} snap={snap} control={control} lit={on} ask={ask} />;
         })}
         {bellsBox ? <Bells rows={bells} {...bellsBox} ask={askOf('bells', null)} /> : null}
       </g>
@@ -888,6 +905,12 @@ const STAGE_TILE = 30;
  * STRATEGY — it matches the engine selector above"*). Where the numbers do not
  * fill their last row, its last tile takes the rest of it, so no row is ragged.
  */
+/** The tempo's family and the notch Ember's centre stands at, as the spell derives them: `house 105`. */
+function tempoWords(spell: MachineSnapshot['spell']): string {
+  const d = derive(asSpell({ ...HOUSE, ...(spell || {}) }));
+  return `${d.tempoFamily} ${Math.round(d.tempoCentre)}`;
+}
+
 function Facts({ snap }: { snap: MachineSnapshot }) {
   const gr = snap.meters && snap.meters.reduction.posting ? snap.meters.reduction.worst : null;
   const peak = snap.meters ? snap.meters.out.hold : null;
@@ -900,12 +923,16 @@ function Facts({ snap }: { snap: MachineSnapshot }) {
     { k: 'seed', v: snap.castTo ? `${snap.seed} → ${snap.castTo}` : snap.seed, tone: snap.castTo ? 'warn' : undefined },
     { k: 'room', v: snap.room },
     { k: 'theme', v: snap.theme },
-    { k: 'bar', v: `${snap.bar}/${snap.bars}` },
+    // the bar of the bars, and what those bars last at this tempo (L1: a
+    // theme's length is minutes from the birds, and the bars follow)
+    { k: 'bar', v: snap.bars && snap.bpm ? `${snap.bar}/${snap.bars} · ${clockOf(minutesOf(snap.bars, snap.bpm))}` : `${snap.bar}/${snap.bars}` },
     { k: 'section', v: snap.section || '—' },
     { k: 'chord', v: snap.chord || '—' },
     // the tempo family the spell derives beside the tempo (M8: the internals,
-    // *"a debugging tool first"*); house-v1 reads no spell, so it has none
-    { k: 'bpm', v: snap.strategy === 'house-v1' ? snap.bpm.toFixed(1) : `${snap.bpm.toFixed(1)} · ${derive(asSpell({ ...HOUSE, ...(snap.spell || {}) })).tempoFamily}` },
+    // *"a debugging tool first"*), and since K40 the notch Ember's centre is
+    // at (`derive().tempoCentre`, the ring's own source); house-v1 reads no
+    // spell, so it has neither
+    { k: 'bpm', v: snap.strategy === 'house-v1' ? snap.bpm.toFixed(1) : `${snap.bpm.toFixed(1)} · ${tempoWords(snap.spell)}` },
     { k: 'key', v: snap.key },
     { k: 'peak out', v: dbText(peak), tone: clipping ? 'bad' : undefined },
     { k: 'gain red.', v: gr == null ? '—' : `${gr.toFixed(1)} dB`, tone: gr != null && gr > 3 ? 'warn' : undefined },
@@ -925,7 +952,7 @@ function Facts({ snap }: { snap: MachineSnapshot }) {
   return (
     <div className="list">
       {tiles.map((t, i) => (
-        <Fact key={t.k} k={t.k} v={t.v} tone={t.tone} wrap={t.k === 'stage' || t.k === 'bpm'} span={rest && i === tiles.length - 1 ? PER_ROW - rest + 1 : 1} />
+        <Fact key={t.k} k={t.k} v={t.v} tone={t.tone} wrap={t.k === 'stage' || t.k === 'bpm' || t.k === 'bar'} span={rest && i === tiles.length - 1 ? PER_ROW - rest + 1 : 1} />
       ))}
       {sentence ? <Fact wide k="stage" v={stage} /> : null}
       {/* What those dice are expected to measure as, where the strategy has a
@@ -940,18 +967,25 @@ function Facts({ snap }: { snap: MachineSnapshot }) {
           view should operate more on internals than user-facing values, due to
           its nature: a debugging tool first"*; the percent it showed was a ratio
           to the house, 239 %, and not even the ring's scale). A control off the
-          house a step brighter; the swatch after the name the one place the
-          spell's colour is in the view; eight to a row at every width, on the
-          tile's own padding and its name's left edge. */}
+          house a step brighter; the spell's colour a line under the name across
+          all eight cells (Eugene, 10-05: *"stretch the colour for the full
+          horizontal line across all the params"* — it was a 7 px swatch after
+          the name), the one place that colour is in the view; eight to a row at
+          every width, on the tile's own padding and its name's left edge. */}
       <div className="fact wide spell" data-fact="spell">
-        <div className="spell-head"><span className="k">spell</span><span className="swatch" style={{ background: snap.spellHex }} /></div>
+        <div className="spell-head"><span className="k">spell</span></div>
+        <span className="swatch" style={{ background: snap.spellHex }} />
         <div className="spell-grid">
           {BIRDS.map((b) => {
             const v = snap.spell && typeof snap.spell[b] === 'number' ? snap.spell[b] : HOUSE[b];
             const home = Math.abs(v - HOUSE[b]) <= SPELL_SAME;
+            // Ember's tile names the notch it plays at (K40), the same centre the ring's hand reads
+            const bpm = b === 'ember' ? Math.round(derive(asSpell({ ...HOUSE, ...(snap.spell || {}) })).tempoCentre) : null;
+            const notch = bpm != null ? ` → ${bpm} bpm` : '';
             return (
-              <div key={b} className={`cell${home ? '' : ' off'}`} data-bird={b} title={`${b} ${v.toFixed(3)}; the house is ${HOUSE[b].toFixed(3)}`}>
-                <span className="k">{b.slice(0, 2)}</span>
+              <div key={b} className={`cell${home ? '' : ' off'}`} data-bird={b} title={`${b} ${v.toFixed(3)}${notch}; the house is ${HOUSE[b].toFixed(3)}`}>
+                {/* the notch in its own span: on a phone, where a cell is one line, it is hidden (it was `em 100` over a cell of 43 px, the value cut to 3 — the view-area debt of 10-04), the title keeping it */}
+                <span className="k">{b.slice(0, 2)}{bpm != null ? <span className="notch"> {bpm}</span> : null}</span>
                 <span className="v">{v.toFixed(2)}</span>
               </div>
             );
@@ -1062,7 +1096,7 @@ function Ledger({ snap, hide }: { snap: MachineSnapshot; hide: () => void }) {
       <h2 className="with-key">ledger · last {KEEP_SECONDS} s
         <button type="button" className="pane-key log-key" data-tool="ledger" aria-label="Hide the ledger" aria-pressed title="Hide the ledger; the graph takes its width" onClick={hide}><LogMark /></button>
       </h2>
-      <div className="lines">
+      <div className="lines" role="region" aria-label="ledger lines">
         {lines.length === 0 ? <p className="empty">nothing yet. Start the set.</p> : null}
         {lines.map((e) => <LedgerLine key={e.n} e={e} copied={copied === e.n} copy={copy} />)}
       </div>
@@ -1329,7 +1363,8 @@ export function Machine({ store, control, ringHost, exit }: {
             <RingTools exit={exit} control={control} seconds={snap.seconds} />
           </div>
           <GenreKeys store={store} control={control} />
-          <div className="facts">
+          {/* a region with its name (10-08): it scrolls, so a key can reach it, and says what it is */}
+          <div className="facts" role="region" aria-label="readings">
             <h2>readings</h2>
             <Facts snap={snap} />
           </div>
@@ -1339,6 +1374,15 @@ export function Machine({ store, control, ringHost, exit }: {
               its own so it does not read as a reading */}
           {/* the private tier's CAPTURE block fills this (its record tools); a release build leaves it empty */}
           <div data-slot="capture" />
+          {/* and its DRAW block this (the reach of the library draw, round D1); empty in a release */}
+          <div data-slot="draw" />
+          {/* the saved desk (round D3): the view's own, public, in a slot of its own beside them */}
+          <div data-slot="scenes">
+            <section className="scene-block" aria-label="scenes">
+              <h2>scenes</h2>
+              <Scenes control={control} snap={snap} />
+            </section>
+          </div>
           <section className="engine-block" aria-label="engine">
             <h2>engine</h2>
             <Engine snap={snap} control={control} />
@@ -1350,7 +1394,7 @@ export function Machine({ store, control, ringHost, exit }: {
             sideways, because a layered graph is wider than a phone and the page
             itself must never scroll across. There is no second rendering of the
             machine to keep in step. */}
-        <div className="pane graph" ref={paneRef}>
+        <div className="pane graph" ref={paneRef} role="region" aria-label="the signal graph">
           <Diagram snap={snap} fit={fit} control={control} />
         </div>
         {/* **One key, where the ledger is** (M19): shown, HIDE in its own

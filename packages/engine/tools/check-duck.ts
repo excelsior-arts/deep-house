@@ -29,9 +29,13 @@ test('a close kick continues the current recovery and removes the old future',()
   assert.equal(calls.at(-1)![2],1.3+.57);
 });
 test('ordinary spacing preserves the shape and independent parameters never share recovery',()=>{
-  const a=parameter(),b=parameter(),graph={param:(path:string)=>path==='duck.gain'?a.p:b.p};
+  // One parameter per line the shape writes: the pads' duck, the low line and,
+  // since the struck duck (round PIANO-2), the struck notes' own.
+  const paths=[...new Set(shape.map(d=>d.p))];
+  assert.deepEqual(paths,['duck.gain','duckLow.gain','struckDuck.gain']);
+  const params=new Map(paths.map(path=>[path,parameter()])),graph={param:(path:string)=>params.get(path)!.p};
   for(const at of [0,.6,1.2])writeDuck(graph,shape,at);
-  for(const [path,{calls}]of [['duck.gain',a],['duckLow.gain',b]] as const){
+  for(const [path,{calls}]of params){
     // Every trigger opens with a cancel at its own set; with the recovery over
     // by then it removes nothing, and the rest is the shape as written.
     const expected=[0,.6,1.2].flatMap(at=>shape.filter(d=>d.p===path).flatMap(d=>{

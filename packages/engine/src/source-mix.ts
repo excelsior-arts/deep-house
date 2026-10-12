@@ -16,7 +16,7 @@ import { line } from './ramp.ts';
 import type { Line } from './ramp.ts';
 import { SEND_NAMES } from './dsp.ts';
 import type { VoiceOut } from './dsp.ts';
-import type { Buses } from './master.ts';
+import type { Bus, Buses } from './master.ts';
 
 export interface SourceMix {
   mute: string[];
@@ -53,10 +53,11 @@ export function makeSourceMixer(ctx: BaseAudioContext, buses: Buses, initial: So
   // — the second change on a deck used to throw there (engine review, #6).
   const gains: Array<{ source: string; send: string; node: GainNode; line: Line }> = [];
   return {
-    output(source: string, bus: string): VoiceOut {
-      const key = `${source}:${bus}`;
+    /** `door` is the bus's struck door where the note is struck (round PIANO-2), else the bus itself */
+    output(source: string, bus: string, door: Bus | null = null): VoiceOut {
+      const key = door ? `${source}:${bus}:struck` : `${source}:${bus}`;
       if (channels.has(key)) return channels.get(key)!;
-      const target = buses[bus];
+      const target = door ?? buses[bus];
       if (!target) throw new Error(`Unknown source bus ${bus}`);
       const out: VoiceOut = {};
       // Getters preserve lazy halls/background spaces. Merely drawing the
@@ -65,11 +66,30 @@ export function makeSourceMixer(ctx: BaseAudioContext, buses: Buses, initial: So
         let node: GainNode | undefined;
         Object.defineProperty(out, send, { get() {
           if (!node) {
+            // a send the bus does not offer (a theme with no part space) is no door at all
+            const dest = target[send];
+            if (!dest) return undefined;
             node = ctx.createGain();
             const value = sourceGain(state, source, send);
             node.gain.value = value;
-            node.connect(target[send]);
+            node.connect(dest);
             gains.push({ source, send, node, line: line(ctx, node.gain, value) });
+          }
+          return node;
+        } });
+      }
+      // The bass drive's side door (round DUB-4), where the bus has one: at the
+      // source's dry level, so a muted bass mutes what it drives.
+      const ride = (target as Bus & { ride?: AudioNode }).ride;
+      if (ride) {
+        let node: GainNode | undefined;
+        Object.defineProperty(out, 'ride', { get() {
+          if (!node) {
+            node = ctx.createGain();
+            const value = sourceGain(state, source, 'dry');
+            node.gain.value = value;
+            node.connect(ride);
+            gains.push({ source, send: 'dry', node, line: line(ctx, node.gain, value) });
           }
           return node;
         } });

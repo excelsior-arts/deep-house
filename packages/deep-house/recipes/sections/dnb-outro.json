@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/dnb-outro",
+  "revision": 1,
+  "name": "the drums thinning",
+  "scope": "section",
+  "applies": "outro",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "clap",
+          "bass",
+          "pad"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "pad"
+        ]
+      }
+    ]
+  },
+  "forbids": [],
+  "weight": 0,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cuts": "8:4190+64",
+    "kind": "section",
+    "where": "the last 16 bars",
+    "reading": "the hats out (2.4 a bar), the snare and kick thinning, the air 46 dB under the level",
+    "plays": "since round T2: a outro row the fast broken place prefers beside the house's (deep-house-places.ts SECTIONS, src/sections.ts); the form draws the kind, the place says which row",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): written in the treatment contract (src/treatment.ts) from the DNB-1 candidate of the same id; at nought until the ear; round T2 (2026-10-02): played — preferred by the fast broken place at twice the house row's share, the row's own weight still nought so no other place draws it",
+    "note": "A row at nought in itself: pinnable by link (?recipe=dnb/dnb-outro) and drawn only where a place prefers it (notes/rounds/treat-t2.md)."
+  }
+}

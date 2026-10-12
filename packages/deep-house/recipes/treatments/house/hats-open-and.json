@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/hats-open-and",
+  "revision": 1,
+  "name": "open and",
+  "scope": "treatment",
+  "applies": "variation",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "open": {
+        "mask": [
+          "......X.......X."
+        ]
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "variation",
+    "where": "the second half of a sixteen-bar phrase, ending on its line: the four cuts vary more there than in the first half on every one of them (43 against 25, 43/38, 73/50, 38/31 changing bars)",
+    "reading": "the top band up four decibels on 0.95 bars in 16 of the reference mains: an open hat or a ride brought in for a stretch",
+    "idiom": "the open hat on the and of two and of four over the closed eighths, for half a phrase: the groove opens without a new instrument",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02 (his word on seed 1's hats, \"straight like a train\"): a row of the hats inside a house main, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

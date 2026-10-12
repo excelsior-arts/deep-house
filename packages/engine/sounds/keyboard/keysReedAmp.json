@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keysReedAmp",
+  "revision": 1,
+  "topology": "keys",
+  "parameters": {
+    "cutoff": 1800,
+    "det": 2,
+    "attack": 0.005,
+    "decay": 0.9,
+    "sustain": 0.35,
+    "formant": [
+      850,
+      4
+    ],
+    "ratio": 2,
+    "index": [
+      0.25,
+      0.7
+    ],
+    "indexDecay": 0.6,
+    "tine": null,
+    "tineIndex": null,
+    "tineDecay": null,
+    "tremolo": true,
+    "rotary": false,
+    "organ": false,
+    "pluck": false,
+    "hpHz": 120,
+    "tremoloHz": 5.2,
+    "tremoloDepth": 0.12,
+    "tremoloPan": 0,
+    "rotaryHz": 5,
+    "rotaryDepth": 0.1,
+    "edge": {
+      "level": 0,
+      "hz": 2000,
+      "decay": 0.15,
+      "tine": 3,
+      "hold": 0.3,
+      "chiff": 0,
+      "chiffHz": 4500,
+      "chiffDecay": 0.01
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "liquid-keys",
+    "note": "A mellow reed electric piano for a small amplifier: odd harmonics from a modulator at twice the note but played gently, a boxy lift at 850 Hz, the lid at 1.8 kHz, a slow shallow tremolo and the low end left to the little speaker.",
+    "notes": {
+      "copiedFrom": "keysRhodes, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

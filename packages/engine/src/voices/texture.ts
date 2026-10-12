@@ -40,6 +40,11 @@ import { insert } from './treat.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf, provePatch, withDesk } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, int, list, num, pos, DB, HZ, LEVEL, LFO_HZ, SECONDS, SPREAD, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 // --- the bed ---------------------------------------------------------------
 
@@ -49,7 +54,7 @@ import type { Settings } from '../settings.ts';
  * different numbers in them, which is `perc.ts`'s lesson about the small
  * percussion said again — four instruments that are each one filter.
  */
-function band(ctx: BaseAudioContext, S: Settings['vinylBed'] | Settings['sweepUp']): { hp: BiquadFilterNode; lp: BiquadFilterNode } {
+function band(ctx: BaseAudioContext, S: { readonly hpHz: number; readonly lpHz: number; readonly q: number }): { hp: BiquadFilterNode; lp: BiquadFilterNode } {
   const hp = ctx.createBiquadFilter();
   hp.type = 'highpass';
   hp.Q.value = 0.7;
@@ -62,7 +67,8 @@ function band(ctx: BaseAudioContext, S: Settings['vinylBed'] | Settings['sweepUp
   return { hp, lp };
 }
 
-export function vinylBed(
+function vinylBed(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -70,7 +76,7 @@ export function vinylBed(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.vinylBed;
+  const S = patchOf(settings, row, VINYL_FIELDS);
   const dur = Math.max(0.2, p.dur ?? 4);
   const vel = p.vel ?? 0.7;
   const end = time + dur + S.release;
@@ -108,7 +114,8 @@ export function vinylBed(
   return end + MIN_RELEASE;
 }
 
-export function sweepUp(
+function sweepUp(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -116,7 +123,7 @@ export function sweepUp(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.sweepUp;
+  const S = patchOf(settings, row, SWEEP_FIELDS);
   const dur = Math.max(0.3, p.dur ?? 3);
   const vel = p.vel ?? 0.9;
   const end = time + dur + S.release;
@@ -166,7 +173,7 @@ const grainCache = new WeakMap<BaseAudioContext, Map<string, AudioBuffer>>();
  * reads is the same in a live take and in a render — `noiseBuffer`'s own rule,
  * one folder down.
  */
-export function grainBuffer(ctx: BaseAudioContext, S: Settings['grainPad']): AudioBuffer {
+export function grainBuffer(ctx: BaseAudioContext, S: GrainPatch): AudioBuffer {
   let per = grainCache.get(ctx);
   if (!per) { per = new Map(); grainCache.set(ctx, per); }
   const key = `${S.sourceSeconds}:${S.sourceHz}:${S.sourcePartials}:${S.sourceStretch}:${S.sourceTilt}`;
@@ -211,8 +218,8 @@ function grain(
   at: number,
   into: AudioNode,
   { rate, level, pan, length, tilt }: GrainSpec,
-  S: Settings['grainPad'],
-): { src: AudioBufferSourceNode; env: GainNode; end: number } {
+  S: GrainPatch,
+): { src: AudioBufferSourceNode; env: GainNode; out: AudioNode; end: number } {
   const src = ctx.createBufferSource();
   src.buffer = buf;
   src.playbackRate.value = rate;
@@ -237,12 +244,13 @@ function grain(
   src.start(at, Math.max(0, offset), length * rate + 0.02);
   // When it is over: the window has closed and the slice has run out. What a
   // ring of grains uses to know which of them it may let go of.
-  return { src, env, end: at + length + 0.02 / rate + 0.05 };
+  return { src, env, out: pn, end: at + length + 0.02 / rate + 0.05 };
 }
 
-/** One grain in flight: its source, and the instant it is over. */
+/** One grain in flight: its source, the node it ends on, and the instant it is over. */
 interface Grain {
   src: AudioBufferSourceNode;
+  out: AudioNode;
   end: number;
 }
 
@@ -262,7 +270,7 @@ function cloud(
   time: number,
   until: number,
   p: NoteParams,
-  S: Settings['grainPad'],
+  S: GrainPatch,
   n0 = 0,
 ): { grains: Grain[]; next: number; n: number } {
   const buf = grainBuffer(ctx, S);
@@ -290,12 +298,13 @@ function cloud(
       length: S.grainSeconds * (0.7 + 0.6 * d1),
       tilt: Math.min(14000, S.tiltHz * (0.7 + 0.6 * d2)),
     }, S);
-    grains.push({ src: g.src, end: g.end });
+    grains.push({ src: g.src, out: g.out, end: g.end });
   }
   return { grains, next: t, n };
 }
 
-export function grainPad(
+function grainPad(
+  row: SoundRow,
   ctx: BaseAudioContext,
   out: VoiceOut,
   time: number,
@@ -303,7 +312,7 @@ export function grainPad(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = settings.grainPad;
+  const S = patchOf(settings, row, GRAIN_FIELDS);
   const dur = Math.max(0.2, p.dur ?? 3.5);
   const vel = p.vel ?? 0.7;
   const end = time + dur + S.release;
@@ -373,7 +382,8 @@ export function holdGrainPad(
   p: NoteParams = {},
   settings: Settings,
 ): HeldVoice {
-  const S = settings.grainPad;
+  // the held cloud is the record's own `grainPad`, the room's copy of its row
+  const S = withDesk('grainPad', provePatch(settings.grainPad, GRAIN_FIELDS, 'the settings\' grainPad block', true), GRAIN_FIELDS, 'the settings\' grainPad block', true);
   const time = startTime(ctx, at);
   const level = (p.vel ?? 0.8) * (p.gain ?? 1) * S.trim;
   const attack = p.attack ?? S.attack;
@@ -418,7 +428,9 @@ export function holdGrainPad(
   const sweep = (): void => {
     const now = ctx.currentTime;
     let kept = 0;
-    for (const grain of inFlight) if (grain.end >= now) inFlight[kept++] = grain;
+    // a grain that is over lets go of the cloud's filter, so its chain leaves the graph (the performance
+    // review of 10-06: the list was compacted and every grain since the cloud began stayed wired in)
+    for (const grain of inFlight) if (grain.end >= now) inFlight[kept++] = grain; else grain.out.disconnect();
     inFlight.length = kept;
     sources.length = 0;
     for (const grain of inFlight) sources.push(grain.src);
@@ -517,73 +529,90 @@ export function holdGrainPad(
   };
 }
 
-/** MEASURED by `tools/test-voices-2.ts --bless`. */
-export const VINYL_BED_TIMBRES = {
-  vinylBed: { family: 'noise', struck: false, hold: 1, brightnessHz: 5200, loudnessDb: -12.9 },
-};
-export const GRAIN_PAD_TIMBRES = {
-  grainPad: { family: 'sustained', struck: false, hold: 0.8, brightnessHz: 2600, loudnessDb: -11 },
-};
-export const SWEEP_UP_TIMBRES = {
-  sweepUp: { family: 'noise', struck: false, hold: 0.9, brightnessHz: 6000, loudnessDb: -12.9 },
-};
+/** What a vinyl bed row carries: exactly these, each in its range (`schema.ts`). */
+const VINYL_FIELDS = contract({
+  attack: SECONDS,
+  release: SECONDS,
+  hpHz: HZ,
+  lpHz: HZ,
+  q: DB,
+  driftHz: LFO_HZ,
+  driftDepth: UNIT,
+  trim: LEVEL,
+});
 
-export const vinylBedDescriptor: Descriptor = {
-  name: 'vinylBed',
+/**
+ * The vinyl bed topology: band-passed noise whose lid breathes
+ * (`sounds/noise/vinylBed.json` since round R2).
+ */
+export const VINYL: Topology = {
+  id: 'vinyl',
   cost: 'mid',
-  family: 'noise',
-  roles: ['texture'],
-  bus: 'melodic',
-  level: 'fx',
-  layer: 'fx',
-  plays: null,
-  mono: false,
-  treat: false,
-  anticipates: null,
-  prepare: null,
-  render: vinylBed,
-  timbres: VINYL_BED_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: VINYL_FIELDS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => vinylBed(row, ctx, out, time, p, settings),
 };
 
-export const sweepUpDescriptor: Descriptor = {
-  name: 'sweepUp',
-  cost: 'cheap',
-  family: 'effect',
-  roles: ['texture'],
-  bus: 'melodic',
-  level: 'fx',
-  layer: 'fx',
-  plays: null,
-  mono: false,
-  treat: false,
-  anticipates: null,
-  prepare: null,
-  render: sweepUp,
-  timbres: SWEEP_UP_TIMBRES,
-  dispatches: [],
-  mood: [],
-};
+/** What a grain cloud row carries: exactly these, each in its range (`schema.ts`). */
+const GRAIN_FIELDS = contract({
+  /** the source the grains are cut from: its length, its tuning, how many partials it is summed of (each a pass over the buffer), how far they stretch and fall */
+  sourceSeconds: pos(4),
+  sourceHz: HZ,
+  sourcePartials: int(1, 64),
+  sourceStretch: num(0, 0.1),
+  sourceTilt: num(0, 4),
+  /** a grain on this grid, in seconds: the grid bounds how many grains a second is made of */
+  every: num(0.005, 10),
+  grainSeconds: pos(2),
+  grainLevel: LEVEL,
+  timeSpread: UNIT,
+  rateSpread: SPREAD,
+  tiltHz: HZ,
+  spread: UNIT,
+  scanRate: num(0, 10),
+  /** the steps, in semitones, the grains walk through */
+  chord: list(num(-48, 48), 1, 16),
+  attack: SECONDS,
+  release: SECONDS,
+  /** how far ahead a held cloud lays its grains, in seconds */
+  horizon: SECONDS,
+  trim: LEVEL,
+});
 
-export const grainPadDescriptor: Descriptor = {
-  name: 'grainPad',
+/** What a row of this topology carries, as its contract types it. */
+export type GrainPatch = PatchOf<typeof GRAIN_FIELDS.fields>;
+
+/**
+ * The grain cloud topology: one-shot grains of a rendered source laid over
+ * a chord (`sounds/ensemble/grainPad.json` since round R2). Its held entry,
+ * `holdGrainPad`, reads the same block.
+ */
+export const GRAIN_CLOUD: Topology = {
+  id: 'grain-cloud',
   cost: 'dear',
-  family: 'ensemble',
-  roles: ['sustained'],
-  bus: 'melodic',
-  level: 'pad',
-  layer: 'pad',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: grainPad,
-  timbres: GRAIN_PAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: GRAIN_FIELDS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => grainPad(row, ctx, out, time, p, settings),
 };
 
-export const descriptors: Descriptor[] = [vinylBedDescriptor, grainPadDescriptor, sweepUpDescriptor];
-export default descriptors;
+/** What a noise sweep row carries: exactly these, each in its range (`schema.ts`). */
+const SWEEP_FIELDS = contract({
+  release: SECONDS,
+  fromHz: HZ,
+  toHz: HZ,
+  hpHz: HZ,
+  hpToHz: HZ,
+  lpHz: HZ,
+  q: DB,
+  trim: LEVEL,
+});
+
+/**
+ * The noise sweep topology: a band of noise whose lid and floor climb in
+ * octaves while the level climbs with them (`sounds/effect/sweepUp.json` since
+ * round R2).
+ */
+export const NOISE_SWEEP: Topology = {
+  id: 'noise-sweep',
+  cost: 'cheap',
+  parameters: SWEEP_FIELDS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => sweepUp(row, ctx, out, time, p, settings),
+};

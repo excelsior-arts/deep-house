@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "kind": "keys-draws",
+ "round": "liquid-space",
+ "revision": 1,
+ "note": "What a theme's keys part draws, per theme, each choice off a stream of its own (`<seed>::keys:<choice>`): the tone, the space, the motif, the wetness and the whole track's density by these weights; the phrase by its own row's `weight` (phrases.json) among those that fit the theme's key. Tone and space draw independently (the two-voice tones, the electric piano and haze and the felt grand and sine, are left out: two dear voices on one part is 70 units of a 220 ceiling where the drums, the bass and the bed already take up to 145): no pair measured badly in the lab's three rounds, so no compatibility table; his trims after listening go here. `birds` leans a weight by where a bird stands: each named choice's weight is multiplied by exp(lean x strength x (bird - centre)), so a lean of 1 at strength 1 is x0.61 at nought and x1.65 at one, and a bird at the centre leaves the weights as written. Modest on purpose: a lean moves a draw, it never decides it.",
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-draw",
+   "id": "liquid-keys",
+   "revision": 1,
+   "name": "The tested liquid keys",
+   "says": "The variety the keys lab tested and he found mostly fine (10-11): every round-3 phrase, the warm pianos and electric pianos, his four spaces and the three very wet ones, three motif grammars and no motif rarely, the three wetness steps and the three whole-track densities.",
+   "tone": { "close-grand": 2, "far-grand": 2, "fm-ep": 2, "glass-ep": 2, "felt-grand": 1, "suitcase-ep": 1, "dark-tine": 1 },
+   "space": { "hallDeep": 1, "dottedIntoHall": 1, "slowWideWash": 1, "plateSmooth": 1, "washFiltered": 1, "chorusRoom": 1, "widePlateDrift": 1 },
+   "motif": { "sparing": 2, "pickup-answer": 2, "pickup": 2, "bare": 0.5 },
+   "wetness": { "wet": 1, "wetter": 1, "wettest": 1 },
+   "density": { "track-mood": 1, "track-sparse": 1, "track-present": 1 },
+   "centre": 0.5,
+   "strength": 1,
+   "birds": {
+    "tide": {
+     "says": "Tide, space and distance: toward the wetter steps and the longer, wider spaces",
+     "wetness": { "wet": -1, "wetter": 0.5, "wettest": 1 },
+     "space": { "hallDeep": 1, "slowWideWash": 1, "dottedIntoHall": 0.5, "washFiltered": 0.5, "plateSmooth": -0.5, "chorusRoom": -1 }
+    },
+    "zephyr": {
+     "says": "Zephyr, brightness and air: toward the electric pianos and the brighter returns, away from the far, dark grand and the low-passed wash",
+     "tone": { "fm-ep": 1, "glass-ep": 1, "suitcase-ep": 1, "dark-tine": 0.5, "far-grand": -1, "felt-grand": -0.5 },
+     "space": { "chorusRoom": 1, "widePlateDrift": 1, "plateSmooth": 0.5, "washFiltered": -1, "hallDeep": -0.5 }
+    },
+    "gleam": {
+     "says": "Gleam, harmonic light: toward the warmer phrases, away from the dark ones",
+     "phrase": { "dm9-g13": 1, "ebmaj9-fm9": 1, "ebmaj9s11-bbmaj9": 1, "cm9-abmaj9": 0.5, "fm9-dbmaj9": 0.5, "em11-dmaj9": 0.5, "am9-dm9": -1, "em9-fmaj7s11": -1, "am11-am9": -1 }
+    },
+    "loom": {
+     "says": "Loom, the phrase's length: toward the sparser densities",
+     "density": { "track-mood": 1, "track-present": -1 }
+    }
+   }
+  }
+ ]
+}

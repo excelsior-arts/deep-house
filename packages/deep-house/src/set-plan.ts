@@ -42,6 +42,7 @@ import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
 import { loudnessTrimDb } from './loudness.ts';
+import { classicRoles } from './roles.ts';
 import { seamPlan, blendAsked, seamTempo, glideBarsFor } from './performance.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import type { SetClock } from '@deep-house/engine/set-clock';
@@ -50,12 +51,15 @@ import type { CurveStep, SeamLine, SeamHole, SeamWrite } from '@deep-house/engin
 import type { Room, Style } from '@deep-house/engine/style';
 import Rng from './rng.ts';
 import { biasFor, tempoInFamily } from './spell.ts';
+import { minutesBand, minutesAt, barsFor } from './length.ts';
 import type { Spell } from './spell.ts';
 import { switchOn } from './lanes.ts';
+import { libraryTurn } from './library-draw.ts';
 import type { Recipe } from './recipe.ts';
 import type { Accompaniment } from './recipe-request.ts';
 import type { Development } from './development.ts';
 import { LOOKAHEAD } from '@deep-house/engine/clock';
+import { keysShared, wheelRoot, rootOnWheel } from './theory.ts';
 
 
 // Every number a set is laid out by is the **style's**, since round F of
@@ -150,6 +154,15 @@ export type MixOptions = Style['set'] & {
   development?: Development;
   /** a tool's hand on which melody family states the theme: see `GenerateOptions` */
   motif?: { family?: string; register?: string; off?: boolean } | null;
+  /** a tool's hand on the library a turn draws from: see `GenerateOptions` */
+  library?: readonly Recipe[] | null;
+  /**
+   * **How far a library turn's row may leak beyond its place** (round D1,
+   * `src/library-draw.ts`): 0 to 1, the style's own in its `set` (house-v2's
+   * is 0, today's band) unless a private-tier hand asks for another. The
+   * record draws no library row and never reads it.
+   */
+  reach?: number | null;
   /**
    * a tool's stated tempo for the theme, in place of the set's drawn one and its
    * drift — for a seam between two stated tempos rendered for an ear
@@ -198,9 +211,27 @@ function fromPercentiles(rng: Rng, p: number[]): number {
 //
 //   ?kickdrive=0  the kick's saturation        ?glue=0     the kick+bass glue
 //   ?body=0       the bass's driven body       ?basscomp=0 the bass compressor
+//   ?bassdrive=0  the bass drive in parallel, and where a place turned the
+//                 roles round the line's own clip (round DUB-2: the grit twin)
 //   ?push=0       the push macro               ?duck=0     the sidechain
 //   ?limiter=0    the master limiter           ?clip=0     the soft clipper
-//   ?sub=-3       the sub's level, in dB       ?all=0      every one of them
+//   ?sub=-3       the sub's level under its room, in dB, in place of the plan's step
+//                 (-2, -5 or -6, `subTrimDb`)   ?all=0      every one of them
+//   ?duckdb=-14   the melodic duck's depth, in dB (round EQ-2: his ear owns it):
+//                 the held voices', the pads' pump
+//   ?struckduckdb=-12  the struck voices' duck, in dB (round PIANO-2): the
+//                 piano's, the plucks', the stabs' shallow dip after the strike
+//   ?strings=1800 the strings' low-pass corner, in Hz (round EQ-2)
+//   ?spark=0      the grain a place gives the voices, every part of it (SPARK-1)
+//   ?sparkkeys=0  the keys' edge and strike   ?sparkpad=0  the strings' breath
+//   ?sparkpiano=0 the piano's hammer and body ?sparkbus=0  the harmonic bus's edge
+//   ?sparkdrums=0 the drums' grain, every part (SPARK-2)  ?sparkhats=0 the hats' top, air and tail
+//   ?sparkshaker=0 the shaker's air, tail and beads       ?sparkclap=0 the clap's crack
+//   ?roles=classic the kick and the bass in the roles the room drew them in,
+//                 where a place turned them round (round DUB-1, `roles.ts`):
+//                 the voices swapped back, the line's sweep off it, the
+//                 room's own duck and copy in parallel, the classic trim.
+//                 The notes are the notes either way
 //
 const BYPASS = {
   kickdrive: { kick: { drive: 0 } },
@@ -210,10 +241,13 @@ const BYPASS = {
   clip: { master: { clipKnee: 0.999 } },
   glue: { master: { glue: { ratio: 1, drive: 0 } } },
   basscomp: { bass: { comp: { ratio: 1 } } },
+  // The bass drive in parallel (round B1): a blend of nought is no copy built,
+  // and a theme the places leave clean has nothing here to take out.
+  bassdrive: { bass: { parallel: { blend: 0 } } },
   // Both depths: `depthDb` is the melodic duck and `lowDepthDb` is the bass's,
   // and a switch called `duck` that left the bass ducking 8 dB was not a
   // sidechain bypass, which made every A/B taken with it read wrong.
-  duck: { sidechain: { depthDb: 0, lowDepthDb: 0 } },
+  duck: { sidechain: { depthDb: 0, lowDepthDb: 0, struckDepthDb: 0 } },
 };
 
 /**
@@ -224,9 +258,42 @@ const BYPASS = {
  */
 export interface Bypass {
   params: PlainTable | null;
-  subDb: number;
+  /** the sub's level under its room, in dB, in place of the plan's step; absent, the plan's */
+  subDb?: number;
   label: string;
+  /** the grain's parts taken out (round SPARK-1), as paths into the theme's room: an absent part is the record's sound */
+  strip?: string[][];
+  /** the roles a place turned round, put back (round DUB-1, `roles=classic`) */
+  roles?: 'classic';
+  /** the turned line's own clip taken out (round DUB-2: `bassdrive=0` where the line carries the drive) */
+  noGrit?: true;
 }
+
+/**
+ * **The grain's listening rows** (round SPARK-1): each takes one part a place
+ * wrote out of the theme's room, so the voice plays exactly as it did before
+ * the round, and `spark` takes all four. A path and not a value, because an
+ * absent part is the record's graph and a part at nought would be a different
+ * one (and not a whole part the engine admits).
+ */
+const GRAIN_ROWS: Record<string, string[][]> = {
+  sparkkeys: [['keys', 'edge']],
+  sparkpad: [['strings', 'breath']],
+  sparkpiano: [['piano', 'grain']],
+  sparkbus: [['harmonicEdge']],
+};
+GRAIN_ROWS.spark = Object.values(GRAIN_ROWS).flat();
+// The drums' grain (round SPARK-2): the hats' three fields in the `hats` block
+// and in each kit hat's, the shaker's three, the clap's crack. Not in `spark`,
+// which is SPARK-1's harmonic grain; `sparkdrums` takes all three parts.
+const HAT_GRAIN = ['top', 'air', 'tail'];
+const DRUM_GRAIN_ROWS: Record<string, string[][]> = {
+  sparkhats: [...HAT_GRAIN.map((f) => ['hats', f]), ...['hatTight', 'hatLoose', 'hatSizzle'].flatMap((id) => HAT_GRAIN.map((f) => [id, f]))],
+  sparkshaker: ['shakerAir', 'shakerTail', 'shakerBeads'].map((f) => ['hats', f]),
+  sparkclap: ['crack', 'crackHz', 'crackDecay'].map((f) => ['clap', f]),
+};
+DRUM_GRAIN_ROWS.sparkdrums = Object.values(DRUM_GRAIN_ROWS).flat();
+Object.assign(GRAIN_ROWS, DRUM_GRAIN_ROWS);
 
 export function readBypass(search?: string | null): Bypass | null {
   // Through the link's table (`src/link.ts`): every one of these is a row of
@@ -241,13 +308,44 @@ export function readBypass(search?: string | null): Bypass | null {
   const off = (k: string) => q.has(k) && q.get(k) !== '1' && q.get(k) !== 'on';
   if (off('all')) Object.keys(BYPASS).forEach(take);
   else for (const k of Object.keys(BYPASS)) if (off(k)) take(k);
-  // The sub is a trim in dB rather than a switch, and it is applied to
-  // whatever level the preset ended up at, not to the base one.
+  // The sub is a level in dB under the theme's room rather than a switch, and
+  // it replaces the plan's own step (round LOUD-2, `subTrimDb` in
+  // lane-level.ts: -2, -5 or -6 by what competes with the sub), so `?sub=-6`
+  // plays every theme six under its room whatever the rule chose, and `?sub=0`
+  // plays the room's own level.
   const subDb = q.has('sub') ? Number(q.get('sub')) : NaN;
-  const trim = Number.isFinite(subDb) && subDb !== 0 ? subDb : 0;
-  if (trim) on.push(`sub ${trim > 0 ? '+' : ''}${trim} dB`);
+  const sub = Number.isFinite(subDb) && subDb >= -30 && subDb <= 12 ? subDb : null;
+  if (sub != null) on.push(`sub ${sub > 0 ? '+' : ''}${sub} dB`);
+  // Two numbers to listen between (round EQ-2), each a value and not a switch:
+  // the melodic duck's depth (the bass's is left where it is) and the strings'
+  // corner. Audio only, as every row here: the plan and its trim are the link's.
+  const duckDb = q.has('duckdb') ? Number(q.get('duckdb')) : NaN;
+  if (Number.isFinite(duckDb) && duckDb <= 0 && duckDb >= -30) {
+    params = mergeParams(params || {}, { sidechain: { depthDb: duckDb } });
+    on.push(`duck ${duckDb} dB`);
+  }
+  // ...and the struck voices' (round PIANO-2), its listening twin.
+  const struckDb = q.has('struckduckdb') ? Number(q.get('struckduckdb')) : NaN;
+  if (Number.isFinite(struckDb) && struckDb <= 0 && struckDb >= -30) {
+    params = mergeParams(params || {}, { sidechain: { struckDepthDb: struckDb } });
+    on.push(`struck duck ${struckDb} dB`);
+  }
+  const stringsHz = q.has('strings') ? Number(q.get('strings')) : NaN;
+  if (Number.isFinite(stringsHz) && stringsHz >= 400 && stringsHz <= 8000) {
+    params = mergeParams(params || {}, { strings: { cutoffHz: stringsHz } });
+    on.push(`strings ${stringsHz} Hz`);
+  }
+  // The roles (round DUB-1): a word and not a switch, since `roles=0` would
+  // read as the roles taken out, which is not what it plays.
+  const roles = q.get('roles') === 'classic' ? 'classic' as const : null;
+  if (roles) on.push('classic roles');
+  const strip: string[][] = [];
+  for (const [k, paths] of Object.entries(GRAIN_ROWS)) if (off(k)) { strip.push(...paths); on.push(k === 'spark' ? 'grain' : k === 'sparkdrums' ? 'drums grain' : k.replace('spark', 'grain ')); }
   if (!on.length) return null;
-  return { params, subDb: trim, label: on.join(', ') };
+  // The bass's drive is the line's own clip where a place's roles took the
+  // copy in parallel off (round DUB-2), so the switch takes that too.
+  const noGrit = on.includes('bassdrive');
+  return { params, ...(sub != null ? { subDb: sub } : {}), label: on.join(', '), ...(strip.length ? { strip } : {}), ...(roles ? { roles } : {}), ...(noGrit ? { noGrit: true as const } : {}) };
 }
 
 // Fold the bypass into one theme's audio-level overrides. The plan is not
@@ -255,10 +353,37 @@ export function readBypass(search?: string | null): Bypass | null {
 // leaves out.
 export function applyBypass<T extends Track>(track: T, bypass: Bypass | null): T {
   if (!bypass) return track;
+  // First, so every row after it takes the classic theme's stage out.
+  if (bypass.roles === 'classic' && track.sound?.roles) {
+    const back = classicRoles(track);
+    track.events = back.events;
+    track.paramOverrides = back.paramOverrides;
+    track.sound = back.sound;
+    if (back.trimDb != null) track.trimDb = back.trimDb;
+  }
+  // The turned line's clip (round DUB-2): the reese's `grit` switch at
+  // nought on every note of the line the roles swapped in. Under
+  // `roles=classic`, above, there is no turned line left to write it on.
+  const turned = track.sound?.roles?.swapped;
+  if (bypass.noGrit && turned) {
+    const lines = new Set(Object.keys(turned));
+    track.events = track.events.map((e) => e.layer === 'bass' && lines.has(e.voice) ? { ...e, p: { ...e.p, grit: 0 } } : e);
+  }
   if (bypass.params) track.paramOverrides = mergeParams(track.paramOverrides, bypass.params);
-  if (bypass.subDb) {
+  if (bypass.strip) {
+    const room = mergeParams(track.paramOverrides, {}) as PlainTable;
+    for (const path of bypass.strip) {
+      let at: PlainTable | undefined = room;
+      for (const k of path.slice(0, -1)) at = at && typeof at[k] === 'object' ? at[k] as PlainTable : undefined;
+      if (at) delete at[path[path.length - 1]];
+    }
+    track.paramOverrides = room as typeof track.paramOverrides;
+  }
+  if (bypass.subDb != null) {
+    // The room's own level is the planned one less the step the plan took.
     const level = mergeParams(clone(track.style.base), track.paramOverrides || {}).levels.sub;
-    track.paramOverrides = mergeParams(track.paramOverrides, { levels: { sub: level + bypass.subDb } });
+    const room = level - (track.sound?.subDb ?? 0);
+    track.paramOverrides = mergeParams(track.paramOverrides, { levels: { sub: room + bypass.subDb } });
   }
   return track;
 }
@@ -315,12 +440,20 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
   const style = opts.style;
   const o = setOptions(style, opts);
   const r = new Rng(`${masterSeed}::mix:${n}`);
-  const bars = o.themeBars
+  // **A length in minutes** (house-v2's `themeMinutes`, round L1): the seed's
+  // place on the same ladder, one draw off the same stream as the bars it
+  // replaces, so every later draw of `r` is where it was. Turned into bars
+  // below, once the tempo the theme plays at is known.
+  const byMinutes = !o.themeBars && !!o.themeMinutes;
+  const ladder = byMinutes ? fromPercentiles(r, o.themeBarPercentiles) : 0;
+  let bars = o.themeBars
     ? o.themeBars
-    : Math.max(
-        o.themeBarsMin,
-        Math.min(o.themeBarsMax, Math.round(fromPercentiles(r, o.themeBarPercentiles) / 16) * 16)
-      );
+    : byMinutes
+      ? 0
+      : Math.max(
+          o.themeBarsMin,
+          Math.min(o.themeBarsMax, Math.round(fromPercentiles(r, o.themeBarPercentiles) / 16) * 16)
+        );
 
   // One tempo for the whole set. Read the ranges off the *base* settings
   // rather than a room's, which a preset may have narrowed, so a theme's tempo
@@ -356,21 +489,43 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
   // is break a seam: the set plays on one grid (`makeSetClock`) and a theme's
   // BPM is the tempo it is heading for, not the rate it is played at while
   // another theme is still up.
+  //
+  // **And it stops** where a style says (`driftMost`, house-v2's; the deep
+  // review of 10-08, B15): the drift climbed for as long as the set ran and
+  // faster the slower the tempo — 27191's set went 49 to 54.6 BPM over twenty
+  // themes, eleven per cent. It climbs as before up to that share of the
+  // tempo the set drew and holds there; the themes before it are unmoved.
   const medianThemeMinutes = (n * 145 * 4 * 60) / (bpm * 60 * 4);
-  bpm = Math.round((bpm + medianThemeMinutes * (o.driftBpmPerMinute ?? 0.1)) * 10) / 10;
+  const drift = medianThemeMinutes * (o.driftBpmPerMinute ?? 0.1);
+  bpm = Math.round((bpm + (o.driftMost != null ? Math.min(drift, o.driftMost * bpm) : drift)) * 10) / 10;
   if (opts.tempo && opts.tempo > 0) bpm = opts.tempo;
 
-  // MEASURED: no harmonic mixing. The root moves anywhere; only the mode keeps
-  // its bias. Key compatibility is available as a flag and off by default.
-  const kr = new Rng(`${masterSeed}::mix:key:${n}`);
-  let root: number;
-  if (o.harmonicMixing && n > 0) {
-    const prev = planRoot(masterSeed, n - 1, o);
-    root = (prev + kr.weighted(o.keySteps)) % 12;
-  } else {
-    root = kr.int(0, 12);
+  // **The minutes become bars at the tempo played** (L1): the band is the
+  // derived state's (`minutesBand`, `src/length.ts`), the seed's place on the
+  // set table's ladder — its tenth percentile the band's shortest, its
+  // ninetieth its longest — says where in it, and `bars = minutes × bpm / 4` on
+  // the four-bar grid is what is heard. So the seed's own tempo inside the
+  // family's window changes the bars and not the minutes.
+  //
+  // S19's cut stays and keeps its job, which is *where* the bars come off: the
+  // arrangement is drawn at the heard length over `themeTrim` and cut back to
+  // it, the mains first, so the breakdowns, builds and drops keep the
+  // proportions Eugene approved. The cut's own bounds (`themeTrimBars`) are the
+  // band's business now and are not read on this path.
+  let fit: number | null = null;
+  if (byMinutes) {
+    const P = o.themeBarPercentiles;
+    const band = minutesBand(bias.derived);
+    const minutes = minutesAt(band, (ladder - P[0]) / (P[P.length - 1] - P[0]));
+    fit = barsFor(minutes, bpm);
+    bars = o.themeTrim ? Math.ceil(fit / o.themeTrim / 4) * 4 : fit;
   }
-  const scaleName = kr.chance(BASE.key.minorChance) ? 'minor' : 'dorian';
+
+  // MEASURED: no harmonic mixing. The root moves anywhere; only the mode keeps
+  // its bias. That is the record. house-v2 mixes in key since round MIX-X2
+  // (`harmonicMixing`, `planKey` below): the same two draws off the same
+  // stream, read as a step on the wheel and a mode.
+  const { root, scaleName } = planKey(masterSeed, n, o, BASE.key.minorChance);
 
   // `generate` composes the theme; the four fields below are the set's own and
   // are written here, in this order, which is why what leaves this function is
@@ -388,7 +543,9 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     // **The cut** (house-v2's `themeTrim`, S19): the theme is drawn at the
     // table's length and the arrangement is cut to this share of it, the mains
     // giving their bars first. A stated length (`themeBars`) is never cut.
-    fitBars: !o.themeBars && o.themeTrim
+    fitBars: byMinutes
+      ? fit
+      : !o.themeBars && o.themeTrim
       ? Math.max(o.themeTrimBars ? o.themeTrimBars[0] : 16, Math.min(o.themeTrimBars ? o.themeTrimBars[1] : bars, Math.round((bars * o.themeTrim) / 4) * 4))
       : null,
     spell: o.spell,
@@ -400,6 +557,12 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     accompaniment: opts.accompaniment,
     development: opts.development,
     motif: (opts.motif as any) ?? null,
+    // **The library's turn** (round GA1): one theme in three, by the set's own
+    // rule (`libraryTurn`), asked only by a style that draws from the library.
+    visit: switchOn(style, 'libraryDraw') && libraryTurn(masterSeed, n, o.spell ?? null),
+    library: opts.library ?? null,
+    // **How far that turn may reach** (round D1): the set's own, 0 at the style's.
+    reach: o.reach ?? null,
   };
   return { args, o, r, RANGE };
 }
@@ -440,13 +603,61 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
   // output gain, so the live decks, the offline mix and a single-track render
   // level the same way.
   track.trimDb = loudnessTrimDb(track, style);
+  // ...never over the place's ceiling, where the place states one (round DNB-3: the model does not see the place's lifts).
+  const most = track.sound?.trimMostDb;
+  if (most != null && track.trimDb > most) track.trimDb = most;
+  // **The trim under the classic roles** (round DUB-1): a theme whose place
+  // turned the roles round carries the trim it would have had without them,
+  // so `roles=classic` plays the theme as it was, level and all.
+  if (track.sound?.roles) track.sound.roles.trimDb = loudnessTrimDb(classicRoles(track), style);
   return track;
 }
 
-function planRoot(masterSeed: string | number, n: number, o: MixOptions): number {
+/**
+ * **The key of theme n**, without generating it. Two draws off the theme's own
+ * key stream, in the order they have always been taken: one for the root and
+ * one for the mode (minor at `minorChance`, dorian otherwise).
+ *
+ * The record reads the first as any root — MEASURED, the references do not
+ * mix in key: Camelot compatibility 20 % against 17 % by chance. **House-v2
+ * reads it as a step on the wheel** (round MIX-X2, `harmonicMixing`): the
+ * wheel is the root of the minor key that sounds a key's notes (`wheelRoot`:
+ * D dorian sits where A minor does), the step is drawn from `keySteps` —
+ * nought, a fifth either way, and now and then a whole tone — and the root
+ * is where that place lands in the mode drawn after it (`rootOnWheel`). So
+ * the mode draw is the draw it was, theme nought's key is the key it was, and
+ * every later theme is a neighbour of the one before it on the wheel as often
+ * as the table says. A bird move keeps the theme's own key (the stream is the
+ * theme's); this is what a *planned* seam hands between, and the harmonic
+ * cross (`seamCurves`) is what catches the rest.
+ */
+export function planKey(masterSeed: string | number, n: number, o: MixOptions, minorChance: number): { root: number; scaleName: string } {
+  // **The planner's boundary** (I01 of the review of 10-03): a theme is
+  // a count from nought. Anything else is refused here by name, where it was a
+  // stream named `mix:key:NaN` or a walk with no floor.
+  if (!Number.isSafeInteger(n) || n < 0) throw new RangeError(`theme index ${String(n)} is not a whole number from nought`);
+  // **A loop and not a recursion** (I01): theme n's key is theme n−1's moved by
+  // n's own two draws, so it is walked up from theme nought — each theme's own
+  // stream, its own two draws in their own order, exactly the keys the
+  // recursion gave — and theme 9999 is ten thousand steps and not ten thousand
+  // frames on the stack. Without harmonic mixing a theme's key is its own and
+  // nothing before it is read.
+  if (!o.harmonicMixing || n === 0) return ownKey(masterSeed, n, minorChance);
+  let key = ownKey(masterSeed, 0, minorChance);
+  for (let i = 1; i <= n; i++) {
+    const kr = new Rng(`${masterSeed}::mix:key:${i}`);
+    const step = kr.weighted(o.keySteps);
+    const scaleName = kr.chance(minorChance) ? 'minor' : 'dorian';
+    key = { root: rootOnWheel(wheelRoot(key.root, key.scaleName) + step, scaleName), scaleName };
+  }
+  return key;
+}
+
+/** A theme's key off its own stream alone: the record's, and theme nought's. */
+function ownKey(masterSeed: string | number, n: number, minorChance: number): { root: number; scaleName: string } {
   const kr = new Rng(`${masterSeed}::mix:key:${n}`);
-  if (!o.harmonicMixing || n === 0) return kr.int(0, 12);
-  return (planRoot(masterSeed, n - 1, o) + kr.weighted(o.keySteps)) % 12;
+  const root = kr.int(0, 12);
+  return { root, scaleName: kr.chance(minorChance) ? 'minor' : 'dorian' };
 }
 
 // --- the set, laid out ------------------------------------------------------
@@ -645,6 +856,12 @@ export interface SeamMoment {
    */
   fromKick?: boolean;
   toKick?: boolean;
+  /**
+   * the two themes' keys, for the harmonic cross (`set.harmonicCross`, round
+   * MIX-X2); absent, a seam under that rule treats them as unrelated
+   */
+  fromKey?: { root: number; scale: number[] };
+  toKey?: { root: number; scale: number[] };
 }
 
 function pointLine() {
@@ -765,6 +982,55 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
     .exp(0.0002, end)
     .lin(0, end + 0.02);
   line('from', 'fader.gain', fromFader.pts);
+
+  // **The harmonic cross is short, the rhythmic cross is long** (round MIX-X2;
+  // Eugene, 10-02: *"for a significant time — 4–6 s — users may experience
+  // overlaid voices from different keys"*). The fader above crosses every
+  // layer of the outgoing theme over the whole blend, and MEASURED on the
+  // worst seams that is the two themes' pads and keys sounding together for
+  // five to seven seconds of an eight-bar blend and for most of a long one.
+  // Where the two keys share fewer notes than `related` of seven (a fifth
+  // apart or the same root in the other mode share six; a semitone or a
+  // tritone apart share two), the harmonic sum of each deck — `harmonic.gain`,
+  // the engine's seam gain after the melodic bus — takes its own curve: the
+  // outgoing pads and keys fade over the `fadeBars` before the low end changes
+  // hands and are gone at the swap, and the arriving ones are held at nothing
+  // until the `crossBars` before it and are full on the swap's downbeat, so
+  // the two harmonies cross over that bar and never longer. The drums, the
+  // hats, the sends' rooms and the bass hole cross as they always have.
+  // Related keys keep the blend as it is: the pad over the new groove is the
+  // record's own mix. The rule is both engines' (`set.harmonicCross` in
+  // `deep-house.ts`): a seam is mixing, not the music.
+  //
+  // **And the outgoing harmony is filtered as it fades** (round MIX-X4, the
+  // filter MIX-X2 declined while the record was a byte). The engine's close
+  // after the seam gain — `harmonicLp.frequency`, built on the deck the first
+  // time this line names it — goes from open at the fade's start to `lpHz`
+  // exponentially, landing **where the cross begins** and held through it, so
+  // the pads have lost their top before the arriving chords come in: MEASURED
+  // (`tools/seam-overlap.ts`, the crossing seams of 19, 28, 26 and 27191) a
+  // close landing at the swap instead left the outgoing harmony at the cross
+  // bar's start 1 dB under the gain alone above a kilohertz, since by then it
+  // had only reached 1.6 kHz; landing at the cross bar it is 9 to 11 dB under
+  // above a kilohertz and 20 dB under above two, with the same nought seconds
+  // of two harmonies both above -20 or -30 dB. Where the fade is the cross bar
+  // alone it closes over that bar to the swap. A hand's seam (`handSeam`)
+  // crosses on its own bars and the close follows the same ones.
+  const cross = o.harmonicCross;
+  if (cross && (!m.fromKey || !m.toKey || keysShared(m.fromKey, m.toKey) < cross.related)) {
+    const fadeFrom = Math.max(at, swapAt - cross.fadeBars * barSeconds);
+    const crossFrom = Math.max(fadeFrom, swapAt - cross.crossBars * barSeconds);
+    const fromHarmonic = pointLine().set(1, at);
+    if (fadeFrom > at) fromHarmonic.set(1, fadeFrom);
+    if (crossFrom > fadeFrom) fromHarmonic.lin(0.3, crossFrom);
+    fromHarmonic.exp(0.0001, swapAt).lin(0, swapAt + 0.02);
+    line('from', 'harmonic.gain', fromHarmonic.pts);
+    const toHarmonic = pointLine().set(0.0001, at);
+    if (crossFrom > at) toHarmonic.set(0.0001, crossFrom);
+    toHarmonic.exp(1, swapAt);
+    line('to', 'harmonic.gain', toHarmonic.pts);
+    line('from', 'harmonicLp.frequency', pointLine().set(20000, fadeFrom).exp(cross.lpHz, crossFrom > fadeFrom ? crossFrom : swapAt).pts);
+  }
 
   return { at, end, swapAt, bars, lines, holes };
 }

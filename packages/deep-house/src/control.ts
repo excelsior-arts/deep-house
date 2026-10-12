@@ -6,13 +6,15 @@
 // ring) drive the same object, and a headless check can drive it with a fake
 // clock and never open an audio context at all.
 
-import { createMix, planTheme, mixPointSeconds, blendBarsFor, blendAsked, recipesFor, spellFor, strategyFor, DEFAULT_STRATEGY, HOUSE } from './mix.ts';
+import { createMix, startMark, primeStart, planTheme, mixPointSeconds, blendBarsFor, blendAsked, recipesFor, spellFor, strategyFor, DEFAULT_STRATEGY, HOUSE, applyBypass, readBypass } from './mix.ts';
 import { sameSpell, spellQuery, spellFromQuery } from './spell.ts';
-import { linkRead, linkHere, linkWrite, linkRaw, linkBare, linkOver, linkSameSound, pageDefault, linkWithTime, linkWithout } from './link.ts';
+import { linkRead, linkHere, linkWrite, linkRaw, linkBare, linkOver, linkSameSound, pageDefault, linkWithTime, linkWithout, linkTimeStart } from './link.ts';
 import type { LinkProblem, LinkState } from './link.ts';
 import { recipeById } from './recipes.ts';
+import { reachOf } from './library-draw.ts';
 import type { Spell } from './spell.ts';
 import type { Recipe } from './recipe.ts';
+import { definitionOf } from './generation.ts';
 import { accompanimentFor } from './recipe-request.ts';
 import { developmentFor } from './development.ts';
 import { prepareLimiter, limiterFailure } from '@deep-house/engine/master';
@@ -20,7 +22,7 @@ import { chordAtBar, noteName } from './theory.ts';
 import { REGISTRY, ARRANGEMENT_LAYERS, layersWhere } from '@deep-house/engine/voices';
 import type { MixOptions, SetTrack, Track } from './mix.ts';
 import type { Descriptor } from '@deep-house/engine/voices/descriptor';
-import type { MixState, TransportPoint } from '@deep-house/engine/session';
+import type { MixState, MixWait, TransportPoint } from '@deep-house/engine/session';
 import { createJournal } from './journal.ts';
 import type { JournalEntry, JournalPlace } from './journal.ts';
 import { note, report, addressFlood, aBug } from './ledger.ts';
@@ -405,6 +407,8 @@ export interface ControlState {
   transition: number;
   previewIndex: number | null;
   cut: Cut | null;
+  /** the gesture that asked for the hand-over in flight, kept from the press: a back that walks the journal is a cast to the transport, and a face still draws the chevron */
+  cutAsk: Cut['kind'] | null;
   resumeAfterCast: boolean;
   /**
    * The master seed of the set a cast is handing over into, while the
@@ -463,6 +467,15 @@ export interface Readout {
   presetName: string;
   minutes: number | null;
   playing: boolean;
+  /**
+   * **A hand has asked for the set and its record has not begun yet** (K42):
+   * from the press, through the build and the start's lead, to the instant the
+   * set's clock reaches the first moment of the record. The face draws the
+   * pause and holds the needle, and nothing else reads it: `playing` is still
+   * the transport's own word, true once the set is up, so the lock screen and
+   * every count go on saying what they always said.
+   */
+  starting: boolean;
   /** the tempo this theme was planned at, which is its target */
   bpm: number;
   /**
@@ -479,6 +492,10 @@ export interface Readout {
   bar: number;
   barLabel: string;
   section: string;
+  /** the section row's own name (round T2, `src/sections.ts`) where it is not the kind's word; '' where it is */
+  sectionName: string;
+  /** the sub-section the bar is in (round DNB-1): a switch-up's figure, a turnaround, a fill, a drop-out; '' outside one */
+  sub: string;
   sectionIndex: number;
   chord: string;
   chordNotes: string[];
@@ -533,11 +550,32 @@ export interface Readout {
     cutIn: number;
     /** the whole wait, press to swap, so a fill is two values and no sampling */
     cutSpan: number;
-    /** which gesture asked for it, so a face knows which node is waiting */
+    /** what the hand-over in flight carries — a step, a cast, a spell, an engine — as the transport says it */
     cutKind: Cut['kind'] | null;
+    /**
+     * **The gesture that asked for it** (10-05, Eugene on a back that walked the
+     * journal and filled the die: *"since the Prev button is clicked it must
+     * fill right to left"*): `back` or `skip` where a chevron was pressed, even
+     * where the walk is a cast to the transport; the face draws the pressed node.
+     */
+    cutAsked: Cut['kind'] | null;
+    /** and whether it lands on another seed: a step that walks the journal onto one fills the die beside the chevron */
+    cutCasts: boolean;
     cutting: boolean;
     /** seconds until the grid counts at the tempo the set is heading for, the glide included; nought when it does */
     settleIn: number;
+    /**
+     * **The hand-over in flight as one wait, on the set's own clock** (round
+     * MIX-X1): the transport's `MixWait` — asked when, the low end changing
+     * hands when, the tempo fully heard when, and a plan number that moves
+     * only on a genuine re-plan — beside the clock it is read against. A face
+     * draws a bird's wait as (now − its drop) over (heard − its drop), both
+     * on this clock, so the fill closes exactly as the value is heard and
+     * never from a value it sampled.
+     */
+    wait: MixWait | null;
+    /** the set's clock at this readout, which `wait`'s instants are on */
+    clock: number;
     next: NextInfo | null;
   };
   track: SetTrack;
@@ -577,8 +615,41 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     } catch (e) { /* a page with no history to write on */ report('address', 'the address could not be written', e, {}, addressFlood); }
     for (const p of link.problems) console.info(`deep-house: link — ${p.long}.`);
   }
-  let sourceMix: SourceMix | null = null;
+  /**
+   * **A listening link's desk** (round DNB-CLEAN): `solo=` and `mute=` on the
+   * address, a comma list of layers (`kick`, `clap`, `hats`, `bass`, `pad`,
+   * `keys`, …: every instrument whose events carry that layer) or of
+   * instruments by name, set the machine view's solo and mute as the page
+   * opens — so a link can say "the drums alone" or "everything but the bed".
+   * The private tier only, as `reach=` is; a release build reads neither.
+   */
+  let sourceMix: SourceMix | null = (() => {
+    if (typeof __PRIVATE_TOOLS__ === 'undefined' || !__PRIVATE_TOOLS__ || typeof location === 'undefined') return null;
+    const names = (raw: string | null): string[] => {
+      if (!raw) return [];
+      const out = new Set<string>();
+      for (const word of raw.split(',').map((w) => w.trim()).filter(Boolean)) {
+        const byLayer = REGISTRY.filter((d) => d.layer === word).map((d) => d.name);
+        for (const v of byLayer.length ? byLayer : REGISTRY.some((d) => d.name === word) ? [word] : []) out.add(v);
+      }
+      return [...out].sort();
+    };
+    const solo = names(linkRaw('solo', location.search)), mute = names(linkRaw('mute', location.search));
+    return solo.length || mute.length ? { mute, solo, dry: [] } : null;
+  })();
   const defaultSourceMix = cleanSourceMix();
+  /**
+   * **The private tier's reach** (round D1, `src/library-draw.ts`): how far a
+   * library turn's row may leak beyond its place, off `reach=` and the machine
+   * view's slider. A dev or preview build only — `__PRIVATE_TOOLS__` is false
+   * in a release, which then reads nothing and plays the style's own (`null`).
+   */
+  let reachAsked: number | null = (() => {
+    if (typeof __PRIVATE_TOOLS__ === 'undefined' || !__PRIVATE_TOOLS__ || typeof location === 'undefined') return null;
+    const raw = linkRaw('reach', location.search);
+    return raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw)) ? reachOf(Number(raw)) : null;
+  })();
+
   const state: ControlState = {
     seed: String(seed),      // the master seed: the whole set comes from it
     // Which composition strategy the set is played under. Read once, off the
@@ -594,6 +665,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     transition: 0,           // 0..1 through the seam into the next theme
     previewIndex: null,      // the theme being mixed in, when it is not n+1
     cut: null,               // a skip or back that the music has not reached yet
+    cutAsk: null,            // the gesture that asked for it, from the press
     resumeAfterCast: false,  // the set was playing when a new seed was cast
     castTo: null,            // the seed a hand-over in flight is casting into
     castToTheme: null,       // and which theme of it, for a walk back through the journal
@@ -640,6 +712,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // --- where we were ------------------------------------------------------
   let savedAt = 0;
   let scrubFrom = 0; // the position a drag along the band started from
+  let scrubTrack: SetTrack | null = null; // and the record's plan it was made on, while one plays
 
   // Where the set is, into this browser's store: a reload resumes at the
   // second, which the address does not carry.
@@ -771,26 +844,72 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
    * seed, the one that changes the theme, the one that changes the engine, and
    * the start of a set.
    */
-  function arrived(): void {
+  function arrived(at: { bar: number; clock: number | null } | null = null): void {
     const place = placeNow();
-    const t = state.track;
-    const did = journal.arrived(place, {
-      bar: t ? Math.floor(clamp(state.position, 0, Math.max(0, playable())) / t.barSeconds) + 1 : 1,
-      clock: state.ctx ? +state.ctx.currentTime.toFixed(3) : null,
-    });
+    const did = journal.arrived(place, at ?? whereNow());
     if (did === 'already') return;
-    // **The arriving theme's spell is written only when nothing newer is
-    // asked.** A spell asked while an earlier one's seam was in flight lands
-    // that one at once and hands over again into its own (`mix.setSpell`), and
-    // `setSpell` has already written it: writing the arriving theme's spell
-    // here put the link one spell behind the ring until the second landed too
-    // (the fault pass of 09-24). The link is what plays *and* what is asked, so
-    // while the set has been asked for another spell the address keeps it.
-    if (!state.mix || sameSpell(state.mix.spellAsked, place.spell)) writePlaceSpell(place);
-    writeLinkUrl();
+    addressOf(place);
     note('theme', did === 'walked' ? 'the journal walked onto a theme it had played' : 'a theme was written into the journal',
       { seed: place.seed, theme: place.theme + 1, engine: place.strategy,
         entry: journal.at + 1, of: journal.entries.length });
+  }
+
+  /** The bar of the theme the set is at, and the context's clock: where an entry began. */
+  function whereNow(): { bar: number; clock: number | null } {
+    const t = state.track;
+    return {
+      bar: t ? Math.floor(clamp(state.position, 0, Math.max(0, playable())) / t.barSeconds) + 1 : 1,
+      clock: state.ctx ? +state.ctx.currentTime.toFixed(3) : null,
+    };
+  }
+
+  /**
+   * **The address names the place the set is at.** The arriving theme's spell
+   * is written only when nothing newer is asked: a spell asked while an
+   * earlier one's seam was in flight lands that one at once and hands over
+   * again into its own (`mix.setSpell`), and `setSpell` has already written
+   * it: writing the arriving theme's spell here put the link one spell behind
+   * the ring until the second landed too (the fault pass of 09-24). The link
+   * is what plays *and* what is asked, so while the set has been asked for
+   * another spell the address keeps it.
+   */
+  function addressOf(place: JournalPlace): void {
+    if (!state.mix || sameSpell(state.mix.spellAsked, place.spell)) writePlaceSpell(place);
+    writeLinkUrl();
+  }
+
+  /**
+   * **A theme is written into the journal once it has sounded** (the deep
+   * review of 10-08: five quick nexts journalled three themes nobody heard,
+   * and a back then walked through them). A theme a hand-over brought has
+   * been up under the record for its blend and is written at the swap; one a
+   * quick press promoted before it began — a next pressed again inside the
+   * cut the last one asked — is written only once a beat of it has played,
+   * and a theme the set has left by then is never written. The address names
+   * it at once, because the address is where the set is.
+   */
+  let owed: { track: unknown; at: number; where: { bar: number; clock: number | null } } | null = null;
+  function arrivedPlaying(m: Mix, s: MixState): void {
+    const r = m.record;
+    const now = state.ctx ? state.ctx.currentTime : 0;
+    const heardFrom = r ? (r.laidFrom ?? now) + Math.max(0, s.beatSeconds || 0) : now;
+    if (!r || now >= heardFrom - 1e-6) { owed = null; arrived(); return; }
+    owed = { track: r.track, at: heardFrom, where: whereNow() };
+    addressOf(placeNow());
+  }
+  /** The theme owed to the journal: written once it has sounded a beat, forgotten once the set has left it. */
+  function settleOwed(m: Mix): void {
+    if (!owed) return;
+    if (!m.record || m.record.track !== owed.track) {
+      note('theme', 'a theme the set left before it sounded was not written into the journal', { theme: state.themeIndex + 1 });
+      owed = null;
+      return;
+    }
+    if (state.ctx && state.ctx.currentTime >= owed.at - 1e-6) {
+      const where = owed.where;
+      owed = null;
+      arrived(where);
+    }
   }
 
   /**
@@ -1037,9 +1156,17 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     o.development = developmentFor();
     if (state.lookahead) o.lookahead = state.lookahead;
     if (state.themeBars) o.themeBars = state.themeBars;
+    if (reachAsked !== null) o.reach = reachAsked;
     return o;
   }
 
+
+  // **The link's bypass, as the set reads it** (the deep review of 10-08): a
+  // `roles=`, `strings=` or `sub=` link plays its themes with the bypass folded
+  // in (`readBypass`, read once, as `createMix` reads it), so the plans the
+  // ring and the machine view read are folded the same way and name the voice
+  // that plays — they named the one the bypass took out.
+  const linkBypass = readBypass();
   // planTheme is pure and cheap, and it hands back the whole track — the
   // timeline, the events, the arrangement — which is what the lanes are made
   // of. The mix's own planTheme() only summarises, so this is the one to use.
@@ -1048,6 +1175,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     seed: string = state.seed,
     strategy: string = state.strategy,
     under?: Partial<Spell> | null,
+    // (round D1) the reach the plan is made at: the playing set's, or the one asked of what is coming
+    reach: number | null = reachNow(),
   ): SetTrack {
     // A set's plans are made under that set's own spell: under `?recipe=` the
     // spell is rolled off the master seed, so the set a cast is handing over
@@ -1069,7 +1198,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // the ring then printed 104.1 when it landed, while the music went to the
     // tempo it had been asked for — which is Eugene's "the ring pulse is not in
     // sync with the BPM", and it was the plan and not the clock.
-    const key = planKeyOf(i, seed, strategy, spell, recipe);
+    const key = planKeyOf(i, seed, strategy, spell, recipe, reach);
     const had = planCache.get(key);
     if (had) {
       // the most recently asked is the last to go
@@ -1078,7 +1207,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       return had;
     }
     plansMade += 1;
-    const t = planTheme(seed, i, { ...mixOpts(), masterSeed: seed, strategy, spell, recipe });
+    const opts: Partial<MixOptions> = { ...mixOpts(), masterSeed: seed, strategy, spell, recipe };
+    if (reach !== null) opts.reach = reach;
+    else delete opts.reach;
+    const t = applyBypass(planTheme(seed, i, opts), linkBypass);
     lanesOf(t);
     planCache.set(key, t);
     // **The least recently asked goes, one at a time** (R13): the cache used to
@@ -1088,8 +1220,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     return t;
   }
 
-  const planKeyOf = (i: number, seed: string, strategy: string, spell: Partial<Spell> | null, recipe: Recipe | null): string =>
-    `${strategy}|${seed}|${i}|${state.preset}|${state.themeBars || 0}|${spellQuery(spell) || 'house'}|${recipe?.id ?? ''}|${accompanimentFor()}|${developmentFor()}`;
+  // The row by its resolved definition (`definitionOf`: id, revision and
+  // content), as the mix names a place: a new revision or a desk edit of a row
+  // under the same id is another plan (the deep review of 10-08).
+  const planKeyOf = (i: number, seed: string, strategy: string, spell: Partial<Spell> | null, recipe: Recipe | null, reach: number | null): string =>
+    `${strategy}|${seed}|${i}|${state.preset}|${state.themeBars || 0}|${spellQuery(spell) || 'house'}|${definitionOf(recipe) ?? ''}|${accompanimentFor()}|${developmentFor()}|${reach ?? ''}`;
+  /** (round D1) the reach the playing theme was planned at: the set's own while there is one, else the one asked */
+  const reachNow = (): number | null => (state.mix ? state.mix.reach : reachAsked);
 
   /**
    * **The same request, answered only if it has been planned already**: a face
@@ -1100,7 +1237,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   function plannedAlready(i: number, seed: string, strategy: string, under: Partial<Spell> | null): SetTrack | null {
     const recipe = seed === state.seed
       ? state.mix?.recipe ?? castOf().track : recipesFor({ masterSeed: seed, strategy }).track;
-    return planCache.get(planKeyOf(i, seed, strategy, under, recipe)) ?? null;
+    return planCache.get(planKeyOf(i, seed, strategy, under, recipe, reachNow())) ?? null;
   }
 
   function replan(reason: string | null) {
@@ -1121,8 +1258,30 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     state.nextTrack = state.castTo
       ? planned(Math.max(0, state.castToTheme ?? 0), state.castTo, state.strategyTo ?? state.strategy)
       : planned(Math.max(0, ahead), state.seed, state.strategyTo ?? state.strategy,
-        state.mix ? state.mix.spellAsked : undefined);
+        state.mix ? state.mix.spellAsked : undefined, state.mix ? state.mix.reachAsked : reachAsked);
     if (reason) state.change = { n: state.change.n + 1, reason };
+    primeSoon();
+  }
+
+  /**
+   * **The theme a Play would open on, planned before the hand asks** (K42):
+   * in an idle slot whenever the set is stopped and what it would start on may
+   * have moved, so a Play finds its plan and its compile made
+   * (`primeStart`, `src/mix.ts`). Once however often it is asked; a plan made
+   * for a place the start no longer names is simply not taken.
+   */
+  let primeQueued = false;
+  function primeSoon(): void {
+    if (primeQueued || state.mix || state.starting) return;
+    primeQueued = true;
+    const run = () => {
+      primeQueued = false;
+      if (state.mix || state.starting) return;
+      primeStart(mixOpts(), state.themeIndex);
+    };
+    const ric = (globalThis as { requestIdleCallback?: (fn: () => void, o: { timeout: number }) => number }).requestIdleCallback;
+    if (typeof ric === 'function') ric(run, { timeout: 1000 });
+    else setTimeout(run, 0);
   }
 
   const playable = () => (state.track ? state.track.bars * state.track.barSeconds : 0);
@@ -1176,9 +1335,35 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // clock. mix.ts hands back the moment — swapAt, where the low end goes over
   // and the theme index turns with it — so a face can draw the wait as it runs
   // instead of guessing at its length.
+  //
+  // **Off the transport's own wait first** (round MIX-X1): the mix publishes
+  // the hand-over a hand asked for from the ask itself — the line it will
+  // take, before its landing is built — where `state.cut` is armed a turn
+  // later, when the answer comes back. A fill that reads the wait begins at
+  // the drop; one that read `state.cut` began up to a second after it.
+  const askedWait = (): (MixWait & { kind: Cut['kind'] }) | null => {
+    const w = state.mix && !state.fake ? state.mix.state.wait : null;
+    return w && w.kind !== 'seam' ? (w as MixWait & { kind: Cut['kind'] }) : null;
+  };
+  /**
+   * **The hand-over a node is counting down to, and only until its swap**
+   * (round MIX-X5, Eugene on a cast landed with Ember still settling: *"the
+   * die's node stayed filled for a while after the seed had turned"*). The
+   * transport's wait outlives the swap — it names the tempo's arrival too,
+   * which is Ember's own sector to draw — and the answer (`state.cut`) stands
+   * to the blend's end; a node's fill is the press to the swap and nothing
+   * after it, so past the swap there is no cut for a node to draw.
+   */
+  const nodeCut = (): { askedAt: number; swapAt: number; kind: Cut['kind'] } | null => {
+    const c = askedWait() ?? state.cut;
+    if (!c) return null;
+    const now = state.ctx ? state.ctx.currentTime : 0;
+    return c.swapAt > now ? c : null;
+  };
   function cutInSeconds(): number {
-    if (!state.cut || !state.ctx) return 0;
-    return Math.max(0, state.cut.swapAt - state.ctx.currentTime);
+    if (!state.ctx) return 0;
+    const c = nodeCut();
+    return c ? Math.max(0, c.swapAt - state.ctx.currentTime) : 0;
   }
 
   // And how long the whole wait is: the press to the swap, both ends read off
@@ -1186,8 +1371,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // one by the other and never samples a clock of its own, so a second press
   // restarts the drawing because it moves both numbers.
   function cutSpanSeconds(): number {
-    if (!state.cut) return 0;
-    return Math.max(0.001, state.cut.swapAt - state.cut.askedAt);
+    const c = nodeCut();
+    return c ? Math.max(0.001, c.swapAt - c.askedAt) : 0;
   }
 
   // How many bars until a tapped cut actually happens, so the ring can say so.
@@ -1296,14 +1481,16 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   }
 
   // One object with everything a face could want to draw.
-  function readout(): Readout | null {
+  function readout(at?: number): Readout | null {
     // The transport's own time, taken here rather than at the last animation
     // frame: everything downstream of a readout — the lock screen's position,
     // a rating's window, what a face draws — is then the set as it is.
     const live = syncFromMix();
     const t = state.track;
     if (!t) return null;
-    const pos = clamp(state.position, 0, playable());
+    // `at`: the set as it would read at a stated second, for a still picture
+    // (M21: the ring photographed at a bar's downbeat); the transport is not moved
+    const pos = clamp(at ?? state.position, 0, playable());
     // **The tempo the set is counting at**, beside the tempo this theme was
     // planned at. A set keeps one grid: through a seam both decks are on the
     // outgoing theme's, and when the outgoing deck is gone the grid glides to
@@ -1330,6 +1517,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       presetName: t.presetLabel,
       minutes: state.minutes,
       playing: state.playing,
+      starting: (state.starting && !state.playing) || !!(state.playing && live && live.leading),
       bpm: t.bpm,
       /** and the tempo the grid is actually counting at: the theme's own, until a seam moves it */
       gridBpm: +(60 / spb).toFixed(1),
@@ -1340,6 +1528,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       bar,
       barLabel: `${bar + 1}/${t.bars}`,
       section: row.section,
+      /** the section row's own name, where it is not the kind's word (round T2) */
+      sectionName: (row as { sectionName?: string }).sectionName ?? '',
+      /** the sub-section the bar is in, where it is in one (round DNB-1) */
+      sub: (row as { sub?: string }).sub ?? '',
       sectionIndex: row.sectionIndex,
       chord: row.chord,
       chordNotes: chordNotes(bar),
@@ -1375,11 +1567,18 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
         cutInBars: cutInBars(),
         cutIn: cutInSeconds(),
         cutSpan: cutSpanSeconds(),
-        cutKind: state.cut ? state.cut.kind : null,
-        cutting: !!state.cut,
+        // the transport's own wait names the hand-over in flight (a bird pulled
+        // into a cast's is still the cast's, round MIX-X5); the answer's kind
+        // stands in only before the transport has said
+        cutKind: nodeCut()?.kind ?? null,
+        cutAsked: nodeCut() ? state.cutAsk : null,
+        cutCasts: !!nodeCut() && !!state.castTo,
+        cutting: !!nodeCut(),
         // and how long until the grid counts at the tempo the set is heading
         // for: the seam and the glide after it (round K12c)
         settleIn: live && typeof live.settleIn === 'number' ? live.settleIn : 0,
+        wait: live ? live.wait ?? null : null,
+        clock: state.ctx ? state.ctx.currentTime : 0,
         next: nextInfo(),
       },
       track: t,
@@ -1408,19 +1607,19 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     if (!ms) return;
     // The chord is in the line, so the lock screen says what is sounding and
     // not only which theme it is. It changes at most once a bar — two and a bit
-    // seconds at this tempo — and the artwork is the same three URLs every
-    // time, so the system has nothing new to fetch when the line turns over.
-    const key = `${r.mix.themeNumber}|${r.chord}|${r.seed}`;
-    if (key !== mediaFor && window.MediaMetadata) {
+    // seconds at this tempo. A new metadata with its artwork is published once a
+    // theme (or when the cover is redrawn); a chord only retitles the one that is
+    // up, since iOS decodes the artwork again for every new metadata it is handed
+    // (the performance review of 10-06: up to 1200-pixel pictures every bar).
+    const key = `${r.mix.themeNumber}|${r.seed}`;
+    const title = r.chord ? `Theme ${roman(r.mix.themeNumber)} · ${r.chord}` : `Theme ${roman(r.mix.themeNumber)}`;
+    if ((key !== mediaFor || !ms.metadata) && window.MediaMetadata) {
       mediaFor = key;
       try {
-        ms.metadata = new window.MediaMetadata({
-          title: r.chord ? `Theme ${roman(r.mix.themeNumber)} · ${r.chord}` : `Theme ${roman(r.mix.themeNumber)}`,
-          artist: 'Deep House',
-          album: `seed ${r.seed}`,
-          artwork: cover ?? artwork(),
-        });
+        ms.metadata = new window.MediaMetadata({ title, artist: 'Deep House', album: `seed ${r.seed}`, artwork: cover ?? artwork() });
       } catch (e) { /* older shapes */ }
+    } else if (ms.metadata && ms.metadata.title !== title) {
+      try { ms.metadata.title = title; } catch (e) { /* older shapes */ }
     }
     const playback = r.playing ? 'playing' : 'paused';
     if (playback !== playbackSaid || ms.playbackState !== playback) { playbackSaid = playback; ms.playbackState = playback; }
@@ -1502,10 +1701,12 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // The plan the mix was playing, and the spell, at the last read.
   let playedTrack: SetTrack | null = null;
   let playedSpell: Partial<Spell> | null = null;
+  let playedReach = 0;
   function syncFromMix(): MixState | null {
     const m = state.mix;
     if (!m || state.fake) return null;
     const s = m.state;
+    settleOwed(m);
     // The deck that is playing knows which theme it is; mix.state.themeIndex
     // is already counting forward in the middle of a back().
     const idx = s.theme && s.theme.index != null ? s.theme.index : s.themeIndex;
@@ -1527,11 +1728,18 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // as it did when a pull brought the next theme.
     const spellMoved = !!m.record && m.record.track !== playedTrack && !seedMoved && !engineMoved && !themeMoved
       && playedTrack != null && m.record.track.index === playedTrack.index && !sameSpell(m.spell, playedSpell);
-    if (m.record) { playedTrack = m.record.track; playedSpell = m.spell; }
+    // **And a reach landing in place** (round D1): the same theme planned again
+    // at the asked reach. The readout re-reads it as a pull's landing does
+    // ('spell': the ring restates its values and draws nothing of its own for
+    // it), and it is not journalled: the reach is not a place a link names.
+    const reachMoved = !spellMoved && !!m.record && m.record.track !== playedTrack && !seedMoved && !engineMoved && !themeMoved
+      && playedTrack != null && m.record.track.index === playedTrack.index && m.reach !== playedReach;
+    if (m.record) { playedTrack = m.record.track; playedSpell = m.spell; playedReach = m.reach; }
     if (spellMoved) {
       replan('spell');
-      arrived();
+      arrivedPlaying(m, s);
     }
+    if (reachMoved) replan('spell');
     if (seedMoved || engineMoved || themeMoved) {
       if (seedMoved) {
         state.seed = s.masterSeed;
@@ -1550,7 +1758,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       state.themeIndex = Math.max(0, idx);
       state.previewIndex = null;
       replan(seedMoved ? 'seed' : engineMoved ? 'strategy' : 'theme');
-      arrived();
+      arrivedPlaying(m, s);
       // A set that has changed hands is a place worth writing down at once,
       // rather than at whatever the loop's next five-second mark happens to be.
       if (seedMoved || engineMoved) remember();
@@ -1565,7 +1773,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       replan(null);
     }
     // While a hand is on the band the position belongs to the hand.
-    if (!state.scrubbing) state.position = s.elapsed;
+    // and a start's lead is not a position: the needle holds at the second it
+    // was started from until the record reaches it (K42)
+    if (!state.scrubbing) state.position = s.leading && s.leadFrom != null ? s.leadFrom : s.elapsed;
     state.transition = s.transition;
     if (!s.running && state.playing) {
       state.playing = false;
@@ -1654,10 +1864,30 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     const m = state.mix;
     if (!m) return 0;
     state.mix = null;
+    // a theme owed to the journal goes with its set: a play writes the theme it starts on
+    owed = null;
     let quiet = 0;
     try { quiet = m.stop() || 0; } catch (e) { console.error(e); report('transport', 'a mix\'s stop threw', e); }
     if (why) console.warn(`deep-house: disposed a live mix (${why})`);
     return quiet;
+  }
+
+  // **A stopped set lets the device rest** (the engine review of 10-08, F6):
+  // on the direct path, once the fade is silent and no start has begun, and a
+  // second more for the torn-down decks' notes to end, the context is suspended — a running one goes on pulling the destination for
+  // nothing. `start()` resumes a context that is not running before it builds
+  // anything; a start that began while the suspension was on its way resumes
+  // it here. The element path keeps its context (the element is what a phone's
+  // lock screen holds), and the silent one is a test's.
+  const REST_AFTER_MS = 1000;
+  function rest() {
+    if (OUT !== 'direct') return;
+    // a second on, so the notes the teardown stopped have ended and let go of their decks first
+    setTimeout(() => {
+      const c = state.ctx;
+      if (!c || c.state !== 'running' || state.mix || state.starting) return;
+      c.suspend().then(() => { if (state.mix || state.starting) c.resume().catch(() => {}); }).catch(() => {});
+    }, REST_AFTER_MS);
   }
 
   function stop() {
@@ -1671,6 +1901,15 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // so a play starts from the plan the ring and the link promised and not
     // from the one they no longer describe.
     const landing = state.mix && !state.fake ? state.mix.pendingLanding : null;
+    // **And what it does not keep, it says** (the deep review of 10-08, F8): a
+    // hand-over a hand asked for — a next, a back, a cast, an engine switch —
+    // that has not changed hands is not rebuilt by a play, which resumes the
+    // theme the record was on at its second. Only a pull's landing is kept
+    // (above); the rest is dropped, and the ledger names it.
+    const asked = state.mix && !state.fake ? state.mix.state.wait : null;
+    if (asked && asked.kind !== 'seam' && !landing && state.ctx && asked.swapAt > state.ctx.currentTime)
+      note('transport', 'a pause dropped a hand-over a hand had asked for; play resumes the record where it was', {
+        kind: asked.kind, swapIn: +(asked.swapAt - state.ctx.currentTime).toFixed(2), theme: state.themeIndex + 1 });
     const quiet = disposeMix();
     if (landing) {
       state.themeIndex = landing.index;
@@ -1686,8 +1925,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // inside those 400 ms is a start still building its mix when the timer
     // fires, and pausing the element under it left the set silent with the
     // ring saying it played (R8).
-    if (quiet > 0) setTimeout(() => { if (!state.mix && !state.starting) keepAlive(false); }, quiet * 1000);
-    else keepAlive(false);
+    if (quiet > 0) setTimeout(() => { if (!state.mix && !state.starting) { keepAlive(false); rest(); } }, quiet * 1000);
+    else { keepAlive(false); rest(); }
     state.fake = false;
     cancelAnimationFrame(state.raf);
     state.raf = 0;
@@ -1709,6 +1948,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     state.userStarted = false;
     remember();
     emit();
+    primeSoon();
   }
 
   // The only door into sound. Everything that calls it is a hand: a tap on the
@@ -1724,12 +1964,32 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     const gen = generation;
     const stale = () => gen !== generation;
     state.starting = true;
+    startMark('start');
     let mine: Mix | null = null;
     try {
       const c = ctx();
       keepAlive(true); // before the first await: it has to happen inside the tap
-      if (c.state !== 'running') await c.resume();
-      if (stale()) return;
+      // **The device is woken first and waited for last** (K42). A fresh
+      // context's clock begins only when the output device has started —
+      // MEASURED in headless Chromium 80 ms to a whole second after the
+      // resume, which is the wait a first Play was heard to have — and the
+      // start used to sit through it before it built anything. The resume is
+      // asked here, inside the gesture, and everything that needs no running
+      // clock — the limiter's module, the master, the first theme's plan, its
+      // compile and its voices — is built while the device wakes. The anchor
+      // is still read only after the context runs and its output buffer has
+      // been said (`settleHead`), so where the record starts is unmoved.
+      const woken = (c.state !== 'running' ? c.resume() : Promise.resolve())
+        .then(() => { startMark('resumed'); return settleHead(c); })
+        .then(() => { startMark('head'); });
+      // handled where it is awaited, in the set's start; a start overtaken
+      // before it gets there must not leave the rejection unheard of
+      woken.catch(() => {});
+      // The face answers the hand now, and not when the music does (K42): the
+      // ring draws its key as the pause and holds the needle where it is, with
+      // the point on it breathing, until the set's clock is running. After the
+      // resume is asked, so drawing it costs the device nothing.
+      emit();
       // The ceiling's worklet, once per context, before any master is built.
       // A module that would not load where the browser has worklets is ours
       // or a deploy's, not the browser's: the set plays on, lower and unlimited
@@ -1737,15 +1997,15 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       if (!(await prepareLimiter(c)) && c.audioWorklet && limiterFailure(c)) {
         report('limiter', 'the limiter\'s module did not load; the master runs lower, unlimited', limiterFailure(c), {}, () => true);
       }
+      startMark('limiter');
       if (stale()) return;
       // And before anything is anchored: a context that has only just begun
       // running has not yet said how deep its output buffer is, and a start
       // that reads the head in that moment aims behind where the head will be
       // by the time the sound is real. Every way in comes through here — a
       // cold start, a resume from a persisted position, the restart after a
-      // cast — so the wait is here and nowhere else.
-      await settleHead(c);
-      if (stale()) return;
+      // cast — so the wait is here and nowhere else: it is `woken`, which the
+      // set's start waits for before it anchors anything.
       // Where the cursor was left: a seek made while stopped, or where a pause
       // happened. The set picks up there rather than at the theme's first bar.
       const from = clamp(state.position, 0, Math.max(0, playable() - 0.5));
@@ -1761,12 +2021,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // a dozen bars later — "the track cleared up to a simpler sound". The
       // mix works out from the position alone whether it falls inside a blend
       // and builds that blend again at the stage it had reached.
-      await mine.start(state.themeIndex, from);
+      await mine.start(state.themeIndex, from, woken);
       if (stale()) return;
       pending = null;
       state.mix = mine;
       mine = null;
       state.playing = true;
+      startMark('playing');
       // And the element is asked to play again now there is a mix in it: a
       // pause from anything that ran while this start was building is undone.
       keepAlive(true);
@@ -1810,6 +2071,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // A start overtaken by a newer one leaves the element to it: pausing it
       // here paused the element the newer start was about to play into (R8).
       if (!state.mix && !state.starting) keepAlive(false);
+      // and a start that ended without a set — it threw, or a stop overtook
+      // it — puts the face back: it was drawn as starting at the press
+      if (!state.playing && !state.starting) emit();
     }
   }
 
@@ -1831,6 +2095,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // overtaken (a second press, a stop) answers `null` and arms nothing.
   function armCut(p: Promise<TransportPoint | null>, kind: Cut['kind']): void {
     const mine = state.mix;
+    // the gesture, from the press: the transport's wait names what the
+    // hand-over carries (a journal walk is a cast to it), the face draws the node
+    state.cutAsk = kind;
     // **When the hand asked**, off the set's own clock and taken here rather
     // than when the answer comes back: the wait a face draws begins at the
     // press, and the transport spends a turn — sometimes a little more, for a
@@ -2030,7 +2297,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     get plansMade() { return plansMade; },
     start,
     stop,
-    toggle() { return state.mix ? stop() : start(); },
+    // A set still starting is one the face already draws as playing (K42), so
+    // a second press on the key that says pause is a pause, not a restart.
+    toggle() { return state.mix || state.starting ? stop() : start(); },
 
     // A seed asked for by name. Where its set begins is part of the ask and
     // defaults to the beginning of it — theme one, bar one — so a seed written
@@ -2144,6 +2413,33 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       emit();
     },
 
+    /**
+     * **The reach, moved by the private tier's slider** (round D1): the theme
+     * playing is planned again at it and handed over in place within a phrase
+     * (`mix.setReach`, a ledger line with the number), and the plans are named
+     * by it. `null` is the style's own.
+     * The shipped page never calls it.
+     */
+    setReach(r: number | null): void {
+      const next = r === null ? null : reachOf(r);
+      if (next === reachAsked) return;
+      reachAsked = next;
+      // Playing, the theme the music is on is planned again at it and handed
+      // over in place at the next phrase line (`mix.setReach`, a pull's shape).
+      // No cut is armed: the ring draws nothing for a reach — the DRAW block
+      // and the ledger are where it is seen. Stopped, the theme the page is on
+      // is planned again at it, restated as a pull is ('spell'), never flashed.
+      if (state.mix) {
+        void state.mix.setReach(next);
+        replan(null);
+      } else replan('spell');
+      emit();
+    },
+    /** the reach asked of the plan, or `null` for the style's own */
+    get reach(): number | null {
+      return reachAsked;
+    },
+
     // mix.ts takes its preset when the set is created, so changing it means a
     // new set from the same seed, resumed at the theme you were on.
     setPreset(p: string): void {
@@ -2171,7 +2467,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       const to = clamp(fraction, 0, 1) * playable();
       // Where the drag began, so a gesture that asks for nothing — a flick, a
       // cancellation — can put it back even with no set playing.
-      if (!commit && !state.scrubbing) scrubFrom = state.position;
+      if (!commit && !state.scrubbing) { scrubFrom = state.position; scrubTrack = state.mix?.record?.track ?? null; }
       state.position = to;
       // While a scrub is under way the position belongs to the hand; the
       // playhead must not write over it between two moves.
@@ -2197,7 +2493,28 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     endScrub({ commit = false, fraction = null }: { commit?: boolean; fraction?: number | null } = {}): number {
       const was = state.scrubbing;
       state.scrubbing = false;
+      const made = was ? scrubTrack : null;
+      scrubTrack = null;
       if (commit) {
+        // **A drag that spans a swap commits into the theme it was made in**
+        // (the deep review of 10-08, F9): the theme under the hand turned over
+        // while the finger was down, and the commit used to land at the
+        // fraction the hand held on the theme that left, in the theme that
+        // arrived. While the theme it was made on still plays out its tail the
+        // mix takes it back, at the second the hand chose on it; once it is
+        // gone the band is the arrived theme's, and so is the fraction.
+        const m = state.mix;
+        if (m && made && m.record && m.record.track !== made && m.playingOut && m.playingOut.track === made) {
+          const len = made.bars * made.barSeconds;
+          const f = fraction == null ? (len ? clamp(state.position / len, 0, 1) : 0) : clamp(fraction, 0, 1);
+          state.position = f * len;
+          note('transport', 'a drag made on the theme before the swap commits into it', { theme: (made.index ?? 0) + 1, at: +(f * len).toFixed(2) });
+          m.seek(f * len, made);
+          state.cut = null;
+          remember();
+          emit();
+          return state.position;
+        }
         const f = fraction == null ? (playable() ? state.position / playable() : 0) : fraction;
         return control.seekTo(f, true);
       }
@@ -2404,19 +2721,16 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     const bar = Math.min(startBar, state.track.bars - 1);
     if (Math.floor(state.position / state.track.barSeconds) !== bar) state.position = bar * state.track.barSeconds;
   }
-  // **The time link's second** (round K32): the theme starts at the bar line at
-  // or before it — the place the bar path above starts from — and a time past
-  // where the theme plays to starts at its last phrase line (four bars) inside
-  // it. Read once: the address drops `t` at once, so a reload plays from the
-  // top, and the ledger says where the set was started.
+  // **The time link's second** (round K32; the deep review of 10-08): the theme
+  // starts on the second it names, so a copy writes the same `t` back, and a
+  // time past where the theme plays to starts at its last phrase line (four
+  // bars) inside it (`linkTimeStart`). Read once: the address drops `t` at
+  // once, so a reload plays from the top, and the ledger says where the set
+  // was started.
   const startT = urlTime();
   if (startT !== null && state.track) {
-    const bs = state.track.barSeconds;
-    const lastBar = Math.max(0, Math.floor(playable() / bs) - 1);
-    const lastLine = Math.floor(lastBar / 4) * 4;
-    const bar = Math.min(Math.floor(startT / bs), lastLine);
-    state.position = bar * bs;
-    note('transport', `started at ${formatTime(state.position)}`, { asked: formatTime(startT), bar: bar + 1 });
+    state.position = linkTimeStart(startT, state.track.barSeconds, playable());
+    note('transport', `started at ${formatTime(state.position)}`, { asked: formatTime(startT), bar: Math.floor(state.position / state.track.barSeconds) + 1 });
     try {
       const search = linkWithout(location.search, 't');
       history.replaceState(history.state, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`);

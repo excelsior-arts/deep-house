@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "roomTapeDotted",
+  "revision": 1,
+  "name": "Room and a tape dotted eighth",
+  "says": "A short room, and a tape echo on the dotted eighth whose repeats are band-limited to 380 Hz-2.2 kHz, wander a little and fall into the room.",
+  "dry": 1,
+  "trimDb": 0,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "echo",
+      "level": 0.24,
+      "effect": "tapeDelay",
+      "params": {
+        "timeBeats": 0.75,
+        "feedback": 0.3,
+        "lowpassHz": 2200,
+        "highpassHz": 380,
+        "wow": 0.35,
+        "pingPong": 0,
+        "mix": 1
+      },
+      "into": {
+        "room": 0.35
+      }
+    },
+    {
+      "id": "room",
+      "level": 0.28,
+      "effect": "reverb",
+      "params": {
+        "mode": 0,
+        "decaySeconds": 1.3,
+        "predelayMs": 10,
+        "lowCutHz": 260,
+        "dampHz": 4800,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet."
+  }
+}

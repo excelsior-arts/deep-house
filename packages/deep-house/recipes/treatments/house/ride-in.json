@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/ride-in",
+  "revision": 1,
+  "name": "ride-in",
+  "scope": "treatment",
+  "applies": "drop-out",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "glue": {
+      "slot": "sweep",
+      "bars": 1,
+      "level": 0.4
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "drop-out",
+    "where": "the bar before a sixteen-bar line inside a main, and the bar into a drop or a breakdown",
+    "reading": "a crash on the one or a riser into it on 2.2 bars in 16 of the reference mains (crash 1.13, riser 1.09), though the house's own clean renders read a riser on 1.7-2.1, so only the lines the cuts mark by ear are taken: the sixteen-bar line",
+    "idiom": "the theme's own sweep through the bar before the line, as the lead-ins lay one before a section: a line inside the main announced",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02: a row of the house's mains, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

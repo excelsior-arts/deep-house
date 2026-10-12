@@ -206,7 +206,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -230,10 +230,6 @@
     "bpm": [
       138,
       142
-    ],
-    "nearest": [
-      125,
-      130
     ]
   },
   "sections": [
@@ -243,6 +239,12 @@
   "provenance": {
     "pattern": "deep dubstep (the early south London sound): half-time snare on three, a kick that skips around it, shuffled sixteenth hats with heavy swing, and a sub that holds low and long",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: the snare on three, the kick on one and skipping to the a of two in the second bar; closed sixteenths swung hard and a quieter shaker under them, the shuffle this sound is known for. The sub holds two long notes a phrase. At 130 under the Dub key."
+    "note": "Two bars: the snare on three, the kick on one and skipping to the a of two in the second bar; closed sixteenths swung hard and a quieter shaker under them, the shuffle this sound is known for. The sub holds two long notes a phrase. At 130 under the Dub key.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.6,
+      "syncopationZ": 0.1,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

@@ -275,7 +275,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -307,6 +307,12 @@
   "provenance": {
     "pattern": "big beat's arrangement move, as a drum part: four bars of the break, two bars where the drums drop out, and two bars of a snare roll doubling back in to the drop",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Eight bars on the theme clock: the break over a four for four bars, nothing but the composer's own parts for two, then the kick on the beats under a snare roll in eighths and then sixteenths, rising, back into bar one. It is a section move written as a cell: a track pin plays it in every drummed section, so the drop-out lands where the eight-bar clock puts it and not where the arrangement's drop is — the gap is section-scoped cells."
+    "note": "Eight bars on the theme clock: the break over a four for four bars, nothing but the composer's own parts for two, then the kick on the beats under a snare roll in eighths and then sixteenths, rising, back into bar one. It is a section move written as a cell: a track pin plays it in every drummed section, so the drop-out lands where the eight-bar clock puts it and not where the arrangement's drop is — the gap is section-scoped cells.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": -1.7,
+      "syncopationZ": -2.6,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

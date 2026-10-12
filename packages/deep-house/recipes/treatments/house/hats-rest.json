@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "mains/hats-rest",
+  "revision": 1,
+  "name": "hats rest",
+  "scope": "treatment",
+  "applies": "drop-out",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {
+    "ember": [
+      0.2,
+      0.9
+    ]
+  },
+  "tempo": {
+    "bpm": [
+      88,
+      134
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "offbeat": {
+        "clear": 0
+      },
+      "sixteenth": {
+        "clear": 0
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 1, a DJ set that opens on deep house (mining id 1): cuts 1:100+585, 1:685+360, 1:1045+540 (104.7-109.1 BPM) and 1:2080+765 (119.9 BPM)",
+    "kind": "drop-out",
+    "where": "the bar before a sixteen-bar line inside a main, and the bar into a drop or a breakdown",
+    "reading": "the hats thinned or the top down on 2.2 bars in 16 of the reference mains (1.25 + 0.99); on the bar before a sixteen-bar line as often as on any other (0.0-0.25 against 0.07-0.18 over the four cuts), so the line is the house's idiom and the draw's, not the reading's",
+    "idiom": "the hats out for the bar before the line, the kick and the bass on: the hats' return marks the line",
+    "knowledge": "mined and the house's own idiom: the mains of four cuts read bar by bar (packages/mining/tools/readings.py with its bandThings, the mains pass's readings in the catalog); nothing sampled, no audio copied",
+    "moved": "round M1, the mains pass, 10-02 (his word on seed 1's hats, \"straight like a train\"): a row of the hats inside a house main, drawn by its weight among the rows of its kind where the theme is in its box"
+  }
+}

@@ -139,7 +139,7 @@ import type { Settings } from '@deep-house/engine/settings';
 // machine that plays them, and only the rules that decide their numbers are
 // here. The sidechain's shape is a function of the room and of the beat a graph
 // is running on, both of which are the engine's, so `duckShape` went with it.
-import { duckShape, duckAt } from '@deep-house/engine/program';
+import { duckShape, duckAt, duckFor } from '@deep-house/engine/program';
 import { settingsOf } from '@deep-house/engine/settings';
 import { laneLevelDb } from './lane-level.ts';
 import type {
@@ -170,7 +170,8 @@ export interface PlanEvent {
   treatment?: 'none';
   /** Explicit articulation separates a struck decay from a held drone. */
   articulation?: 'struck';
-  role?: 'texture';
+  /** a background texture, or the sparse keys (liquid-space round 1): parts with their own level and return, which the stage leaves as written */
+  role?: 'texture' | 'sparse-keys';
   t: number;
   voice: string;
   layer: string;
@@ -210,6 +211,28 @@ export interface PlanAutomation {
   push?: CurvePoint[];
   /** the melodic bus's section sweeps, by stage (house-v2's `busSweeps`, `src/sweep.ts`) */
   sweep?: { hp: { cutoff: CurvePoint[]; wet: CurvePoint[] } | null; lp: { cutoff: CurvePoint[]; wet: CurvePoint[] } | null };
+  /** the presence bell's gain on the harmonic bus, in dB, by the bed section by section (round EQ-5) */
+  bell?: CurvePoint[];
+  /** the floors keyed to the bed (round EQ-6): from each step's `t`, how far under the room's level each role named plays, in dB */
+  floors?: FloorStep[];
+  /** the part's own space's dry and each send's level, by section (liquid-space round 1: the sparse keys low and wet under a full section) */
+  partSpace?: { dry: CurvePoint[]; sends: Record<string, CurvePoint[]> };
+}
+
+/** One step of the keyed floors (round EQ-6), read by the level key a voice plays at. */
+export interface FloorStep {
+  t: number;
+  keys?: number;
+  pad?: number;
+  piano?: number;
+}
+
+/** How far under the room's level a note of this level key struck at `t` plays (round EQ-6): the last step at or before it, nought where none names the key. */
+export function floorUnderDb(floors: readonly FloorStep[] | undefined, t: number, levelKey: string | null | undefined): number {
+  if (!floors || !levelKey) return 0;
+  let at: FloorStep | null = null;
+  for (const st of floors) { if (st.t <= t) at = st; else break; }
+  return at && levelKey !== 't' ? (at as unknown as Record<string, number | undefined>)[levelKey] ?? 0 : 0;
 }
 
 /**
@@ -606,6 +629,23 @@ export interface Treat {
   fx: { id: string; params: Record<string, number> } | null;
 }
 
+/**
+ * **An effect instance's knobs, as the rota rolled them for a segment**: the
+ * wet scaled by the segment's amount, and the four rolls written onto the
+ * knobs they name (`ROTA_KNOBS`, the phase converted to a ratio of a cycle).
+ * The rest of the effect's knobs stand at its own defaults. `null` for a
+ * gesture of the stage's own. What the machine view's insert panel reads too
+ * (PLAN-DESK D2), so the numbers it shows are the numbers the note is built
+ * with and not a second reading of them.
+ */
+export function fxOfSegment(seg: TreatmentSegment): { id: string; params: Record<string, number> } | null {
+  if (!seg.kind || !seg.kind.startsWith('fx:')) return null;
+  const params: Record<string, number> = { mix: seg.mix * seg.amount };
+  const rolls = Object.entries(ROTA_KNOBS) as Array<[keyof typeof ROTA_KNOBS, string]>;
+  for (const [roll, knob] of rolls) params[knob] = seg[roll] * (ROTA_SCALE[roll] ?? 1);
+  return { id: seg.kind.slice(3), params };
+}
+
 // What a treatment is doing at a (possibly fractional) bar. Everything is a
 // multiplier on what the voice would otherwise have done, so an absent
 // treatment is a table of ones.
@@ -621,12 +661,7 @@ function treatAt(seg: TreatmentSegment | null, bar: number, G: StageBlock, phras
   // how far a move goes, and on an instance it is what the **wet** is scaled
   // by, so a treatment at three quarters is three quarters of an effect and not
   // three quarters of an effect somewhere else.
-  if (seg.kind.startsWith('fx:')) {
-    const params: Record<string, number> = { mix: seg.mix * seg.amount };
-    const rolls = Object.entries(ROTA_KNOBS) as Array<[keyof typeof ROTA_KNOBS, string]>;
-    for (const [roll, knob] of rolls) params[knob] = seg[roll] * (ROTA_SCALE[roll] ?? 1);
-    return { ...flat, fx: { id: seg.kind.slice(3), params } };
-  }
+  if (seg.kind.startsWith('fx:')) return { ...flat, fx: fxOfSegment(seg) };
   switch (seg.kind) {
     case 'hpRise':
       // The classic: the bottom leaves the loop over its segment and comes back
@@ -736,7 +771,7 @@ export interface StageRow {
 export function stage(track: PlannedTheme, style: Style = track.style): StageRow[] {
   // Background punctuation has its own level and return. Sharing an instrument
   // with a foreground figure must not change that figure's stage assignment.
-  if (track.events.some(e => e.role === 'texture')) return stage({ ...track, events: track.events.filter(e => e.role !== 'texture') }, style);
+  if (track.events.some(e => e.role === 'texture' || e.role === 'sparse-keys')) return stage({ ...track, events: track.events.filter(e => e.role !== 'texture' && e.role !== 'sparse-keys') }, style);
   const G: StageBlock = style.stage;
   const phraseAt = phrasesOf(track, style);
   const bars = track.bars;
@@ -1013,7 +1048,7 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
   const out: NoteParams[] = [];
   for (const ev of track.events) {
     const base = ev.p || {};
-    if (ev.role === 'texture') { out.push(base); continue; }
+    if (ev.role === 'texture' || ev.role === 'sparse-keys') { out.push(base); continue; }
     const bar = ev.bar;
     if (bar == null || bar < 0 || bar >= rows.length) { out.push(base); continue; }
     const row = rows[bar];
@@ -1204,10 +1239,40 @@ export function seamPlan(
     : closingLine(track, floorLine, latest, q);
   bar = Math.min(bar, Math.max(floorLine, latest));
   const after = Math.ceil(Math.max(0, notBefore / bs, protectedBar) / q) * q;
-  if (after > bar) bar = Math.min(after, ends);
+  // **A position past the line the arrangement chose** — a seek, a theme
+  // entered in place by a bird move — hands over on the first line after it
+  // that still leaves the blend its room, and on a finer line when the coarse
+  // grid has none left (round MIX-X1). It used to take the next coarse line
+  // whatever was left behind it, capped at the line the theme *ends* on: a
+  // scrub to the last bars of a 116-bar theme on a sixteen-bar grid put the
+  // seam at bar 128, and the record ran out at 116 — MEASURED 29 s of true
+  // silence before the next theme faded in from nothing.
+  if (after > bar) bar = lineWithRoom(Math.max(0, notBefore / bs, protectedBar), [q, PHRASE_BARS, 1], track.bars);
   if (keepsOutOfTheRise(track, style)) bar = outOfTheRise(track, bar, Math.max(floorBar, notBefore / bs, protectedBar), q);
   const bars = Math.max(2, Math.min(asked, track.bars - bar - 2));
   return { at: bar * bs, bar, bars, boundary: q };
+}
+
+/**
+ * **The first line at or after a bar that leaves the record something to hand
+ * over on.** A hand-over needs the theme handing over still to be sounding
+ * under the arriving one's first bar, and a blend needs its two-bar floor and
+ * a downbeat after the swap — so a line is taken only where at least `ROOM`
+ * bars of the theme follow it, on the coarsest grid that has one and on a
+ * finer grid when it has not. When no line on any grid leaves that room the
+ * record is inside its last bars, and the hand-over begins on the next bar
+ * line wherever that is: the blend is what gives way, never the sound.
+ *
+ * Pure, and the one rule `seamPlan` and `seamFromHere` share for a position
+ * near a theme's end; `tools/check.ts` sweeps both.
+ */
+export const ROOM_BARS = 3;
+export function lineWithRoom(fromBar: number, grids: number[], bars: number): number {
+  for (const g of grids) {
+    const line = Math.ceil(fromBar / g - 1e-9) * g;
+    if (bars - line >= ROOM_BARS) return line;
+  }
+  return Math.ceil(fromBar - 1e-9);
 }
 
 /**
@@ -1385,6 +1450,51 @@ export function seamTempo(fromBpm: number, toBpm: number, o: { tempoGlideBars?: 
 }
 
 /**
+ * **A far ride laid in the room the record has left** (round MIX-X3; Eugene,
+ * 10-02, Ember all the way down at 5:10 of a 5:50 theme: *"the previous track
+ * ended and a new one started — seems like no mixing happened"*). The rule
+ * above rides the record to the arriving tempo over `ride` bars of the record
+ * before the blend; a hand that asks for a far jump in the record's last bars
+ * has not that many left. The ride is cut to what the room past the line
+ * holds, less the `ROOM_BARS` the hand-over itself needs (the blend's floor and
+ * a downbeat after the swap, `lineWithRoom`). **The far rule's promise holds
+ * first** (Eugene, 10-02, on this round's question): where at least
+ * `RIDE_BARS_LEAST` bars of ride fit, the whole jump is ridden in the bars
+ * there are — steeper than eight bars an octave, landed by the swap, nothing
+ * to glide — so the arriving theme is never off its own tempo. Only where
+ * fewer than that fit does the ride keep its slope and reach part of the way,
+ * in the ratio's own terms: `ridden` is the tempo the ride reaches over the
+ * one it left, and what it did not cover is glided **after** the blend on
+ * the arriving theme's grid, a bar a percent (`glideBarsFor`), as a near
+ * move is. A ride that would be under a bar is not laid at all: the blend
+ * begins on the pinned grid and the whole jump is the glide after it — a
+ * record already in its last bars hands over at once. The wait says which
+ * (`MixState.wait`), and the music never stops.
+ *
+ * Pure: a rule and a room in bars, three numbers out; swept in
+ * `tools/check-transport.ts`.
+ *
+ * @param rule the seam's tempo rule at the line
+ * @param room bars of the record from the line to its end
+ */
+export interface RideInRoom {
+  /** bars of the record the grid is ridden over before the blend; nought when none fit */
+  ride: number;
+  /** the tempo the ride reaches over the tempo at the line: the rule's ratio when the whole ride fits */
+  ridden: number;
+  /** bars of the arriving theme the grid glides over after the blend, for what the ride left */
+  glide: number;
+}
+export function rideInRoom(rule: SeamTempo, room: number, o: { tempoGlideBars?: number } = {}): RideInRoom {
+  if (!(rule.ride > 0)) return { ride: 0, ridden: 1, glide: rule.glide };
+  const ride = Math.max(0, Math.min(rule.ride, Math.floor(room - ROOM_BARS + 1e-9)));
+  if (ride < 1) return { ride: 0, ridden: 1, glide: glideBarsFor(rule.ratio, o) };
+  if (ride >= rule.ride || ride >= RIDE_BARS_LEAST) return { ride, ridden: rule.ratio, glide: 0 };
+  const ridden = Math.pow(rule.ratio, ride / rule.ride);
+  return { ride, ridden, glide: glideBarsFor(rule.ratio / ridden, o) };
+}
+
+/**
  * **Whether a theme plays a kick at all** — a drummed theme against a drone —
  * read off its program: an event in the seam's `swapGroup` is one a seam may
  * hole. `seamCurves` holes the arriving theme's kick until the swap and the
@@ -1409,16 +1519,25 @@ export function playsKick(program: { events: ArrayLike<{ gap?: string | null }> 
  * the record is, so the section a listener is in goes on with the bird's
  * change and the intro never comes back.
  *
- * MEASURED, seeds 1–25 × themes 0–1 × every bird at 0.05 and 0.95 under
- * house-v2 (800 plans): a spell never changes a theme's length, and changes its
- * sections in 6 — each a drummed theme against a drone across Ember, where the
- * phrase grid moves a breakdown by four or eight bars and the short theme's
- * outro comes or goes (R16, R38). So where the two plans have the same
- * sections the bar is the bar, and where they do not it is the same section,
- * counted by its place in the form, at the same bar into it — clamped into
- * that section, and failing a section of that number the last one — which
- * keeps the form going and never lands in an intro that is not the one
- * playing. Theme seconds in, theme seconds out: a bar of each plan's own.
+ * Where the two plans have the same sections the bar is the bar. Where they do
+ * not — a spell can change a theme's length through the tempo and its form
+ * with it: Ember from the house to 0.9 plans seed 1's first theme as 200 bars
+ * where the house has 152, with a build the house's form has not got before
+ * its first drop, and Loom from 0.81 to 0.3 plans 27191's as 44 bars where
+ * it had 88 — the place is **the same section and the bar within it**
+ * (Eugene, 09-29: *"a move into a place with a different form keeps the
+ * scroll: same section and bar within it"*), which round K41 made the section
+ * of the same kind: the record's section is the n-th of its kind in its form
+ * (the second main) and the place is the n-th of that kind in the arriving
+ * form — the last of them where the arriving form has fewer — at the same
+ * bar into it where it has that bar, and at the same bar from its end where
+ * it is shorter, so both decks reach the next line together. Counted by its
+ * number in the form instead, MEASURED (K41), it put the record's second main
+ * into the arriving form's first drop. Where the arriving form has no section
+ * of that kind at all the place is the nearest line of the arriving form to
+ * where the needle stands — the section start nearest the same fraction of
+ * the theme, never the intro's. Theme seconds in, theme seconds out: a bar of
+ * each plan's own.
  */
 export function sameFormTime(from: PlannedTheme, to: PlannedTheme, fromTime: number): number {
   const bar = Math.max(0, fromTime / from.barSeconds);
@@ -1427,11 +1546,22 @@ export function sameFormTime(from: PlannedTheme, to: PlannedTheme, fromTime: num
   const same = a.length === b.length && a.every((s, i) => s.kind === b[i].kind && s.startBar === b[i].startBar && s.bars === b[i].bars);
   let out = bar;
   if (!same && a.length && b.length) {
-    let k = a.length - 1;
+    let k = 0;
     for (let i = 0; i < a.length; i++) if (bar >= a[i].startBar) k = i;
-    const into = bar - a[k].startBar;
-    const t = b[Math.min(k, b.length - 1)];
-    out = t.startBar + Math.min(into, Math.max(0, t.bars - 1e-6));
+    const s = a[k];
+    const into = bar - s.startBar;
+    const nth = a.slice(0, k).filter((x) => x.kind === s.kind).length;
+    const ofKind = b.filter((x) => x.kind === s.kind);
+    if (ofKind.length) {
+      const t = ofKind[Math.min(nth, ofKind.length - 1)];
+      const at = into < t.bars ? into : t.bars - (s.bars - into);
+      out = t.startBar + Math.min(Math.max(0, at), Math.max(0, t.bars - 1e-6));
+    } else {
+      const want = from.bars > 0 ? (bar / from.bars) * to.bars : 0;
+      const lines = b.filter((x) => x.kind !== 'intro');
+      const near = (lines.length ? lines : b).reduce((best, x) => (Math.abs(x.startBar - want) < Math.abs(best.startBar - want) ? x : best));
+      out = near.startBar;
+    }
   }
   return Math.min(out, Math.max(0, to.bars - 1e-6)) * to.barSeconds;
 }
@@ -1494,7 +1624,12 @@ export function seamFromHere(
 ): SeamPlan {
   const bs = track.barSeconds;
   const q = Math.max(1, Math.round(unit));
-  const bar = Math.ceil(Math.max(0, from) / bs / q - 1e-9) * q;
+  // The first line at or after `from` — on a finer grid where the asked one
+  // has no line left that leaves the record a bar to hand over on
+  // (`lineWithRoom`): a phrase line that fell on the theme's last bar began
+  // the blend where the record had run out, and the arriving theme faded in
+  // from nothing over an empty bar (round MIX-X1).
+  const bar = lineWithRoom(Math.max(0, from) / bs, q > PHRASE_BARS ? [q, PHRASE_BARS, 1] : q > 1 ? [q, 1] : [1], track.bars);
   // The blend both themes can afford, and then what the outgoing one has left
   // behind the line: a bar of it is kept so the swap has a downbeat to land on.
   const asked = Math.min(most, blendBarsFor(into, blendBarsFor(track, blendAsked(track))));
@@ -1502,6 +1637,42 @@ export function seamFromHere(
   return { at: bar * bs, bar, bars, boundary: q };
 }
 
+
+/**
+ * **The hand's hand-over, in bars of the grid it is played on** (round MIX-X3;
+ * `set.handSeam`). A seam a hand asked for used to take the planned seam's
+ * numbers in bars of the outgoing theme — the swap eight bars in, the harmony
+ * fading over the four before it — which at 49 BPM is 39 s to the swap after
+ * the drop and a 20 s fade; the hand's budget is seconds, converted here at
+ * the tempo the blend is played at (the grid as it will stand at the blend:
+ * ridden onto the arriving tempo for a far jump, the outgoing one otherwise)
+ * and rounded to the bar. The floors stay in bars: a swap and a cross are at
+ * least a bar, a blend at least two; the blend is one swap past the swap, as
+ * the hand's blend always was (`swapAfterBars` twice). A style with no budget
+ * hands over on the planned seam's numbers. Pure; `tools/check.ts` reads it.
+ *
+ * @param barSeconds a bar of the grid the blend is played on, in seconds
+ */
+export interface HandSeam { swapSeconds: number; fadeSeconds: number; crossSeconds: number }
+export interface HarmonicCrossBars { fadeBars: number; crossBars: number; related: number; lpHz: number }
+export interface HandSeamBars {
+  /** bars into the blend the low end changes hands */
+  swap: number;
+  /** the longest the blend runs, in bars */
+  blend: number;
+  /** the harmonic cross in bars of the same grid, or none where the style has none */
+  cross: HarmonicCrossBars | undefined;
+}
+export function handSeamBars(hand: HandSeam | undefined, barSeconds: number, cross: HarmonicCrossBars | undefined, swapAfterBars: number): HandSeamBars {
+  if (!hand || !(barSeconds > 0)) return { swap: swapAfterBars, blend: swapAfterBars * 2, cross };
+  const bars = (seconds: number, least: number) => Math.max(least, Math.round(seconds / barSeconds));
+  const swap = bars(hand.swapSeconds, 1);
+  return {
+    swap,
+    blend: Math.max(2, swap * 2),
+    cross: cross ? { ...cross, fadeBars: bars(hand.fadeSeconds, 1), crossBars: bars(hand.crossSeconds, 1) } : undefined,
+  };
+}
 
 // An anticipatory voice arrives on its event's time and has to *start* before
 // it. `t` is the arrival; this is how long before that the sound begins.
@@ -1570,6 +1741,16 @@ function automationOf(track: PlannedTheme, settings: Settings): AutomationLine[]
     lines.push({ param: `sweep.${stage}.wet.gain`, curve: 'linear', points: pts(c.wet) });
     lines.push({ param: `sweep.${stage}.dry.gain`, curve: 'linear', points: pts(c.wet, (v) => 1 - v) });
   }
+  // The presence bell's gain, in dB, section by section (round EQ-5): a line
+  // only where the theme's bell moves, and a bell only where the settings
+  // carry one, so a theme with neither is the program it was.
+  if (a.bell && a.bell.length > 1 && settings.harmonicBell?.db)
+    lines.push({ param: 'harmonicBell.gain', curve: 'linear', points: pts(a.bell) });
+  // The part's own space (liquid-space round 1): its dry and its sends by section, where the theme's settings build one.
+  if (a.partSpace && settings.partSpace) {
+    if (a.partSpace.dry.length > 1) lines.push({ param: 'partSpace.levels.dry.gain', curve: 'linear', points: pts(a.partSpace.dry) });
+    for (const [id, list] of Object.entries(a.partSpace.sends)) if (list.length > 1) lines.push({ param: `partSpace.levels.sends.${id}.gain`, curve: 'linear', points: pts(list) });
+  }
   return lines;
 }
 
@@ -1585,6 +1766,18 @@ function deepFreeze<T>(o: T): T {
     for (const k of Object.keys(o)) deepFreeze((o as Record<string, unknown>)[k]);
   }
   return o;
+}
+
+/**
+ * **A note's knobs: the theme's seasoning for its voice, and the note's own
+ * over it** — a note that carries a setting of its own (round S5's bass solo
+ * opening the sub's brightness toward its peak) keeps it over the seasoning for
+ * that knob. One function for the compiler and for the live seasoning of a held
+ * bird (`reseason`, `mix.ts`), so a note re-seasoned live is the note a plan
+ * made under that spell would carry.
+ */
+export function noteKnobs(seasoning: Record<string, number> | undefined, own: Record<string, number> | undefined): Record<string, number> | undefined {
+  return own ? { ...(seasoning ?? {}), ...own } : seasoning;
 }
 
 /**
@@ -1632,7 +1825,9 @@ export function compilePerformance(
     // word out of the registry and not one of the eleven the instruments file
     // spells out, so it is read as the table it is.
     // ...a room's "off" for a word being about its own voice only (S18's `laneFloors`).
-    const level = dbToGain(laneLevelDb(style, settings.levels as Record<string, number>, ev.voice, levelKey) ?? -12);
+    // ...less the keyed floor's step where the section stands under the most the
+    // room carries (round EQ-6, the plan's `floors`): nought everywhere else.
+    const level = dbToGain((laneLevelDb(style, settings.levels as Record<string, number>, ev.voice, levelKey) ?? -12) + floorUnderDb(plan.automation?.floors, ev.t, levelKey));
     const base = staged[i];
     // The seasoning this voice was given, where the spell gave it any. It is
     // put on the note here rather than in the generator because this is where
@@ -1650,7 +1845,7 @@ export function compilePerformance(
     // is the note it was.
     const own = base?.knobs as Record<string, number> | undefined;
     const p = knobs || own
-      ? { ...base, gain: (base?.gain ?? 1) * level, knobs: own ? { ...(knobs ?? {}), ...own } : knobs }
+      ? { ...base, gain: (base?.gain ?? 1) * level, knobs: noteKnobs(knobs, own) }
       : { ...base, gain: (base?.gain ?? 1) * level };
     const lead = leadOf(ev);
     const onset = ev.t - lead;
@@ -1674,7 +1869,7 @@ export function compilePerformance(
       gap: gapGroup(d),
       p,
     });
-    if (posts) for (const pt of duckAt(shape, onset)) duck.push(pt);
+    if (posts) for (const pt of duckAt(duckFor(shape, p), onset)) duck.push(pt);
   }
 
   const levels: Record<string, number> = {};
@@ -1743,7 +1938,7 @@ export function sliceProgram(
     if (layers && !layers.includes(e.layer)) continue;
     const moved = { ...e, i: events.length, t: e.t - from, onset: e.onset - from };
     events.push(moved);
-    if (moved.duck) for (const pt of duckAt(program.duckShape, moved.onset)) duck.push(pt);
+    if (moved.duck) for (const pt of duckAt(duckFor(program.duckShape, moved.p), moved.onset)) duck.push(pt);
   }
   // Every point of every curve moves with the window, rather than being cut at
   // its edges: `applyCurve` interpolates into the segment the start lands

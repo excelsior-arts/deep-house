@@ -258,7 +258,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -280,18 +280,20 @@
     "bpm": [
       136,
       140
-    ],
-    "nearest": [
-      125,
-      130
     ]
   },
   "sections": [
     "build"
   ],
   "provenance": {
-    "pattern": "the trance build: a snare roll that doubles its rate every few bars — quarters, eighths, sixteenths — over the kick, into the drop",
+    "pattern": "the trance build: a snare roll that doubles its rate every few bars \u2014 quarters, eighths, sixteenths \u2014 over the kick, into the drop",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Eight bars: two of quarters, two of eighths, four of sixteenths rising from quiet to full. It belongs in the build alone, and the pin cannot place it there: a track pin plays its cells in every drummed section, so the roll loops through the mains too. The riser that goes with it is scheduled by rules and a row can only want it. Both are in the gap list."
+    "note": "Eight bars: two of quarters, two of eighths, four of sixteenths rising from quiet to full. It belongs in the build alone, and the pin cannot place it there: a track pin plays its cells in every drummed section, so the roll loops through the mains too. The riser that goes with it is scheduled by rules and a row can only want it. Both are in the gap list.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 1.6,
+      "syncopationZ": 1.7,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

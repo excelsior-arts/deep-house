@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/breakdown",
+  "revision": 1,
+  "name": "breakdown",
+  "scope": "section",
+  "applies": "breakdown",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 8,
+    "phrases": [
+      {
+        "at": "first",
+        "on": [
+          "pad",
+          "keys",
+          "hatClosed"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "pad",
+          "keys",
+          "hatClosed",
+          "sixteenths",
+          "bass"
+        ]
+      },
+      {
+        "at": "last",
+        "on": [
+          "pad",
+          "keys",
+          "hatClosed",
+          "sixteenths",
+          "bass"
+        ]
+      }
+    ],
+    "admits": {
+      "fill": "last"
+    },
+    "flags": {
+      "sweepFirst": true,
+      "riserLast": 4,
+      "lift": true
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "the kick gone and the harmony given the room: the pad, the keys and the closed hat for the first phrase, the sixteenths and the bass from the second; a breakdown of one phrase is its opening; the sweep down on its first bar, the riser over its last four, and the harmonic layer lifted — measured: it gets louder when the kick leaves",
+    "from": "src/styles/deep-house.ts sections.kinds.breakdown (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move"
+  }
+}

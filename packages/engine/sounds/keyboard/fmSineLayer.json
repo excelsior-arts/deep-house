@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "fmSineLayer",
+  "revision": 1,
+  "topology": "fm-key",
+  "parameters": {
+    "ratio": 1,
+    "index": [
+      0.02,
+      0.12
+    ],
+    "indexDecay": 0.8,
+    "indexFloor": 0.01,
+    "modulator2": null,
+    "tine": null,
+    "attack": 0.02,
+    "decay": 2.5,
+    "sustain": 0.55,
+    "release": 0.9,
+    "lpHz": 2500,
+    "hpHz": 80,
+    "detuneCents": 3,
+    "spread": 0.3,
+    "trim": 1,
+    "dur": 0.5,
+    "minDur": 0.08,
+    "delay": 0,
+    "reverb": 0
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "fm-keys.ts",
+    "round": "liquid-keys",
+    "note": "A near-pure sine keyboard to double a piano: the modulator barely moving the carrier, so a round fundamental with a breath of second harmonic, a 20 ms swell and a long held fall; a layer under struck strings, never a voice alone.",
+    "notes": {
+      "copiedFrom": "fmEp, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

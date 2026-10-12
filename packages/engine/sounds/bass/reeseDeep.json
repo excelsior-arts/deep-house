@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "reeseDeep",
+  "revision": 2,
+  "topology": "reese",
+  "parameters": {
+    "trim": 0.165,
+    "attack": 0.008,
+    "release": 0.09,
+    "detune": 0.14,
+    "middle": 0.7,
+    "saws": 1.2,
+    "cutoffHz": 637.5,
+    "resonanceDb": 4,
+    "movementHz": 0.22,
+    "movementDepth": 0.2,
+    "cutoffDepth": 0.25,
+    "levelDepth": 0,
+    "sub": 1.2,
+    "sawFloor": 1.6,
+    "hpHz": 24,
+    "clip": null,
+    "subHarmonics": null,
+    "pair": null,
+    "entry": null,
+    "dipRecovery": 0.08
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "knobs": {
+      "mass": {
+        "unit": "ratio",
+        "min": 0.4,
+        "default": 1.2,
+        "max": 2,
+        "bird": "root",
+        "sense": 1,
+        "slopeDb": 7.39
+      }
+    },
+    "timbres": {
+      "reeseDeep": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 640,
+        "loudnessDb": -9.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r1",
+    "module": "reese-deep.ts",
+    "note": "round DNB-1: the reese with the balance turned round — the sine at one and a half times the reese's (1.2 against 0.8), the saws at half (1.2 against 2.4), the corner three-quarters (637.5 Hz, which was 850 x 0.75); no knob table, so the tempo lean on mass does not reach it",
+    "notes": {
+      "mass": "round DNB-2: the sine against the saws as a range, so a place may set the body under the drive and Root may move it from there (the fast broken place's own number, `BASS_SOUND`); nothing else of the row is a knob"
+    }
+  }
+}

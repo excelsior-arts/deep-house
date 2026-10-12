@@ -142,8 +142,8 @@ export function resolveRhythm(value: any, style: Style, forbids: readonly string
       // for the lane's ordinary draw and does not follow the part (a pinned
       // hand row plays its membranes on any texture), and nor does the level
       // the lane's own sixteenths take behind the drone: a hand phrase is
-      // levelled by its own character.
-      const { withdraw: _ordinaryOnly, presence: _ordinaryLevel, ...lane } = base;
+      // levelled by its own character; nor the lane's floor under a drone.
+      const { withdraw: _ordinaryOnly, presence: _ordinaryLevel, floor: _ordinaryFloor, ...lane } = base;
       lanes.push({ lane: { ...lane, id: `${namespace}:${role}:${i}`, figure: 'recipeRhythm', slot: null, voices }, part });
     });
   }

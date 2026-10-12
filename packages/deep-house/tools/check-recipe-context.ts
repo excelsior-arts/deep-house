@@ -31,10 +31,12 @@ test('separation preserves the whole phrase while excluding held notes and dry r
     for(const pad of pads) for(const bar of reservation)
       assert.ok(pad.t+Number(pad.p.dur)+Number(pad.p.release)<=bar*after.barSeconds || pad.t>=(bar+1)*after.barSeconds);
     // seed 6's first main (bars 28-44 of it held the case before round S19 cut
-    // the mains; the main is bars 4-40 since): the bed steps out of the figure's section
+    // the mains; the main was bars 4-40 since, and is bars 4-36 since round L1
+    // gave the theme its minutes, restated in the merge round, Reconcile 1):
+    // the bed steps out of the figure's section
     if(seed===6) {
-      assert.ok(before.events.some(e=>e.layer==='pad'&&e.bar>=4&&e.bar<40));
-      assert.ok(!pads.some(e=>e.bar>=4&&e.bar<40));
+      assert.ok(before.events.some(e=>e.layer==='pad'&&e.bar>=4&&e.bar<36));
+      assert.ok(!pads.some(e=>e.bar>=4&&e.bar<36));
       assert.ok(pads.length>0,'the bed still has sections where the figure rests');
     }
   }

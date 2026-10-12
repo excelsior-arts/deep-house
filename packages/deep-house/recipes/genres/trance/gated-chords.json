@@ -223,7 +223,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -253,8 +253,14 @@
     "breakdown"
   ],
   "provenance": {
-    "pattern": "trance gate: a held chord chopped into sixteenths by a rhythmic gate — on, on, off, on — the stuttering pad of progressive and vocal trance",
+    "pattern": "trance gate: a held chord chopped into sixteenths by a rhythmic gate \u2014 on, on, off, on \u2014 the stuttering pad of progressive and vocal trance",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar: a triad on the supersaw ensemble struck on a gate pattern of eleven sixteenths in sixteen, each a sixteenth long, which is what a trance gate does to a held pad. The kick, clap and offbeat hats are the plain trance kit."
+    "note": "One bar: a triad on the supersaw ensemble struck on a gate pattern of eleven sixteenths in sixteen, each a sixteenth long, which is what a trance gate does to a held pad. The kick, clap and offbeat hats are the plain trance kit.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": -0.9,
+      "syncopationZ": 0.4,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

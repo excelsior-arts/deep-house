@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/turn-double-kick",
+  "revision": 1,
+  "name": "double kick",
+  "scope": "treatment",
+  "applies": "turnaround",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "kick": {
+        "double": {
+          "level": 0.8
+        }
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:790+135, 8:2608+154, 8:1166+121",
+    "kind": "turnaround",
+    "reading": "a double kick is the second commonest change of the two-step drops (2.1 in 16 bars)",
+    "from": "src/subsections.ts TURNAROUNDS double kick (round DNB-1, 2026-10-02): the bar's last kick copied a sixteenth later at 0.8",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

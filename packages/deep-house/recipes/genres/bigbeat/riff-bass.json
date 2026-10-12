@@ -210,7 +210,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.75,
   "score": {
     "chef": 0,
     "likes": 0
@@ -242,6 +242,12 @@
   "provenance": {
     "pattern": "big beat's riff bass: a big, syncopated one-bar bass riff with rests, leaping and stabbing against the break, the part a Chemical Brothers or Prodigy track is hummed by",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar of riff: root stabbed twice, a leap up a fourth and a fifth, back to the root, a rest before the bar line — short notes (holds a quarter of their spacing) so the rests talk. The riff of the style jumps an octave; the bass register refuses a recipe line wider than seven semitones on some keys, so the leap is a fifth. Under the break-over-a-four drums. The drive and distortion on it are the gap."
+    "note": "One bar of riff: root stabbed twice, a leap up a fourth and a fifth, back to the root, a rest before the bar line — short notes (holds a quarter of their spacing) so the rests talk. The riff of the style jumps an octave; the bass register refuses a recipe line wider than seven semitones on some keys, so the leap is a fifth. Under the break-over-a-four drums. The drive and distortion on it are the gap.",
+    "standing": {
+      "reaches": true,
+      "eventRateZ": 0.3,
+      "syncopationZ": 0,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

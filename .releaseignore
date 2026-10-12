@@ -12,3 +12,6 @@ packages/mining/
 # the mark each of them stamps into itself.
 packages/deep-house/src/machine/private/
 mining/
+# The keys lab (round LIQUID-KEYS, 10-10): his listening page for picking keys
+# tones, spaces and progressions; it reads the unapproved rows in notes/.
+packages/deep-house/lab/keys/

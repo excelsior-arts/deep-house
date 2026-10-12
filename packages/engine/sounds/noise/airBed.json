@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "airBed",
+  "revision": 1,
+  "topology": "vinyl",
+  "parameters": {
+    "attack": 2.5,
+    "release": 2.5,
+    "hpHz": 420,
+    "lpHz": 2400,
+    "q": 0.5,
+    "driftHz": 0.035,
+    "driftDepth": 0.3,
+    "trim": 0.3
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "airBed": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 2400,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "module": "texture.ts",
+    "note": "A dark air: the vinyl bed's topology on a narrow band (420 Hz to 2.4 kHz, under the hats' attack and over the sub), its lid drifting once in thirty seconds, and fades long enough that events of eight bars laid end to end overlap into one surface. The composer gives each event its place on one slow arc of level and brightness (dnb/surface-dark-air)."
+  }
+}

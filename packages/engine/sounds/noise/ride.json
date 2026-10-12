@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "ride",
+  "revision": 1,
+  "topology": "cymbal",
+  "block": "ride",
+  "dice": 83.5,
+  "parameters": {
+    "ratios": [
+      1,
+      1.41,
+      1.87,
+      2.34,
+      2.98,
+      3.73
+    ],
+    "base": 420,
+    "detune": 12,
+    "metal": 0.45,
+    "hp": 2400,
+    "peakHz": 5200,
+    "q": 0.25,
+    "tilt": 2,
+    "lidHz": 10000,
+    "pingHz": 940,
+    "pingLevel": 0.28,
+    "pingDecay": 0.09,
+    "bellPing": 3.2,
+    "bellWash": 0.45,
+    "bellRing": 1.8,
+    "t10": 0.28,
+    "seconds": 2.2,
+    "variants": 2,
+    "variantCents": 26,
+    "attack": 0.0025,
+    "trim": 1.07,
+    "rateSpread": 0.025,
+    "gainSpread": 0.08,
+    "decaySpread": 0.12,
+    "panSpread": 0.06,
+    "velBright": 0.22,
+    "velDecay": 0.4,
+    "pan": 0.22,
+    "room": 0.1
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatOpen",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "ride": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.08,
+        "brightnessHz": 5200,
+        "loudnessDb": -10
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "cymbals.ts",
+    "note": "A ride: a hat's ladder an octave down with a tuned centre under it, and a wash long enough that the hit's envelope rather than the body decides how much is heard. `p.hit: 'bell'` is the same cymbal struck further in."
+  },
+  "measured": {
+    "clickStep": 0.2145,
+    "rideBell": {
+      "loudnessDb": -13,
+      "clickStep": 0.1568
+    }
+  }
+}

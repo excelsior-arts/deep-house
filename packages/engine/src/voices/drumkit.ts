@@ -36,12 +36,17 @@
 // module that declares it holds nothing else but its descriptor and its own
 // four lines of sound.
 
-import { route, panner, MIN_RELEASE, startTime, Offline, lcg, GAIN_FLOOR } from '../dsp.ts';
+import { route, panner, MIN_RELEASE, startTime, lcg, GAIN_FLOOR } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
-import type { NoteParams } from './descriptor.ts';
+import type { NoteParams, PrepareHook, VoiceCost, VoiceRenderer } from './descriptor.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
-import { cached, bound } from './render-cache.ts';
+import { cached, bound, holding, offline } from './render-cache.ts';
+import { patchOf } from './sound.ts';
+import { makeUp, meanSquare, ringOf, tailFor, tailRamps } from './hat-grain.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { num, BODY_SECONDS, CENTS, LEVEL, PAN, SECONDS, SEND, SPREAD, VARIANTS } from './schema.ts';
+import type { Contract, Fields, PatchOf } from './schema.ts';
 
 /**
  * One articulation, as the instrument that makes it states it: everything
@@ -162,10 +167,7 @@ export const variantK = (i: number, n: number): number => (n < 2 ? 0 : (i % n) -
  * overall level: the envelope is the hit's, never the buffer's.
  */
 function renderBody(ctx: BaseAudioContext, inst: DrumInstrument, spec: DrumSpec): Promise<AudioBuffer> {
-  const rate = ctx.sampleRate;
-  const off = new (Offline())(spec.channels ?? 2, Math.ceil(spec.seconds * rate), rate);
-  inst.build(off, spec, off.destination, 0);
-  return off.startRendering();
+  return offline(ctx, spec.channels ?? 2, Math.ceil(spec.seconds * ctx.sampleRate), (off) => inst.build(off, spec, off.destination, 0));
 }
 
 /**
@@ -185,6 +187,17 @@ function renderBody(ctx: BaseAudioContext, inst: DrumInstrument, spec: DrumSpec)
 // it had ever rendered. `DRUM_BODIES` is far more than a theme strikes (a
 // kitchen theme draws a handful of articulations); the oldest go first, and
 // one still rendering is kept.
+//
+// **One permit per variant, not per articulation** (E01 of the outside review of
+// 10-03). The entry used to be one job around all of an articulation's
+// variants, each its own OfflineAudioContext, so four admitted jobs were twelve
+// contexts alive at once for the three-variant conga, bongo, snare and tom.
+// Each variant is its own render now (`offline`), and the entry is only the
+// promise of all of them — it holds no permit, so it cannot wait on the
+// permits its own variants need. And the cap is held when an entry lands as
+// well as when one is asked for (E02): a preparation that asked for more than
+// `DRUM_BODIES` at once is trimmed back to it as they finish, where it used
+// to keep every one until the next miss.
 export const DRUM_BODIES = 64;
 export function bodiesFor(ctx: BaseAudioContext, inst: DrumInstrument, spec: DrumSpec, defer = false): DrumBodies {
   let per = cache.get(ctx);
@@ -209,6 +222,9 @@ export function bodiesFor(ctx: BaseAudioContext, inst: DrumInstrument, spec: Dru
   bound(per, DRUM_BODIES);
   return got;
 }
+
+/** What one context's drum bodies hold: the completed entries, which `DRUM_BODIES` bounds, and the ones in flight. */
+export const drumBodies = (ctx: BaseAudioContext): { ready: number; flight: number } => holding(cache.get(ctx));
 
 /**
  * The pre-render hook a module declares: the bodies of the articulations its
@@ -238,9 +254,18 @@ export function warmDrums(
     seen.add(`${inst.id}:${spec.key}`);
     const got = bodiesFor(ctx, inst, spec);
     if (got instanceof Promise) waits.push(got);
+    // a kit hat with a grain is held to the level of the same hat without it (`strike`)
+    if (grained(spec)) {
+      const plain = bodiesFor(ctx, inst, plainOf(spec));
+      if (plain instanceof Promise) waits.push(plain);
+    }
   }
   return Promise.all(waits).then(() => undefined);
 }
+
+// A kit hat's grain (round SPARK-2, `hat-grain.ts`), and the same hat without it.
+const grained = (spec: DrumSpec): boolean => (spec.top ?? 0) > 0 || (spec.air ?? 0) > 0 || (spec.tail ?? 0) > 0;
+const plainOf = (spec: DrumSpec): DrumSpec => ({ ...spec, top: 0, air: 0, tail: 0, key: `${spec.key}:plain` });
 
 // --- one hit ----------------------------------------------------------------
 
@@ -286,7 +311,10 @@ export function strike(
   const t10 = Math.max(0.004, spec.t10
     * (1 + (spec.decaySpread ?? 0) * (2 * d.decay - 1))
     * (1 + (spec.velDecay ?? 0) * (vel - 0.9)));
-  const dur = t10 * 3.4 + 0.02;
+  // A kit hat's `tail` (round SPARK-2, `hat-grain.ts`) rings on at its first
+  // slope to -20 dB before the dive; every other drum has none and rings 3.4 t10.
+  const tail = tailFor(spec.tail ?? 0, spec.t10);
+  const dur = t10 * ringOf(tail) + 0.02;
 
   const g = ctx.createGain();
   // Two channels leave every voice of this kitchen, explicitly. Round G
@@ -300,9 +328,17 @@ export function strike(
 
   const bodies = bodiesFor(ctx, inst, spec, true);
   const ready = Array.isArray(bodies) && dur * rate + 0.02 <= spec.seconds;
+  // A grained kit hat at its grainless energy (round SPARK-2): the body's power
+  // and the envelope's, against the same variant of the plain body.
+  let held = 1;
+  const vi = Math.min(n - 1, Math.floor(d.variant * n));
+  if (ready && grained(spec)) {
+    const plain = bodiesFor(ctx, inst, plainOf(spec), true);
+    if (Array.isArray(plain)) held = makeUp(meanSquare(plain[vi]), meanSquare(bodies[vi]), t10, tail, Math.max(0.0008, spec.attack ?? 0.0025));
+  }
   if (ready) {
     const src = ctx.createBufferSource();
-    src.buffer = bodies[Math.min(n - 1, Math.floor(d.variant * n))];
+    src.buffer = bodies[vi];
     src.playbackRate.value = rate;
     src.start(time);
     src.stop(time + dur + 0.02);
@@ -322,7 +358,7 @@ export function strike(
   // a change to the table would never reach the minute a listener is hearing.
   // `gainSpread` is this hit's own — under a decibel, which is a drummer and
   // not a fader.
-  const peak = Math.max(GAIN_FLOOR, vel * (p.gain ?? 1) * (spec.trim ?? 1)
+  const peak = Math.max(GAIN_FLOOR, vel * (p.gain ?? 1) * (spec.trim ?? 1) * held
     * (1 + (spec.gainSpread ?? 0) * (2 * d.gain - 1)));
   // A *linear* attack from true zero, the kick's contract: an exponential from
   // a ten-thousandth spends its last fraction of a millisecond crossing 60 dB,
@@ -331,10 +367,10 @@ export function strike(
   g.gain.value = 0;
   g.gain.setValueAtTime(0, time);
   g.gain.linearRampToValueAtTime(peak, time + attack);
-  g.gain.exponentialRampToValueAtTime(peak * 0.3162, time + t10); // -10 dB, the benchmark's own unit
-  g.gain.exponentialRampToValueAtTime(GAIN_FLOOR, time + t10 * 3.4);
-  g.gain.linearRampToValueAtTime(0, time + t10 * 3.4 + MIN_RELEASE);
-  const end = time + t10 * 3.4 + MIN_RELEASE;
+  // -10 dB at t10, the benchmark's own unit, then the dive to the floor
+  const floorAt = tailRamps(g.gain, time, peak, t10, tail, GAIN_FLOOR);
+  g.gain.linearRampToValueAtTime(0, floorAt + MIN_RELEASE);
+  const end = floorAt + MIN_RELEASE;
 
   // Where it stands, and it moves a little: a pair of hands is not a point
   // source and a player does not hit the same spot twice. The spread is the
@@ -454,4 +490,121 @@ export function transient(
   source.connect(g);
   g.connect(dest);
   return g;
+}
+
+// --- a kit drum as a row ------------------------------------------------------
+
+/**
+ * The fields every kit drum's spec carries to `strike` and `bodiesFor`, each
+ * in its range (`schema.ts`): how long a body is (the buffer it allocates),
+ * how many are rendered (a bounded count), and the per-hit spreads. A kit
+ * topology's contract spreads the ones its rows carry.
+ */
+export const KIT = {
+  t10: SECONDS,
+  seconds: BODY_SECONDS,
+  variants: VARIANTS,
+  variantCents: CENTS,
+  attack: SECONDS,
+  trim: LEVEL,
+  rateSpread: SPREAD,
+  gainSpread: SPREAD,
+  decaySpread: SPREAD,
+  panSpread: SPREAD,
+  velBright: num(0, 4),
+  velDecay: num(0, 4),
+  pan: PAN,
+  room: SEND,
+  delay: SEND,
+} as const;
+//
+// Round R2 of the sounds. An instrument of the kitchen was a module: a spec
+// out of its settings block, a variant, a body, an offset in the strike dice
+// and a descriptor. The first three are how the sound is made and they are the
+// topology's; the block, the offset and the descriptor are the sound's and
+// they are a row (`sounds/<family>/<id>.json`, `sound.ts`). `kitTopology` is
+// the one place the two meet, so a kit module states its build and nothing
+// else.
+
+/**
+ * The rows that share one pre-render pass. Their bodies are warmed in one walk
+ * of their events, in time order, as a module's `INSTS` always were — the
+ * per-context cache is bounded and evicts the oldest, so the order bodies are
+ * made in is part of the sound and a module split into topologies must not
+ * split its pass.
+ */
+export interface Kit {
+  instruments: Record<string, DrumInstrument>;
+  prepare: PrepareHook;
+}
+
+export function kit(): Kit {
+  const instruments: Record<string, DrumInstrument> = {};
+  return { instruments, prepare: (ctx, settings, events) => warmDrums(ctx, settings, events, instruments) };
+}
+
+/** What a kit topology states: its build, and the contract its rows' parameters keep (`schema.ts`). */
+export interface KitBuild<S extends Fields> {
+  id: string;
+  cost: VoiceCost;
+  parameters: Contract<S>;
+  /** everything fixed about this hit, out of the row's patch (the room's copy of it) and the note */
+  spec(patch: PatchOf<S>, p: NoteParams): DrumSpec;
+  variant(spec: DrumSpec, k: number): DrumSpec;
+  build(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: number): void;
+  /** the pass this topology's rows are warmed in; its own when absent */
+  kit?: Kit;
+}
+
+// What a patch is, as a short word for a cache key: the same numbers are the
+// same word, whichever object holds them, and an object is read once.
+const prints = new WeakMap<object, string>();
+function printOf(o: object): string {
+  let s = prints.get(o);
+  if (s === undefined) {
+    const text = JSON.stringify(o);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+    s = (h >>> 0).toString(36);
+    prints.set(o, s);
+  }
+  return s;
+}
+
+/**
+ * A kit topology: every row of it struck through `strike`, with the row's own
+ * offset in the strike dice (`dice`) and its numbers read off the resolved
+ * settings' block where it names one.
+ *
+ * The rendered bodies are keyed by the patch they were made of as well as by
+ * the articulation (E05/E06 of the outside review of 10-03): one row under two
+ * rooms that voice its block differently, or two rows with one articulation's
+ * name, are two bodies, never one body read for the other.
+ */
+export function kitTopology<S extends Fields>(b: KitBuild<S>): Topology {
+  const shelf = b.kit ?? kit();
+  return {
+    id: b.id,
+    cost: b.cost,
+    parameters: b.parameters,
+    render(row: SoundRow): VoiceRenderer {
+      const inst: DrumInstrument = {
+        id: row.id,
+        seed: row.dice as number,
+        spec: (p: NoteParams, s: Settings) => {
+          const patch = patchOf(s, row, b.parameters);
+          const spec = b.spec(patch, p);
+          spec.key = `${printOf(patch)}:${spec.key}`;
+          return spec;
+        },
+        variant: b.variant,
+        build: b.build,
+      };
+      shelf.instruments[row.id] = inst;
+      return (ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings, at?: number): number =>
+        strike(ctx, out, time, p, inst, settings, at);
+    },
+    prepare: shelf.prepare,
+    check: (row) => (Number.isFinite(row.dice) ? [] : [`${row.id}: a kit drum carries its offset in the strike dice as \`dice\``]),
+  };
 }

@@ -24,22 +24,22 @@
 //   (h) a bare address takes the stored link;
 //   (i) every written link in a grid plays the program it was blessed with
 //       (`tools/link-digest.json`);
-//   (j) a genre row (`GENRE_LIBRARY`) pins by its audit link and is refused in
+//   (j) a genre row (`PATTERN_LIBRARY`) pins by its audit link and is refused in
 //       words without its family key's spell.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { linkRead, linkWrite, linkAt, linkBare, linkOver, linkSameSound, linkRaw, linkValue, LINK_ROWS, VERSIONS, DEFAULT_VER, versionOf, pageDefault, type LinkState, type Version, linkView, linkWithTime, linkWithout } from '../src/link.ts';
+import { linkRead, linkWrite, linkAt, linkBare, linkOver, linkSameSound, linkRaw, linkValue, LINK_ROWS, VERSIONS, DEFAULT_VER, versionOf, pageDefault, type LinkState, type Version, linkView, linkWithTime, linkWithout, linkTimeStart } from '../src/link.ts';
 import { planTheme, recipesFor } from '../src/mix.ts';
 import { STRATEGIES, DEFAULT_STRATEGY, strategyFromQuery } from '../src/strategies/index.ts';
 import { HOUSE, BIRDS, BIRD_CODE, sameSpell, spellFromQuery, recipeFromQuery, spellQuery, spellNumber, parseSpell, type Spell } from '../src/spell.ts';
-import { recipeById, GENRE_LIBRARY } from '../src/recipes.ts';
+import { recipeById, PATTERN_LIBRARY } from '../src/recipes.ts';
 import { auditPoints } from './genre-recipes.ts';
 import { accompanimentFor } from '../src/recipe-request.ts';
 import { developmentFor } from '../src/development.ts';
-import { readBypass } from '../src/set-plan.ts';
+import { readBypass, planKey, setOptions } from '../src/set-plan.ts';
 import { planHash } from './golden-plan.ts';
 import * as linkDigest from './link-digest.ts';
 
@@ -143,9 +143,12 @@ test('(a) the engines a link names are the strategies, one each, the record firs
   assert.match(linkWrite({ seed: '5', theme: 0, strategy: 'house-v2' }), /^seed=5&v=2$/);
   assert.match(linkWrite({ seed: '5', theme: 0, strategy: 'house-v1' }), /^seed=5&v=1$/);
   assert.deepEqual(linkRead('?v=v2&seed=5').problems.map((p) => p.param), ['v']);
-  // the bypass rows are the ones readBypass takes
+  // the bypass rows are the ones readBypass takes: a switch at 0, a value row
+  // (the sub's trim in dB; since EQ-2 the duck's depth and the strings' corner)
+  // at a value it accepts
+  const VALUE_ROWS: Record<string, string> = { sub: '-3', duckdb: '-14', strings: '1800', roles: 'classic' };
   for (const r of LINK_ROWS.filter((r) => r.class === 'bypass'))
-    assert.ok(readBypass(r.name === 'sub' ? '?sub=-3' : `?${r.name}=0`), `?${r.name}= is a bypass row readBypass does not take`);
+    assert.ok(readBypass(`?${r.name}=${VALUE_ROWS[r.name] ?? '0'}`), `?${r.name}= is a bypass row readBypass does not take`);
   // ...and what is not a bypass row is not taken as one, so the call above can fail.
   assert.ok(!readBypass('?foo=0&seed=5&theme=2'), 'readBypass takes parameters that are not bypass rows');
 });
@@ -538,6 +541,42 @@ test('(l) the time link is the canonical link and the second, and nothing else e
   assert.equal(linkWithTime({ seed: '1', theme: 0, strategy: 'house-v2' }, 252.9), 'seed=1&v=2&t=252');
 });
 
+// **The time link's round trip** (the deep review of 10-08): a page opened on
+// `t` starts on that second, and the copy it makes there writes the same `t`
+// back, a copy of a copy too. Until 10-08 the page started at the bar line at
+// or before `t` and the copy floored it again: every copy lost up to a bar.
+// A time past where the theme plays starts at its last phrase line, and the
+// copy made there is a fixed point. The transport's second is what the page's
+// `withTime` copies (its readout, two decimals), stopped where the link left it.
+test('(o) a time link lands on its second, and the copy made there writes the same t back', () => {
+  const tempos = [118, 122, 124, 128, 135, 140, 174];
+  let trips = 0;
+  for (const [i, f] of SWEEP.slice(0, 8).entries()) {
+    const bpm = tempos[i % tempos.length], bs = 240 / bpm;
+    for (const bars of [96, 128, 160, 193]) {
+      const playable = bars * bs;
+      for (const t of [0, 1, 7, 29, 31, 59, 61, 125, 252, 253, Math.floor(playable) - 1, Math.floor(playable), Math.floor(playable) + 3, 99999]) {
+        const opened = linkTimeStart(t, bs, playable);
+        assert.ok(opened >= 0 && opened < playable, `t=${t} at ${bpm} BPM and ${bars} bars opened at ${opened}, outside the theme`);
+        if (t < playable) assert.equal(opened, t, `t=${t} at ${bpm} BPM opened at ${opened}, not on its second`);
+        else {
+          const lastLine = Math.floor(Math.max(0, Math.floor(playable / bs) - 1) / 4) * 4;
+          assert.equal(opened, lastLine * bs, `t=${t} past the end at ${bpm} BPM and ${bars} bars opened at ${opened}, not the last phrase line`);
+        }
+        const seconds = +opened.toFixed(2);
+        const copy = linkWithTime(f, seconds, '?view=machine&out=silent');
+        const back = linkRead(`?${copy}`).link.t!;
+        if (t < playable) assert.equal(back, t, `t=${t} at ${bpm} BPM copied back as t=${back}: ${copy}`);
+        // and the copy of the copy is the copy: no drift however often it is passed on
+        const again = linkRead(`?${linkWithTime(f, +linkTimeStart(back, bs, playable).toFixed(2))}`).link.t;
+        assert.equal(again, back, `the copy of t=${back} at ${bpm} BPM wrote t=${again}`);
+        trips++;
+      }
+    }
+  }
+  assert.ok(trips >= 400, `${trips} round trips`);
+});
+
 test('(m) K34: a link without a theme is the first theme, and the first theme is written without one', () => {
   // Eugene, K34: "skip theme=1 ... assume it's the default value if not set".
   for (const v of ['1', '2']) {
@@ -591,7 +630,10 @@ test('(k) a link written with the birds\' full names or the first theme reads, w
   const src = (f: string) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', f), 'utf8');
   assert.ok(/linkWrite\(/.test(src('machine/private/record.ts')) && !/`\$\{b\}:|`\$\{bird\}:/.test(src('machine/private/record.ts')), 'the record tools write a link of their own');
   assert.ok(/spellQuery\(spell\)/.test(src('machine/genres.tsx')), 'the genre keys write a spell of their own');
-  assert.ok(/<span className="k">\{b\.slice\(0, 2\)\}<\/span>/.test(src('machine/view.tsx')), 'the view\'s spell tile no longer prints a bird\'s first two letters');
+  // Since round K40 Ember's tile reads its notch, `em 105`, and every other
+  // bird its two letters (restated in the merge round, Reconcile 1); since
+  // 10-05 the notch rides in its own span, hidden on a phone's one-line cell.
+  assert.ok(/<span className="k">\{b\.slice\(0, 2\)\}\{bpm != null \? <span className="notch"> \{bpm\}<\/span> : null\}<\/span>/.test(src('machine/view.tsx')), 'the view\'s spell tile no longer prints a bird\'s first two letters');
 });
 
 test('(i) every written link in the grid plays the program it was blessed with', () => {
@@ -603,7 +645,7 @@ test('(i) every written link in the grid plays the program it was blessed with',
   // both ways, every mode under each accompaniment, the draw and every shipped row.
   const groups = new Map<string, number>();
   for (const r of file.rows) groups.set(r.group, (groups.get(r.group) ?? 0) + 1);
-  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'masters', 'modes', 'pulls', 'recipes', 'sets']);
+  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'masters', 'modes', 'pulls', 'recipes', 'riffs', 'sets']);
   assert.ok(rows >= 120, `the grid holds ${rows} links`);
   for (const bird of BIRDS) for (const v of ['0.10', '0.90']) for (const ver of ['1', '2'])
     assert.ok(file.rows.some((r) => r.group === 'pulls' && r.link === `seed=1&v=${ver}&spell=${BIRD_CODE[bird]}:${v}`), `no row pulls ${bird} to ${v} under v=${ver}`);
@@ -617,7 +659,10 @@ test('(i) every written link in the grid plays the program it was blessed with',
   const house = file.rows.find((r) => r.link === 'seed=1&v=2')!.hash;
   const same = file.rows.filter((r) => r.group === 'pulls' && r.link.startsWith('seed=1&v=2&') && r.hash === house).map((r) => r.link);
   // One pull is the house on this seed and theme, measured 09-24: Gleam at a
-  // tenth moves no die seed 1's first theme rolls and no knob it plays.
+  // tenth moves no die seed 1's first theme rolls and no knob it plays. For the
+  // hours of EQ-1 (10-03) it was not — the house's own place drew the parallel
+  // bass drive, whose tone is Gleam's knob (B1) — until EQ-5 took the drive
+  // off the house on Eugene's word ("not for deep house").
   assert.deepEqual(same, ['seed=1&v=2&spell=gl:0.10'], `v2 pulls that play the house: ${same.join(', ')}`);
   // And the check can fail: one hash altered is one row named.
   const tampered = { ...file, rows: file.rows.map((r, i) => (i === 7 ? { ...r, hash: '0'.repeat(64) } : r)) };
@@ -636,17 +681,21 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const file = linkDigest.saved();
   // The committed digest against the one the last cut shipped (`master`'s),
   // which is what the release's `npm run check` holds it to.
-  assert.deepEqual(linkDigest.sinceCut(linkDigest.lastCut(), file), [], 'the link digest has moved since the last cut');
+  // ...inside the window stated for that cut, where one is (`WINDOW`, 2026-09-27).
+  assert.deepEqual(linkDigest.sinceCut(linkDigest.lastCut(), file, linkDigest.openWindow()), [], 'the link digest has moved since the last cut');
   // No cut carries the digest (v1.0.0 does not): nothing to hold it to.
   assert.deepEqual(linkDigest.sinceCut(null, file), []);
   // The cut is the file as it stands: nothing has moved.
   assert.deepEqual(linkDigest.sinceCut(file, file), []);
-  // A shipped row re-hashed is refused, with or without a reason.
-  const moved = { ...file, rows: file.rows.map((r, i) => (i === 3 ? { ...r, hash: 'f'.repeat(64) } : r)) };
+  // A shipped row re-hashed is refused, with or without a reason, outside a
+  // stated window — either strategy's: since V1-1 (10-02) the record's rows
+  // are held exactly as house-v2's, so the row tried here is a house-v1 one.
+  const i3 = file.rows.findIndex((r) => r.strategy === 'house-v1');
+  const moved = { ...file, rows: file.rows.map((r, i) => (i === i3 ? { ...r, hash: 'f'.repeat(64) } : r)) };
   const reasoned = { ...moved, blessings: [...file.blessings, 'a reason that does not re-open a shipped link'] };
   for (const now of [moved, reasoned]) {
     const faults = linkDigest.sinceCut(file, now);
-    assert.ok(faults.some((f) => f.startsWith('frozen:') && f.includes(file.rows[3].link)), faults.join('\n'));
+    assert.ok(faults.some((f) => f.startsWith('frozen:') && f.includes(file.rows[i3].link)), faults.join('\n'));
   }
   // A shipped row dropped from the grid is refused too.
   const dropped = { ...reasoned, rows: file.rows.filter((_, i) => i !== 5) };
@@ -656,6 +705,28 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const added = { ...file, rows: [...file.rows, extra] };
   assert.ok(linkDigest.sinceCut(file, added).some((f) => f.includes('no blessing was added')));
   assert.deepEqual(linkDigest.sinceCut(file, { ...added, blessings: [...file.blessings, 'v3 joins the grid'] }), []);
+  // The stated window (Eugene, 09-26, "go for it"): a shipped row may play
+  // otherwise when the newest blessing counts it, and only then; a dropped row
+  // is refused inside it as outside. Both strategies alike since V1-1 (10-02):
+  // the record's rows were held by name until then, with their own words
+  // (`recordMovedWords`, gone); house-v1 is a composing preset, not a byte
+  // lock, and a shared mixing path that moves its rows is counted with the rest.
+  const w = linkDigest.WINDOW;
+  assert.equal(w.since, '2026-09-27');
+  assert.match(w.reason, /go for it/);
+  assert.ok(!('strategy' in w), 'the window names a strategy, and it covers both');
+  const v2 = file.rows.findIndex((r) => r.strategy === 'house-v2'), v1 = file.rows.findIndex((r) => r.strategy === 'house-v1');
+  for (const [which, at] of [['house-v2', v2], ['house-v1', v1]] as const) {
+    const moved = { ...file, rows: file.rows.map((r, i) => (i === at ? { ...r, hash: 'e'.repeat(64) } : r)) };
+    assert.ok(linkDigest.sinceCut(file, { ...moved, blessings: [...file.blessings, 'no count'] }, w).some((f) => f.includes('newest blessing')), `${which}: moved inside the window, uncounted`);
+    assert.deepEqual(linkDigest.sinceCut(file, { ...moved, blessings: [...file.blessings, `why [${linkDigest.shippedMovedWords(1)}]`] }, w), [], `${which}: counted, and still refused`);
+    assert.ok(linkDigest.sinceCut(file, { ...moved, blessings: [...file.blessings, `why [${linkDigest.shippedMovedWords(1)}]`] }, null).some((f) => f.startsWith('frozen:')), `${which}: outside the window the freeze refuses`);
+  }
+  // One of each moved inside the window is two in the count, not one line each.
+  const both = { ...file, rows: file.rows.map((r, i) => (i === v1 || i === v2 ? { ...r, hash: 'e'.repeat(64) } : r)) };
+  assert.ok(linkDigest.sinceCut(file, { ...both, blessings: [...file.blessings, `why [${linkDigest.shippedMovedWords(1)}]`] }, w).some((f) => f.includes(linkDigest.shippedMovedWords(2))));
+  assert.deepEqual(linkDigest.sinceCut(file, { ...both, blessings: [...file.blessings, `why [${linkDigest.shippedMovedWords(2)}]`] }, w), []);
+  assert.ok(linkDigest.sinceCut(file, dropped, w).some((f) => f.includes('no longer in the digest')));
 });
 
 test('(j) a genre row pins by its audit link, round-trips through the writer, and without its key\'s spell is refused in words', () => {
@@ -667,7 +738,20 @@ test('(j) a genre row pins by its audit link, round-trips through the writer, an
       recipe: read.link.recipe, accompaniment: read.link.accompaniment, development: read.link.development }, '', { explicit: true }), p.search);
     const bare = quiet2(() => linkRead(`?v=2&seed=${p.seed}&recipe=${p.id}`));
     assert.deepEqual(bare.problems.map((x) => x.param), ['recipe'], `${p.id} without a spell was not refused`);
-    assert.match(bare.problems[0].long, /genre pattern and plays under its family key's spell/);
+    assert.match(bare.problems[0].long, /pattern row and plays under the spell it was written for/);
   }
-  assert.ok(GENRE_LIBRARY.every((r) => recipeById(r.id) === r));
+  assert.ok(PATTERN_LIBRARY.every((r) => recipeById(r.id) === r));
+});
+
+test('(n) I01: every theme a link can name plans — the key is walked up and not recursed, the keys it always gave, a bad index refused by name', () => {
+  // theme n's key off seed 1 at house-v2, as the recursion gave it (the review's probe, 10-03)
+  const opts = setOptions(STRATEGIES['house-v2'].style), minor = STRATEGIES['house-v2'].style.base.key.minorChance;
+  assert.deepEqual([0, 100, 1000].map((n) => planKey(1, n, opts, minor)),
+    [{ root: 4, scaleName: 'minor' }, { root: 1, scaleName: 'minor' }, { root: 0, scaleName: 'minor' }]);
+  for (const bad of [-1, 1.5, NaN, Infinity]) assert.throws(() => planKey(1, bad, opts, minor), /not a whole number from nought/);
+  // the largest theme a link may name reads clean and plans
+  const read = quiet(() => linkRead('?v=2&seed=1&theme=9999'));
+  assert.deepEqual(read.problems, []);
+  assert.equal(read.link.theme, 9998);
+  assert.ok(planTheme('1', read.link.theme, { strategy: 'house-v2' }).events.length > 0);
 });

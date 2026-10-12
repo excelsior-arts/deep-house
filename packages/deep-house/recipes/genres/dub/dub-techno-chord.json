@@ -229,7 +229,7 @@
     }
   },
   "forbids": [],
-  "weight": 0,
+  "weight": 0.5,
   "score": {
     "chef": 0,
     "likes": 0
@@ -263,6 +263,12 @@
   "provenance": {
     "pattern": "dub techno: a four-on-the-floor kick under a minor-seventh chord stab struck off the beat and left to ring into the space, offbeat hats, a quiet shaker, one chord held for bars, a deep held sub",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "One bar: the chord is struck on the and of one and the and of three (the downbeat is a rest), short, voiced as a stacked minor seventh and put far back in the room. The harmony stays on the tonic, as dub techno does for whole sections. What makes the genre — the chord fed into a long, filtered tape-delay feedback — is not a want a recipe can make: the row asks for the spacious room and says the rest in the gap list."
+    "note": "One bar: the chord is struck on the and of one and the and of three (the downbeat is a rest), short, voiced as a stacked minor seventh and put far back in the room. The harmony stays on the tonic, as dub techno does for whole sections. What makes the genre — the chord fed into a long, filtered tape-delay feedback — is not a want a recipe can make: the row asks for the spacious room and says the rest in the gap list.",
+    "standing": {
+      "reaches": false,
+      "eventRateZ": 1.4,
+      "syncopationZ": 1.2,
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+    }
   }
 }

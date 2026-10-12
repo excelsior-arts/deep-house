@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "snare",
+  "revision": 1,
+  "topology": "snare",
+  "block": "snare",
+  "dice": 37.1,
+  "parameters": {
+    "shellHz": 180,
+    "shellFifth": 1.5,
+    "shellLevel": 0.5,
+    "shellDecay": 0.1,
+    "drop": 1.12,
+    "dropTime": 0.02,
+    "wireHp": 420,
+    "wireHz": 1900,
+    "wireQ": 0.8,
+    "wireLevel": 0.5,
+    "crackHz": 4200,
+    "crackQ": 1.4,
+    "crackDecay": 0.012,
+    "crackLevel": 0.55,
+    "lidHz": 11000,
+    "t10": 0.07,
+    "seconds": 0.7,
+    "variants": 3,
+    "variantCents": 22,
+    "attack": 0.0022,
+    "trim": 1.4,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.18,
+    "velDecay": 0.3,
+    "pan": -0.05,
+    "room": 0.12
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "snare": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.01,
+        "brightnessHz": 1900,
+        "loudnessDb": -21.4
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "snare.ts",
+    "note": "A snare: a tuned shell under wires that outlast it. The shell is a fifth — 180 and 270 Hz — because two partials that far apart read as a note and two an octave apart read as one partial twice.",
+    "notes": {
+      "wireHp": "The wires. A snare with its bottom left in is a box, so the highpass is not a nicety; the band is broad because a snare is broad.",
+      "crackHz": "...and the stick, which is the loudest sample of the hit and therefore the instrument with the largest declared click bound in the kitchen."
+    }
+  },
+  "measured": {
+    "clickStep": 0,
+    "snareGhost": {
+      "loudnessDb": -23.8,
+      "clickStep": 0.0001
+    }
+  }
+}

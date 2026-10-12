@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "malletSoft",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        4.5,
+        1
+      ],
+      [
+        3.98,
+        1.1,
+        0.16
+      ],
+      [
+        9.8,
+        0.35,
+        0.04
+      ]
+    ],
+    "attack": 0.004,
+    "release": 0.6,
+    "ringLevel": 0.55,
+    "tremoloHz": 3.6,
+    "tremoloDepth": 0.4,
+    "malletHz": 900,
+    "malletLevel": 0.08,
+    "malletTime": 0.008,
+    "spread": 0.5,
+    "trim": 0.4,
+    "delay": 0,
+    "reverb": 0
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "mallets.ts",
+    "round": "liquid-keys",
+    "note": "A soft-mallet vibraphone: tuned bars at 1, 4 and about 10 times the note, a yarn mallet low in the band, and the resonator discs pulsing slowly at 3.6 Hz.",
+    "notes": {
+      "copiedFrom": "vibes, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

@@ -35,10 +35,14 @@ import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
+import { patchOf } from './sound.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, num, DB, HZ, LEVEL, LFO_HZ, OVERSAMPLE, Q, RATIO, SECONDS, UNIT } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
-export function clavKey(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function clavKey(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const C = settings.clavKey;
+  const C = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.05, p.dur ?? 0.2);
   const vel = p.vel ?? 1;
@@ -86,7 +90,7 @@ export function clavKey(ctx: BaseAudioContext, out: VoiceOut, time: number, p: N
   // the declared oversample is what it is.
   const sat = ctx.createWaveShaper();
   sat.curve = saturationCurve(p.drive ?? C.drive);
-  sat.oversample = C.oversample;
+  sat.oversample = C.oversample as OverSampleType;
   sat.connect(hp);
 
   // The comb: the signal plus itself half a period later.
@@ -144,41 +148,42 @@ export function clavKey(ctx: BaseAudioContext, out: VoiceOut, time: number, p: N
   return end;
 }
 
-/**
- * MEASURED by the gate (`tools/test-voices.ts --bless`). `hold` is the
- * envelope's own sustain fraction and `brightnessHz` its lowpass corner.
- */
-export const CLAV_KEY_TIMBRES = {
-  clavKey: { family: 'harmonic', struck: true, hold: 0.1, brightnessHz: 3400, loudnessDb: -13.2 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  pwmWidth: UNIT,
+  pwmDepth: UNIT,
+  pwmHz: LFO_HZ,
+  pwmMix: UNIT,
+  /** the comb's delay, in periods of the note: it divides by the pitch, never by itself */
+  combRatio: RATIO,
+  combMix: UNIT,
+  /** the saturation's amount: nought is clean */
+  drive: num(0, 8),
+  oversample: OVERSAMPLE,
+  peakHz: HZ,
+  peakDb: DB,
+  peakQ: Q,
+  cutoff: HZ,
+  envMult: RATIO,
+  envTime: SECONDS,
+  q: DB,
+  veloOpen: num(0, 8),
+  hpHz: HZ,
+  spread: UNIT,
+  trim: LEVEL,
+});
 
 /**
- * The clavinet, as it describes itself.
- *
- * **One role, and the brief asked for two.** It was to be `figure` and `stab`,
- * and `stab` is not a word in this engine's vocabulary: `ROLES` in
- * `descriptor.ts` is closed, a stab *is* a figure played short, and adding a
- * word nobody agreed to is what that list exists to prevent. What a recipe
- * means by a stab is a figure with a short hold, and `hold` is already on the
- * table above.
+ * The clavinet topology: a pulse through a comb and a driven peak, plucked
+ * by its filter (`sounds/keyboard/clavKey.json` since round R2).
  */
-export const descriptor: Descriptor = {
-  name: 'clavKey',
+export const CLAV: Topology = {
+  id: 'clav',
   cost: 'dear',
-  family: 'keyboard',
-  roles: ['figure'],
-  bus: 'keys',
-  level: 'keys',
-  layer: 'keys',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: clavKey,
-  timbres: CLAV_KEY_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => clavKey(row, ctx, out, time, p, settings),
 };
-
-export default clavKey;

@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "keysSuitcase",
+  "revision": 1,
+  "topology": "keys",
+  "parameters": {
+    "cutoff": 2000,
+    "det": 4,
+    "attack": 0.012,
+    "decay": 1.1,
+    "sustain": 0.42,
+    "formant": [
+      1800,
+      3
+    ],
+    "ratio": 1,
+    "index": [
+      0.6,
+      1.1
+    ],
+    "indexDecay": 0.35,
+    "tine": 14,
+    "tineIndex": [
+      0.8,
+      1.4
+    ],
+    "tineDecay": 0.07,
+    "tremolo": true,
+    "rotary": false,
+    "organ": false,
+    "pluck": false,
+    "hpHz": 70,
+    "tremoloHz": 4.4,
+    "tremoloDepth": 0.32,
+    "tremoloPan": 0.65,
+    "rotaryHz": 5,
+    "rotaryDepth": 0.1,
+    "edge": {
+      "level": 0,
+      "hz": 2000,
+      "decay": 0.15,
+      "tine": 3,
+      "hold": 0.3,
+      "chiff": 0,
+      "chiffHz": 4500,
+      "chiffDecay": 0.01
+    }
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "module": "keys.ts",
+    "round": "liquid-keys",
+    "note": "A tine electric piano through a suitcase amplifier: a warm 1:1 body, a faint tine that is gone in 70 ms, and the stereo tremolo at 4.4 Hz swinging the chord across the room.",
+    "notes": {
+      "copiedFrom": "keysRhodes, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+    }
+  }
+}

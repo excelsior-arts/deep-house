@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "dnb/aux-liquid-quiet",
+  "revision": 1,
+  "name": "One quiet auxiliary part: a shaken top, a rim answer or a hand exchange",
+  "scope": "auxiliary",
+  "applies": "drums",
+  "origin": "golden",
+  "weight": 0,
+  "wants": {
+    "auxiliary": {
+      "choices": [
+        {
+          "v": "none",
+          "w": 45
+        },
+        {
+          "v": "shaken",
+          "w": 18
+        },
+        {
+          "v": "shaken-offbeat",
+          "w": 12
+        },
+        {
+          "v": "rim",
+          "w": 10
+        },
+        {
+          "v": "rim-pair",
+          "w": 5
+        },
+        {
+          "v": "hand",
+          "w": 7
+        },
+        {
+          "v": "hand-low",
+          "w": 3
+        }
+      ],
+      "rest": 1,
+      "parts": {
+        "shaken": {
+          "voice": "cabasa",
+          "gainDb": -12,
+          "pan": -0.3,
+          "room": 0.3,
+          "reverb": 0.15,
+          "cycleBars": 2,
+          "steps": [
+            {
+              "step": 5,
+              "p": 1,
+              "vel": 0.55
+            },
+            {
+              "step": 11,
+              "p": 0.7,
+              "vel": 0.3
+            },
+            {
+              "step": 13,
+              "p": 1,
+              "vel": 0.6
+            },
+            {
+              "step": 21,
+              "p": 1,
+              "vel": 0.5
+            },
+            {
+              "step": 27,
+              "p": 0.6,
+              "vel": 0.3
+            },
+            {
+              "step": 29,
+              "p": 1,
+              "vel": 0.6
+            }
+          ]
+        },
+        "rim": {
+          "voice": "rimshot",
+          "gainDb": -7,
+          "pan": 0.25,
+          "room": 0.35,
+          "reverb": 0.15,
+          "cycleBars": 2,
+          "steps": [
+            {
+              "step": 15,
+              "p": 1,
+              "vel": 0.55
+            },
+            {
+              "step": 22,
+              "p": 0.5,
+              "vel": 0.35
+            }
+          ]
+        },
+        "hand": {
+          "voice": "conga",
+          "gainDb": -9,
+          "pan": -0.35,
+          "room": 0.3,
+          "reverb": 0.15,
+          "cycleBars": 4,
+          "steps": [
+            {
+              "step": 22,
+              "p": 1,
+              "vel": 0.5,
+              "params": {
+                "tuning": "high",
+                "hit": "open"
+              }
+            },
+            {
+              "step": 25,
+              "p": 0.8,
+              "vel": 0.35,
+              "params": {
+                "tuning": "high",
+                "hit": "slap"
+              }
+            },
+            {
+              "step": 54,
+              "p": 1,
+              "vel": 0.5,
+              "params": {
+                "tuning": "low",
+                "hit": "open"
+              }
+            },
+            {
+              "step": 57,
+              "p": 0.8,
+              "vel": 0.4,
+              "params": {
+                "tuning": "low",
+                "hit": "open"
+              }
+            }
+          ]
+        },
+        "shaken-offbeat": {
+          "voice": "cabasa",
+          "gainDb": -13,
+          "pan": 0.3,
+          "room": 0.35,
+          "reverb": 0.2,
+          "cycleBars": 2,
+          "steps": [
+            {
+              "step": 3,
+              "p": 0.8,
+              "vel": 0.35
+            },
+            {
+              "step": 7,
+              "p": 1,
+              "vel": 0.55
+            },
+            {
+              "step": 15,
+              "p": 1,
+              "vel": 0.5
+            },
+            {
+              "step": 19,
+              "p": 0.8,
+              "vel": 0.35
+            },
+            {
+              "step": 23,
+              "p": 1,
+              "vel": 0.55
+            },
+            {
+              "step": 29,
+              "p": 0.6,
+              "vel": 0.3
+            }
+          ]
+        },
+        "rim-pair": {
+          "voice": "rimshot",
+          "gainDb": -8,
+          "pan": -0.2,
+          "room": 0.35,
+          "reverb": 0.2,
+          "cycleBars": 2,
+          "steps": [
+            {
+              "step": 14,
+              "p": 1,
+              "vel": 0.45
+            },
+            {
+              "step": 15,
+              "p": 0.7,
+              "vel": 0.3
+            },
+            {
+              "step": 30,
+              "p": 0.6,
+              "vel": 0.4
+            }
+          ]
+        },
+        "hand-low": {
+          "voice": "conga",
+          "gainDb": -9,
+          "pan": 0.3,
+          "room": 0.3,
+          "reverb": 0.15,
+          "cycleBars": 4,
+          "steps": [
+            {
+              "step": 6,
+              "p": 1,
+              "vel": 0.45,
+              "params": {
+                "tuning": "low",
+                "hit": "open"
+              }
+            },
+            {
+              "step": 38,
+              "p": 1,
+              "vel": 0.45,
+              "params": {
+                "tuning": "low",
+                "hit": "open"
+              }
+            },
+            {
+              "step": 41,
+              "p": 0.7,
+              "vel": 0.3,
+              "params": {
+                "tuning": "high",
+                "hit": "open"
+              }
+            }
+          ]
+        }
+      },
+      "note": "Drawn once a track off its own stream (none 45, a shaken top 30 in two patterns, a rim answer 15 in two, a hand exchange 10 in two: the manual's P1-P4 prior, each family split among its patterns). It enters only where a phrase's plan says (support-change), in a full passage, for one or two phrases, and every entry has its exit; then it rests at least a phrase. Each part sits apart from the hats: the shaken top on the odd sixteenths the hats leave, an alternating accent with weaker strokes between; the rim one dry answer in the gap after the loud backbeat; the hands a call in one bar and its answer two bars later, most bars resting. Never the old sixteenths: at most a third of a cycle's steps."
+    }
+  },
+  "provenance": {
+    "round": "liquid-space",
+    "knowledge": "authored: the research manual's listening hypotheses for this checkpoint (its §3, §5 and §6), written as rows so the weights are his to move; no record's arrangement copied",
+    "note": "The manual's parallel percussion (P1, P3, P4, P5): a separate register from the hats, entry and exit by phrase."
+  }
+}

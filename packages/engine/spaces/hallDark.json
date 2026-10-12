@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "kind": "space",
+  "id": "hallDark",
+  "revision": 1,
+  "name": "Dark long hall",
+  "says": "A six-second hall that fills over 45 ms, its input lidded at 2.6 kHz and the lows under 320 Hz kept out: a big soft room.",
+  "dry": 1,
+  "trimDb": 1.6,
+  "inserts": [],
+  "sends": [
+    {
+      "id": "hall",
+      "level": 0.58,
+      "effect": "reverb",
+      "params": {
+        "mode": 1,
+        "decaySeconds": 6,
+        "predelayMs": 45,
+        "lowCutHz": 320,
+        "dampHz": 2600,
+        "level": 2,
+        "mix": 1
+      }
+    }
+  ],
+  "provenance": {
+    "module": "effects/space.ts",
+    "round": "liquid-keys",
+    "note": "Self-written for the keys lab: a candidate for his pick, read by no part yet."
+  }
+}

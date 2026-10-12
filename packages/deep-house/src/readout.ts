@@ -29,6 +29,8 @@ interface ReadoutInputs {
   shaped: { trace: ShapeTrace } | null;
   bassDevelopment: ShapePolicy['bass'] | null;
   composition: Composition | null;
+  /** the library row a set's turn drew (round GA1), named in the composition's trace; null off a turn */
+  turnRow?: { id: string; scope: string } | null;
   preset: string;
   density: string;
   slow: boolean;
@@ -60,14 +62,14 @@ interface ReadoutInputs {
   progression: Progression;
 }
 
-export function readout({ form, development, refused, bars, shaped, bassDevelopment, composition, preset, density, slow, chordRoot,
+export function readout({ form, development, refused, bars, shaped, bassDevelopment, composition, turnRow = null, preset, density, slow, chordRoot,
   scaleName, voicingStyle, CAT, leadTimbre, padTimbre, stabTimbre, UPPER, UPPERS, DERIVED, breakRow, MOTIF, ACCOMPANIMENT_BASS,
   ownFigure, pianoRole, fx, bassTemplate, parts, rhythm, rhythmMotion, rhythmPolicy, rhythmWithheld, stabTemplate, hatTemplate, progression }: ReadoutInputs): ThemeDice {
   return {
     ...(form ? { development, developmentBars: bars, developmentLimit: form.maxSectionBars } : {}),
     ...(refused ? { developmentRefused: development } : {}),
     ...(shaped ? {developmentShape:JSON.stringify(shaped.trace), ...(bassDevelopment ? {bassDevelopment:JSON.stringify(bassDevelopment)} : {})} : {}),
-    ...(composition ? {composition:JSON.stringify(composition.trace)} : {}),
+    ...(composition ? {composition:JSON.stringify(turnRow ? { ...composition.trace, library: { id: turnRow.id, scope: turnRow.scope } } : composition.trace)} : {}),
     // Air or sustain, and what holds (composition.ts `textureOf`); and the
     // theme's one foreground, which is why a hand row, a struck sixteenth or a
     // glass stab was or was not drawn beside the drone.
@@ -97,7 +99,7 @@ export function readout({ form, development, refused, bars, shaped, bassDevelopm
     // Derive-lite's two, present only where the derived state really moved
     // this theme: a spread of nothing is the object the record has always
     // hashed, which is why the house's own digests do not see them.
-    ...(DERIVED && DERIVED.tempoFamily !== 'house' ? { band: DERIVED.tempoFamily } : {}),
+    ...(DERIVED && DERIVED.tempoBand !== 'steady' ? { band: DERIVED.tempoBand } : {}),
     ...(breakRow ? { breakMask: breakRow.name } : {}),
     // The theme, where this track has one. Absent on every track that does
     // not, so the object the record has always hashed is the one it hashes.

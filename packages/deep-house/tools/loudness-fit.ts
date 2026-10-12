@@ -8,7 +8,13 @@
 //   node tools/loudness-fit.ts --limiter     what the master's limiter does at the trim
 //   node tools/loudness-fit.ts               --measure then --fit
 //
-//   node tools/loudness-fit.ts --strategy house-v2 --measure --fit --bless
+//   node tools/loudness-fit.ts --strategy house-v2 --site tmp/site --measure     (six pages; --pages 1 to be polite)
+//   node tools/loudness-fit.ts --strategy house-v2 --site tmp/site --after
+//   node tools/loudness-fit.ts --strategy house-v2 --fit --bless
+//
+// A refit is all three, in that order: the slope is read off an after pass of
+// *this* measurement and no other, and a `--measure --fit` alone keeps the
+// style's slopes and says so.
 //   node tools/loudness-fit.ts --strategy house-v2 --site tmp/k6/site
 //
 // ## Per style, since round K6
@@ -70,10 +76,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { planTheme } from '../src/mix.ts';
 import { parseSpell } from '../src/spell.ts';
-import { trimWindow, loudnessFeatures, LOUDNESS_COLUMNS } from '../src/loudness.ts';
+import { trimWindow, loudnessFeatures, loudnessFamily, LOUDNESS_COLUMNS } from '../src/loudness.ts';
 import { levelKeyOfRole } from '@deep-house/engine/voices';
 import { playwright, launchOptions, bodyOf } from '@deep-house/engine/harness';
 
@@ -98,12 +105,35 @@ const has = (k) => process.argv.includes(`--${k}`);
 const STRATEGY = arg('strategy', null);
 // `--spell` measures under a spell (the benchmark's, say) into files of its
 // own: the fit is the house's, and this is how far it reads off elsewhere.
-const SPELL = arg('spell', null) ? parseSpell(arg('spell', null)) : null;
-const TAG = (STRATEGY && STRATEGY !== 'house-v1' ? `-${STRATEGY}` : '') + (SPELL ? '-spell' : '');
+// `--tag` names those files, so two spells measured for the fit (below) do
+// not write over each other: `--spell <the drone's> --tag drone` writes
+// `loudness-fit-house-v2-drone.json`.
+const SPELL_TEXT = arg('spell', null);
+const SPELL = SPELL_TEXT ? parseSpell(SPELL_TEXT) : null;
+const TAG = (STRATEGY && STRATEGY !== 'house-v1' ? `-${STRATEGY}` : '') + (SPELL ? `-${arg('tag', 'spell')}` : '');
+const TAG_OF = (tag) => (STRATEGY && STRATEGY !== 'house-v1' ? `-${STRATEGY}` : '') + `-${tag}`;
 const OPTS = { ...(STRATEGY ? { strategy: STRATEGY } : {}), ...(SPELL ? { spell: SPELL } : {}) };
 const DATA = path.join(OUT_DIR, `loudness-fit${TAG}.json`);
 const AFTER = path.join(OUT_DIR, `loudness-fit${TAG}-after.json`);
 const REPORT = path.join(OUT_DIR, `loudness-fit${TAG}.md`);
+// Which measurement a file of rows is: every theme, its window and what it
+// metered there. `--after` stamps the measurement it re-rendered with this, and
+// `--fit` reads an after pass only when the stamp is the measurement it is
+// fitting. Without it a `--measure --fit` regressed today's renders against
+// whatever `-after.json` an earlier build had left in tmp/ — on 10-01 one from
+// 09-19, other windows and another EQ, which read as a master that gives back
+// 0.15 dB per dB with a 1.8 dB residual (round N1).
+const measurementOf = (data) => createHash('sha1').update(data.rows.map((r) => `${r.masterSeed}#${r.theme}@${r.fromBar}:${r.lufs}`).join(' ')).digest('hex').slice(0, 12);
+// The after pass, if there is one and it is of this measurement; otherwise
+// null, and a line saying why it was left out.
+function afterOf(before) {
+  if (!fs.existsSync(AFTER)) return null;
+  const af = JSON.parse(fs.readFileSync(AFTER, 'utf8'));
+  const want = measurementOf(before);
+  if (af.of === want) return af;
+  console.log(`${path.relative(ROOT, AFTER)} (${af.measuredAt}) is ${af.of ? `of measurement ${af.of}` : 'of no stated measurement'} and this one is ${want}: not read; run --after on this build for the slope`);
+  return null;
+}
 // Where a blessed block is written. The record's own is in the style file with
 // the prose that produced it; a second strategy's is a JSON file beside the
 // style, for the reason `deep-house-signatures.json` is one — nothing in it was
@@ -114,6 +144,7 @@ const BLOCK = (styleId) => path.join(ROOT, 'packages', 'deep-house', 'src', 'sty
 // must not start a browser.
 const CLI = !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
+const WITHOUT = (arg('without', '') || '').split(',').filter(Boolean);
 const SEED_FROM = +arg('from', 1);
 const SEED_TO = +arg('to', 40);
 const THEMES = +arg('themes', 3);
@@ -121,12 +152,16 @@ const WINDOW_BARS = +arg('bars', 8);
 const PREROLL_BARS = 2;
 const TAIL_SECONDS = 1.5;
 const RATE = 48000;
-// One page, one render at a time, and the browser reniced to the bottom of the
-// queue the moment it is up. This runs on the machine somebody is listening on:
-// five pages rendering at once put five cores at a hundred per cent and cooked
-// it. A hundred and twenty themes at two to four seconds each is six or seven
-// minutes of one background core, which is a cost nobody notices.
-const PAGES = +arg('pages', 1);
+// Six pages rendering at once, every one reniced to the bottom of the queue the
+// moment it is up. One page was the rule from 09-17, when five pages at a
+// hundred per cent each cooked the machine under an agent's tests; by 10-03 a
+// window took nine to fifteen seconds and a refit of six passes ran eighty
+// minutes on one background core. Eugene, 10-04: *"I don't mind it at fifty
+// or sixty per cent of the CPU to cut the time four times or more"* -- six of
+// eighteen cores, under nice 18 so his own work keeps the priority, and the
+// number lives here rather than in a memory so it is never forgotten.
+// `--pages 1` is the polite run for a machine somebody is listening on.
+const PAGES = +arg('pages', 6);
 const NICE = +arg('nice', 18);
 const SITE = arg('site', 'docs');
 // `--after` and `--limiter` are the passes that render with the trim in the
@@ -156,9 +191,16 @@ const PRE_LIMITER = LIMITER || has('measure') || has('after') || (!has('fit') &&
 //
 // Three sets of numbers come off that:
 //
-//   the headroom a trim may use: the record's ninetieth percentile, rounded —
-//   a tenth of the blocks and 8 dB. The headroom model is fitted to it, so a
-//   theme is only ever trimmed up to where the record's busier themes sit;
+//   the headroom a trim may use: 15 % of the blocks and 8 dB. It was the
+//   record's ninetieth percentile, rounded — a tenth of the blocks — until
+//   10-03 (round LOUD-1), when the share went to 15 % so the house's mains
+//   stand at the deep house sets' level (they measured -13.9 LUFS) rather
+//   than a decibel under it: the tenth bound 86 of 120 measured windows on the
+//   sustained sub, bass and pads between the kicks, and held the median window
+//   at about -14.1 (round EQ-6 §2). It is over the record's ninetieth
+//   percentile (11.9 %) and under the line below. The headroom model is
+//   fitted to it, so a theme is only ever trimmed up to where the record's
+//   busiest themes sit;
 //
 //   the line no theme may cross, which is what `--limiter` fails a theme for:
 //   a fifth of the blocks or 10 dB, under what was heard as pumping and over
@@ -166,7 +208,7 @@ const PRE_LIMITER = LIMITER || has('measure') || has('after') || (!has('fit') &&
 //
 //   the sweep as a whole: its median and ninetieth percentile of both, no
 //   higher than the record's own.
-const HEADROOM_ACTIVE = 10;
+const HEADROOM_ACTIVE = 15;
 const HEADROOM_DEEPEST = 8;
 const LIMITER_ACTIVE_MAX = 20;
 const LIMITER_DEEPEST_MAX = 10;
@@ -201,11 +243,18 @@ export function headroomOf(limiter) {
 // main for house-v1, which is what it always was, and for a style whose model
 // says `window: 'loudest'` the main window the fit reads loudest, so what is
 // measured is the passage the trim has to be right for.
+//
+// A theme with no main is fitted at its loudest drop (round LOUD-1,
+// `trimWindow`), so under a spell whose forms have none (the Dubstep place's)
+// eight bars that are all one drop earn a row the same way.
 export function sampleWindow(track) {
   const w = trimWindow(track, track.style);
   if (w.bars !== track.style.loudness.windowBars) return null;
+  const noMain = !((track.arrangement && track.arrangement.sections) || []).some((s) => s.kind === 'main');
+  const kind = track.timeline[w.from] && track.timeline[w.from].section;
+  if (kind !== 'main groove' && !(noMain && kind === 'drop')) return null;
   for (let b = w.from; b < w.from + w.bars; b++) {
-    if (!track.timeline[b] || track.timeline[b].section !== 'main groove') return null;
+    if (!track.timeline[b] || track.timeline[b].section !== kind) return null;
   }
   return w.from;
 }
@@ -498,7 +547,13 @@ function pool(rows, { instruments = false } = {}) {
     roomGrowl: (r) => (r.preset === 'growl' ? 1 : 0),
     roomSub: (r) => (r.preset === 'sub' ? 1 : 0),
   } : {};
+  // `--exclude a,b` keeps columns out of both pools: a column the sample
+  // never moves far enough to teach (a kick's share, when every measured
+  // window has one) can still be chosen and then read wildly off a theme it
+  // never saw (round EQ-5: the held drone, which has no kick).
+  const EXCLUDE = new Set((arg('exclude', '') || '').split(',').filter(Boolean));
   for (const name of [...Object.keys(LOUDNESS_COLUMNS), ...Object.keys(extra)]) {
+    if (EXCLUDE.has(name)) continue;
     const f = LOUDNESS_COLUMNS[name] || extra[name];
     const xs = rows.map(f);
     const binary = xs.every((x) => x === 0 || x === 1);
@@ -577,6 +632,10 @@ function crossVal(rows, y, names, cand, folds = 5) {
 export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey = 'lufs' } = {}) {
   const y = rows.map((r) => r[yKey]);
   const cand = pool(rows, { instruments });
+  // `--without a,b` keeps columns out of the selection (round DNB-4: the bass's
+  // note rate, which read a switch-up's doubled line at the fast broken place
+  // as two decibels louder than it measured, through a compressed bass).
+  for (const n of WITHOUT) delete cand[n];
   const names = [];
   let best = crossVal(rows, y, names, cand);
   for (;;) {
@@ -769,8 +828,6 @@ if (CLI && LIMITER) {
   const pct = (k, p) => { const x = sweep.map((r) => r[k]).sort((a, b) => a - b); return x[Math.min(x.length - 1, Math.floor(x.length * p))]; };
   const got = { activeMedian: pct('active', 0.5), activeP90: pct('active', 0.9), deepestMedian: pct('deepest', 0.5), deepestP90: pct('deepest', 0.9) };
   console.log(`  the sweep of ${sweep.length}: active median ${got.activeMedian} % (record ${RECORD.activeMedian}), p90 ${got.activeP90} % (record ${RECORD.activeP90}); deepest median ${got.deepestMedian} dB (record ${RECORD.deepestMedian}), p90 ${got.deepestP90} dB (record ${RECORD.deepestP90})`);
-  // The record is the reference and is not held to a line drawn from it.
-  if (!STRATEGY || STRATEGY === 'house-v1') { console.log('house-v1 is the record the line is drawn from: read, not gated'); process.exit(0); }
   // A failing window that carries a drive on a harmonic lane says so: the
   // stage's overdrive treatment puts the pad eight LU up under it (seed 20 bars
   // 8-16, 09-22), which the plan the trim is fitted on cannot see, so the line
@@ -801,7 +858,10 @@ if (CLI && (has('measure') || has('after') || (!has('fit') && !has('ab')))) {
   fs.writeFileSync(file, JSON.stringify({
     note: 'One row per theme: eight bars of its main groove, rendered offline in headless Chromium through the real graph and metered, with everything the plan knew about it before a node was built.',
     measuredAt: new Date().toISOString().slice(0, 10),
+    // The measurement these are the same windows of, with the trim in.
+    ...(has('after') ? { of: measurementOf(JSON.parse(fs.readFileSync(DATA, 'utf8'))) } : {}),
     seeds: [SEED_FROM, SEED_TO], themes: THEMES, windowBars: WINDOW_BARS, prerollBars: PREROLL_BARS, sampleRate: RATE,
+    ...(SPELL_TEXT ? { spell: SPELL_TEXT } : {}),
     rows,
   }, null, 1) + '\n');
   if (!rows.length) {
@@ -820,12 +880,35 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   // seed rather than read out of a file written by an older definition of it.
   // A measurement therefore never has to be repeated because a column was
   // renamed, and a fit is always over today's arithmetic.
-  const rows = before.rows.map((r) => ({
-    ...featuresOf(planTheme(String(r.masterSeed), r.theme, OPTS), { from: r.fromBar, bars: before.windowBars }),
-    masterSeed: r.masterSeed, theme: r.theme, fromBar: r.fromBar,
+  const rowsOf = (data, opts, spell, family) => data.rows.map((r) => ({
+    ...featuresOf(planTheme(String(r.masterSeed), r.theme, opts), { from: r.fromBar, bars: data.windowBars }),
+    masterSeed: r.masterSeed, theme: r.theme, fromBar: r.fromBar, spell, family,
     lufs: r.lufs, truePeak: r.truePeak, peak: r.peak,
     headroom: headroomOf(r.limiter),
   }));
+  // **The model's reach** (round LOUD-1). `--with drone,dubstep` reads the rows
+  // of measurements made under a spell (`--spell … --tag drone --measure`),
+  // each planned again under the spell it was measured at, and fits **a model
+  // of its own for each family of windows the house's sample never held**
+  // (`loudnessFamily` in src/loudness.ts: `drumless`, a window with no kick in
+  // it; `drop`, the loudest drop of a form with no main). A fit taught on
+  // house mains alone read both far outside what it was fitted on: the held
+  // drone's first theme went to the +6 clamp and the Dubstep theme from -6 to
+  // +3.5 (round EQ-6 §3). One fit over all three was tried and costs the house:
+  // its own residual went from 0.73 to 0.89 LU and its loudest-window choice
+  // with it, s29 theme 2 cut 2.7 dB from a main measured at -12.7. So the
+  // house's model is fitted on the house's rows as it always was, and each
+  // family on its own. The slopes, the target, the clamps and the margin stay
+  // the house's: the after pass is of the house's own measurement.
+  const WITH = (arg('with', '') || '').split(',').filter(Boolean).map((tag) => {
+    const file = path.join(OUT_DIR, `loudness-fit${TAG_OF(tag)}.json`);
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!data.spell) throw new Error(`${path.relative(ROOT, file)} names no spell: measure it with --spell … --tag ${tag}`);
+    return { tag, data, rows: rowsOf(data, { ...OPTS, spell: parseSpell(data.spell) }, data.spell, tag) };
+  });
+  const allRows = [...rowsOf(before, OPTS, SPELL_TEXT || null, 'house'), ...WITH.flatMap((w) => w.rows)];
+  const famOf = (r) => (WITH.length ? loudnessFamily(r) : 'house');
+  const rows = allRows.filter((r) => famOf(r) === 'house');
   const m = fit(rows, { max: +arg('max', 16) });
   // The headroom model, where the measurement read the limiter: the same
   // columns, the same selection, fitted on how far each measured window could be
@@ -834,12 +917,25 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   // says otherwise.
   const hRows = rows.filter((r) => Number.isFinite(r.headroom));
   const hm = hRows.length >= 40 ? fit(hRows, { max: +arg('max', 16), y: 'headroom' }) : null;
+  // The families' own models: the same selection on each family's rows.
+  const FAMILIES = {};
+  for (const name of ['drumless', 'drop', 'placed']) {
+    const fr = allRows.filter((r) => famOf(r) === name);
+    if (!fr.length) continue;
+    if (fr.length < 40) { console.log(`  ${name}: ${fr.length} rows, too few for a model of its own; the house's reads them`); continue; }
+    const fh = fr.filter((r) => Number.isFinite(r.headroom));
+    FAMILIES[name] = { rows: fr, m: fit(fr, { max: +arg('max', 16) }), hm: hm && fh.length >= 40 ? fit(fh, { max: +arg('max', 16), y: 'headroom' }) : null,
+      tags: [...new Set(fr.map((r) => r.family))] };
+  }
   // The margin: a decibel, about two thirds of the model's cross-validated
   // error at the 09-22 refit (1.46 dB). Against no headroom at all, the whole
   // residual cost the median measured theme 0.5 LU of loudness; a decibel costs
   // it 0.3 and, in sample, keeps every one of the 120 windows under the gate's
-  // line, where none left 4 of them over it.
-  const MARGIN = hm ? +(+arg('margin', 1)).toFixed(2) : 0;
+  // line, where none left 4 of them over it. A decibel and a half since LOUD-1
+  // (10-03): at the 15 % share a decibel left one house window in eight with the
+  // limiter past 15 % of its blocks and eleven of 117 past 20 %; the half back
+  // costs the median main about 0.3 LU and lands it at the sets' level still.
+  const MARGIN = hm ? +(+arg('margin', 1.5)).toFixed(2) : 0;
   // The same rows, the same selection, with a coefficient per instrument and
   // per room allowed as well. It is not written anywhere: it is the number the
   // property fit has to beat to be worth having.
@@ -868,8 +964,9 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   // not 1: a refit of the coefficients does not change what the master gives
   // back, and a slope of 1 would under-trim every theme until `--after` ran.
   let slopeUp = M0.slopeUp || 1, slopeDown = M0.slopeDown || 1, slopeFit = null;
-  if (fs.existsSync(AFTER)) {
-    const af = JSON.parse(fs.readFileSync(AFTER, 'utf8'));
+  const afterPass = afterOf(before);
+  if (afterPass) {
+    const af = afterPass;
     const key = (r) => `${r.masterSeed}#${r.theme}`;
     const was = new Map(before.rows.map((r) => [key(r), r.lufs]));
     const pts = [];
@@ -897,9 +994,11 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   const slopeFor = (d) => (d >= 0 ? slopeUp : slopeDown);
   const hCand = hm ? pool(hRows) : null;
   const room = (r) => (hm ? hm.intercept + hm.names.reduce((a, n) => a + hm.coef[n] * (hCand[n].f(r) - hm.centre[n]), 0) - MARGIN : Infinity);
+  // The style's narrower lift for a window with no kick (`loudnessTrimDb`).
+  const upFor = (r) => ((r.share_kick ?? 1) > 0 || M0.clampUpNoKickDb == null ? CLAMP : Math.min(CLAMP, M0.clampUpNoKickDb));
   const trims = rows.map((r) => {
     const need = TARGET - predict(r);
-    return Math.max(-CLAMP, Math.min(CLAMP, need / slopeFor(need), room(r)));
+    return Math.max(-CLAMP, Math.min(upFor(r), need / slopeFor(need), room(r)));
   });
   const after = rows.map((r, i) => r.lufs + trims[i] * slopeFor(trims[i]));
   const a = stats(after);
@@ -965,7 +1064,7 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
     lines.push('');
     lines.push('The trim is divided by the one that applies to its direction, so what the meter sees is the decibel that was wanted. One slope in the middle over-trims everything quiet and under-trims everything loud, which is what put seed 38 theme 2 a decibel and a half under its neighbours in the first montage.');
   } else {
-    lines.push('Not measured yet: run `node tools/loudness-fit.ts --after` with the trim in the build, and the slope appears here.');
+    lines.push(`Not measured on this measurement: the style's own slopes are kept (${slopeUp} up, ${slopeDown} down). Run \`node tools/loudness-fit.ts --after\` with the trim in the build, and the slope appears here.`);
   }
   lines.push('');
   if (hm) {
@@ -994,11 +1093,11 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   lines.push('');
   lines.push(`The trim itself runs ${t.min.toFixed(2)} to ${t.max.toFixed(2)} dB, mean ${t.mean.toFixed(2)}; ${trims.filter((x) => Math.abs(x) >= CLAMP - 1e-9).length} themes are on the clamp.`);
   lines.push('');
-  if (fs.existsSync(AFTER)) {
-    const af = JSON.parse(fs.readFileSync(AFTER, 'utf8'));
+  if (afterPass) {
+    const af = afterPass;
     const key = (r) => `${r.masterSeed}#${r.theme}`;
     const byKey = new Map(af.rows.map((r) => [key(r), r]));
-    const pairs = rows.filter((r) => byKey.has(key(r))).map((r) => ({ r, after: byKey.get(key(r)) }));
+    const pairs = rows.filter((r) => r.family === 'house' && byKey.has(key(r))).map((r) => ({ r, after: byKey.get(key(r)) }));
     if (pairs.length) {
       const ms = stats(pairs.map((p) => p.after.lufs));
       lines.push('## After, measured');
@@ -1031,11 +1130,23 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   // Nothing in a style is typed, and a loudness model least of all: fifty
   // features, ten coefficients and two slopes are numbers nobody can check by
   // reading them. `--bless` writes the block; the style imports it.
+  //
+  // One thing in it is not the fit's (round LOUD-2): a family's own
+  // `targetLufs`, set by hand in the blessed file, is a level asked for and not
+  // a number a render produced, so a refit carries it over rather than
+  // dropping it, and the note says so.
+  const priorFile = BLOCK(planTheme('1', 0, OPTS).style.id);
+  const prior = fs.existsSync(priorFile) ? JSON.parse(fs.readFileSync(priorFile, 'utf8')) : null;
+  const handTargets = Object.fromEntries(Object.entries(prior?.families ?? {})
+    .filter(([name, F]) => FAMILIES[name] && Number.isFinite((F as { targetLufs?: number }).targetLufs))
+    .map(([name, F]) => [name, (F as { targetLufs: number }).targetLufs]));
   const block = {
-    note: 'Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it.',
+    note: 'Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it.'
+      + (Object.keys(handTargets).length ? ` Except, by hand and carried over from the blessed file: ${Object.entries(handTargets).map(([k, v]) => `families.${k}.targetLufs ${v}`).join(', ')} (round LOUD-2: a family's own target in place of the block's).` : ''),
     measuredAt: new Date().toISOString().slice(0, 10),
     strategy: STRATEGY || 'house-v1',
-    sample: { seeds: before.seeds, themes: before.themes, n: rows.length, windowBars: before.windowBars, sampleRate: before.sampleRate },
+    sample: { seeds: before.seeds, themes: before.themes, n: rows.length, windowBars: before.windowBars, sampleRate: before.sampleRate,
+      ...(WITH.length ? { with: WITH.map((w) => ({ tag: w.tag, spell: w.data.spell, seeds: w.data.seeds, themes: w.data.themes, n: w.rows.length })) } : {}) },
     residual: { r2: m.r2, inSample: m.rmse, crossValidated: m.cv, worstHeldOut: m.cvWorst },
     targetLufs: TARGET,
     clampDb: CLAMP,
@@ -1053,6 +1164,20 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
       coef: Object.fromEntries(hm.names.map((n) => [n, hm.coef[n]])),
       centre: Object.fromEntries(hm.names.map((n) => [n, hm.centre[n]])),
     } } : {}),
+    ...(Object.keys(FAMILIES).length ? { families: Object.fromEntries(Object.entries(FAMILIES).map(([name, F]) => [name, {
+      ...(name in handTargets ? { targetLufs: handTargets[name] } : {}),
+      sample: { from: F.tags, n: F.rows.length },
+      residual: { r2: F.m.r2, inSample: F.m.rmse, crossValidated: F.m.cv, worstHeldOut: F.m.cvWorst },
+      intercept: F.m.intercept,
+      coef: Object.fromEntries(F.m.names.map((n) => [n, F.m.coef[n]])),
+      centre: Object.fromEntries(F.m.names.map((n) => [n, F.m.centre[n]])),
+      ...(F.hm ? { headroom: {
+        residual: { r2: F.hm.r2, inSample: F.hm.rmse, crossValidated: F.hm.cv, worstHeldOut: F.hm.cvWorst, n: F.hm.n },
+        intercept: F.hm.intercept,
+        coef: Object.fromEntries(F.hm.names.map((n) => [n, F.hm.coef[n]])),
+        centre: Object.fromEntries(F.hm.names.map((n) => [n, F.hm.centre[n]])),
+      } } : {}),
+    }])) } : {}),
   };
   // The file is named after the **style** and not after the strategy, because a
   // loudness model belongs to a palette and a palette is a style: it sits beside
@@ -1061,6 +1186,14 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   if (has('bless')) {
     fs.writeFileSync(blockFile, `${JSON.stringify(block, null, 2)}\n`);
     console.log(`blessed ${path.relative(ROOT, blockFile)}`);
+  } else {
+    // Unblessed, the whole block -- the headroom model with it, which the
+    // report's table below leaves out -- goes beside the report in the lab, so
+    // a round can read what a bless would write, and build a site on it,
+    // without the style's file moving (round EQ-5).
+    const draft = path.join(OUT_DIR, `loudness-fit${TAG}-block.json`);
+    fs.writeFileSync(draft, `${JSON.stringify(block, null, 2)}\n`);
+    console.log(`not blessed: the block a bless would write is in ${path.relative(ROOT, draft)}`);
   }
   lines.push(`## The \`loudness\` block${has('bless') ? ` — written to ${path.relative(ROOT, blockFile)}` : ''}`);
   lines.push('');
@@ -1089,13 +1222,31 @@ if (CLI && (has('fit') || (!has('measure') && !has('after') && !has('ab')))) {
   console.log(`before: ${b.min.toFixed(2)} .. ${b.max.toFixed(2)} LUFS, sd ${b.sd.toFixed(3)}, spread ${(b.max - b.min).toFixed(2)} LU`);
   console.log(slopeFit
     ? `master gives back ${slopeFit.up.s} dB per dB going up (${slopeFit.up.n}, residual ${slopeFit.up.rms}) and ${slopeFit.down.s} coming down (${slopeFit.down.n}, residual ${slopeFit.down.rms}); one slope for both would be ${slopeFit.both.s} at ${slopeFit.both.rms}`
-    : 'master slope not measured: run --after with the trim in the build');
+    : `master slope not measured on this measurement: the style's ${slopeUp} up and ${slopeDown} down are kept; run --after with the trim in the build`);
   if (hm) {
     const hs = stats(hRows.map((r) => r.headroom));
     console.log(`headroom (${hm.names.length}): ${hm.names.join(', ')}`);
     console.log(`  measured ${hs.min.toFixed(2)} .. ${hs.max.toFixed(2)} dB, mean ${hs.mean.toFixed(2)}; R2 ${hm.r2}  in-sample ${hm.rmse} dB  cross-validated ${hm.cv} dB  worst held out ${hm.cvWorst} dB; margin ${MARGIN} dB; ${trims.filter((t, i) => room(rows[i]) < Math.min(CLAMP, (TARGET - predict(rows[i])) / slopeFor(TARGET - predict(rows[i])))).length} of ${rows.length} trims held by it`);
   }
   console.log(`after (predicted): ${a.min.toFixed(2)} .. ${a.max.toFixed(2)} LUFS, sd ${a.sd.toFixed(3)}, spread ${(a.max - a.min).toFixed(2)} LU`);
+  // ...and each family on its own: what its model reads there against what was
+  // measured, and the trims it would hand those windows.
+  const evalM = (M, r) => M.intercept + Object.keys(M.coef).reduce((acc, n) => acc + M.coef[n] * (LOUDNESS_COLUMNS[n](r) - M.centre[n]), 0);
+  const famLine = (name, fr, M, H) => {
+    const err = stats(fr.map((r) => evalM(M, r) - r.lufs));
+    const hr = fr.filter((r) => Number.isFinite(r.headroom));
+    const hErr = H ? stats(hr.map((r) => evalM(H, r) - r.headroom)) : null;
+    const tr = fr.map((r) => { const need = TARGET - evalM(M, r); return Math.max(-CLAMP, Math.min(upFor(r), need / slopeFor(need), H ? evalM(H, r) - MARGIN : Infinity)); });
+    const af = stats(fr.map((r, i) => r.lufs + tr[i] * slopeFor(tr[i])));
+    const ts = stats(tr);
+    console.log(`  ${name} (${fr.length}): loudness predicted minus measured mean ${f2(err.mean)} sd ${err.sd.toFixed(2)}${hErr ? `; headroom mean ${f2(hErr.mean)} sd ${hErr.sd.toFixed(2)}` : ''}; trims ${ts.min.toFixed(2)} .. ${ts.max.toFixed(2)} mean ${f2(ts.mean)}; after ${af.min.toFixed(2)} .. ${af.max.toFixed(2)} mean ${af.mean.toFixed(2)}`);
+  };
+  if (WITH.length) famLine('house', rows, m, hm);
+  for (const [name, F] of Object.entries(FAMILIES)) {
+    console.log(`${name} (${F.rows.length}, from ${F.tags.join(', ')}): ${F.m.names.join(', ')}; R2 ${F.m.r2} cross-validated ${F.m.cv} LU${F.hm ? `; headroom ${F.hm.names.join(', ')}; R2 ${F.hm.r2} cross-validated ${F.hm.cv} dB` : ''}`);
+    famLine(name, F.rows, F.m, F.hm);
+    for (const tag of F.tags) if (F.tags.length > 1) famLine(`  of which ${tag}`, F.rows.filter((r) => r.family === tag), F.m, F.hm);
+  }
   console.log(`wrote ${path.relative(ROOT, REPORT)}`);
   console.log('\nthe block for the style\'s loudness section:\n');
   console.log(lines.slice(lines.lastIndexOf('```js') + 1, lines.length - 2).join('\n'));

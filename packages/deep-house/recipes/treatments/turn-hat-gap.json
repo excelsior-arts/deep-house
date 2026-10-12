@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "small/turn-hat-gap",
+  "revision": 1,
+  "name": "hat gap",
+  "scope": "treatment",
+  "applies": "turnaround",
+  "origin": "mined",
+  "interpreter": "v2.25",
+  "birds": {},
+  "figure": {
+    "lanes": {
+      "offbeat": {
+        "clear": 12
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
+    "cut": "8:418+106, 8:1062+104, 8:2209+146",
+    "kind": "turnaround",
+    "reading": "hats thinned 0.9 and doubled 0.8 in 16 bars on the drops",
+    "from": "src/subsections.ts TURNAROUNDS hat gap (round DNB-1, 2026-10-02): the last beat's hats out",
+    "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
+    "moved": "round T1 (2026-10-02): the figure src/subsections.ts played since round DNB-1, written as a row; the four locks unmoved by the move"
+  }
+}

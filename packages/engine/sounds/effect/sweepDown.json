@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sweepDown",
+  "revision": 1,
+  "topology": "noise-fall",
+  "parameters": {
+    "dur": 2,
+    "topHz": 9000,
+    "toHz": 220,
+    "q": 3.5,
+    "gain": 0.5,
+    "attack": 0.01,
+    "reverb": 0.4,
+    "delay": 0.12
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "sounds-r2",
+    "module": "fx.ts",
+    "note": "A sweep falling out of a drop: noise under a resonant lid that falls from 9 kHz to 220 Hz, rising on the line in 10 ms unless the note says."
+  }
+}

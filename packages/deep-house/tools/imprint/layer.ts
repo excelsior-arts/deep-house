@@ -82,7 +82,7 @@ import { wav, ROOT, VENV, IMPRINT_PY } from './render.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ENGINE = path.join(ROOT, 'packages', 'engine');
-const ROOTS = { '/src/': path.join(ENGINE, 'src'), '/tools/': path.join(ENGINE, 'tools') };
+const ROOTS = { '/src/': path.join(ENGINE, 'src'), '/tools/': path.join(ENGINE, 'tools'), '/sounds/': path.join(ENGINE, 'sounds') };
 // Above the suites' 6977, beside the engine suite's 7023 and this round's 7045
 // and 7046, and never 6975.
 const PORT = 7047;

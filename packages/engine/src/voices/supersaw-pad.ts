@@ -35,6 +35,12 @@ import { insert } from './treat.ts';
 import { heldVoice } from './held.ts';
 import type { Descriptor, NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
+import { patchOf, provePatch, withDesk } from './sound.ts';
+import { centsOf, liveOf, side } from './live.ts';
+import type { SoundRow, Topology } from './sound.ts';
+import { contract, int, CENTS, DB, HZ, LEVEL, LFO_HZ, SECONDS, UNIT } from './schema.ts';
+import type { PatchOf } from './schema.ts';
+import type { VoiceRenderer } from './descriptor.ts';
 
 /**
  * The stack: seven saws, evenly detuned, evenly panned, with the outer voices
@@ -44,7 +50,7 @@ import type { HeldVoice } from './voice-contract.ts';
  * @param into what the stack feeds: the lowpass
  * @param S the settings' `supersawPad` block
  */
-function stack(ctx: BaseAudioContext, into: AudioNode, time: number, p: NoteParams, S: Settings['supersawPad']) {
+function stack(ctx: BaseAudioContext, into: AudioNode, time: number, p: NoteParams, S: SupersawPadPatch) {
   const hz = midiToHz(p.midi);
   const spread = (p.spread ?? S.spread) * (p.spreadMul ?? 1);
   const n = Math.max(1, Math.round(S.voices));
@@ -71,6 +77,7 @@ function stack(ctx: BaseAudioContext, into: AudioNode, time: number, p: NotePara
   level.connect(into);
   nodes.push(level);
 
+  const voices: Array<{ o: OscillatorNode; pan: StereoPannerNode; k: number }> = [];
   for (let i = 0; i < n; i++) {
     const k = n === 1 ? 0 : (i - mid) / mid; // -1..1 across the stack
     const o = ctx.createOscillator();
@@ -87,13 +94,14 @@ function stack(ctx: BaseAudioContext, into: AudioNode, time: number, p: NotePara
     o.start(time);
     sources.push(o);
     nodes.push(pan);
+    voices.push({ o, pan, k });
   }
-  return { sources, nodes };
+  return { sources, nodes, level, voices, drift, depth, hz };
 }
 
-export function supersawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+function supersawPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
   time = startTime(ctx, time); // never in the past: a step if it is
-  const S = settings.supersawPad;
+  const S = patchOf(settings, row, PARAMETERS);
   const dur = Math.max(0.3, p.dur ?? 2);
   const vel = p.vel ?? 0.8;
   const attack = Math.min(p.attack ?? S.attack, dur * 0.5);
@@ -131,6 +139,28 @@ export function supersawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, 
   const built = stack(ctx, lp, time, p, S);
   for (const s of built.sources) s.stop(end + 0.05);
 
+  // **What this chord can still take** (PLAN-DESK D1b): the corner its sweep
+  // arrives at, as a `detune` on the filter (the sweep under way kept, scaled
+  // as the note scales it), the Q, the floor, the stack's detune, spread and
+  // level against the trim it was built at, and the drift. Where the sweep
+  // starts, how long it takes and the envelope are the build's.
+  const live = liveOf(ctx);
+  if (live) {
+    const cur = { voiceLevel: S.voiceLevel, trim: S.trim };
+    const lvl = (): [AudioParam, number] => [built.level.gain, cur.voiceLevel * (S.trim > 0 ? cur.trim / S.trim : 1)];
+    live
+      .on('sweepTo', (v) => (p.sweepTo != null ? [] : [[lp.detune, centsOf(Math.min(12000, v * (p.cutoffMul ?? 1)), to)]]))
+      .on('q', (v) => [[lp.Q, v]])
+      .on('hpHz', (v) => [[hp.frequency, v]])
+      .on('detuneCents', (v) => built.voices.map(({ o, k }) => [o.detune, k * v * 0.5] as [AudioParam, number]))
+      .on('spread', (v) => (p.spread != null ? [] : built.voices.map(({ pan, k }) => [pan.pan, side(k * v * (p.spreadMul ?? 1) * (built.hz > 300 ? 1 : 0.3))] as [AudioParam, number])))
+      .on('voiceLevel', (v) => { cur.voiceLevel = v; return [lvl()]; })
+      .on('trim', (v) => { if (!(S.trim > 0)) return []; cur.trim = v; return [lvl()]; })
+      .on('driftHz', (v) => [[built.drift.frequency, v]])
+      .on('driftCents', (v) => [[built.depth.gain, v]])
+      .keep(row.id, row, settings, end + 0.05);
+  }
+
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: 1, reverb: p.reverb ?? 0.5, delay: p.delay ?? 0.1 });
   return end;
@@ -147,7 +177,8 @@ export function supersawPad(ctx: BaseAudioContext, out: VoiceOut, time: number, 
  *   tail      `settings.supersawPad.release`, stated before anybody asks.
  */
 export function holdSupersawPad(ctx: BaseAudioContext, out: VoiceOut, at: number, p: NoteParams = {}, settings: Settings): HeldVoice {
-  const S = settings.supersawPad;
+  // the held pad is the record's own `supersawPad`, the room's copy of its row
+  const S = withDesk('supersawPad', provePatch(settings.supersawPad, PARAMETERS, 'the settings\' supersawPad block', true), PARAMETERS, 'the settings\' supersawPad block', true);
   const time = startTime(ctx, at);
   const level = (p.vel ?? 0.8) * (p.gain ?? 1) * S.trim;
   const attack = p.attack ?? S.attack;
@@ -190,31 +221,49 @@ export function holdSupersawPad(ctx: BaseAudioContext, out: VoiceOut, at: number
     },
     sources: built.sources,
     nodes: built.nodes,
+    // D1b: the row's trim is this drone's level. Its corner is the row's
+    // `cutoff`, which on a note is where the sweep starts and so the next
+    // note's: the one table says so, and the drone's brightness stays its own
+    live: { voice: 'supersawPad', settings, paths: {
+      trim: (v) => [['gain', (p.vel ?? 0.8) * (p.gain ?? 1) * v]],
+    } },
   });
 }
 
-/** MEASURED by the gate (`tools/test-voices.ts --bless`). */
-export const SUPERSAW_PAD_TIMBRES = {
-  supersawPad: { family: 'harmonic', struck: false, hold: 0.7, brightnessHz: 2500, loudnessDb: -10.7 },
-};
+/** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
+const PARAMETERS = contract({
+  /** how many saws, each an oscillator: a bounded bank */
+  voices: int(1, 16),
+  detuneCents: CENTS,
+  voiceLevel: LEVEL,
+  spread: UNIT,
+  cutoff: HZ,
+  sweepTo: HZ,
+  sweepTime: SECONDS,
+  q: DB,
+  attack: SECONDS,
+  decay: SECONDS,
+  sustain: UNIT,
+  release: SECONDS,
+  hpHz: HZ,
+  driftHz: LFO_HZ,
+  driftCents: CENTS,
+  trim: LEVEL,
+});
 
-export const descriptor: Descriptor = {
-  name: 'supersawPad',
+/** What a row of this topology carries, as its contract types it. */
+export type SupersawPadPatch = PatchOf<typeof PARAMETERS.fields>;
+
+/**
+ * The supersaw pad topology: a stack of detuned saws under a sweeping
+ * filter (`sounds/ensemble/supersawPad.json` since round R2). Its held entry,
+ * `holdSupersawPad`, reads the same block.
+ */
+export const SUPERSAW_PAD: Topology = {
+  id: 'supersaw-pad',
   cost: 'dear',
-  family: 'ensemble',
-  roles: ['sustained'],
-  bus: 'melodic',
-  level: 'pad',
-  layer: 'pad',
-  plays: null,
-  mono: false,
-  treat: true,
-  anticipates: null,
-  prepare: null,
-  render: supersawPad,
-  timbres: SUPERSAW_PAD_TIMBRES,
-  dispatches: [],
-  mood: [],
+  parameters: PARAMETERS,
+  // D1b: the corner the sweep arrives at, the Q, the floor, the stack's detune, spread and level, the drift; the sweep's start and time, the envelope and the count are the build's
+  live: { sweepTo: 'hz', q: 'db', hpHz: 'hz', detuneCents: 'cents', spread: 'ratio', voiceLevel: 'level', trim: 'level', driftHz: 'hz', driftCents: 'cents' },
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => supersawPad(row, ctx, out, time, p, settings),
 };
-
-export default supersawPad;

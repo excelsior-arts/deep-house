@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "reeseWobble",
+  "revision": 4,
+  "topology": "reese",
+  "parameters": {
+    "trim": 0.52,
+    "attack": 0.008,
+    "release": 0.09,
+    "detune": 0.14,
+    "middle": 0.7,
+    "saws": 1.2,
+    "cutoffHz": 460,
+    "resonanceDb": 2,
+    "movementHz": 1.14,
+    "movementDepth": 0.12,
+    "cutoffDepth": 0.82,
+    "levelDepth": 0,
+    "sub": 2.25,
+    "sawFloor": 1.6,
+    "hpHz": 24,
+    "clip": {
+      "drive": 0.2,
+      "out": 1.3,
+      "hardness": 2.5,
+      "bend": 0.2
+    },
+    "subHarmonics": null,
+    "pair": null,
+    "entry": null,
+    "dipRecovery": 0.08
+  },
+  "descriptor": {
+    "family": "bass",
+    "roles": [
+      "bassline"
+    ],
+    "bus": "sub",
+    "level": "sub",
+    "layer": "bass",
+    "plays": null,
+    "mono": true,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "movementHz": {
+        "unit": "hz",
+        "min": 0.05,
+        "max": 8,
+        "default": 1.14
+      },
+      "movementPhase": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": null
+      },
+      "grit": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": null
+      },
+      "ride": {
+        "unit": "switch",
+        "min": 0,
+        "max": 1,
+        "default": null
+      }
+    },
+    "timbres": {
+      "reeseWobble": {
+        "family": "bass",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 460,
+        "loudnessDb": 2.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dub-1",
+    "module": "none",
+    "note": "the deep reese turned into the line that carries the low end and the wobble at once, for the deep half-time place: its sine under the saws at the deep reese's 1.2 (the weight never comes and goes with the sweep), the saws a third up (1.6 against 1.2) through a light clip in front of the filter so the open half of the sweep growls, and the corner swept from a fifth of itself to nine-fifths (480 Hz, 0.8 deep: about 100 Hz to 860) — shut, the note is the sine alone; open, the saws' second harmonic up to the low mids — with 8 dB of resonance at the corner so the sweep is heard as a vowel. The sweep's rate and where in its cycle a note starts are note controls the composer writes off the grid (`movementHz`, `movementPhase`), so the wobble runs on across the notes on the bar's own phase; a note that writes neither breathes at the row's 1.14 Hz from its own start as every reese does",
+    "notes": {
+      "loudnessDb": "MEASURED at the merge of the DUB rounds (10-04) by the voice gate (`tools/test-voices-3.ts --only reeseWobble --bless`): 2.36 at 44.1 kHz and 2.35 at 48 in Chromium, 2.28 at both in Firefox, on revision 4's numbers (the sine at 2.5, the saws at 1.2, trim 0.52); revision 1 had declared -0.4 at a trim of 0.6 with the sine at 1.2, set so the line's energy under 100 Hz was the plain sub's it replaced",
+      "movementHz": "two beats a cycle at 137 BPM, the place's middle; the composer writes the theme's own rate on every note"
+    },
+    "moved": "10-04, round DUB-2 (heard on DUB-1's links: \"the bass still doesn't sound like a bass; at best it is a low-mid wave with distortion\"): the sine leads — sub 1.2 to 2.5, the saws 1.6 to 0.8 — the sweep held under the low mids, the corner 480 to 205 Hz swept 0.8 to 0.71 of itself (about 60 to 350 Hz where it was 100 to 860: the fundamental is the sine's, beside the filter, and the movement is the saws' second to fifth harmonics with no peak over 400), the resonance 8 to 2 dB, the clip's drive 0.7 to 0.2, and a `grit` switch a note may write to take the clip out (`?bassdrive=0` at the place); the trim set so the line's energy under 100 Hz is the classic kick's it took over; 10-04, round DUB-3 (heard on DUB-2: the bass deeper and the track's charm gone with the mid-range wave): the saws 0.8 to 1.2 and the sweep's open half to about 700 Hz, the corner 205 to 380 Hz swept 0.71 to 0.82 of itself (about 70 to 690 Hz), so the wave has grain and a phone hears the line; the resonance stays 2 dB, the sine 2.5 and still the line under 100 Hz; 10-04, round DUB-4 (heard on DUB-3: the wave runs linear where the original's wobble ran across a rhythm): no number moves; a `ride` switch a note may write to play into the bass drive's side door alone, so the figure as drawn drives the copy over the held line without doubling its sub"
+  }
+}

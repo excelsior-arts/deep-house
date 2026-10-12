@@ -7,9 +7,9 @@
 //                                           of the two browser suites
 //   npm run test:engine -- --verbose        every reading, as JSON
 //
-// Three suites that share nothing: the `node --test` checks (no browser), the
-// machine's own suite (`test.ts`) and round K4's effects (`test-effects-2.ts`),
-// each in two engines. They run at once, and what each one prints is printed
+// Four suites that share nothing: the `node --test` checks (no browser), the
+// machine's own suite (`test.ts`), round K4's effects (`test-effects-2.ts`) and
+// round KV1's voices (`test-voices-3.ts`), each in two engines. They run at once, and what each one prints is printed
 // whole and in that order once the ones before it have finished, so the log
 // reads the way the serial one does (the suites' round of 09-24). Every
 // argument but `--jobs 1` is handed to the two browser suites as it is.
@@ -36,11 +36,15 @@ const at = passed.indexOf('--jobs');
 const SERIAL = Number(at >= 0 ? passed[at + 1] : process.env.DEEP_HOUSE_JOBS) === 1;
 
 const CHECKS = ['check-piano', 'check-envelopes', 'check-membranes', 'check-duck', 'check-automation',
-  'check-render-cache', 'check-lifecycle', 'check-clock-worker', 'check-stage'].map((n) => path.join(HERE, `${n}.ts`));
+  'check-render-cache', 'check-ramp', 'check-sounds', 'check-lifecycle', 'check-clock-worker', 'check-stage',
+  'check-output-envelope', 'check-reese-motion', 'check-reese-body', 'check-contour-time'].map((n) => path.join(HERE, `${n}.ts`));
 const suites: Array<{ name: string; args: string[]; browser: boolean }> = [
   { name: 'the node checks', args: ['--test', ...CHECKS], browser: false },
   { name: 'tools/test.ts', args: [path.join(HERE, 'test.ts'), ...passed], browser: true },
   { name: 'tools/test-effects-2.ts', args: [path.join(HERE, 'test-effects-2.ts'), ...passed], browser: true },
+  // Round KV1's voices, each against its declared loudness and read back for
+  // what it claims to be (its pitch, its envelope, its spectrum).
+  { name: 'tools/test-voices-3.ts', args: [path.join(HERE, 'test-voices-3.ts'), ...passed.filter((a, i, all) => a !== '--jobs' && all[i - 1] !== '--jobs')], browser: true },
 ];
 
 const group = SERIAL ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'deep-house-lanes-'));

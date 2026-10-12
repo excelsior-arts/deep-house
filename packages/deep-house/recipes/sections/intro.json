@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "sections/intro",
+  "revision": 1,
+  "name": "intro",
+  "scope": "section",
+  "applies": "intro",
+  "origin": "golden",
+  "interpreter": "v2.25",
+  "birds": {},
+  "section": {
+    "floor": 4,
+    "phrases": [
+      {
+        "at": "last",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "pad"
+        ]
+      },
+      {
+        "at": "first",
+        "on": [
+          "kick",
+          "hatClosed"
+        ]
+      },
+      {
+        "at": "rest",
+        "on": [
+          "kick",
+          "hatClosed",
+          "hatOpen",
+          "clap",
+          "pad"
+        ]
+      }
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "the record: src/styles/deep-house.ts sections.kinds, the section grammar of rounds F and S6",
+    "kind": "section",
+    "reading": "the kick and the closed hat for the first phrase, the open hat, the backbeat and the pad from the second; an intro of one phrase opens full; it takes no small thing",
+    "from": "src/styles/deep-house.ts sections.kinds.intro (round F of PLAN-V1-NEXT): the layer pattern by phrase, the floor of SECTION_TIME (round L3), the placements src/subsections.ts gave the kind (round DNB-1), the glue flags",
+    "knowledge": "the record: the layer pattern the section grammar carried since round F of PLAN-V1-NEXT, measured over the reference sets; nothing sampled, no audio copied",
+    "moved": "round T2 (2026-10-02): the layer pattern src/styles/deep-house.ts sections.kinds carried since round F, written as a row; the four locks unmoved by the move"
+  }
+}

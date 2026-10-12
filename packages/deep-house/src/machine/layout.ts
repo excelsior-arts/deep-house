@@ -177,6 +177,12 @@ export interface Layout {
   trunks: Trunk[];
   /** the arrivals several wires into one face of one box join into */
   joins: Join[];
+  /**
+   * **How many lanes each channel's wires ask for** (VIEW-STILL): `m`, `sr`,
+   * `rail`, `under`, `bottom` and each gutter `g<i>`, a trunk counted once,
+   * before any reserve — what `tools/measure-lanes.ts` reads.
+   */
+  lanes: Record<string, number>;
 }
 
 /** How much room the canvas has, in pixels. Nought means: draw it at its own size. */
@@ -218,7 +224,12 @@ export const SOURCE_GAP = SPACE.hair;
 export const KEY_W = KEY.w;
 export const KEY_H = KEY.h;
 export const KEY_GAP = SPACE.s;
-export const LEVEL_W = 36;
+/**
+ * The level key (DESK-UX1): a device glyph 7 wide at its left and `100 %` at
+ * its right, each 4 in from its edge, 2.5 between — 4 + 7 + 2.5 + five
+ * characters of the key's 9.5 px face (28.5) + 4. It was 36, for `100` alone.
+ */
+export const LEVEL_W = 46;
 export const KEY_INSET = (SOURCE_H - KEY_H) / 2;
 export const SOURCE_KEYS_W = KEY_INSET + KEY_W * 2 + LEVEL_W + KEY_GAP * 2;
 /** the room a source's words have on one line, and what they take: the face is monospaced */
@@ -243,6 +254,45 @@ export const EFFECTS_ROWS = 6;
  * come and go, 8 to 12 a theme; house-v1 is always 8), and two more to spare.
  */
 export const RAIL_LANES = 14;
+/**
+ * **Every channel the wires size keeps a reserve through a set** (VIEW-STILL,
+ * Eugene, 10-05: *"the dynamic lane inserts are pushing the rest of the layout
+ * … the screen shakes back and forward through the track as lane inserts come
+ * and go quickly. We need to reserve space for potential lane inserts' graph
+ * lines"*). A channel is as wide as the lanes its wires ask for, so a lane
+ * insert's wire into its chip, or a return that comes with a theme, widened a
+ * gutter or the `m` channel and every column to the right of it moved. Each
+ * channel now keeps room for the most lanes measured over forty seeds, every
+ * bar of three themes a set, under the house and the two ear fixtures' spells
+ * and both engines (`tools/measure-lanes.ts`, the table in
+ * `notes/rounds/view-still.md`), and two more to spare, as the rail does — and
+ * keeps it when nothing is in it.
+ *
+ * `m` (the returns' and the inserts' way into the strips, and the sends' way
+ * up to the returns): 2 in every theme measured, so 4.
+ */
+export const M_LANES = 4;
+/**
+ * `sr`, over the rail, which the sends ride as one trunk: 1 in every theme
+ * measured and never more by the routing's own shape (every send of a theme
+ * rides the one trunk), so 1 and no spare, as the `bottom` channel has none —
+ * and the same room where there is no send.
+ */
+export const SR_LANES = 1;
+/** `under` the strips, every bus's way out: 6 in every theme measured, so 8. */
+export const UNDER_LANES = 8;
+/**
+ * The `bottom` channel under the whole drawing carries a wire that skips a
+ * column, and no theme measured has one: it is not drawn, and keeps no room.
+ */
+export const BOTTOM_LANES = 0;
+/**
+ * The gutters, by the column on their left: after the sources (every lane's
+ * way to its strip or to its insert — 6 to 9, the one that moved), after the
+ * buses (7 in every theme), after the stage (3). The gutter after the last
+ * column exists only where a wire loops round it, and none measured does.
+ */
+export const GUTTER_LANES: Readonly<Record<string, number>> = { sources: 11, buses: 9, stage: 5, master: 0, output: 0 };
 /** a lane insert, and a send: small, one title and two lines */
 export const CHIP_W = 118;
 export const CHIP_H = 40;
@@ -549,7 +599,7 @@ export function layoutCanvas(
 
   // --- the columns, across ----------------------------------------------------------
   const mLanes = count('m');
-  const mW = strips.length ? laneRoom(mLanes) : 0;
+  const mW = strips.length ? laneRoom(Math.max(mLanes, M_LANES)) : 0;
   const stripsW = strips.length * STRIP_W + Math.max(0, strips.length - 1) * (STRIP_GAP * S);
   const upperW = strips.length || inserts.length ? (INSET * S) + CHIP_W + mW + (sends.length ? SEND_W : 0) + (INSET * S) : 0;
   const widthOf = (h: Host): number => {
@@ -561,8 +611,8 @@ export function layoutCanvas(
   const colW = hosts.map(widthOf);
   // a gutter after every column but the last, and after the last only where a
   // wire loops round it
-  const gutterW = hosts.map((_, i) => {
-    const n = count(`g${i}`);
+  const gutterW = hosts.map((h, i) => {
+    const n = Math.max(count(`g${i}`), GUTTER_LANES[h] ?? 0);
     if (i === hosts.length - 1) return n ? laneRoom(n) : 0;
     return Math.max((GUTTER_MIN * S), laneRoom(n));
   });
@@ -673,15 +723,17 @@ export function layoutCanvas(
     insOrder.forEach((n, i) => put(n, { x: xb + (INSET * S), y: y + i * (chipH + (INSET * S)), w: CHIP_W, h: chipH }));
     sends.forEach((n, i) => put(n, { x: xs, y: y + i * (sendH + (INSET * S)), w: SEND_W, h: sendH }));
     y = top + upperH;
-    const srN = count('sr');
-    if (srN) sr = { id: 'sr', orient: 'h', lo: y, hi: y + laneRoom(srN), lanes: [] };
-    const railTop = srN ? y + laneRoom(srN) : y + 10;
+    // the send lanes' room is one height whether or not a send rides it
+    // (VIEW-STILL: it was dropped at nought and the rail took `y + 10`)
+    const srRoom = laneRoom(Math.max(count('sr'), SR_LANES));
+    sr = { id: 'sr', orient: 'h', lo: y, hi: y + srRoom, lanes: [] };
+    const railTop = y + srRoom;
     const railBottom = railTop + laneRoom(Math.max(railN, RAIL_LANES));
     rail = { id: 'rail', orient: 'h', lo: railTop, hi: railBottom, lanes: [] };
     if (mLanes) mChan = { id: 'm', orient: 'v', lo: xm, hi: xs, lanes: [] };
     // the meters end where the sources end (M4: *"align the bus lines to the
     // end of the source blocks"*), and are never shorter than a meter wants
-    const underRoom = underN ? laneRoom(underN) : 0;
+    const underRoom = laneRoom(Math.max(underN, UNDER_LANES));
     const stripH = strips.length ? clamp(sourcesBottom - railBottom, STRIP_H, STRIP_H_MAX) : 0;
     // the desk spans its column: the strips spread across the room the effects over them take
     const pitch = strips.length > 1 ? Math.max(STRIP_W + (STRIP_GAP * S), (columns[busCol].w - STRIP_W) / (strips.length - 1)) : 0;
@@ -749,7 +801,7 @@ export function layoutCanvas(
   }
 
   // --- the channels down the gutters and under the drawing ---------------------------
-  const bottomN = count('bottom');
+  const bottomN = Math.max(count('bottom'), BOTTOM_LANES);
   const bottomChan: Channel = { id: 'bottom', orient: 'h', lo: bottomOf + 8, hi: bottomOf + 8 + laneRoom(bottomN), lanes: [] };
   const contentBottom = bottomN ? bottomChan.hi : bottomOf;
   const height = Math.max(contentBottom + PAD + LEGEND_H, fitH);
@@ -903,6 +955,7 @@ export function layoutCanvas(
   return {
     places, order, frames, areas, columns, edges, wires,
     width, height, scale, top, bottom, bells, trunks, joins,
+    lanes: Object.fromEntries(['m', 'sr', 'rail', 'under', 'bottom', ...hosts.map((_, i) => `g${i}`)].map((id) => [id, count(id)])),
   };
 }
 

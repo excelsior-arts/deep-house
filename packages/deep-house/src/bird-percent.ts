@@ -96,6 +96,14 @@ export const PULL_STEP = 5;
 export const PULL_PAGE = 20;
 /** The phone's panel steps as the arrows do, and snaps its slider to the same grid. */
 export const TAP_STEP = PULL_STEP;
+/**
+ * **Ember's detent** (round K40): Ember's hand steps in notches of five BPM
+ * (`emberAtNotch`, `spell.ts`) and not in percent, and a drag is held at a
+ * notch while the tempo the hand points at is within this many BPM of the
+ * notch's own — two fifths of each notch is a detent, the rest is the node
+ * under the hand. The number to tune by hand.
+ */
+export const EMBER_NOTCH_HOLD = 1;
 
 /**
  * **The magnet**: where a hand at `p` percent puts a bird, given whether the
