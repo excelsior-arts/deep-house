@@ -45,19 +45,21 @@
     }
     </script>
 
-    <!-- The sigil cut for a tab strip, where every other mark is one flat
-         colour: the same drawing as before — the belt at 6.75 so a pixel
-         survives between it and the star's points, the two squares at R_STAR,
-         the centre the play arrow, five tall with its upright edge on the
-         half unit, since a tab is 16 CSS px and a retina screen draws it at 32,
-         where that edge is a whole pixel and the arrow clears the star — with the
-         two things a strip does not want taken out of it. The coin it stood on
-         is gone, so the ground is nothing, and the gold is one ink. A strip is
-         dark because the browser is, so the file decides its own colour: the
-         page's ink on a light one, its pale gold on a dark one. The PNGs below
-         are the fallback and can only be one of the two, so they are the ink —
-         a tab strip is light far more often than it is not. -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Cstyle%3Esvg{color:%2305040a}@media (prefers-color-scheme:dark){svg{color:%23ffe0a0}}%3C/style%3E%3Cg fill='none' stroke='currentColor' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Cpath d='M6.5 5.5 L10.6 8 L6.5 10.5 Z' fill='currentColor'/%3E%3C/svg%3E" />
+    <!-- The sigil cut for a tab strip: the same drawing as before — the belt
+         at 6.75 so a pixel survives between it and the star's points, the two
+         squares at R_STAR, the centre the play arrow, five tall with its
+         upright edge on the half unit, since a tab is 16 CSS px and a retina
+         screen draws it at 32, where that edge is a whole pixel and the arrow
+         clears the star. It is gold in every browser and on every strip, on a
+         black disc of its own, as the home-screen mark is gold on black: pale
+         gold alone vanishes on a light strip, and a deeper gold is too faint
+         at 16 px. It does not ask the strip's scheme: Safari draws an SVG
+         favicon since 26 but reads it in light mode whatever the system is, so
+         a dark-scheme rule left it the light-scheme ink there. The PNGs below
+         are the same file for browsers without an SVG favicon. This is the house's
+         icon and the one before any script runs: from then on the page draws
+         it again in the ring's colour (`tab-icon.ts`). -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' width='16' height='16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23000'/%3E%3Cg fill='none' stroke='%23ffe0a0' stroke-linejoin='miter'%3E%3Ccircle cx='8' cy='8' r='6.75' stroke-width='1'/%3E%3Cpath d='M8 2.94 L13.06 8 L8 13.06 L2.94 8 Z' stroke-width='0.9'/%3E%3Cpath d='M4.42 4.42 L11.58 4.42 L11.58 11.58 L4.42 11.58 Z' stroke-width='0.9'/%3E%3C/g%3E%3Cpath d='M6.5 5.5 L10.6 8 L6.5 10.5 Z' fill='%23ffe0a0'/%3E%3C/svg%3E" />
     <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />

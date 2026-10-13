@@ -32,7 +32,7 @@ import type { Settings } from '../settings.ts';
 import { insert } from './treat.ts';
 import { heldVoice } from './held.ts';
 import { withControls } from './descriptor.ts';
-import type { Controls, Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import { patchOf, provePatch, withDesk } from './sound.ts';
 import { liveOf, side } from './live.ts';
@@ -40,6 +40,7 @@ import type { SoundRow, Topology } from './sound.ts';
 import type { PatchOf } from './schema.ts';
 import { contract, list, map, name, names, CENTS, HZ, LEVEL, LFO_HZ, Q, SECONDS, UNIT } from './schema.ts';
 import type { VoiceRenderer } from './descriptor.ts';
+import { contourElapsed, pathFrom } from './contour-time.ts';
 
 /** A formant pad's patch, which is the table of vowels and the body's numbers (its contract, below). */
 type FormantSettings = PatchOf<typeof PARAMETERS.fields>;
@@ -89,6 +90,25 @@ const vowelPair = (F: FormantSettings, p: NoteParams): [Vowel, Vowel] => {
  * @param driftScale how far the vowel walks on its own: all of it for
  *   a note, a quarter of it for a drone, whose vowel is a control instead
  */
+/**
+ * A note's path (pairs of seconds from its start and a value), or null where it wrote none or a malformed one;
+ * with `elapsed`, read from there (a note started inside itself, `contour-time.ts`).
+ */
+export function pathOf(v: unknown, elapsed = 0): number[] | null {
+  return Array.isArray(v) && v.length >= 2 && v.length % 2 === 0 && v.every((x) => typeof x === 'number' && Number.isFinite(x)) ? pathFrom(v as number[], elapsed) : null;
+}
+
+/** A path onto a parameter: its first value set at the note's start, straight lines between the rest. */
+export function walkPath(param: AudioParam, time: number, path: number[], f: (v: number) => number): void {
+  param.setValueAtTime(f(path[1]), time);
+  let last = time;
+  for (let i = 2; i < path.length; i += 2) {
+    const t = time + Math.max(0, path[i]);
+    if (t > last + 1e-4) param.linearRampToValueAtTime(f(path[i + 1]), t); else param.setValueAtTime(f(path[i + 1]), t);
+    last = Math.max(last, t);
+  }
+}
+
 export function formantBody(
   ctx: BaseAudioContext,
   g: GainNode,
@@ -99,6 +119,8 @@ export function formantBody(
   driftScale: number,
 ) {
   const hz = midiToHz(p.midi);
+  // a note started inside itself walks its paths from where it stands (`contour-time.ts`)
+  const elapsed = contourElapsed(p);
   const spread = (p.spread ?? F.spread) * (p.spreadMul ?? 1);
   const [va, vb] = vowelPair(F, p);
   const nodes: AudioNode[] = [];
@@ -108,7 +130,17 @@ export function formantBody(
   lp.type = 'lowpass';
   lp.Q.value = 0.7;
   lp.frequency.value = Math.min(12000, (p.open ?? F.lpHz) * (p.cutoffMul ?? 1));
-  lp.connect(g);
+  // **A phrase under one breath**: a note may write its level's path (`levelCurve`, pairs of
+  // seconds from its start and a gain), so several pitches in one note keep their own weight and their
+  // re-articulations; absent, the body feeds the envelope as it always has.
+  const levelPath = pathOf(p.levelCurve, elapsed);
+  if (levelPath) {
+    const shape = ctx.createGain();
+    walkPath(shape.gain, time, levelPath, (v) => Math.max(0, Math.min(4, v)));
+    lp.connect(shape);
+    shape.connect(g);
+    nodes.push(shape);
+  } else lp.connect(g);
   const hp = ctx.createBiquadFilter();
   hp.type = 'highpass';
   hp.frequency.value = F.hpHz;
@@ -157,17 +189,26 @@ export function formantBody(
 
   // Optional delayed pitch motion belongs to the note, leaving the old pad's
   // oscillators and vowel drift unchanged when no gesture was requested.
+  // A note may write its vibrato's depth as a path (`vibratoCurve`, pairs of seconds and cents: none on the
+  // approach, rising on the held destination), in place of the one delayed rise.
   let vibrato: GainNode | null = null;
-  if (p.vibratoCents > 0) {
+  const vibratoPath = pathOf(p.vibratoCurve, elapsed);
+  if (p.vibratoCents > 0 || vibratoPath) {
     const osc = ctx.createOscillator();
     osc.frequency.value = Math.max(1,Math.min(8,p.vibratoHz ?? 4.5));
     vibrato = ctx.createGain();
-    const delay = Math.max(0,Math.min(p.vibratoDelay ?? .2,(p.dur ?? 2)*.75));
-    vibrato.gain.setValueAtTime(0,time);
-    vibrato.gain.setValueAtTime(0,time+delay);
-    vibrato.gain.linearRampToValueAtTime(Math.min(20,p.vibratoCents),time+delay+.12);
+    if (vibratoPath) walkPath(vibrato.gain, time, vibratoPath, (v) => Math.max(0, Math.min(20, v)));
+    else {
+      const delay = Math.max(0,Math.min(p.vibratoDelay ?? .2,(p.dur ?? 2)*.75));
+      vibrato.gain.setValueAtTime(0,time);
+      vibrato.gain.setValueAtTime(0,time+delay);
+      vibrato.gain.linearRampToValueAtTime(Math.min(20,p.vibratoCents),time+delay+.12);
+    }
     osc.connect(vibrato);osc.start(time);sources.push(osc);nodes.push(vibrato);
   }
+  // ...and its pitch as a path (`pitchCurve`, pairs of seconds and cents over its note): a scoop into a
+  // destination, or a phrase's notes joined under one breath, every oscillator together.
+  const pitchPath = pathOf(p.pitchCurve, elapsed);
   // Two saws, and the breath under them.
   const voices: Array<{ o: OscillatorNode; side: number }> = [];
   for (const side of [-1, 1]) {
@@ -179,6 +220,7 @@ export function formantBody(
     if (Number.isFinite(p.sourceTilt)) o.setPeriodicWave(vocalWave(ctx,Math.max(1,Math.min(3,p.sourceTilt))));
     o.frequency.value = hz;
     o.detune.value = side * F.detuneCents * 0.5;
+    if (pitchPath) walkPath(o.detune, time, pitchPath, (v) => side * F.detuneCents * 0.5 + Math.max(-2400, Math.min(2400, v)));
     if (vibrato) vibrato.connect(o.detune);
     // The outer voices wander, so the width breathes: the same drift the
     // ensemble has, at the space table's own rate.

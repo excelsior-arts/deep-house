@@ -132,7 +132,7 @@ export const LOW_REGISTER_MIDI = 52;
  * liquid-space round 1): every note of the chord's voicings, plain and deep, under
  * `LOW_REGISTER_MIDI`, whose interval to the home is not a unison, an octave or a
  * fifth. The row's `bass` field was chosen with it, second to the riffs' fit (the round note,
- * `notes/rounds/liquid-space-keys.md`): the home whose riff lands more on the chord's tones, and
+ * `notes/archive/2026-10-liquid/liquid-space-keys.md`): the home whose riff lands more on the chord's tones, and
  * where the two are even, the one that beats less low.
  */
 export function lowClash(chord: PhraseChord, homePc: number): number {

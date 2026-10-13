@@ -82,7 +82,7 @@ for (const master of Object.keys(MASTERS)) {
     const w = loudnessWindow(track, BARS);
     const bs = track.barSeconds;
     jobs.push({
-      name, masterSeed: master, theme: n, fromBar: w.from, bars: w.bars,
+      name, masterSeed: master, theme: n, bars: w.bars,
       // The renderer plans it again on the page, so it has to be told the same
       // thing this side was: a window is only the same window if it is a window
       // of the same theme.

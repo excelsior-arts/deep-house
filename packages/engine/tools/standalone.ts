@@ -44,6 +44,8 @@ const PKG = path.join(HERE, '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(PKG, 'package.json'), 'utf8'));
 const NAME = manifest.name;
 const SUBPATHS = Object.keys(manifest.exports).map((k) => k.replace(/^\.\//, ''));
+/** The subpaths that are JSON: a consumer imports them with the attribute, or node refuses them. */
+const JSON_SUBPATHS = Object.entries(manifest.exports as Record<string, unknown>).filter(([, v]) => typeof v === 'string' && v.endsWith('.json')).map(([k]) => k.replace(/^\.\//, ''));
 const npm = (args: string[], cwd: string): string => execFileSync('npm', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'deep-house-engine-'));
@@ -57,11 +59,12 @@ let failed = 0;
 const PROBE = `
 const pkg = ${JSON.stringify(NAME)};
 const names = ${JSON.stringify(SUBPATHS)};
+const json = new Set(${JSON.stringify(JSON_SUBPATHS)});
 const out = [];
 const refused = [];
 for (const name of names) {
   try {
-    const m = await import(pkg + '/' + name);
+    const m = await import(pkg + '/' + name, json.has(name) ? { with: { type: 'json' } } : undefined);
     out.push([name, Object.keys(m).length]);
   } catch (e) {
     refused.push([name, e.code || e.constructor.name]);

@@ -1,0 +1,92 @@
+{
+ "schema": 1,
+ "kind": "ambient-fillers",
+ "round": "liquid-ambient",
+ "revision": 1,
+ "note": "The conversation: one vocabulary a track (the research manual's section 6), drawn by weight off a stream of its own, and the occurrence of the motif's statements by the function of the chapter they fall in (section 4). The owner speaks the motif: the breathy soloist, the keys' own tone (a fragment, into the keys' space) or the filtered bell (one to three notes, the soloist's alternative, never beside it). Every gesture takes the one featured-detail slot; keys pickups, a landing's attack and a section's last bar are never spoken over. Rates are starting points for listening.",
+ "rows": [
+  {
+   "id": "liquid-conversation",
+   "vocabularies": [
+    {
+     "id": "soloist-echoes",
+     "w": 50,
+     "owner": "soloist",
+     "gestures": ["statement", "keys-echo", "delay-tail", "swell", "reverse", "silence"]
+    },
+    {
+     "id": "keys-fragments-echoes",
+     "w": 30,
+     "owner": "keys",
+     "gestures": ["statement", "keys-echo", "reverse", "silence"]
+    },
+    {
+     "id": "bell-fragments-echoes",
+     "w": 20,
+     "owner": "bell",
+     "gestures": ["statement", "keys-echo", "silence"]
+    }
+   ],
+   "birds": {
+    "spark": { "keys-fragments-echoes": 0.4, "says": "toward answers kept in the keys" },
+    "tide": { "soloist-echoes": 0.4, "says": "toward the breath and its tail" }
+   },
+   "owners": {
+    "soloist": { "notes": [2, 5], "minGapBars": 8, "gapBars": [16, 32], "least": 6 },
+    "keys": {
+     "notes": [2, 3],
+     "minGapBars": 16,
+     "gapBars": [16, 32],
+     "register": [67, 84],
+     "vel": [0.45, 0.58],
+     "lenSteps": [4, 8],
+     "levelDb": 2,
+     "least": 5
+    },
+    "bell": {
+     "voice": "fmBell",
+     "notes": [1, 3],
+     "minGapBars": 32,
+     "gapBars": [32, 64],
+     "register": [72, 88],
+     "vel": [0.3, 0.42],
+     "levelDb": -17,
+     "indexMul": 0.6,
+     "lpMul": [0.9, 0.45],
+     "reverb": 0.5,
+     "delay": 0.2,
+     "least": 3
+    }
+   },
+   "byFunction": {
+    "opening": { "count": [[0, 1], [1, 2]], "kinds": ["statement"] },
+    "statement": { "count": [[1, 1], [2, 2]], "kinds": ["statement", "recurrence"] },
+    "answer": { "count": [[1, 2], [2, 1]], "kinds": ["developed", "recurrence"] },
+    "subtraction": { "count": [[0, 1]], "kinds": [] },
+    "rhythmic": { "count": [[0, 2], [1, 1]], "kinds": ["fragment"] },
+    "reprise": { "count": [[1, 2], [2, 1]], "kinds": ["recurrence", "fragment"] },
+    "exposed": { "count": [[0, 1], [1, 2]], "kinds": ["spacious"] },
+    "return": { "count": [[1, 2], [2, 1]], "kinds": ["recurrence", "developed"], "delayBars": 8 },
+    "mix": { "count": [[0, 1]], "kinds": [] },
+    "outro": { "count": [[0, 2], [1, 1]], "kinds": ["fragment"] }
+   },
+   "track": { "least": 2, "most": 10 },
+   "recoveryBars": 2,
+   "landingAttackSteps": 8,
+   "landingTailSteps": 32,
+   "echo": {
+    "perBars": 24,
+    "chance": 0.5,
+    "repeats": [2, 4],
+    "everySteps": [[3, 2], [6, 1]],
+    "decay": 0.55,
+    "lpMul": [0.75, 0.3],
+    "fromKinds": ["post", "pre"]
+   },
+   "delayTail": { "perBars": 16 },
+   "swell": { "perBars": 32, "chance": 0.4, "functions": ["exposed", "answer", "opening"] },
+   "reverse": { "count": [[0, 1], [1, 2], [2, 1]], "voice": "swell", "dur": [1.2, 1.8], "gainDb": -8 },
+   "silence": { "chance": 0.5, "bars": 4 }
+  }
+ ]
+}

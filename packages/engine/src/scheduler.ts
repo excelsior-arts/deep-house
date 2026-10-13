@@ -11,11 +11,11 @@
 // This was *a look-ahead scheduler for one theme* as well until round K6 took
 // `Player` out; the note where it stood says why and where it is.
 
-import { VOICES, prepareVoices, returnsOf, strikes } from './voices/index.ts';
+import { VOICES, edgeReads, prepareVoices, returnsOf, strikes } from './voices/index.ts';
 import { scheduleLine, writeDuck, prepareLimiter } from './master.ts';
 import { makeV1Graph } from './graph.ts';
-import { resolveStart, Offline, withEcho, withPartSpace } from './dsp.ts';
-import { playScoped } from './note-scope.ts';
+import { resolveStart, Offline, withEcho, withPartSpace, withReturns, withMotion } from './dsp.ts';
+import { noteDoor, playScoped } from './note-scope.ts';
 import { schedule, offsetGrid } from './schedule.ts';
 import type { V1Graph } from './graph.ts';
 import type { Program, ProgramEvent } from './program.ts';
@@ -49,13 +49,22 @@ export function fireEvent(ctx: BaseAudioContext, graph: V1Graph, program: Progra
   // (R74): the context's clock differs live, rendered and sliced, and a seek
   // moves it; the theme's does not.
   // A struck note takes its bus's struck door, and so the shallow duck (round
-  // PIANO-2); the descriptor says which notes are struck (`strikes`).
+  // PIANO-2); the descriptor says which notes are struck (`strikes`). A note
+  // the bus's edge may not read takes that path's clean door (round HF-NOISE,
+  // `edgeReads`), where the graph built an edge.
   // On a playing context the note is handed doors of its own into the buses, let go when it has finished
   // (`note-scope.ts`); a render is handed the buses themselves.
-  playScoped(ctx, graph.sourceOutput(pe.voice, pe.bus, strikes(pe.voice, pe.p)), !!pe.p?.fx,
-    (out) => voice(ctx, withEcho(ctx, withPartSpace(ctx, out, pe.p), pe.p), when, pe.p, program.settings, pe.t), graph);
+  playScoped(ctx, graph.sourceOutput(pe.voice, pe.bus, strikes(pe.voice, pe.p), !edgeReads(pe.voice)), !!pe.p?.fx,
+    (out) => voice(ctx, withMotion(ctx, withReturns(ctx, withEcho(ctx, withPartSpace(ctx, out, pe.p), pe.p), pe.p, returnDoorOf(ctx, graph), when), pe.p, when), when, pe.p, program.settings, pe.t), graph);
   if (pe.duck) writeDuck(graph, duckFor(graph.duckShape, pe.p), when, ctx);
 }
+
+// A note's way into a shared return (`withReturns`): through a door of its own on a playing context
+// (`noteDoor`, let go with the note), the return's input itself on a render.
+const returnDoorOf = (ctx: BaseAudioContext, graph: V1Graph) => (key: string): AudioNode | null => {
+  const into = graph.returnDoor(key);
+  return into && noteDoor(ctx, into);
+};
 
 /**
  * Build the lazy returns a program will send to, now rather than on the first
@@ -80,8 +89,16 @@ export function prepareReturns(graph: V1Graph, program: Program): void {
     const door = graph.struckBus('melodic')!;
     for (const r of returnsOf(struck)) void door[r];
   }
+  // The clean doors (round HF-NOISE), for a program with a note the edge may
+  // not read: built here for the same reason the struck path is, so the lines
+  // laid next are written on their gains as well. Their sends are the bus's.
+  for (const e of program.events) if (!edgeReads(e.voice)) graph.cleanBus(e.bus, strikes(e.voice, e.p));
   // A part's own space (`settings.partSpace`): one for the graph, built here where a note asks for it.
   if (program.events.some((e) => typeof e.p?.partSpace === 'number' && e.p.partSpace > 0)) void graph.buses.melodic.partSpace;
+  // The shared returns a note names (`p.returns`, `settings.returns`): each built here, once.
+  const named = new Set<string>();
+  for (const e of program.events) if (e.p?.returns && typeof e.p.returns === 'object') for (const k of Object.keys(e.p.returns)) named.add(k);
+  for (const k of named) graph.returnDoor(k);
 }
 
 // A program's curves, every line of them, written onto a graph: the one place
@@ -136,10 +153,16 @@ export function doorsOf(graph: V1Graph): AudioNode[] {
     if (graph.hasEcho()) doors.add(bus.echo);
     if (graph.hasPartSpace()) doors.add(bus.partSpace!);
   }
+  // the shared returns' inputs and send doors, where built
+  for (const id of graph.builtReturns()) {
+    const input = graph.returnDoor(id);
+    if (input) doors.add(input);
+  }
   if (graph.hasStruck()) {
     for (const name of ['melodic', 'keys']) doors.add(graph.struckBus(name)!.dry);
     if (graph.hasHall('struck')) doors.add(graph.struckBus('melodic')!.hall);
   }
+  for (const name of ['melodic', 'keys']) for (const d of graph.cleanDoors(name)) doors.add(d);
   return [...doors];
 }
 

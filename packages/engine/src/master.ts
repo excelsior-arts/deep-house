@@ -256,6 +256,15 @@ export interface ThemeGraph {
   struckBus(name: string): Bus | null;
   /** whether the struck path has been built; looking never builds one */
   hasStruck(): boolean;
+  /**
+   * The clean door of a harmonic bus (round HF-NOISE) — `melodic` or `keys`,
+   * on the held path or the struck one — whose notes the edge never reads,
+   * built the first time it is asked for; `null` for a bus with none, or where
+   * the path built no edge (its own door is clean).
+   */
+  cleanBus(name: string, struck: boolean): Bus | null;
+  /** the dry of each clean door built so far into the bus named; looking never builds one */
+  cleanDoors(name: string): AudioNode[];
   /** an automation target by the path a program's line names: a path the two harmonic paths share answers with both */
   param(path: string): AutomationTarget | null;
   melodic: GainNode;
@@ -351,7 +360,28 @@ export interface ThemeGraph {
    * Null where the settings name none.
    */
   readonly partSpace: SpaceInstance | null;
+  /**
+   * **The theme's shared returns** (`settings.returns`): a door into one, by a note's
+   * key (`<return>` its input, `<return>.<send>` straight into that send; `withReturns` in dsp.ts), the
+   * return built the first time a key names it; null where the settings name no such return or send.
+   */
+  returnDoor(key: string): AudioNode | null;
+  /** the returns built so far, by id; looking never builds one */
+  builtReturns(): string[];
   disposeBackground(): void;
+}
+
+/**
+ * One shared return as built: its space (`effects/space.ts`) and, after it, its own gain a line may
+ * dip from the drums' hits (`returns.<id>.duck.gain`), into the width stage beside the melodic duck,
+ * so the return takes no second pump of the room's sidechain.
+ */
+export interface ReturnInstance {
+  space: SpaceInstance;
+  levels: SpaceInstance['levels'];
+  duck: GainNode;
+  /** each send's door, past its level, by send id */
+  doors: Record<string, AudioNode>;
 }
 
 /**
@@ -1365,29 +1395,40 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // target per path, the same object on every ask, because a line (`ramp.ts`)
   // and the duck's writer keep their history by target.
   const twins = new Map<string, AutomationTarget>();
+  // The parameters each shared path writes, the held one first: a path the
+  // struck path shares has two, and (round HF-NOISE) each clean door built on
+  // a path adds its own, so the list grows and the target handed out stays
+  // the one object a line keeps its history by.
+  const shared = new Map<string, AudioParam[]>();
   const twin = (path: string, a: AudioParam, b: AudioParam): void => {
     // Whatever was written on the held one before the struck path existed is
     // not replayed; it starts where the held one stands.
     b.value = a.value;
+    const known = shared.get(path);
+    if (known) { if (!known.includes(b)) known.push(b); return; }
+    const all: AudioParam[] = [a, b];
+    shared.set(path, all);
+    // every member but the first, then the first, whose answer is the pair's
+    const rest = (f: (q: AudioParam) => unknown): void => { for (let i = all.length - 1; i > 0; i--) f(all[i]); };
     const both: Record<string, unknown> = {
       get value() { return a.value; },
-      set value(v: number) { a.value = v; b.value = v; },
+      set value(v: number) { for (const q of all) q.value = v; },
       get defaultValue() { return a.defaultValue; },
       get minValue() { return a.minValue; },
       get maxValue() { return a.maxValue; },
-      setValueAtTime(v: number, t: number) { b.setValueAtTime(v, t); return a.setValueAtTime(v, t); },
-      linearRampToValueAtTime(v: number, t: number) { b.linearRampToValueAtTime(v, t); return a.linearRampToValueAtTime(v, t); },
-      exponentialRampToValueAtTime(v: number, t: number) { b.exponentialRampToValueAtTime(v, t); return a.exponentialRampToValueAtTime(v, t); },
-      setTargetAtTime(v: number, t: number, c: number) { b.setTargetAtTime(v, t, c); return a.setTargetAtTime(v, t, c); },
-      setValueCurveAtTime(v: Float32Array | number[], t: number, d: number) { b.setValueCurveAtTime(v, t, d); return a.setValueCurveAtTime(v, t, d); },
-      cancelScheduledValues(t: number) { b.cancelScheduledValues(t); return a.cancelScheduledValues(t); },
+      setValueAtTime(v: number, t: number) { rest((q) => q.setValueAtTime(v, t)); return a.setValueAtTime(v, t); },
+      linearRampToValueAtTime(v: number, t: number) { rest((q) => q.linearRampToValueAtTime(v, t)); return a.linearRampToValueAtTime(v, t); },
+      exponentialRampToValueAtTime(v: number, t: number) { rest((q) => q.exponentialRampToValueAtTime(v, t)); return a.exponentialRampToValueAtTime(v, t); },
+      setTargetAtTime(v: number, t: number, c: number) { rest((q) => q.setTargetAtTime(v, t, c)); return a.setTargetAtTime(v, t, c); },
+      setValueCurveAtTime(v: Float32Array | number[], t: number, d: number) { rest((q) => q.setValueCurveAtTime(v, t, d)); return a.setValueCurveAtTime(v, t, d); },
+      cancelScheduledValues(t: number) { rest((q) => q.cancelScheduledValues(t)); return a.cancelScheduledValues(t); },
     };
     // Firefox has no `cancelAndHoldAtTime`, and a writer asks whether it is
     // there before it uses it: the pair has it where the parameter does.
     const hold = (a as AudioParam & { cancelAndHoldAtTime?: (t: number) => AudioParam }).cancelAndHoldAtTime;
     if (typeof hold === 'function') {
       both.cancelAndHoldAtTime = (t: number) => {
-        (b as AudioParam & { cancelAndHoldAtTime: (t: number) => AudioParam }).cancelAndHoldAtTime(t);
+        rest((q) => (q as AudioParam & { cancelAndHoldAtTime: (t: number) => AudioParam }).cancelAndHoldAtTime(t));
         return hold.call(a, t);
       };
     }
@@ -1421,6 +1462,36 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     if (held.lp) twin('harmonicLp.frequency', held.lp.frequency, closeIn(path).frequency);
     if (held.sweep) twinSweep(held.sweep, sweepIn(path));
     return struck;
+  };
+
+  // **The clean doors** (round HF-NOISE): a door into a harmonic path that
+  // passes the edge by. The edge is a clipper on the sum, and what it makes of
+  // a note is that note's harmonics where the note has them; a bar or a bell
+  // built of a few sines at inharmonic ratios has almost nothing of its own
+  // over 4 kHz, so its whole top there became the clip's intermodulation — a
+  // broadband hiss riding the ring (13-17 dB over the bar's own 5-8 kHz, the
+  // round's note). A voice whose row says so (`edge: false`, the descriptor's)
+  // plays in here: the path's own two gains, written with the path's
+  // (`twin`), the keys' chorus for the keys bus, and then the path at the
+  // edge's output, so the note has the bell, the close, the sweep and the duck
+  // it always had and only the clip never reads it. Built the first time such
+  // a note asks, which a deck does when it is made (`prepareReturns`); none
+  // where the path built no edge, whose bus is clean already.
+  const cleans: { held: Buses | null; struck: Buses | null } = { held: null, struck: null };
+  const cleanOf = (which: 'held' | 'struck'): Buses | null => {
+    const built = cleans[which];
+    if (built) return built;
+    const path = which === 'struck' ? struckOf().path : held;
+    if (!path.edge) return null;
+    const m = ctx.createGain();
+    m.gain.value = 1;
+    const h = ctx.createGain();
+    h.gain.value = 1;
+    m.connect(h);
+    h.connect(path.edge.output);
+    twin('melodic.gain', melodic.gain, m.gain);
+    twin('harmonic.gain', harmonic.gain, h.gain);
+    return (cleans[which] = { melodic: bus(m, which), keys: bus(chorusInto(m), which) });
   };
 
   // **The echo** (round KV1): the kitchen's tape delay (`effects/tape-delay.ts`)
@@ -1458,6 +1529,33 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     return partSpace.input as GainNode;
   };
 
+  // **The theme's shared returns** (`settings.returns`): named space rows, each built
+  // once for the graph the first time a note's key or a line's path names it, and never where the
+  // settings name none. A return's output passes its own duck gain (`returns.<id>.duck.gain`, a line the
+  // composer writes from the drums' actual hits) into the width stage beside the melodic duck, so the
+  // field breathes with the kick and the snare by the composer's depth and not by the room's pump.
+  const returns = new Map<string, ReturnInstance>();
+  const returnOf = (id: string): ReturnInstance | null => {
+    const built = returns.get(id);
+    if (built) return built;
+    const row = P.returns?.[id];
+    if (!row) return null;
+    const space = buildSpace(ctx, settings, asSpace(row), { beat: beatSeconds, at: opts.at ?? 0 });
+    const d = ctx.createGain();
+    d.gain.value = 1;
+    space.output.connect(d);
+    d.connect(msSplit);
+    const r: ReturnInstance = { space, levels: space.levels, duck: d, doors: space.doors };
+    returns.set(id, r);
+    return r;
+  };
+  const returnDoor = (key: string): AudioNode | null => {
+    const [id, send] = key.split('.');
+    const r = returnOf(id);
+    if (!r) return null;
+    return send === undefined ? r.space.input : r.doors[send] ?? null;
+  };
+
   const bus = (dry: GainNode, which: 'held' | 'struck' = 'held', ride?: AudioNode): Bus => ({
     dry,
     ...(ride ? { ride } : {}),
@@ -1485,6 +1583,8 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     struckDuck,
     struckBus: (name: string) => (name === 'melodic' || name === 'keys' ? struckOf().buses[name] : null),
     hasStruck: () => struck !== null,
+    cleanBus: (name: string, struckNote: boolean) => (name === 'melodic' || name === 'keys' ? cleanOf(struckNote ? 'struck' : 'held')?.[name] ?? null : null),
+    cleanDoors: (name: string) => [cleans.held, cleans.struck].flatMap((b) => (b && b[name] ? [b[name].dry] : [])),
     // A path the two harmonic paths share answers with the pair; any other
     // walks the graph, as `paramOf` always has.
     param: (path: string) => {
@@ -1494,6 +1594,12 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
       const head = path.split('.')[0];
       if (head === 'sweep') sweepOf();
       else if (head === 'harmonicLp') harmonicLpOf();
+      // a shared return, built on the first line that names it: `returns.<id>.<path into it>`
+      else if (head === 'returns') {
+        const [, id, ...rest] = path.split('.');
+        const r = id ? returnOf(id) : null;
+        return r ? walkTo(r, rest.join('.')) : null;
+      }
       return twins.get(path) ?? walkTo(made, path);
     },
     melodic,
@@ -1559,7 +1665,9 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     hasEcho: () => echo !== null,
     hasPartSpace: () => partSpace !== null,
     get partSpace() { partSpaceInput(); return partSpace; },
-    disposeBackground: () => { background?.dispose(); immersed?.dispose(); echo?.dispose(); bassDriveFx?.dispose(); partSpace?.dispose(); },
+    returnDoor,
+    builtReturns: () => [...returns.keys()],
+    disposeBackground: () => { background?.dispose(); immersed?.dispose(); echo?.dispose(); bassDriveFx?.dispose(); partSpace?.dispose(); for (const r of returns.values()) r.space.dispose(); },
   };
   return made;
 }

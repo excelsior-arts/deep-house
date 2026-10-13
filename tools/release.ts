@@ -6,6 +6,11 @@
 //                                      what would ship, and write nothing
 //   node tools/release.ts             write the release commit on master
 //   node tools/release.ts --skip-browsers   cut without the minute of live play
+//   node tools/release.ts --no-tests        cut with no suite at all — not the check, the sound or
+//                                           live play — for a commit whose suites just passed
+//                                           (Eugene, 10-11: "just do deploy without any tests, for
+//                                           these kind of cases"); the release audit still runs,
+//                                           because it is what keeps the private tier out
 //   node tools/release.ts --full            run the sound and browser suites even when
 //                                           nothing since the last cut can reach them
 //   node tools/release.ts --list-gates      print the promise's gates and stop
@@ -75,7 +80,8 @@ const die = (why, how) => {
 };
 
 const dry = process.argv.includes('--dry-run');
-const skipBrowsers = process.argv.includes('--skip-browsers');
+const noTests = process.argv.includes('--no-tests');
+const skipBrowsers = noTests || process.argv.includes('--skip-browsers');
 const portAt = process.argv.indexOf('--port');
 const port = portAt < 0 ? null : Number(process.argv[portAt + 1]);
 if (port !== null && !(Number.isInteger(port) && port >= 1024 && port < 65535))
@@ -266,11 +272,11 @@ const npm = (args) => {
     return false;
   }
 };
-const checks: [string, string[] | null, string, (() => boolean)?][] = [[GATE.what, null, GATE.why, () => npm(GATE.command.slice(1))]];
+const checks: [string, string[] | null, string, (() => boolean)?][] = noTests ? [] : [[GATE.what, null, GATE.why, () => npm(GATE.command.slice(1))]];
 // The audit is of what would ship: the scratch build in a dry run (`--site`),
 // docs/ itself once the release has rebuilt it.
 checks.push(['the release audit', tool('check-release.ts', ...at), 'the release audit fails.']);
-if (soundTouched) checks.push(['the sound', tool('test.ts', ...at, ...suitePort), 'the sound has moved, or it could not be metered.']);
+if (soundTouched && !noTests) checks.push(['the sound', tool('test.ts', ...at, ...suitePort), 'the sound has moved, or it could not be metered.']);
 if (soundTouched && !skipBrowsers) checks.push(['a minute of live play', tool('test-browsers.ts', ...at, ...suitePort), 'the browsers did not play the set through.']);
 
 const GATE_FAULTS = checks.map(([, , why]) => why);
@@ -284,7 +290,8 @@ for (const [what, args, why, run] of checks) {
     die(`${what}: this has to pass before a release is cut.`, `\nRun it on its own — ${how} — and fix what it says.`);
   }
 }
-if (!soundTouched) console.log(`· the sound and a minute of live play — not run: ${untouchedWhy}`);
+if (noTests) console.log('· the whole of npm run check, the sound and a minute of live play — skipped by hand: --no-tests');
+else if (!soundTouched) console.log(`· the sound and a minute of live play — not run: ${untouchedWhy}`);
 else if (skipBrowsers) console.log('· a minute of live play — skipped by hand');
 
 // 4. what ships: everything tracked, minus the scratch. Nothing else may be

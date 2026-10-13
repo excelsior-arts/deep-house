@@ -38,7 +38,7 @@ import { seamPlan, seamFromHere, mixPointSeconds, blendBarsFor, blendAsked, comp
 import type { SeamTempo, HandSeamBars } from './performance.ts';
 import {
   applyBypass, readBypass, seamCurves, setOptions, swapAfterBars, themeSeed,
-  planTheme as planThemeOf, presetOfTheme as presetOfThemeOf, setLayout as setLayoutOf, layOut as layOutOf,
+  presetOfTheme as presetOfThemeOf, setLayout as setLayoutOf, layOut as layOutOf,
 } from './set-plan.ts';
 import type { Bypass, MixOptions, SetPlan, SetTrack, Track } from './set-plan.ts';
 // The knob tables of the voices a theme drew, asked of the plan and remembered
@@ -69,6 +69,9 @@ import type { SourceMix } from '@deep-house/engine/source-mix';
 import { LIBRARY, PATTERN_LIBRARY, CANDIDATE_LIBRARY, PINNABLE, TRACK_LIBRARY, recipeById } from './recipes.ts';
 import { recipeRequest, accompanimentFor } from './recipe-request.ts';
 import { developmentFor } from './development.ts';
+import { planTheme } from './planning.ts';
+import { planOffThread } from './plan-off-thread.ts';
+import type { OffThreadHow } from './plan-off-thread.ts';
 import Rng from './rng.ts';
 // The ledger is a notebook and not a tap: it touches no node and is in no
 // signal path, so what is written here cannot move a sample. Every line is a
@@ -237,14 +240,9 @@ export const MIX_DEFAULTS = setOptions(STYLE);
 /** Where a theme may hand over at the earliest, as a fraction of its length. */
 export const SEAM_FLOOR = STYLE.set.seamFloor;
 
-/**
- * The whole plan of theme n, in this build's style unless told another. A
- * caller may name the music two ways and they compose: `style` is the music
- * itself, and `strategy` is the id of the thing that plays it. A caller that
- * names neither gets the default strategy's style, which is the record.
- */
-export const planTheme = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): SetTrack =>
-  planThemeOf(masterSeed, n, { ...opts, accompaniment: accompanimentFor(opts), development: developmentFor(opts), style: opts.style || strategyById(opts.strategy).style });
+// The whole plan of theme n (`src/planning.ts`, where a worker can load it:
+// the planning perf round of 10-12), under the name every caller imports.
+export { planTheme };
 
 /**
  * **Whether the low end two plans hand between is a different one** (round
@@ -467,7 +465,20 @@ export const anchorHead = (ctx: AudioContext) => {
   const { out, base } = latencies(ctx);
   return ctx.currentTime + base + Math.max(out, base * OUT_OF_BASE);
 };
-export const startAt = (ctx: AudioContext) => anchorHead(ctx) + START_LEAD;
+// **And past the clock's own step** (the UI-fix round of 10-11). A context's
+// clock does not advance smoothly: on a deep buffer it can jump a whole device
+// buffer at once. MEASURED on ?latency=0.3 in headless Chromium (a 171 ms
+// buffer): `currentTime` moved 0.171 s in 8.4 ms of the page's own time
+// between a start's anchor and its first pump, so the notes a start sounds at
+// its very instant — those a start inside the theme finds sounding (D1b) —
+// landed 8-78 ms behind the head on five or six of eight runs of ten starts,
+// where 2.0.0's first notes stood a beat's fraction later and hid it. The lead
+// is a buffer and the work of a first pump past the anchor, never under the
+// 120 ms it was: unchanged on every buffer under 70 ms (Chromium's own 21 ms,
+// WebKit's 3 ms), 221 ms on that deep one.
+const STEP_MARGIN = 0.05;
+export const startLead = (ctx: AudioContext) => Math.max(START_LEAD, latencies(ctx).base + STEP_MARGIN);
+export const startAt = (ctx: AudioContext) => anchorHead(ctx) + startLead(ctx);
 
 // How long the position being left takes to go, when a hand asks for another.
 // It begins a hair before the landing and runs a quarter of a second past it:
@@ -573,6 +584,8 @@ const askedKey = (opts: Partial<MixOptions>, bypass: Bypass | null): string =>
  * sets (a set re-seasons its own notes).
  */
 let primed: { key: string; preset: string | undefined; place: PrimedPlace; track: SetTrack } | null = null;
+/** the prime last asked of the planner's worker: only its answer is taken */
+let primeAsk = 0;
 export function primeStart(opts: Partial<MixOptions>, index: number): boolean {
   if (opts.style) return false;   // a stated style is a bench's, and is planned where it is played
   try {
@@ -583,8 +596,17 @@ export function primeStart(opts: Partial<MixOptions>, index: number): boolean {
       spell: o.spell ?? null, recipe: o.recipe ?? null,
     };
     if (primed && primed.key === key && primed.preset === o.preset && samePrimedPlace(primed.place, place)) return true;
-    const track = applyBypass(planTheme(place.seed, place.index,
-      { ...o, style: place.style, strategy: place.strategy, spell: place.spell, recipe: place.recipe }), bypass);
+    const ask = { ...o, style: place.style, strategy: place.strategy, spell: place.spell, recipe: place.recipe };
+    // **Off the page's thread** where the planner's worker is (the planning perf
+    // round, 10-12): planned and compiled there, and made ready to take when it
+    // lands — the last ask's, so a ring moved again meanwhile primes its own.
+    const offer = planOffThread(place.seed, place.index, ask, { bypass, program: true, priority: 'ahead' });
+    if (offer) {
+      const mine = ++primeAsk;
+      void offer.then((track) => { if (mine === primeAsk) primed = { key, preset: o.preset, place, track }; }, () => {});
+      return true;
+    }
+    const track = applyBypass(planTheme(place.seed, place.index, ask), bypass);
     programOf(track);
     primed = { key, preset: o.preset, place, track };
     return true;
@@ -775,6 +797,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    */
   let arrival: { track: SetTrack; built: DeckGraph } | null = null;
   const BUILD_AHEAD_S = 3;
+  /** A start nearer its seam than this plans the next theme on the spot (the planning perf round). */
+  const NEXT_NOW_S = 20;
   function dropArrival(): void {
     if (arrival) arrival.built.graph.dispose();
     arrival = null;
@@ -987,19 +1011,76 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     for (const r of recent) if (r.preset === o.preset && samePlace(placed.get(r.track)!, p) && placedRow.get(r.track) === row) return r.track;
     return null;
   }
+  /** The request a place is planned under: the set's own options, the place's over them. */
+  const askAt = (p: Place): Partial<MixOptions> => ({ ...o, style: p.style, strategy: p.strategy, spell: p.spell, recipe: p.recipe, reach: p.reach });
+  /** A plan made at a place, kept: the set will be asked for it by its place. */
+  function keep(p: Place, track: SetTrack, preset: string | undefined): SetTrack {
+    placed.set(track, p);
+    placedRow.set(track, definitionOf(p.recipe));
+    recent.unshift({ track, preset });
+    if (recent.length > 6) recent.pop();
+    return track;
+  }
   function planAt(p: Place): SetTrack {
     const had = plannedAt(p);
     if (had) return had;
+    // asked while a move finds out what its landing needs: named, and planned off the thread (`landingOff`)
+    if (probing) { probing.push(p); throw MISSED; }
     // A plan the tick had to make for itself: a seam that arrived before the
     // idle slot planning its theme did. Counted, so a scenario can say none did.
     if (ticking) tickWork += 1;
-    const track = (!running && p.reach === reach0 && takePrimed(asked0, o.preset, p)) || applyBypass(planTheme(p.seed, p.index,
-      { ...o, style: p.style, strategy: p.strategy, spell: p.spell, recipe: p.recipe, reach: p.reach }), bypass);
-    placed.set(track, p);
-    placedRow.set(track, definitionOf(p.recipe));
-    recent.unshift({ track, preset: o.preset });
-    if (recent.length > 6) recent.pop();
-    return track;
+    const track = (!running && p.reach === reach0 && takePrimed(asked0, o.preset, p)) || applyBypass(planTheme(p.seed, p.index, askAt(p)), bypass);
+    return keep(p, track, o.preset);
+  }
+
+  // --- planning off the page's thread -----------------------------------------
+  //
+  // **A move's landing is planned in the planner's worker** (the planning perf
+  // round, 10-12; `src/plan-off-thread.ts`). A pull planned its theme on this
+  // thread inside the hand's own task — 50 to 130 ms for the Drum & Bass tile,
+  // with the scheduler pumping notes from the same thread — and so did a cast's
+  // landing and the set's next theme in its idle slot. Now a move asks the
+  // worker for every plan its destination will need, waits for them, and then
+  // goes on exactly as it did: `planAt` finds each one by its place. The wait
+  // is a move's own (`supersede`'s token guards it as it guards the landing's
+  // voices), so a second gesture inside it overtakes it as it always could.
+  // Where there is no worker every plan is made here, as before.
+  //
+  // What a destination needs is found by asking it: `resolve` is run with
+  // `planAt` naming each place it has no plan for (`probing`) instead of
+  // planning it, those are planned off the thread, and it is asked again —
+  // a pull in the outro asks for the theme in place first and then the next.
+  const MISSED = new Error('a plan this thread has not made yet');
+  let probing: Place[] | null = null;
+  /** Plan these places in the worker and keep them as they land; null where the worker cannot take one. */
+  function offThread(places: Place[], how: OffThreadHow = {}): Promise<void> | null {
+    const preset = o.preset;
+    const offers: Array<Promise<unknown>> = [];
+    for (const p of places) {
+      if (plannedAt(p)) continue;
+      // the room's bypass folded in, and the program compiled, there: a landing is compiled before it is built
+      const offer = planOffThread(p.seed, p.index, askAt(p), { ...how, bypass, program: true });
+      if (!offer) return null;
+      // a plan this thread made meanwhile is the one kept; one that failed is made here when it is asked for
+      offers.push(offer.then((track) => { if (!dead && preset === o.preset && !plannedAt(p)) keep(p, track, preset); }, () => {}));
+    }
+    return Promise.all(offers).then(() => {});
+  }
+  /** The places `resolve` would plan, and the place it names, that have no plan yet: found without planning any. */
+  function missingFor(resolve: () => Place): Place[] {
+    const missing: Place[] = [];
+    probing = missing;
+    try { planAt(resolve()); } catch (err) { if (err !== MISSED) return []; } finally { probing = null; }
+    return missing;
+  }
+  /** Those places planned off the thread, and `resolve` asked again until it has them all (or the worker cannot). */
+  async function landingOff(resolve: () => Place, missing: Place[]): Promise<void> {
+    for (let round = 0; round < 3 && missing.length; round++) {
+      const off = offThread(missing);
+      if (!off) return;
+      await off;
+      missing = missingFor(resolve);
+    }
   }
   /** The set as it is: the record's place. */
   const here = (): Place => ({
@@ -1081,13 +1162,38 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     if (moving && moving.kind !== 'seek') return;
     if (incoming) {
       const p = placeOf(incoming.track);
-      compiled(planAt(wish({ ...p, index: p.index + 1 })));
+      const want = wish({ ...p, index: p.index + 1 });
+      if (aheadOff(want)) return;
+      compiled(planAt(want));
       return;
     }
-    if (!nextPlan) nextPlan = plan(n + 1);
+    if (!nextPlan) {
+      const want = wish({ ...here(), index: n + 1 });
+      if (aheadOff(want)) return;
+      nextPlan = planAt(want);
+    }
     ready(nextPlan);
     // and, in the seconds before the record's own seam, the arriving deck's graph
     buildArrival();
+  }
+  /**
+   * **The theme the next seam will want, asked of the planner's worker**: true
+   * while it is on its way, and `ahead` is asked again when it lands and finds
+   * it by its place. False where it is planned already, or where there is no
+   * worker and `ahead` plans it here, in its idle slot, as it always did.
+   */
+  let aheadAsked: Place | null = null;
+  function aheadOff(p: Place): boolean {
+    if (plannedAt(p)) return false;
+    if (aheadAsked && samePlace(aheadAsked, p)) return true;
+    const off = offThread([p], { priority: 'ahead' });
+    if (!off) return false;
+    aheadAsked = p;
+    void off.then(() => {
+      if (aheadAsked === p) aheadAsked = null;
+      planAhead();
+    });
+    return true;
   }
 
   /** How many unplayed notes the last hand on a bird re-seasoned. A bench reading. */
@@ -1621,7 +1727,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * @param kind which move this is, for `supersede` and the ledger
    * @param unit the line a hand-over begins on, in bars; a cut takes a beat
    */
-  async function move(resolve: () => Place, kind: NonNullable<typeof moving>['kind'], unit = 1, asked: MixWait['kind'] = kind === 'cut' ? 'skip' : kind as MixWait['kind']): Promise<TransportPoint | null> {
+  async function move(resolve: () => Place, kind: NonNullable<typeof moving>['kind'], unit = 1, asked: MixWait['kind'] = kind === 'cut' ? 'skip' : kind as MixWait['kind'],
+    said: ((arriving: SetTrack) => void) | null = null): Promise<TransportPoint | null> {
     if (!running || !current) return null;
     const cut = kind === 'cut';
     const token = supersede(kind);
@@ -1630,8 +1737,15 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // A tap during a seam lands the hand-over in flight at once — the
       // arriving theme is the record — and the cut is planned from there.
       if (cut) interruptSeam();
+      // the plans the landing needs, made off the page's thread (`landingOff`)
+      const missing = missingFor(resolve);
+      if (missing.length) {
+        await landingOff(resolve, missing);
+        if (stale()) return null;
+      }
       let dest = resolve();
       let arriving = planAt(dest);
+      if (said) said(arriving);
       nextPlan = arriving;
       // The wait begins at the ask, from the line this move will take.
       askWait(asked, arriving, unit, cut, dest);
@@ -2373,7 +2487,14 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
         first = plan(n);
         seam = seamOf(first, seam.seconds);
       }
-      nextPlan = plan(n + 1);
+      // **The next theme is planned off the page's thread** (the planning perf
+      // round, 10-12): it waited on this start before the first note — a whole
+      // plan, 50 ms and more for the Drum & Bass tile — and is not wanted until
+      // the seam, so `ahead` asks the planner's worker for it once the set is
+      // running. A start inside a blend, or a few bars before its seam, wants
+      // it now and plans it here, as it always did.
+      const nextNow = stage != null || seam.at - from < NEXT_NOW_S;
+      nextPlan = nextNow ? plan(n + 1) : plannedAt(wish({ ...here(), index: n + 1 }));
       // the first theme's strings and hats before a note is scheduled, the
       // next theme's on their way while the first plays — and when the set is
       // being picked up inside a blend, the arriving theme's before it is
@@ -2388,7 +2509,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       if (stage != null) {
         await ready(nextPlan, stage);
         if (cancelled()) return state();
-      } else {
+      } else if (nextPlan) {
         ready(nextPlan);
       }
       if (woken) {
@@ -2404,14 +2525,21 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // arriving deck out from this same instant — is scheduled ahead of the
       // head rather than behind it. The set's clock is read from it, so the
       // pin and the glide are on the same grid as the notes.
-      const at = startAt(ctx);
-      // A blend that finished before the position we are resuming at still
-      // owns the room it took: the next seam is planned from where it ended.
-      seamFreeAt = ended > 0 ? at - ended : 0;
+      //
+      // **Read once the deck is built** (the UI-fix round of 10-11): the
+      // deck's graph, its tone and its release are built on this same task,
+      // and the head goes on moving while they are — a start that read its
+      // anchor first and built after aimed its first notes up to 60 ms behind
+      // the head on a deep buffer, five or six late on most restarts of a
+      // stopped context in Chromium (none on 2.0.0's lighter decks).
       current = sourceDeck(ctx, first, programOf(first), mixOut, master, clock);
       // The set opens at its first theme's own tone, before a note of it sounds.
       toneOfTheme(current, ctx.currentTime, 0);
       releaseOfTheme(current);
+      const at = startAt(ctx);
+      // A blend that finished before the position we are resuming at still
+      // owns the room it took: the next seam is planned from where it ended.
+      seamFreeAt = ended > 0 ? at - ended : 0;
       startDeck(ctx, current, at, from);
       leadUntil = at;
       leadFrom = from;
@@ -2423,6 +2551,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // curves stood rather than started over.
       if (stage != null) beginTransition(seam.bars, at - stage, false, stage);
       timer = startClock(tick, TICK_MS);
+      // the next theme, off the thread, where the start left it to `ahead`
+      if (!nextPlan) planAhead();
       // The moment the page is hidden the horizon jumps out by a second and a
       // half, and that stretch has to be filled before the timers slow down.
       if (typeof document !== 'undefined') document.addEventListener('visibilitychange', tick);
@@ -2577,11 +2707,12 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // **The aim moves at the ask**, so a press made while the new set is
       // being built counts from the theme it arrives on.
       aim = place;
-      const arriving = planAt(wish(place));
-      note('cast', 'a cast was asked for', {
-        from: masterSeed, to: next, theme: i + 1, bpm: arriving.bpm, key: arriving.key.name, room: arriving.presetLabel,
-      });
-      return move(() => wish(place), 'cast', 1);
+      // The ledger names the theme arriving once it is planned, off the page's
+      // thread like every landing (`landingOff`), and before anything is laid.
+      const from = masterSeed;
+      return move(() => wish(place), 'cast', 1, 'cast', (arriving) => note('cast', 'a cast was asked for', {
+        from, to: next, theme: i + 1, bpm: arriving.bpm, key: arriving.key.name, room: arriving.presetLabel,
+      }));
     },
     /**
      * The spell the set is cast under, changed while it plays.

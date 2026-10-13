@@ -110,6 +110,7 @@ own row and the row its timbre renders through.
 | `knobs` | the ranges a bird may move (`KnobSpec`): `default` is the parameter the topology names for it, held to it |
 | `controls` | what a part may write on a note (`ControlSpec`); a numeric `default` is the parameter the topology names |
 | `returns` | the lazy returns its notes send to by default |
+| `edge` | `false` where the harmonic bus's edge may not read its notes (a top of a few inharmonic sines, which the clip turns to hiss): they take the bus's clean door. Absent, it does |
 | `timbres` | the five timbre facts per timbre it makes; `loudnessDb` MEASURED by the voice gates' `--bless` |
 | `dispatches`, `mood` | as the descriptor has them (empty) |
 

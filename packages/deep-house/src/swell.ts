@@ -162,7 +162,7 @@ export function swellsOf(input: SwellInput): SwellEntry[] {
   const tuned = new Set(lanes.filter((l) => l.gate && HARMONIC_ROLES.includes(l.role)).map((l) => l.gate!));
   const byLayer = new Map<string, typeof events>();
   for (const e of events) {
-    if (e.role === 'texture' || e.bar == null || !tuned.has(e.layer)) continue;
+    if (e.role === 'texture' || e.role === 'detail' || e.bar == null || !tuned.has(e.layer)) continue;
     if (!byLayer.has(e.layer)) byLayer.set(e.layer, []);
     byLayer.get(e.layer)!.push(e);
   }
@@ -253,7 +253,7 @@ export function applySwells<E extends { t: number; layer: string; role?: string;
     const t0 = s.bar * barSeconds;
     const t1 = (s.bar + s.span) * barSeconds;
     for (const e of events) {
-      if (e.layer !== s.layer || e.role === 'texture' || e.role === 'sparse-keys' || e.t < t0 - 1e-6 || e.t >= t1 - 1e-6) continue;
+      if (e.layer !== s.layer || e.role === 'texture' || e.role === 'sparse-keys' || e.role === 'detail' || e.t < t0 - 1e-6 || e.t >= t1 - 1e-6) continue;
       const u = (e.t - t0) / (t1 - t0);
       e.p = { ...e.p, swell: { db: s.depthDb * (1 - u), oct: s.oct * (1 - u), over: t1 - e.t } };
     }

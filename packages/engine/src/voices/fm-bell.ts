@@ -40,8 +40,8 @@
 import { midiToHz, adsrEnv, route, panner, startTime } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import { SEND_CONTROL, withControls } from './descriptor.ts';
-import type { Controls, Descriptor, NoteParams } from './descriptor.ts';
+import { withControls } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';

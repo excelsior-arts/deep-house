@@ -41,7 +41,9 @@
   },
   "files": [
     "src",
-    "tools"
+    "tools",
+    "sounds",
+    "spaces"
   ],
   "scripts": {
     "test": "node tools/test-all.ts",

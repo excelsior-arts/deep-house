@@ -1,0 +1,1522 @@
+{
+ "schema": 1,
+ "kind": "ambient-producer",
+ "round": "liquid-producer",
+ "revision": 2,
+ "note": "The producer's grammar (the research manual's section 6): the whole track arranged in eight-bar phrases, each phrase an exchange chosen for where it stands and where it goes — the melody reaching toward the next chord, the drums making room for its arrival and answering it, the bass completing the space between them (and leaving before an anchor, so its return lands with the chord), the hall and the echo carrying the phrases through the gaps. Every choice is a weighted, conditional draw off the track's own stream; the written first passage (`passage.json`) keeps its window and lends the vocabulary. Bars, beats and sixteenths are the track's own grid; pitches are scale steps over the chord in force (or the chord a line arrives on). Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "liquid-producer",
+   "name": "the whole track, produced",
+   "passage": "first-passage",
+   "retire": {
+    "says": "the planners' figure everywhere: the evenly spaced soloist statements and their swells, the keys' automatic answers and their echoed statements, the reverse arrivals, the bed's background notes, the drop's incidental vinyl layer and the planner's riser (the build writes its own); and the conga's isolated hits, where no hand part is written",
+    "parts": [
+     "soloist",
+     "soloist-swell",
+     "keys-echo",
+     "keys-motif",
+     "reverse-arrival",
+     "bell"
+    ],
+    "voices": [
+     "vinylBed",
+     "riser"
+    ],
+    "layers": [
+     "shaker"
+    ],
+    "bed": true
+   },
+   "phrases": {
+    "says": "the vocabulary grown from the passage's (its phrases are this track's own and keep their names): a developed question that extends its destination upward, the higher answer, a shortened answer, a sequence (one cell, then the same cell a third higher with a held ending), a repeated-note figure with unequal lengths, an enclosure of the fifth, approaches into an arriving chord's third, ninth or root, and the dub strokes, one held chord tone each",
+    "e-question-developed": [
+     {
+      "deg": 4,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 11,
+      "len": "q",
+      "role": "held"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 9,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "answer-high": [
+     {
+      "deg": 11,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "answer-short": [
+     {
+      "deg": 13,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 11,
+      "len": "dq",
+      "role": "destination"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "ending"
+     }
+    ],
+    "sequence": [
+     {
+      "deg": 9,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 7,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "rest": "e"
+     },
+     {
+      "deg": 11,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "h",
+      "role": "held"
+     }
+    ],
+    "repeated-figure": [
+     {
+      "deg": 9,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "rest": "e"
+     },
+     {
+      "deg": 9,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "enclosure-fifth": [
+     {
+      "deg": 12,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 11,
+      "len": "h",
+      "role": "held"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 9,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "approach-third": [
+     {
+      "deg": 11,
+      "len": "q",
+      "role": "pickup"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "h",
+      "role": "held",
+      "send": "arrival"
+     }
+    ],
+    "approach-ninth": [
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 7,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 8,
+      "len": "h",
+      "role": "held",
+      "send": "arrival"
+     }
+    ],
+    "resolve-leading": [
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 7,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 7,
+      "alt": -1,
+      "len": "q",
+      "role": "approach"
+     },
+     {
+      "deg": 7,
+      "len": "h",
+      "role": "held",
+      "send": "arrival"
+     }
+    ],
+    "dub-third": [
+     {
+      "deg": 9,
+      "len": "h",
+      "role": "held"
+     }
+    ],
+    "dub-ninth": [
+     {
+      "deg": 8,
+      "len": "h",
+      "role": "held"
+     }
+    ],
+    "dub-fifth": [
+     {
+      "deg": 4,
+      "len": "h",
+      "role": "held"
+     }
+    ],
+    "dub-seventh": [
+     {
+      "deg": 6,
+      "len": "h",
+      "role": "held"
+     }
+    ],
+    "solo-rise": [
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 11,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "approach"
+     },
+     {
+      "deg": 8,
+      "len": "dq",
+      "role": "ending"
+     }
+    ]
+   },
+   "archetypes": {
+    "says": "the soloist's utterances (the manual's section 6, and the dub stroke): which phrases realise each, by the stage of the track (`first` before the harmony-alone break, `later` after it), where each is placed in its phrase (bar and beat from the phrase's start, or `landing` for an approach whose last note is the next chord's downbeat), its space and its ending; the leading tone into an arrival is the passing dominant's own, never sounded over the chord it leaves",
+    "approach": {
+     "phrases": [
+      {
+       "id": "cross-into-arrival",
+       "w": 30,
+       "stage": "first"
+      },
+      {
+       "id": "approach-third",
+       "w": 30
+      },
+      {
+       "id": "approach-ninth",
+       "w": 25
+      }
+     ],
+     "at": "landing",
+     "send": "main"
+    },
+    "answer": {
+     "phrases": [
+      {
+       "id": "e-answer",
+       "w": 30,
+       "stage": "first"
+      },
+      {
+       "id": "answer-high",
+       "w": 30,
+       "stage": "later"
+      },
+      {
+       "id": "answer-short",
+       "w": 25
+      },
+      {
+       "id": "a-fragment",
+       "w": 15
+      }
+     ],
+     "at": [
+      "2:3",
+      "1:3",
+      "2:2&"
+     ],
+     "send": "distant",
+     "throwLast": 0.5
+    },
+    "question": {
+     "phrases": [
+      {
+       "id": "e-question",
+       "w": 40,
+       "stage": "first"
+      },
+      {
+       "id": "a-question",
+       "w": 20,
+       "stage": "first"
+      },
+      {
+       "id": "e-question-developed",
+       "w": 45,
+       "stage": "later"
+      },
+      {
+       "id": "e-question",
+       "w": 25,
+       "stage": "later",
+       "skip": 1
+      }
+     ],
+     "at": [
+      "2:4&",
+      "4:4&",
+      "1:4&"
+     ],
+     "send": "main",
+     "throwLast": 0.6
+    },
+    "enclosure": {
+     "phrases": [
+      {
+       "id": "e-enclosure",
+       "w": 50
+      },
+      {
+       "id": "enclosure-fifth",
+       "w": 50
+      }
+     ],
+     "at": [
+      "2:3",
+      "4:3"
+     ],
+     "send": "main",
+     "throwLast": 0.3
+    },
+    "sequence": {
+     "phrases": [
+      {
+       "id": "sequence",
+       "w": 1
+      }
+     ],
+     "at": [
+      "2:3",
+      "4:2&"
+     ],
+     "send": "main",
+     "throwLast": 0.5
+    },
+    "fragment": {
+     "phrases": [
+      {
+       "id": "e-fragment",
+       "w": 40
+      },
+      {
+       "id": "a-fragment",
+       "w": 30
+      },
+      {
+       "id": "a-color",
+       "w": 30,
+       "needs": {
+        "deg": 5,
+        "semis": 9
+       }
+      }
+     ],
+     "at": [
+      "4:3",
+      "5:3",
+      "2:3"
+     ],
+     "send": "distant",
+     "throwLast": 0.6
+    },
+    "repeated": {
+     "phrases": [
+      {
+       "id": "repeated-figure",
+       "w": 1
+      }
+     ],
+     "at": [
+      "2:2&",
+      "4:2&"
+     ],
+     "send": "main",
+     "throwLast": 0.4
+    },
+    "dub": {
+     "phrases": [
+      {
+       "id": "dub-third",
+       "w": 35
+      },
+      {
+       "id": "dub-ninth",
+       "w": 30
+      },
+      {
+       "id": "dub-fifth",
+       "w": 20
+      },
+      {
+       "id": "dub-seventh",
+       "w": 15
+      }
+     ],
+     "at": [
+      "4:1",
+      "2:3",
+      "5:1"
+     ],
+     "send": "distant",
+     "dub": true,
+     "stretch": [
+      "dh",
+      "h"
+     ]
+    }
+   },
+   "recent": {
+    "says": "what was just drawn (a phrase, a riff variant) is drawn at a tenth of its weight for the next two phrases: development, not a loop",
+    "weight": 0.1,
+    "phrases": 2
+   },
+   "voice": {
+    "says": "what the soloist does in a phrase, by the phrase's function: an approach where the phrase reaches a chord change, an answer after a landing, a statement, an enclosure, a sequence, a fragment after a drum feature, a repeated-note figure, a dub stroke in a wide gap, or rest (the sparse layer rests more than it speaks)",
+    "byFunction": {
+     "intro": {
+      "rest": 55,
+      "fragment": 25,
+      "dub": 20
+     },
+     "approach": {
+      "approach": 60,
+      "rest": 25,
+      "fragment": 15
+     },
+     "arrival": {
+      "answer": 55,
+      "rest": 30,
+      "dub": 15
+     },
+     "opening": {
+      "rest": 55,
+      "question": 30,
+      "dub": 15
+     },
+     "interior": {
+      "rest": 34,
+      "question": 18,
+      "enclosure": 12,
+      "sequence": 10,
+      "fragment": 12,
+      "repeated": 5,
+      "dub": 9
+     },
+     "crest": {
+      "fragment": 70,
+      "dub": 30
+     },
+     "exposed": {
+      "dub": 30,
+      "fragment": 20,
+      "question": 20,
+      "answer": 20,
+      "rest": 10
+     },
+     "intoBreak": {
+      "approach": 50,
+      "rest": 30,
+      "dub": 20
+     },
+     "intoDrop": {
+      "approach": 100
+     },
+     "outro": {
+      "rest": 45,
+      "fragment": 30,
+      "dub": 25
+     },
+     "last": {
+      "rest": 1
+     }
+    },
+    "leastRestBars": 4,
+    "birds": {
+     "veil": {
+      "rest": -0.9,
+      "says": "veil: more exchanges, the voice speaking more often"
+     },
+     "tide": {
+      "dub": 0.8,
+      "says": "tide: farther, more tail"
+     }
+    },
+    "exposedQuestionVel": 0.85
+   },
+   "drums": {
+    "says": "the drummer's phrase: a state for each half (S statement, R roller, X displaced answer in a second half, T straight-top lift, H half-time breath with its way in and out), a small inflection at the fourth bar, and an ending drawn by where the phrase goes",
+    "states": {
+     "intro": {
+      "S|S": 1
+     },
+     "opening": {
+      "S|S": 55,
+      "S|R": 45
+     },
+     "arrival": {
+      "S|R": 45,
+      "R|R": 25,
+      "S|S": 30
+     },
+     "approach": {
+      "R|S": 35,
+      "S|S": 30,
+      "R|R": 20,
+      "S|X": 15
+     },
+     "interior": {
+      "R|R": 25,
+      "S|R": 25,
+      "S|X": 15,
+      "T|R": 10,
+      "R|T": 8,
+      "S|H": 8,
+      "R|S": 9
+     },
+     "intoBreak": {
+      "R|S": 50,
+      "S|S": 50
+     },
+     "outro": {
+      "S|S": 1
+     }
+    },
+    "birds": {
+     "spark": {
+      "T": 0.8,
+      "X": 0.6,
+      "H": 0.4,
+      "says": "spark: more elaboration and displacement"
+     }
+    },
+    "endings": {
+     "arrival": {
+      "openEnding": 40,
+      "snarePickup": 30,
+      "shortRoll": 20,
+      "none": 10
+     },
+     "pickup": {
+      "none": 60,
+      "ghostTail": 25,
+      "hatCut": 15
+     },
+     "crest": {
+      "shortRoll": 35,
+      "openHatPickup": 30,
+      "kickPickup": 20,
+      "fill": 15
+     },
+     "exposed": {
+      "snareDeparture+topsClose": 45,
+      "snareDeparture": 35,
+      "topsDarken": 20
+     },
+     "plain": {
+      "none": 35,
+      "ghostTurn": 25,
+      "kickOut": 15,
+      "shortRoll": 10,
+      "hatCut": 8,
+      "fill": 7
+     }
+    },
+    "inflection": {
+     "chance": 0.5,
+     "ends": {
+      "ghostTurn": 50,
+      "kickOut": 30,
+      "ghostTail": 20
+     }
+    },
+    "landing": {
+     "says": "on a chord's landing the drums take part: a crash or ride into the hall, or the hats breathing for two beats so the chord speaks",
+     "crash+reverseCymbal": 45,
+     "hatsBreathe+reverseCymbal": 30,
+     "crash": 15,
+     "hatsBreathe": 10
+    },
+    "restrikeSwell": 0.6,
+    "thinUnder": 0.6,
+    "answerAfter": 0.5,
+    "skeletonSpace": "skeleton"
+   },
+   "bass": {
+    "says": "the bass in the exchange: out for the bars before an anchor so it re-enters with the chord (four before a drop, one or two before an interior change), an occasional drums-only stretch where its return is the event, written answers into the drums' gaps, and a developed riff for the passages after the break",
+    "leadIn": {
+     "drop": {
+      "4": 70,
+      "2": 30
+     },
+     "change": {
+      "1": 40,
+      "2": 30,
+      "0": 30
+     },
+     "break": {
+      "2": 50,
+      "1": 30,
+      "0": 20
+     }
+    },
+    "orchestra": {
+     "chance": 1,
+     "says": "the drums alone are the cooldown: the last phrase before a break (or before the outro, four bars), the bass out, the voice or a colour on top and the pad's last wisp, flowing straight into the break's way in; never an interior stretch where the full machine restarts for a few bars before the break",
+     "where": {
+      "intoBreak": {
+       "8": 70,
+       "4": 30
+      },
+      "intoOutro": {
+       "4": 1
+      }
+     }
+    },
+    "answers": {
+     "kickOut": [
+      {
+       "op": "add",
+       "at": "7:3",
+       "deg": 4,
+       "oct": 1,
+       "len": 2
+      },
+      {
+       "op": "add",
+       "at": "7:3&",
+       "deg": 0,
+       "oct": 1,
+       "len": 3
+      }
+     ],
+     "openEnding": [
+      {
+       "op": "add",
+       "at": "7:4",
+       "deg": 7,
+       "len": 3
+      }
+     ],
+     "hatCut": [
+      {
+       "op": "add",
+       "at": "7:3&",
+       "deg": 6,
+       "len": 2
+      },
+      {
+       "op": "add",
+       "at": "7:4&",
+       "deg": 7,
+       "len": 2
+      }
+     ],
+     "ghostTurn": [
+      {
+       "op": "add",
+       "at": "7:4&",
+       "deg": 4,
+       "len": 2
+      }
+     ]
+    },
+    "answerChance": 0.55,
+    "developed": {
+     "says": "the riff of the passages after the break, developed rather than repeated: a note pushed an eighth late with a fifth answering above, an octave drop with a two-note turn at the phrase's end, the third in place of a repeated root with a seventh answering, the fifth in place of the root with the octave answering",
+     "variants": [
+      {
+       "id": "D1",
+       "w": 30,
+       "ops": [
+        {
+         "op": "shift",
+         "i": 1,
+         "steps": 2
+        },
+        {
+         "op": "add",
+         "at": "3:4&",
+         "deg": 4,
+         "oct": 1,
+         "len": 2
+        }
+       ]
+      },
+      {
+       "id": "D2",
+       "w": 30,
+       "ops": [
+        {
+         "op": "octave",
+         "i": 4,
+         "by": -12
+        },
+        {
+         "op": "add",
+         "at": "7:3",
+         "deg": 7,
+         "len": 2
+        },
+        {
+         "op": "add",
+         "at": "7:4",
+         "deg": 4,
+         "len": 2
+        }
+       ]
+      },
+      {
+       "id": "D3",
+       "w": 25,
+       "ops": [
+        {
+         "op": "repitch",
+         "i": 3,
+         "deg": 2
+        },
+        {
+         "op": "add",
+         "at": "5:4&",
+         "deg": 6,
+         "len": 2
+        }
+       ]
+      },
+      {
+       "id": "D4",
+       "w": 15,
+       "ops": [
+        {
+         "op": "repitch",
+         "i": 3,
+         "deg": 4
+        },
+        {
+         "op": "add",
+         "at": "5:2&",
+         "deg": 7,
+         "len": 2
+        }
+       ]
+      }
+     ]
+    },
+    "first": {
+     "B0": 45,
+     "B1": 30,
+     "B2": 25
+    },
+    "floor": 28,
+    "breath": [
+     {
+      "op": "out",
+      "from": 4,
+      "to": 6
+     },
+     {
+      "op": "add",
+      "at": "4:1",
+      "deg": 0,
+      "len": 32,
+      "vel": 0.7
+     }
+    ],
+    "register": {
+     "says": "V's bends kept inside the riff's register: an excursion keeps its whole depth while the line stands up to ten semitones over the floor (the floor's passage plays as written) and narrows to 0.15 of it by an octave over, so a note an octave up bends little; whatever still passes an octave and a fourth over the floor rises at a quarter of its distance past it. The line's own level is the higher of the lowest the path reaches within 1.5 sixteenths before and after (a flick is lower on both sides; a glide's arrival is the line)",
+     "fullSt": 10,
+     "octaveSt": 12,
+     "least": 0.15,
+     "ceilingSt": 17,
+     "over": 0.25,
+     "windowSteps": 1.5
+    }
+   },
+   "keys": {
+    "says": "the keys between the planner's landings: a quiet right-hand touch, a suspension resolving inside its chord, an eleventh colour, nothing (the drums and bass carry the phrase), or before a change the passing dominant's two shells (the passage's arrival at its 64th bar is the model)",
+    "byFunction": {
+     "opening": {
+      "none": 60,
+      "touch": 40
+     },
+     "interior": {
+      "none": 35,
+      "touch": 35,
+      "suspension": 18,
+      "colour": 12
+     },
+     "exposed": {
+      "none": 50,
+      "touch": 30,
+      "suspension": 20
+     },
+     "outro": {
+      "none": 60,
+      "touch": 40
+     }
+    },
+    "dominant": {
+     "chance": 0.25,
+     "drop": 0.6,
+     "apartBars": 96
+    },
+    "touch": {
+     "notes": [
+      2,
+      4,
+      6,
+      8
+     ],
+     "db": -6,
+     "bars": 3,
+     "vel": 0.44
+    },
+    "suspension": {
+     "notes": [
+      2,
+      4,
+      6,
+      10
+     ],
+     "db": -7,
+     "bars": 1.5,
+     "vel": 0.4,
+     "resolve": {
+      "notes": [
+       9
+      ],
+      "db": -8,
+      "bars": 1.2,
+      "vel": 0.38,
+      "cut": [
+       10
+      ]
+     }
+    },
+    "colour": {
+     "notes": [
+      -1,
+      1,
+      4,
+      10
+     ],
+     "db": -6,
+     "bars": 3,
+     "vel": 0.42
+    },
+    "sus4": {
+     "dominant": [
+      10,
+      12,
+      17,
+      19
+     ],
+     "db": -5,
+     "bars": 0.5,
+     "vel": 0.44
+    },
+    "flat9": {
+     "dominant": [
+      10,
+      13,
+      16,
+      19
+     ],
+     "db": -5,
+     "bars": 0.56,
+     "vel": 0.46
+    }
+   },
+   "anticipation": {
+    "says": "before each arrival the effects and the fillers lean in: the field swells from the pickup, the keys' pickup leans into the hall, a reverse-like swell points at the downbeat",
+    "fieldDb": 3,
+    "fieldDbDrop": 4.5,
+    "keysPickupSend": "keysLean",
+    "releaseBeats": {
+     "landing": 4,
+     "breakLanding": 6,
+     "breath": 3,
+     "build": 6,
+     "thinning": 8,
+     "return": 4
+    }
+   },
+   "exposed": {
+    "says": "the harmony-alone section: no drums, the weather brought forward (its lid opened, more air) and moving (a slow, narrow drift across the middle, blended into the hall's width, never a speaker test), a held pad under each landing, and a build of eight bars out of it: the arrival's drums fading in through a falling high-pass, an accelerating roll into the downbeat, the riser and the field swelling, the dominant's shells and the voice's pickup into the chord. The build out of it only rises (the pad under it from 6 dB down to 4 over, the riser 4 dB up, the weather rising 6 dB across it, the keys' touch struck at the build's start, then every bar from its third, each louder than the last, into the drop (a landing's own chord is the first strike)); a build that starts on a landing brings its drums in from 7 dB down rather than 12, so the landing's decay never leaves a hole",
+    "weather": {
+     "db": -3,
+     "bright": 2.2,
+     "lid": 7600,
+     "pan": [
+      -0.35,
+      0.35
+     ],
+     "panBars": 24,
+     "send": "weatherForward",
+     "panShape": "sine",
+     "air": 0.42
+    },
+    "pad": {
+     "notes": [
+      4,
+      6
+     ],
+     "bars": 3,
+     "attack": 1.4,
+     "release": 2.2,
+     "at": "1:1",
+     "send": "padBloom"
+    },
+    "build": {
+     "bars": 8,
+     "hp": [
+      1800,
+      160
+     ],
+     "db": [
+      -12,
+      -2
+     ],
+     "riserBeats": 32,
+     "riserDb": 4,
+     "fieldDb": 4.5,
+     "pad": {
+      "notes": [
+       4,
+       6
+      ],
+      "bars": 8,
+      "attack": 2.4,
+      "release": 1.2,
+      "rise": [
+       -3,
+       4
+      ]
+     },
+     "windRise": [
+      0,
+      6
+     ],
+     "touches": {
+      "at": [
+       0,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7
+      ],
+      "db": [
+       -7,
+       -6
+      ]
+     },
+     "landingDb": [
+      -7,
+      -2
+     ]
+    },
+    "filter": {
+     "says": "the section less dull: the master's low-pass from 6 kHz opening to 14 kHz into the drop (it was 900 Hz rising to 11 kHz), the melodic bus's held band at 250 Hz-4 kHz across it (it was 420-650 Hz), so the weather's air and the keys' top are heard and the mains stay the brightest; the band holds through the section as every section's does",
+     "macro": [
+      6000,
+      14000
+     ],
+     "lp": [
+      4000,
+      4000
+     ],
+     "hp": [
+      250,
+      250
+     ]
+    }
+   },
+   "builds": {
+    "says": "no holes in a build (the first landing to the first drop, and the build out of the break): the landing's chord handed to a pad that enters under its second half and rises to the next entry, the wind rising toward it, no inflection or thinning that drops the level for more than a beat",
+    "pad": {
+     "from": 4,
+     "db": 8,
+     "attack": 3.2,
+     "release": 1.2,
+     "rise": [
+      -5,
+      1
+     ],
+     "air": 0.55,
+     "width": 0.45,
+     "notes": [
+      [
+       4,
+       6
+      ],
+      [
+       2,
+       4,
+       6
+      ],
+      [
+       2,
+       4,
+       6,
+       8
+      ]
+     ],
+     "says": "the pad's voicing grows with each landing of the build; db: the pad meets the landing chord's tail where the chord fades, so the build never sags at its handover"
+    },
+    "wind": {
+     "rise": [
+      -3,
+      2
+     ]
+    },
+    "endings": [
+     "ghostTurn",
+     "ghostTail",
+     "snarePickup"
+    ],
+    "inflections": [
+     "ghostTurn",
+     "ghostTail"
+    ],
+    "riserBeats": 16
+   },
+   "holds": {
+    "says": "a held keys chord or pad that ends while the music goes on fades over its last bars (a level path, squared, so it is some 12 dB down halfway and never heard to stop), held on past its written end where nothing harmonic follows; one that ends into the next chord's strike only eases into it",
+    "leastS": 2,
+    "fadeBars": 1.5,
+    "tailBars": 0.75,
+    "handoverBeats": 1,
+    "easeDb": -6,
+    "layers": [
+     "keys",
+     "pad"
+    ]
+   },
+   "arc": {
+    "says": "the pads as a line across each main passage: they return at its anchors and grow (more voices, longer, wider, more air, louder) to its crest and arrival, then thin into the cooldown; the second passage its own arc, from the drop (the strongest arrival) through the feature moment to its own crest. Rootless voicings over the chord in force, the top note alternating between two so the line moves; each entry swells in and fades out, never a drone. Marks: start (the passage's first pad entrance, or its midpoint), drop, crest (the last chord change before the cooldown), feature and featureEnd (the closing arc's moment), cooldown (the last phrase)",
+    "first": [
+     [
+      "start",
+      0.25
+     ],
+     [
+      "crest",
+      1
+     ],
+     [
+      "cooldown",
+      0.2
+     ]
+    ],
+    "later": [
+     [
+      "drop",
+      1
+     ],
+     [
+      "feature",
+      0.5
+     ],
+     [
+      "featureEnd",
+      0.6
+     ],
+     [
+      "crest",
+      0.8
+     ],
+     [
+      "cooldown",
+      0.2
+     ]
+    ],
+    "voicings": [
+     [
+      [
+       4,
+       6
+      ],
+      [
+       6,
+       8
+      ]
+     ],
+     [
+      [
+       2,
+       4,
+       6
+      ],
+      [
+       4,
+       6,
+       8
+      ]
+     ],
+     [
+      [
+       2,
+       4,
+       6,
+       8
+      ],
+      [
+       2,
+       6,
+       8,
+       11
+      ]
+     ],
+     [
+      [
+       -3,
+       2,
+       4,
+       6,
+       8
+      ],
+      [
+       -1,
+       2,
+       6,
+       8,
+       11
+      ]
+     ]
+    ],
+    "voices": [
+     2,
+     5
+    ],
+    "top": 72,
+    "db": [
+     -4,
+     1
+    ],
+    "bars": [
+     4,
+     8
+    ],
+    "width": [
+     0.15,
+     0.6
+    ],
+    "air": [
+     0.45,
+     0.8
+    ],
+    "attack": [
+     2.6,
+     1.2
+    ],
+    "release": 2.2,
+    "rise": [
+     -3,
+     0
+    ],
+    "fadeBars": 1.5,
+    "gapBelow": 0.5,
+    "landingAt": 0.75,
+    "takeover": 4,
+    "maxEmptyBars": 4,
+    "cooldownDb": -4,
+    "handover": {
+     "says": "the drop's own chord handed to a pad as it fades: from its sixth bar, five bars, the arc's thin end",
+     "from": 6,
+     "bars": 5,
+     "level": 0.2
+    },
+    "filler": {
+     "says": "a bed where the groove would go bare: at most six bars, quiet",
+     "bars": 6,
+     "level": 0.25
+    }
+   },
+   "texture": {
+    "says": "the straight hats heard by the main line: a texture locked to the sixteenths enters with the drums' straight top and leaves with it. A shaker part where the cast admits it (the cabasa: two bursts of beads through a band at 6 kHz) (sixteenths accented off the hats, on the e and the a, panned opposite the hats, in on a rising beat, out decaying over the last half bar, its last hit into the hall); else the weather already in the cast, gated at sixteenths with the same accents; else a tremolo on the pad. Levels calibrated on the stems: the shaker a little under the hats; the gated weather (from the loudest weather note the track has) about as loud",
+    "shaker": {
+     "voice": "cabasa",
+     "db": -25,
+     "pan": 0.42,
+     "accents": [
+      0.34,
+      0.72,
+      0.46,
+      0.86
+     ],
+     "in": [
+      0.18,
+      0.28,
+      0.4,
+      0.55
+     ],
+     "outFrom": 8,
+     "outTo": 0.3,
+     "hall": 0.3,
+     "jitter": 0.05
+    },
+    "gate": {
+     "db": 12,
+     "accents": [
+      0.45,
+      0.85,
+      0.55,
+      1
+     ],
+     "floor": 0.14,
+     "holdShare": 0.55,
+     "inBars": 1,
+     "outBars": 1,
+     "hall": 0.2
+    },
+    "tremolo": {
+     "depth": 0.55,
+     "notes": [
+      4,
+      6
+     ],
+     "db": -4,
+     "attack": 0.6,
+     "release": 1.2
+    }
+   },
+   "drop": {
+    "says": "every drop after the break lands with its chord held under it (the keys' landing and the pad at the arc's top), restruck at its interior, with the voice or a motif on top: the strongest arrival in the track, never the emptiest; its drums keep a groove the voice can sit on (no straight-top lift there)",
+    "restrike": {
+     "at": 8,
+     "db": -4,
+     "vel": 0.92
+    },
+    "voice": {
+     "question": 45,
+     "fragment": 30,
+     "answer": 25
+    }
+   },
+   "feature": {
+    "says": "the closing arc's feature moment: at the first main phrase after the second drop, sixteen bars where the track's own motif comes back and is developed into a solo (the E question developed, its answer high, the line into the arrival, a rising sequence, the turn, the leading tone into the next downbeat thrown into the dub echo); the bass climbs out of its riff into an upper melodic line in the voice's gaps over the second eight bars and falls home on the downbeat after; the drums thin under the voice and answer in its gaps; the pad holds a warm, thinner bed. Then the track winds down with purpose",
+    "bars": 16,
+    "after": 8,
+    "lines": [
+     {
+      "at": "0:4&",
+      "phrase": "e-question-developed",
+      "over": "here",
+      "send": "main",
+      "label": "the motif recalled"
+     },
+     {
+      "at": "3:3",
+      "phrase": "answer-high",
+      "over": "here",
+      "send": "distant",
+      "throwLast": true,
+      "label": "its answer, high"
+     },
+     {
+      "at": "6:3",
+      "phrase": "cross-into-arrival",
+      "over": "here",
+      "send": "main",
+      "label": "the line into the climb"
+     },
+     {
+      "at": "9:3",
+      "phrase": "solo-rise",
+      "over": "here",
+      "send": "main",
+      "label": "the question risen a third"
+     },
+     {
+      "at": "12:2&",
+      "phrase": "turn-down",
+      "over": "here",
+      "send": "main",
+      "label": "the turn"
+     },
+     {
+      "at": "15:4&",
+      "phrase": "leading-tone-into-arrival",
+      "over": "arrival",
+      "send": "main",
+      "dubLast": true,
+      "label": "the leading tone into the downbeat"
+     }
+    ],
+    "bass": {
+     "top": 28,
+     "notes": [
+      [
+       "0:1",
+       0,
+       0,
+       8
+      ],
+      [
+       "0:3",
+       4,
+       0,
+       4
+      ],
+      [
+       "0:4",
+       0,
+       1,
+       4
+      ],
+      [
+       "1:1",
+       2,
+       1,
+       20
+      ],
+      [
+       "3:1",
+       4,
+       1,
+       4
+      ],
+      [
+       "3:2",
+       3,
+       1,
+       4
+      ],
+      [
+       "3:3",
+       6,
+       1,
+       8
+      ],
+      [
+       "4:1",
+       4,
+       1,
+       20
+      ],
+      [
+       "6:1",
+       2,
+       1,
+       4
+      ],
+      [
+       "6:2",
+       4,
+       1,
+       4
+      ],
+      [
+       "6:3",
+       7,
+       1,
+       6
+      ],
+      [
+       "6:4&",
+       6,
+       1,
+       2
+      ],
+      [
+       "7:1",
+       4,
+       1,
+       4
+      ],
+      [
+       "7:2",
+       2,
+       1,
+       4
+      ],
+      [
+       "7:3",
+       0,
+       1,
+       4
+      ],
+      [
+       "7:4",
+       4,
+       0,
+       4
+      ]
+     ],
+     "vel": 0.86,
+     "scoopSt": -0.7,
+     "scoopS": 0.05,
+     "says": "[position, scale step over the chord's root, octaves over the floor, sixteenths]: the floor, its fifth and octave, then the third held, the climb to the seventh, the summit on the root two octaves up, and the fall home; written 5.5 dB under the note it is cloned from (a held, flat melodic reese measures some 6 dB over the riff it leaves, the same through its register); dbPerSt rides it further by semitones over the floor's octave",
+     "db": -5.5,
+     "dbPerSt": 0
+    },
+    "drums": {
+     "states": "S|R",
+     "answer": "ghostTail"
+    }
+   }
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "@deep-house/app",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Deep House — the composer and the page: the dice, the corpus, the style, the sound stage, the set and the ring.",
   "private": true,
   "type": "module",
@@ -16,7 +16,8 @@
     "build": "vite build",
     "build:preview": "VITE_PRIVATE_TOOLS=1 vite build",
     "preview": "vite preview",
-    "check": "node tools/check.ts && node --test tools/check-composition.ts tools/check-calibration.ts tools/check-live-audition.ts tools/check-recipe-selection.ts tools/check-recipe-assembly.ts tools/check-recipe-context.ts tools/check-development-shape.ts tools/check-development-rhythm.ts tools/check-rhythm-characters.ts tools/check-recipe-catalogue.ts tools/check-recipe-performance.ts tools/check-scene.ts tools/check-composer-phrases.ts tools/check-composer-swells.ts tools/check-composer-sections.ts tools/check-composer-places.ts tools/check-link.ts tools/check-transport.ts tools/check-keys.ts",
+    "check": "node tools/check.ts && node --test tools/check-composition.ts tools/check-calibration.ts tools/check-live-audition.ts tools/check-recipe-selection.ts tools/check-recipe-assembly.ts tools/check-recipe-context.ts tools/check-development-shape.ts tools/check-development-rhythm.ts tools/check-rhythm-characters.ts tools/check-recipe-catalogue.ts tools/check-recipe-performance.ts tools/check-scene.ts tools/check-composer-phrases.ts tools/check-composer-swells.ts tools/check-composer-sections.ts tools/check-composer-places.ts tools/check-link.ts tools/check-transport.ts tools/check-keys.ts tools/check-ambient.ts tools/check-ambient-voices.ts tools/check-passage.ts tools/check-plan-worker.ts && node tools/check-program-guards.ts --line",
+    "guards": "node tools/check-program-guards.ts",
     "test": "node tools/test.ts --build",
     "test:browsers": "vite build && node tools/test-browsers.ts",
     "bless": "node tools/bless.ts",

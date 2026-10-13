@@ -1,0 +1,90 @@
+{
+ "schema": 1,
+ "kind": "ambient-soloist",
+ "round": "liquid-ambient",
+ "revision": 1,
+ "note": "The breathy soloist and the one motif a track remembers (the research manual's section 4). A track draws one contour family by weight, one shape inside it and one phrase length (two or four fast bars, 2:3), each off a stream of its own; the shape's rhythm is written on the slow pulse (onsets and lengths in sixteenths of the fast bar, so an eighth at 87 is a quarter here). Degrees are scale steps from the destination, which sits on a tone of the chord in force; the first and the last note land on tones of that chord. A return keeps the rhythm and the contour (a recurrence), or the rhythm with a changed ending (a developed answer), or the contour slowed (a spacious statement), or the last notes alone (a fragment). Every number is a starting point for listening. The voice is a drawn row too: the breathy syllable by weight; the slow wavetable pad only where the bed already sounds it and the syllable would cost a second dear identity. What his showcase of 10-11 taught (a slow pad phrased like a human blowing air) is kept as principles: a breath-shaped attack, longer on a held destination; the mouth opening over the held note's own length; a breath between statements; a low-mid register; a gentle lid.",
+ "rows": [
+  {
+   "id": "liquid-breath",
+   "voices": [
+    { "voice": "wordlessVocal", "w": 1, "says": "the breath-shaped syllable: the starting point" },
+    {
+     "voice": "wavePad",
+     "w": 0,
+     "says": "the slow wavetable that phrases like air blown into a reed (his showcase at a slow place, 10-11): never drawn here, a fallback where the bed already sounds it, so it adds no identity"
+    }
+   ],
+   "families": [
+    {
+     "id": "approach-hold-fall",
+     "name": "a short approach, a held destination, a falling answer",
+     "w": 40,
+     "shapes": [
+      { "id": "step-up-hold-fall-third", "w": 3, "deg": [-1, 0, -2], "at": [0, 4, 20], "len": [4, 14, 8] },
+      {
+       "id": "climb-hold-fall-two",
+       "w": 2,
+       "deg": [-2, -1, 0, -1, -3],
+       "at": [0, 4, 8, 20, 24],
+       "len": [4, 4, 10, 4, 8]
+      },
+      { "id": "from-above-hold-fall", "w": 2, "deg": [1, 0, -1, -2], "at": [0, 4, 20, 24], "len": [4, 14, 4, 8] }
+     ]
+    },
+    {
+     "id": "repeat-changed-end",
+     "name": "a repeated destination with a changed final note",
+     "w": 35,
+     "shapes": [
+      { "id": "three-and-down", "w": 3, "deg": [0, 0, 0, -1], "at": [0, 8, 16, 24], "len": [6, 6, 6, 8] },
+      { "id": "two-and-up", "w": 2, "deg": [0, 0, 1], "at": [0, 8, 16], "len": [6, 6, 14] },
+      { "id": "long-short-fall-third", "w": 2, "deg": [0, 0, -2], "at": [0, 12, 20], "len": [8, 6, 12] }
+     ]
+    },
+    {
+     "id": "question-reply",
+     "name": "a small rising question, a shorter falling reply",
+     "w": 25,
+     "shapes": [
+      { "id": "rise-two-fall", "w": 3, "deg": [0, 1, 2, 0], "at": [0, 4, 8, 20], "len": [4, 4, 10, 8] },
+      { "id": "leap-third-step-down", "w": 2, "deg": [0, 2, 1, -1], "at": [0, 4, 16, 20], "len": [4, 10, 4, 8] }
+     ]
+    }
+   ],
+   "phraseBars": [[2, 2], [4, 3]],
+   "register": [57, 74],
+   "centre": [62, 67],
+   "legato": 0.92,
+   "lateMs": [0, 22],
+   "vel": [0.62, 0.78],
+   "tone": {
+    "sourceTilt": [1.8, 2.4],
+    "attack": [0.1, 0.25],
+    "release": [0.2, 0.6],
+    "vocalDetune": [0, 2],
+    "breath": [0.03, 0.08],
+    "formantWidth": [1.2, 1.8],
+    "formantScale": [0.75, 1.0],
+    "open": [1800, 3200],
+    "vibratoDelay": [0.2, 0.5],
+    "vibratoCents": [3, 7],
+    "vibratoHz": [4, 5.5]
+   },
+   "shortNoteSteps": 4,
+   "shortVibratoCents": [0, 1],
+   "sends": { "dry": 0.5, "reverb": 0.34, "delay": 0.1 },
+   "dissolve": { "chance": 0.35, "notes": 1, "dry": 0.22, "reverb": 0.62, "delay": 0.42, "tailBars": 2 },
+   "swell": { "attackShare": 0.5, "bars": [1, 2], "notes": [[1, 2], [2, 1]] },
+   "levelDb": -19,
+   "classDb": { "exposed": 0, "opening": 0, "full": 5, "outro": -1 },
+   "birds": {
+    "tide": { "reverb": 0.35, "dry": -0.25, "says": "toward the tail: more of the room, less of the dry" },
+    "gleam": { "centre": 2, "says": "a destination a little higher" }
+   },
+   "heldAttack": [0.18, 0.35],
+   "vowelOpen": 0.8,
+   "wavePad": { "attack": [0.25, 0.5], "release": [0.6, 1.0], "cutoffMul": [0.8, 1.0] }
+  }
+ ]
+}

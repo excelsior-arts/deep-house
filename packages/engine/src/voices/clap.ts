@@ -23,7 +23,7 @@
 
 import { noiseBuffer, noiseSource, percEnv, route, panner, startTime} from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';

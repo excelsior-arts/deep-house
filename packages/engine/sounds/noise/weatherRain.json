@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "weatherRain",
+  "revision": 1,
+  "topology": "vinyl",
+  "parameters": {
+    "attack": 2.2,
+    "release": 2.6,
+    "hpHz": 1700,
+    "lpHz": 9000,
+    "q": 0.4,
+    "driftHz": 0.23,
+    "driftDepth": 0.25,
+    "trim": 0.17
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "weatherRain": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 9000,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "liquid-ambient",
+    "module": "texture.ts",
+    "note": "A fine rain surface: a softer, less bass-rich noise (1.7 to 9 kHz) whose upper band fluctuates gently, about once in four seconds; one or two passages a track, never under a busy top."
+  }
+}

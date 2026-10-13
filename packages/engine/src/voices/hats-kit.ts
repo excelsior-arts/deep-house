@@ -32,11 +32,7 @@ import { kitTopology, drumNoise, filter, KIT } from './drumkit.ts';
 import { contract, list, num, CENTS, DB, HZ, Q, RATIO, UNIT } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
-import type { Settings } from '../settings.ts';
 import { airPath, swapDb, swapShelf, topLadder, topLevel, SWAP_K } from './hat-grain.ts';
-
-/** The three of them, as the settings name them and as they are named here. */
-type HatName = 'hatTight' | 'hatLoose' | 'hatSizzle';
 
 /** What a row of this topology carries, each in its range (`schema.ts`): one hat's own numbers, three sets of which are the shelf. */
 const PARAMETERS = contract({

@@ -95,7 +95,9 @@ test('a voice the plan gave a lane plays that lane: the liquid sine on the bassl
   assert.ok(rows.find(r=>r.id==='offbeat')!.on&&rows.find(r=>r.id==='offbeat')!.firing>0,'the offbeat lane lit by the kit\'s hats in a drop bar');
   assert.ok(rows.find(r=>r.id==='backbeat')!.playing.includes('snareGhost'));
   for(const v of ['hatShut','hatSoft','snareGhost'])assert.equal(rows.filter(r=>r.playing.includes(v)).length,1,`${v} on one strip`);
-  assert.ok(lanesOfTheme({track:t,bar:121} as any).find(r=>r.id==='offbeatOpen')!.firing>0,'the kit\'s open hat fires on the open hat\'s lane');
+  // a bar of the first main passage where the arrangement plays the kit's open hat (a straight-top lift has none)
+  const openBar=t.events.find((e:any)=>e.voice==='hatOpen'&&e.bar>=112)!.bar;
+  assert.ok(lanesOfTheme({track:t,bar:openBar} as any).find(r=>r.id==='offbeatOpen')!.firing>0,'the kit\'s open hat fires on the open hat\'s lane');
   assert.equal(rows.find(r=>r.id===r.playing[0]&&r.playing.length===1&&r.family!=null&&['hatShut','hatSoft','snareGhost'].includes(r.id)),undefined,'no loose kit strip');
   const house=planTheme('1',0,{strategy:'house-v2'});
   assert.equal(house.sound.lanes,undefined);

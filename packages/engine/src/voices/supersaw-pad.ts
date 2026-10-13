@@ -33,7 +33,7 @@ import type { VoiceOut } from '../dsp.ts';
 import type { Settings } from '../settings.ts';
 import { insert } from './treat.ts';
 import { heldVoice } from './held.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import { patchOf, provePatch, withDesk } from './sound.ts';
 import { centsOf, liveOf, side } from './live.ts';

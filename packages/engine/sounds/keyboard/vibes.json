@@ -49,6 +49,7 @@
     "mono": false,
     "treat": true,
     "cost": "dear",
+    "edge": false,
     "timbres": {
       "vibes": {
         "family": "harmonic",
@@ -64,6 +65,9 @@
   "provenance": {
     "round": "sounds-r2",
     "module": "mallets.ts",
-    "note": "Vibes: metal bars, so the partials are left where a free bar puts them — 1, 2.76, 5.40 — and the decay is six times as long. The tremolo is on the *resonator* and not on the note, which is what the rotating discs do."
+    "note": "Vibes: metal bars, so the partials are left where a free bar puts them — 1, 2.76, 5.40 — and the decay is six times as long. The tremolo is on the *resonator* and not on the note, which is what the rotating discs do.",
+    "notes": {
+      "edge": "Not read by the harmonic bus's edge (round HF-NOISE): three sines at 1, 2.76 and 5.4 leave the bar almost nothing of its own over 4 kHz, so the clip's copy was its whole top there, 16-17 dB over the bar's own 5-8 kHz and no harmonic of the note: a hiss riding the ring. Its notes take the bus's clean door."
+    }
   }
 }

@@ -31,9 +31,9 @@ import type { BackgroundSpaceSettings } from './background-space.ts';
 import type { SpaceRow } from './effects/space.ts';
 import type { Settings } from './settings.ts';
 import type { KeyboardPatches } from './voices/keys-patches.ts';
-import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge } from './voices/grain.ts';
+import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge, MalletStrike } from './voices/grain.ts';
 export type { KeyboardPatches } from './voices/keys-patches.ts';
-export type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge } from './voices/grain.ts';
+export type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge, MalletStrike } from './voices/grain.ts';
 
 /** A weighted entry, the shape `Rng.weighted` reads. */
 export interface Weighted<T> { v: T; w: number; }
@@ -67,6 +67,13 @@ export interface StyleTable {
    * into a theme's overrides where a part asks for one; absent, nothing is built.
    */
   partSpace?: SpaceRow;
+  /**
+   * **The theme's shared returns**: space rows by id, each a return any note may be
+   * sent into by amount (`p.returns`, `withReturns` in dsp.ts) — a hall and an echo with an identity of
+   * their own, beside a part's own space — built once per theme's graph, the first time a note or a line
+   * names it. The composer writes them into a theme's overrides; absent, nothing is built.
+   */
+  returns?: Record<string, SpaceRow>;
   /** the tempo family, and the die that chooses between its two halves */
   tempo: { def: number; slowMin: number; slowMax: number; fastMin: number; fastMax: number; slowChance: number };
   /** the offbeat eighth as a fraction of the beat, and the hats' own lead, in seconds */
@@ -304,6 +311,7 @@ export type Table = StyleTable & Instruments & {
   strings: { breath?: StringsBreath };
   piano: { grain?: PianoGrain };
   harmonicEdge?: HarmonicEdge;
+  malletStrike?: MalletStrike;
 };
 
 /**

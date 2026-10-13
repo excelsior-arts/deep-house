@@ -182,6 +182,51 @@ export function runPitch(run: Pick<ResolvedRun, 'anchors' | 'pitch'>, scoop = 1)
   return steps.map((s) => [s, pathAt(run.anchors, s) + pathAt(run.pitch, s) * scoop]);
 }
 
+/**
+ * **A bend kept inside its register** (the producer's `bass.register`): a held bass note's pitch path (`bend`, pairs of seconds and
+ * semitones over `midi`) with its excursions scaled by where the line stands over the riff's floor. The line's own
+ * level at each knot is `lineUnder`'s; the excursion over it keeps its whole depth up to `fullSt` over the floor and narrows to `least` of it
+ * by `octaveSt` over, so a note an octave up bends little; and whatever still passes `ceilingSt` over the floor rises
+ * at `over` of its distance past it. Falls under the line are left as they are, and so is a path that never leaves
+ * the depth it was given: at the floor the path is the one written, to the bit.
+ */
+export interface BendRoom { fullSt: number; octaveSt: number; least: number; ceilingSt: number; over: number; windowS: number }
+/**
+ * The line under a bend path's knot `i` (in pairs: the knot at `bend[2i]`): the higher of the lowest the path reaches
+ * within `windowS` before it and within `windowS` after it, in semitones over the note (a flick is lower on both sides;
+ * a glide into a new note is not, and the note it arrives on is the line).
+ */
+export function lineUnder(bend: readonly number[], i: number, windowS: number): number {
+  const at = (t: number): number => {
+    if (t <= bend[0]) return bend[1];
+    for (let k = 2; k < bend.length; k += 2) if (t <= bend[k]) { const u = (t - bend[k - 2]) / Math.max(1e-9, bend[k] - bend[k - 2]); return bend[k - 1] + u * (bend[k + 1] - bend[k - 1]); }
+    return bend[bend.length - 1];
+  };
+  const t = bend[2 * i], v = bend[2 * i + 1];
+  let left = Math.min(v, at(t - windowS)), right = Math.min(v, at(t + windowS));
+  for (let j = 0; j < bend.length; j += 2) {
+    if (bend[j] >= t - windowS && bend[j] <= t) left = Math.min(left, bend[j + 1]);
+    if (bend[j] >= t && bend[j] <= t + windowS) right = Math.min(right, bend[j + 1]);
+  }
+  return Math.max(left, right);
+}
+export function bendInRoom(bend: readonly number[], midi: number, floor: number, R: BendRoom): number[] {
+  const n = bend.length >> 1;
+  if (n < 2) return [...bend];
+  const out: number[] = [];
+  for (let i = 0; i < bend.length; i += 2) {
+    const t = bend[i], v = bend[i + 1];
+    const low = lineUnder(bend, i >> 1, R.windowS), line = midi + low, over = line - floor;
+    const depth = over <= R.fullSt ? 1 : over >= R.octaveSt ? R.least : 1 - (1 - R.least) * (over - R.fullSt) / (R.octaveSt - R.fullSt);
+    let p = line + (v - low) * depth;
+    const cap = floor + R.ceilingSt;
+    if (p > cap && p > line) p = Math.max(line, cap + (p - cap) * R.over);
+    out.push(t, +(p - midi).toFixed(4));
+  }
+  // a path the room did not touch is handed back as it was
+  return out.every((x, i) => x === bend[i] || Math.abs(x - bend[i]) < 5e-5) ? [...bend] : out;
+}
+
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 

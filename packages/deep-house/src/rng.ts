@@ -57,16 +57,21 @@ export class Rng {
   chance(p: number): boolean {
     return this.next() < p;
   }
-  // Pick from [{v, w}, ...] by weight.
+  // Pick from [{v, w}, ...] by weight. An entry weighted nought is never drawn: the walk below closes each interval
+  // at its top (`r <= 0`), so a first entry of weight nought used to take a draw of exactly nought, and the last
+  // entry, whatever its weight, the draw a rounding left over.
   weighted<T>(pairs: ReadonlyArray<Weighted<T>>): T {
     let total = 0;
     for (const p of pairs) total += p.w;
     let r = this.next() * total;
+    let last: Weighted<T> | undefined;
     for (const p of pairs) {
+      if (!(p.w > 0)) continue;
+      last = p;
       r -= p.w;
       if (r <= 0) return p.v;
     }
-    return pairs[pairs.length - 1].v;
+    return (last ?? pairs[pairs.length - 1]).v;
   }
   // Pick from a plain list by weight, where the equal-weight case is `pick`
   // itself.

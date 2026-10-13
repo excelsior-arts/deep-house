@@ -653,16 +653,23 @@
     "ep": "an electric piano",
     "fmBell": "an FM bell",
     "fmEp": "an FM electric piano",
+    "fmEpGlass": "a glassy FM electric piano",
+    "fmEpSoft": "a soft FM electric piano",
     "fmGlass": "FM glass",
     "fmPluck": "an FM pluck",
     "formantPad": "a formant pad",
     "glass": "glass",
     "grainPad": "a grain pad",
     "karplusPluck": "a plucked string",
+    "keysSuitcase": "a suitcase electric piano",
+    "keysTineDark": "a dark tine electric piano",
     "marimba": "a marimba",
     "organ": "an organ",
     "organStab": "an organ stab",
     "piano": "a piano",
+    "pianoClose": "a close soft grand",
+    "pianoConcert": "a warm grand, far back",
+    "pianoFelt": "a felt grand",
     "pluck": "a pluck",
     "pulseLead": "a pulse lead",
     "reedOrgan": "a reed organ",
@@ -677,5 +684,14 @@
     "triLead": "a triangle lead",
     "vibes": "vibes",
     "wavePad": "a wave pad"
+  },
+  "cellWords": {
+    "fmEpGlass": "glass ep",
+    "fmEpSoft": "fm ep",
+    "keysSuitcase": "suitcase",
+    "keysTineDark": "dark tine",
+    "pianoClose": "close grand",
+    "pianoConcert": "far grand",
+    "pianoFelt": "felt grand"
   }
 }

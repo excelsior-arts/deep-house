@@ -3,6 +3,7 @@
 // row). Registered renderers keep their identity; a note without either, of a
 // row without one, adds no node.
 import type { VoiceRenderer } from './descriptor.ts';
+import type { SendName, VoiceOut } from '../dsp.ts';
 import { contourElapsed } from './contour-time.ts';
 import { inUnit, num } from './schema.ts';
 import { movedOf } from './desk-layer.ts';
@@ -141,6 +142,12 @@ export function withOutputEnvelope(render: VoiceRenderer, contour: OutputContour
       for (let i = 2; i < curve.length; i += 2) gain.gain.linearRampToValueAtTime(curve[i + 1], at + curve[i]);
     }
     gain.connect(out.dry);
-    return render(ctx, { ...out, dry: gain }, at, note, settings, themeTime);
+    // the other doors passed through as getters, never read here: a spread
+    // would read every one, and reading a lazy return builds it
+    const through: VoiceOut = { dry: gain };
+    for (const k of Object.keys(out) as SendName[]) {
+      if (k !== 'dry') Object.defineProperty(through, k, { get: () => out[k], enumerable: true });
+    }
+    return render(ctx, through, at, note, settings, themeTime);
   };
 }

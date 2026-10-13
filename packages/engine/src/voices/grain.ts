@@ -16,6 +16,9 @@
 //                     chorus and the same envelope as the chord: air, not hiss.
 //   piano.grain       the hammer's noise times `hammer` and the second and
 //                     third partials' body lifted by `body` (to at most one).
+//   malletStrike      (round HF-NOISE) a click on the strike of a bar the
+//                     edge does not read: noise half an octave either side of
+//                     `hz` at `level`, gone `decay` after the strike.
 //   harmonicEdge      a parallel stage on the harmonic bus (`effects/
 //                     harmonic-edge.ts`): the bus's own notes driven, their
 //                     harmonics kept between `floorHz` and `toneHz`, at a
@@ -62,6 +65,23 @@ export interface PianoGrain {
   body: number;
 }
 
+/**
+ * **The struck bar's top** (`malletStrike`, round HF-NOISE): a click of
+ * band-passed noise on the strike of a bar the bus's edge does not read (its
+ * row's `edge: false`), standing in for the presence the edge gave it and
+ * ending with the strike, so nothing high rides the ring. Two high-passes and
+ * two low-passes half an octave either side of `hz`; up in half a millisecond,
+ * sixty decibels down at `decay`.
+ */
+export interface MalletStrike {
+  /** the click against the note's peak: 0 is none */
+  level: number;
+  /** the band's centre: half an octave under it to half an octave over */
+  hz: number;
+  /** seconds from the strike to sixty decibels under it */
+  decay: number;
+}
+
 /** The parallel stage on the harmonic bus (`harmonicEdge`). */
 export interface HarmonicEdge {
   /** the driven copy's level against the bus: 0 is none, 1 an edge as loud as the bus */
@@ -88,6 +108,9 @@ export const STRINGS_BREATH_FIELDS: Ranges<StringsBreath> = Object.freeze({
 });
 export const PIANO_GRAIN_FIELDS: Ranges<PianoGrain> = Object.freeze({
   hammer: [0, 4], body: [0, 1],
+});
+export const MALLET_STRIKE_FIELDS: Ranges<MalletStrike> = Object.freeze({
+  level: [0, 1], hz: [1000, 10000], decay: [0.005, 0.2],
 });
 export const HARMONIC_EDGE_FIELDS: Ranges<HarmonicEdge> = Object.freeze({
   blend: [0, 1], drive: [0, 1], preHz: [40, 2000], floorHz: [400, 8000], toneHz: [1000, 16000],
@@ -128,6 +151,7 @@ export function admitGrain(settings: Readonly<Record<string, any>>): void {
   prove(settings.strings?.breath, STRINGS_BREATH_FIELDS, 'strings.breath', bad);
   prove(settings.piano?.grain, PIANO_GRAIN_FIELDS, 'piano.grain', bad);
   prove(settings.harmonicEdge, HARMONIC_EDGE_FIELDS, 'harmonicEdge', bad);
+  prove(settings.malletStrike, MALLET_STRIKE_FIELDS, 'malletStrike', bad);
   const b = settings.strings?.breath;
   if (b && b.loHz >= b.hiHz) bad.push(`strings.breath's floor ${b.loHz} is not under its top ${b.hiHz}`);
   const e = settings.harmonicEdge;

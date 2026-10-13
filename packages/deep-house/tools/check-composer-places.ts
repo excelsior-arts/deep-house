@@ -6,6 +6,17 @@ import {
 } from './check-composer-common.ts';
 import type { Plan } from './check-composer-common.ts';
 
+/**
+ * The house-v2 style with no place naming a written passage: the planners' own track, which the riff's checks read (one
+ * object, so the plan cache keys it once). A global switch was invisible to that cache, which handed the planners' plans
+ * to later tests asking the same request with the passage on.
+ */
+let PLANNERS: object | null = null;
+const planners = async (): Promise<any> => {
+  if (!PLANNERS) { const { withoutTechniques } = await import('../src/places.ts'); const { strategyById } = await import('../src/strategies/index.ts'); PLANNERS = withoutTechniques(strategyById('house-v2').style, 'passage'); }
+  return PLANNERS;
+};
+
 // Round GA1 (Eugene, 09-26: "we go all in on styles … diversity is the
 // priority"): the library reaches the draw. One theme in three of a set is the
 // library's turn; a turn draws a row the spell admits and the theme can place,
@@ -440,7 +451,9 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
   // Since liquid-space round 1 also its sparse keys, a part of its own (`KEYS`): the tones its draw row names.
   // since liquid-space (10-11) its surface's dark air too (the development table's, `DEVELOPMENT`)
   const own: Record<string, string[]> = { 'fast broken': ['reeseDeep', 'kickTight', 'snareDry', 'reeseBass', 'kickPunchHigh', 'snareCrack', 'snareGhost', 'hatShut', 'hatSoft',
-    'pianoClose', 'pianoConcert', 'fmEpSoft', 'fmEpGlass', 'pianoFelt', 'keysSuitcase', 'keysTineDark', 'airBed'] };
+    'pianoClose', 'pianoConcert', 'fmEpSoft', 'fmEpGlass', 'pianoFelt', 'keysSuitcase', 'keysTineDark', 'airBed',
+    // since liquid-ambient (10-11) its weather family's four rows (`AMBIENT_VOICES`)
+    'weatherWind', 'weatherUpperAir', 'weatherRain', 'weatherRumble'] };
   const where: Array<[string, object, string]> = [
     ['fast broken', { ember: 0.95, spark: 0.85, zephyr: 0.70, root: 0.60, veil: 0.60 }, 'reeseSub'],
     ['broken drive', { ember: 0.72, spark: 0.70, tide: 0.45, zephyr: 0.65 }, 'reeseDriven'],
@@ -521,7 +534,8 @@ test('liquid-fix: a phrase run\'s gestures ride the notes they belong to — S\'
   const spell = { ...HOUSE, ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 };
   let openings = 0;
   for (const seed of [1, 2, 6, 30, 27191, 39]) {
-    const t = planTheme(seed, 0, { strategy: 'house-v2', spell });
+    // the riff as its phrase lays it: the written passage (`src/passage.ts`) re-cuts the line inside its window on purpose
+    const t = planTheme(seed, 0, { strategy: 'house-v2', style: await planners(), spell });
     const program = programOf(t), sixteenth = program.barSeconds / 16;
     const runs = program.events.filter((e) => e.voice === 'reeseSub' && typeof e.p.curveDuration === 'number');
     assert.ok(runs.length > 0, `seed ${seed}: no phrase runs`);
@@ -651,7 +665,8 @@ test('liquid-k10: after the step-10 kick a run held flat and without its pair th
   const spell = { ...HOUSE, ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 };
   let gestures = 0;
   for (const seed of [1, 2, 6, 30, 27191, 39]) {
-    const program = programOf(planTheme(seed, 0, { strategy: 'house-v2', spell })), sixteenth = program.barSeconds / 16;
+    // the riff as its phrase lays it (as liquid-fix reads it): the passage's variants and register re-cut it on purpose
+    const program = programOf(planTheme(seed, 0, { strategy: 'house-v2', style: await planners(), spell })), sixteenth = program.barSeconds / 16;
     for (const e of program.events) {
       if (e.voice !== 'reeseSub' || typeof e.p.curveDuration !== 'number') continue;
       const b = e.p.bend as number[], knots: [number, number][] = [];

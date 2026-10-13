@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "weatherWind",
+  "revision": 1,
+  "topology": "vinyl",
+  "parameters": {
+    "attack": 2.0,
+    "release": 2.4,
+    "hpHz": 280,
+    "lpHz": 3800,
+    "q": 0.6,
+    "driftHz": 0.05,
+    "driftDepth": 0.45,
+    "trim": 0.3
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "weatherWind": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 3800,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "liquid-ambient",
+    "module": "texture.ts",
+    "note": "Moving wind: the vinyl bed's topology on a broad, soft band (280 Hz to 3.8 kHz), its lid drifting about once in twenty seconds and deep. The composer moves its level and its spectral centre over each span (the weather family's arcs, recipes/ambient/weather.json), through the stage's colour (lpMul) on a corner at 2.5 kHz, so the centre walks between about 1.2 and 3.5 kHz."
+  }
+}

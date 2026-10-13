@@ -18,7 +18,8 @@ import type { VoiceOut } from '../dsp.ts';
 import type { Settings } from '../settings.ts';
 import { withControls } from './descriptor.ts';
 import type { Controls, NoteParams, VoiceRenderer } from './descriptor.ts';
-import { formantBody } from './formant-pad.ts';
+import { formantBody, pathOf, walkPath } from './formant-pad.ts';
+import { contourElapsed } from './contour-time.ts';
 import { insert } from './treat.ts';
 import { rowPatch } from './sound.ts';
 import type { Topology } from './sound.ts';
@@ -82,6 +83,11 @@ function wordlessVocal(V: VocalPatch, controls: Controls, ctx: BaseAudioContext,
   const built=formantBody(ctx,g,time,notes,F,settings.space,0);
   const breath=noiseSource(ctx,time,end-time+.02), breathGain=ctx.createGain();
   breathGain.gain.value=p.breath ?? V.breath;
+  // **A consonant at each note**: the breath's level as a path over the note (`breathCurve`,
+  // pairs of seconds and a level), a short puff where a joined phrase re-articulates, so each pitch under one
+  // breath is heard to start; absent, the breath holds its one level.
+  const breathPath=pathOf(p.breathCurve,contourElapsed(p));
+  if(breathPath)walkPath(breathGain.gain,time,breathPath,(v)=>Math.max(0,Math.min(1,v)));
   breath.connect(breathGain);breathGain.connect(built.src);
   for(const source of built.sources)source.stop(end+.05);
   const tail=insert(ctx,p,g,time,end,settings);

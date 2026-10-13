@@ -42,6 +42,7 @@ import type { CellValue, LabelTheme } from './bird-labels.ts';
 import { linksOf, frameLine, COMPASS } from './bird-influence.ts';
 // The ring's own colour, derived from the eight birds the set was cast under.
 import { ringColour, restyle, mixHex, typeInk, paleInk } from './ring-colour.ts';
+import { wearIcon } from './tab-icon.ts';
 import type { RingColour } from './ring-colour.ts';
 // The eight numbers a cell is a control over, and the house they rest at: the
 // radius a cell stands at *is* its bird's value, so the ring reads the same
@@ -386,6 +387,9 @@ function wearColour(next: RingColour) {
   const root = document.documentElement.style;
   root.setProperty('--gold', typeInk(next));
   root.setProperty('--pale', paleInk(next));
+  // and the tab's icon, on the same step (`tab-icon.ts`: only a changed ink,
+  // at most every 400 ms, the first at once so a deep link is never gold there)
+  wearIcon(next);
   colour = next;
   wornTone.clear();
   inkGen++;
@@ -2927,6 +2931,8 @@ interface CellNode {
   impliedAt: number;
   /** a paint asked for once the throttle's window is over, so the last value a hand left is the one read */
   impliedTrail: number;
+  /** the promise asked of the planner's worker and not yet landed: its value, theme and spell, or '' */
+  impliedAsk: string;
   /**
    * and the immediate half of the same pull, in words: what it changes in the
    * sound that is already playing. Worked out beside the die, because the two
@@ -3151,7 +3157,7 @@ function buildCells(r: Readout) {
       markAt: was ? was.mark : 0, ornAt: was ? was.orn : 0, markSaid: '',
       fillFrom: was ? was.fillFrom : -1, fillP: was ? was.fillP : 0, fillPlan: was ? was.fillPlan : 0,
       value: valueOf(bird2), held: controls && heldValue.has(bird2), pulling: false,
-      implied: null, impliedFor: -1, impliedTheme: -1, impliedAt: 0, impliedTrail: 0, impliedNext: false, impliedR: null,
+      implied: null, impliedFor: -1, impliedTheme: -1, impliedAt: 0, impliedTrail: 0, impliedAsk: '', impliedNext: false, impliedR: null,
       saidTitle: '', saidArc: '', inks, inkW: -1, inkSaid: -1, inkGen: -1, typeSaid: '' };
     g.addEventListener('focus', () => { pointCell(node); showTell(node); markFocus(g, focusMark, true); });
     g.addEventListener('blur', () => { pointCell(null); markFocus(g, focusMark, false); });
@@ -3872,26 +3878,56 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
     trailImplied(c, now);
     return c.implied;
   }
+  // **The whole request, asked of the one place that resolves it** (R57): the
+  // recipe the set was cast under, the two modes and the theme length ride
+  // with the spell, and the engine is the one the theme will arrive under.
+  // It was planned here with the spell and the engine alone, and under
+  // `?recipe=` the promise then named another instrument than the one that
+  // would play (Zephyr's keys in 9 of 12 seeds).
+  const strategy = control.state.strategyTo ?? r.strategy;
+  // **Off the page's thread** (the planning perf round, 10-12): a promise not
+  // planned yet is asked of the planner's worker — the latest value under the
+  // hand replacing one still waiting (`tag`) — and the cell reads the one it
+  // had until it lands, then is painted again. It was planned here, in the
+  // hand's own frame, up to eleven times a second behind a moving hand.
+  if (!known) {
+    const ask = `${about}|${leave}|${r.seed}|${strategy}|${JSON.stringify(spell)}`;
+    if (c.impliedAsk === ask) return c.implied;
+    const later = control.planLater(about, r.seed, strategy, spell, undefined, { tag: `implied:${c.bird}` });
+    if (later) {
+      c.impliedAsk = ask;
+      c.impliedAt = now;
+      later.then((t) => {
+        if (c.impliedAsk !== ask) return;
+        c.impliedAsk = '';
+        if (!cellNodes.includes(c)) return;
+        const at = last ?? r;
+        c.impliedAt = performance.now();
+        c.impliedFor = leave;
+        c.impliedTheme = about;
+        readImplied(c, t, at, spell);
+        if (!last) return;
+        paintAll(last);
+        paintHeld(last);
+        if (panelCell === c) paintPanel();
+        if (tell.at >= 0 && tell.cell === c && controls && (c.pulling || c.held)) showTell(c);
+      }, (e) => {
+        if (c.impliedAsk !== ask) return;
+        c.impliedAsk = '';
+        // a later value took this one's place: nothing to say
+        if ((e as Error)?.name === 'PlanDropped') return;
+        // a plan that cannot be drawn is a report, as it is below
+        report('plan', 'the plan a pulled bird implies could not be drawn', e, { bird: c.bird }, aBug);
+      });
+      return c.implied;
+    }
+  }
+  c.impliedAsk = '';
   c.impliedAt = now;
   c.impliedFor = leave;
   c.impliedTheme = about;
   try {
-    // **The whole request, asked of the one place that resolves it** (R57): the
-    // recipe the set was cast under, the two modes and the theme length ride
-    // with the spell, and the engine is the one the theme will arrive under.
-    // It was planned here with the spell and the engine alone, and under
-    // `?recipe=` the promise then named another instrument than the one that
-    // would play (Zephyr's keys in 9 of 12 seeds).
-    const t = control.planned(about, r.seed, control.state.strategyTo ?? r.strategy, spell) as any;
-    c.impliedR = plannedReadout(t, r, spell);
-    c.implied = cellValue(c.id, c.impliedR);
-    // **And the other half of the same question**: what the pull changes in the
-    // sound that is playing *now*, and whether the die it implies is a
-    // different die from the one on the record. Worked out here so both halves
-    // are one plan and one throttle.
-    const playing = cellValue(c.id, r);
-    c.impliedNext = String(c.implied.word ?? '') !== String(playing.word ?? '')
-      || String(c.implied.sub ?? '') !== String(playing.sub ?? '');
+    readImplied(c, control.planned(about, r.seed, strategy, spell), r, spell);
   } catch (e) {
     // A plan that cannot be drawn says nothing rather than taking the ring
     // down: the value itself is still on the title line, which is the reading
@@ -3902,6 +3938,19 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
     c.impliedNext = false;
   }
   return c.implied;
+}
+
+/** A promise's plan read onto its cell: the reading it implies, and whether it differs from the one playing. */
+function readImplied(c: CellNode, t: any, r: Readout, spell: Partial<Spell>): void {
+  c.impliedR = plannedReadout(t, r, spell);
+  c.implied = cellValue(c.id, c.impliedR);
+  // **And the other half of the same question**: what the pull changes in the
+  // sound that is playing *now*, and whether the die it implies is a
+  // different die from the one on the record. Worked out here so both halves
+  // are one plan and one throttle.
+  const playing = cellValue(c.id, r);
+  c.impliedNext = String(c.implied.word ?? '') !== String(playing.word ?? '')
+    || String(c.implied.sub ?? '') !== String(playing.sub ?? '');
 }
 
 /**
@@ -3998,6 +4047,15 @@ function consequence(r: Readout): { cell: CellNode | null; theme: Readout; base:
 function planSoon(about: number, r: Readout, strategy: string, spell: Partial<Spell> | null, take: (t: Readout | null) => void) {
   const made = control.plannedAlready(about, r.seed, strategy, spell);
   if (made) { take(plannedReadout(made, r, spell)); return; }
+  // **Off the page's thread** where the planner's worker is (the planning perf round, 10-12)
+  const later = control.planLater(about, r.seed, strategy, spell);
+  if (later) {
+    later.then((t) => take(plannedReadout(t, r, spell)), (e) => {
+      report('plan', 'the plan under a drag could not be drawn', e, {}, aBug);
+      take(null);
+    }).then(() => { if (last && cellNodes.length) { paintAll(last); paintHeld(last); } });
+    return;
+  }
   setTimeout(() => {
     try { take(plannedReadout(control.planned(about, r.seed, strategy, spell), r, spell)); } catch (e) {
       report('plan', 'the plan under a drag could not be drawn', e, {}, aBug);
@@ -4080,7 +4138,8 @@ function paintCell(c: CellNode, r: Readout) {
   const su = String(v.sub ?? '').toUpperCase();
   const su2 = (COARSE ? '' : String(v.sub2 || '')).toUpperCase();
   const said = `${up}\n${su}\n${su2}`;
-  if (c.saidLines !== said) {
+  const changed = c.saidLines !== said;
+  if (changed) {
     // a reading changed under a hand fades across; the first paint of a cell,
     // a set changing its own reading and reduced motion write it straight
     if (c.saidLines !== '' && (owned || moved || c.consequent) && !REDUCED) {
@@ -4100,6 +4159,40 @@ function paintCell(c: CellNode, r: Readout) {
   if (c.word.textContent !== up) c.word.textContent = up;
   if (c.sub.textContent !== su) c.sub.textContent = su;
   if (c.sub2.textContent !== su2) c.sub2.textContent = su2;
+  if (changed) resizeWords(c);
+}
+
+/**
+ * **The words' box follows the words** (the UI-fix round of 10-11). A cell's
+ * box was measured once, at build, round whatever its lines read then — so a
+ * square changed while Spark stood at the rim reading "SIXTEENTHS · 10 HITS ·
+ * 1 OPEN" kept a box twice the width of its "SILENT · 0 HITS" at nought, and
+ * the placer found it no clear side on a desktop's square; and lines grown
+ * since the build stood outside the box they were kept clear by. Measured
+ * again whenever the lines change, still at the widest the title can be, so a
+ * title taking a percent moves nothing; a bird whose box changed asks for its
+ * side again on the next frame, the rest keep theirs while they stay clear.
+ */
+function measureWords(c: CellNode): DOMRect {
+  const said = c.title.textContent;
+  c.title.textContent = COARSE ? `${RIM_PERCENT}%` : `${BIRD[c.id].name} ${RIM_PERCENT}%`;
+  // the lines fading out are not the words' own
+  if (c.linesOut) c.linesOut.style.display = 'none';
+  let bb: DOMRect;
+  try { bb = c.gt.getBBox(); } catch (e) { bb = c.bb; }
+  if (c.linesOut) c.linesOut.style.display = '';
+  c.title.textContent = said;
+  return bb;
+}
+let wordsResized = false;
+function resizeWords(c: CellNode): boolean {
+  const bb = measureWords(c);
+  if (bb.width === c.bb.width && bb.height === c.bb.height && bb.x === c.bb.x && bb.y === c.bb.y) return false;
+  c.bb = bb;
+  const i = cellNodes.indexOf(c);
+  if (i >= 0) wordEasy[i] = 0;
+  wordsResized = true;
+  return true;
 }
 
 /** What each bird's marks want now: `[halo, ornament]`, each 0..1 (round K12). */
@@ -4236,10 +4329,17 @@ function paintHeld(r: Readout | null) {
     let active = false;
     let tempo = c.id === 'bpm';
     if (on && r) {
-      // its own ask, held or let go home, not yet heard — and the transport
-      // handing over for it, or, before it has said so, changing the plan
+      // its own ask, held or let go home, not yet heard, and changing the
+      // plan. **A move that changes nothing the plan carries draws nothing**
+      // (K12c's rule, the seasoning alone heard on the next note) even though
+      // the transport hands over for every spell asked: since the mix owns the
+      // wait (73c0046d) a wait alone drew a fill, and Root at the rim beside
+      // the fast broken place filled a whole hand-over into its own plan. The
+      // wait still carries a fill on while the comparison is being planned
+      // (`planSoon`, a task away), and starts none.
+      const planMoves = con ? planSig(con.theme.track) !== planSig(con.base.track) : null;
       const own = !c.pulling && !birdLanded(c.bird, r.spell)
-        && (w ? true : con ? planSig(con.theme.track) !== planSig(con.base.track) : c.impliedNext);
+        && (planMoves ?? (w ? c.fillFrom >= 0 : c.impliedNext));
       const moved = c.consequent && dropWaits;
       // the tempo goes on arriving after the seam, for as long as the transport says it does
       const gliding = tempo && c.fillFrom >= 0 && !!w && w.heardAt > nowC;
@@ -6298,6 +6398,17 @@ function prepTap() {
     tapPrepQueued = false;
     const p = tapPrep;
     if (!p || p.spent || p.key !== tapKey() || p.done >= p.seeds.length) return;
+    // **Off the page's thread** where the planner's worker is (the planning perf
+    // round, 10-12): each candidate planned there, by the control's own request,
+    // and the next asked for when it lands. A candidate that throws is left out
+    // at the tap, as ever (it is planned there, and throws there).
+    const later = control.planLater(0, p.seeds[p.done], control.state.strategy, undefined, undefined, { priority: 'ahead' });
+    if (later) {
+      tapPrepQueued = true;
+      const done = () => { tapPrepQueued = false; if (tapPrep === p) { p.done += 1; prepTap(); } };
+      later.then(done, done);
+      return;
+    }
     try { candidatePlan(p.seeds[p.done]); } catch (err) { /* left out at the tap, as ever */ }
     p.done += 1;
     prepTap();
@@ -7683,6 +7794,8 @@ function frame(now: number) {
 
   // the birds now, their words once the star has turned (below)
   let wordsDue = flexStar(now, false);
+  // a bird's lines changed their size: its side is asked again (`resizeWords`)
+  if (wordsResized) { wordsResized = false; wordsDue = true; }
   runHold(now);
   runBirdHold(now);
   runBirdMarks(now);
@@ -8078,14 +8191,8 @@ function remeasureWords() {
   seedBoxFor = null;
   if (!cellNodes.length) return;
   let moved = false;
-  for (const c of cellNodes) {
-    const said = c.title.textContent;
-    c.title.textContent = COARSE ? `${RIM_PERCENT}%` : `${BIRD[c.id].name} ${RIM_PERCENT}%`;
-    let bb: DOMRect;
-    try { bb = c.gt.getBBox(); } catch (e) { bb = c.bb; }
-    c.title.textContent = said;
-    if (bb.width !== c.bb.width || bb.height !== c.bb.height || bb.x !== c.bb.x || bb.y !== c.bb.y) { c.bb = bb; moved = true; }
-  }
+  for (const c of cellNodes) if (resizeWords(c)) moved = true;
+  wordsResized = false;
   if (moved) placeWords(starDeg);
 }
 if (typeof document !== 'undefined' && document.fonts) {
@@ -8339,10 +8446,7 @@ window.ring = {
   wordBox(i: number) {
     const c = cellNodes[clamp(Math.round(Number(i)), 0, cellNodes.length - 1)];
     if (!c) return null;
-    const said = c.title.textContent;
-    c.title.textContent = COARSE ? `${RIM_PERCENT}%` : `${BIRD[c.id].name} ${RIM_PERCENT}%`;
-    const now = c.gt.getBBox();
-    c.title.textContent = said;
+    const now = measureWords(c);
     return { kept: { w: c.bb.width, h: c.bb.height }, now: { w: now.width, h: now.height } };
   },
   nextDrawn: () => ({

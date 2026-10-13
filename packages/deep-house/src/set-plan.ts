@@ -225,6 +225,7 @@ function fromPercentiles(rng: Rng, p: number[]): number {
 //   ?spark=0      the grain a place gives the voices, every part of it (SPARK-1)
 //   ?sparkkeys=0  the keys' edge and strike   ?sparkpad=0  the strings' breath
 //   ?sparkpiano=0 the piano's hammer and body ?sparkbus=0  the harmonic bus's edge
+//   ?sparkstrike=0 the struck bars' click, where the edge does not read them (HF-NOISE)
 //   ?sparkdrums=0 the drums' grain, every part (SPARK-2)  ?sparkhats=0 the hats' top, air and tail
 //   ?sparkshaker=0 the shaker's air, tail and beads       ?sparkclap=0 the clap's crack
 //   ?roles=classic the kick and the bass in the roles the room drew them in,
@@ -281,6 +282,7 @@ const GRAIN_ROWS: Record<string, string[][]> = {
   sparkpad: [['strings', 'breath']],
   sparkpiano: [['piano', 'grain']],
   sparkbus: [['harmonicEdge']],
+  sparkstrike: [['malletStrike']],
 };
 GRAIN_ROWS.spark = Object.values(GRAIN_ROWS).flat();
 // The drums' grain (round SPARK-2): the hats' three fields in the `hats` block

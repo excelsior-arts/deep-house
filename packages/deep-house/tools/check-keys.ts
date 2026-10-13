@@ -11,6 +11,13 @@ import { parseSpell } from '../src/spell.ts';
 import { keysRowsFaults } from '../src/keys-phrase.ts';
 import { liveStandin } from '@deep-house/engine/standin';
 import { TICK_MS } from '@deep-house/engine/clock';
+import { strategyById } from '../src/strategies/index.ts';
+import { withoutTechniques } from '../src/places.ts';
+
+// The written passage (`src/passage.ts`) rewrites its window after the planners this file holds to their own
+// invariants; they are checked here as the planners laid them (the style with no place naming a passage), and the
+// passage by `check-passage.ts`.
+const PLANNERS = withoutTechniques(strategyById('house-v2').style, 'passage');
 
 const SPELLS: Record<string, string> = {
   A: 'em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85',
@@ -21,7 +28,7 @@ const quiet = <T>(fn: () => T): T => {
   console.log = console.info = console.warn = () => {};
   try { return fn(); } finally { [console.log, console.info, console.warn] = keep; }
 };
-const plan = (seed: string, spell: string | null, theme = 0) => quiet(() => planTheme(seed, theme, { strategy: 'house-v2', ...(spell ? { spell: parseSpell(spell)! } : {}) }));
+const plan = (seed: string, spell: string | null, theme = 0) => quiet(() => planTheme(seed, theme, { strategy: 'house-v2', style: PLANNERS, ...(spell ? { spell: parseSpell(spell)! } : {}) }));
 const pc = (m: number) => ((Math.round(m) % 12) + 12) % 12;
 /** A note's pitch `dt` seconds in, through its bend (pairs of seconds and semitones over its note). */
 const pitchAt = (p: { midi: number; bend?: number[] }, dt: number): number => {

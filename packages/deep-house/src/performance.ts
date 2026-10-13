@@ -171,7 +171,7 @@ export interface PlanEvent {
   /** Explicit articulation separates a struck decay from a held drone. */
   articulation?: 'struck';
   /** a background texture, or the sparse keys (liquid-space round 1): parts with their own level and return, which the stage leaves as written */
-  role?: 'texture' | 'sparse-keys';
+  role?: 'texture' | 'sparse-keys' | 'detail';
   t: number;
   voice: string;
   layer: string;
@@ -181,14 +181,7 @@ export interface PlanEvent {
   step?: number | null;
   /** the note's name, where the plan wrote one down for a readout */
   note?: string;
-  /**
-   * **Nothing writes this.** The pristine parameters were kept here while the
-   * stage was a mutator; round D of PLAN-V1-NEXT removed both (see the head of
-   * this file). `figures` below still reads it, so the field is declared where
-   * the read is rather than the read being quietly deleted.
-   */
-  p0?: NoteParams;
-}
+  }
 
 /** One bar of a plan's timeline: where it sits, and what is playing over it. */
 export interface TimelineRow {
@@ -217,6 +210,8 @@ export interface PlanAutomation {
   floors?: FloorStep[];
   /** the part's own space's dry and each send's level, by section (liquid-space round 1: the sparse keys low and wet under a full section) */
   partSpace?: { dry: CurvePoint[]; sends: Record<string, CurvePoint[]> };
+  /** lines on the theme's shared returns (`settings.returns`), each by its path into one (`returns.<id>.…`) */
+  returns?: Array<{ param: string; points: CurvePoint[] }>;
 }
 
 /** One step of the keyed floors (round EQ-6), read by the level key a voice plays at. */
@@ -322,7 +317,6 @@ interface RotaRules {
   amount: number[];
 }
 
-const db = (x: number): number => Math.pow(10, x / 20);
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
 // Rises over the first part of a segment and is released over the rest of it —
@@ -395,9 +389,6 @@ export interface Figure {
 // `hz` is the middle of the tune and deliberately not `brightnessHz` from
 // TIMBRES, which says where a voice *stops* — 3450 Hz for a piano, nowhere
 // near where its notes live.
-//
-// They read `p0` where there is one, so a second pass over a developed track
-// measures the notes the plan wrote and not the ones the stage last shortened.
 function figures(
   track: PlannedTheme,
   layers: readonly string[],
@@ -412,7 +403,7 @@ function figures(
     if (!bin || e.bar == null) continue;
     const block = Math.floor(e.bar / G.block);
     if (block < 0 || block >= blocks) continue;
-    const p = e.p0 || e.p || {};
+    const p = e.p || {};
     const key = Math.round(e.t * 1000);
     const dur = Math.max(0, p.dur ?? barSeconds * 0.25);
     bin[block].struck &&= e.articulation === 'struck';
@@ -771,7 +762,7 @@ export interface StageRow {
 export function stage(track: PlannedTheme, style: Style = track.style): StageRow[] {
   // Background punctuation has its own level and return. Sharing an instrument
   // with a foreground figure must not change that figure's stage assignment.
-  if (track.events.some(e => e.role === 'texture' || e.role === 'sparse-keys')) return stage({ ...track, events: track.events.filter(e => e.role !== 'texture' && e.role !== 'sparse-keys') }, style);
+  if (track.events.some(e => e.role === 'texture' || e.role === 'sparse-keys' || e.role === 'detail')) return stage({ ...track, events: track.events.filter(e => e.role !== 'texture' && e.role !== 'sparse-keys' && e.role !== 'detail') }, style);
   const G: StageBlock = style.stage;
   const phraseAt = phrasesOf(track, style);
   const bars = track.bars;
@@ -1048,7 +1039,7 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
   const out: NoteParams[] = [];
   for (const ev of track.events) {
     const base = ev.p || {};
-    if (ev.role === 'texture' || ev.role === 'sparse-keys') { out.push(base); continue; }
+    if (ev.role === 'texture' || ev.role === 'sparse-keys' || ev.role === 'detail') { out.push(base); continue; }
     const bar = ev.bar;
     if (bar == null || bar < 0 || bar >= rows.length) { out.push(base); continue; }
     const row = rows[bar];
@@ -1057,7 +1048,7 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
     if (ev.layer === 'bass') {
       // The bass bus's level (house-v2's `bassBusDb`, round S12): a trim of the
       // whole line, applied where the lane's level is and never as a shelf.
-      p.gain = (base.gain ?? 1) * db(row.level.bass + (G.bassBusDb ?? 0));
+      p.gain = (base.gain ?? 1) * dbToGain(row.level.bass + (G.bassBusDb ?? 0));
       let mul = 1;
       if (bassRun[bar] >= G.bassRunBars) {
         mul *= G.bassOpen[Math.floor(phraseAt(bar).n) % G.bassOpen.length];
@@ -1087,7 +1078,7 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
     const wet = role === 'front' ? G.frontWet : 1 + (G.backWet - 1) * back;
     const colour = role === 'front' ? G.frontLp : 1 + (G.backLp - 1) * back;
 
-    p.gain = (base.gain ?? 1) * db(levelDb);
+    p.gain = (base.gain ?? 1) * dbToGain(levelDb);
     p.lpMul = [colour * t0.lpMul, colour * t1.lpMul];
     p.hpMul = [t0.hpMul, t1.hpMul];
     if (t0.spreadMul !== 1 || t1.spreadMul !== 1) p.spreadMul = (t0.spreadMul + t1.spreadMul) / 2;
@@ -1112,7 +1103,7 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
     if (voiceColour && row.engaged) {
       const list = phraseColour[ev.voice];
       const c = list[Math.floor(phraseAt(bar, voiceColour.everyBars).n) % list.length];
-      p.gain *= db(c.db);
+      p.gain *= dbToGain(c.db);
       if (p.hall != null) p.hall = Math.min(voiceColour.hallCap, p.hall * c.wet);
       if (p.delay != null) p.delay *= c.wet;
     }
@@ -1220,7 +1211,6 @@ export function seamPlan(
   // out rather than underneath the blend it is still in.
   const roomy = Math.max(0, Math.floor((track.bars - need) / q) * q);
   const latest = Math.max(0, Math.floor((track.bars - 2) / q) * q);
-  const ends = Math.ceil(track.bars / q) * q;
   // The *last* breakdown, and only one that is inside the last quarter and
   // still leaves room for the whole blend.
   let candidate: number | null = null;
@@ -1751,6 +1741,8 @@ function automationOf(track: PlannedTheme, settings: Settings): AutomationLine[]
     if (a.partSpace.dry.length > 1) lines.push({ param: 'partSpace.levels.dry.gain', curve: 'linear', points: pts(a.partSpace.dry) });
     for (const [id, list] of Object.entries(a.partSpace.sends)) if (list.length > 1) lines.push({ param: `partSpace.levels.sends.${id}.gain`, curve: 'linear', points: pts(list) });
   }
+  // The theme's shared returns: a line into one the settings build, and none where they build none.
+  for (const L of a.returns ?? []) if (settings.returns?.[L.param.split('.')[1]] && L.points.length > 1) lines.push({ param: L.param, curve: 'linear', points: pts(L.points) });
   return lines;
 }
 
@@ -1986,6 +1978,21 @@ export function programOf(track: PlannedTheme): Program {
     compiled.set(track, p);
   }
   return p;
+}
+
+/**
+ * **A program compiled on another thread, taken as this plan's** (the planning
+ * perf round, 10-12): the planner's worker compiles the plan it made and hands
+ * both over in one message (`src/plan-ask.ts`), so the objects they share are
+ * shared here too. Frozen as the compiler freezes what it makes — a clone
+ * arrives unfrozen — and kept unless this thread has compiled the plan itself.
+ */
+export function adoptProgram(track: PlannedTheme, program: Program): Program {
+  const had = compiled.get(track);
+  if (had) return had;
+  deepFreeze(program);
+  compiled.set(track, program);
+  return program;
 }
 
 export default compilePerformance;

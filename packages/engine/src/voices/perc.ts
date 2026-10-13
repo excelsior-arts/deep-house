@@ -33,7 +33,6 @@ import { kit, kitTopology, drumNoise, filter, tuned, transient, KIT } from './dr
 import { contract, list, num, CENTS, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
-import type { Settings } from '../settings.ts';
 
 // What a row of each of the four carries, each in its range (`schema.ts`): the
 // kit's shared fields and the instrument's own. A tambourine's jingles share

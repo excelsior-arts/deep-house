@@ -134,6 +134,8 @@ export interface SpaceInstance {
    * a page may scale them (a wetter balance) from the row's own values
    */
   levels: { dry: GainNode; sends: Record<string, GainNode> };
+  /** each send's own door, past its level, by send id: what a note may be sent into directly (`withReturns`) */
+  doors: Record<string, AudioNode>;
   /** the tail rings out from `at` and then everything is let go */
   dispose(at?: number): void;
 }
@@ -181,6 +183,7 @@ export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: Space
     input,
     output: trim,
     levels: { dry, sends: levels },
+    doors: Object.fromEntries(row.sends.map((s, i) => [s.id, doors[i]])),
     dispose(when) {
       // each effect lets its own nodes go once its tail has rung; the wires of
       // this module carry none of their own, and go with the longest of them

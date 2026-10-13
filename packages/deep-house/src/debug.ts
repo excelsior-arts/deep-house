@@ -6,7 +6,9 @@ import { generate } from './generator.ts';
 import { mergeParams } from '@deep-house/engine/params';
 import { settingsOf } from '@deep-house/engine/settings';
 import { renderProgram } from '@deep-house/engine/scheduler';
-import { compilePerformance, sliceProgram } from './performance.ts';
+import { compilePerformance, sliceProgram, programOf } from './performance.ts';
+import { planHere } from './plan-ask.ts';
+import { planOffThread } from './plan-off-thread.ts';
 import { schedule, firstEvent, offsetGrid } from '@deep-house/engine/schedule';
 import { VOICES } from '@deep-house/engine/voices';
 import { createMix, planTheme, recipesFor, renderMix, renderTrack, STYLE } from './mix.ts';
@@ -65,6 +67,13 @@ export function installDebug(control: Control) {
     renderProgram,
     encodeWav,
     planTheme,
+    // **The planner's two halves** (the planning perf round, 10-12): a plan made
+    // on this thread with the room's bypass folded in, and the same request
+    // asked of the planner's worker, so a check can hold one to the other in
+    // the browser that runs them (`tools/plan-perf.ts --identity`).
+    planHere,
+    planOffThread,
+    programOfPlan: programOf,
     generationOf: (strategy: string) => strategyById(strategy).generation,
     recipesFor,
     renderMix,

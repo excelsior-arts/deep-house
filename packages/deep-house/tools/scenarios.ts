@@ -41,6 +41,7 @@ import { planTheme } from '../src/mix.ts';
 // page decided the colour was.
 import { ringColour, mixHex, typeInk } from '../src/ring-colour.ts';
 import { HOUSE, BIRD_CODE } from '../src/spell.ts';
+import { ICON_GOLD, ICON_EVERY, iconInk, iconHref } from '../src/tab-icon.ts';
 // The glyphs as the page draws them, for a scenario that must tell two levels of
 // one bird apart by their drawing and not only by their count of marks.
 import fs from 'node:fs';
@@ -3373,6 +3374,96 @@ export const SCENARIOS = [
     },
   },
 
+  // **The tab's icon wears the ring's colour** (10-12). A deep link away from
+  // the house has the ring's ink in the icon the moment the ring has its first
+  // colour, with no gold in between and no bird moved; the shipped gold is only
+  // what the page carries before its script runs. One row a corner.
+  ...[
+    ['cool', 'em:0,ti:0.92,ze:0.8,ro:0.5,ve:0.85,sp:0,lo:0.9'],
+    ['warm', 'em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85'],
+  ].map(([corner, spell]) => ({
+    name: `a deep link to a ${corner} corner has the ring's ink in the tab icon on load`,
+    area: 'ring',
+    query: `seed=1&v=2&spell=${spell}`,
+    page: body(`
+      const links = [...document.querySelectorAll('link[rel="icon"][type="image/svg+xml"]')];
+      const c = window.ring.colour();
+      return { n: links.length, href: links[0] && links[0].getAttribute('href'), colour: { hex: c.hex, fit: c.fit, C: c.C, h: c.h } };
+    `),
+    judge: (r) => {
+      const want = iconHref(iconInk(r.colour));
+      const ink = iconInk(r.colour);
+      const ok = r.n === 1 && r.href === want && ink !== ICON_GOLD && r.colour.hex !== '#f2c14e';
+      return {
+        ok,
+        why: `${r.n} SVG icon link(s); the ring wears ${r.colour.hex} and the icon should be drawn in ${ink}, `
+          + `the href ${r.href === want ? 'is' : r.href === iconHref(ICON_GOLD) ? 'is still the gold one' : 'is something else'}`,
+        note: `the ring opened in ${r.colour.hex} and the tab icon was already drawn in ${ink}, with one SVG icon link in the head`,
+      };
+    },
+  })),
+
+  {
+    name: 'a deep link at the house keeps the shipped gold tab icon',
+    area: 'ring',
+    query: `seed=1&v=2&spell=${Object.entries(HOUSE).map(([b, v]) => `${BIRD_CODE[b]}:${v}`).join(',')}`,
+    page: body(`
+      const links = [...document.querySelectorAll('link[rel="icon"][type="image/svg+xml"]')];
+      return { n: links.length, href: links[0] && links[0].getAttribute('href'), hex: window.ring.colour().hex, spell: ctl.readout().spell };
+    `),
+    judge: (r) => ({
+      ok: r.n === 1 && r.href === iconHref(ICON_GOLD) && r.hex === '#f2c14e',
+      why: `${r.n} SVG icon link(s); the ring wears ${r.hex}; the href is ${r.href === iconHref(ICON_GOLD) ? 'the gold one' : 'not the gold one'}; spell ${JSON.stringify(r.spell)}`,
+      note: `the house written out in the link wears ${r.hex} and the tab icon is the shipped gold one`,
+    }),
+  },
+
+  {
+    name: 'a bare link and one at the house keep the shipped gold tab icon, and the tab icon follows a worn colour within the interval',
+    area: 'ring',
+    query: 'seed=1',
+    page: body(`
+      const sel = 'link[rel="icon"][type="image/svg+xml"]';
+      const href = () => { const l = document.querySelector(sel); return l && l.getAttribute('href'); };
+      const bare = href();
+      const out = { bare, steps: [] };
+      // the same page asked for the house written out by hand: nothing moves
+      window.ring.wear(${JSON.stringify(HOUSE)});
+      out.house = href();
+      // two colours in quick succession, then back to the house: the first is
+      // written at once, the second waits out the interval and lands
+      const a = window.ring.wear({ ember: 0, tide: 0.92, zephyr: 0.8, root: 0.5, veil: 0.85, spark: 0, loom: 0.9 });
+      const ca = window.ring.colour();
+      out.steps.push(['a', href()]);
+      const b = window.ring.wear({ ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 });
+      const cb = window.ring.colour();
+      out.steps.push(['b at once', href()]);
+      await sleep(${ICON_EVERY} + 250);
+      out.steps.push(['b later', href()]);
+      window.ring.wear(null);
+      await sleep(${ICON_EVERY} + 250);
+      out.steps.push(['house again', href()]);
+      out.links = document.querySelectorAll(sel).length;
+      const pick = (c) => ({ hex: c.hex, fit: c.fit, C: c.C, h: c.h });
+      out.ca = pick(ca); out.cb = pick(cb);
+      return out;
+    `),
+    judge: (r) => {
+      const gold = iconHref(ICON_GOLD);
+      const A = iconHref(iconInk(r.ca)), B = iconHref(iconInk(r.cb));
+      const want = [A, A, B, gold];
+      const got = r.steps.map(([, h]) => h);
+      const steps = want.every((w, i) => got[i] === w);
+      const ok = r.bare === gold && r.house === gold && steps && r.links === 1 && A !== B && A !== gold;
+      const say = (h) => (h === gold ? 'gold' : h === A ? 'a' : h === B ? 'b' : 'other');
+      return {
+        ok,
+        why: `bare ${say(r.bare)}, house ${say(r.house)}; ${r.steps.map(([w, h]) => `${w}: ${say(h)}`).join(', ')}; ${r.links} link(s)`,
+        note: `a bare link and the house by hand carry the shipped gold icon; a worn colour was on the tab at once, the next one within ${ICON_EVERY} ms, the house's gold back after it`,
+      };
+    },
+  },
+
   {
     name: 'an untouched ring renders byte-identical to v1',
     area: 'ring',
@@ -4447,6 +4538,12 @@ export const SCENARIOS = [
         sizes: [playing, paused, resumed, stopped].map((s) => s.size),
         placed: [same(playing, paused), same(playing, resumed), same(playing, stopped)],
         moved: playing.boxes.filter((x, i) => paused.boxes[i] && x.at !== paused.boxes[i].at).map((x) => x.id).slice(0, 4),
+        // the boxes one shot has and the next has not, either way
+        lost: [[playing, paused], [paused, resumed], [resumed, stopped]].map(([a, b]) => {
+          const ids = (s) => new Set(s.boxes.map((x) => x.id));
+          const ia = ids(a), ib = ids(b);
+          return [...ia].filter((x) => !ib.has(x)).map((x) => '-' + x).concat([...ib].filter((x) => !ia.has(x)).map((x) => '+' + x)).join(' ');
+        }),
       };
     `),
     judge: (r) => {
@@ -4456,7 +4553,7 @@ export const SCENARIOS = [
         && r.idle[2] === 0 && r.lit[1] === 0 && r.lit[2] > 0;
       return {
         ok,
-        why: !one(r.counts) ? `the boxes went ${r.counts.join(' → ')} across a pause, a play and a stop`
+        why: !one(r.counts) ? `the boxes went ${r.counts.join(' → ')} across a pause, a play and a stop (${r.lost.filter(Boolean).join('; ')})`
           : !one(r.sizes) ? `the canvas went ${r.sizes.join(' → ')}`
             : !r.placed.every(Boolean) ? `boxes moved: ${r.moved.join(', ')}`
               : r.idle[0] ? `${r.idle[0]} boxes were already idle while the set was playing`
@@ -9732,7 +9829,11 @@ SCENARIOS.push({
 // over the master's foot, half off the pane). Every bus's, every strip's and
 // every band's popover, at 1440, on a phone and with the graph scrolled: whole
 // inside the pane and the viewport a spacing step in, and within a strip's
-// width of the control that opened it.
+// width of the control that opened it. **Or, where the pane's visible part
+// cannot hold it, whole inside the viewport** (DESK-D0, ccaca3b3, and DESK-UX1,
+// 379f8a88: a strip's popover carries its device and is taller than a phone's
+// pane holds on either side of the key, so the viewport is its bound) — and
+// only then: a box the pane could hold as drawn stays in the pane.
 SCENARIOS.push({
   name: 'every popover of the desk opens at its control and whole inside the pane, at 1440, on a phone and with the graph scrolled',
   area: 'view',
@@ -9770,8 +9871,12 @@ SCENARIOS.push({
             const b = pop.getBoundingClientRect();
             const L = Math.max(0, pr.left), T = Math.max(0, pr.top), R = Math.min(vw, pr.right), B = Math.min(vh, pr.bottom);
             const inside = Math.min(b.left - L, b.top - T, R - b.right, B - b.bottom);
+            const inView = Math.min(b.left, b.top, vw - b.right, vh - b.bottom);
+            // the most the pane's visible part offers the box, a step in, below or above its control
+            const paneRoom = Math.max(B - 8 - (a.bottom + 4), a.top - 4 - (T + 8));
             const gapX = Math.max(0, a.left - b.right, b.left - a.right); const gapY = Math.max(0, a.top - b.bottom, b.top - a.bottom);
-            res.push({ id: g.getAttribute('aria-label'), open: true, inside: +inside.toFixed(1), gap: +Math.hypot(gapX, gapY).toFixed(1), strip: +strip.toFixed(1) });
+            res.push({ id: g.getAttribute('aria-label'), open: true, inside: +inside.toFixed(1), inView: +inView.toFixed(1), tall: +b.height.toFixed(1), paneRoom: +paneRoom.toFixed(1),
+              gap: +Math.hypot(gapX, gapY).toFixed(1), strip: +strip.toFixed(1) });
             pop.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             await sleep(80);
           }
@@ -9788,16 +9893,18 @@ SCENARIOS.push({
       if (list.length < 6) bad.push(`${k}: only ${list.length} controls were pressed`);
       for (const x of list) {
         if (!x.open) bad.push(`${k}: ${x.id} opened no popover`);
-        else if (x.inside < 7.5) bad.push(`${k}: ${x.id}'s popover stands ${x.inside} px inside the pane`);
+        else if (x.inside < 7.5 && x.tall <= x.paneRoom + 1) bad.push(`${k}: ${x.id}'s popover stands ${x.inside} px inside the pane, which has ${x.paneRoom} px for its ${x.tall}`);
+        else if (x.inside < 7.5 && x.inView < 7.5) bad.push(`${k}: ${x.id}'s popover, ${x.tall} px where the pane has ${x.paneRoom}, stands ${x.inView} px inside the viewport`);
         else if (x.gap > x.strip) bad.push(`${k}: ${x.id}'s popover stands ${x.gap} px from its control, more than a strip's ${x.strip}`);
       }
     }
     const n = Object.values(r).reduce((m, l) => m + l.length, 0);
     const worst = Math.max(...Object.values(r).flat().filter((x) => x.open).map((x) => x.gap));
+    const wide = Object.entries(r).flatMap(([k, l]) => l.filter((x) => x.open && x.inside < 7.5).map((x) => `${k} ${x.id} (${x.tall} px, the pane ${x.paneRoom})`));
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `${n} popovers opened — every bus, every source strip and every band, at 1440, at 1440 with the graph scrolled to its far corner, at 2560 (the type step 1.5) and on a phone — each whole inside the pane and the viewport at least 8 px in, and none further from its control than ${worst} px`,
+      note: `${n} popovers opened — every bus, every source strip and every band, at 1440, at 1440 with the graph scrolled to its far corner, at 2560 (the type step 1.5) and on a phone — each whole inside the pane and the viewport at least 8 px in${wide.length ? ` but ${wide.length} taller than the pane's part holds, whole inside the viewport: ${wide.slice(0, 3).join(', ')}` : ''}, and none further from its control than ${worst} px`,
     };
   },
 });
@@ -10682,15 +10789,22 @@ SCENARIOS.push({
 // support completely need to be disabled and not clickable"*). Since GA8 the
 // grid is nine fixed tiles and none is untuned today (rewritten in the merge
 // round, Reconcile 1): at 390 and 1440 every tile presses, none is marked
-// untuned; Drum & Bass, which plays by its rows, pressed by a hand writes its
-// ledger line and its spell into the address and lights on arrival, its
-// tooltip saying so with no bird in it; Techno, on its measured spell, pressed
-// writes its line and its spell.
+// untuned; a tile that plays by its rows (Dubstep), pressed by a hand, writes
+// its ledger line and its spell into the address and lights on arrival, its
+// tooltip saying so with no bird in it; Drum & Bass, tuned since ad8fe232 on
+// Liquid's measured spell (the place groomed on 10-06), pressed writes its line
+// and its whole spell, its tooltip Liquid's own sentence and no longer one the
+// ring cannot reach (d20ea4ee).
+//
+// The line is counted right after the press: the ledger keeps half a minute
+// (KEEP_SECONDS), and a hand-over now takes about that long to arrive — a far
+// tempo is ridden before the blend (a5c1b9ca) — so a count taken on arrival
+// read nought once the line had aged out. The lamp is waited on for a minute.
 SCENARIOS.push({
   name: 'no genre tile is untuned today: every one of the nine presses, a tile with rows plays them and lights on arrival, and a tuned one plays its spell',
   area: 'view',
   query: 'v=2&seed=1',
-  deadline: 120000,
+  deadline: 180000,
   drive: async (page) => {
     const out = {};
     for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
@@ -10707,32 +10821,41 @@ SCENARIOS.push({
           if (name === '390') await p.touchscreen.tap(c.x, c.y); else await p.mouse.click(c.x, c.y);
           await p.waitForTimeout(400);
         };
+        const about = (g) => p.evaluate((g) => document.querySelector('#machine .genres button[data-genre="' + g + '"]').title, g);
         const keys = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].map((k) => [k.dataset.genre, k.getAttribute('aria-disabled'), k.hasAttribute('data-untuned'), k.disabled]));
         const before = await state();
+        await press('Dubstep');
+        const pressed = await state();
+        // its key lights when the spell arrives, a hand-over later
+        const t0 = Date.now();
+        await p.waitForFunction(() => document.querySelector('#machine .genres button[data-genre="Dubstep"]').getAttribute('aria-pressed') === 'true', null, { timeout: 60000 }).catch(() => {});
+        const rows = { ...pressed, lamps: (await state()).lamps, after: Math.round((Date.now() - t0) / 1000), about: await about('Dubstep') };
+        const linesBefore = (await state()).lines;
         await press('Drum & Bass');
-        // its key lights when the spell arrives, a turn later
-        await p.waitForFunction(() => document.querySelector('#machine .genres button[data-genre="Drum & Bass"]').getAttribute('aria-pressed') === 'true', null, { timeout: 30000 }).catch(() => {});
-        const dnb = { ...(await state()), about: await p.evaluate(() => document.querySelector('#machine .genres button[data-genre="Drum & Bass"]').title) };
-        await press('Techno');
-        const tuned = await state();
+        const tuned = { ...(await state()), linesBefore, about: await about('Drum & Bass') };
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { keys, before, dnb, tuned };
+        out[name] = { keys, before, rows, tuned };
       } finally { await own.close(); }
     }
     return out;
   },
   judge: (r) => {
     const bad = [];
+    const DNB = { em: 0.95, ti: 0.45, ze: 0.6, ro: 0.75, ve: 0.6, sp: 0.85, lo: 0.85 };
+    const spellIn = (url) => { const m = /[?&]spell=([^&]*)/.exec(url); return m ? Object.fromEntries(decodeURIComponent(m[1]).split(',').map((kv) => kv.split(':')).map(([k, v]) => [k, +v])) : null; };
     for (const [k, x] of Object.entries(r)) {
       const off = x.keys.filter(([, d, u, dis]) => d === 'true' || u || dis).map(([g]) => g);
       if (x.keys.length !== 9 || off.length) bad.push(`${k}: of ${x.keys.length} tiles ${off.join(', ')} are disabled`);
-      if (x.dnb.lines !== x.before.lines + 1 || x.dnb.url === x.before.url || x.dnb.lamps !== 'Drum & Bass' || !/plays its recipes on a turn/.test(x.dnb.about) || /bird/i.test(x.dnb.about)) bad.push(`${k}: Drum & Bass pressed read ${JSON.stringify(x.dnb)}`);
-      if (x.tuned.lines !== x.dnb.lines + 1 || x.tuned.url === x.dnb.url) bad.push(`${k}: Techno pressed wrote ${x.tuned.lines - x.dnb.lines} lines and the address ${x.tuned.url}`);
+      if (x.rows.lines !== x.before.lines + 1 || x.rows.url === x.before.url || x.rows.lamps !== 'Dubstep' || !/plays its recipes on a turn/.test(x.rows.about) || /bird/i.test(x.rows.about)) bad.push(`${k}: Dubstep pressed read ${JSON.stringify(x.rows)}`);
+      const got = spellIn(x.tuned.url);
+      const whole = got && Object.entries(DNB).every(([b, v]) => Math.abs((got[b] ?? NaN) - v) < 0.006);
+      if (x.tuned.lines !== x.tuned.linesBefore + 1 || x.tuned.url === x.rows.url || !whole) bad.push(`${k}: Drum & Bass pressed wrote ${x.tuned.lines - x.tuned.linesBefore} lines and the address ${x.tuned.url}`);
+      if (!/^Liquid: .*The Drum & Bass tile opens here\.$/.test(x.tuned.about) || /Not reached by the ring/.test(x.tuned.about)) bad.push(`${k}: the Drum & Bass tooltip reads "${x.tuned.about}"`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and on a phone the nine tiles all press and none is marked untuned; Drum & Bass pressed played by its rows ("${r['1440'].dnb.about}") and lit ${r['1440'].dnb.lamps} on arrival; Techno pressed wrote its line and its spell into the address`,
+      note: `at 1440 and on a phone the nine tiles all press and none is marked untuned; Dubstep pressed played by its rows ("${r['1440'].rows.about}") and lit ${r['1440'].rows.lamps} on arrival, ${r['1440'].rows.after} and ${r['390'].rows.after} s after the press; Drum & Bass pressed wrote its line and Liquid's whole spell into the address (${r['1440'].tuned.url}), its tooltip Liquid's own`,
     };
   },
 });
@@ -11289,13 +11412,21 @@ SCENARIOS.push({
         window.__tips = [];
         new MutationObserver(() => { const t = document.querySelector('#machine [role="tooltip"][data-help]'); if (t) window.__tips.push(t.getAttribute('data-help')); })
           .observe(document.getElementById('machine'), { childList: true, subtree: true, attributes: true });
-        return { a: titleOf('bassBody'), b: titleOf('bassComp'), c: titleOf('duckLow'), duck: titleOf('duck'), width: titleOf('width') };
+        // the empty ground left of the last title: found on the drawn page, no
+        // box and no wire under it, since what stands 200 px off moves with
+        // the returns a theme has (send:hall's title stood there once the
+        // returns no theme sends to were no longer drawn)
+        const c = titleOf('duckLow');
+        const bare = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && !e.closest('[data-box]') && !e.closest('[data-hit]'); };
+        let ground = null;
+        for (let dx = 200; dx <= 600 && !ground; dx += 10) for (const dy of [10, 30, -20]) if (bare(c.x - dx, c.y + dy)) { ground = { x: c.x - dx, y: c.y + dy }; break; }
+        return { a: titleOf('bassBody'), b: titleOf('bassComp'), c, duck: titleOf('duck'), width: titleOf('width'), ground: ground || { x: c.x - 200, y: c.y + 10 } };
       `));
       // across three titles in under 400 ms, and off onto the empty ground
       await p.mouse.move(at.a.x - 200, at.a.y);
       const t0 = Date.now();
       for (const q of [at.a, at.b, at.c]) { await p.mouse.move(q.x, q.y, { steps: 3 }); await p.waitForTimeout(40); }
-      await p.mouse.move(at.c.x - 200, at.c.y + 10, { steps: 2 });
+      await p.mouse.move(at.ground.x, at.ground.y, { steps: 2 });
       const crossed = Date.now() - t0;
       await p.waitForTimeout(900);
       const crossing = await p.evaluate(() => window.__tips.slice());
@@ -13283,7 +13414,7 @@ SCENARIOS.push({
       sl.value = String(v); sl.dispatchEvent(new Event('input', { bubbles: true }));
       await sleep(350);
       if (v === 130) await settled(() => [cells()[0].marks, cells()[2].marks, ringWords(2)]);
-      steps.push({ v, ember: ringWords(0), zephyr: ringWords(2), zMarks: cells()[2].marks, eMarks: cells()[0].marks, zLift: cells()[2].lift, url: location.search });
+      steps.push({ v, ember: ringWords(0), percent: cells()[0].percent, slider: sl.value, zephyr: ringWords(2), zMarks: cells()[2].marks, eMarks: cells()[0].marks, zLift: cells()[2].lift, url: location.search });
     }
     touch('pointerup');
     await sleep(300);
@@ -13299,18 +13430,26 @@ SCENARIOS.push({
     const bad = [];
     if (!(r.selected.halo > 0.9 && r.selected.orn > 0.9 && r.selected.others.every((x) => x === 0))) bad.push(`the selected Ember read ${JSON.stringify(r.selected)}`);
     for (const s of r.steps) {
-      if (!s.ember.includes(`${s.v}%`)) bad.push(`at ${s.v} % the ring's Ember read "${s.ember}"`);
+      // since K40 (ab90a7cf) the slider lands on the value whose tempo is a
+      // notch of five BPM, so 120 is taken as 119 (135 BPM): the ring reads the
+      // value the slider landed on, within a notch of the one asked
+      const bpm = +((/(\d+) BPM/.exec(s.ember) || [])[1]);
+      if (!s.ember.includes(`${s.slider}%`) || Math.abs(+s.slider - s.v) > 2 || bpm % 5) bad.push(`at ${s.v} % the slider landed on ${s.slider} % and the ring's Ember read "${s.ember}"`);
       if (s.url.includes('em:')) bad.push(`at ${s.v} % the finger applied the value`);
     }
     const last = r.steps[r.steps.length - 1];
     if (last.ember === r.atRest.ember) bad.push('the ring\'s Ember never changed');
     if (last.zephyr === r.atRest.zephyr) bad.push(`the ring's Zephyr stayed "${last.zephyr}"`);
     else if (!(last.zMarks.halo > 0.9 && last.zMarks.orn > 0.9 && last.zLift === 0)) bad.push(`Zephyr, changed, read ${JSON.stringify(last.zMarks)}`);
-    if (!r.less.ember.includes(`${r.less.percent}%`) || r.less.percent !== 125) bad.push(`a press of Less left the ring's Ember "${r.less.ember}" at ${r.less.percent} %`);
+    // (K40) Less lands a notch of five BPM down, not five points: the ring
+    // reads the new percent and its tempo at once, the reading it leaves fading
+    const bpms = (t) => [...t.matchAll(/(\d+) BPM/g)].map((m) => +m[1]);
+    const lastBpm = bpms(last.ember).pop();
+    if (!r.less.ember.includes(`${r.less.percent}%`) || !(r.less.percent < +last.slider) || bpms(r.less.ember).pop() !== lastBpm - 5) bad.push(`a press of Less left the ring's Ember "${r.less.ember}" at ${r.less.percent} %`);
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `a finger on Ember lit its halo and ornament; the slider at ${r.steps.map((s) => s.v).join(', ')} % turned the ring's own Ember into ${r.steps.map((s) => JSON.stringify(s.ember)).join(', ')} with nothing applied, `
+      note: `a finger on Ember lit its halo and ornament; the slider asked for ${r.steps.map((s) => s.v).join(', ')} % and landed on ${r.steps.map((s) => s.slider).join(', ')} (K40's notches), turning the ring's own Ember into ${r.steps.map((s) => JSON.stringify(s.ember)).join(', ')} with nothing applied, `
         + `and Zephyr into ${JSON.stringify(last.zephyr)} with the halo and the ornament, unlifted; a press of Less read "${r.less.ember}" on the ring at once`,
     };
   },
@@ -13756,7 +13895,17 @@ SCENARIOS.push({
       if (b.back.word !== b.word) bad.push(`${b.name} let go reads ${b.back.word}, not ${b.word}`);
       if (!K13_ROLE[b.bird].test(b.sub)) bad.push(`${b.name}'s subtitle "${b.sub}" does not say its role`);
       // the locked readings no bird of their own moves stay put under their own bird
-      if (['loom', 'tide', 'veil'].includes(b.bird) && (b.rim.sub !== b.sub || b.zero.sub !== b.sub)) bad.push(`${b.name}'s locked subtitle moved: ${b.sub} → ${b.zero.sub} / ${b.rim.sub}`);
+      if (['loom', 'veil'].includes(b.bird) && (b.rim.sub !== b.sub || b.zero.sub !== b.sub)) bad.push(`${b.name}'s locked subtitle moved: ${b.sub} → ${b.zero.sub} / ${b.rim.sub}`);
+      // **Tide's count of sections is its own bird's since L1** (2a0dda92, 10-01:
+      // a theme's length is minutes from the birds, Tide's wet among them, longer
+      // as it rises; 4892ac74: the form counted in time, a section per 22 house
+      // bars), so its subtitle is no longer locked under it: it reads the plan's
+      // sections, never fewer at the rim than at the house nor more at nought
+      if (b.bird === 'tide') {
+        const n = (x) => Number((/^(\d+) SECTIONS$/.exec(x) || [])[1]);
+        const [z, h, rr] = [n(b.zero.sub), n(b.sub), n(b.rim.sub)];
+        if (![z, h, rr].every(Number.isFinite) || z > h || h > rr) bad.push(`${b.name}'s sections do not follow its wet: ${b.zero.sub} ‹ ${b.sub} › ${b.rim.sub}`);
+      }
     }
     return {
       ok: !bad.length,
@@ -15365,9 +15514,16 @@ SCENARIOS.push({
   query: 'v=2&seed=1',
   page: body(`
     await frame();
-    const cut = [...document.querySelectorAll('#actions path[fill="#000000"]')];
-    const g = cut.length ? cut[0].parentNode : null;
+    // the near die's knock-out is a mask on the far die since 464f5581 (round
+    // MIX-X5): its silhouette is the mask's black, and the pair is the group
+    // that holds the mask
+    const cut = [...document.querySelectorAll('#actions mask path[fill="#000000"]')];
+    const mask = cut.length ? cut[0].closest('mask') : null;
+    const g = mask ? mask.parentNode : null;
     if (!g) return { found: false };
+    // the far die (its outline and edges) is drawn under that mask, the near one not
+    const under = [...g.querySelectorAll('[mask]')].filter((m) => m.getAttribute('mask') === 'url(#' + mask.id + ')');
+    const farMasked = under.length === 1 && under[0].querySelectorAll('path.ln').length === 2;
     const lines = [...g.querySelectorAll('path.ln')];
     const closed = lines.filter((p) => /Z\\s*$/.test(p.getAttribute('d')));
     const open = lines.filter((p) => !/Z\\s*$/.test(p.getAttribute('d')));
@@ -15414,7 +15570,7 @@ SCENARIOS.push({
     }
     const off = Math.hypot((x0 + x1) / 2 - ncx, (y0 + y1) / 2 - ncy) / nr;
     return { found: true, closed: closed.length, open: open.length, knocks: cut.length, turn: turn ? +turn[1] : 0, off: +off.toFixed(3), reach: +reach.toFixed(3),
-      knockIsOutline: cut.length === 1 && closed.some((p) => p.getAttribute('d') === cut[0].getAttribute('d')),
+      knockIsOutline: cut.length === 1 && farMasked && closed.some((p) => p.getAttribute('d') === cut[0].getAttribute('d') && !p.closest('[mask]')),
       ends: ends.length, loose, R, wide: +(bb.width / (R || 1)).toFixed(3), pips: g.querySelectorAll('circle').length };
   `),
   judge: (r) => {
@@ -15423,14 +15579,14 @@ SCENARIOS.push({
       ok,
       why: !r.found ? 'no die on the ring'
         : r.closed !== 2 ? `the die is ${r.closed} closed outlines (one per face drawn separately), where it is two silhouettes`
-        : r.knocks !== 1 || !r.knockIsOutline ? `${r.knocks} knock-outs, the near die's ${r.knockIsOutline ? '' : 'not '}its own silhouette`
+        : r.knocks !== 1 || !r.knockIsOutline ? `${r.knocks} knock-outs, the near die's ${r.knockIsOutline ? '' : 'not '}its own silhouette masking the far die`
         : r.loose.length ? `${r.loose.length} edge ends stop short of or past an outline (${r.loose.slice(0, 3).join('; ')})`
         : r.pips !== 6 ? `${r.pips} pips`
         : r.turn !== -5.5 ? `the pair is turned ${r.turn}°, where it is 5.5° to the left`
         : r.off > 0.02 ? `the pair's drawn middle is ${r.off} of the node's radius off its centre`
         : `the pair reaches ${r.reach} of the node's radius`,
       note: `the pair is two silhouettes, each corner rounded once, and ${r.open} open edge paths whose ${r.ends} ends all lie on an outline's line (or meet another edge at the far die's apex); `
-        + `the near die's knock-out is its silhouette, so the far die's edges stop at its line; six pips; the pair ${r.wide} of the node's radius across, turned ${r.turn}° as one, its drawn middle ${r.off} of the radius off the node's and its outlines reaching ${r.reach} of it`,
+        + `the near die's knock-out is its silhouette as a mask on the far die, so the far die's edges stop at its line; six pips; the pair ${r.wide} of the node's radius across, turned ${r.turn}° as one, its drawn middle ${r.off} of the radius off the node's and its outlines reaching ${r.reach} of it`,
     };
   },
 });

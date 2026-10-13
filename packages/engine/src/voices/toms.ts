@@ -18,7 +18,6 @@ import { contract, num, table, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts'
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
 import type { NoteParams } from './descriptor.ts';
-import type { Settings } from '../settings.ts';
 
 /** What a row of this topology carries, each in its range (`schema.ts`): a head in three sizes, and how a size rings off its tuning. */
 const PARAMETERS = contract({

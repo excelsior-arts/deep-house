@@ -9,7 +9,7 @@
 // the entries are named for what they are musically.
 import { HOUSE_PLACE, drumsKnobFaults } from '../places.ts';
 import type { Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
-  DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry } from '../places.ts';
+  DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry, AmbientVoicesEntry } from '../places.ts';
 import type { WalkEntry } from '../walk.ts';
 import { riffTableFaults, type GlideEntry, type RiffEntry } from '../glide.ts';
 import { NO_SUBS, type SubRates } from '../subsections.ts';
@@ -513,7 +513,8 @@ export const BED_HOUSE: BedEntry = Object.freeze({ id: 'a-fuller-bed', place: HO
  *   place (27191) keep the record's sound.
  *
  * Walked in steps on the house links (`notes/rounds/spark-1.md`); the listening
- * rows `?sparkkeys=0`, `?sparkpad=0`, `?sparkpiano=0`, `?sparkbus=0` and
+ * rows `?sparkkeys=0`, `?sparkpad=0`, `?sparkpiano=0`, `?sparkbus=0`,
+ * `?sparkstrike=0` (the bars' strike, round HF-NOISE) and
  * `?spark=0` take each part, or all of them, away on one build.
  */
 const GRAIN_HOUSE_ROW = {
@@ -521,6 +522,11 @@ const GRAIN_HOUSE_ROW = {
   breath: Object.freeze({ level: 0.03, loHz: 6000, hiHz: 14000 }),
   piano: Object.freeze({ hammer: 2.5, body: 0.4 }),
   bus: Object.freeze({ blend: 0.25, drive: 0.6, preHz: 250, floorHz: 1800, toneHz: 5000 }),
+  // Round HF-NOISE (`notes/rounds/hf-noise.md`): the vibes, off the edge, take
+  // their 3-6 kHz on the strike — 2.5-5 kHz noise at a fifth of the note's
+  // peak, sixty decibels down in 40 ms: at the strike 5 dB over what the edge's
+  // copy laid there, 73 dB under it 150 ms on.
+  strike: Object.freeze({ level: 0.2, hz: 3500, decay: 0.04 }),
 };
 /**
  * The bus's edge at the deep half-time place, set by ear at the desk (10-05,
@@ -1015,6 +1021,8 @@ export const KEYS: readonly KeysEntry[] = Object.freeze([
  * Every other place plans nothing, and says so.
  */
 const LIQUID_DEVELOPMENT = Object.freeze({ row: 'dnb/phrase-development-liquid', aux: 'dnb/aux-liquid-quiet', bass: 'dnb/bass-answers-liquid',
+  // liquid-ambient (10-11): the bed in bounded gestures and the chapters over the phrases (`src/ambient-plan.ts`)
+  ambient: Object.freeze({ bed: 'ambient/bed-liquid', chapters: 'ambient/chapters-liquid' }),
   surface: Object.freeze([{ v: 'dnb/surface-dark-air', w: 3 }, { v: 'dnb/surface-hiss', w: 2 }, { v: 'dnb/surface-air-swell', w: 2 }]) });
 export const DEVELOPMENT: readonly DevelopmentEntry[] = Object.freeze([
   { id: 'phrases-developed', place: FAST_BROKEN, ...LIQUID_DEVELOPMENT },
@@ -1029,6 +1037,29 @@ export const DEVELOPMENT: readonly DevelopmentEntry[] = Object.freeze([
     .map((place, i) => ({ id: `phrases-as-drawn-${i + 1}`, place, row: null })),
 ] as DevelopmentEntry[]);
 
+/**
+ * **The ambient voices by place** (liquid-ambient, 10-11; `src/ambient-voices.ts`, the research manual's sections 4-6):
+ * at the fast places the composer lays one remembered motif and the conversation's one vocabulary (the breathy
+ * soloist, the keys' own fragments or the filtered bell, with keys echoes, delay tails, reverse-like arrivals and
+ * silences), and one weather identity a track (clear, wind, rain or a dark cloud), each admitted under the phone's
+ * budget (`recipes/ambient/admission.json`). Every other place lays none, and says so.
+ */
+const LIQUID_AMBIENT = Object.freeze({ soloist: 'liquid-breath', fillers: 'liquid-conversation', weather: 'liquid-weather', admission: 'liquid-admission',
+  // the first main passage written as one arrangement (`recipes/ambient/passage.json`)
+  passage: 'first-passage',
+  // the whole track arranged by the producer's grammar around it (`recipes/ambient/producer.json`)
+  producer: 'liquid-producer' });
+export const AMBIENT_VOICES: readonly AmbientVoicesEntry[] = Object.freeze([
+  { id: 'details-and-weather-fast', place: FAST_BROKEN, ambient: LIQUID_AMBIENT },
+  { id: 'details-and-weather-deep', place: FAST_BROKEN_DEEP, ambient: LIQUID_AMBIENT },
+  { id: 'details-and-weather-liquid', place: LIQUID_CENTRE, ambient: LIQUID_AMBIENT },
+  { id: 'details-and-weather-islands', place: LIQUID_ISLANDS, ambient: LIQUID_AMBIENT },
+  { id: 'details-and-weather-roller', place: LIQUID_ROLLER, ambient: LIQUID_AMBIENT },
+  { id: 'details-and-weather-broken', place: LIQUID_BROKEN, ambient: LIQUID_AMBIENT },
+  ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
+    .map((place, i) => ({ id: `no-details-or-weather-${i + 1}`, place })),
+] as AmbientVoicesEntry[]);
+
 export const places: StylePlaces = Object.freeze({ harmony: HARMONY, form: FORM, treatments: TREATMENTS, bassSound: BASS_SOUND, laneSound: LANE_SOUND, sounds: SOUNDS, eq: EQ, bassDrive: BASS_DRIVE, bassDriveHouse: BASS_DRIVE_HOUSE, bed: BED, bedHouse: BED_HOUSE, grain: GRAIN, grainHouse: GRAIN_HOUSE, drumGrain: DRUM_GRAIN, drumGrainHouse: DRUM_GRAIN_HOUSE,
   drums: DRUMS, breaks: BREAKS, subSections: SUBSECTIONS, subSectionsHouse: THE_HOUSE_SUBSECTIONS, sections: SECTIONS, glueSound: GLUE_SOUND, walk: WALK, roles: ROLES, glide: GLIDE,
-  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT });
+  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES });

@@ -681,7 +681,7 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const file = linkDigest.saved();
   // The committed digest against the one the last cut shipped (`master`'s),
   // which is what the release's `npm run check` holds it to.
-  // ...inside the window stated for that cut, where one is (`WINDOW`, 2026-09-27).
+  // ...inside the window stated for that cut, where one is (`WINDOW`, 2026-09-27 for v2.0.0; 2026-10-11 for v2.1.0).
   assert.deepEqual(linkDigest.sinceCut(linkDigest.lastCut(), file, linkDigest.openWindow()), [], 'the link digest has moved since the last cut');
   // No cut carries the digest (v1.0.0 does not): nothing to hold it to.
   assert.deepEqual(linkDigest.sinceCut(null, file), []);
@@ -705,15 +705,15 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const added = { ...file, rows: [...file.rows, extra] };
   assert.ok(linkDigest.sinceCut(file, added).some((f) => f.includes('no blessing was added')));
   assert.deepEqual(linkDigest.sinceCut(file, { ...added, blessings: [...file.blessings, 'v3 joins the grid'] }), []);
-  // The stated window (Eugene, 09-26, "go for it"): a shipped row may play
+  // The stated window (Eugene, 09-26, "go for it", for v2.0.0; 10-11 for v2.1.0): a shipped row may play
   // otherwise when the newest blessing counts it, and only then; a dropped row
   // is refused inside it as outside. Both strategies alike since V1-1 (10-02):
   // the record's rows were held by name until then, with their own words
   // (`recordMovedWords`, gone); house-v1 is a composing preset, not a byte
   // lock, and a shared mixing path that moves its rows is counted with the rest.
   const w = linkDigest.WINDOW;
-  assert.equal(w.since, '2026-09-27');
-  assert.match(w.reason, /go for it/);
+  assert.equal(w.since, '2026-10-11');
+  assert.match(w.reason, /sacrifices with known golden tracks/);
   assert.ok(!('strategy' in w), 'the window names a strategy, and it covers both');
   const v2 = file.rows.findIndex((r) => r.strategy === 'house-v2'), v1 = file.rows.findIndex((r) => r.strategy === 'house-v1');
   for (const [which, at] of [['house-v2', v2], ['house-v1', v1]] as const) {

@@ -1,5 +1,6 @@
 // Small Web Audio helpers shared by every voice. Everything is built from
 // oscillators, generated noise and curves: no sample files anywhere.
+import { contourElapsed, pathFrom } from './voices/contour-time.ts';
 
 const noiseCache = new WeakMap<BaseAudioContext, AudioBuffer>();
 const irCache = new WeakMap<BaseAudioContext, Map<string, AudioBuffer>>();
@@ -608,6 +609,123 @@ export function withPartSpace(ctx: BaseAudioContext, out: VoiceOut, p: { partSpa
   const moved: VoiceOut = {};
   for (const name of SEND_NAMES) {
     if (name === 'dry') { moved.dry = into; continue; }
+    Object.defineProperty(moved, name, { get: () => out[name], enumerable: true });
+  }
+  return moved;
+}
+
+/**
+ * **A note into the theme's shared returns** (`settings.returns`; the written passage's hall and echoes): a part may send a
+ * note into one or more named returns — a hall and an echo a theme builds once and every note that asks
+ * shares — each by amount, `p.returns`, keyed `<return>` (its input, through the row's own send levels)
+ * or `<return>.<send>` (straight into that send, past its level). The amounts are taken off the note's
+ * own dry output before `p.direct`, the note's direct level (1 where it is not written), so a note can be
+ * mostly return and a little direct. Each note has its own send gains: opening the echo for one note and
+ * not the next is a *throw*, and the shared return's feedback rings on after the note is gone. A key
+ * the graph cannot resolve is no send; a note that writes neither field is handed the very `out` it was. An amount may
+ * be a path over the note (pairs of seconds from its start and an amount), from `when`, the note's start;
+ * a note started inside itself reads it from there (`contourElapsed`, `contour-time.ts`).
+ * The other sends pass through as getters, so a lazy return stays lazy.
+ */
+export function withReturns(ctx: BaseAudioContext, out: VoiceOut,
+  p: { returns?: unknown; direct?: unknown; dur?: unknown; curveDuration?: unknown } | null | undefined,
+  door: (key: string) => AudioNode | null | undefined, when = 0): VoiceOut {
+  const asks = p && p.returns && typeof p.returns === 'object' ? Object.entries(p.returns as Record<string, unknown>) : [];
+  const direct = p && typeof p.direct === 'number' && Number.isFinite(p.direct) ? Math.min(SEND_MAX, Math.max(0, p.direct)) : 1;
+  if ((!asks.length && direct === 1) || !out.dry) return out;
+  const tap = ctx.createGain();
+  if (direct === 1) tap.connect(out.dry);
+  else if (direct > 0) { const d = ctx.createGain(); d.gain.value = direct; tap.connect(d); d.connect(out.dry); }
+  const clamp = (v: number) => Math.min(SEND_MAX, Math.max(0, v));
+  const elapsed = contourElapsed(p as Record<string, unknown>);
+  for (const [key, v] of asks) {
+    // an amount, or the send's path over the note (pairs of seconds from its start and an amount): a note's run-up
+    // sent lightly and its destination fully, without a second event
+    const path = Array.isArray(v) && v.length >= 2 && v.length % 2 === 0 && v.every((x) => typeof x === 'number' && Number.isFinite(x)) ? pathFrom(v as number[], elapsed) : null;
+    const amount = path ? Math.max(...path.filter((_, i) => i % 2 === 1)) : typeof v === 'number' && Number.isFinite(v) ? clamp(v) : 0;
+    const into = amount > 0 ? door(key) : null;
+    if (!into) continue;
+    const g = ctx.createGain();
+    if (path) {
+      g.gain.setValueAtTime(clamp(path[1]), when);
+      let last = when;
+      for (let i = 2; i < path.length; i += 2) {
+        const t = when + Math.max(0, path[i]);
+        if (t > last + 1e-4) g.gain.linearRampToValueAtTime(clamp(path[i + 1]), t); else g.gain.setValueAtTime(clamp(path[i + 1]), t);
+        last = Math.max(last, t);
+      }
+    } else g.gain.value = amount;
+    tap.connect(g);
+    g.connect(into);
+  }
+  const tapped: VoiceOut = {};
+  for (const name of SEND_NAMES) {
+    if (name === 'dry') { tapped.dry = tap; continue; }
+    Object.defineProperty(tapped, name, { get: () => out[name], enumerable: true });
+  }
+  return tapped;
+}
+
+/**
+ * **A note's own motion**: a part may move one note across the field and through a filter
+ * without a new voice or a bus of its own — `p.panPath` (pairs of seconds from the note's start and a pan,
+ * -1 to 1), `p.lpPath` and `p.hpPath` (pairs of seconds and a corner in Hz), each a path over the note or a
+ * single number held for it. A slow pan across a long texture, a high-pass falling over a run of short hits
+ * (each hit its own corner), a top closing through a low-pass: the composer writes the numbers, the voice
+ * stays what it is. It sits before the returns' tap, so what the note sends moves with what plays direct;
+ * the other sends pass through as getters. A note that writes none of them is handed the very `out` it was.
+ *
+ * `p.gainPath`: pairs of seconds and a gain (0 to 4) over the note, a level the composer rides
+ * after the voice's own envelope — a held chord faded over its last bars so it is never heard to stop, a pad
+ * rising toward an entry, a texture gated at sixteenths. Its sends ride with it.
+ *
+ * A note started inside itself (a seek, a pause and a play: `curveDuration`, `contour-time.ts`) reads each path
+ * from where the note stands, so a bloom's rise and a drift across the field go on rather than start again.
+ */
+export function withMotion(ctx: BaseAudioContext, out: VoiceOut,
+  p: { panPath?: unknown; lpPath?: unknown; hpPath?: unknown; gainPath?: unknown; dur?: unknown; curveDuration?: unknown } | null | undefined, when = 0): VoiceOut {
+  if (!p || !out.dry) return out;
+  const elapsed = contourElapsed(p as Record<string, unknown>);
+  const pathOf = (v: unknown): number[] | null => {
+    if (typeof v === 'number' && Number.isFinite(v)) return [0, v];
+    return Array.isArray(v) && v.length >= 2 && v.length % 2 === 0 && v.every((x) => typeof x === 'number' && Number.isFinite(x)) ? pathFrom(v as number[], elapsed) : null;
+  };
+  const hp = pathOf(p.hpPath), lp = pathOf(p.lpPath), pan = pathOf(p.panPath), level = pathOf(p.gainPath);
+  if (!hp && !lp && !pan && !level) return out;
+  const walk = (param: AudioParam, path: number[], f: (v: number) => number) => {
+    param.setValueAtTime(f(path[1]), when);
+    let last = when;
+    for (let i = 2; i < path.length; i += 2) {
+      const t = when + Math.max(0, path[i]);
+      if (t > last + 1e-4) param.linearRampToValueAtTime(f(path[i + 1]), t); else param.setValueAtTime(f(path[i + 1]), t);
+      last = Math.max(last, t);
+    }
+  };
+  const hz = (v: number) => Math.max(20, Math.min(20000, v));
+  const chain: AudioNode[] = [];
+  if (level) {
+    const g = ctx.createGain();
+    walk(g.gain, level, (v) => Math.max(0, Math.min(4, v)));
+    chain.push(g);
+  }
+  for (const [path, type] of [[hp, 'highpass'], [lp, 'lowpass']] as const) {
+    if (!path) continue;
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.Q.value = 0.7;
+    walk(f.frequency, path, hz);
+    chain.push(f);
+  }
+  if (pan) {
+    const s = ctx.createStereoPanner();
+    walk(s.pan, pan, (v) => Math.max(-1, Math.min(1, v)));
+    chain.push(s);
+  }
+  for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
+  chain[chain.length - 1].connect(out.dry);
+  const moved: VoiceOut = {};
+  for (const name of SEND_NAMES) {
+    if (name === 'dry') { moved.dry = chain[0]; continue; }
     Object.defineProperty(moved, name, { get: () => out[name], enumerable: true });
   }
   return moved;

@@ -37,7 +37,6 @@ import { contract, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
 import type { NoteParams } from './descriptor.ts';
-import type { Settings } from '../settings.ts';
 
 /**
  * The two blocks this builder is given. They are one shape with different

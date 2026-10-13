@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "weatherUpperAir",
+  "revision": 1,
+  "topology": "vinyl",
+  "parameters": {
+    "attack": 1.6,
+    "release": 2.2,
+    "hpHz": 2500,
+    "lpHz": 7000,
+    "q": 0.5,
+    "driftHz": 0.11,
+    "driftDepth": 0.35,
+    "trim": 0.16
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "weatherUpperAir": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 7000,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "liquid-ambient",
+    "module": "texture.ts",
+    "note": "Upper air: soft noise around 2.5 to 7 kHz, its lid moving about once in nine seconds; laid only in short windows of four to eight bars inside a weather span, bright on arrival and darker as it retreats (the stage's colour walked down across the window), so it is never a constant shelf over the hats."
+  }
+}

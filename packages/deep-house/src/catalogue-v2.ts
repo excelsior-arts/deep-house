@@ -218,7 +218,7 @@ export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }>
   // thirty-two rows it is.
   { id: 'fx:bassDrive', since: '2026-10-02', for: 'a driven copy of the bass summed under the clean one, on the bass bus where a place asks' },
   // Round LIQUID-KEYS: ten soft keyboards for a backdrop and a haze to layer
-  // under one, his to pick on the keys lab page (notes/rounds/liquid-keys.md);
+  // under one, his to pick on the keys lab page (notes/archive/2026-10-liquid/liquid-keys.md);
   // a part admits the picks in a later round.
   { id: 'pianoUpright', since: '2026-10-10', for: 'a dark upright for held chords under a backdrop' },
   { id: 'pianoWorn', since: '2026-10-10', for: 'a worn small piano for a tape treatment' },
@@ -272,6 +272,11 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'keysSuitcase', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a tine electric piano with a stereo tremolo' },
   { id: 'keysTineDark', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a darker tine electric piano with a soft bark' },
   { id: 'airBed', since: '2026-10-11', for: 'the dark air the fast places lay under their exposed passages, their surface row (liquid-space)' },
+  // liquid-ambient (10-11): the weather family the fast places draw one identity of a track (`recipes/ambient/weather.json`)
+  { id: 'weatherWind', since: '2026-10-11', for: 'the moving wind the fast places lay in weather spans, its level and centre walked (liquid-ambient)' },
+  { id: 'weatherUpperAir', since: '2026-10-11', for: 'the soft upper air the fast places lay in short windows inside a weather span (liquid-ambient)' },
+  { id: 'weatherRain', since: '2026-10-11', for: 'the fine rain surface the fast places lay in one or two passages (liquid-ambient)' },
+  { id: 'weatherRumble', since: '2026-10-11', for: 'the distant thunder the fast places lay at most twice a track under a dark cloud (liquid-ambient)' },
 ].map((e) => Object.freeze(e)));
 
 const AWAITING_IDS = new Set<string>(AWAITING.map((a) => a.id));

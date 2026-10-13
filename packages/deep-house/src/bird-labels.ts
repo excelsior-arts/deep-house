@@ -244,7 +244,7 @@ interface BirdRow {
   /** the word and lines with no drum event in the theme (K30, Spark) */
   noDrums?: { word: string; says: string; short: string };
 }
-export const LABEL_TABLE = LABELS as unknown as { kind: string; schema: number; birds: Record<Bird, BirdRow>; timbres: Record<string, string> };
+export const LABEL_TABLE = LABELS as unknown as { kind: string; schema: number; birds: Record<Bird, BirdRow>; timbres: Record<string, string>; cellWords: Record<string, string> };
 
 /** One band, with its threshold solved: in the quantity's own units and in the bird's. */
 export interface Band {
@@ -402,9 +402,14 @@ function bandLine(bird: Bird, spell: Partial<Spell> | null | undefined, style: S
 export function timbrePhrase(id: string | undefined): string {
   return (id && LABEL_TABLE.timbres[id]) || timbreWords(id);
 }
-/** A timbre id's words: `reedOrgan` → `reed organ`, `fmPluck` → `fm pluck`; a plain id is itself. */
+/**
+ * A timbre id's words: `reedOrgan` → `reed organ`, `fmPluck` → `fm pluck`; a plain id is itself.
+ * An id named family first (`keysSuitcase`, `pianoFelt`) reads backwards split, and
+ * `keys suitcase` was wider than the cell's room at 130 % (the v2.2 cut's words row,
+ * seed 15576): the table's `cellWords` say those as a cell would.
+ */
 export function timbreWords(id: string | undefined): string {
-  return (id || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+  return (id && LABEL_TABLE.cellWords[id]) || (id || '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
 }
 export function maskBits(m: Mask): number[] {
   if (Array.isArray(m)) return m.slice(0, 16).map((v) => (v ? 1 : 0));

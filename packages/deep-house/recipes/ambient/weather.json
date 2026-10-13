@@ -1,0 +1,116 @@
+{
+ "schema": 1,
+ "kind": "ambient-weather",
+ "round": "liquid-ambient",
+ "revision": 1,
+ "note": "The weather family (the research manual's section 5): one identity a track, drawn by weight and leaned by the birds (a choice's weight times exp(lean x (bird - 0.5))), off a stream of its own. Each identity lays spans by the class of the passage they fall in, with a chance and a length range; every span has its end, a contour drawn (approach, recede or passing through) and at least eight bars of absence before the next. Inside a span the main row is laid in events of four bars, each at its place on the span's arc of level and brightness and on the wind's inner arcs. Upper air comes in short windows inside a span, under a quarter of the track; thunder only under a dark cloud, at most twice, sixty-four bars apart, and it takes the featured-detail slot. Levels are row numbers, his to move.",
+ "rows": [
+  {
+   "id": "liquid-weather",
+   "sounds": {
+    "wind": "weatherWind",
+    "upper": "weatherUpperAir",
+    "rain": "weatherRain",
+    "dark": "airBed",
+    "rumble": "weatherRumble"
+   },
+   "families": [
+    {
+     "id": "mostly-clear",
+     "w": 15,
+     "main": "wind",
+     "places": {
+      "intro": { "chance": 0.5, "bars": [16, 16], "db": -8 },
+      "exposed": { "chance": 0.5, "bars": [16, 24], "db": -4 }
+     },
+     "spansMost": 1
+    },
+    {
+     "id": "moving-wind",
+     "w": 45,
+     "main": "wind",
+     "places": {
+      "intro": { "chance": 0.8, "bars": [16, 32], "db": -6 },
+      "exposed": { "chance": 1, "bars": [16, 32], "db": 0 },
+      "full": { "chance": 0.5, "bars": [8, 16], "db": -7, "most": 1 },
+      "outro": { "chance": 0.5, "bars": [16, 24], "db": -6 }
+     },
+     "inner": { "bars": [8, 16], "db": 4, "bright": 0.35 },
+     "upper": { "perSpan": [[0, 1], [1, 2]], "bars": [4, 8], "db": 0 }
+    },
+    {
+     "id": "fine-rain",
+     "w": 25,
+     "main": "rain",
+     "places": {
+      "exposed": { "chance": 1, "bars": [16, 32], "db": 0 },
+      "intro": { "chance": 0.4, "bars": [16, 24], "db": -6 },
+      "outro": { "chance": 0.4, "bars": [16, 32], "db": -5 }
+     },
+     "spansMost": 2,
+     "upper": { "perSpan": [[0, 2], [1, 1]], "bars": [4, 6], "db": -3 }
+    },
+    {
+     "id": "dark-cloud",
+     "w": 15,
+     "main": "dark",
+     "places": {
+      "exposed": { "chance": 1, "bars": [16, 32], "db": 0 },
+      "intro": { "chance": 0.6, "bars": [16, 32], "db": -6 },
+      "outro": { "chance": 0.5, "bars": [16, 24], "db": -6 }
+     },
+     "thunder": {
+      "count": [[0, 1], [1, 2], [2, 1]],
+      "apartBars": 64,
+      "classes": ["exposed", "intro", "outro"],
+      "dur": [2.5, 4],
+      "db": -4,
+      "bars": 3
+     }
+    }
+   ],
+   "birds": {
+    "tide": { "dark-cloud": 0.9, "fine-rain": 0.4, "says": "toward the dub: a darker sky and the rain" },
+    "zephyr": { "fine-rain": 0.8, "moving-wind": 0.3, "mostly-clear": -0.4, "says": "toward the upper band" },
+    "veil": { "moving-wind": 0.6, "mostly-clear": -0.6, "says": "the sky changes more" },
+    "root": { "dark-cloud": 0.6, "says": "a warmer, lower sky" },
+    "loom": { "mostly-clear": 0.3, "says": "longer clear stretches" }
+   },
+   "contours": [
+    {
+     "id": "approach",
+     "w": 2,
+     "level": [[0, -14], [0.7, 0], [1, -9]],
+     "bright": [[0, 0.55], [0.7, 1.15], [1, 0.75]]
+    },
+    {
+     "id": "recede",
+     "w": 2,
+     "level": [[0, -5], [0.25, 0], [1, -16]],
+     "bright": [[0, 1.0], [0.25, 1.15], [1, 0.5]]
+    },
+    {
+     "id": "pass-through",
+     "w": 3,
+     "level": [[0, -15], [0.5, 0], [1, -15]],
+     "bright": [[0, 0.5], [0.5, 1.2], [1, 0.5]]
+    }
+   ],
+   "main": {
+    "wind": { "midi": 40, "vel": 0.7, "reverb": 0.3, "levelDb": 0 },
+    "rain": { "midi": 84, "vel": 0.7, "reverb": 0.2, "levelDb": -2, "bright": 0.85 },
+    "dark": { "midi": 60, "vel": 0.7, "reverb": 0.25, "levelDb": 0 }
+   },
+   "upperTone": { "midi": 84, "vel": 0.7, "reverb": 0.2, "levelDb": -4, "lpMul": [0.85, 0.5] },
+   "rumbleTone": { "midi": 40, "vel": 0.8, "reverb": 0.45 },
+   "segmentBars": 4,
+   "tailS": 2.4,
+   "absenceBars": 8,
+   "upperMost": 0.25,
+   "cleanBars": 8,
+   "loomLonger": 0.6,
+   "veilChance": [0.7, 1.2],
+   "tideReverb": 0.25
+  }
+ ]
+}

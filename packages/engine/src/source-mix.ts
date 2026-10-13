@@ -53,9 +53,12 @@ export function makeSourceMixer(ctx: BaseAudioContext, buses: Buses, initial: So
   // — the second change on a deck used to throw there (engine review, #6).
   const gains: Array<{ source: string; send: string; node: GainNode; line: Line }> = [];
   return {
-    /** `door` is the bus's struck door where the note is struck (round PIANO-2), else the bus itself */
-    output(source: string, bus: string, door: Bus | null = null): VoiceOut {
-      const key = door ? `${source}:${bus}:struck` : `${source}:${bus}`;
+    /**
+     * `door` is the bus's struck door where the note is struck (round PIANO-2),
+     * or a clean door (round HF-NOISE), named by `doorName`; else the bus itself
+     */
+    output(source: string, bus: string, door: Bus | null = null, doorName = 'struck'): VoiceOut {
+      const key = door ? `${source}:${bus}:${doorName}` : `${source}:${bus}`;
       if (channels.has(key)) return channels.get(key)!;
       const target = door ?? buses[bus];
       if (!target) throw new Error(`Unknown source bus ${bus}`);

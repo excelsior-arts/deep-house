@@ -1,0 +1,343 @@
+{
+  "schema": 1,
+  "kind": "ambient-bed",
+  "id": "ambient/bed-liquid",
+  "revision": 1,
+  "name": "The bed in phrases: bounded gestures, real rests, a register by part",
+  "round": "liquid-ambient",
+  "note": "The research manual's round 2 (its §3), as rows: the bed keeps the keys' harmony and their common-tone memory (`KeysPlan.bed`) as its pitch memory, and sounds it in bounded gestures with real rests. A track draws one grammar (`grammars`, by weight, leaned by the birds); its return plays the grammar's related variant (`return`). Each grammar has its parameters by occupancy class: `full` (a section the drums and the bass play) and `exposed` (a lifted one). Lengths are fast bars. Between two gestures in one chord the voicing moves by `innerMotion`. `limits` are the composer's constraints the compiled program is checked against, in bars and, so a slower tempo keeps them, in seconds (`*MostS`: a note's length scales down where its bars would outlast them). `envelope`: a note's crest as a share of its length (the voice's attack), the plateau it aims under, its release in seconds. `register`: the final sounding MIDI window by class, after every pass (the bed's octave rule leaves these notes where they are), the intervals a dyad may span, the chance of a third note at an arc's crest. `colour`: the sustained bed darker than a struck or breathed detail (the voice's own corner, as a multiple), its velocity range, and each note's entrance swell over its own crest, so the tone opens with the note as a breath does (his reference of 10-11: re-articulated, opening over the note, low-mid, a gentle filter). `absences`: the mixing regions, the outro's bars, the bed's distance round a keys landing in sixteenths, the drops that open clean, and the shortest rest a listener hears as a withdrawal. Weights are listening hypotheses, his to move.",
+  "grammars": [
+    {
+      "id": "breath-and-rest",
+      "w": 50,
+      "says": "Over a cell, one dyad, a substantial rest, then a shorter answer; never every gap filled.",
+      "full": {
+        "cellBars": 16,
+        "start": [
+          0,
+          2
+        ],
+        "statement": [
+          3,
+          4
+        ],
+        "rest": [
+          2.5,
+          4
+        ],
+        "answer": [
+          2.5,
+          3.5
+        ],
+        "answerNotes": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "tailRest": 2
+      },
+      "exposed": {
+        "cellBars": 8,
+        "start": [
+          0,
+          0.5
+        ],
+        "statement": [
+          2.5,
+          3.5
+        ],
+        "rest": [
+          1,
+          2
+        ],
+        "answer": [
+          1.5,
+          2.5
+        ],
+        "answerNotes": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ]
+        ],
+        "tailRest": 0.5
+      },
+      "return": {
+        "start": [
+          1,
+          3
+        ],
+        "intervals": [
+          5,
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "id": "passing-overlap",
+      "w": 30,
+      "says": "One note begins, a second enters later, the first leaves, both are gone before the next pair after a rest; never an immortal anchor.",
+      "full": {
+        "cellBars": 16,
+        "start": [
+          0,
+          2
+        ],
+        "first": [
+          3,
+          4
+        ],
+        "enter": [
+          1.5,
+          2.5
+        ],
+        "second": [
+          3,
+          4
+        ],
+        "tailRest": 1.5,
+        "rest": [
+          2.5,
+          4
+        ]
+      },
+      "exposed": {
+        "cellBars": 8,
+        "start": [
+          0,
+          0.5
+        ],
+        "first": [
+          2.5,
+          3.5
+        ],
+        "enter": [
+          1.5,
+          2
+        ],
+        "second": [
+          2.5,
+          3.5
+        ],
+        "tailRest": 0.5,
+        "rest": [
+          1,
+          2
+        ]
+      },
+      "return": {
+        "start": [
+          1,
+          2.5
+        ],
+        "intervals": [
+          5,
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    {
+      "id": "long-arc",
+      "w": 20,
+      "says": "A macro arc of bounded gestures, most active near its middle, then a clear withdrawal; never one held chord.",
+      "full": {
+        "arcBars": [
+          [
+            16,
+            2
+          ],
+          [
+            32,
+            1
+          ]
+        ],
+        "per16": 3,
+        "length": [
+          2,
+          3
+        ],
+        "gap": [
+          1.5,
+          3
+        ],
+        "tailRest": 3
+      },
+      "exposed": {
+        "arcBars": [
+          [
+            16,
+            1
+          ],
+          [
+            32,
+            1
+          ]
+        ],
+        "per16": 3.5,
+        "length": [
+          2,
+          3
+        ],
+        "gap": [
+          0.75,
+          1.5
+        ],
+        "tailRest": 2.5
+      },
+      "return": {
+        "intervals": [
+          5,
+          7,
+          8,
+          9
+        ]
+      }
+    }
+  ],
+  "birds": {
+    "centre": 0.5,
+    "strength": 1,
+    "tide": {
+      "breath-and-rest": 0.4,
+      "long-arc": 0.6,
+      "passing-overlap": -0.4,
+      "says": "Tide toward the arc and the breath, the wetter, slower shapes"
+    },
+    "veil": {
+      "passing-overlap": 0.5,
+      "long-arc": -0.3,
+      "says": "Veil toward the passing overlap, the shape with the most changes"
+    }
+  },
+  "innerMotion": [
+    [
+      "revoice",
+      45
+    ],
+    [
+      "inner",
+      35
+    ],
+    [
+      "remove-return",
+      20
+    ]
+  ],
+  "limits": {
+    "noteBars": [
+      1.5,
+      4
+    ],
+    "maxNoteBars": 8,
+    "arcOverBars": 4,
+    "plateauBars": 2,
+    "plateauDb": 1,
+    "samePitchBars": 12,
+    "retreatBars": 2,
+    "retreatBlockBars": 32,
+    "retreatDb": -18,
+    "maxNotes": 4,
+    "mergeS": 0.25,
+    "breathBars": 0.5,
+    "noteMostS": 5.6,
+    "plateauMostS": 2.8,
+    "samePitchMostS": 16.6
+  },
+  "envelope": {
+    "crest": [
+      0.3,
+      0.45
+    ],
+    "plateauAimBars": 1.4,
+    "release": [
+      0.6,
+      1.4
+    ],
+    "plateauAimS": 1.95
+  },
+  "occupancy": {
+    "full": [
+      0.35,
+      0.6
+    ],
+    "exposed": [
+      0.5,
+      0.75
+    ]
+  },
+  "register": {
+    "full": [
+      60,
+      72
+    ],
+    "exposed": [
+      50,
+      66
+    ],
+    "intervals": [
+      3,
+      4,
+      5,
+      7,
+      8,
+      9
+    ],
+    "crestNote": 0.35,
+    "lowLean": 3,
+    "says": "Full passages sit in the manual's 60-72, the lower dyads leaned toward (lowLean: a dyad a semitone lower weighs that much more per twelve semitones), over the bass's room; a lifted (exposed) passage, where the bass rests, takes the low-mid 50-66 band that reads as breath and not as ringing (his wavePad reference, 10-11).",
+    "birds": {
+      "centre": 0.5,
+      "root": -2,
+      "zephyr": 2,
+      "most": 3,
+      "says": "semitones the windows move per unit of a bird off its centre, rounded, at most `most`: Root lowers the body where the bass leaves room, Zephyr lifts it a little"
+    }
+  },
+  "colour": {
+    "cutoffMul": 0.6,
+    "vel": [
+      0.6,
+      0.76
+    ],
+    "thinVel": 0.85,
+    "oneToneVel": 0.7,
+    "swell": {
+      "db": -14,
+      "oct": 2.5
+    },
+    "says": "Darker than a struck or breathed detail: the voice's own corner at cutoffMul. Every note opens over its own crest (an entrance swell: from db under and oct octaves darker to its level and tone over the note's attack), so the tone rises with the breath and does not sweep open in half a second and sit. `levelDb`: the bed's crest brought back to where round 1's stood (measured on rendered stems: the darker, lower, two-note bed read 4.4 dB under in A's first passage and 7.3 dB under in B's exposed passage), so this round changes the bed's phrasing and not its place in the mix.",
+    "levelDb": {
+      "full": 4.5,
+      "exposed": 7
+    }
+  },
+  "absences": {
+    "cleanBars": 16,
+    "outroBars": 8,
+    "landingLeadSteps": 4,
+    "landingAfterSteps": 16,
+    "cleanDrop": 0.5,
+    "cleanDropBars": 8,
+    "salientRestBars": 8
+  },
+  "lengthBirds": {
+    "centre": 0.5,
+    "strength": 1,
+    "tide": 0.4,
+    "veil": -0.3,
+    "says": "a note's drawn length leaned: Tide longer and wetter, Veil shorter and more changeable; always inside the note limits"
+  }
+}

@@ -153,6 +153,37 @@ function bar(
   bp.connect(ng);
   ng.connect(dry);
 
+  // **The strike's top** (round HF-NOISE, `malletStrike` in `grain.ts`): where
+  // the bus's edge does not read this bar (its row's `edge: false`) and the
+  // place writes one, a click of noise between half an octave under `hz` and
+  // half an octave over, on the strike and gone `decay` after it — the 3-6 kHz
+  // the edge's copy used to lay over the whole ring, kept to the mallet's
+  // moment, and into the dry bus only. Velocity's, as the head is. Absent,
+  // nothing is built.
+  const strike = row.descriptor.edge === false ? settings.malletStrike : undefined;
+  if (strike && strike.level > 0) {
+    const click = noiseSource(ctx, time, strike.decay + MIN_RELEASE + 0.01);
+    const band = (type: BiquadFilterType, hz: number): BiquadFilterNode => {
+      const f = ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.value = hz;
+      f.Q.value = Math.SQRT1_2;
+      return f;
+    };
+    const lo1 = band('highpass', strike.hz * Math.SQRT1_2), lo2 = band('highpass', strike.hz * Math.SQRT1_2);
+    const hi1 = band('lowpass', strike.hz * Math.SQRT2), hi2 = band('lowpass', strike.hz * Math.SQRT2);
+    const cg = ctx.createGain();
+    const top = peak * strike.level * vel;
+    cg.gain.setValueAtTime(0, time);
+    cg.gain.linearRampToValueAtTime(top, time + 0.0005);
+    cg.gain.exponentialRampToValueAtTime(Math.max(1e-6, top * 0.001), time + strike.decay);
+    cg.gain.linearRampToValueAtTime(0, time + strike.decay + MIN_RELEASE);
+    click.connect(lo1); lo1.connect(lo2); lo2.connect(hi1); hi1.connect(hi2); hi2.connect(cg);
+    // Through the note's own treatments, and dry alone: a click into the
+    // echo and the hall would hand its top back on the ring.
+    route(ctx, insert(ctx, p, cg, time, time + strike.decay + MIN_RELEASE, settings), out, { dry: 1 });
+  }
+
   if (S.tremoloDepth > 0) {
     // The discs. **On the resonator and not on the note**: the attack is not
     // pulsed, only what the tube is holding, which is what a vibraphone's motor

@@ -50,7 +50,7 @@ import { patchOf } from './sound.ts';
 import { centsOf, liveOf } from './live.ts';
 import type { SoundRow, Topology } from './sound.ts';
 import type { PatchOf } from './schema.ts';
-import { bool, contract, inUnit, list, maybe, num, table, CENTS, HZ, LFO_HZ, SECONDS, UNIT } from './schema.ts';
+import { bool, contract, inUnit, list, maybe, num, table, HZ, LFO_HZ, SECONDS, UNIT } from './schema.ts';
 
 /** A field of the edge a place writes, in the range `grain.ts` admits it. */
 const edgeField = (lo: number, hi: number, unit?: 'hz' | 'seconds' | 'level' | 'ratio' | 'x') => (unit ? inUnit(num(lo, hi), unit) : num(lo, hi));

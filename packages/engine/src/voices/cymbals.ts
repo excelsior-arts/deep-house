@@ -32,7 +32,6 @@ import { contract, list, num, CENTS, DB, HZ, LEVEL, Q, RATIO, SECONDS, UNIT } fr
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
 import type { NoteParams } from './descriptor.ts';
-import type { Settings } from '../settings.ts';
 
 /** The settings block one cymbal is made out of: the ride's or the crash's. */
 /**

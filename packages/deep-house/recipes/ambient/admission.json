@@ -1,0 +1,36 @@
+{
+ "schema": 1,
+ "kind": "ambient-admission",
+ "round": "liquid-ambient",
+ "revision": 1,
+ "note": "Every new ambient part is admitted through the cast budget (the research manual's section 8): the units of the distinct voices the theme already sounds (cheap 4, mid 12, dear 35), the keys' space's effects, the auxiliary part and the surface as the phrase plan admitted them, then each new part in this order against the target, with its fallback recorded on the plan. The ceiling is the catalogue's (220); the target leaves room for tails and seeds. The weather replaces the surface's dark air where it lays anything.",
+ "rows": [
+  {
+   "id": "liquid-admission",
+   "target": 210,
+   "order": [
+    {
+     "part": "weather",
+     "fallback": "surface",
+     "says": "the weather's main row; over the target the old surface plays instead"
+    },
+    {
+     "part": "owner",
+     "fallback": "keys",
+     "says": "the soloist or the bell (dear); over the target the keys speak the motif"
+    },
+    {
+     "part": "upper",
+     "fallback": "main",
+     "says": "the upper air's own row; over the target it is laid on the main row through the stage's colour where that row reaches 2.5 kHz, else it goes"
+    },
+    { "part": "rumble", "fallback": "drop", "says": "the thunder's row; over the target it goes" },
+    {
+     "part": "reverse",
+     "fallback": "drop",
+     "says": "the reverse-like arrival's voice (cheap); over the target it goes"
+    }
+   ]
+  }
+ ]
+}

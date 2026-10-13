@@ -304,7 +304,22 @@ export function resolveForm(seed: string | number, form: { bars: readonly number
  * priority: the keys pickup over a secondary drum answer), and an auxiliary part has left before a landing (P5).
  * The kit's own fills inside a pickup are K's filter's (`pickupOwns`), never a second one here.
  */
-export interface ReservedWindow { kind: 'pickup' | 'landing'; bar: number; from: number; to: number }
+export interface ReservedWindow { kind: 'pickup' | 'landing' | 'detail'; bar: number; from: number; to: number }
+
+/**
+ * **The chapters' policy** (liquid-ambient, `src/ambient-plan.ts`, the research manual's §6): a lean on a phrase by
+ * its chapter's function; the salient moments planned before the drums (keys landings, arrivals, the bed's
+ * withdrawals and entrances); the longest gap a developed passage may go without one; which of this planner's moves
+ * count as one; and the bed's planned subtraction, where nothing else can play. A phrase the deadline reaches may not
+ * continue: it draws among the moves that count, and says why it was required and what it replaced.
+ */
+export interface ChapterPolicy {
+  leanAt(bar: number): Partial<Record<Family, number>> | undefined;
+  salient: readonly number[];
+  maxGap: number;
+  counts(family: string, variant: string): boolean;
+  subtract(from: number, to: number, why: string): boolean;
+}
 
 /** One phrase as the plan has it. */
 export interface PhrasePlan {
@@ -324,6 +339,9 @@ export interface PhrasePlan {
   support: string[];
   rejected?: Array<{ what: string; why: string }>;
   forced?: string;
+  /** why the chapters' deadline required a move here (`ChapterPolicy`), and what met it */
+  required?: string;
+  met?: string;
   /** what leaves with a section line's own arrival (an auxiliary part's exit on the line), outside the phrase's budget */
   arrival?: string[];
 }
@@ -378,6 +396,8 @@ export interface PlannerInput {
   lineFills: readonly number[];
   /** the kit's phrase fills, drawn by its own odds, before the plan says which have somewhere to go */
   phraseFills: readonly number[];
+  /** the chapters' policy over the phrases, where an ambient plan has chapters (`src/ambient-plan.ts`) */
+  chapters?: ChapterPolicy;
 }
 
 /** The section kinds whose phrases develop: the full passages. */
@@ -421,7 +441,7 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
   });
   const phraseAt = (bar: number) => phrases.find((p) => bar >= p.start && bar < p.start + p.bars) ?? null;
   // a window over bars `from` to `to` (exclusive), its own in sixteenths; a pickup unless a kind is named
-  const inReserved = (from: number, to: number, kinds: string[] = ['pickup']) => I.reserved.some((w) => from * 16 < w.to && to * 16 > w.from && kinds.includes(w.kind));
+  const inReserved = (from: number, to: number, kinds: string[] = ['pickup', 'detail']) => I.reserved.some((w) => from * 16 < w.to && to * 16 > w.from && kinds.includes(w.kind));
 
   // **The return's one new feature** (two-return: the manual's §4): drawn once, among the features its
   // passage can play; the return is the second passage.
@@ -531,6 +551,8 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
     while (n > 0 && (inReserved(p.start, to, ['landing']) || !exitOk(to))) { n--; to -= 8; }
     return n > 0 ? { to, phrases: n } : null;
   };
+  // the salient moments so far: the chapters' planned ones, then this planner's own as it draws them
+  const salientSoFar: number[] = [...(I.chapters?.salient ?? [])].sort((a, b) => a - b);
   for (const p of phrases) {
     // an auxiliary part leaving: the exit is this phrase's supporting change, or the section line's own arrival
     if (auxUntil === p.start) (sections[p.section].startBar === p.start ? (p.arrival ??= []) : p.support).push(`the ${auxIdentity} leaves`);
@@ -547,7 +569,7 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
     const why = (f: FamilyRow, v: Variant): string | null => {
       if (v.drums) {
         const ok = (v.at ?? []).filter((b) => !lineOwned.has(p.start + b - 1) && !inReserved(p.start + b - 1, p.start + b));
-        if (!ok.length) return inReserved(p.start, p.start + 8) ? 'a keys pickup owns the bar' : 'the section line\'s fill owns the bar';
+        if (!ok.length) return inReserved(p.start, p.start + 8, ['pickup']) ? 'a keys pickup owns the bar' : inReserved(p.start, p.start + 8, ['detail']) ? 'a featured detail owns the bar' : 'the section line\'s fill owns the bar';
       }
       if (v.aux) {
         if (!auxPart) return 'the track drew no auxiliary part';
@@ -572,6 +594,18 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
     };
     const forced = forcedAt.get(p.start);
     let family: FamilyRow | undefined, variant: Variant | undefined;
+    // **The chapters' deadline**: nothing salient since `last`, none planned before `last + maxGap`, and the next phrase
+    // too late to answer it — this phrase may not continue, and its move falls by the deadline
+    const CP = I.chapters;
+    let deadline = Infinity;
+    if (CP && !forced) {
+      const last = Math.max(-Infinity, ...salientSoFar.filter((b) => b < p.start));
+      const next = salientSoFar.find((b) => b >= p.start);
+      if (Number.isFinite(last) && (next === undefined || next > last + CP.maxGap) && p.start + 15 >= last + CP.maxGap) {
+        deadline = last + CP.maxGap;
+        p.required = `nothing salient since bar ${last}: the ${CP.maxGap}-bar deadline falls on bar ${deadline}`;
+      }
+    }
     if (forced) {
       family = row.families.find((f) => f.family === forced.family);
       variant = family?.variants?.find((v) => v.id === forced.variant);
@@ -584,8 +618,10 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
       const live: Array<{ f: FamilyRow; vs: Variant[]; w: number }> = [];
       const developed = p.state === 'developed' ? row.developed : undefined;
       const edit = developed && edits ? developed.edits[edits] : undefined;
+      const chapterLean = CP?.leanAt(p.start);
       for (const f of row.families) {
-        const w = f.w * (I.lean?.[f.family] ?? 1) * (developed?.lean[f.family] ?? 1);
+        const w = f.w * (I.lean?.[f.family] ?? 1) * (developed?.lean[f.family] ?? 1) * (chapterLean?.[f.family] ?? 1);
+        if (p.required && f.family === 'continue') { rejected.push({ what: f.family, why: 'the chapters\' deadline' }); continue; }
         if (!(w > 0)) { rejected.push({ what: f.family, why: 'weighs nought here' }); continue; }
         if (f.family === 'continue') { live.push({ f, vs: [], w }); continue; }
         const slot = f.slot === 'support' ? p.support : p.foreground;
@@ -593,12 +629,22 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
         if ((cooldownUntil.get(f.family) ?? -1) > p.start) { rejected.push({ what: f.family, why: 'its cooldown' }); continue; }
         const vs: Variant[] = [];
         for (const v of f.variants ?? []) {
-          const no = why(f, v);
+          let no = why(f, v);
+          if (!no && p.required && !CP!.counts(f.family, v.id)) no = 'it is not a salient moment, and the deadline wants one';
+          if (!no && p.required && v.drums && !(v.at ?? []).some((b) => p.start + b - 1 <= deadline && !lineOwned.has(p.start + b - 1) && !inReserved(p.start + b - 1, p.start + b))) no = 'it falls after the deadline';
           const vw = v.w * (edit ? edit[`${f.family}.${v.id}`] ?? 1 : 1);
           if (no) rejected.push({ what: `${f.family}.${v.id}`, why: no }); else if (vw > 0) vs.push(vw === v.w ? v : { ...v, w: vw });
         }
         if (!vs.length) { rejected.push({ what: f.family, why: 'no variant can play here' }); continue; }
         live.push({ f, vs, w });
+      }
+      if (!live.length) {
+        // nothing that counts can play: the bed's planned subtraction carries the deadline, or it goes unmet and says so
+        p.family = 'continue';
+        p.rejected = rejected;
+        p.met = CP!.subtract(p.start, p.start + 8, `the deadline on bar ${deadline}: no drum move could play`) ? 'the bed\'s planned subtraction' : 'unmet';
+        previous = null;
+        continue;
       }
       const pick = rng.weighted(live.map((x) => ({ v: x, w: x.w })));
       family = pick.f;
@@ -612,7 +658,7 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
     if (family.cooldown) cooldownUntil.set(family.family, p.start + 8 * (family.cooldown + 1));
     const slot = family.slot === 'support' ? p.support : p.foreground;
     if (variant.drums) {
-      const ok = (variant.at ?? []).filter((b) => !lineOwned.has(p.start + b - 1) && !inReserved(p.start + b - 1, p.start + b));
+      const ok = (variant.at ?? []).filter((b) => !lineOwned.has(p.start + b - 1) && !inReserved(p.start + b - 1, p.start + b) && p.start + b - 1 <= deadline);
       const b = ok.length > 1 ? ok[rng.int(0, ok.length)] : ok[0];
       p.at = p.start + b - 1;
       out.answers.push({ bar: p.at, answer: variant.drums });
@@ -636,6 +682,11 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
       out.throws.push({ bar: p.at, kind: variant.throw });
       slot.push(`a ${variant.throw === 'mid' ? 'backbeat' : 'rim'} throw on bar ${p.at - p.start + 1}`);
     }
+    if (CP && p.at != null && CP.counts(family.family, variant.id)) {
+      salientSoFar.push(p.at);
+      salientSoFar.sort((a, b) => a - b);
+      if (p.required) p.met = `${family.family}.${variant.id} on bar ${p.at}, in place of continuing`;
+    }
   }
 
   // --- the fills: only where something changes, one owner per boundary ---
@@ -649,6 +700,8 @@ export function planDevelopment(I: PlannerInput): DevelopmentPlan {
     const p = phraseAt(bar);
     if (!p) continue;
     if (p.foreground.length) { out.fills.dropped.push({ bar, why: `the phrase's foreground change is ${p.foreground.join(', ')}` }); continue; }
+    // a featured detail speaking keeps the kit's fill out (the ambient voices' windows); a fill may reply after it
+    if (inReserved(bar, bar + 1, ['detail'])) { out.fills.dropped.push({ bar, why: 'a featured detail owns the bar' }); continue; }
     const dest = changesAt(bar + 1);
     if (!dest) { out.fills.dropped.push({ bar, why: 'nothing changes after it' }); continue; }
     out.fills.kept.push(bar);

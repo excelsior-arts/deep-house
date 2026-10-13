@@ -145,6 +145,10 @@ import keysReedAmpRow from '../../sounds/keyboard/keysReedAmp.json' with { type:
 import fmSineLayerRow from '../../sounds/keyboard/fmSineLayer.json' with { type: 'json' };
 // liquid-space (10-11): the dark air the surface row lays under the exposed passages, the vinyl topology on a narrow band.
 import airBedRow from '../../sounds/noise/airBed.json' with { type: 'json' };
+import weatherWindRow from '../../sounds/noise/weatherWind.json' with { type: 'json' };
+import weatherUpperAirRow from '../../sounds/noise/weatherUpperAir.json' with { type: 'json' };
+import weatherRainRow from '../../sounds/noise/weatherRain.json' with { type: 'json' };
+import weatherRumbleRow from '../../sounds/noise/weatherRumble.json' with { type: 'json' };
 
 export { FAMILIES, ROLES, BUSES, FIELDS, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from './descriptor.ts';
 export { KNOB_UNITS, KNOB_BIRDS, knobFaults, knobScale, knobsOf } from './descriptor.ts';
@@ -406,6 +410,11 @@ export const REGISTRY: Descriptor[] = [
   sound(fmSineLayerRow),
   // liquid-space (10-11): the surface row's dark air, named by no lane (`plays: null`), written by the composer's surface pass.
   sound(airBedRow),
+  // liquid-ambient (10-11): the weather family's four rows, named by no lane, written by the composer's ambient pass.
+  sound(weatherWindRow),
+  sound(weatherUpperAirRow),
+  sound(weatherRainRow),
+  sound(weatherRumbleRow),
 ];
 
 /**
@@ -627,6 +636,17 @@ export function strikes(voice: string, p: NoteParams | null | undefined): boolea
   const own = Object.keys(d.timbres);
   const facts = (typeof named === 'string' && d.timbres[named]) || (own.length === 1 ? d.timbres[own[0]] : undefined);
   return !!(facts && facts.struck);
+}
+
+/**
+ * **Whether the harmonic bus's edge reads a note** (round HF-NOISE): what the
+ * voice's row says (`edge`), and yes where it says nothing. Read off the
+ * descriptor and never off a name, as `strikes` is. A note it does not read
+ * takes its bus's clean door, where the theme's graph built an edge; anywhere
+ * else it is the door it always took.
+ */
+export function edgeReads(voice: string): boolean {
+  return BY_NAME[voice]?.edge !== false;
 }
 
 /**

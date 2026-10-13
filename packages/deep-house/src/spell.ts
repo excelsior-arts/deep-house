@@ -76,9 +76,6 @@ export const birdOfName = (name: string): Bird | null => BIRD_OF_NAME[String(nam
 /** What the ring sends, and all it sends: eight numbers in 0..1. */
 export type Spell = Record<Bird, number>;
 
-/** Which birds a hand is holding, when one is. Read in phase 1, not here. */
-export type Held = Partial<Record<Bird, boolean>>;
-
 /**
  * **When two spells are the same** (M14, the review of 09-26: five tolerances answered it
  * five ways, and Ember held at 96 % still lit Deep House): within half the
@@ -108,8 +105,8 @@ export const HOUSE: Readonly<Spell> = Object.freeze({
  * It is much tighter than PLAN-MAGIC-V2's illustrative ±0.12: the middle half
  * of the catalogue is inside ±0.13 on every axis and inside ±0.05 on four of
  * them. `HOUSE_OUTER` beside it is half the full range of the same fourteen,
- * which is the outer box the ±0.12 was really about; nothing reads it yet and
- * it is here so the two are not confused later.
+ * which is the outer box the ±0.12 was really about: the record's lowest and
+ * highest of each bird, which the labels and the parts' bands read.
  *
  * One thing the calibration found that neither number says: the fourteen are
  * **two clusters split by the room**, with Tide, Zephyr, Veil and Spark
@@ -122,7 +119,7 @@ export const HOUSE_BOX: Readonly<Spell> = Object.freeze({
   gleam: 0.050, veil: 0.069, spark: 0.125, loom: 0.021,
 });
 
-/** Half the full measured range of the same fourteen themes. Recorded, unread. */
+/** Half the full measured range of the same fourteen themes: the record's own lowest and highest of each bird (`bird-labels.ts`, `deep-house-parts.ts`). */
 export const HOUSE_OUTER: Readonly<Spell> = Object.freeze({
   ember: 0.168, tide: 0.348, zephyr: 0.225, root: 0.102,
   gleam: 0.104, veil: 0.171, spark: 0.195, loom: 0.063,

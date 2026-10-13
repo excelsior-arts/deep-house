@@ -66,6 +66,7 @@ import {
   ringColour, restyle, typeInk, paleInk, PALE, contrastOnBlack, hexToLch, GOLD_STOPS, BASE, K,
   PALETTES, PALETTE, warp,
 } from '../src/ring-colour.ts';
+import { ICON_GOLD, ICON_FLOOR, iconInk, iconHref } from '../src/tab-icon.ts';
 import {
   HOUSE_RECIPE, houseRecipe, boxOf, diceBoxOf, outsideBox, spellFrom, validate, vocabularyOf, loadRecipes, weightOf,
 } from '../src/recipe.ts';
@@ -1597,14 +1598,20 @@ check('Spark\'s subtitle counts the hats that play in the main, not the hits of 
   let masksOff = 0;
   for (const c of cases) {
     const t = planTheme(c.seed, c.i, { preset: 'auto', strategy: 'house-v2', ...(c.spell ? { spell: c.spell } : {}) });
-    const perBar = new Map();
-    for (const e of t.events) if (e.layer === 'hats' && e.step != null) { if (!perBar.has(e.bar)) perBar.set(e.bar, new Set()); perBar.get(e.bar).add(e.step); }
+    // a bar is the steps its hats play and the steps an open hat takes (the bar the listener hears: two bars of the
+    // same steps with the open hat elsewhere are two bars, as the reading tallies them); the most common in the main
+    const perBar = new Map(), openAt = new Map();
+    for (const e of t.events) if (e.layer === 'hats' && e.step != null) {
+      if (!perBar.has(e.bar)) { perBar.set(e.bar, new Set()); openAt.set(e.bar, new Set()); }
+      perBar.get(e.bar).add(e.step);
+      if (/open/i.test(e.voice)) openAt.get(e.bar).add(e.step);
+    }
     const mainBars = t.timeline.filter((r) => /main/i.test(r.section) && perBar.has(r.bar)).map((r) => r.bar);
     const pool = mainBars.length ? mainBars : [...perBar.keys()];
     const counts = new Map();
-    for (const b of pool) { const k = [...perBar.get(b)].sort((x, y) => x - y).join(','); counts.set(k, (counts.get(k) || 0) + 1); }
+    for (const b of pool) { const k = [...perBar.get(b)].sort((x, y) => x - y).join(',') + '|' + [...openAt.get(b)].sort((x, y) => x - y).join(','); counts.set(k, (counts.get(k) || 0) + 1); }
     const modal = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-    const playing = modal ? modal[0].split(',').filter(Boolean).length : 0;
+    const playing = modal ? modal[0].split('|')[0].split(',').filter(Boolean).length : 0;
     const sub = cellReading('spark', { ...t, plan: [], spell: c.spell || undefined }, v2).sub;
     const n = Number((sub.match(/(\d+) hits?/) || [])[1]);
     must(n === playing, `${c.seed}#${c.i}${c.spell ? ' under a spell' : ''}: Spark says "${sub}" where the hats play ${playing} a bar in the main`);
@@ -1677,6 +1684,23 @@ check('every band of every bird says what the music is in one plain sentence and
     for (const l of candidateLists(cat)) if (['leadTimbres', 'sustainedLeads', 'padPartners', 'stabPartners'].includes(l.id)) for (const v of l.list()) if (!LABEL_TABLE.timbres[String(v)]) lacking.push(`${id} ${l.id} ${v}`);
   }
   must(!lacking.length, `timbres the keys can draw with no phrase: ${lacking.join(', ')}`);
+  // and the liquid keys' tones (recipes/keys): a phrase, and a cell word the
+  // way a cell says it, short enough for Zephyr's cell at 130 % (the v2.2 cut:
+  // `keys suitcase` ran into the forward key on seed 15576)
+  {
+    const draw = JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'keys', 'draw.json'), 'utf8'));
+    const tonesFile = JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'keys', 'tones.json'), 'utf8'));
+    const tones = Array.isArray(tonesFile) ? tonesFile : tonesFile.rows;
+    const drawn = new Set(JSON.stringify(draw).match(/"tone":\s*\{[^}]*\}/g).flatMap((m) => Object.keys(JSON.parse(m.replace(/^"tone":\s*/, '')))));
+    const bad = [];
+    for (const t of tones.filter((r) => drawn.has(r.id))) {
+      const id = t.layers[0].sound;
+      if (!LABEL_TABLE.timbres[id]) bad.push(`${id} has no phrase`);
+      const w = LABEL_TABLE.cellWords[id];
+      if (!w || w.length > 11) bad.push(`${id}'s cell word ${JSON.stringify(w)}`);
+    }
+    must(drawn.size >= 7 && !bad.length, `the liquid keys' tones: ${drawn.size} drawn; ${bad.join(', ')}`);
+  }
   const wrongArticle = Object.values(LABEL_TABLE.timbres).filter((v) => /^a [aeiou]/i.test(v) || (/^an [^aeiou]/i.test(v) && !/^an FM\b/.test(v)));
   must(!wrongArticle.length, `a timbre phrase with the wrong article: ${wrongArticle.join(', ')}`);
   for (const k of Object.keys(LABEL_TABLE.birds.ember.family)) must(LABEL_TABLE.birds.ember.says[k], `Ember's ${k} has no sentence`);
@@ -2090,6 +2114,34 @@ check('every palette keeps the gold at the house and the compass in order', () =
     + `the warm set turns every hue up to ${PALETTES.warm.turn}° toward ${PALETTES.warm.toward}° and drains to a cream, and the cool pole is still ${ringColour(cool).hex}`;
 });
 
+// **The tab's icon follows the ring** (10-12). At the house it is the icon the
+// page ships, to the byte, so a fresh load writes nothing; away from it the
+// glyph is the pale gold re-based onto the ring's ink, kept clear on its disc.
+check('the tab icon is the shipped one at the house and the ring\'s ink away from it', () => {
+  const shipped = (PAGE.match(/<link rel="icon" type="image\/svg\+xml" href="([^"]+)"/) || [])[1];
+  must(shipped, 'the page carries no SVG icon');
+  must(iconHref(iconInk(ringColour(HOUSE))) === shipped && iconHref(iconInk(ringColour(null))) === shipped,
+    `the icon at the house is not the one index.html ships (${iconInk(ringColour(HOUSE))} where ${ICON_GOLD} is)`);
+  must(shipped.split('%23' + ICON_GOLD.slice(1)).length === 3, `the shipped icon is not drawn in ${ICON_GOLD} twice`);
+  const cool = ringColour(POLES.ambient), warm = ringColour(POLES.breaks);
+  for (const [name, c] of [['ambient', cool], ['breaks', warm]]) {
+    const ink = iconInk(c);
+    must(ink === restyle(ICON_GOLD, c, ICON_FLOOR) && ink !== ICON_GOLD, `the ${name} pole's icon is ${ink}`);
+    must(iconHref(ink) === shipped.split('%23' + ICON_GOLD.slice(1)).join('%23' + ink.slice(1)),
+      `the ${name} pole's icon is not the shipped one with ${ink} for the gold`);
+  }
+  // every corner of the box and a few thousand rolls: never under the floor
+  let low = Infinity, r = 7;
+  const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 4000; i++) {
+    const s = {};
+    for (const b of Object.keys(HOUSE)) s[b] = rnd() < 0.5 ? (rnd() < 0.5 ? 0 : 1) : rnd();
+    low = Math.min(low, contrastOnBlack(iconInk(ringColour(s))));
+  }
+  must(low >= ICON_FLOOR - 0.01, `an icon reads ${low.toFixed(2)}:1 on its disc, under ${ICON_FLOOR}`);
+  return `the house's icon is index.html's byte for byte; the ambient pole draws it in ${iconInk(cool)}, the breaks pole in ${iconInk(warm)}; the lowest of 4000 rolls reads ${low.toFixed(1)}:1 on the disc (floor ${ICON_FLOOR})`;
+});
+
 check('the star sways inside the compass bound, and every bird stays in its domain', () => {
   // Since the cells are a compass, where the star stands is a reading and not a
   // decoration. Eugene, 09-23: *"the movement of the bird bullets should be a
@@ -2241,6 +2293,9 @@ const REPORT_SITES = [
   ['control.ts', 'await prepareLimiter(c)', 'limiter', 1],
   ['control.ts', "console.error('deep-house: the set could not start', err);", 'start', 1],
   ['control.ts', 'got = mixPointSeconds(t, blendBarsFor(t, blendAsked(t)), 16);', 'plan', 1],
+  // the planning perf round (10-12): a plan asked of the worker that throws is planned here, and throws here
+  ['control.ts', 'if (ask === nextAsk) { try { state.nextTrack = planned(...args); emit(); } catch (err) {', 'plan', 1],
+  ['control.ts', 'if (ask === trackAsk) { try { state.track = planned(i); emit(); } catch (err) {', 'plan', 1],
   ['control.ts', 'try { fn(r); } catch (err) {', 'page', 1],
   ['control.ts', '{ strategy: state.strategy }); } catch (e) {', 'link', 1],
   ['control.ts', 'recipe: here.recipe, accompaniment: here.accompaniment, development: here.development })}` }).spell;', 'link', 1],
@@ -2248,6 +2303,8 @@ const REPORT_SITES = [
   ['ring.ts', '// A plan that cannot be drawn says nothing rather than taking the ring', 'plan', 1],
   ['ring.ts', 'try { take(plannedReadout(control.planned(about, r.seed, strategy, spell), r, spell)); } catch (e) {', 'plan', 1],
   ['ring.ts', 'try { return control.planned(0, seed, control.state.strategy) as unknown as PlannedTheme; } catch (e) {', 'plan', 1],
+  ['ring.ts', 'later.then((t) => take(plannedReadout(t, r, spell)), (e) => {', 'plan', 1],
+  ['ring.ts', '// a plan that cannot be drawn is a report, as it is below', 'plan', 1],
   ['ring.ts', "console.error('deep-house: the machine view would not open', err);", 'view', 1],
   ['ring.ts', '} catch (e) { /* a page with no history to write on */', 'address', 1],
   ['motion.ts', 'try { fn(on); } catch (err) {', 'page', 1],
@@ -3195,13 +3252,15 @@ check('the exact-boundary sampler', () => {
   // And the review's counterexample itself, kept as a live fact rather than as a
   // paragraph: `weighted` really does disagree with `pick` at the boundary, so
   // this whole check has a reason and the reason can be read off a run. If
-  // these three ever stop holding, `weighted`'s semantics have moved and every
-  // list that draws through it has moved with them.
+  // these ever stop holding, `weighted`'s semantics have moved and every
+  // list that draws through it has moved with them. (Its weight-0 entry no
+  // longer catches u = 0 since engine-clean, 10-12: it is passed over as
+  // `pickWeighted` drops it, and no program moved.)
   must(drawAt(0.5, (r) => r.pick(['a', 'b'])).got === 'b', 'pick no longer gives the second of two at u = 0.5');
   must(drawAt(0.5, (r) => r.weighted([{ v: 'a', w: 1 }, { v: 'b', w: 1 }])).got === 'a',
     'weighted no longer gives the first of two at u = 0.5, so the counterexample this sampler answers has moved');
-  must(drawAt(0, (r) => r.weighted([{ v: 'off', w: 0 }, { v: 'a', w: 1 }, { v: 'b', w: 1 }])).got === 'off',
-    'weighted no longer hands u = 0 to a weight-0 entry');
+  must(drawAt(0, (r) => r.weighted([{ v: 'off', w: 0 }, { v: 'a', w: 1 }, { v: 'b', w: 1 }])).got === 'a',
+    'weighted hands u = 0 to a weight-0 entry');
   must(drawAt(0, (r) => r.pickWeighted(['off', 'a', 'b'], (v) => (v === 'off' ? 0 : 1))).got === 'a',
     'pickWeighted hands u = 0 to the entry it dropped');
 

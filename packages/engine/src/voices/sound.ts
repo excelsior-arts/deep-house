@@ -78,6 +78,8 @@ export interface SoundDescriptor {
   knobs?: Knobs;
   controls?: Controls;
   returns?: LazyReturn[];
+  /** whether the harmonic bus's edge reads its notes (round HF-NOISE); absent, it does */
+  edge?: boolean;
   /** a gain over every note's output from its onset (`output-envelope.ts`); absent, none */
   contour?: OutputContour;
   timbres: Record<string, TimbreFacts>;
@@ -277,6 +279,7 @@ export function soundFaults(row: SoundRow, topology: Topology | undefined): stri
   for (const k of ['mono', 'treat'] as const) if (typeof d[k] !== 'boolean') say(`${k} is not a boolean`);
   if (d.cost !== undefined && !['cheap', 'mid', 'dear'].includes(d.cost)) say(`${d.cost} is not a cost class`);
   if (d.returns !== undefined) for (const r of d.returns) if (!(LAZY_RETURNS as readonly string[]).includes(r)) say(`${r} is not a lazy return`);
+  if (d.edge !== undefined && typeof d.edge !== 'boolean') say('edge is not a boolean');
   if (!isObject(d.timbres)) say('timbres is not a table');
   if (d.contour !== undefined) for (const f of contourFaults(d.contour)) say(f);
   for (const k of ['dispatches', 'mood'] as const) if (!Array.isArray(d[k])) say(`${k} is not a list`);
@@ -325,6 +328,7 @@ export function soundDescriptor(row: SoundRow, topology: Topology | undefined): 
     ...(d.knobs ? { knobs: d.knobs } : {}),
     ...(d.controls ? { controls: d.controls, noteControls: Object.keys(d.controls) } : {}),
     ...(d.returns ? { returns: d.returns } : {}),
+    ...(d.edge !== undefined ? { edge: d.edge } : {}),
     timbres: d.timbres,
     dispatches: [...d.dispatches],
     mood: [...d.mood],

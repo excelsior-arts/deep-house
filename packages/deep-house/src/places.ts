@@ -15,7 +15,7 @@ import type { SubRates } from './subsections.ts';
 import type { WalkEntry } from './walk.ts';
 import type { GlideEntry, RiffEntry } from './glide.ts';
 import type { ComposerKnob } from './mined-phrase.ts';
-import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge } from '@deep-house/engine/style';
+import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge, MalletStrike } from '@deep-house/engine/style';
 import { BY_NAME } from '@deep-house/engine/voices';
 import { GLIDE_LIBRARY, FORM_LIBRARY, SECTION_LIBRARY } from './recipes.ts';
 import { KIT_IDS, kitOf, answersOf, statesOf } from './kit.ts';
@@ -535,7 +535,11 @@ export function floorOfBed(roomDb: number, floorDb: number, bedDb: number): numb
  * - `breath`: filtered noise under the strings' ensemble, at a whisper;
  * - `piano`: the hammer's level times `hammer`, the body lifted by `body`;
  * - `bus`: the parallel edge on the harmonic bus, its blend moved by Spark
- *   from the row's number (`grainFor`).
+ *   from the row's number (`grainFor`);
+ * - `strike` (round HF-NOISE): the click a struck bar the edge does not read
+ *   takes on its strike instead — written only where the bus's edge is, and
+ *   moved by Spark as the bus's blend is, so it stands in for the edge and
+ *   never plays where no edge would have.
  *
  * The keys' and the pad's are moved by Spark at the note, by the voices' own
  * `grain` knob; the bus's here, at plan time; the piano's not at all.
@@ -545,6 +549,7 @@ export interface GrainEntry extends PlaceEntry {
   breath?: Readonly<StringsBreath>;
   piano?: Readonly<PianoGrain>;
   bus?: Readonly<HarmonicEdge>;
+  strike?: Readonly<MalletStrike>;
 }
 /** Spark on the bus's blend: from none at nought to two and a half times the row's at one, the row's at the place's own Spark. */
 export const GRAIN_BUS_KNOB: EffectKnob = Object.freeze({ bird: 'spark', of: 'multiplier', min: 0, max: 2.5, sense: 1 });
@@ -562,6 +567,10 @@ export function grainFor(row: GrainEntry | null, spell: Spell): Record<string, u
   if (row.bus && row.bus.blend > 0) {
     const blend = +Math.min(1, placedKnob(GRAIN_BUS_KNOB, row.bus.blend, row.place, spell)).toFixed(4);
     if (blend > 0) out.harmonicEdge = { ...row.bus, blend };
+    if (blend > 0 && row.strike && row.strike.level > 0) {
+      const level = +Math.min(1, placedKnob(GRAIN_BUS_KNOB, row.strike.level, row.place, spell)).toFixed(4);
+      if (level > 0) out.malletStrike = { ...row.strike, level };
+    }
   }
   return out;
 }
@@ -691,6 +700,23 @@ export interface DevelopmentEntry extends PlaceEntry {
   bass?: string;
   lean?: Readonly<Partial<Record<Family, number>>>;
   surfaceDb?: number;
+  /** the ambient planner's rows (liquid-ambient, `src/ambient-plan.ts`): the bed's gestures and the chapters; absent, the bed is the keys planner's as written */
+  ambient?: Readonly<{ bed: string; chapters: string }>;
+}
+
+/**
+ * **The ambient voices by place** (liquid-ambient, 10-11; `src/ambient-voices.ts`): where the composer lays the
+ * breathy soloist and its motif, the conversation's one vocabulary and the weather family, each by the rows named
+ * here (`recipes/ambient/`). An entry with no `ambient` is the place saying it lays none (every place but the fast
+ * ones, listed so a place left out does not take a neighbour's).
+ */
+export interface AmbientVoicesEntry extends PlaceEntry {
+  /**
+   * `passage`: a written passage over the window it names (`src/passage.ts`); `producer`: the whole track arranged by
+   * the producer's grammar around it (`src/producer.ts`). Each is one line in a place's entry: a place that names
+   * neither plays the planners' track.
+   */
+  ambient?: Readonly<{ soloist: string; fillers: string; weather: string; admission: string; passage?: string; producer?: string }>;
 }
 
 /** **The small things by place** (round DNB-1, `src/subsections.ts`). */
@@ -756,6 +782,8 @@ export interface StylePlaces {
   keys?: readonly KeysEntry[];
   /** the phrase development by place (liquid-space): the planner's rows and its lean; the house reads none */
   development?: readonly DevelopmentEntry[];
+  /** the ambient voices by place (liquid-ambient): the soloist's, the conversation's, the weather's and the admission's rows; the house reads none */
+  ambientVoices?: readonly AmbientVoicesEntry[];
 }
 
 /** The loop lengths a chord cycle may take, in bars: the phrase's own (`makeProgression` needs two chords' room). */
@@ -855,4 +883,34 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
   for (const r of FORM_LIBRARY) for (const st of ((r as { form?: { states?: unknown[] } }).form?.states ?? []).flat(2))
     if (typeof st === 'string' && !['bed', 'hints', 'pulse', 'half-time', 'developed'].includes(st)) bad.push(`${r.id}: form.states names ${st}`);
   return bad;
+}
+
+/**
+ * **A technique is one line of a place's entry**: the ambient plan (a development entry's `ambient`), the written
+ * passage and the producer's arrangement around it (an ambient-voices entry's `passage` and `producer`). A place turns
+ * one on by naming its row; nothing else switches it.
+ */
+export type PlaceTechnique = 'ambient' | 'passage' | 'producer';
+
+/**
+ * The style with techniques taken out of every place's entry, as if no place named them: what a check plans when it
+ * holds a planner to its own invariants without the technique that rewrites its work afterwards (a passage without
+ * its producer is the passage alone; without the passage, neither plays). The app never plans this.
+ */
+export function withoutTechniques<S extends { places?: StylePlaces }>(style: S, ...off: PlaceTechnique[]): S {
+  const P = style.places ?? {};
+  const drop = <T extends object>(x: T | undefined, keys: string[]): T | undefined => {
+    if (!x) return x;
+    const out = { ...x } as Record<string, unknown>;
+    for (const k of keys) delete out[k];
+    return out as T;
+  };
+  return {
+    ...style,
+    places: {
+      ...P,
+      ...(P.development && off.includes('ambient') ? { development: P.development.map((e) => drop(e, ['ambient'])!) } : {}),
+      ...(P.ambientVoices ? { ambientVoices: P.ambientVoices.map((e) => ({ ...e, ambient: drop(e.ambient, off.filter((k) => k !== 'ambient')) })) } : {}),
+    },
+  };
 }

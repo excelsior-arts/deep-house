@@ -104,9 +104,11 @@ function Key({ x, y = 0, w = HIT_W, h = HIT_H, text, name, on, lit, disabled, ac
           reaches `HIT_REACH` square, out into half the gap round it, so two
           neighbours' reaches meet and never overlap. Unpainted strokes along
           its edges, which a press finds and a box does not: the key's drawn
-          size, its place and its gaps are what they were */}
+          size, its place and its gaps are what they were. Transparent and
+          not none: WebKit finds no stroke a style says is none, whatever its
+          pointer-events, and its keys reached only as far as they were drawn */}
       {reach && (w < HIT_REACH || h < HIT_REACH) ? (
-        <g fill="none" stroke="none" pointerEvents="stroke" aria-hidden="true">
+        <g fill="none" stroke="transparent" pointerEvents="stroke" aria-hidden="true">
           {h < HIT_REACH ? <path d={`M${x} ${y}H${x + w}M${x} ${y + h}H${x + w}`} strokeWidth={HIT_REACH - h} /> : null}
           {w < HIT_REACH ? <path d={`M${x} ${y}V${y + h}M${x + w} ${y}V${y + h}`} strokeWidth={HIT_REACH - w} /> : null}
         </g>
@@ -215,7 +217,13 @@ function Popover({ anchor, label, onClose, children }: {
     const pane = anchor.current.closest('.pane.graph');
     const p = pane ? pane.getBoundingClientRect() : null;
     let got = p ? within(Math.max(L, p.left), Math.max(T, p.top), Math.min(R, p.right), Math.min(B, p.bottom)) : within(L, T, R, B);
-    if (p && !got.fits) got = within(L, T, R, B);
+    // and only where the viewport does better: the box whole, or more of it
+    // than the pane's part holds — a box that scrolls either way stays in the
+    // pane, and is not set over the ring above it for no more room
+    if (p && !got.fits) {
+      const wide = within(L, T, R, B);
+      if (wide.fits || wide.maxHeight > got.maxHeight + 1) got = wide;
+    }
     const z = parseFloat(getComputedStyle(el).zoom) || 1;
     // (the cap is in the window's pixels; the box's own height is laid out under its zoom, so divided by it — as the place is)
     el.style.maxHeight = `${got.maxHeight / z}px`;

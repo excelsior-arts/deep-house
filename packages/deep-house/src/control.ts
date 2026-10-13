@@ -24,6 +24,8 @@ import type { MixOptions, SetTrack, Track } from './mix.ts';
 import type { Descriptor } from '@deep-house/engine/voices/descriptor';
 import type { MixState, MixWait, TransportPoint } from '@deep-house/engine/session';
 import { createJournal } from './journal.ts';
+import { planOffThread, startPlanner, plannerState } from './plan-off-thread.ts';
+import type { OffThreadHow } from './plan-off-thread.ts';
 import type { JournalEntry, JournalPlace } from './journal.ts';
 import { note, report, addressFlood, aBug } from './ledger.ts';
 import { hatsOfProgram, programFactsOf, keysOfProgram } from './bird-labels.ts';
@@ -1199,32 +1201,89 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // tempo it had been asked for — which is Eugene's "the ring pulse is not in
     // sync with the BPM", and it was the plan and not the clock.
     const key = planKeyOf(i, seed, strategy, spell, recipe, reach);
+    const had = cachedPlan(key);
+    if (had) return had;
+    return keepPlan(key, applyBypass(planTheme(seed, i, planOpts(seed, strategy, spell, recipe, reach)), linkBypass));
+  }
+
+  /** A plan already made under this request, if there is one, made the most recently asked. */
+  function cachedPlan(key: string): SetTrack | null {
     const had = planCache.get(key);
-    if (had) {
-      // the most recently asked is the last to go
-      planCache.delete(key);
-      planCache.set(key, had);
-      return had;
-    }
+    if (!had) return null;
+    // the most recently asked is the last to go
+    planCache.delete(key);
+    planCache.set(key, had);
+    return had;
+  }
+  /** The options a plan of the page's is made under: the set's, with the place's own over them. */
+  function planOpts(seed: string, strategy: string, spell: Partial<Spell> | null, recipe: Recipe | null, reach: number | null): Partial<MixOptions> {
+    // **The reach as the number it is** (the planning perf round, 10-12): the
+    // style's own (`null`) is read as `reachOf(null)`, nought, wherever a plan
+    // reads it, so a stopped ring (the reach asked, none) and a playing set (the
+    // set's, nought) ask for the same plan by one name — a stop planned the
+    // playing theme again, 40 ms in its own task, for the name alone. Byte for
+    // byte the same plan over the link digest's grid.
+    return { ...mixOpts(), masterSeed: seed, strategy, spell, recipe, reach: reachOf(reach) };
+  }
+  /** A plan made, counted and kept by its request. */
+  function keepPlan(key: string, t: SetTrack): SetTrack {
     plansMade += 1;
-    const opts: Partial<MixOptions> = { ...mixOpts(), masterSeed: seed, strategy, spell, recipe };
-    if (reach !== null) opts.reach = reach;
-    else delete opts.reach;
-    const t = applyBypass(planTheme(seed, i, opts), linkBypass);
     lanesOf(t);
     planCache.set(key, t);
     // **The least recently asked goes, one at a time** (R13): the cache used to
     // be emptied whole at nine, and nine other places emptied it besides, so a
     // theme the ring had just planned was planned again a line later.
-    if (planCache.size > PLAN_CACHE) planCache.delete(planCache.keys().next().value!);
+    //
+    // **Never the theme playing or the one coming** (the planning perf round,
+    // 10-12): the die's twelve candidates, planned ahead after every pull,
+    // pushed the playing theme's plan out, and the next `replan` planned it
+    // again on the page's thread — MEASURED 50 ms in a pull's own task for the
+    // Drum & Bass tile.
+    if (planCache.size > PLAN_CACHE) {
+      for (const [k, v] of planCache) {
+        if (v === state.track || v === state.nextTrack || v === t) continue;
+        planCache.delete(k);
+        break;
+      }
+    }
     return t;
+  }
+
+  /**
+   * **The same request, planned off the page's thread** (the planning perf
+   * round, 10-12): the plan `planned` would make, made in the planner's
+   * worker (`src/plan-off-thread.ts`) and kept by the same request, so the
+   * `planned` and `plannedAlready` after it find it. One planned already is
+   * handed back at once. `null` where there is no worker, and the caller plans
+   * here as it always did; a promise that rejects where a later ask with the
+   * same `tag` took its place, or where the plan throws.
+   */
+  function planLater(
+    i: number,
+    seed: string = state.seed,
+    strategy: string = state.strategy,
+    under?: Partial<Spell> | null,
+    reach: number | null = reachNow(),
+    how: OffThreadHow = {},
+  ): Promise<SetTrack> | null {
+    const spell = under !== undefined ? under
+      : seed === state.seed ? spellOf() : spellFor({ masterSeed: seed, strategy });
+    const recipe = seed === state.seed
+      ? state.mix?.recipe ?? castOf().track : recipesFor({ masterSeed: seed, strategy }).track;
+    const key = planKeyOf(i, seed, strategy, spell, recipe, reach);
+    const had = cachedPlan(key);
+    if (had) return Promise.resolve(had);
+    const offer = planOffThread(seed, i, planOpts(seed, strategy, spell, recipe, reach), { ...how, bypass: linkBypass });
+    if (!offer) return null;
+    // a plan of the same request made here meanwhile is the one kept
+    return offer.then((track) => cachedPlan(key) ?? keepPlan(key, track));
   }
 
   // The row by its resolved definition (`definitionOf`: id, revision and
   // content), as the mix names a place: a new revision or a desk edit of a row
   // under the same id is another plan (the deep review of 10-08).
   const planKeyOf = (i: number, seed: string, strategy: string, spell: Partial<Spell> | null, recipe: Recipe | null, reach: number | null): string =>
-    `${strategy}|${seed}|${i}|${state.preset}|${state.themeBars || 0}|${spellQuery(spell) || 'house'}|${definitionOf(recipe) ?? ''}|${accompanimentFor()}|${developmentFor()}|${reach ?? ''}`;
+    `${strategy}|${seed}|${i}|${state.preset}|${state.themeBars || 0}|${spellQuery(spell) || 'house'}|${definitionOf(recipe) ?? ''}|${accompanimentFor()}|${developmentFor()}|${reachOf(reach)}`;
   /** (round D1) the reach the playing theme was planned at: the set's own while there is one, else the one asked */
   const reachNow = (): number | null => (state.mix ? state.mix.reach : reachAsked);
 
@@ -1241,7 +1300,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   }
 
   function replan(reason: string | null) {
-    state.track = planned(state.themeIndex);
+    trackSoon(state.themeIndex);
     // Which theme is coming: the first theme of the set a cast is handing over
     // into, or the one after this, unless a back() is under way.
     // A pull on its way is a move in place (Eugene, 09-24): what is coming is
@@ -1255,12 +1314,63 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // the one a hand has asked for and not the one still sounding. That is what
     // makes the ring's "next" a reading of the promise rather than of the
     // present.
-    state.nextTrack = state.castTo
-      ? planned(Math.max(0, state.castToTheme ?? 0), state.castTo, state.strategyTo ?? state.strategy)
-      : planned(Math.max(0, ahead), state.seed, state.strategyTo ?? state.strategy,
-        state.mix ? state.mix.spellAsked : undefined, state.mix ? state.mix.reachAsked : reachAsked);
+    const next: Parameters<typeof planned> = state.castTo
+      ? [Math.max(0, state.castToTheme ?? 0), state.castTo, state.strategyTo ?? state.strategy]
+      : [Math.max(0, ahead), state.seed, state.strategyTo ?? state.strategy,
+        state.mix ? state.mix.spellAsked : undefined, state.mix ? state.mix.reachAsked : reachAsked];
+    nextSoon(next);
     if (reason) state.change = { n: state.change.n + 1, reason };
     primeSoon();
+  }
+
+  /**
+   * **The coming theme, planned off the page's thread while a set plays** (the
+   * planning perf round, 10-12). A pull asked for it in the hand's own task —
+   * the theme in place under the asked spell, the very plan the mix's landing
+   * makes — so a pull planned it twice there. The plan is asked of the worker
+   * and the coming card reads it when it lands, a plan's time after the ask
+   * (the card read the theme it had until then: it is read by the card and by
+   * nothing else); planned already, or before the page has drawn a card, or
+   * with no worker, it is read at once as it always was. A stop that keeps a
+   * pull's landing asks for the theme after it this way too.
+   */
+  let nextAsk = 0;
+  /**
+   * **And the theme playing, planned again under a request that changed while
+   * it plays** — the reach the set was started at, a recipe it took on — off
+   * the thread the same way, the readout reading the plan it has of the same
+   * theme until it lands. MEASURED, the first pull after a start planned the
+   * playing theme again here, 50 ms for the Drum & Bass tile, because the set's
+   * reach became part of the request once it was running. Another theme — a
+   * swap, a skip, a cast — is read at once, as it always was.
+   */
+  let trackAsk = 0;
+  let trackOf = '';
+  function trackSoon(i: number): void {
+    const ask = ++trackAsk;
+    const of = `${state.seed}|${state.strategy}|${i}`;
+    const offer = state.mix && state.track && of === trackOf ? planLater(i) : null;
+    if (!offer) { state.track = planned(i); trackOf = of; return; }
+    void offer.then((t) => {
+      if (ask !== trackAsk) return;
+      state.track = t;
+      emit();
+    }, () => {
+      if (ask === trackAsk) { try { state.track = planned(i); emit(); } catch (err) { report('plan', 'the theme playing could not be planned', err); } }
+    });
+  }
+  function nextSoon(args: Parameters<typeof planned>): void {
+    const ask = ++nextAsk;
+    const offer = state.mix || state.nextTrack ? planLater(...args) : null;
+    if (!offer) { state.nextTrack = planned(...args); return; }
+    void offer.then((t) => {
+      if (ask !== nextAsk) return;
+      state.nextTrack = t;
+      emit();
+    }, () => {
+      // the plan throws here as it would have, and says so where it always did
+      if (ask === nextAsk) { try { state.nextTrack = planned(...args); emit(); } catch (err) { report('plan', 'the coming theme could not be planned', err); } }
+    });
   }
 
   /**
@@ -2293,6 +2403,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     readout,
     planned,
     plannedAlready,
+    planLater,
+    /** the planner's worker: whether it runs, and what it has been asked (a bench reading) */
+    get planner() { return plannerState(); },
     /** how many themes the page has planned for itself, for a gate to count */
     get plansMade() { return plansMade; },
     start,
@@ -2712,6 +2825,14 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   journal.load(placeNow());
   if (minutes) control.setMinutes(minutes);
   else replan(null);
+  // **The planner's worker, loaded in an idle slot once the page has drawn**
+  // (the planning perf round, 10-12), so it is ready before a hand asks it for
+  // anything; until it is, and where there is none, themes plan here.
+  {
+    const ric = (globalThis as { requestIdleCallback?: (fn: () => void, o: { timeout: number }) => number }).requestIdleCallback;
+    if (typeof ric === 'function') ric(() => { startPlanner(); }, { timeout: 2000 });
+    else setTimeout(() => { startPlanner(); }, 200);
+  }
   // **The link's bar is the place**, and the second saved in this browser is
   // kept only where it is inside that bar: the address is written wherever the
   // position is, so the two agree on a reload and the stored second is the

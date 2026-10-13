@@ -198,7 +198,11 @@ export function attachTaps(graph: V1Graph, master: V1Master | null = null, { per
   try {
     // A harmonic bus's meter reads its struck door too (round PIANO-2), so
     // the piano is on the melodic bus's meter where it always was.
-    const struckOf = (name: string): AudioNode[] => (graph.hasStruck() && graph.struckBus(name) ? [graph.struckBus(name)!.dry] : []);
+    // ...and its clean doors (round HF-NOISE), so a bell past the edge is on the keys' meter.
+    const struckOf = (name: string): AudioNode[] => [
+      ...(graph.hasStruck() && graph.struckBus(name) ? [graph.struckBus(name)!.dry] : []),
+      ...graph.cleanDoors(name),
+    ];
     for (const name of Object.keys(graph.buses)) taps.push(makeTap(ctx, name, graph.buses[name].dry, size, struckOf(name)));
     out = makeTap(ctx, 'out', outNode, size);
   } catch (e) {

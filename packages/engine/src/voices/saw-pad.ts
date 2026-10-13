@@ -29,7 +29,7 @@
 import { midiToHz, adsrEnv, route, panner, startTime, phasedLfo } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
 import { centsOf, liveOf, side } from './live.ts';

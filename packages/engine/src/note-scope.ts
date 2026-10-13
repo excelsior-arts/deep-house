@@ -20,7 +20,9 @@
 // are noted. When the last of them has ended, and a margin later, the doors are
 // disconnected and the whole chain behind them falls out of the graph. The
 // returns behind the buses (the reverb, the room, the echo) keep their tails:
-// a door is the note's send, not the return.
+// a door is the note's send, not the return. A note's sends into the theme's
+// shared returns by amount (`withReturns` in dsp.ts) pass doors of their own
+// too (`noteDoor`), so a sent note's gains are let go with the rest of it.
 //
 // - **The margin** covers what rings after the last source: a Haas or chorus
 //   line (tens of ms), the shimmer pad's own feedback loop (a second or two),
@@ -48,6 +50,8 @@ export const FX_MARGIN_S = 30;
 
 interface Scope {
   doors: GainNode[];
+  /** the note's doors into nodes outside the buses (a shared return's input), by that node (`noteDoor`) */
+  into: Map<AudioNode, GainNode> | null;
   /** every source the note started, weakly: an ended source is the browser's to collect (its stop is in `stopAt`) */
   sources: Array<WeakRef<AudioScheduledSourceNode>>;
   /** the graph the note was fired into, whose teardown lets it go (`releaseNotes`) */
@@ -158,6 +162,29 @@ export function releaseNotes(owner: object, now: number): number {
   return stopped;
 }
 
+/**
+ * **A door of the note being built into a node outside its buses**: a shared
+ * return a note sends into by amount (`withReturns` in dsp.ts, the theme's
+ * `settings.returns`), whose send gains were wired straight into the return's
+ * input and so stayed reachable from the destination after the note had ended
+ * (the deep review of 10-12, F7). The door is a unity gain, one per node per
+ * note, let go with the note's bus doors. Outside a note being built on a
+ * playing context — a render, a node check — it is the node itself.
+ */
+export function noteDoor(ctx: BaseAudioContext, into: AudioNode): AudioNode {
+  const scope = building;
+  if (!scope || !scoped(ctx)) return into;
+  if (!scope.into) scope.into = new Map();
+  let d = scope.into.get(into);
+  if (!d) {
+    d = ctx.createGain();
+    d.connect(into);
+    scope.into.set(into, d);
+    scope.doors.push(d);
+  }
+  return d;
+}
+
 /** Whether notes on this context get doors: a playing context in a browser. */
 export const scoped = (ctx: BaseAudioContext): boolean =>
   typeof AudioScheduledSourceNode !== 'undefined' && !isOffline(ctx);
@@ -170,18 +197,25 @@ export const scoped = (ctx: BaseAudioContext): boolean =>
 export function playScoped(ctx: BaseAudioContext, out: VoiceOut, hasFx: boolean, play: (out: VoiceOut) => void, owner: object | null = null): void {
   if (!scoped(ctx)) { play(out); return; }
   patchSources();
-  const scope: Scope = { doors: [], pending: new Set(), last: null, lastAt: -Infinity, margin: hasFx ? FX_MARGIN_S : NOTE_MARGIN_S, armed: false,
+  const scope: Scope = { doors: [], into: null, pending: new Set(), last: null, lastAt: -Infinity, margin: hasFx ? FX_MARGIN_S : NOTE_MARGIN_S, armed: false,
     sources: [], owner, timer: null, released: false };
   const doorOf = new Map<string, GainNode>();
   const doored: VoiceOut = {};
+  // **A door reads its bus only when the note asks for it.** Reading `out[name]`
+  // is what builds a lazy return (the hall, the two spaces, the echo: a
+  // convolver and its impulse response each) and the source's own gain into
+  // it, so a loop that read every send up front built all four on the first
+  // note of every theme, on the tick that was scheduling it, whether the
+  // program sent there or not — and the machine view, which draws a return
+  // the graph has, drew three more boxes playing than at rest.
   for (const name of SEND_NAMES) {
-    const bus = out[name];
-    if (!bus) continue;
     Object.defineProperty(doored, name, {
       enumerable: true,
       get: () => {
         let d = doorOf.get(name);
         if (!d) {
+          const bus = out[name];
+          if (!bus) return undefined;
           d = ctx.createGain();
           d.connect(bus);
           doorOf.set(name, d);

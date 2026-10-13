@@ -39,11 +39,15 @@ export interface V1Graph {
    * Where a source's note goes in: its bus, or (round PIANO-2) where the note
    * is struck, the bus's struck door, whose dry takes the shallow duck.
    */
-  sourceOutput(source: string, bus: string, struck?: boolean): VoiceOut;
+  sourceOutput(source: string, bus: string, struck?: boolean, clean?: boolean): VoiceOut;
   /** the struck door of a harmonic bus, built on the first ask; `null` for a bus with none (`ThemeGraph.struckBus`) */
   struckBus(bus: string): Bus | null;
   /** whether the struck path has been built; looking never builds one */
   hasStruck(): boolean;
+  /** the clean door of a harmonic bus (round HF-NOISE), past the edge, built on the first ask; `null` where there is none (`ThemeGraph.cleanBus`) */
+  cleanBus(bus: string, struck: boolean): Bus | null;
+  /** the dry of each clean door built so far into a bus; looking never builds one */
+  cleanDoors(bus: string): AudioNode[];
   /**
    * The listening controls. True when this call put channels into the graph,
    * which is when notes already scheduled straight to their buses have to be
@@ -85,6 +89,10 @@ export interface V1Graph {
   hasEcho(): boolean;
   /** whether the part's own space has been built (`settings.partSpace`); looking never builds one */
   hasPartSpace(): boolean;
+  /** a door into one of the theme's shared returns by a note's key (`settings.returns`, `withReturns`); built on the first ask, null where there is none */
+  returnDoor(key: string): AudioNode | null;
+  /** the shared returns built so far, by id; looking never builds one */
+  builtReturns(): string[];
   /**
    * The boxes and the wires of this graph, as it stands this instant
    * (`src/describe.ts`). It reads nodes and writes nothing, so a caller may ask
@@ -189,12 +197,17 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
     return 'live';
   };
   const made: V1Graph = {
-    sourceOutput: (source, bus, struck = false) => {
-      const door = (struck && graph.struckBus(bus)) || null;
-      return sources ? sources.output(source, bus, door) : door ?? graph.buses[bus];
+    sourceOutput: (source, bus, struck = false, clean = false) => {
+      // a note the edge may not read takes its path's clean door where the path has an edge (round HF-NOISE)
+      const passed = (clean && graph.cleanBus(bus, struck)) || null;
+      const door = passed ?? ((struck && graph.struckBus(bus)) || null);
+      const name = passed ? (struck ? 'struck-clean' : 'clean') : 'struck';
+      return sources ? sources.output(source, bus, door, name) : door ?? graph.buses[bus];
     },
     struckBus: (bus) => graph.struckBus(bus),
     hasStruck: () => graph.hasStruck(),
+    cleanBus: (bus, struck) => graph.cleanBus(bus, struck),
+    cleanDoors: (bus) => graph.cleanDoors(bus),
     setSourceMix(state) {
       if (isCleanSourceMix(state)) {
         if (sources) { sources.set(state); retired = sources; sources = null; }
@@ -241,6 +254,8 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
     hasImmersed: () => graph.hasImmersed(),
     hasEcho: () => graph.hasEcho(),
     hasPartSpace: () => graph.hasPartSpace(),
+    returnDoor: (key) => graph.returnDoor(key),
+    builtReturns: () => graph.builtReturns(),
     // the settings it was built from, with what the desk has moved on it since (D2)
     describe: () => describeGraph(made, stagedSettings()),
     // A graph that has been torn down keeps its LFOs running unless they are

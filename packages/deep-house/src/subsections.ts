@@ -47,7 +47,7 @@ import { Rng } from './rng.ts';
 import type { Arrangement } from './arrangement.ts';
 import { weightOf, type Recipe } from './recipe.ts';
 import { admits } from './sections.ts';
-import { DEFAULT_LETTERS, PLAYED_KINDS, type Figure, type Insertion, type LaneEdit, type Letter, type PlayedKind } from './treatment.ts';
+import { DEFAULT_LETTERS, PLAYED_KINDS, type Insertion, type LaneEdit, type Letter, type PlayedKind } from './treatment.ts';
 import { BIRDS, type Spell } from './spell.ts';
 
 /** What a span inside a section is. */

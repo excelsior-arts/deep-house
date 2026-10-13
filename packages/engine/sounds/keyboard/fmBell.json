@@ -42,6 +42,7 @@
     "mono": false,
     "treat": true,
     "cost": "dear",
+    "edge": false,
     "controls": {
       "background": {
         "unit": "send",
@@ -79,6 +80,7 @@
     "module": "fm-bell.ts",
     "note": "A two-operator FM bell: one sine modulating another, at a ratio that is not a whole number, which is what makes a struck bar inharmonic and a sawtooth not. The index is velocity's — a bell hit harder is brighter and not just louder — and it falls away inside a second, so the clang is the attack and the tail is nearly a sine. The tail is the point of the voice: nothing else in this engine rings for two seconds after a note.",
     "notes": {
+      "edge": "Not read by the harmonic bus's edge (round HF-NOISE): two sine operators at 3.51 under a lid at 6.2 kHz leave the bell little of its own over 5 kHz, and what the clip made of its inharmonic sidebands stood 13-14 dB over that in 5-8 kHz and no harmonic of the note: a hiss riding the ring. Its notes take the bus's clean door.",
       "ratios": "The ratio table. A ratio near a small integer sounds like an organ pipe; these four are the ones that ring. `tone` is what a note asks for by name, and the declared loudness is measured on the default.",
       "index": "The index, in units of the carrier's own frequency: how far the modulator throws it. The first number is what a note at no velocity gets and the second is what velocity adds."
     }

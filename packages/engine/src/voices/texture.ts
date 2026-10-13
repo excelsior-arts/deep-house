@@ -37,7 +37,7 @@ import { midiToHz, route, panner, startTime, noiseSource, phasedLfo, MIN_RELEASE
 import type { VoiceOut } from '../dsp.ts';
 import { heldVoice } from './held.ts';
 import { insert } from './treat.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf, provePatch, withDesk } from './sound.ts';
@@ -76,7 +76,10 @@ function vinylBed(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
-  const S = patchOf(settings, row, VINYL_FIELDS);
+  const S0 = patchOf(settings, row, VINYL_FIELDS);
+  // A note may open the lid (`lidHz`): the same bed with more air above it, brought forward in a
+  // passage where it is the foreground; absent, the row's own corner.
+  const S = typeof p.lidHz === 'number' && Number.isFinite(p.lidHz) ? { ...S0, lpHz: Math.max(S0.hpHz * 2, Math.min(16000, p.lidHz)) } : S0;
   const dur = Math.max(0.2, p.dur ?? 4);
   const vel = p.vel ?? 0.7;
   const end = time + dur + S.release;

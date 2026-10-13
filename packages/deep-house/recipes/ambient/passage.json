@@ -1,0 +1,1270 @@
+{
+ "schema": 1,
+ "kind": "ambient-passage",
+ "round": "liquid-producer",
+ "revision": 1,
+ "note": "An authored passage, written the way a producer arranges one, for audition before any grammar is drawn from it (the research manual's section 8 checkpoint). One row is one passage: its bars are counted from the track's first drop, its harmony is the track's own chord in force (or the dominant of the chord it arrives on, for a passing shell), and every pitch is a scale step over that chord's root in the track's key (`alt` a chromatic semitone), placed over a root floor rather than at a fixed MIDI note, so another seed plays the same passage in its own key and over its own chords. Positions are `bar:beat`, the bar relative to the first drop, the beat 1 to 4 with `e`, `&` or `a` for the sixteenth after it. Only the bars of `window` change; the rest of the track is the planners' own. The melody reaches toward the next chord, the drums make room for its arrival, the bass completes the space between them, and a shared hall and a slow filtered echo carry the phrases through the gaps. Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "first-passage",
+   "name": "the first main passage, produced",
+   "window": {
+    "from": -4,
+    "to": 72
+   },
+   "retire": {
+    "says": "what the planners laid in the window and the passage replaces: the evenly spaced soloist statements and their swells, the keys' automatic echoes, the reverse arrival, the bed's background notes and the drop's incidental vinyl layer",
+    "parts": [
+     "soloist",
+     "soloist-swell",
+     "keys-echo",
+     "reverse-arrival"
+    ],
+    "voices": [
+     "vinylBed"
+    ],
+    "bed": true
+   },
+   "returns": {
+    "field": {
+     "schema": 1,
+     "kind": "space",
+     "id": "studyField",
+     "revision": 2,
+     "name": "A distant hall and a slow filtered echo",
+     "says": "A dark 6.2 s hall that fills over 45 ms, fed over 320 Hz and under 5.2 kHz, its return low-passed at 3.8 kHz and slowly moved; a ping-pong tape echo at a dotted quarter of the fast beat (1.5 beats), filtered 450 Hz to 3.2 kHz in its feedback, a fifth of its repeats falling into the hall; and a slow dub echo (round 4) at a dotted quarter of the half-time pulse (3 fast beats), its feedback longer (0.56) and darker each repeat (500 Hz to 2.4 kHz), ping-ponging across the field, a third of it into the hall: one held note thrown into it writes a phrase of its own. Notes are sent straight into each (`field.hall`, `field.echo`, `field.dub`); nothing passes dry.",
+     "dry": 0,
+     "trimDb": -13,
+     "inserts": [],
+     "sends": [
+      {
+       "id": "echo",
+       "level": 0,
+       "effect": "tapeDelay",
+       "params": {
+        "timeBeats": 1.5,
+        "feedback": 0.38,
+        "highpassHz": 450,
+        "lowpassHz": 3200,
+        "wow": 0.1,
+        "pingPong": 1,
+        "mix": 1
+       },
+       "into": {
+        "hall": 0.2
+       }
+      },
+      {
+       "id": "dub",
+       "level": 0,
+       "effect": "tapeDelay",
+       "params": {
+        "timeBeats": 3,
+        "feedback": 0.56,
+        "highpassHz": 500,
+        "lowpassHz": 2400,
+        "wow": 0.18,
+        "pingPong": 1,
+        "mix": 1
+       },
+       "into": {
+        "hall": 0.3
+       }
+      },
+      {
+       "id": "hall",
+       "level": 0,
+       "effect": "reverb",
+       "params": {
+        "mode": 1,
+        "decaySeconds": 6.2,
+        "predelayMs": 45,
+        "lowCutHz": 320,
+        "dampHz": 5200,
+        "level": 2,
+        "mix": 1
+       },
+       "after": [
+        {
+         "effect": "filter",
+         "params": {
+          "mode": 0,
+          "cutoffHz": 3800,
+          "resonanceDb": 0,
+          "drive": 0,
+          "level": 1,
+          "mix": 1
+         }
+        },
+        {
+         "effect": "chorus",
+         "params": {
+          "rateHz": 0.12,
+          "depthMs": 0.7,
+          "voices": 2,
+          "spread": 0.8,
+          "mix": 0.12
+         }
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "admission": [
+    {
+     "return": "field",
+     "send": "hall",
+     "effect": "chorus"
+    },
+    {
+     "return": "field",
+     "send": "hall",
+     "effect": "filter"
+    },
+    {
+     "return": "field",
+     "send": "dub"
+    },
+    {
+     "return": "field",
+     "send": "echo"
+    }
+   ],
+   "sends": {
+    "says": "linear routing gains relative to each source's own level: its direct path, and what it sends into the hall and the echo; a throw opens the echo for one note and closes it, and the echo's feedback rings on",
+    "main": {
+     "direct": 0.28,
+     "hall": 0.65,
+     "echo": 0.05
+    },
+    "distant": {
+     "direct": 0.16,
+     "hall": 0.8,
+     "echo": 0.1
+    },
+    "throw": {
+     "direct": 0.16,
+     "hall": 0.75,
+     "echo": 0.38
+    },
+    "arrival": {
+     "direct": 0.16,
+     "hall": 0.8,
+     "echo": 0.06
+    },
+    "padBloom": {
+     "direct": 0.2,
+     "hall": 0.5,
+     "echo": 0
+    },
+    "wind": {
+     "direct": 1,
+     "hall": 0.15,
+     "echo": 0
+    },
+    "snareDeparture": {
+     "direct": 1,
+     "hall": 0.14,
+     "echo": 0.3
+    },
+    "dub": {
+     "direct": 0.14,
+     "hall": 0.45,
+     "echo": 0,
+     "dub": 0.75
+    },
+    "crash": {
+     "direct": 1,
+     "hall": 0.35,
+     "echo": 0
+    },
+    "swell": {
+     "direct": 1,
+     "hall": 0.5,
+     "echo": 0
+    },
+    "keysLean": {
+     "direct": 1,
+     "hall": 0.3,
+     "echo": 0.1
+    },
+    "riser": {
+     "direct": 1,
+     "hall": 0.3,
+     "echo": 0.15
+    },
+    "weatherForward": {
+     "direct": 1,
+     "hall": 0.3,
+     "echo": 0
+    },
+    "skeleton": {
+     "direct": 1,
+     "hall": 0.22,
+     "echo": 0.14
+    }
+   },
+   "duck": {
+    "says": "the field dipped from the drums' actual hits, so their attacks stay clear and the space rises between them",
+    "kickDb": -2.5,
+    "snareDb": -1.5,
+    "principalVel": 0.5,
+    "attackS": 0.005,
+    "holdS": 0.045,
+    "recoverBeats": 0.6
+   },
+   "voice": {
+    "says": "the soloist: one note per slur of a phrase, its pitches joined under one breath (a short glide into each), each note's weight and re-articulation by its role, the vibrato on held destinations only, one restrained scoop",
+    "voice": "wordlessVocal",
+    "levelDb": -18,
+    "rootFloor": 52,
+    "laidBackMs": 12,
+    "glideS": 0.045,
+    "legato": 0.94,
+    "roles": {
+     "pickup": {
+      "vel": 0.48,
+      "attack": 0.02,
+      "release": 0.09,
+      "dip": 0.5
+     },
+     "approach": {
+      "vel": 0.53,
+      "attack": 0.025,
+      "release": 0.09,
+      "dip": 0.5
+     },
+     "destination": {
+      "vel": 0.72,
+      "attack": 0.035,
+      "release": 0.3,
+      "dip": 0.4
+     },
+     "held": {
+      "vel": 0.7,
+      "attack": 0.1,
+      "release": 0.38,
+      "dip": 0.4
+     },
+     "departure": {
+      "vel": 0.56,
+      "attack": 0.03,
+      "release": 0.1,
+      "dip": 0.45
+     },
+     "ending": {
+      "vel": 0.6,
+      "attack": 0.04,
+      "release": 0.32,
+      "dip": 0.45
+     }
+    },
+    "vibrato": {
+     "hz": 4.7,
+     "cents": 6,
+     "afterS": 0.18,
+     "riseS": 0.2,
+     "leastS": 0.35
+    },
+    "scoop": {
+     "cents": -32,
+     "seconds": 0.08
+    },
+    "tone": {
+     "sourceTilt": 2.2,
+     "vocalDetune": 1.2,
+     "breath": 0.05,
+     "formantWidth": 1.4,
+     "formantScale": 0.92,
+     "open": 2600
+    },
+    "register": {
+     "refMidi": 62,
+     "dbPerSemitone": 0.6,
+     "floor": 55,
+     "top": 76
+    },
+    "keysFallback": {
+     "db": -4,
+     "velScale": 0.8,
+     "ring": 1.5,
+     "sendScale": 0.6
+    },
+    "hallByRole": {
+     "pickup": 0.5,
+     "approach": 0.55,
+     "departure": 0.75,
+     "destination": 1,
+     "held": 1,
+     "ending": 1
+    },
+    "articulation": {
+     "says": "each note of a breath heard to start, not a staccato: the level dips some 7-8 dB into the note over 30 ms, rests 12 ms and rises over the role's attack, a soft breath consonant puffs at the onset, the pitch glides only into a connected approach (or a scoop) and steps inside the dip elsewhere",
+     "dipS": 0.03,
+     "stepS": 0.012,
+     "glideRoles": [
+      "approach"
+     ],
+     "puff": {
+      "pickup": 0.22,
+      "approach": 0.2,
+      "destination": 0.32,
+      "held": 0.3,
+      "departure": 0.22,
+      "ending": 0.26
+     },
+     "puffS": 0.05,
+     "holdS": 0.012
+    }
+   },
+   "phrases": {
+    "says": "the passage's melodic vocabulary as scale steps over the chord root (0 the root, 7 its octave; `alt` a chromatic semitone: a leading tone is the root's octave less one), lengths e q dq h; a `rest` is silence, a `breath` role starts a new breath",
+    "e-question": [
+     {
+      "deg": 4,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "dq",
+      "role": "destination"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "e-answer": [
+     {
+      "deg": 13,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 12,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 11,
+      "len": "dq",
+      "role": "destination"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "ending"
+     }
+    ],
+    "e-enclosure": [
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "h",
+      "role": "held"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "cross-into-arrival": [
+     {
+      "deg": 8,
+      "len": "q",
+      "role": "pickup"
+     },
+     {
+      "deg": 7,
+      "len": "q",
+      "role": "approach"
+     },
+     {
+      "deg": 6,
+      "len": "h",
+      "role": "held"
+     },
+     {
+      "deg": 8,
+      "len": "q",
+      "role": "breath"
+     },
+     {
+      "rest": "e"
+     },
+     {
+      "deg": 10,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "h",
+      "role": "held",
+      "scoop": true,
+      "send": "arrival"
+     }
+    ],
+    "a-question": [
+     {
+      "deg": 4,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "dq",
+      "role": "destination"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "a-color": [
+     {
+      "deg": 4,
+      "len": "q",
+      "role": "held"
+     },
+     {
+      "deg": 5,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 5,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 4,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "a-fragment": [
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "e-fragment": [
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 7,
+      "len": "dq",
+      "role": "ending"
+     }
+    ],
+    "turn-down": [
+     {
+      "deg": 7,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 9,
+      "len": "q",
+      "role": "destination"
+     },
+     {
+      "deg": 8,
+      "len": "e",
+      "role": "departure"
+     },
+     {
+      "deg": 6,
+      "len": "e",
+      "role": "approach"
+     },
+     {
+      "deg": 4,
+      "len": "h",
+      "role": "ending"
+     }
+    ],
+    "leading-tone-into-arrival": [
+     {
+      "deg": 7,
+      "alt": -1,
+      "len": "e",
+      "role": "pickup"
+     },
+     {
+      "deg": 7,
+      "len": "h",
+      "role": "held",
+      "send": "arrival"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "at": "10:4&",
+     "phrase": "e-question",
+     "over": "here",
+     "send": "main",
+     "throwLast": true,
+     "says": "the G crest leads, E settles, then a breath; only the last E is thrown"
+    },
+    {
+     "at": "18:3",
+     "phrase": "e-answer",
+     "over": "here",
+     "send": "distant",
+     "says": "a higher start, falling, far"
+    },
+    {
+     "at": "24:3",
+     "phrase": "e-enclosure",
+     "over": "here",
+     "send": "main",
+     "says": "G approached from above and below, settled, left"
+    },
+    {
+     "at": "30:3",
+     "phrase": "cross-into-arrival",
+     "over": "arrival",
+     "send": "main",
+     "says": "across the change: lands on the arriving chord's third with the keys' strike, its attack under the chord and its bloom in the hall"
+    },
+    {
+     "at": "38:3",
+     "phrase": "a-fragment",
+     "over": "here",
+     "send": "distant",
+     "throwLast": true,
+     "says": "answers the drummer once the straight hats withdraw"
+    },
+    {
+     "at": "42:4&",
+     "phrase": "a-question",
+     "over": "here",
+     "send": "main",
+     "says": "the E question's harmonic relative"
+    },
+    {
+     "at": "49:3",
+     "phrase": "a-color",
+     "over": "here",
+     "send": "distant",
+     "says": "the natural thirteenth over the half-time breath; its tail bridges the fast drums' return"
+    },
+    {
+     "at": "58:2&",
+     "phrase": "turn-down",
+     "over": "here",
+     "send": "main",
+     "says": "the last statement before the dominant"
+    },
+    {
+     "at": "63:4&",
+     "phrase": "leading-tone-into-arrival",
+     "over": "arrival",
+     "send": "main",
+     "says": "the leading tone over the dominant shell, the root opening into the hall with the arrival"
+    },
+    {
+     "at": "69:3",
+     "phrase": "e-fragment",
+     "over": "here",
+     "send": "distant",
+     "says": "a remnant of the question, its direct part reduced"
+    }
+   ],
+   "keys": {
+    "says": "quieter right-hand touches beside the planner's full landings, a suspension resolved inside its chord and a passing dominant's two shells; no automatic answer after a strike where the voice answers",
+    "rootFloor": 52,
+    "dominantFloor": 45,
+    "strum": 0.08,
+    "strikes": [
+     {
+      "at": "16:1",
+      "over": "here",
+      "notes": [
+       2,
+       4,
+       6,
+       8
+      ],
+      "db": -6,
+      "bars": 3,
+      "vel": 0.44,
+      "says": "rootless touch, no low root against the bass"
+     },
+     {
+      "at": "28:1",
+      "over": "here",
+      "notes": [
+       2,
+       4,
+       6,
+       10
+      ],
+      "db": -7,
+      "bars": 1.5,
+      "vel": 0.4,
+      "says": "eleventh colour"
+     },
+     {
+      "at": "28:3",
+      "over": "here",
+      "notes": [
+       9
+      ],
+      "db": -8,
+      "bars": 1.2,
+      "vel": 0.38,
+      "cut": [
+       10
+      ],
+      "says": "the eleventh falls to the third"
+     },
+     {
+      "at": "48:1",
+      "over": "here",
+      "notes": [
+       -1,
+       1,
+       4,
+       10
+      ],
+      "db": -6,
+      "bars": 4,
+      "vel": 0.42,
+      "says": "eleventh colour over the half-time breath"
+     },
+     {
+      "at": "50:1",
+      "over": "here",
+      "notes": [
+       9
+      ],
+      "db": -8,
+      "bars": 2.5,
+      "vel": 0.38,
+      "cut": [
+       10
+      ],
+      "says": "the upper eleventh resolves to the third, leaving the ninth chord"
+     },
+     {
+      "at": "63:1",
+      "dominant": [
+       10,
+       12,
+       17,
+       19
+      ],
+      "db": -5,
+      "bars": 0.5,
+      "vel": 0.44,
+      "says": "dominant seventh, suspended fourth, as a shell",
+      "send": "keysLean"
+     },
+     {
+      "at": "63:3",
+      "dominant": [
+       10,
+       13,
+       16,
+       19
+      ],
+      "db": -5,
+      "bars": 0.56,
+      "vel": 0.46,
+      "says": "dominant seventh, flat ninth: the raised seventh of the key is meant",
+      "send": "keysLean"
+     }
+    ],
+    "drop": [
+     {
+      "bar": 31,
+      "from": 8,
+      "to": 16,
+      "says": "the planner's pickup into the landing at 32: the voice's line is the approach"
+     },
+     {
+      "bar": 32,
+      "from": 4,
+      "to": 16,
+      "says": "the strike's answer: the voice's destination answers"
+     },
+     {
+      "bar": 63,
+      "from": 8,
+      "to": 16,
+      "says": "the pickup into 64: the dominant shells approach instead"
+     },
+     {
+      "bar": 64,
+      "from": 4,
+      "to": 16,
+      "says": "the strike's answer: the voice's resolution answers"
+     }
+    ]
+   },
+   "pad": {
+    "says": "the bed rests through the passage; one bloom on the chord's fifth and seventh, gone before the drums' departure",
+    "rootFloor": 52,
+    "levelDb": 3,
+    "blooms": [
+     {
+      "at": "45:1",
+      "over": "here",
+      "notes": [
+       4,
+       6
+      ],
+      "bars": 1.25,
+      "attack": 0.9,
+      "release": 1.1,
+      "send": "padBloom"
+     }
+    ]
+   },
+   "wind": {
+    "says": "its one visit to the passage quieter, receding before the question",
+    "dropFrom": 12,
+    "db": -4,
+    "send": "wind"
+   },
+   "drums": {
+    "says": "S statement, R roller, X displaced answer, T straight-top lift, H half-time breath; each phrase's ending chosen for where it goes",
+    "states": [
+     {
+      "from": 0,
+      "to": 16,
+      "state": "S"
+     },
+     {
+      "from": 16,
+      "to": 24,
+      "state": "R"
+     },
+     {
+      "from": 24,
+      "to": 28,
+      "state": "X"
+     },
+     {
+      "from": 28,
+      "to": 32,
+      "state": "S"
+     },
+     {
+      "from": 32,
+      "to": 40,
+      "state": "T",
+      "spotlight": [
+       34,
+       38
+      ]
+     },
+     {
+      "from": 40,
+      "to": 48,
+      "state": "R",
+      "topFrom": -16,
+      "topVel": 0.88
+     },
+     {
+      "from": 48,
+      "to": 52,
+      "state": "H"
+     },
+     {
+      "from": 52,
+      "to": 56,
+      "state": "S"
+     },
+     {
+      "from": 56,
+      "to": 60,
+      "state": "R"
+     },
+     {
+      "from": 60,
+      "to": 72,
+      "state": "S"
+     }
+    ],
+    "endings": [
+     {
+      "bar": 7,
+      "end": [
+       "ghostTurn"
+      ],
+      "says": "restrained"
+     },
+     {
+      "bar": 14,
+      "end": [
+       "kickOut"
+      ],
+      "says": "the bass travels through the missing kick"
+     },
+     {
+      "bar": 23,
+      "end": [
+       "shortRoll"
+      ],
+      "says": "quiet, into the displaced answer"
+     },
+     {
+      "bar": 31,
+      "end": [
+       "openEnding"
+      ],
+      "says": "the final snare left out so the harmony pulls into the arrival"
+     },
+     {
+      "bar": 37,
+      "end": [
+       "ghostTurn"
+      ],
+      "says": "the spotlight's last word"
+     },
+     {
+      "bar": 39,
+      "end": [
+       "hatCut"
+      ],
+      "says": "the top stops after beat three; the voice answers"
+     },
+     {
+      "bar": 47,
+      "end": [
+       "openEnding",
+       "snareDeparture",
+       "topsClose",
+       "reverseCymbal"
+      ],
+      "says": "the way in: the tops close through a filter across the bar, the snare on beat two thrown into the echo, the last snare left out, a reverse swell rising into the breath; the bass's last note sounds on into it"
+     },
+     {
+      "bar": 51,
+      "end": [
+       "fill"
+      ],
+      "says": "the way out: the snare's own fill rising over the last beats, its last hit thrown into the echo"
+     },
+     {
+      "bar": 52,
+      "end": [
+       "crash",
+       "topsOpen"
+      ],
+      "says": "the kick back on the one with a crash into the hall, the tops opening"
+     },
+     {
+      "bar": 62,
+      "end": [
+       "topsDarken"
+      ],
+      "says": "the tops withdraw over two beats"
+     },
+     {
+      "bar": 63,
+      "end": [
+       "ghostAnswer",
+       "lastBeatEmpty",
+       "reverseCymbal"
+      ],
+      "says": "a short ghost answer, then the leading tone alone; the field and a reverse swell lean into the arrival"
+     },
+     {
+      "bar": 64,
+      "end": [
+       "crash"
+      ],
+      "says": "the arrival: a crash into the hall under the E"
+     },
+     {
+      "bar": 71,
+      "end": [
+       "ghostTurn"
+      ],
+      "says": ""
+     }
+    ],
+    "ghost": {
+     "vel": 0.3,
+     "gainOf": 0.55
+    },
+    "roll": {
+     "steps": [
+      9,
+      10,
+      11
+     ],
+     "vel": [
+      0.3,
+      0.42,
+      0.55
+     ]
+    },
+    "darken": {
+     "fromStep": 8,
+     "db": -10
+    },
+    "fill": {
+     "steps": [
+      10,
+      12,
+      13,
+      14,
+      15
+     ],
+     "vel": [
+      0.42,
+      0.5,
+      0.58,
+      0.68,
+      0.8
+     ]
+    },
+    "accel": {
+     "from": 0,
+     "vel": [
+      0.28,
+      0.85
+     ]
+    },
+    "crash": {
+     "db": -3,
+     "send": "crash",
+     "gain": 0.073
+    },
+    "swell": {
+     "beats": 4,
+     "db": -3,
+     "send": "swell",
+     "gain": 0.4
+    },
+    "tops": {
+     "closeHz": [
+      9000,
+      1300
+     ],
+     "openHz": [
+      1500,
+      12000
+     ]
+    },
+    "riser": {
+     "says": "a riser where the track has none: its gain and its length in beats",
+     "gain": 0.056,
+     "beats": 16
+    },
+    "ghosts": {
+     "says": "the ghost figures, each a step and a weight over the ghost's velocity: the roller's answering bar, the spotlight's, and the endings that are ghosts",
+     "answer": [
+      [
+       7,
+       1
+      ],
+      [
+       15,
+       0.9
+      ]
+     ],
+     "snarePickup": [
+      [
+       13,
+       0.85
+      ],
+      [
+       14,
+       1.05
+      ],
+      [
+       15,
+       1.3
+      ]
+     ],
+     "ghostTail": [
+      [
+       9,
+       0.85
+      ],
+      [
+       11,
+       1.1
+      ]
+     ],
+     "ghostTurn": [
+      [
+       14,
+       1
+      ],
+      [
+       15,
+       1.15
+      ]
+     ],
+     "ghostAnswer": [
+      [
+       9,
+       0.9
+      ],
+      [
+       10,
+       1.2
+      ]
+     ]
+    },
+    "hats": {
+     "says": "the hats by state: the roller's answering bar moves its accents (the e of a beat softer, its a louder, under a ceiling), the straight top's soft hats on the beat and between, the spotlight's wider accents, a phrase's thinning and the half-time breath softer",
+     "answering": {
+      "soft": 0.82,
+      "loud": 1.25,
+      "ceiling": 0.9
+     },
+     "straight": [
+      0.6,
+      0.8
+     ],
+     "spotlight": [
+      0.52,
+      0.86
+     ],
+     "thin": 0.85,
+     "breath": 0.85
+    }
+   },
+   "bass": {
+    "says": "the accepted line's variants, by the riff's notes in each eight bars (0 its opening): B0 the statement; B1 its last answer a beat long; B2 the sixth bar's note glided into from the fifth's, one connected run in place of a fresh attack, and the last bar left to the drums; B3 the last bar out; BH a broad half-time sentence, one long note on the downbeat and the opening again at the return; a glide joins two adjacent notes into one connected run with both paths, and a note after a silence enters fresh; B1out B1 with the last bar out, so the chord change at its end lands with the bass; BH now holds the floor (one low root under the half-time breath's first bars) before its long note",
+    "variants": {
+     "B0": [],
+     "B1": [
+      {
+       "op": "shorten",
+       "i": 5,
+       "beats": 1
+      }
+     ],
+     "B1stop": [
+      {
+       "op": "drop",
+       "i": [
+        5
+       ]
+      }
+     ],
+     "B2": [
+      {
+       "op": "drop",
+       "i": [
+        5
+       ]
+      },
+      {
+       "op": "glide",
+       "i": 3,
+       "to": 4
+      }
+     ],
+     "B2end": [
+      {
+       "op": "glide",
+       "i": 3,
+       "to": 4
+      }
+     ],
+     "B3": [
+      {
+       "op": "drop",
+       "i": [
+        5
+       ]
+      }
+     ],
+     "BH": [
+      {
+       "op": "add",
+       "at": "0:1",
+       "deg": 0,
+       "len": 31,
+       "like": 2,
+       "vel": 0.7
+      },
+      {
+       "op": "copy",
+       "i": 0,
+       "at": "4:2",
+       "as": 6
+      },
+      {
+       "op": "move",
+       "i": 2,
+       "at": "2:1"
+      },
+      {
+       "op": "trim",
+       "i": 2,
+       "bars": 1.75
+      },
+      {
+       "op": "drop",
+       "i": [
+        0,
+        1,
+        3
+       ]
+      }
+     ],
+     "B1out": [
+      {
+       "op": "shorten",
+       "i": 5,
+       "beats": 1
+      },
+      {
+       "op": "out",
+       "from": 7,
+       "to": 8
+      }
+     ]
+    },
+    "phrases": [
+     {
+      "from": 0,
+      "variant": "B0"
+     },
+     {
+      "from": 8,
+      "variant": "B1"
+     },
+     {
+      "from": 16,
+      "variant": "B2"
+     },
+     {
+      "from": 24,
+      "variant": "B1out"
+     },
+     {
+      "from": 32,
+      "variant": "B2end"
+     },
+     {
+      "from": 40,
+      "variant": "B0"
+     },
+     {
+      "from": 48,
+      "variant": "BH"
+     },
+     {
+      "from": 56,
+      "variant": "B1stop"
+     },
+     {
+      "from": 64,
+      "variant": "B0"
+     }
+    ]
+   },
+   "swells": [
+    {
+     "from": "51:1",
+     "to": "52:1",
+     "db": 3,
+     "release": 3
+    },
+    {
+     "from": "63:1",
+     "to": "64:1",
+     "db": 3.5,
+     "release": 4
+    }
+   ]
+  }
+ ]
+}

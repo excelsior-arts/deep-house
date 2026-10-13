@@ -283,6 +283,12 @@ selftest();
 for (const rel of shipped()) {
   const abs = absOf(rel);
   if (!fs.existsSync(abs)) continue;
+  // git lists an untracked repository or worktree inside the tree as one bare directory: its files are not read, so
+  // the audit cannot vouch for them, and says so rather than stopping on EISDIR
+  if (fs.statSync(abs).isDirectory()) {
+    fault(rel, 0, 'an untracked directory git will not list into (a nested repository or worktree?): exclude it (`.git/info/exclude`) or commit what is in it');
+    continue;
+  }
   if (AUDIO.test(rel)) {
     fault(rel, 0, 'an audio file in the release');
     continue;

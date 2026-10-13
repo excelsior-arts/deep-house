@@ -238,7 +238,7 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  * (`shipped rows moved since the cut: N`), and the round note names them.
  *
  * The window is the cut's and no other's: it opens only while the last cut is
- * `cut` (master 152c1bd, the v2.0.0 cut re-cut with the README only). The next cut ships its own digest and closes it by
+ * `cut` (master 480c199, the v2.1.0 cut; the v2.0.0 cut's window, 09-27 to 10-11, closed with it). The next cut ships its own digest and closes it by
  * itself; this statement is then removed. A shipped row dropped from the grid
  * is refused inside the window as outside.
  *
@@ -251,9 +251,9 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  */
 export interface FreezeWindow { cut: string; since: string; reason: string }
 export const WINDOW: FreezeWindow = Object.freeze({
-  cut: '152c1bdf4b01635440d89b90d21dd777fa6682f5',
-  since: '2026-09-27',
-  reason: 'Eugene, 09-26: "forget about golden track locks for the next turn, go for it" — the genres phase (GA1-GA4) moves house-v2 links between the v2.0.0 cut and the next; a link promises the settings, not the byte; v3 is only for a new engine. Since 10-02 the record\'s rows move in it as any other\'s: house-v1 is a composing preset, not a byte lock',
+  cut: '480c1993390292fed8d1c897fee9583ad7f4e28a',
+  since: '2026-10-11',
+  reason: 'Eugene, 10-11, on the vibes and bells fix that moves 55 shipped settings hashes: "sound good, thank you"; and on the work after v2.1.0: "we likely will have to settle things, with potential sacrifices with known golden tracks" — the rounds between the v2.1.0 cut and the next move house-v2 links where he heard and approved the change; a link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
 });
 /** The window, where the last cut is the one it was stated for; null outside it. */
 export function openWindow(ref = 'refs/heads/master'): FreezeWindow | null {

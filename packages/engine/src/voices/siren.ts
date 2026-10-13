@@ -29,7 +29,7 @@ import { midiToHz, route, startTime, panner, MIN_RELEASE, GAIN_FLOOR } from '../
 import { insert } from './treat.ts';
 import { knobScale, withControls } from './descriptor.ts';
 import type { VoiceOut } from '../dsp.ts';
-import type { Controls, Descriptor, Knobs, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';

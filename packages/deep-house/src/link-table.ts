@@ -40,7 +40,7 @@ export interface LinkRow {
   written: string;
 }
 
-export const BYPASS_NAMES = ['all', 'kickdrive', 'body', 'push', 'limiter', 'clip', 'glue', 'basscomp', 'bassdrive', 'duck', 'duckdb', 'struckduckdb', 'strings', 'sub', 'spark', 'sparkkeys', 'sparkpad', 'sparkpiano', 'sparkbus', 'sparkdrums', 'sparkhats', 'sparkshaker', 'sparkclap', 'roles'] as const;
+export const BYPASS_NAMES = ['all', 'kickdrive', 'body', 'push', 'limiter', 'clip', 'glue', 'basscomp', 'bassdrive', 'duck', 'duckdb', 'struckduckdb', 'strings', 'sub', 'spark', 'sparkkeys', 'sparkpad', 'sparkpiano', 'sparkbus', 'sparkstrike', 'sparkdrums', 'sparkhats', 'sparkshaker', 'sparkclap', 'roles'] as const;
 
 /** **The table.** Every parameter the page reads, once, in the order a written link names them. */
 export const LINK_ROWS: readonly LinkRow[] = Object.freeze([

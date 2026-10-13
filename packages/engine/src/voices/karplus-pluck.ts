@@ -56,7 +56,7 @@
 import { midiToHz, noteEnv, route, panner, startTime, lcg } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import { insert } from './treat.ts';
-import type { Descriptor, NoteParams, PrepareOptions } from './descriptor.ts';
+import type { NoteParams, PrepareOptions } from './descriptor.ts';
 import type { ProgramEvent } from '../program.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';

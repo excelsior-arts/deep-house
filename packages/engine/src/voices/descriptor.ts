@@ -413,6 +413,17 @@ export interface Descriptor {
    * returns when it is made and never on the tick a note is scheduled.
    */
   returns?: readonly LazyReturn[];
+  /**
+   * **Whether the harmonic bus's edge reads this voice** (round HF-NOISE).
+   * Absent or `true`, its notes go into their bus as they always have and the
+   * edge (SPARK-1's driven copy) takes them with the rest of the bed. `false`
+   * is a row's word that its top is a few sines at inharmonic ratios — a bar,
+   * a bell — where a clipper's copy is no harmonic of the note but a hiss
+   * riding the ring: its notes take the bus's clean door (`cleanBus` in
+   * master.ts), past the edge and through everything else. Where a theme's
+   * graph built no edge the door is the bus's own, so it moves nothing there.
+   */
+  edge?: boolean;
   /** the timbres this module renders, for the harmonic families; `{}` otherwise */
   timbres: Record<string, TimbreFacts>;
   /**

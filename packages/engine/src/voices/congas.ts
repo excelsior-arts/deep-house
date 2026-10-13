@@ -42,7 +42,6 @@ import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
 import { noteControl } from './descriptor.ts';
 import type { Controls, NoteParams } from './descriptor.ts';
-import type { Settings } from '../settings.ts';
 
 /** What a row of this topology carries — the conga's or the bongo's — each in its range (`schema.ts`). */
 const PARAMETERS = contract({

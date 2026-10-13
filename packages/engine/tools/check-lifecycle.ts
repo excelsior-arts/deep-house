@@ -188,7 +188,7 @@ function tapsGraph(level: number, settings: unknown) {
   };
   const out = { ...node(), context: ctx };
   const buses = Object.fromEntries(['kick', 'sub', 'drums', 'melodic', 'keys'].map((k) => [k, { dry: node() }]));
-  const graph = { out, buses, hasStruck: () => false, nodes: { chain: { out: node(), limiterPort: null, settings } } };
+  const graph = { out, buses, hasStruck: () => false, cleanDoors: () => [], nodes: { chain: { out: node(), limiterPort: null, settings } } };
   return { graph, connected };
 }
 

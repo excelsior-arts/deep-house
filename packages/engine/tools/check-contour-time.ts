@@ -3,7 +3,10 @@
 // the pair's curve read where the note was, value and slope; the dips moved by
 // the time gone and the past ones dropped; the level and the path from there;
 // and a tempo ride laying the bend, the level, the pair and the dips on the
-// grid while the physical controls keep their seconds.
+// grid while the physical controls keep their seconds; and the part's paths
+// (gain, pan, filters, a return's amount, a sung phrase's level, pitch,
+// vibrato and breath) the same way, the copy a start inside a note sounds
+// carrying its whole length (the deep review of 10-12, F2).
 //
 //   node --test tools/check-contour-time.ts
 import assert from 'node:assert/strict';
@@ -12,8 +15,10 @@ import { beatAt, beatCurve, levelRate, BEAT_CONTROL_RATE } from '../src/voices/r
 import { REESE } from '../src/voices/reese.ts';
 import { asSound, soundDescriptor } from '../src/voices/sound.ts';
 import { withOutputEnvelope } from '../src/voices/output-envelope.ts';
-import { contourElapsed, dipsFrom } from '../src/voices/contour-time.ts';
-import { heldOnGrid, deckContextTime } from '../src/deck.ts';
+import { contourElapsed, contoursOnGrid, dipsFrom, pathFrom } from '../src/voices/contour-time.ts';
+import { heldOnGrid, deckContextTime, spanning } from '../src/deck.ts';
+import { withMotion, withReturns } from '../src/dsp.ts';
+import { walkPath } from '../src/voices/formant-pad.ts';
 import { makeSetClock } from '../src/set-clock.ts';
 import { StandinContext } from './standin.ts';
 import type { StandinNode } from './standin.ts';
@@ -163,4 +168,77 @@ test('a rate a note writes in the theme\'s hertz (`gridRates`) rides the grid by
   // on the theme's own grid nothing is copied
   const own = { clock: makeSetClock(beat), startBeat: 0, program: { beat } } as unknown as Deck;
   assert.equal(heldOnGrid(own, pe), pe);
+});
+
+// What a walker laid on a parameter, as a value at an instant (the log's `set` and `lin`, in order).
+function valueAt(events: ReadonlyArray<readonly unknown[]>, t: number): number {
+  let v = NaN, at = -Infinity;
+  for (const [op, x, when] of events as Array<[string, number, number]>) {
+    if (t < when - 1e-12) return op === 'lin' && Number.isFinite(v) ? v + (x - v) * (t - at) / (when - at) : v;
+    v = x; at = when;
+  }
+  return v;
+}
+
+test('a path read from inside the note stands where the whole one does, a step kept a step (`pathFrom`)', () => {
+  const ramp = [0, 0.2, 1, 1, 2, 0.5, 2, 0.9, 3, 0];
+  assert.equal(pathFrom(ramp, 0), ramp, 'at nought, the note\'s own');
+  const lay = (path: number[], at: number) => { const p = new StandinContext().createGain().gain; walkPath(p as unknown as AudioParam, at, path, (v) => v); return p.events; };
+  const whole = lay(ramp, 0);
+  for (const e of [0.25, 1, 1.5, 1.99995, 2, 2.5, 3.5]) {
+    const from = lay(pathFrom(ramp, e), e);
+    for (const t of [e, e + 0.1, 1.5, 1.99, 2.0001, 2.4, 2.9, 4]) if (t >= e)
+      close(valueAt(from, t), valueAt(whole, t), 1e-9, `from ${e}, at ${t}`);
+  }
+  // the step at 2 s is still a step from 1.5 s: held, then set, never ramped across
+  const from = pathFrom(ramp, 1.5);
+  assert.deepEqual(from.slice(0, 6), [0, 0.75, 0.5, 0.5, 0.5, 0.9]);
+});
+
+test('a start inside a note sounds a copy that carries its whole length; its part\'s paths go on from there', () => {
+  const beat = 60 / 120, dur = 8;
+  const gainPath = [0, 0.1, 4, 1, 6, 1, 8, 0], panPath = [0, -0.6, 8, 0.6];
+  const returns = { 'field.hall': [0, 0.1, 3, 0.1, 3.05, 0.6], 'field.echo': 0.2 };
+  const pitchCurve = [0, -200, 0.2, 0, 2, 0, 2.05, 300];
+  const pe = { i: 7, voice: 'pad', t: 10, onset: 10, lead: 0, p: { midi: 60, dur, gainPath, panPath, returns, pitchCurve } } as unknown as ProgramEvent;
+  const [copy] = spanning({ beat, events: [pe] } as unknown as Parameters<typeof spanning>[0], 13);
+  assert.ok(copy, 'the pad spans the point');
+  assert.equal(copy.p.dur, 5);
+  assert.equal(copy.p.curveDuration, 8);
+  close(contourElapsed(copy.p), 3, 1e-12, 'three seconds in');
+  assert.equal(pe.p.curveDuration, undefined, 'the program is untouched');
+  // a note that wrote its own whole length keeps it
+  const own = spanning({ beat, events: [{ ...pe, p: { ...pe.p, dur: 6, curveDuration: 8 } }] } as unknown as Parameters<typeof spanning>[0], 13)[0];
+  assert.equal(own.p.curveDuration, 8);
+  close(contourElapsed(own.p), 5, 1e-12, 'its own start inside it, and the point after');
+  // the motion: the level and the drift where the whole note stands at 3 s, the next knots on the note's clock
+  const at = 0.5;
+  const ctx = new StandinContext(), dest = ctx.destination as unknown as AudioNode;
+  withMotion(ctx as unknown as BaseAudioContext, { dry: dest }, copy.p, at);
+  const gain = ctx.nodes.find((n) => n.type === 'gain')!.params.gain.events, pan = ctx.nodes.find((n) => n.type === 'panner')!.params.pan.events;
+  const fresh = new StandinContext();
+  withMotion(fresh as unknown as BaseAudioContext, { dry: fresh.destination as unknown as AudioNode }, pe.p, at - 3);
+  const g0 = fresh.nodes.find((n) => n.type === 'gain')!.params.gain.events, p0 = fresh.nodes.find((n) => n.type === 'panner')!.params.pan.events;
+  close(gain[0][1] as number, 0.775, 1e-12, 'the bloom stands three quarters up');
+  close(pan[0][1] as number, -0.15, 1e-12, 'the drift stands three eighths across');
+  for (const t of [0.5, 1, 1.5, 2.5, 3.5, 4.9]) {
+    close(valueAt(gain, t), valueAt(g0, t), 1e-9, `level at ${t}`);
+    close(valueAt(pan, t), valueAt(p0, t), 1e-9, `pan at ${t}`);
+  }
+  // the return's path: the hall opened at 3.05 s of the note, 0.05 s into the copy; an amount stays an amount
+  const sent = new StandinContext(), into = new Map<string, StandinNode>();
+  withReturns(sent as unknown as BaseAudioContext, { dry: sent.destination as unknown as AudioNode }, copy.p, (k) => {
+    const n = sent.createGain(); into.set(k, n); return n as unknown as AudioNode;
+  }, at);
+  const sends = sent.nodes.filter((n) => n.connections.some((c) => [...into.values()].includes(c as StandinNode)));
+  const hall = sends.find((n) => n.connections.includes(into.get('field.hall')!))!.params.gain.events;
+  close(valueAt(hall, at), 0.1, 1e-12, 'the hall at the point');
+  close(valueAt(hall, at + 0.05), 0.6, 1e-12, 'opened where the note opens it');
+  assert.equal(sends.find((n) => n.connections.includes(into.get('field.echo')!))!.params.gain.value, 0.2);
+  // and on a grid that moves, the part's paths and the return's ride with the bend
+  const mapped = contoursOnGrid(copy.p, (s) => 2 * s);
+  assert.deepEqual(mapped.gainPath, [0, 0.1, 8, 1, 12, 1, 16, 0]);
+  assert.deepEqual(mapped.pitchCurve, [0, -200, 0.4, 0, 4, 0, 4.1, 300]);
+  assert.deepEqual((mapped.returns as Record<string, unknown>)['field.hall'], [0, 0.1, 6, 0.1, 6.1, 0.6]);
+  assert.equal((mapped.returns as Record<string, unknown>)['field.echo'], 0.2);
 });

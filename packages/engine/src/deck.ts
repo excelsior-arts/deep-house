@@ -335,7 +335,8 @@ export function spansAStart(voice: string): boolean {
 /**
  * **The notes sounding at a point inside a theme** (PLAN-DESK D1b), each as a
  * copy that begins there: every event with `t < from < t + dur` of a voice
- * that `spansAStart`, its `t` and `onset` the point, its `dur` what was left,
+ * that `spansAStart`, its `t` and `onset` the point, its `dur` what was left
+ * (its `curveDuration` the whole, so its contours start as far in),
  * its `lead` what the compiler would give the copy (nought: nothing that
  * anticipates is sounded again). A copy with less left than a sixteenth of a
  * beat is not made: an attack and nothing after it is a click, not a note.
@@ -359,7 +360,12 @@ export function spanning(program: Program, from: number): ProgramEvent[] {
     if (!(typeof dur === 'number' && dur > 0 && Number.isFinite(dur))) continue;
     const rest = pe.t + dur - from;
     if (!(rest >= least) || !spansAStart(pe.voice)) continue;
-    const p: ProgramEvent['p'] = { ...pe.p, dur: rest };
+    // The copy knows how far into the note it starts: its whole length (`curveDuration`, the note's own where it
+    // wrote one, else its length) beside what is left, so its paths, its level and its pitch go on from where the
+    // note stands (`contour-time.ts`) rather than start again — a sung phrase's first pitches, a bloom's rise, a
+    // drift across the field.
+    const whole = typeof pe.p.curveDuration === 'number' && Number.isFinite(pe.p.curveDuration) && pe.p.curveDuration > dur ? pe.p.curveDuration : dur;
+    const p: ProgramEvent['p'] = { ...pe.p, dur: rest, curveDuration: whole };
     // Resuming a held note is not a new phrase entrance. Keep this optional
     // transient silent; the original program remains untouched.
     if (p.subEntryLevel !== undefined) p.subEntryLevel = 0;

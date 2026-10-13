@@ -36,7 +36,7 @@ import { midiToHz, adsrEnv, route, panner, startTime, phasedLfo, MIN_RELEASE, GA
 import type { VoiceOut } from '../dsp.ts';
 import { heldVoice } from './held.ts';
 import { insert } from './treat.ts';
-import type { Descriptor, NoteParams } from './descriptor.ts';
+import type { NoteParams } from './descriptor.ts';
 import type { HeldVoice } from './voice-contract.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf, provePatch, withDesk } from './sound.ts';

@@ -90,7 +90,7 @@ export interface ProgramEvent {
   /** The compiler reserved this note from rotating stage treatments. */
   treatment?: 'none';
   /** Optional musical role, independent of the physical voice/layer. */
-  role?: 'texture' | 'sparse-keys';
+  role?: 'texture' | 'sparse-keys' | 'detail';
   i: number;
   voice: string;
   layer: string;

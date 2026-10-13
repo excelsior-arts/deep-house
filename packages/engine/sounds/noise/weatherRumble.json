@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "weatherRumble",
+  "revision": 1,
+  "topology": "vinyl",
+  "parameters": {
+    "attack": 1.4,
+    "release": 3.6,
+    "hpHz": 120,
+    "lpHz": 700,
+    "q": 0.7,
+    "driftHz": 0.18,
+    "driftDepth": 0.4,
+    "trim": 0.5
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "weatherRumble": {
+        "family": "noise",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 700,
+        "loudnessDb": -16
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "liquid-ambient",
+    "module": "texture.ts",
+    "note": "Distant thunder: a low-mid noise swell (120 to 700 Hz) with a rounded onset and a recession of several seconds; over 120 Hz so it never reaches the sub, noise and never a falling sine, so it never reads as a kick or an impact. Zero to two a track, in the exposed passages, sixty-four bars apart at least."
+  }
+}
