@@ -220,6 +220,7 @@
      "gainDb": 0
     }
    ],
+   "swap": { "says": "where a bird's swap sounds this tone over the one the draw chose (PLAN-UNIFY U3) and the drawn tone's inserts cannot pay for its EQ: the note's own low-pass at 0.95, matched by measure (seed 1 at the Drum & Bass tile, Zephyr 0.2, 196-232 s, the keys alone: over 1.5 kHz at the onsets -21.2 dB with the EQ and at 0.95, the attack over 2 kHz -39.0 and -38.9; the EQ's low shelf has no stand-in)", "lpMul": 0.95 },
    "inserts": [
     {
      "effect": "eq",
@@ -270,6 +271,7 @@
      "gainDb": 0
     }
    ],
+   "swap": { "says": "where a bird's swap sounds this tone over the one the draw chose (PLAN-UNIFY U3), at no more cost: its room (a 1.2 s reverb at 0.4 mix) a send to the field's shared hall with the note's direct at the room's dry share, 0.6, the send matched on the room's body by measure (seed 1 at the Drum & Bass tile, Zephyr 0.2, a lone chord at 88 s, the keys alone: the room 17.7 dB under the dry body, the hall at 0.12 17.3; its first 300 ms 11.7 against 17.2 and its tail after 0.5 s 42 against 57, both 15 dB or more under the grand's own decay, so the whole keys' level and tails land within 0.4 dB of the grand with its own room); its EQ the note's own low-pass at 0.8 where the drawn tone's inserts cannot pay for it (the EQ cuts above 3 kHz, where this grand has nothing: 84 dB under; its centroid 399 Hz with its own EQ and room, 372 swapped)", "hall": 0.12, "direct": 0.6, "lpMul": 0.8 },
    "inserts": [
     {
      "effect": "eq",
@@ -394,6 +396,7 @@
      "gainDb": 0
     }
    ],
+   "swap": { "says": "where a bird's swap sounds this tone over the one the draw chose (PLAN-UNIFY U3) and the drawn tone's inserts cannot pay for its drive: the note's own low-pass at 0.35, matched by measure on the energy over 1.5 kHz at the onsets (seed 1 at the Drum & Bass tile, Zephyr 0.2, 196-232 s, the keys alone: -29.5 dB with the drive, -29.6 at 0.35; the 1-3 kHz band 3.6 dB under the drive's, its attack over 2 kHz 3.8 dB over it: a filter is not a drive)", "lpMul": 0.35 },
    "inserts": [
     {
      "effect": "drive",

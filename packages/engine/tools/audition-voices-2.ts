@@ -73,9 +73,48 @@ export const SCENES_2: VoiceScene[] = [
   { id: 'sweepUp', voice: 'sweepUp', pattern: 'gesture', root: 0, dur: 3, role: 'texture' },
   // the wavetable pad
   { id: 'wavePad', voice: 'wavePad', pattern: 'chord', root: 60, dur: 3.9, role: 'sustained' },
+  // ...and round LIQUID-KEYS's eighteen, registered after this table was
+  // written and held at nought (AWAITING) until a part admits one. Each row is
+  // a copy of another row with its numbers changed (`provenance.notes.copiedFrom`),
+  // so each is played the way the row it was copied from is played here or in
+  // `audition-voices.ts`: the same figure, register and note length. They
+  // declare no timbre yet, so no loudness is claimed for them.
+  // copied from `piano` (K2: figure from E4, 0.24 s)
+  { id: 'pianoFelt', voice: 'pianoFelt', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoUpright', voice: 'pianoUpright', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoWorn', voice: 'pianoWorn', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoClose', voice: 'pianoClose', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoMute', voice: 'pianoMute', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoConcert', voice: 'pianoConcert', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'pianoCassette', voice: 'pianoCassette', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  // copied from `brightPiano` (above: figure from C5, 0.24 s)
+  { id: 'pianoMellow', voice: 'pianoMellow', pattern: 'figure', root: 72, dur: 0.24, role: 'figure' },
+  { id: 'pianoElectric', voice: 'pianoElectric', pattern: 'figure', root: 72, dur: 0.24, role: 'figure' },
+  // copied from `keysRhodes` (K2's `keys:rhodes`: figure from E4, 0.24 s; a
+  // voice of its own, so no preset)
+  { id: 'keysSuitcase', voice: 'keysSuitcase', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'keysReed', voice: 'keysReed', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'keysTineDark', voice: 'keysTineDark', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  { id: 'keysReedAmp', voice: 'keysReedAmp', pattern: 'figure', root: 64, dur: 0.24, role: 'figure' },
+  // copied from `fmEp` (above: figure from E4, 0.3 s)
+  { id: 'fmEpSoft', voice: 'fmEpSoft', pattern: 'figure', root: 64, dur: 0.3, role: 'figure' },
+  { id: 'fmEpGlass', voice: 'fmEpGlass', pattern: 'figure', root: 64, dur: 0.3, role: 'figure' },
+  { id: 'fmSineLayer', voice: 'fmSineLayer', pattern: 'figure', root: 64, dur: 0.3, role: 'figure' },
+  // copied from `vibes` (above: figure from E4, 0.5 s)
+  { id: 'malletSoft', voice: 'malletSoft', pattern: 'figure', root: 64, dur: 0.5, role: 'figure' },
+  // copied from `wavePad` (above: the chord from C4, 3.9 s)
+  { id: 'padHaze', voice: 'padHaze', pattern: 'chord', root: 60, dur: 3.9, role: 'sustained' },
+  // ...and the liquid rounds' five noise rows (10-11): rows of the vinyl
+  // topology, so played as `vinylBed` is above (a gesture every four bars,
+  // 6 s, no pitch).
+  { id: 'airBed', voice: 'airBed', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
+  { id: 'weatherWind', voice: 'weatherWind', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
+  { id: 'weatherUpperAir', voice: 'weatherUpperAir', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
+  { id: 'weatherRain', voice: 'weatherRain', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
+  { id: 'weatherRumble', voice: 'weatherRumble', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
 ];
 
-/** The sixteen this round added, in the order the round wrote them. */
+/** This table's rows: the sixteen round K4 added, then the later rows above, in order. */
 export const K4_VOICES = SCENES_2.map((s) => s.id);
 
 export const scene2Of = (id: string): VoiceScene => {

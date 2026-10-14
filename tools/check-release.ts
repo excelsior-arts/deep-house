@@ -91,7 +91,9 @@ const AUDIO = /\.(?:wav|mp3|aiff?|flac|ogg|opus|m4a|aac|caf|mp4|m4v|mov|webm|mkv
 // of 09-24, R135 — the first two patterns never saw it, so
 // `import 'https://…';` passed). `selftest()` below holds all three to lines
 // that must and must not match, every time the audit runs.
-const MODULE = [/\bfrom\s*['"]([^'"]+)['"]/g, /\bimport\s*\(\s*['"]([^'"]+)['"]/g, /\bimport\s*['"]([^'"]+)['"]/g];
+// A `from` that is itself quoted, hyphenated or a property (`'from':n.from`, `"data-from"`, `x.from`) is a key, not an import's (10-13: a
+// minified object with a quoted `from` key read its next string as a module).
+const MODULE = [/(?<!['"`.$-])\bfrom\s*['"]([^'"]+)['"]/g, /\bimport\s*\(\s*['"]([^'"]+)['"]/g, /\bimport\s*['"]([^'"]+)['"]/g];
 // ...on a line that is actually an import. `from` is an ordinary word — a seam
 // has a deck it comes `from` and a curve a value goes `from`, and in a
 // TypeScript union those are quoted — so the specifier hunt runs on lines that

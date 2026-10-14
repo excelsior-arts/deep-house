@@ -444,6 +444,29 @@ test('S18: a room\'s clap or shaker at -60 is about that voice only — a broken
   assert.equal(unleaned, 20, 'the lean on the plan is not all that differs');
 });
 
+// 10-13 (his ear on seed 11 at Zephyr: "I only hear hat"): the sixteenths' lean turns a growl room's shaker back on
+// in the theme's room (`paramOverrides.levels.shaker`, the record's -9.5), and the presence pass read the bare room
+// (`S.levels`, the shaker at -60), so it lifted every shaker some 50 dB to undo an "off" the lane no longer plays at:
+// +41 dB over everything, the limiter taking the rest under it. Every pass reads the room as the theme plays it
+// (`roomLevels` in generator.ts). An "off" is -60, so its compensation is 40 dB and more over a lane that sounds; the
+// part that sets its own level (the liquid keys, `laneLevelDb` taken back off each note) stands under 30.
+test('no event carries a room\'s "off" compensation while its lane sounds: the lean\'s shaker at the level it plays at (seed 11 at Zephyr, Tide and the Downtempo tile, seed 34\'s second theme at Zephyr and Gleam)', async () => {
+  const { playedAt } = await import('./check-program-guards.ts');
+  const { settingsOf } = await import('@deep-house/engine/settings');
+  const { BY_NAME } = await import('@deep-house/engine/voices');
+  const links = ['seed=11&v=2&spell=ze:0.95', 'seed=11&v=2&spell=ti:0.95', 'seed=11&v=2&spell=em:0.35,ti:0.70,ro:0.55', 'seed=34&v=2&theme=2&spell=ze:0.80,gl:0.80'];
+  for (const link of links) {
+    const plan = playedAt(link) as any;
+    const levels = settingsOf(plan).levels as Record<string, number>;
+    assert.ok(levels.shaker > ROOM_OFF_DB && plan.events.some((e: any) => e.layer === 'shaker'), `${link}: not a theme whose room's shaker the lean turned on`);
+    const hot = plan.events.filter((e: any) => {
+      const lane = laneLevelDb(style, levels, e.voice, BY_NAME[e.voice].level)!;
+      return lane > ROOM_OFF_DB && 20 * Math.log10(e.p.gain ?? 1) >= -ROOM_OFF_DB;
+    });
+    assert.equal(hot.length, 0, `${link}: ${hot.length} events 40 dB or more over a sounding lane (${[...new Set(hot.map((e: any) => e.voice))].join(', ')})`);
+  }
+});
+
 // Round S19 (Eugene, 09-26: "trim another 15 % on average, and if possible bias
 // the trimming toward the longer segments and away from the breaks and
 // bridges"): house-v2 draws a theme at its table's length and cuts the

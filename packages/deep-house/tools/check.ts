@@ -3046,6 +3046,13 @@ check('the loudness fit reproduces what it was measured on', () => {
 // that drove the limiter 10.8 dB deep in 22 % of its blocks. What is held here
 // is the plan side of it, over seeds 1-200 and every theme a set of three
 // plays; tools/loudness-fit.ts --limiter is the render side.
+// **A window holding one of the arrangement's phrases** (PLAN-UNIFY U2, `track.phrasing`: a sub-segment, the bass
+// out before an anchor, a cooldown) is a main stepping aside, not its level: the trim's search passes it by unless
+// every window of the kind holds one (`src/loudness.ts`), and the two checks below read the rule the same way.
+const phrasedAt = (t) => {
+  const spans = [...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? []), ...(t.phrasing?.cooldowns ?? [])];
+  return (w) => spans.some((x) => x.from < w.from + w.bars && x.to > w.from);
+};
 check('house-v2 levels its loudest main and never trims past its headroom', () => {
   const v1 = STRATEGIES['house-v1'].style;
   const v2 = STRATEGIES['house-v2'].style;
@@ -3070,7 +3077,9 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
     const mains = t.arrangement.sections.some((x) => x.kind === 'main' && x.bars >= W);
     if (mains) must(sec && sec.kind === 'main' && w.bars === W && w.from >= 2, `house-v2 master seed ${sd} theme ${i}: the trim is fitted at bars ${w.from}..${w.from + w.bars}, which is not eight bars of one main`);
     const loud = predictedLufs(t, v2, w);
-    must(loud >= predictedLufs(t, v2, first) - 1e-9, `house-v2 master seed ${sd} theme ${i}: the window the trim is fitted for reads ${loud.toFixed(2)} LUFS, quieter than the first main's ${predictedLufs(t, v2, first).toFixed(2)}`);
+    // the first main's window is a measure only where it is steady groove, as the one fitted is (a phrase in it: passed by)
+    if (!phrasedAt(t)(first) || phrasedAt(t)(w))
+      must(loud >= predictedLufs(t, v2, first) - 1e-9, `house-v2 master seed ${sd} theme ${i}: the window the trim is fitted for reads ${loud.toFixed(2)} LUFS, quieter than the first main's ${predictedLufs(t, v2, first).toFixed(2)}`);
     if (w.from !== first.from) moved++;
     // No theme is predicted, at its loudest main and with its trim, over the
     // target by more than the fit's own error: the clamp is the only thing that
@@ -3123,14 +3132,18 @@ check('the trim finds its window once, and finds the one the walk found', () => 
   let worst = 0, worstAt = '', n = 0;
   for (let sd = 1; sd <= 24; sd++) for (const spell of [null, { ember: 0.6 }]) {
     const t = planTheme(String(sd), 0, { strategy: 'house-v2', spell });
-    // the walk, as it was: every eight bars of every main, read by the whole fit
+    // the walk, as it was: every eight bars of every main, read by the whole fit (the windows a phrase of the
+    // arrangement stands in passed by while a steady one is left, PLAN-UNIFY U2)
     let best = null, loudest = -Infinity;
+    const all = [];
     for (const s of t.arrangement.sections) {
       if (s.kind !== 'main' || s.bars < W) continue;
-      for (let from = Math.max(2, s.startBar); from + W <= Math.min(t.bars, s.startBar + s.bars); from++) {
-        const v = predictedLufs(t, v2, { from, bars: W });
-        if (v > loudest) { loudest = v; best = { from, bars: W }; }
-      }
+      for (let from = Math.max(2, s.startBar); from + W <= Math.min(t.bars, s.startBar + s.bars); from++) all.push({ from, bars: W });
+    }
+    const steady = all.filter((x) => !phrasedAt(t)(x));
+    for (const x of steady.length ? steady : all) {
+      const v = predictedLufs(t, v2, x);
+      if (v > loudest) { loudest = v; best = x; }
     }
     const w = trimWindow(t, v2);
     const at = `seed ${sd} theme 0${spell ? ' at ember 0.6' : ''}`;
@@ -3954,12 +3967,14 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   // the nineteenth round S13's `openingSound`; the twentieth S14's `glueGates`;
   // the twenty-first S18's `laneFloors`; the twenty-second S21's `neverSilent`;
   // the twenty-third GA1's `libraryDraw`; the twenty-fourth GA6's `placeTables`;
-  // the twenty-fifth S25's `mainsApart`.
+  // the twenty-fifth S25's `mainsApart`; PLAN-UNIFY U1's `hygiene` (long holds faded, no groove bare); and U2's
+  // `phrasing` (sub-segments inside the long mains, the arrivals answered, the bass's outs, the cooldown); and U3's
+  // `padArc` (the pad reshaped across each long main; its slow side behind the row's own switch, not a style's).
   const sw = v2.switches;
   // Every switch is on: `bassSolo`, round S3's experiment, was written off
   // until Eugene had heard it, and is on since S17 ("commit it").
   for (const [k, v] of Object.entries(sw)) must(v === true, `the switch ${k} is off, and every one of them is on`);
-  must(Object.keys(sw).length === 26, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme and one set of small things inside a section (the lane floors are level machinery and every style's since V1-1)`);
+  must(Object.keys(sw).length === 29, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme, one set of small things inside a section, one arrangement hygiene, one set of the arrangement's phrases and one pad arc (the lane floors are level machinery and every style's since V1-1)`);
   must(sw.derived === true, 'house-v2 does not read the derived state');
   must(sw.knobs === true, 'house-v2 does not season the voices it draws');
   must(sw.motif === true, 'house-v2 draws no theme');
@@ -3977,6 +3992,8 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   must(sw.openingSound === true, 'house-v2 lets a theme open silent');
   must(sw.glueGates === true, 'house-v2 blows its noise glue through a dark, slow theme');
   must(sw.neverSilent === true, 'house-v2 leaves a gap of silence in the middle of a theme');
+  must(sw.hygiene === true, 'house-v2 lets a long hold stop dead and a groove go bare');
+  must(sw.phrasing === true, 'house-v2 plays a long main as one stretch, its arrivals unanswered');
   must(sw.libraryDraw === true, 'house-v2 never lets the library reach a theme');
   must(sw.placeTables === true, 'house-v2 plays the house\'s harmony and form everywhere');
   must(sw.mainsApart === true, 'house-v2 stands two mains alike side by side');

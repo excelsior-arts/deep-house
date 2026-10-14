@@ -1,7 +1,7 @@
 {
   "name": "deep-house",
   "description": "Deep House \u2014 a browser-only procedural deep house generator",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "type": "module",
   "license": "PolyForm-Noncommercial-1.0.0",

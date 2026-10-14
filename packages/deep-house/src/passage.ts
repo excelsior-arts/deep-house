@@ -28,6 +28,8 @@ import { dbToGain } from '@deep-house/engine/dsp';
 import type { NoteParams } from '@deep-house/engine/voices/descriptor';
 import type { PlanEvent, PlanPoint } from './generator.ts';
 import { bendInRoom, type BendRoom } from './mined-phrase.ts';
+import { fadeHolds } from './hygiene.ts';
+import type { LeanRow } from './lean.ts';
 
 type Pos = string; // `bar:beat`, the bar relative to the first drop, the beat 1-4 with `e`, `&` or `a`
 interface Send { direct: number; hall: number; echo: number; dub?: number }
@@ -65,6 +67,11 @@ export type End = 'ghostTurn' | 'openEnding' | 'halfBarBreath' | 'kickOut' | 'sh
   | 'fill' | 'roll' | 'snarePickup' | 'crash' | 'hatsBreathe' | 'reverseCymbal' | 'topsClose' | 'topsOpen' | 'ghostTail' | 'kickPickup' | 'openHatPickup' | 'beatSilence'
   /** `kickBack`: the kick of the bar before carried on through a bar the planner left without one (a build keeps rising) */
   | 'kickBack';
+/** Every ending, by name, once: the one vocabulary (`recipes/arrangement/phrasing.json`, PLAN-UNIFY §2.4) names each in one entry. */
+const ENDS: Readonly<Record<End, true>> = Object.freeze({ ghostTurn: true, openEnding: true, halfBarBreath: true, kickOut: true, shortRoll: true, hatCut: true,
+  snareDeparture: true, topsDarken: true, ghostAnswer: true, lastBeatEmpty: true, fill: true, roll: true, snarePickup: true, crash: true, hatsBreathe: true,
+  reverseCymbal: true, topsClose: true, topsOpen: true, ghostTail: true, kickPickup: true, openHatPickup: true, beatSilence: true, kickBack: true });
+export const END_NAMES: readonly End[] = Object.freeze(Object.keys(ENDS) as End[]);
 export interface DrumState { from: number; to: number; state: 'S' | 'R' | 'X' | 'T' | 'H' | 'O' | 'B'; spotlight?: [number, number]; topFrom?: number; topVel?: number;
   /** the drums thinned under a phrase: no ghosts, no open hat, the tops a little softer */
   thin?: boolean;
@@ -106,7 +113,15 @@ export interface PassageRow {
   keys: { rootFloor: number; dominantFloor: number; strum: number; strikes: Strike[]; drop: Array<{ bar: number; from: number; to: number; says?: string }>;
     /** the send profile a planner's pickup leans into the hall with before its landing */
     pickupSend?: string };
-  pad: { rootFloor: number; levelDb: number; blooms: Bloom[] };
+  pad: { rootFloor: number; levelDb: number; blooms: Bloom[];
+    /** the register every pad is moved by, in semitones (its floor and its ceiling): the bed's lean by the birds, carried (the producer writes it) */
+    shift?: number;
+    /**
+     * the birds on every pad the grammar writes (PLAN-UNIFY U3, the fast places' birds; the producer writes it, only off
+     * the tile's own values): `width` and `air` factors on a bloom's spread and its hall (Zephyr), `db` on every pad's
+     * level (Tide: a wetter, farther field holds its background a little higher)
+     */
+    lean?: { width: number; air: number; db: number } };
   /** the wind's one visit inside the window (from its start to `dropFrom`, then gone); a whole track writes `weather` spans instead */
   wind?: { dropFrom: number; db: number; send: string };
   weather?: WeatherSpan[];
@@ -143,7 +158,11 @@ export interface PassageRow {
 export interface Bloom { at: Pos; over: 'here' | 'arrival'; notes: number[]; bars: number; attack: number; release: number; send: string; label?: string;
   db?: number; width?: number; air?: number; rise?: [number, number]; top?: number; fadeBars?: number }
 /** The fade every long hold gets where it ends while the music goes on (`holds` in the producer row). */
-export interface Holds { leastS: number; fadeBars: number; tailBars: number; handoverBeats: number; easeDb: number; layers: string[] }
+export interface Holds { leastS: number; fadeBars: number; tailBars: number; handoverBeats: number; easeDb: number; layers: string[];
+  /** the fade in seconds, out of bars held between two bounds and leaned by its birds (`fadeLeastS`, `fadeMostS`, `lean`: `src/hygiene.ts`, `fadeSOf`) */
+  fadeLeastS?: number; fadeMostS?: number; lean?: LeanRow;
+  /** the fade and the ring past a written end, resolved in seconds by the theme's time (the producer writes them) */
+  fadeS?: number; tailS?: number }
 /** The texture that hears the drums' straight top (a shaker, else the weather gated, else the pad's tremolo), by span. */
 export interface Texture {
   spans: Array<{ from: number; to: number; label?: string }>;
@@ -211,6 +230,11 @@ export interface PassageInput {
   isSnare: (voice: string) => boolean;
   /** the bed's voice, whose background notes the passage retires */
   bedVoice: string | null;
+  /** the bed voice's own level where the groove plays (its row's full level, the place's lift of the bed applied), as a
+   *  note's gain: the level every bloom is set against (the bed's first retired note's where none is named) */
+  bedGain?: number;
+  /** a keys tone the birds swapped (PLAN-UNIFY U3): its own room as a send to the field's hall, added to every keys send the passage writes */
+  keysRoomHall?: number;
   noteName: (midi: number) => string;
   /** the cast in units with the voices named sounding and the returns named built, besides the keys' own space */
   castWith: (voices: Iterable<string>, returns: SpaceRow[]) => number;
@@ -249,6 +273,9 @@ export function playPassage(I: PassageInput): PassageResult {
     if (!s || typeof s === 'string') throw new Error(`passage ${R.id}: no send profile ${name}`);
     return s;
   };
+  // a keys note's sends: the row's, and a swapped tone's own room into the hall beside them (PLAN-UNIFY U3: the room it
+  // replaced was its own, under whatever the row throws into the hall)
+  const keysSends = (r: Record<string, number>): Record<string, number> => (I.keysRoomHall ? { ...r, 'field.hall': round((r['field.hall'] ?? 0) + I.keysRoomHall, 4) } : r);
   const returnsOf = (s: Send, direct = true) => ({ ...(direct ? { direct: s.direct } : {}), returns: { ...(s.hall > 0 ? { 'field.hall': s.hall } : {}), ...(s.echo > 0 ? { 'field.echo': s.echo } : {}), ...((s.dub ?? 0) > 0 ? { 'field.dub': s.dub! } : {}) } });
   const tl = new Map<number, { drums: string[]; harmony: string[]; bass: string[]; voice: string[]; space: string[] }>();
   const say = (bar: number, k: 'drums' | 'harmony' | 'bass' | 'voice' | 'space', s: string) => {
@@ -301,7 +328,7 @@ export function playPassage(I: PassageInput): PassageResult {
     if (L == null) { e.label = Number(e.p.dur) > 2 * bs ? `keys chord ${e.bar} (the planner's restrike)` : `keys figure ${e.bar} (the planner's)`; continue; }
     e.label = Number(e.p.dur) > 4 * bs ? `keys landing ${L}` : e.t < L * bs - 0.05 ? `keys pickup into ${L}` : `keys answer to ${L}`;
     // the pickup leans into the hall before its arrival (the anticipation), where the row says how
-    if (R.keys.pickupSend && e.t < L * bs - 0.05 && Number(e.p.dur) <= 4 * bs) e.p = { ...e.p, returns: returnsOf(send(R.keys.pickupSend)).returns };
+    if (R.keys.pickupSend && e.t < L * bs - 0.05 && Number(e.p.dur) <= 4 * bs) e.p = { ...e.p, returns: keysSends(returnsOf(send(R.keys.pickupSend)).returns) };
   }
   // the keys' own template: the earliest note longer than four bars of each layer's voice, the planner's landing
   const keysTemplates = new Map<string, PlanEvent>();
@@ -317,7 +344,7 @@ export function playPassage(I: PassageInput): PassageResult {
       const t0 = landing.length ? Math.max(...landing.map((e) => e.t)) : -1;
       const chord = landing.filter((e) => e.t >= t0 - 0.25);
       for (const e of chord) push({ ...e, t: round(t + (e.t - Math.min(...chord.map((x) => x.t))), 6), bar, step, part: 'study-keys', label: k.label ?? `keys restrike ${bar}`,
-        p: { ...e.p, vel: round(Number(e.p.vel ?? 0.5) * k.vel, 4), dur: round(k.bars * bs, 4), gain: round(Number(e.p.gain ?? 1) * dbToGain(k.db), 6), ...(k.send ? { returns: returnsOf(send(k.send)).returns } : {}) } }, 'keys-restrike');
+        p: { ...e.p, vel: round(Number(e.p.vel ?? 0.5) * k.vel, 4), dur: round(k.bars * bs, 4), gain: round(Number(e.p.gain ?? 1) * dbToGain(k.db), 6), ...(k.send ? { returns: keysSends(returnsOf(send(k.send)).returns) } : {}) } }, 'keys-restrike');
       say(bar, 'harmony', `restrike ${chord.map((e) => e.note).join(' ')} (${k.db} dB)`);
       continue;
     }
@@ -333,7 +360,7 @@ export function playPassage(I: PassageInput): PassageResult {
     }
     for (const T of keysTemplates.values()) midis.forEach((m, i) => {
       const e = push({ ...T, t: round(tOf(bar, step) + i * R.keys.strum * s16, 6), bar, step, note: I.noteName(m), part: 'study-keys', label: k.label ?? `keys ${k.dominant ? 'dominant shell' : k.cut ? 'resolution' : 'touch'} ${bar}`,
-        p: { ...T.p, midi: m, vel: k.vel, dur: round(k.bars * bs, 4), gain: round(Number(T.p.gain ?? 1) * dbToGain(k.db), 6), ...(k.send ? { returns: returnsOf(send(k.send)).returns } : {}) } }, 'keys-touch');
+        p: { ...T.p, midi: m, vel: k.vel, dur: round(k.bars * bs, 4), gain: round(Number(T.p.gain ?? 1) * dbToGain(k.db), 6), ...(k.send ? { returns: keysSends(returnsOf(send(k.send)).returns) } : {}) } }, 'keys-touch');
       writtenKeys.push({ e, midi: m });
     });
     say(bar, 'harmony', `${k.dominant ? 'dominant shell' : k.cut ? 'resolution' : 'touch'} ${midis.map(I.noteName).join(' ')} (${k.db} dB)`);
@@ -347,7 +374,9 @@ export function playPassage(I: PassageInput): PassageResult {
   const soloGain = I.ownGain(voiceName, V.levelDb);
   // the soloist only under the phone's ceiling: a track that does not sound it already and would go over the
   // ceiling with it hands the phrases to the keys' own tone, note by note (no new identity)
-  const sounding = new Set(evs.map((e) => e.voice));
+  // the cast counts the drawn voice where a place swapped only its sound (`EventMeta.drawn`)
+  const castVoice = (e: PlanEvent) => e.drawn ?? e.voice;
+  const sounding = new Set(evs.map(castVoice));
   // the returns as small as the row's admission would let them become (each give-up applied): the soloist is admitted
   // where it fits against those, and the admission below gives up only what the cast then needs
   const rowReturns = Object.values(Object.fromEntries(Object.entries(R.returns).map(([id, raw]) => {
@@ -408,7 +437,7 @@ export function playPassage(I: PassageInput): PassageResult {
         push({ ...T, t: round(n.on * s16 + V.laidBackMs / 1000, 6), bar: b, step: n.on % 16, note: I.noteName(n.midi), part: 'study-phrase', label,
           p: { ...T.p, midi: n.midi, vel: round((V.roles[n.role] ?? V.roles.approach).vel * K.velScale * (L.vel ?? 1), 4), dur: round(n.len * s16 * K.ring * (n.send === 'dub' ? 1.6 : 1), 4),
             gain: round(Number(T.p.gain ?? 1) * dbToGain(K.db), 6),
-            returns: Object.fromEntries(Object.entries(returnsOf(send(n.send)).returns).map(([k, v]) => [k, round(v * K.sendScale, 4)])) } }, 'phrase-on-keys');
+            returns: keysSends(Object.fromEntries(Object.entries(returnsOf(send(n.send)).returns).map(([k, v]) => [k, round(v * K.sendScale, 4)]))) } }, 'phrase-on-keys');
       }
       say(Math.floor(laid[0]?.on / 16), 'voice', `${L.phrase} on the keys: ${laid.map((n) => I.noteName(n.midi)).join(' ')}`);
       continue;
@@ -508,13 +537,18 @@ export function playPassage(I: PassageInput): PassageResult {
   }
 
   // ----- the pad's blooms -----
+  // the bed's first retired note lends its sound (the voice, its tone); the level is the bed voice's own where the groove
+  // plays (`bedGain`), not that note's (the deep review of 10-12: the first note carried its section's lift, so a form
+  // whose first bed note fell in a breakdown played every bloom 8.5 dB hotter, and one in a quieter section 9 dB under)
   const bedT = templates.bed;
+  const PL = R.pad.lean;
   if (bedT) for (const B of R.pad.blooms) {
     const { bar, step } = abs(B.at);
     if (bar < from || bar >= to) continue;
     const deg = I.degreeAt(B.over === 'arrival' ? bar + Math.ceil(B.bars) : bar);
     // the voicing folded under its ceiling, each note once
-    const midis = [...new Set(B.notes.map((x) => { let m = pitch(deg, R.pad.rootFloor, x); while (B.top != null && m > B.top) m -= 12; return m; }))].sort((a, b) => a - b);
+    const sh = R.pad.shift ?? 0;
+    const midis = [...new Set(B.notes.map((x) => { let m = pitch(deg, R.pad.rootFloor + sh, x); while (B.top != null && m > B.top + sh) m -= 12; return m; }))].sort((a, b) => a - b);
     // spread across the field, alternately left and right, the low voices near the middle and the high ones wide
     const dur = B.bars * bs;
     // the level walked across the entry (a swell toward its end) and, where it fades, a squared fall over its last bars
@@ -528,10 +562,11 @@ export function playPassage(I: PassageInput): PassageResult {
     }
     midis.forEach((m, i) => {
       const { swell: _swell, ...p0 } = bedT.p as NoteParams & { swell?: unknown };
-      const pan = B.width && midis.length > 1 ? round(B.width * (i % 2 ? 1 : -1) * (0.35 + 0.65 * i / (midis.length - 1)), 3) : null;
-      const sends = B.air != null ? { direct: send(B.send).direct, returns: { 'field.hall': B.air } } : returnsOf(send(B.send));
+      const width = B.width && PL ? B.width * PL.width : B.width, air = B.air != null && PL ? round(Math.min(1, B.air * PL.air), 3) : B.air;
+      const pan = width && midis.length > 1 ? round(Math.max(-1, Math.min(1, width * (i % 2 ? 1 : -1) * (0.35 + 0.65 * i / (midis.length - 1)))), 3) : null;
+      const sends = air != null ? { direct: send(B.send).direct, returns: { 'field.hall': air } } : returnsOf(send(B.send));
       push({ ...bedT, t: tOf(bar, step), bar, step, note: I.noteName(m), part: 'study-pad', label: B.label ?? `pad bloom ${bar}`,
-        p: { ...p0, midi: m, dur: round(dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain: round(Number(bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0)), 6), ...sends,
+        p: { ...p0, midi: m, dur: round(dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain: round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0) + (PL?.db ?? 0)), 6), ...sends,
           ...(pan != null ? { panPath: pan } : {}), ...(path ? { gainPath: path } : {}) } }, 'pad-bloom');
     });
     say(bar, 'space', `pad bloom into the hall${midis.length > 2 ? ` (${midis.length} voices)` : ''}`);
@@ -802,7 +837,7 @@ export function playPassage(I: PassageInput): PassageResult {
     const hats = live.filter((e) => isHat(e) && e.bar >= from && e.bar < to);
     const meanPan = hats.length ? hats.reduce((a, e) => a + Number(e.p.pan ?? 0), 0) / hats.length : 0;
     const side = meanPan > 0.02 ? -1 : 1;
-    const voicesNow = new Set(live.map((e) => e.voice));
+    const voicesNow = new Set(live.map(castVoice));
     const fullReturns = Object.values(R.returns).map((raw) => asSpace(raw));
     const shakerFits = voicesNow.has(TX.shaker.voice) || I.castWith([...voicesNow, TX.shaker.voice], fullReturns) <= I.ceiling;
     // the weather's template: its loudest note, so the gate's level does not hang on a quiet visit
@@ -845,7 +880,7 @@ export function playPassage(I: PassageInput): PassageResult {
         for (let k = 0; k * s16 < dur - 1e-6; k++) path.push(round(k * s16, 4), 1, round(k * s16 + s16 * 0.5, 4), round(1 - TX.tremolo.depth, 4));
         const { swell: _sw, ...p0 } = bedT.p as NoteParams & { swell?: unknown };
         const Tr = TX.tremolo;
-        for (const x of Tr.notes) { const m = pitch(deg, R.pad.rootFloor, x); push({ ...bedT, t: tOf(a, 0), bar: a, step: 0, note: I.noteName(m), part: 'texture', label, p: { ...p0, midi: m, dur: round(dur, 4), attack: Tr.attack, release: Tr.release, gain: round(Number(bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + Tr.db), 6), gainPath: path, reverb: 0, delay: 0 } }, 'pad-tremolo'); }
+        for (const x of Tr.notes) { const m = pitch(deg, R.pad.rootFloor + (R.pad.shift ?? 0), x); push({ ...bedT, t: tOf(a, 0), bar: a, step: 0, note: I.noteName(m), part: 'texture', label, p: { ...p0, midi: m, dur: round(dur, 4), attack: Tr.attack, release: Tr.release, gain: round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + Tr.db + (R.pad.lean?.db ?? 0)), 6), gainPath: path, reverb: 0, delay: 0 } }, 'pad-tremolo'); }
         say(a, 'space', `the pad's tremolo at sixteenths ${a}-${b - 1}`);
       }
     }
@@ -1017,30 +1052,14 @@ export function playPassage(I: PassageInput): PassageResult {
   // where nothing harmonic follows; one that ends into the next strike eases into it
   const H = R.holds;
   if (H) {
-    const live = evs.filter((e) => !e.p.gone);
-    const harmonic = (e: PlanEvent) => H.layers.includes(e.layer) && e.part !== 'study-soloist' && e.part !== 'study-phrase' && e.part !== 'texture' && e.voice !== voiceName;
-    const onsets = live.filter((e) => harmonic(e) && Number(e.p.dur) >= 0.25 * bs).map((e) => e.t).sort((a, b) => a - b);
-    const lastOn = Math.max(...live.map((e) => e.t));
-    for (const e of live) {
-      if (!harmonic(e) || !inWindow(e.t) || Array.isArray(e.p.gainPath)) continue;
-      const d = Number(e.p.dur);
-      if (!(d >= H.leastS)) continue;
-      const end = e.t + d;
-      if (end > lastOn - bs) continue;
-      const near = H.handoverBeats * I.beat;
-      if (onsets.some((t) => t > e.t + 0.5 && Math.abs(t - end) <= near)) {
-        const f0 = Math.max(d * 0.5, d - 0.5 * bs);
-        e.p = { ...e.p, gainPath: [0, 1, round(f0, 4), 1, round(d, 4), round(dbToGain(H.easeDb), 4)] };
-        note(added, 'hold eased into the next strike');
-        continue;
-      }
-      const nextOn = onsets.find((t) => t > end + 1e-3) ?? Infinity;
-      const D = d + Math.max(0, Math.min(H.tailBars * bs, nextOn - end - 0.05));
-      const f0 = Math.max(D * 0.35, D - H.fadeBars * bs), path = [0, 1, round(f0, 4), 1];
-      for (let k = 1; k <= 6; k++) path.push(round(f0 + (D - f0) * k / 6, 4), round((1 - k / 6) ** 2, 4));
-      e.p = { ...e.p, dur: round(D, 4), gainPath: path };
-      note(added, 'hold faded');
-    }
+    // the rule is the ring's (`src/hygiene.ts`, `fadeHolds`); the producer resolves the row's fade in seconds by the
+    // theme's time and its Tide (`fadeS`, `tailS`), and a row that names none plays its bars
+    fadeHolds(evs, {
+      fadeS: H.fadeS ?? H.fadeBars * bs, tailS: H.tailS ?? H.tailBars * bs, handoverS: H.handoverBeats * I.beat, leastS: H.leastS,
+      easeDb: H.easeDb, easeS: 0.5 * bs, onsetLeastS: 0.25 * bs, endMarginS: bs,
+      harmonic: (e) => H.layers.includes(e.layer) && e.part !== 'study-soloist' && e.part !== 'study-phrase' && e.part !== 'texture' && e.voice !== voiceName,
+      inWindow, note: (k) => note(added, k),
+    });
   }
 
   // the gone events out, the rest in time order
@@ -1051,7 +1070,7 @@ export function playPassage(I: PassageInput): PassageResult {
   // the returns under the phone's ceiling: where the cast would pass it, each return gives up what the row's admission
   // names, in order (a return chain's chorus, its filter, a whole send), and a note's key into a send gone is taken off
   const returns: Record<string, SpaceRow> = Object.fromEntries(Object.entries(R.returns).map(([id, raw]) => [id, structuredClone(asSpace(raw))]));
-  const voicesNow = new Set(evs.map((e) => e.voice));
+  const voicesNow = new Set(evs.map(castVoice));
   const budget = { before: I.castWith(voicesNow, Object.values(returns)), gave: [] as string[], after: 0 };
   for (const g of R.admission ?? []) {
     if (I.castWith(voicesNow, Object.values(returns)) <= I.ceiling) break;

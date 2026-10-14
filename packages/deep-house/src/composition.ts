@@ -1,4 +1,4 @@
-import { lanesAtTempo } from './lanes.ts';
+import { lanesAtTempo, withdrawnAtTempo, type LaneTheme } from './lanes.ts';
 // Draw compatible musical components from a style's catalogue. No recipe
 // interpreter, bird names, named family or taste constants belong here.
 import type { Style } from '@deep-house/engine/style';
@@ -289,8 +289,32 @@ export function validateStyle(style: Style): void {
  */
 export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: string, bpm: number, pin?: PartPin, bed?: TextureBed,
   withheld?: ReadonlySet<string>): Composition | null {
-  // The lanes as read at this tempo (`lanesAtTempo`): a family a lane withdraws here is no candidate for a part either.
-  const style = lanesAtTempo(styleIn, bpm, bias.spell as unknown as Record<string, number>);
+  // The lanes as read at this tempo, kit and bed (`lanesAtTempo`): a family a lane withdraws here is no candidate
+  // for a part either. A pin is explicit: its own role's players answer the tempo and the birds alone, as they did.
+  const spellIn = bias.spell as unknown as Record<string, number>;
+  const theme: LaneTheme = { kit: bias.derived.kit,
+    ...(bed ? { bed: { hold: bed.bedHold, ...(bed.bedStruck !== undefined ? { struck: bed.bedStruck } : {}) } } : {}) };
+  const atTheme = lanesAtTempo(styleIn, bpm, spellIn, theme);
+  const atTempo = pin ? lanesAtTempo(styleIn, bpm, spellIn) : atTheme;
+  const style = pin && atTempo !== atTheme ? { ...atTheme, lanes: atTheme.lanes.map((l, i) => (l.role === pin.role ? atTempo.lanes[i] : l)) } : atTheme;
+  // **A player its lane withdraws here leaves the part, and the others play on** (the hand drums, 10-13): a rhythm
+  // cell whose every family its role's lane withdraws at this tempo, kit and bed is taken out of a variant before it
+  // is resolved, so a hand row's or a loop's shaker line plays where its hand drum may not — the lane's own rule, at
+  // the part. A role left with no cell takes the variant with it (`null`). The pin's own role is the pin's.
+  const goneOn = new Map<string, Set<string>>();
+  for (const l of styleIn.lanes) if (!goneOn.has(l.role) && l.voices?.some(e => e.w > 0))
+    goneOn.set(l.role, pin?.role === l.role ? new Set() : withdrawnAtTempo(l, bpm, spellIn, theme));
+  const playable = (req: PartRequest): PartRequest | null => {
+    if (!req.rhythm || !Object.entries(req.rhythm).some(([role, cells]) => goneOn.get(role)?.size && cells?.some(c => c.families.every(f => goneOn.get(role)!.has(f))))) return req;
+    const rhythm: NonNullable<PartRequest['rhythm']> = {};
+    for (const [role, cells] of Object.entries(req.rhythm)) {
+      const gone = goneOn.get(role);
+      const kept = (cells || []).filter(c => !gone?.size || !c.families.every(f => gone.has(f)));
+      if (!kept.length) return null;
+      rhythm[role as keyof typeof rhythm] = kept;
+    }
+    return { ...req, rhythm };
+  };
   const policy = (style as Style & { composition?: CompositionPolicy }).composition;
   if (!policy) {
     if (pin) throw new Error('composition: this style has no accompaniment policy');
@@ -362,8 +386,10 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
         const weight = valueOf(variant.weight, bias);
         if (weight < 0) throw new Error(`composition: negative weight ${family.id}/${variant.id}`);
         if (!weight) continue;
+        const own = playable(variant.request);
+        if (!own) { rejected.push('every player of a role withdrawn here'); continue; }
         let merged: PartRequest;
-        try { merged = combine(request, variant.request); }
+        try { merged = combine(request, own); }
         catch (e) { rejected.push((e as Error).message); continue; }
         const resolved = resolveParts(merged, style, [], 'composition');
         if (resolved.errors.length) { rejected.push(...resolved.errors); continue; }

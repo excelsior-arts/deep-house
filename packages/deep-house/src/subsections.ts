@@ -66,6 +66,14 @@ export interface SubSection {
   row: Recipe;
   /** a variation's other rows, in the draw's order after it: played in turn where the drawn one had nothing to change (round M1) */
   alternates?: Recipe[];
+  /**
+   * an overlay on a row's own drums (PLAN-UNIFY U2b, his ear 10-13: "need some drum filling" on a bass out under a
+   * track row's drums): the figure plays its hits on its own bars even where an explicit part owns the role, and may
+   * thin the part's hits there, so the fill reads; every other bar of the part is its own
+   */
+  overlay?: boolean;
+  /** roles an overlay never edits, in the lane table's words (a pinned part: the listener's word, kept exact) */
+  spare?: ReadonlySet<string>;
 }
 
 /**
@@ -431,7 +439,9 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     byBar.get(e.bar)!.push(e);
   }
   const dropped = new Set<Ev>();
-  const drop = { add: (e: Ev) => { if (!e.part) dropped.add(e); }, has: (e: Ev) => dropped.has(e), get size() { return dropped.size; } };
+  // an overlay's bars (U2b) are the one place a part's hits may thin: only while the overlay plays them
+  let overlaying = false, spareNow: ReadonlySet<string> = new Set();
+  const drop = { add: (e: Ev) => { if (!e.part || overlaying) dropped.add(e); }, has: (e: Ev) => dropped.has(e), get size() { return dropped.size; } };
   const add: Ev[] = [];
   // A held note cut where a cleared bar begins: the event, and the length it keeps.
   const cut = new Map<Ev, number>();
@@ -492,7 +502,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
    */
   const edit = (bar: number, k: number, role: string, e: LaneEdit, letters: Readonly<Record<string, Letter>>, by: string): 'applied' | 'empty' | 'owned' => {
     if (!roles[role]) return 'empty';
-    if (reserved.has(role)) return 'owned';
+    if (reserved.has(role) && !(overlaying && !spareNow.has(laneRoleOf(role)))) return 'owned';
     const t = templates(bar, role);
     // A clear alone needs nothing to copy; a held note ringing into the bar is a thing to cut.
     if (!t.from && !(e.clear !== undefined && !e.mask && !e.roll && !e.double && roles[role].held)) return 'empty';
@@ -546,7 +556,10 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     if (s.kind === 'switch-up' || s.kind === 'variation') continue;
     mark = changed();
     const f = s.row.figure!;
+    overlaying = !!s.overlay;
+    spareNow = s.spare ?? new Set();
     for (let b = s.startBar; b < s.startBar + s.bars; b++) play(s.row, b, b - s.startBar);
+    overlaying = false;
     if (f.stroke && crash) {
       // The crash on the one after: add-if-absent against the theme's crashes and the strokes already laid (a crash on the one never lands on itself).
       const b = s.startBar + s.bars;

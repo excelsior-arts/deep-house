@@ -178,15 +178,25 @@ export const withdrawnFrom = (lane: Lane, scene: string | undefined): Set<string
   new Set(scene ? (lane.withdraw || []).filter((w) => w.scene === scene).flatMap((w) => w.families) : []);
 
 /**
+ * What a lane's withdrawal reads of the theme beside its tempo and birds: the
+ * kit the derived state names, and the harmonic bed's own declared facts
+ * (`TIMBRES`: whether it is struck, and how much of the bar it holds). A
+ * reader that does not know one (a tool asking the catalogue alone, an
+ * explicit pin's own role) passes none, and an entry asking it does not apply.
+ */
+export interface LaneTheme { kit?: string; bed?: { hold?: number; struck?: boolean } }
+
+/**
  * A style's lanes as read at a tempo: every candidate of a family the lane
  * withdraws there weighs nought (10-02, the hand drums off the sixteenth lane
- * above 125 BPM). The three readers of a lane's candidates — the lane draw,
- * the composition's parts and the development's players — read this one.
+ * above 125 BPM; 10-13, off a fast four-floor and off a continuous bed). The
+ * three readers of a lane's candidates — the lane draw, the composition's
+ * parts and the development's players — read this one.
  */
-export function lanesAtTempo<S extends { lanes: readonly Lane[] }>(style: S, bpm: number, spell?: Readonly<Record<string, number>>): S {
+export function lanesAtTempo<S extends { lanes: readonly Lane[] }>(style: S, bpm: number, spell?: Readonly<Record<string, number>>, theme?: LaneTheme): S {
   let moved = false;
   const lanes = style.lanes.map((l) => {
-    const gone = withdrawnAtTempo(l, bpm, spell);
+    const gone = withdrawnAtTempo(l, bpm, spell, theme);
     if (!gone.size || !l.voices) return l;
     const voices = l.voices.map((v) => (v.w > 0 && gone.has(familyOf(String(v.v))) ? { ...v, w: 0 } : v));
     if (voices.every((v, i) => v === l.voices![i])) return l;
@@ -197,16 +207,58 @@ export function lanesAtTempo<S extends { lanes: readonly Lane[] }>(style: S, bpm
 }
 
 /**
- * The families a lane withdraws at a tempo and under a spell: its `withdraw`
- * entries with no scene whose band the tempo falls in and whose `controls`
- * (a bird's span, `min` inclusive, `max` exclusive, the house's value where
- * the spell leaves a bird out) the spell satisfies.
+ * The families a lane withdraws at a tempo, under a spell and in a theme: its
+ * `withdraw` entries with no scene that carry a condition — a tempo band, a
+ * kit or a bed — and whose every condition holds: the band the tempo falls in;
+ * the `controls` (a bird's span, `min` inclusive, `max` exclusive, the house's
+ * value where the spell leaves a bird out) the spell satisfies; the `kits` the
+ * theme's kit is one of; the `bed` a theme's bed meets when it is not struck
+ * and holds at least `holdFrom` of the bar (a continuous bed). A condition on
+ * the theme that the reader cannot answer (no theme passed) does not hold.
  */
-export const withdrawnAtTempo = (lane: Lane, bpm: number, spell?: Readonly<Record<string, number>>): Set<string> =>
-  new Set((lane.withdraw || []).filter((w) => !w.scene && (w.tempoFrom != null || w.tempoTo != null)
+export const withdrawnAtTempo = (lane: Lane, bpm: number, spell?: Readonly<Record<string, number>>, theme?: LaneTheme): Set<string> =>
+  new Set((lane.withdraw || []).filter((w) => !w.scene && (w.tempoFrom != null || w.tempoTo != null || !!w.kits || !!w.bed)
     && (w.tempoFrom == null || bpm >= w.tempoFrom) && (w.tempoTo == null || bpm < w.tempoTo)
+    && (!w.kits || (theme?.kit !== undefined && w.kits.includes(theme.kit)))
+    && (!w.bed || (theme?.bed?.struck === false && (theme.bed.hold ?? 0) >= w.bed.holdFrom))
     && Object.entries(w.controls || {}).every(([bird, span]) => { const v = spell?.[bird] ?? 0.5; return (span.min === undefined || v >= span.min) && (span.max === undefined || v < span.max); }))
     .flatMap((w) => w.families));
+
+/**
+ * A track row's own rhythm cells as the lanes admit them in this theme (his
+ * ear, 10-13, on the afro-house row's bongo: "barely hear it… rather annoying
+ * timbre"): a cell whose every family its role's lane withdraws here
+ * (`withdrawnAtTempo`) leaves where another cell of its role plays on — the
+ * hand row's rule, at the row. Where no cell of the role would be left, every
+ * cell stays and the players the withdrawal leaves on the lane play it (the
+ * shaker-type voices: its positions, accents and feel, none of its sound
+ * windows), so the lane never goes empty and the row's parts are the same
+ * parts, each on its own stream: no other draw of the bar moves (the review of
+ * part 2, 10-13: handing the role back to the lane's own figure drew from the
+ * bar's shared stream and moved the keys). An explicit pin is not a track row
+ * and keeps its windows.
+ */
+export function rowCellsAt<R extends { lane: Lane; part: { families: string[]; properties?: unknown; prefer?: unknown; character?: string; strokes?: string[]; pickup?: { strokes?: string[] } } }>(
+  cells: readonly R[], lanes: readonly Lane[], bpm: number, spell?: Readonly<Record<string, number>>, theme?: LaneTheme): readonly R[] {
+  const base = new Map<string, Lane>();
+  for (const l of lanes) if (!base.has(l.role) && l.voices?.some((e) => e.w > 0)) base.set(l.role, l);
+  const goneOf = (role: string) => { const l = base.get(role); return l ? withdrawnAtTempo(l, bpm, spell, theme) : new Set<string>(); };
+  const left = (c: R) => { const g = goneOf(c.lane.role); return g.size > 0 && c.part.families.every((f) => g.has(f)); };
+  if (!cells.some(left)) return cells;
+  const out: R[] = [];
+  for (const c of cells) {
+    if (!left(c)) { out.push(c); continue; }
+    if (cells.some((o) => o.lane.role === c.lane.role && !left(o))) continue;
+    const g = goneOf(c.lane.role);
+    const voices = (base.get(c.lane.role)!.voices ?? []).map((e) => ({ ...e, w: g.has(familyOf(String(e.v))) ? 0 : e.w }));
+    const families = [...new Set(voices.filter((e) => e.w > 0).map((e) => familyOf(String(e.v))))];
+    if (!families.length) continue;
+    const { properties: _p, prefer: _f, character: _c, strokes: _s, ...part } = c.part;
+    const pickup = part.pickup ? (({ strokes: _ps, ...rest }) => rest)(part.pickup) : undefined;
+    out.push({ ...c, lane: { ...c.lane, voices }, part: { ...part, ...(pickup ? { pickup } : {}), families } } as R);
+  }
+  return out;
+}
 
 /** The gates of the lanes the withdrawal leaves with no live candidate at all: held off in the plan. */
 export function silencedBy(style: Style, bias: Bias, withdrawn: LaneWithdrawal | undefined): string[] {

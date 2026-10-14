@@ -1,0 +1,724 @@
+{
+ "note": "The program guards' baseline (tools/check-program-guards.ts --baseline): the counts per guard per spell over the grid (the tiles, the ring's corners and midpoints, the slow side, the crossings, the Dubstep spell, 27191; seeds 1-12), the worst ten with their links, and the bird-inertness table (distinct tracks per five-value sweep, mean of the eight seeds; the place rows a sweep crosses, and the entries in brackets). A report, not a gate: rewritten when a round moves what it reads, said in the round's note.",
+ "themes": 397,
+ "totals": {
+  "unlabelled": 0,
+  "landing": 17,
+  "hole": 137,
+  "thin": 14,
+  "empty": 3,
+  "stop": 132,
+  "drone": 1,
+  "register": 2,
+  "density": 2,
+  "front": 24,
+  "salient": 33,
+  "cost": 8
+ },
+ "perSpell": {
+  "tile Drum & Bass": {
+   "unlabelled": 0,
+   "landing": 5,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 0,
+   "drone": 0,
+   "register": 0,
+   "density": 2,
+   "front": 0,
+   "salient": 0,
+   "cost": 1
+  },
+  "tile Dubstep": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 8,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 1,
+   "cost": 0
+  },
+  "tile Trance": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 4,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 2
+  },
+  "tile Techno": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 3,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "tile Deep House": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 16,
+   "thin": 2,
+   "empty": 1,
+   "stop": 2,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 1,
+   "cost": 0
+  },
+  "tile Breaks": {
+   "unlabelled": 0,
+   "landing": 2,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 6,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 1
+  },
+  "tile Downtempo": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 2,
+   "thin": 0,
+   "empty": 0,
+   "stop": 5,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 1,
+   "cost": 0
+  },
+  "tile Trip Hop": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 7,
+   "thin": 0,
+   "empty": 0,
+   "stop": 2,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "tile Ambient": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 1,
+   "empty": 0,
+   "stop": 0,
+   "drone": 0,
+   "register": 1,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring ember": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 7,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 1
+  },
+  "ring spark": {
+   "unlabelled": 0,
+   "landing": 2,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 10,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring zephyr": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 16,
+   "thin": 0,
+   "empty": 1,
+   "stop": 1,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 2,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring gleam": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 9,
+   "thin": 2,
+   "empty": 0,
+   "stop": 3,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 4,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring root": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 10,
+   "thin": 2,
+   "empty": 1,
+   "stop": 1,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 2,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring loom": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 9,
+   "thin": 1,
+   "empty": 0,
+   "stop": 6,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring tide": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 4,
+   "thin": 0,
+   "empty": 0,
+   "stop": 3,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 1,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring veil": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 6,
+   "thin": 1,
+   "empty": 0,
+   "stop": 3,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring ember+spark": {
+   "unlabelled": 0,
+   "landing": 3,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 16,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 1,
+   "cost": 1
+  },
+  "ring spark+zephyr": {
+   "unlabelled": 0,
+   "landing": 2,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 10,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring zephyr+gleam": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 2,
+   "thin": 0,
+   "empty": 0,
+   "stop": 2,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 5,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring gleam+root": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 2,
+   "thin": 2,
+   "empty": 0,
+   "stop": 2,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 4,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring root+loom": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 7,
+   "thin": 1,
+   "empty": 0,
+   "stop": 7,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring loom+tide": {
+   "unlabelled": 0,
+   "landing": 1,
+   "hole": 1,
+   "thin": 0,
+   "empty": 0,
+   "stop": 5,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring tide+veil": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 8,
+   "thin": 0,
+   "empty": 0,
+   "stop": 3,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring veil+ember": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 1,
+   "drone": 1,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring slow side": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 0,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 2,
+   "cost": 0
+  },
+  "ring emberxroot": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 4,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 1
+  },
+  "ring sparkxloom": {
+   "unlabelled": 0,
+   "landing": 2,
+   "hole": 8,
+   "thin": 0,
+   "empty": 0,
+   "stop": 11,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring zephyrxtide": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 8,
+   "thin": 0,
+   "empty": 0,
+   "stop": 4,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 2,
+   "salient": 0,
+   "cost": 0
+  },
+  "ring gleamxveil": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 5,
+   "thin": 2,
+   "empty": 0,
+   "stop": 1,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 4,
+   "salient": 1,
+   "cost": 0
+  },
+  "ring fast, no spark": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 2,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 1
+  },
+  "ring slow, spark": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 17,
+   "thin": 0,
+   "empty": 0,
+   "stop": 0,
+   "drone": 0,
+   "register": 0,
+   "density": 0,
+   "front": 0,
+   "salient": 0,
+   "cost": 0
+  },
+  "27191 ambient": {
+   "unlabelled": 0,
+   "landing": 0,
+   "hole": 0,
+   "thin": 0,
+   "empty": 0,
+   "stop": 0,
+   "drone": 0,
+   "register": 1,
+   "density": 0,
+   "front": 0,
+   "salient": 6,
+   "cost": 0
+  }
+ },
+ "examples": [
+  {
+   "spell": "tile Dubstep",
+   "seed": "6",
+   "link": "seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80",
+   "phraseBars": 16,
+   "counts": {
+    "unlabelled": 0,
+    "landing": 0,
+    "hole": 0,
+    "thin": 0,
+    "empty": 0,
+    "stop": 0,
+    "drone": 0,
+    "register": 0,
+    "density": 0,
+    "front": 0,
+    "salient": 0,
+    "cost": 0
+   }
+  },
+  {
+   "spell": "27191 ambient",
+   "seed": "27191",
+   "link": "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+   "phraseBars": 4,
+   "counts": {
+    "unlabelled": 0,
+    "landing": 0,
+    "hole": 0,
+    "thin": 0,
+    "empty": 0,
+    "stop": 0,
+    "drone": 0,
+    "register": 0,
+    "density": 0,
+    "front": 0,
+    "salient": 0,
+    "cost": 0
+   }
+  }
+ ],
+ "worst": [
+  {
+   "guard": "hole",
+   "spell": "ring zephyr+gleam",
+   "seed": "10",
+   "bar": 76,
+   "part": "harmony",
+   "weight": 4.66,
+   "says": "4.7 s of a build with nothing harmonic or melodic (bars 76-77; the limit 0.9 s)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=10&v=2&spell=ze:0.80,gl:0.80&t=172"
+  },
+  {
+   "guard": "hole",
+   "spell": "tile Trip Hop",
+   "seed": "10",
+   "bar": 70,
+   "part": "harmony",
+   "weight": 4.38,
+   "says": "4.4 s of a build with nothing harmonic or melodic (bars 70-71; the limit 1.0 s)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=10&v=2&spell=em:0.27,ti:0.55,ze:0.30,ro:0.80,gl:0.20,ve:0.25,sp:0.60&t=185"
+  },
+  {
+   "guard": "salient",
+   "spell": "ring sparkxloom",
+   "seed": "10",
+   "bar": 104,
+   "part": "arrangement",
+   "weight": 115.56,
+   "says": "116 s with nothing salient from bar 104 (no section line, arrival, fill, gesture, phrase or layer change; the deadline 53 s)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=10&v=2&spell=sp:0.90,lo:0.90&t=226"
+  },
+  {
+   "guard": "front",
+   "spell": "ring zephyrxtide",
+   "seed": "9",
+   "bar": 4,
+   "part": "marimba",
+   "weight": 109,
+   "says": "marimba, a bell-like key, strikes chords in front on 109 bars from bar 4",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=9&v=2&spell=ti:0.90,ze:0.90&t=4"
+  },
+  {
+   "guard": "salient",
+   "spell": "27191 ambient",
+   "seed": "9",
+   "bar": 64,
+   "part": "arrangement",
+   "weight": 85.33,
+   "says": "85 s with nothing salient from bar 64 (no section line, arrival, fill, gesture, phrase or layer change; the deadline 55 s)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=9&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&t=330"
+  },
+  {
+   "guard": "front",
+   "spell": "ring zephyrxtide",
+   "seed": "5",
+   "bar": 4,
+   "part": "fmBell",
+   "weight": 93,
+   "says": "fmBell, a bell-like key, strikes chords in front on 93 bars from bar 4",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=5&v=2&spell=ti:0.90,ze:0.90&t=4"
+  },
+  {
+   "guard": "stop",
+   "spell": "tile Breaks",
+   "seed": "5",
+   "bar": 8,
+   "part": "supersawPad",
+   "weight": 6,
+   "says": "6 held notes stop at 8 with no fade (supersawPad; 2.7 s wanted)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=5&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70&t=10"
+  },
+  {
+   "guard": "stop",
+   "spell": "tile Breaks",
+   "seed": "10",
+   "bar": 64,
+   "part": "sawPad",
+   "weight": 6,
+   "says": "6 held notes stop at 64 with no fade (sawPad; 2.7 s wanted)",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=10&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70&t=111"
+  },
+  {
+   "guard": "cost",
+   "spell": "tile Trance",
+   "seed": "8",
+   "bar": 0,
+   "part": "events",
+   "weight": 1.49,
+   "says": "1783 events a minute, over 1200",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=8&v=2&spell=em:0.88,ti:0.70,ze:0.60,ro:0.60,ve:0.60&t=0"
+  },
+  {
+   "guard": "cost",
+   "spell": "tile Trance",
+   "seed": "11",
+   "bar": 0,
+   "part": "events",
+   "weight": 1.36,
+   "says": "1636 events a minute, over 1200",
+   "link": "https://eugene-tea.github.io/deep-house/?seed=11&v=2&spell=em:0.88,ti:0.70,ze:0.60,ro:0.60,ve:0.60&t=0"
+  }
+ ],
+ "birds": {
+  "tile": {
+   "zephyr": {
+    "tracks": 5,
+    "rows": 2,
+    "entries": 2
+   },
+   "tide": {
+    "tracks": 5,
+    "rows": 3,
+    "entries": 3
+   },
+   "root": {
+    "tracks": 5,
+    "rows": 4,
+    "entries": 4
+   },
+   "gleam": {
+    "tracks": 3.38,
+    "rows": 1,
+    "entries": 1
+   },
+   "loom": {
+    "tracks": 5,
+    "rows": 1,
+    "entries": 2
+   },
+   "veil": {
+    "tracks": 5,
+    "rows": 2,
+    "entries": 2
+   }
+  },
+  "max": {
+   "zephyr": {
+    "tracks": 5,
+    "rows": 2,
+    "entries": 3
+   },
+   "tide": {
+    "tracks": 5,
+    "rows": 3,
+    "entries": 3
+   },
+   "root": {
+    "tracks": 5,
+    "rows": 4,
+    "entries": 4
+   },
+   "gleam": {
+    "tracks": 3.38,
+    "rows": 1,
+    "entries": 1
+   },
+   "loom": {
+    "tracks": 5,
+    "rows": 3,
+    "entries": 3
+   },
+   "veil": {
+    "tracks": 5,
+    "rows": 2,
+    "entries": 2
+   }
+  },
+  "house": {
+   "zephyr": {
+    "tracks": 5,
+    "rows": 2,
+    "entries": 2
+   },
+   "tide": {
+    "tracks": 5,
+    "rows": 1.5,
+    "entries": 1.5
+   },
+   "root": {
+    "tracks": 5,
+    "rows": 2.63,
+    "entries": 2.63
+   },
+   "gleam": {
+    "tracks": 4.38,
+    "rows": 1,
+    "entries": 1
+   },
+   "loom": {
+    "tracks": 5,
+    "rows": 1,
+    "entries": 1
+   },
+   "veil": {
+    "tracks": 5,
+    "rows": 1.5,
+    "entries": 1.5
+   }
+  }
+ }
+}

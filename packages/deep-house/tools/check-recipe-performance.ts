@@ -66,16 +66,26 @@ test('explicit percussion cells play the requested positions, keep gates, and ne
   const resolved = resolveRhythm(percussionRecipe.wants!.rhythm, style, []);
   assert.deepEqual(resolved.errors, []);
   assert.equal(withRhythm(style.lanes, resolved.lanes).filter(l => l.role === 'sixteenth').length, 2);
+  const beds = new Set<boolean>();
   for (const seed of ['31001', '31002', '31003']) {
     const track = planTheme(seed, 0, { style, spell: HOUSE, recipe: percussionRecipe });
     assert.equal(track.progression.chords.length, 1);
     assert.equal(track.progression.chords[0].degree, 0);
     assert.ok(!track.events.some(e => e.layer === 'keys'), 'the forbidden harmonic figure emits no notes');
     assert.ok(!track.dice.motifRegister, 'no forbidden or replaced motif is reported as playing');
-    const sixteenth = track.events.filter(e => e.layer === 'shaker');
+    // (a phrase's build and stop overlay the row's cells on its last bar alone: U2c, his word 10-13 for the drums at a break)
+    const built = ((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
+      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(track);
+    const sixteenth = track.events.filter(e => e.layer === 'shaker' && !built.has(e.bar!));
     assert.ok(sixteenth.length > 0, 'the requested role really plays');
     const choices = new Set(sixteenth.map(e => e.voice));
-    assert.equal(choices.size, 2, 'two distinct requested colours are present');
+    // A track row's hand cell answers the lane's rule (10-13): over a continuous bed (the strings) the drum cell
+    // leaves and the noise cell plays its own positions; over the rhodes both colours play.
+    const bed = registry.TIMBRES[track.dice.padTimbre as string];
+    const continuous = bed?.struck === false && (bed.hold ?? 0) >= .5;
+    beds.add(continuous);
+    assert.equal(choices.size, continuous ? 1 : 2, continuous ? 'the hand cell leaves a continuous bed, the noise cell plays' : 'two distinct requested colours are present');
+    if (continuous) assert.ok(sixteenth.every(e => registry.BY_NAME[e.voice].family === 'noise'));
     for (const voice of choices) assert.ok(resolved.lanes.some(r => r.lane.voices!.some(e => e.v === voice && e.w > 0)), `${voice} is an enabled, matching candidate`);
     for (const e of sixteenth) {
       const part = resolved.lanes.find(r => r.lane.voices!.some(v => v.v === e.voice && v.w > 0))!.part;
@@ -83,8 +93,8 @@ test('explicit percussion cells play the requested positions, keep gates, and ne
       assert.ok(part.steps.includes(position));
       assert.ok(track.timeline[e.bar!].layers.includes('sixteenths'), 'a cell never leaks across its arrangement gate');
     }
-    for (const row of track.timeline.filter(t => t.layers.includes('sixteenths'))) {
-      const expected = resolved.lanes.reduce((n, r) => n + r.part.steps.filter(s => Math.floor(s / 16) === row.bar % r.part.bars).length, 0);
+    for (const row of track.timeline.filter(t => t.layers.includes('sixteenths') && !built.has(t.bar))) {
+      const expected = resolved.lanes.filter(r => !continuous || !r.part.families.includes('drum')).reduce((n, r) => n + r.part.steps.filter(s => Math.floor(s / 16) === row.bar % r.part.bars).length, 0);
       assert.equal(sixteenth.filter(e => e.bar === row.bar).length, expected, 'the old mask does not double the requested cells');
     }
     const plainStage = planTheme(seed, 0, { style, spell: HOUSE, recipe: { ...percussionRecipe, wants: { ...percussionRecipe.wants, stage: undefined } } });
@@ -99,6 +109,7 @@ test('explicit percussion cells play the requested positions, keep gates, and ne
     assert.ok(interpretWants(percussionRecipe, style, biasFor(HOUSE, style)).notes
       .some(n => n.block === 'stage.front' && n.state === 'unsupported'), 'a withdrawn want is said, not dropped');
   }
+  assert.equal(beds.size, 2, 'the seeds play the cells over a sparse bed and over a continuous one');
 });
 
 test('invalid or impossible rhythm requests are explicit failures and cannot reopen a forbidden role', () => {

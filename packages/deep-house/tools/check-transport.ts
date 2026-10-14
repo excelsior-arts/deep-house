@@ -115,9 +115,12 @@ test('every anticipatory event is reached by the live pump at or before its onse
   // shorter, so fewer returns and fewer swells: eight.
   // Round S14 took the house's noise glue off its dark casts, the swell among
   // it, so house-v2 carries one; the pump the rule is about is one pump, and
-  // the record's twelve still hold it.
-  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 1 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
-  assert.equal(n, 13);
+  // the record's twelve still hold it. PLAN-UNIFY U2's answers put a reverse
+  // swell into a structural arrival the drums play into, where the cast admits
+  // the glue's noises and no gesture already arrives there (never out of the
+  // intro): one more, two.
+  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 2 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
+  assert.equal(n, 14);
   assert.ok(worst <= 1e-9, `an anticipatory event was reached ${worst.toFixed(3)} s after its onset`);
 });
 

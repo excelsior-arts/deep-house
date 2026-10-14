@@ -181,6 +181,8 @@ export interface PlanEvent {
   step?: number | null;
   /** the note's name, where the plan wrote one down for a readout */
   note?: string;
+  /** an exposed held front's note (`generator.ts`): it stands where the stage settles after this bar */
+  stageHold?: number;
   }
 
 /** One bar of a plan's timeline: where it sits, and what is playing over it. */
@@ -1036,11 +1038,23 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
   // over a track the stage had already written to measured the plan's own
   // notes and not the ones it had last shortened. Nothing writes to the plan
   // any more, so `ev.p` *is* the pristine one and there is nothing to keep.
+  // **Where the stage settles** after a bar, for a note that asks to stand there (`stageHold`, an exposed held
+  // front's): the first bar from it whose keys stand as the next one does, in level and in role, at most eight on.
+  const settled = new Map<number, number>();
+  const settleOf = (from: number): number => {
+    if (!settled.has(from)) {
+      let b = Math.min(from, rows.length - 1);
+      while (b < Math.min(rows.length - 1, from + 8) && (rows[b].level.keys !== rows[b + 1].level.keys || rows[b].role.keys !== rows[b + 1].role.keys)) b++;
+      settled.set(from, b);
+    }
+    return settled.get(from)!;
+  };
   const out: NoteParams[] = [];
   for (const ev of track.events) {
     const base = ev.p || {};
     if (ev.role === 'texture' || ev.role === 'sparse-keys' || ev.role === 'detail') { out.push(base); continue; }
-    const bar = ev.bar;
+    const held = ev.stageHold != null && ev.bar != null && rows.length ? settleOf(ev.stageHold) : null;
+    const bar = held != null && ev.bar! < held ? held : ev.bar;
     if (bar == null || bar < 0 || bar >= rows.length) { out.push(base); continue; }
     const row = rows[bar];
     const p: NoteParams = { ...base };
@@ -1119,7 +1133,20 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
         const H = G.treatment.hole;
         const endBar = bar + durBars;
         const line = phraseAt(bar, H.everyBars).end - 1;
-        if (bar <= line && endBar > line) {
+        // ...and only where the pad is struck again over the line (PLAN-UNIFY U1, his ear on
+        // `?seed=1&v=2&theme=16&spell=ro:0.53,gl:0.20,sp:1.00` at bar 49): a chord held a bar
+        // or more past the bar that goes by into the next section was cut there whole, so that
+        // section opened bare (that theme's breakdown kept only a riser for four bars). house-v2's
+        // `hygiene` holds such a chord through; the record cuts it as it always did.
+        const carries = !!(style as { switches?: Record<string, boolean> }).switches?.hygiene && endBar > line + 2
+          && track.arrangement.sections.some((x) => x.startBar === line + 1);
+        // ...and never on a drop-out bar the arrangement's phrases laid there, nor where they took the bass out (a cooldown,
+        // an out before an anchor) (PLAN-UNIFY U2): that bar leaves the held chord to carry it, and the hole would take
+        // the chord too (a bar of nothing).
+        const P = (track as { phrasing?: { segments?: ReadonlyArray<{ kind: string; from: number; to: number }>; outs?: ReadonlyArray<{ from: number; to: number }> } }).phrasing;
+        const dropped = !!P && ((P.segments ?? []).some((x) => x.kind === 'drop-out' && x.from <= line && line < x.to)
+          || (P.outs ?? []).some((x) => x.from <= line && line < x.to));
+        if (bar <= line && endBar > line && !carries && !dropped) {
           p.dur = Math.max(barSeconds * H.minBars, (line - bar) * barSeconds);
           p.release = Math.min(base.release ?? 1.2, H.release);
         }

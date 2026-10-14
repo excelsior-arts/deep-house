@@ -25,6 +25,7 @@ import { planSubSections, playSubSections, clashes } from '../src/subsections.ts
 import { treat } from '../src/parts/treat.ts';
 import { recipeById } from '../src/recipes.ts';
 import { fixture } from './fixtures/programs.ts';
+import { PAD_ARC_ROWS } from '../src/pad-arc.ts';
 
 const choiceOf = (track: ReturnType<typeof planTheme>) => JSON.parse(String(track.dice.composition));
 /** Ordinary themes whose composition drew the ringing keyboard part, first theme of each seed. */
@@ -44,10 +45,13 @@ test('explicit kick cells replace the floor and per-part feel stays bounded and 
   const t=generate({style,recipe:felt,seed:12,spell:HOUSE,bpm:104,bars:64});
   assert.deepEqual(programOf(t),programOf(generate({style,recipe:felt,seed:12,spell:HOUSE,bpm:104,bars:64})));
   assert.deepEqual(t.events.filter(e=>e.layer==='bass'),plain.events.filter(e=>e.layer==='bass'));
-  const kicks=t.events.filter(e=>BY_NAME[e.voice].roles.includes('kick'));assert.ok(kicks.length>0);
+  // (a phrase's build and stop overlay the row's cells on its last bar alone: U2c, his word 10-13 for the drums at a break)
+  const built=((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
+      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(t);
+  const kicks=t.events.filter(e=>BY_NAME[e.voice].roles.includes('kick')&&!built.has(e.bar!));assert.ok(kicks.length>0);
   for(const e of kicks){assert.equal(e.bar!%2,0);assert.ok(kick.steps.includes(e.step!));}
   for(const row of t.timeline.filter(r=>r.bar%2===1))assert.ok(!row.layers.includes('kick'));
-  const hits=t.events.filter(e=>BY_NAME[e.voice].roles.includes('offbeat')&&e.step!==undefined);
+  const hits=t.events.filter(e=>BY_NAME[e.voice].roles.includes('offbeat')&&e.step!==undefined&&!built.has(e.bar!));
   assert.ok(hits.length>8);
   for(const e of hits){
     const expected=(e.bar!*4+stepToBeats(e.step!,feel.swing)+feel.delay.beats)*t.beat;
@@ -462,9 +466,19 @@ test('ringing articulation gives a melody space over a drone without changing it
     // Behind, unless the drone is in front of a grid: there the pad is the
     // foreground and plays at its room's own level, as every forward pad does
     // (R6 of the review of 09-24).
+    // The pad arc (PLAN-UNIFY U3, `src/pad-arc.ts`) moves a held pad's level by its place on its main's arc, over the
+    // presence: the presence is read with the arc off, and the arc's own move is held to its row's range.
     const behind = track.dice.scene !== 'drone-forward';
-    for (const event of track.events.filter(e => e.layer === 'pad'))
+    const flat = planTheme(seed, 0, { style: { ...style, switches: { ...style.switches, padArc: false } } as typeof style, spell });
+    for (const event of flat.events.filter(e => e.layer === 'pad'))
       assert.ok(Math.abs(20 * Math.log10(event.p.gain ?? 1) - (behind ? shift(event, true) : 0)) < 1e-8, `seed ${seed} ${track.dice.scene}: pad ${event.p.gain}`);
+    const [least, most] = PAD_ARC_ROWS.ring.levelDb;
+    for (const event of track.events.filter(e => e.layer === 'pad')) {
+      const was = flat.events.find(e => e.layer === 'pad' && e.t === event.t && e.voice === event.voice && e.p.midi === event.p.midi);
+      assert.ok(was, `seed ${seed}: a pad note the arc did not find (${event.note} at ${event.t})`);
+      const db = 20 * Math.log10((event.p.gain ?? 1) / (was.p.gain ?? 1));
+      assert.ok(db >= least - 1e-8 && db <= most + 1e-8, `seed ${seed}: the arc moved a pad ${db.toFixed(2)} dB`);
+    }
   }
 });
 // **The accordion riff.** What Eugene heard as a fast, ominous, accordion-like
@@ -808,7 +822,7 @@ test('a held note shortened by a breath is the same note: only its length change
   const e:any={t:0,bar:0,step:0,voice:'test-upper',layer:'keys',p:{dur:8,vel:.5}};
   const ev=[e], upper=new Set([e]), params=new Map([[e,{ring:3}]]);
   playSubSections(ev,[subOf(recipeById('mains/breath'),1)] as any,at4,null,{roles:{figure:{layer:'keys',held:true}}});
-  treat({style,S:{},parts:{presence:{},ambience:{figure:'spacious'},tone:{}},characters:{ambience:{spacious:{reverb:.91,delay:.4}}},
+  treat({style,levels:{},parts:{presence:{},ambience:{figure:'spacious'},tone:{}},characters:{ambience:{spacious:{reverb:.91,delay:.4}}},
     events:ev,upperEvents:upper,phraseParameters:params,LANES:[],voiceOf:(l:any)=>l.voice,UPPERS:[{}],TEXTURE:null} as any);
   assert.equal(ev[0],e,'the cut kept the event');
   assert.ok(upper.has(ev[0]));

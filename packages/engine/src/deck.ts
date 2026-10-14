@@ -758,6 +758,10 @@ export function teardown(deck: Deck): void {
   // (a stand-in deck in the node checks has no context, and no notes noted against it)
   releaseNotes(deck.graph, deck.fader.context ? deck.fader.context.currentTime : 0);
   deck.graph.dispose();
+  // the deck's own channel behind the fader, which the graph's out fed
+  for (const node of [deck.hp, deck.lp]) {
+    try { node.disconnect(); } catch (e) { /* already gone, or a stand-in */ }
+  }
 }
 
 /**

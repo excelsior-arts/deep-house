@@ -3,7 +3,7 @@
  "kind": "ambient-weather",
  "round": "liquid-ambient",
  "revision": 1,
- "note": "The weather family (the research manual's section 5): one identity a track, drawn by weight and leaned by the birds (a choice's weight times exp(lean x (bird - 0.5))), off a stream of its own. Each identity lays spans by the class of the passage they fall in, with a chance and a length range; every span has its end, a contour drawn (approach, recede or passing through) and at least eight bars of absence before the next. Inside a span the main row is laid in events of four bars, each at its place on the span's arc of level and brightness and on the wind's inner arcs. Upper air comes in short windows inside a span, under a quarter of the track; thunder only under a dark cloud, at most twice, sixty-four bars apart, and it takes the featured-detail slot. Levels are row numbers, his to move.",
+ "note": "The weather family (the research manual's section 5): one identity a track, drawn by weight and leaned by the birds (a choice's weight times exp(lean x strength x (bird - centre)), the one lean), off a stream of its own. Each identity lays spans by the class of the passage they fall in, with a chance and a length range; every span has its end, a contour drawn (approach, recede or passing through) and at least eight bars of absence before the next. Inside a span the main row is laid in events of four bars, each at its place on the span's arc of level and brightness and on the wind's inner arcs. Upper air comes in short windows inside a span, under a quarter of the track; thunder only under a dark cloud, at most twice, sixty-four bars apart, and it takes the featured-detail slot. Levels are row numbers, his to move.",
  "rows": [
   {
    "id": "liquid-weather",
@@ -70,6 +70,8 @@
     }
    ],
    "birds": {
+    "centre": 0.5,
+    "strength": 1,
     "tide": { "dark-cloud": 0.9, "fine-rain": 0.4, "says": "toward the dub: a darker sky and the rain" },
     "zephyr": { "fine-rain": 0.8, "moving-wind": 0.3, "mostly-clear": -0.4, "says": "toward the upper band" },
     "veil": { "moving-wind": 0.6, "mostly-clear": -0.6, "says": "the sky changes more" },
@@ -102,6 +104,7 @@
     "dark": { "midi": 60, "vel": 0.7, "reverb": 0.25, "levelDb": 0 }
    },
    "upperTone": { "midi": 84, "vel": 0.7, "reverb": 0.2, "levelDb": -4, "lpMul": [0.85, 0.5] },
+   "upperBirds": { "says": "PLAN-UNIFY U3 (the fast places' birds), about the Drum & Bass tile's own Zephyr, so the tile plays as it did: Zephyr, how bright the air, the upper air louder and brighter up (8 dB a unit, held to 4 either way: -3.2 dB at 0.2, +2.4 at 0.9; its low-pass x0.67 and x1.35)", "centre": { "zephyr": 0.6 }, "zephyr": { "db": 8, "bright": 1 }, "mostDb": 4 },
    "rumbleTone": { "midi": 40, "vel": 0.8, "reverb": 0.45 },
    "segmentBars": 4,
    "tailS": 2.4,

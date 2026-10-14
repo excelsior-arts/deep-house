@@ -114,6 +114,12 @@ export function membraneSpec(C: MembraneSettings, p: NoteParams): DrumSpec {
     pan: low ? -C.pan : C.pan,
     room: C.room,
   };
+  // A room may voice its drum with the skin's damped modes, the `skin` note
+  // control's own meaning: a field its settings block carries beside the
+  // contract (house-v2's hand voicing, 10-13). A row carries none, and its
+  // body is the original.
+  const skin = (C as MembraneSettings & { skin?: unknown }).skin;
+  if (typeof skin === 'number' && skin > 0) spec.skin = Math.min(1, skin);
   const controls = membraneControls(p);
   if (!Object.keys(controls).length) return spec;
   const fields: Record<string, string> = { headHz:'hz', bend:'drop', bendSeconds:'dropTime',

@@ -140,7 +140,10 @@ function keys(
   const E = preset.edge;
   const kGrain = knobScale(p, K, 'grain');
   const edgeLevel = E.level * kGrain;
-  const chiffLevel = E.chiff * kGrain;
+  // A patch the theme plays clean (`cleanKeys`, round KEYS-NOISE 2) takes no
+  // strike: on a near-sine electric piano the band of noise is no part of
+  // the note, and over 8 kHz it was all the voice had.
+  const chiffLevel = settings.cleanKeys?.includes(row.id) ? 0 : E.chiff * kGrain;
 
   // Held, the note is the chord and it takes the whole span; struck, it is a
   // stab and the decay is most of what a listener hears.

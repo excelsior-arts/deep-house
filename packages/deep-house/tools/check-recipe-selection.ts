@@ -54,7 +54,10 @@ test('motif comparisons retain drums, harmony, tempo and non-target bass events'
   for (const t of tracks.slice(1)) {
     assert.equal(t.bpm,tracks[0].bpm); assert.equal(t.dice.progression,tracks[0].dice.progression);
     assert.deepEqual(t.timeline,tracks[0].timeline);
-    const drums=(x:typeof t)=>x.events.filter(e=>['drum','noise'].includes(BY_NAME[e.voice]?.family));
+    // a bass out's marks follow the bass (U2b: its fill on its last bar, a swell into its line; a bass motif that holds
+    // its line where another leaves it lays no out there), so the drums are compared off the bars of either's outs
+    const marked=new Set([t,tracks[0]].flatMap(x=>(x.phrasing?.outs??[]).flatMap(o=>[o.to-1,o.to])));
+    const drums=(x:typeof t)=>x.events.filter(e=>['drum','noise'].includes(BY_NAME[e.voice]?.family)&&!marked.has(e.bar));
     assert.ok(drums(t).length > 0); assert.deepEqual(drums(t),drums(tracks[0]));
   }
   const [lick,answer]=tracks.filter(t=>t.dice.motifRegister==='lead');

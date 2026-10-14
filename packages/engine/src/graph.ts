@@ -277,6 +277,10 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
           try { source.stop(); } catch (e) { /* already stopped */ }
         }
       }
+      // ...and then every node the graph built, which WebKit would otherwise
+      // keep for as long as the page lives wherever a loop holds them up
+      // (`graph-scope.ts`, the phone review of 10-12).
+      graph.letGo();
     },
     nodes: graph,
   };

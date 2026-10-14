@@ -28,6 +28,8 @@
     }
    ],
    "birds": {
+    "centre": 0.5,
+    "strength": 1,
     "spark": { "keys-fragments-echoes": 0.4, "says": "toward answers kept in the keys" },
     "tide": { "soloist-echoes": 0.4, "says": "toward the breath and its tail" }
    },

@@ -99,6 +99,8 @@ export interface LoudnessDice {
   hatMask?: string;
   stabTimbre?: string;
   padTimbre?: string;
+  /** the timbre a redrawn keys front's figure was levelled for (the far-apart rule, `generator.ts`) */
+  keysLevelledAs?: string;
 }
 
 /**
@@ -135,6 +137,8 @@ export interface LoudnessEvent {
 
 /** A planned theme, as the whole model reads one. */
 export interface LoudnessTrack extends WindowTrack {
+  /** the arrangement's phrases (PLAN-UNIFY U2, `track.phrasing`): their spans are not the groove a trim is fitted for */
+  phrasing?: { segments?: ReadonlyArray<{ from: number; to: number }>; outs?: ReadonlyArray<{ from: number; to: number }>; cooldowns?: ReadonlyArray<{ from: number; to: number }> } | null;
   bpm: number;
   density: string;
   barSeconds: number;
@@ -328,6 +332,15 @@ export function loudnessWindow(track: WindowTrack, bars: number): { from: number
 // -6 dB clamp. A drop is where such a form stands at its fullest, the part a
 // main is in a house form, so its loudest drop is the passage the one number is
 // right for. A theme with neither falls back to the first rule as before.
+//
+// **A phrase event is not the main's level** (PLAN-UNIFY U2): a window holding
+// one of the arrangement's phrases (`track.phrasing`: a sub-segment, the bass
+// out before an anchor, a cooldown) is the main stepping aside for a bar or a
+// few, and the fit reads such a window as no main it was taught on (seed 1's
+// cooldown, the bass out across four bars, read 0.7 dB over its steadiest
+// main and pulled the whole theme down by that). The trim is fitted for the
+// windows of the steady groove, and reads one with a phrase in it only where
+// every window of the kind holds one.
 const WINDOW_KINDS = ['main', 'drop'] as const;
 
 function mainWindows(track: LoudnessTrack, bars: number, kind: string = 'main'): { from: number; bars: number }[] {
@@ -365,8 +378,11 @@ function chosenWindow(track: LoudnessTrack, style: Style): { w: { from: number; 
   const index = indexEvents(track);
   let best: { w: { from: number; bars: number }; f: LoudnessFeatures } | null = null;
   let loudest = -Infinity;
+  const phrased = [...(track.phrasing?.segments ?? []), ...(track.phrasing?.outs ?? []), ...(track.phrasing?.cooldowns ?? [])];
+  const steady = (w: { from: number; bars: number }) => !phrased.some((x) => x.from < w.from + w.bars && x.to > w.from);
   for (const kind of WINDOW_KINDS) {
-    for (const w of mainWindows(track, bars, kind)) {
+    const all = mainWindows(track, bars, kind), calm = all.filter(steady);
+    for (const w of calm.length ? calm : all) {
       const f = featuresAt(track, style, w, index);
       const v = lufsOf(f, style);
       if (v > loudest) { loudest = v; best = { w, f }; }
@@ -668,7 +684,8 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     // The word the die rolled. A theme that rolled none reads `undefined`,
     // which is what the guard on the next line has always been for; naming it
     // a name is all the cast does.
-    const timbre = d[die] as string;
+    // A keys front the far-apart rule redrew is read as the timbre its figure was levelled for (`keysLevelledAs`).
+    const timbre = (role === 'keys' && d.keysLevelledAs ? d.keysLevelledAs : d[die]) as string;
     const t = TIMBRES[timbre];
     if (!t) continue;
     const level = L[levelKeyOfRole(role, timbre)] ?? -12;

@@ -644,9 +644,19 @@ export function strikes(voice: string, p: NoteParams | null | undefined): boolea
  * descriptor and never off a name, as `strikes` is. A note it does not read
  * takes its bus's clean door, where the theme's graph built an edge; anywhere
  * else it is the door it always took.
+ *
+ * And, since round KEYS-NOISE 2, what the theme's settings say: a note whose
+ * row — the voice's own, or the one its timbre dispatches to — the theme names
+ * in `cleanKeys` is not read either (an electric piano's chord of near-sines
+ * through the clip is a cloud of sums and differences, the hiss the bells
+ * had). With no settings, or none naming it, the row's word alone.
  */
-export function edgeReads(voice: string): boolean {
-  return BY_NAME[voice]?.edge !== false;
+export function edgeReads(voice: string, p?: NoteParams | null, settings?: Settings | null): boolean {
+  const d = BY_NAME[voice];
+  if (d?.edge === false) return false;
+  const clean = settings?.cleanKeys;
+  if (!clean || !clean.length) return true;
+  return !rowsThrough(voice, p).some((row) => clean.includes(row.id));
 }
 
 /**

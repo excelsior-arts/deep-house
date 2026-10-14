@@ -54,7 +54,7 @@ export function fireEvent(ctx: BaseAudioContext, graph: V1Graph, program: Progra
   // `edgeReads`), where the graph built an edge.
   // On a playing context the note is handed doors of its own into the buses, let go when it has finished
   // (`note-scope.ts`); a render is handed the buses themselves.
-  playScoped(ctx, graph.sourceOutput(pe.voice, pe.bus, strikes(pe.voice, pe.p), !edgeReads(pe.voice)), !!pe.p?.fx,
+  playScoped(ctx, graph.sourceOutput(pe.voice, pe.bus, strikes(pe.voice, pe.p), !edgeReads(pe.voice, pe.p, program.settings)), !!pe.p?.fx,
     (out) => voice(ctx, withMotion(ctx, withReturns(ctx, withEcho(ctx, withPartSpace(ctx, out, pe.p), pe.p), pe.p, returnDoorOf(ctx, graph), when), pe.p, when), when, pe.p, program.settings, pe.t), graph);
   if (pe.duck) writeDuck(graph, duckFor(graph.duckShape, pe.p), when, ctx);
 }
@@ -92,7 +92,7 @@ export function prepareReturns(graph: V1Graph, program: Program): void {
   // The clean doors (round HF-NOISE), for a program with a note the edge may
   // not read: built here for the same reason the struck path is, so the lines
   // laid next are written on their gains as well. Their sends are the bus's.
-  for (const e of program.events) if (!edgeReads(e.voice)) graph.cleanBus(e.bus, strikes(e.voice, e.p));
+  for (const e of program.events) if (!edgeReads(e.voice, e.p, program.settings)) graph.cleanBus(e.bus, strikes(e.voice, e.p));
   // A part's own space (`settings.partSpace`): one for the graph, built here where a note asks for it.
   if (program.events.some((e) => typeof e.p?.partSpace === 'number' && e.p.partSpace > 0)) void graph.buses.melodic.partSpace;
   // The shared returns a note names (`p.returns`, `settings.returns`): each built here, once.

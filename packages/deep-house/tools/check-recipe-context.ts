@@ -63,7 +63,9 @@ test('developed ordinary and pinned tracks contain real contrast, bounded sectio
       if(s.bars>=16) {
         const claimed=JSON.parse(String(t.dice.composition)).recipes?.some(r=>r.roles.includes('sixteenth'));
         if (!claimed) assert.ok(!t.events.some(e=>e.layer==='shaker'&&e.bar>=s.startBar&&e.bar<s.startBar+8));
-        else assert.ok(t.events.filter(e=>e.layer==='shaker').every(e=>e.part),'catalogue scores retain their own musical rests');
+        // (a phrase's build and stop, on its last bar alone, are the arrangement's over the score: U2c)
+        else { const built=((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
+      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(t); assert.ok(t.events.filter(e=>e.layer==='shaker'&&!built.has(e.bar!)).every(e=>e.part),'catalogue scores retain their own musical rests'); }
         assert.notDeepEqual(s.phrases[0].layers,s.phrases[1].layers);
       }
     }

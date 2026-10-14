@@ -8,9 +8,10 @@
 // where the pattern rows were audited (the analysis side's spells, as numbers);
 // the entries are named for what they are musically.
 import { HOUSE_PLACE, drumsKnobFaults } from '../places.ts';
-import type { Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
+import type { BirdLeans, Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
   DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry, AmbientVoicesEntry } from '../places.ts';
 import type { WalkEntry } from '../walk.ts';
+import type { TimeEntry } from '../musical-time.ts';
 import { riffTableFaults, type GlideEntry, type RiffEntry } from '../glide.ts';
 import { NO_SUBS, type SubRates } from '../subsections.ts';
 import type { EqProfile } from '@deep-house/engine/master';
@@ -21,10 +22,14 @@ const place = (birds: Place['birds'], tempo: [number, number]): Place => Object.
 const FAST_BROKEN = place({ ember: 0.95, spark: 0.85, zephyr: 0.70, root: 0.60, veil: 0.60 }, [160, 176]);
 /**
  * The fast broken beat with the weight up (round DNB-1): the Drum & Bass
- * tile's own birds with Root a step over them. Read by the bass's sound alone
- * — Root up from the fast broken place takes the bass to the sub-led reese,
- * down to the mid-range one — so every other table still answers the tile
- * with FAST_BROKEN's row.
+ * tile's own birds with Root a step over them. It was written for the bass's
+ * sound (Root up to the sub-led reese, down to the mid-range one); since the
+ * liquid bass rounds both places play the same sine reese, and every table
+ * that lists it gives it the same row as FAST_BROKEN's (the form's differs
+ * only in the section windows a theme no form row fits would take); the
+ * tables that leave it out answer it with their fast entry. A sweep that
+ * crosses from one to the other moves no sound (the fast-birds analysis of
+ * 10-12: Root is inert at the tile; PLAN-UNIFY gives it a meaning there).
  */
 const FAST_BROKEN_DEEP = place({ ember: 0.95, spark: 0.85, zephyr: 0.60, root: 0.80, veil: 0.60, tide: 0.45 }, [160, 176]);
 /** A broken beat at a driving tempo. */
@@ -49,10 +54,48 @@ const LIQUID_KEY = { ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.
 const LIQUID_CENTRE = place(LIQUID_KEY, [160, 176]);
 /** The liquid centre with Tide and Loom up and Veil down: the exposed, atmospheric fast context (liquid-space). */
 const LIQUID_ISLANDS = place({ ...LIQUID_KEY, tide: 0.80, loom: 0.90, veil: 0.30 }, [160, 176]);
-/** The liquid centre with Root up and Spark moderate: the continuous roller (liquid-space). */
+/**
+ * The liquid centre with Root up and Spark moderate: the continuous roller (liquid-space). Reached with Spark down
+ * toward 0.6; Root alone does not reach it — at Spark 0.85 or more the centre stays nearer (by 0.005 at Root 1).
+ */
 const LIQUID_ROLLER = place({ ...LIQUID_KEY, root: 0.95, spark: 0.60 }, [160, 176]);
 /** The liquid centre with Spark up: broken-air development (liquid-space). */
 const LIQUID_BROKEN = place({ ...LIQUID_KEY, spark: 1.0, zephyr: 0.70 }, [160, 176]);
+
+/**
+ * **The birds at the fast places** (PLAN-UNIFY U2, the addendum *The birds at the fast places*; his word 10-12, *"we put
+ * the birds issue into unify"*): Root and Veil given their meaning there, each the one lean about the Drum & Bass tile's
+ * own value (the Liquid key's), so the tile plays its numbers to the bit and every other position moves.
+ *
+ *   - **Root, the low end's weight**: the line's lift, ±2 dB at its ends about the tile's own (`subDb`, a step reaching `ends`), the roller's share among the forms (`row:dnb/form-roller`: Root up rolls — bug 4, *"Root up → the
+ *     roller"*, decided as Root's meaning: the roller place stays Spark's, and Root leans the form toward it wherever
+ *     the liquid forms are drawn); with the riff rows toward Root (`RIFF`) and the producer's own (fewer outs up, more
+ *     answers into the drums' gaps down: `recipes/ambient/producer.json`'s `bass.birds`).
+ *   - **Veil, the rate of change and the fx palette**: the throws (`throws`), the fills at a section's line (`fill`),
+ *     the development's effect moves (`effect`), the chapters' deadline for something salient (`deadline`, shorter as
+ *     Veil rises past the tile, never longer than its row's 32 bars); with the producer's own (the fill-like endings, the reverse swells: `drums.fx`).
+ */
+const FAST_LEANS: BirdLeans = Object.freeze({
+  centre: Object.freeze({ root: LIQUID_KEY.root, veil: LIQUID_KEY.veil, zephyr: LIQUID_KEY.zephyr }),
+  by: Object.freeze({
+    root: Object.freeze({ subDb: 1, 'row:dnb/form-roller': 2, lowShelfDb: 1 }),
+    veil: Object.freeze({ throws: 1.5, fill: 1, effect: 1, deadline: -0.6 }),
+    // PLAN-UNIFY U3: Zephyr is which keys and how bright the air — the keys' tone toward the electric pianos (the FM and
+    // the glass ones) up and the dark grands down, over the draw row's own modest lean (×0.30 for an EP at 0.2, ×2.5 at
+    // 0.9); the blooms' width and air and the weather's upper air are the producer's and the weather's rows
+    zephyr: Object.freeze({ 'tone:fm-ep': 3, 'tone:glass-ep': 3, 'tone:suitcase-ep': 1.5, 'tone:dark-tine': 1,
+      'tone:far-grand': -3, 'tone:felt-grand': -2.5, 'tone:close-grand': -1.5,
+      // ...and how bright the air, whatever voice: the keys' own low-pass (`keysLp`, a factor on the voice's filter, ×0.56
+      // at 0.2 and ×0.42 at nought; above the tile held to ×1.15), measured on the grands; the FM electric pianos take it
+      // through the stage's tone filter, on the tine's top only (their click stays: measured, no floor)
+      keysLp: 1.45 }),
+  }),
+  // the line's lift ±2 dB at Root's ends, as far down at nought as up at one (the review of U2: it was +0.67 and -2);
+  // the master's low shelf -4 dB at Root's nought and +1.5 at its one (U2b, his ear 10-13 on the Root sweep: "less bass
+  // (if ears are tired) but still good DnB!! We could technically connect Root to EQ and reduce bass presence in dB
+  // values"), so "less bass" is in the tone as well as in the passages
+  ends: Object.freeze({ subDb: 2, lowShelfDb: Object.freeze([-4, 1.5] as const) }),
+});
 
 /**
  * **Harmony by place**: the chord walk a place plays in place of the mined
@@ -104,8 +147,9 @@ export const HARMONY: readonly HarmonyEntry[] = Object.freeze([
  */
 // liquid-space (10-11): the research manual's five shapes at its balanced fast-atmospheric weights (two returns 30,
 // the roller 25, the islands 20, broken-air 15, the half-time dialogue 10), and the bird bias as places, the mechanism
-// every table has: Tide and Loom up with Veil down lean to the islands, Root up with Spark moderate to the roller,
-// Spark up to broken-air. DNB-6's three rows stay in the library, drawn by no place now.
+// every table has: Tide and Loom up with Veil down lean to the islands, Spark moderate (toward 0.6, Root up) to the
+// roller — Root alone never reaches it, the centre stays nearer while Spark is at the tile's 0.85 — and Spark up to
+// broken-air. DNB-6's three rows stay in the library, drawn by no place now.
 const forms = (twoReturn: number, roller: number, islands: number, brokenAir: number, halfTime: number) => Object.freeze([
   { v: 'dnb/form-two-return', w: twoReturn }, { v: 'dnb/form-roller', w: roller }, { v: 'dnb/form-islands', w: islands },
   { v: 'dnb/form-broken-air', w: brokenAir }, { v: 'dnb/form-half-time-dialogue', w: halfTime }]);
@@ -126,17 +170,17 @@ export const FORM: readonly FormEntry[] = Object.freeze([
   // form drawn among three track rows in whole blocks of bars — the classic read
   // off source 8's first tune, the short two-drop, the roller — by the theme's
   // length and these weights; the orders below stay for a theme none fits.
-  { id: 'drop-and-second-drop', place: FAST_BROKEN, rows: LIQUID_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']],
+  { id: 'drop-and-second-drop', place: FAST_BROKEN, rows: LIQUID_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']],
     sectionBars: Object.freeze({
       intro: { p25: 24, p75: 28, median: 26 }, build: { p25: 22, p75: 26, median: 24 }, drop: { p25: 12, p75: 16, median: 14 },
       groove: { p25: 84, p75: 96, median: 90 }, breakdown: { p25: 30, p75: 36, median: 33 }, outro: { p25: 10, p75: 14, median: 12 },
     }) },
   // liquid-space (10-11): the liquid centre, the deep fast place and the two leans, each drawing the new shapes
-  { id: 'liquid-forms', place: LIQUID_CENTRE, rows: LIQUID_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
-  { id: 'liquid-forms-deep', place: FAST_BROKEN_DEEP, rows: LIQUID_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
-  { id: 'islands-toward-tide-and-loom', place: LIQUID_ISLANDS, rows: ISLAND_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
-  { id: 'rollers-toward-root', place: LIQUID_ROLLER, rows: ROLLER_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
-  { id: 'broken-air-toward-spark', place: LIQUID_BROKEN, rows: BROKEN_FORMS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
+  { id: 'liquid-forms', place: LIQUID_CENTRE, rows: LIQUID_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
+  { id: 'liquid-forms-deep', place: FAST_BROKEN_DEEP, rows: LIQUID_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
+  { id: 'islands-toward-tide-and-loom', place: LIQUID_ISLANDS, rows: ISLAND_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
+  { id: 'rollers-toward-root', place: LIQUID_ROLLER, rows: ROLLER_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
+  { id: 'broken-air-toward-spark', place: LIQUID_BROKEN, rows: BROKEN_FORMS, leans: FAST_LEANS, orders: [['intro', 'build', 'drop', 'groove', 'breakdown', 'drop', 'groove', 'outro']] },
   { id: 'drop-outs-and-builds', place: BROKEN_DRIVING, orders: [['intro', 'groove', 'breakdown', 'build', 'drop', 'groove', 'breakdown', 'drop', 'outro']] },
   { id: 'stripped-outs', place: DEEP_STILL, orders: [['intro', 'groove', 'breakdown', 'groove', 'breakdown', 'breakdown', 'groove', 'outro']] },
   { id: 'stripped-outs-half', place: DEEP_HALF, orders: [['intro', 'build', 'drop', 'breakdown', 'drop', 'breakdown', 'outro']] },
@@ -313,7 +357,8 @@ export const EQ: readonly EqEntry[] = Object.freeze([
   // nothing): here it stacked the line's harmonics, the snare's shell and the
   // bed's floor into 120-400 Hz, which read 6 dB over source 8's in the
   // harmonic half — the build-up he heard as pads in front of the bass.
-  eqRow('fast-broken-keeps-its-floor', FAST_BROKEN, { lowShelfDb: 0, lowMidDb: 2.5, midDb: EQ_V1.midDb, presenceDb: EQ_V1.presenceDb, airDb: EQ_V1.airDb }),
+  // U2b (his ear 10-13 on the Root sweep): Root leans the low shelf about the tile's own Root, -4 dB at nought, +1.5 at one
+  Object.freeze({ ...eqRow('fast-broken-keeps-its-floor', FAST_BROKEN, { lowShelfDb: 0, lowMidDb: 2.5, midDb: EQ_V1.midDb, presenceDb: EQ_V1.presenceDb, airDb: EQ_V1.airDb }), leans: FAST_LEANS }),
   eqRow('base-tone-broken-driving', BROKEN_DRIVING),
   eqRow('base-tone-deep-still', DEEP_STILL),
   eqRow('base-tone-deep-half', DEEP_HALF),
@@ -634,7 +679,8 @@ export const DRUM_GRAIN_HOUSE: DrumGrainEntry = Object.freeze({ id: 'drums-grain
  * mix's sub dips 3-10 dB and is back by 80 ms.
  *
  * And the snare drier (`snareDry`, in place of the snare the broken kit
- * drew; a clap or a rim plays as drawn): the same shell, wires and crack,
+ * drew; a clap or a rim played as drawn until U1, when the crack took the
+ * backbeat whatever was drawn): the same shell, wires and crack,
  * -10 dB at 55 ms where the snare's is 70, the shell gone in 80 ms and a third
  * of its room — alone it is 43-50 ms to -12 dB where the snare read 52-65. A
  * gentle step and not half: the place's long tail in the mix (130-500 ms
@@ -696,7 +742,13 @@ export const DRUM_GRAIN_HOUSE: DrumGrainEntry = Object.freeze({ id: 'drums-grain
 const FAST_DRUMS = { kit: 'dnb/kit-liquid-two-step', bassBodyDb: 0, push: { dropLevel: 0 }, clip: { driveDb: 0, knee: 0.6, curve: 2, mix: { driveDb: 2, knee: 0.7, curve: 2, makeupDb: 6.2 }}, sends: { reverbToneHz: 10000, roomCorr: 0.3, roomHighHz: 14000, roomLowHz: 200 }, backbeatDb: -2, kickDb: 8, bassDb: 5, kickDecay: 1, limiterReleaseMs: 90, ghostDb: -2, hatsDb: -2.5, targetLufs: -9, measuredLufs: -15.22, liftDrums: { breakdown: { kick: -18, backbeat: -18, offbeat: -18 }, intro: { backbeat: -6, offbeat: -10 } }, busComp: { threshold: -6, knee: 6, ratio: 2, attack: 0.01, release: 0.08 }, throws: { everyBars: 8, chance: 0.5, delay: 0.45, reverb: 0.3 },
  bassComp: { threshold: -24, knee: 6, ratio: 1.4, attack: 0.03, release: 0.15 },
   duck: { lowDepthDb: -3, minimumAt: 0.02, firstLeg: 0.12, recoverBy: 0.25 },
-  sounds: { kick: 'high-punch-kick', kickPunch: 'high-punch-kick', kickLong: 'high-punch-kick', snare: 'crack-snare', hatClosed: 'shut-hat', hatLoose: 'shut-hat', hatSizzle: 'shut-hat' } };
+  // the backbeat whatever the house's draw put on it (PLAN-UNIFY U1, the fast-place birds' bug 3: the clap and the rim,
+  // leaned in by Gleam, played through the liquid kit in place of its crack — seed 1 at Gleam 1 struck 552 rimshots)
+  sounds: { kick: 'high-punch-kick', kickPunch: 'high-punch-kick', kickLong: 'high-punch-kick', snare: 'crack-snare', clap: 'crack-snare', rimshot: 'crack-snare', hatClosed: 'shut-hat', hatLoose: 'shut-hat', hatSizzle: 'shut-hat' },
+  // ...and the clap and the rim are a sound swap only: the cast is counted on the drawn voice, so no admission flips
+  soundOnly: ['clap', 'rimshot'],
+  // the birds at the fast places (PLAN-UNIFY U2): Root on the line's lift, Veil on the throws
+  leans: FAST_LEANS };
 /**
  * **The broken kit's figures by place** (round DNB-4, `BreaksEntry`): at the
  * fast broken places the kick talks more than the style's table lets it — the
@@ -779,8 +831,9 @@ const MANY_SUBSECTIONS: SubRates = Object.freeze({
   variation: 0.5, variationBars: [8], variationFloor: 16,
 });
 export const SUBSECTIONS: readonly SubSectionsEntry[] = Object.freeze([
-  { id: 'many-small-things', place: FAST_BROKEN, rates: MANY_SUBSECTIONS },
-  { id: 'many-small-things-deep', place: FAST_BROKEN_DEEP, rates: MANY_SUBSECTIONS },
+  // the birds at the fast places (PLAN-UNIFY U2): Veil on the fill at a section's line
+  { id: 'many-small-things', place: FAST_BROKEN, rates: MANY_SUBSECTIONS, leans: FAST_LEANS },
+  { id: 'many-small-things-deep', place: FAST_BROKEN_DEEP, rates: MANY_SUBSECTIONS, leans: FAST_LEANS },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR]
     .map((place, i) => ({ id: `some-small-things-${i + 1}`, place, rates: HOUSE_SUBSECTIONS })),
   ...[FLOATING, HELD_DRONE].map((place, i) => ({ id: `no-small-things-${i + 1}`, place, rates: NO_SUBS })),
@@ -879,6 +932,10 @@ export const RIFF: readonly RiffEntry[] = Object.freeze([
   { id: 'the-liquid-riff-deep', place: FAST_BROKEN_DEEP, rows: [{ v: V_RIFF, w: 1 }] },
   { id: 'held-toward-tide', place: place({ ...LIQUID_KEY, tide: 0.80 }, [160, 176]), rows: [{ v: 'dnb/riff-liquid-held', w: 2 }, { v: V_RIFF, w: 1 }] },
   { id: 'stairs-toward-spark-and-loom', place: place({ ...LIQUID_KEY, spark: 1, loom: 1 }, [160, 176]), rows: [{ v: 'dnb/riff-liquid-stairs', w: 2 }, { v: V_RIFF, w: 1 }] },
+  // the riff toward Root (PLAN-UNIFY U2, the fast places' birds: Root is the low end's weight): up, the held riff's long
+  // low holds; down, the stairs' climbing figure, the lighter, busier line — each beside V's, as the two corners above
+  { id: 'held-toward-root', place: place({ ...LIQUID_KEY, root: 1 }, [160, 176]), rows: [{ v: 'dnb/riff-liquid-held', w: 2 }, { v: V_RIFF, w: 1 }] },
+  { id: 'stairs-away-from-root', place: place({ ...LIQUID_KEY, root: 0.35 }, [160, 176]), rows: [{ v: 'dnb/riff-liquid-stairs', w: 2 }, { v: V_RIFF, w: 1 }] },
 ] as RiffEntry[]);
 {
   const bad = riffTableFaults(RIFF);
@@ -1000,7 +1057,8 @@ export const SUPPORT: readonly SupportEntry[] = Object.freeze([
  * listed without the part, as `BASS_SOUND` lists its own: a table is read by its nearest row, so a
  * place left out would take the fast one's.
  */
-const LIQUID_KEYS = Object.freeze({ draw: 'liquid-keys', levelDb: -6 });
+// the birds on the draw (PLAN-UNIFY U3): Zephyr's tone lean about the tile's own value (`FAST_LEANS`)
+const LIQUID_KEYS = Object.freeze({ draw: 'liquid-keys', levelDb: -6, leans: FAST_LEANS });
 export const KEYS: readonly KeysEntry[] = Object.freeze([
   { id: 'sparse-keys-fast', place: FAST_BROKEN, keys: LIQUID_KEYS },
   { id: 'sparse-keys-deep', place: FAST_BROKEN_DEEP, keys: LIQUID_KEYS },
@@ -1022,8 +1080,11 @@ export const KEYS: readonly KeysEntry[] = Object.freeze([
  */
 const LIQUID_DEVELOPMENT = Object.freeze({ row: 'dnb/phrase-development-liquid', aux: 'dnb/aux-liquid-quiet', bass: 'dnb/bass-answers-liquid',
   // liquid-ambient (10-11): the bed in bounded gestures and the chapters over the phrases (`src/ambient-plan.ts`)
-  ambient: Object.freeze({ bed: 'ambient/bed-liquid', chapters: 'ambient/chapters-liquid' }),
-  surface: Object.freeze([{ v: 'dnb/surface-dark-air', w: 3 }, { v: 'dnb/surface-hiss', w: 2 }, { v: 'dnb/surface-air-swell', w: 2 }]) });
+  // the bed's chapters are written over the kit's phrases (the development's salient drums count in them)
+  ambient: Object.freeze({ bed: 'ambient/bed-liquid', chapters: 'ambient/chapters-liquid', needs: Object.freeze(['kit'] as const) }),
+  surface: Object.freeze([{ v: 'dnb/surface-dark-air', w: 3 }, { v: 'dnb/surface-hiss', w: 2 }, { v: 'dnb/surface-air-swell', w: 2 }]),
+  // the birds at the fast places (PLAN-UNIFY U2): Veil on the effect moves and the chapters' deadline
+  leans: FAST_LEANS });
 export const DEVELOPMENT: readonly DevelopmentEntry[] = Object.freeze([
   { id: 'phrases-developed', place: FAST_BROKEN, ...LIQUID_DEVELOPMENT },
   { id: 'phrases-developed-deep', place: FAST_BROKEN_DEEP, ...LIQUID_DEVELOPMENT },
@@ -1048,7 +1109,10 @@ const LIQUID_AMBIENT = Object.freeze({ soloist: 'liquid-breath', fillers: 'liqui
   // the first main passage written as one arrangement (`recipes/ambient/passage.json`)
   passage: 'first-passage',
   // the whole track arranged by the producer's grammar around it (`recipes/ambient/producer.json`)
-  producer: 'liquid-producer' });
+  producer: 'liquid-producer',
+  // all three are written over the liquid kit's phrases: the voices' windows keep its answers clear, the passage and the
+  // producer rewrite its states and endings in its own voices (PLAN-UNIFY §0b: a need of the row, not a chain)
+  needs: Object.freeze(['kit'] as const) });
 export const AMBIENT_VOICES: readonly AmbientVoicesEntry[] = Object.freeze([
   { id: 'details-and-weather-fast', place: FAST_BROKEN, ambient: LIQUID_AMBIENT },
   { id: 'details-and-weather-deep', place: FAST_BROKEN_DEEP, ambient: LIQUID_AMBIENT },
@@ -1060,6 +1124,27 @@ export const AMBIENT_VOICES: readonly AmbientVoicesEntry[] = Object.freeze([
     .map((place, i) => ({ id: `no-details-or-weather-${i + 1}`, place })),
 ] as AmbientVoicesEntry[]);
 
+/**
+ * **Time by place** (PLAN-UNIFY §2.2, `src/musical-time.ts`): where the kit plays half-time, the pulse is felt at
+ * half the written tempo (the fast places' two-step, the deep half's stillness); and the fast places pin the phrase
+ * the producer's grammar was written in, eight written bars, leaned by Loom from the liquid key's own Loom at a
+ * strength of nought (the U0 round: every bird position there resolves to today's eight bars; the lean is a later
+ * round's, by his ear). The places are the ambient voices' own, so the time that plays is the one the producer's
+ * place names. Every other place is the ring's own rule, and says so.
+ */
+const FAST_TIME = Object.freeze({ felt: 'half' as const, phrase: Object.freeze({ bars: 8, loom: Object.freeze({ centre: LIQUID_KEY.loom, strength: 0 }) }) });
+export const TIME: readonly TimeEntry[] = Object.freeze([
+  { id: 'half-time-eight-bar-phrases-fast', place: FAST_BROKEN, ...FAST_TIME },
+  { id: 'half-time-eight-bar-phrases-deep', place: FAST_BROKEN_DEEP, ...FAST_TIME },
+  { id: 'half-time-eight-bar-phrases-liquid', place: LIQUID_CENTRE, ...FAST_TIME },
+  { id: 'half-time-eight-bar-phrases-islands', place: LIQUID_ISLANDS, ...FAST_TIME },
+  { id: 'half-time-eight-bar-phrases-roller', place: LIQUID_ROLLER, ...FAST_TIME },
+  { id: 'half-time-eight-bar-phrases-broken', place: LIQUID_BROKEN, ...FAST_TIME },
+  { id: 'half-time-felt-deep-half', place: DEEP_HALF, felt: 'half' },
+  ...[BROKEN_DRIVING, DEEP_STILL, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
+    .map((place, i) => ({ id: `the-ring-s-own-time-${i + 1}`, place })),
+] as TimeEntry[]);
+
 export const places: StylePlaces = Object.freeze({ harmony: HARMONY, form: FORM, treatments: TREATMENTS, bassSound: BASS_SOUND, laneSound: LANE_SOUND, sounds: SOUNDS, eq: EQ, bassDrive: BASS_DRIVE, bassDriveHouse: BASS_DRIVE_HOUSE, bed: BED, bedHouse: BED_HOUSE, grain: GRAIN, grainHouse: GRAIN_HOUSE, drumGrain: DRUM_GRAIN, drumGrainHouse: DRUM_GRAIN_HOUSE,
   drums: DRUMS, breaks: BREAKS, subSections: SUBSECTIONS, subSectionsHouse: THE_HOUSE_SUBSECTIONS, sections: SECTIONS, glueSound: GLUE_SOUND, walk: WALK, roles: ROLES, glide: GLIDE,
-  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES });
+  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES, time: TIME });

@@ -19,6 +19,9 @@
 //   malletStrike      (round HF-NOISE) a click on the strike of a bar the
 //                     edge does not read: noise half an octave either side of
 //                     `hz` at `level`, gone `decay` after the strike.
+//   cleanKeys         (round KEYS-NOISE 2) the keyboard rows, by id, that play
+//                     clean: no strike noise on their notes and past the
+//                     bus's edge (the clean door), as the bells and the vibes.
 //   harmonicEdge      a parallel stage on the harmonic bus (`effects/
 //                     harmonic-edge.ts`): the bus's own notes driven, their
 //                     harmonics kept between `floorHz` and `toneHz`, at a
@@ -152,6 +155,9 @@ export function admitGrain(settings: Readonly<Record<string, any>>): void {
   prove(settings.piano?.grain, PIANO_GRAIN_FIELDS, 'piano.grain', bad);
   prove(settings.harmonicEdge, HARMONIC_EDGE_FIELDS, 'harmonicEdge', bad);
   prove(settings.malletStrike, MALLET_STRIKE_FIELDS, 'malletStrike', bad);
+  const clean = settings.cleanKeys;
+  if (clean !== undefined && (!Array.isArray(clean) || !clean.length || clean.some((id) => typeof id !== 'string' || !/^[A-Za-z][A-Za-z0-9]*$/.test(id)) || new Set(clean).size !== clean.length))
+    bad.push(`cleanKeys is ${JSON.stringify(clean)}, not a list of distinct row ids`);
   const b = settings.strings?.breath;
   if (b && b.loHz >= b.hiHz) bad.push(`strings.breath's floor ${b.loHz} is not under its top ${b.hiHz}`);
   const e = settings.harmonicEdge;

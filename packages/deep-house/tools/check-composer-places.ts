@@ -5,17 +5,29 @@ import {
   planTheme, Rng, programOf, seamPlan, blendAsked, interpretWants, silentRuns, readFileSync, pushCurve, style, settings, v1, HOUSE, biasFor, soloPlace, soloEvents, soloCeiling, v2,
 } from './check-composer-common.ts';
 import type { Plan } from './check-composer-common.ts';
+import { APP, PLANNERS, faults, asPlayed, departuresSaid, type Departure } from './as-played.ts';
 
 /**
  * The house-v2 style with no place naming a written passage: the planners' own track, which the riff's checks read (one
  * object, so the plan cache keys it once). A global switch was invisible to that cache, which handed the planners' plans
  * to later tests asking the same request with the passage on.
  */
-let PLANNERS: object | null = null;
-const planners = async (): Promise<any> => {
-  if (!PLANNERS) { const { withoutTechniques } = await import('../src/places.ts'); const { strategyById } = await import('../src/strategies/index.ts'); PLANNERS = withoutTechniques(strategyById('house-v2').style, 'passage'); }
-  return PLANNERS;
-};
+const planners = async (): Promise<any> => PLANNERS;
+/** The style the app plays (`tools/as-played.ts`): the riff's rules are read off it too, the producer's re-cut runs counted. */
+const APP_STYLE = (): any => APP;
+/**
+ * **What the app plays departs from the riff's rules here**: the producer's bass (`src/producer.ts`) shifts, octaves and
+ * develops the riff's notes after the break and writes answers into the drums' gaps, so a run it moved no longer opens
+ * on S's fall and flick, sits off the cycle's home, or holds flat through the snare. Counted, for the bird-relative
+ * rounds (Root's meaning at the fast place, U2).
+ */
+const RIFF_DEPARTURES: readonly Departure[] = [
+  { id: 'a re-cut opening', match: /: the opening moves |: the flick rises /, why: 'a cycle the producer re-cut opens on a moved run, not S\'s thirty sixteenths' },
+  { id: 'a run off its cycle\'s home', match: / under home \d+$/, why: 'a run the producer shifted or octaved sits under the home its cycle had' },
+  { id: 'a run under the floor', match: / under the floor$/, why: 'a run the producer shifted or octaved goes under the riff row\'s floor less S\'s settle' },
+  { id: 'a run held flat through the snare', match: /: held flat from the kick through the snare$/, why: 'a run the producer moved lands its flat stretch over the snare' },
+];
+const riffTally = new Map<string, { n: number; themes: number; first: string }>();
 
 // Round GA1 (Eugene, 09-26: "we go all in on styles … diversity is the
 // priority"): the library reaches the draw. One theme in three of a set is the
@@ -508,7 +520,7 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
   assert.equal(partUsage({ bassMotif: null, heldBass: false, struckFigures: [], texture: null, rhythm: [], tone: {}, ambience: { figure: 'echo' }, presence: {}, pedalHarmony: false }, style).spatialReturns, 1);
 });
 
-test('liquid-fix: a phrase run\'s gestures ride the notes they belong to — S\'s opening fall and flick on every theme, the register chosen once, nothing under home but S\'s own settle; the loader refuses the old knots', async () => {
+test('liquid-fix: a phrase run\'s gestures ride the notes they belong to — S\'s opening fall and flick on every theme, the register chosen once, nothing under home but S\'s own settle; the loader refuses the old knots', async (ctx) => {
   const { validatePhrase, runPitch } = await import('../src/mined-phrase.ts');
   const row = JSON.parse(readFileSync(new URL('../recipes/genres/dnb/riff-liquid-mined.json', import.meta.url), 'utf8')).wants.riff;
   const run = row.phrase.runs[0];
@@ -532,41 +544,49 @@ test('liquid-fix: a phrase run\'s gestures ride the notes they belong to — S\'
   // distance between two rolled notes), its double slide rises 11.2 semitones out of its dip, and no run of the
   // phrase sounds more than S's 0.39 semitones under the line's home
   const spell = { ...HOUSE, ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 };
-  let openings = 0;
-  for (const seed of [1, 2, 6, 30, 27191, 39]) {
-    // the riff as its phrase lays it: the written passage (`src/passage.ts`) re-cuts the line inside its window on purpose
-    const t = planTheme(seed, 0, { strategy: 'house-v2', style: await planners(), spell });
-    const program = programOf(t), sixteenth = program.barSeconds / 16;
-    const runs = program.events.filter((e) => e.voice === 'reeseSub' && typeof e.p.curveDuration === 'number');
-    assert.ok(runs.length > 0, `seed ${seed}: no phrase runs`);
-    // a phrase cycle opens with its run of thirty sixteenths; the line's home in it is where most of its runs end
-    // (a line off the pedal moves its home with the chord)
-    const cycles: (typeof runs)[] = [];
-    for (const e of [...runs].sort((a, b) => a.t - b.t)) {
-      if (!cycles.length || Math.round(e.p.curveDuration / sixteenth) === 30) cycles.push([]);
-      cycles[cycles.length - 1].push(e);
-    }
-    for (const cycle of cycles) {
-      const ends = cycle.map((e) => Math.round(e.p.midi + e.p.bend[e.p.bend.length - 1]));
-      const home = [...ends].sort((a, b) => ends.filter((x) => x === b).length - ends.filter((x) => x === a).length)[0];
-      for (const e of cycle) {
-        const b = e.p.bend as number[], at = (i: number) => e.p.midi + b[i];
-        // under home only by S's own settle, and by the after-kick sag (liquid-k10), never under the floor less S's settle
-        const sag = row.phrase.afterKick?.knobs.sagMaxSt.default ?? 0;
-        for (let i = 1; i < b.length; i += 2) {
-          assert.ok(at(i) >= home - 0.3865 - sag - 1e-9, `seed ${seed} bar ${e.bar}: ${at(i).toFixed(2)} under home ${home}`);
-          assert.ok(at(i) >= row.play.floor - 0.3865, `seed ${seed} bar ${e.bar}: ${at(i).toFixed(2)} under the floor`);
+  // the riff as its phrase lays it (the planners alone), every rule held; and as the app plays it (the producer's
+  // arrangement re-cuts the line on purpose: its shifted, octaved and developed notes, `tools/as-played.ts`), every
+  // rule held but the re-cut runs', which are counted
+  const runRules = (style: object, check: (ok: unknown, says: string) => void) => {
+    let openings = 0;
+    for (const seed of [1, 2, 6, 30, 27191, 39]) {
+      const t = planTheme(seed, 0, { strategy: 'house-v2', style, spell });
+      const program = programOf(t), sixteenth = program.barSeconds / 16;
+      const runs = program.events.filter((e) => e.voice === 'reeseSub' && typeof e.p.curveDuration === 'number');
+      check(runs.length > 0, `seed ${seed}: no phrase runs`);
+      // a phrase cycle opens with its run of thirty sixteenths; the line's home in it is where most of its runs end
+      // (a line off the pedal moves its home with the chord)
+      const cycles: (typeof runs)[] = [];
+      for (const e of [...runs].sort((a, b) => a.t - b.t)) {
+        if (!cycles.length || Math.round(e.p.curveDuration / sixteenth) === 30) cycles.push([]);
+        cycles[cycles.length - 1].push(e);
+      }
+      for (const cycle of cycles) {
+        const ends = cycle.map((e) => Math.round(e.p.midi + e.p.bend[e.p.bend.length - 1]));
+        const home = [...ends].sort((a, b) => ends.filter((x) => x === b).length - ends.filter((x) => x === a).length)[0];
+        for (const e of cycle) {
+          const b = e.p.bend as number[], at = (i: number) => e.p.midi + b[i];
+          // under home only by S's own settle, and by the after-kick sag (liquid-k10), never under the floor less S's settle
+          const sag = row.phrase.afterKick?.knobs.sagMaxSt.default ?? 0;
+          for (let i = 1; i < b.length; i += 2) {
+            check(at(i) >= home - 0.3865 - sag - 1e-9, `seed ${seed} bar ${e.bar}: ${at(i).toFixed(2)} under home ${home}`);
+            check(at(i) >= row.play.floor - 0.3865, `seed ${seed} bar ${e.bar}: ${at(i).toFixed(2)} under the floor`);
+          }
+          if (Math.round(e.p.curveDuration / sixteenth) !== 30) continue; // the opening run, thirty sixteenths whole
+          openings++;
+          check(Math.abs(b[3] - b[1] + 0.8927) < 1e-3, `seed ${seed} bar ${e.bar}: the opening moves ${(b[3] - b[1]).toFixed(2)} st`);
+          let rise = 0;
+          for (let i = 3; i < b.length; i += 2) rise = Math.max(rise, b[i] - b[i - 2]);
+          check(Math.abs(rise - 7.786) < 1e-3, `seed ${seed} bar ${e.bar}: the flick rises ${rise.toFixed(3)} in one knot`);
         }
-        if (Math.round(e.p.curveDuration / sixteenth) !== 30) continue; // the opening run, thirty sixteenths whole
-        openings++;
-        assert.ok(Math.abs(b[3] - b[1] + 0.8927) < 1e-3, `seed ${seed} bar ${e.bar}: the opening moves ${(b[3] - b[1]).toFixed(2)} st`);
-        let rise = 0;
-        for (let i = 3; i < b.length; i += 2) rise = Math.max(rise, b[i] - b[i - 2]);
-        assert.ok(Math.abs(rise - 7.786) < 1e-3, `seed ${seed} bar ${e.bar}: the flick rises ${rise.toFixed(3)} in one knot`);
       }
     }
-  }
-  assert.ok(openings >= 6);
+    return openings;
+  };
+  assert.ok(runRules(await planners(), (ok, says) => assert.ok(ok, says)) >= 6);
+  const app = faults();
+  runRules(APP_STYLE(), app.check);
+  asPlayed(ctx, app.out, RIFF_DEPARTURES, riffTally);
 });
 
 test('liquid-clock: the riff row\'s optional pairClock beats the pair on the grid — the grid\'s rate, troughs where the row says, from theme time, riding the grid on a ride; absent, the voice\'s own spacing and phase as before; the loader refuses a malformed one', async () => {
@@ -609,7 +629,7 @@ test('liquid-clock: the riff row\'s optional pairClock beats the pair on the gri
   assert.ok(notes >= 100, `${notes} notes`);
 });
 
-test('liquid-k10: after the step-10 kick a run held flat and without its pair through the step-12 snare flicks on the kick and sags through the snare, riding its own path, lifted over the floor; nothing else moves', async () => {
+test('liquid-k10: after the step-10 kick a run held flat and without its pair through the step-12 snare flicks on the kick and sags through the snare, riding its own path, lifted over the floor; nothing else moves', async (ctx) => {
   const { validatePhrase, withAfterKick, runPitch, pathAt, afterKickAt } = await import('../src/mined-phrase.ts');
   const row = JSON.parse(readFileSync(new URL('../recipes/genres/dnb/riff-liquid-mined.json', import.meta.url), 'utf8')).wants.riff;
   const spec = row.phrase.afterKick;
@@ -663,27 +683,34 @@ test('liquid-k10: after the step-10 kick a run held flat and without its pair th
   }
   // over themes: every phrase run that sounds from the kick through the snare without its pair is not flat there
   const spell = { ...HOUSE, ember: 0.95, tide: 0.45, zephyr: 0.6, root: 0.75, veil: 0.6, spark: 0.85, loom: 0.85 };
-  let gestures = 0;
-  for (const seed of [1, 2, 6, 30, 27191, 39]) {
-    // the riff as its phrase lays it (as liquid-fix reads it): the passage's variants and register re-cut it on purpose
-    const program = programOf(planTheme(seed, 0, { strategy: 'house-v2', style: await planners(), spell })), sixteenth = program.barSeconds / 16;
-    for (const e of program.events) {
-      if (e.voice !== 'reeseSub' || typeof e.p.curveDuration !== 'number') continue;
-      const b = e.p.bend as number[], knots: [number, number][] = [];
-      for (let i = 0; i < b.length; i += 2) knots.push([b[i] / sixteenth, b[i + 1]]);
-      for (let k = rule.step - e.step; k + 2 < e.p.dur / sixteenth; k += 16) {
-        if (k < 0) continue;
-        const pair = e.p.subBeatCurve ? pathAt(Array.from({ length: e.p.subBeatCurve.length / 2 }, (_, i) => [e.p.subBeatCurve[2 * i] / sixteenth, e.p.subBeatCurve[2 * i + 1]] as [number, number]), k + 2) : 0;
-        if (pair >= 0.2) continue;
-        const snare = pathAt(knots, k + 2), clear = Math.min(k + 2 + rule.clearSteps, e.p.dur / sixteenth);
-        const after = [k + 2, clear, ...knots.map(([s]) => s).filter((s) => s > k + 2 && s < clear)];
-        if (after.some((s) => Math.abs(pathAt(knots, s) - snare) > rule.flatSt)) continue; // it moves right after the snare
-        const top = Math.max(...knots.filter(([s]) => s > k && s < k + 2).map(([, v]) => v), -99);
-        assert.ok(top - snare >= 4, `seed ${seed} bar ${e.bar}: held flat from the kick through the snare`);
-        gestures++;
+  // the riff as its phrase lays it (as liquid-fix reads it), and as the app plays it, the re-cut runs counted
+  const flatRules = (style: object, check: (ok: unknown, says: string) => void) => {
+    let gestures = 0;
+    for (const seed of [1, 2, 6, 30, 27191, 39]) {
+      const program = programOf(planTheme(seed, 0, { strategy: 'house-v2', style, spell })), sixteenth = program.barSeconds / 16;
+      for (const e of program.events) {
+        if (e.voice !== 'reeseSub' || typeof e.p.curveDuration !== 'number') continue;
+        const b = e.p.bend as number[], knots: [number, number][] = [];
+        for (let i = 0; i < b.length; i += 2) knots.push([b[i] / sixteenth, b[i + 1]]);
+        for (let k = rule.step - e.step; k + 2 < e.p.dur / sixteenth; k += 16) {
+          if (k < 0) continue;
+          const pair = e.p.subBeatCurve ? pathAt(Array.from({ length: e.p.subBeatCurve.length / 2 }, (_, i) => [e.p.subBeatCurve[2 * i] / sixteenth, e.p.subBeatCurve[2 * i + 1]] as [number, number]), k + 2) : 0;
+          if (pair >= 0.2) continue;
+          const snare = pathAt(knots, k + 2), clear = Math.min(k + 2 + rule.clearSteps, e.p.dur / sixteenth);
+          const after = [k + 2, clear, ...knots.map(([s]) => s).filter((s) => s > k + 2 && s < clear)];
+          if (after.some((s) => Math.abs(pathAt(knots, s) - snare) > rule.flatSt)) continue; // it moves right after the snare
+          const top = Math.max(...knots.filter(([s]) => s > k && s < k + 2).map(([, v]) => v), -99);
+          check(top - snare >= 4, `seed ${seed} bar ${e.bar}: held flat from the kick through the snare`);
+          gestures++;
+        }
       }
     }
-  }
+    return gestures;
+  };
+  const gestures = flatRules(await planners(), (ok, says) => assert.ok(ok, says));
+  const app = faults();
+  flatRules(APP_STYLE(), app.check);
+  asPlayed(ctx, app.out, RIFF_DEPARTURES, riffTally);
   assert.ok(gestures >= 30, `${gestures} gestures`);
 });
 
@@ -908,3 +935,5 @@ test('B2: inside a fast place\'s groove a bar the kit plays has its hats whereve
   }
   assert.ok(bars > 1000, `${bars} bars`);
 });
+
+departuresSaid('the riff', RIFF_DEPARTURES, riffTally);

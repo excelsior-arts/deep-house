@@ -312,6 +312,14 @@ export type Table = StyleTable & Instruments & {
   piano: { grain?: PianoGrain };
   harmonicEdge?: HarmonicEdge;
   malletStrike?: MalletStrike;
+  /**
+   * **The clean keys** (round KEYS-NOISE 2, `voices/grain.ts`): the keyboard
+   * rows, by id, whose notes play clean in this theme — no strike noise on
+   * the note (`keys.edge.chiff` read as nought for them) and past the harmonic
+   * bus's edge (its clean door, as a row's `edge: false` is). Never in a
+   * table: written by the composer only into a theme that sounds one of them.
+   */
+  cleanKeys?: readonly string[];
 };
 
 /**
@@ -410,9 +418,14 @@ export interface Lane {
   /**
    * The families a lane does not draw: under a named scene (the drone in
    * front), or in a tempo band (`tempoFrom`, inclusive, in BPM — a hand drum
-   * on sixteenths at a half-time's pace is a rattle, 10-02), or both.
+   * on sixteenths at a half-time's pace is a rattle, 10-02), or both. Beside
+   * the band an entry may ask the theme's kit (`kits`, the composer's words)
+   * and its harmonic bed (`bed`: the bed's own declared facts, a bed that is
+   * not struck and holds at least `holdFrom` of the bar — a continuous bed,
+   * 10-13); an entry with no scene asks every condition it carries.
    */
-  withdraw?: ReadonlyArray<{ scene?: string; tempoFrom?: number; tempoTo?: number; controls?: Readonly<Record<string, { min?: number; max?: number }>>; families: readonly string[] }>;
+  withdraw?: ReadonlyArray<{ scene?: string; tempoFrom?: number; tempoTo?: number; controls?: Readonly<Record<string, { min?: number; max?: number }>>;
+    kits?: readonly string[]; bed?: { holdFrom: number }; families: readonly string[] }>;
   /**
    * A level this lane's candidates take under a named scene, by what they
    * were measured to be: a candidate with at least `midFrom` per cent of its

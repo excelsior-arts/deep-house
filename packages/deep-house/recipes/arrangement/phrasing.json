@@ -1,0 +1,243 @@
+{
+ "schema": 1,
+ "kind": "arrangement-phrasing",
+ "round": "unify-u2",
+ "revision": 1,
+ "note": "The arrangement's phrases at every house-v2 position whose kit no phrase planner owns (PLAN-UNIFY U2: the house, the mid ring, a fast place's groove its development does not plan): one vocabulary of endings and phrase events, the house's sub-sections its defaults; sub-segments inside a long main; the drums answering the structural arrivals; the bass out before a drop, a return and a break (the cooldown). Each knob in the unit it declares (src/musical-time.ts), leaned by the one lean (src/lean.ts) about the house's own birds, so the house's spell plays the numbers as written. His word of 10-13 is the reason: 'the mains lack sub segments … we divide only break, groove, and in and out'. Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "ring",
+   "name": "the ring's phrases",
+   "units": {
+    "says": "what each knob counts (src/musical-time.ts): bars are the theme's written grid, phrases the theme's phrase (the time helper's), seconds and dB absolute, a share 0 to 1, a weight relative, a lean the one lean's; `*` is any key",
+    "centre.*": "share",
+    "segments.longBars": "bars",
+    "segments.longMostS": "seconds",
+    "segments.everyS": "seconds",
+    "segments.spacingPhrases": "phrases",
+    "segments.spanPhrases": "phrases",
+    "segments.leastBars": "bars",
+    "segments.byFunction.*.*": "weight",
+    "segments.reentryFill.*": "share",
+    "segments.lean.loom": "lean",
+    "segments.lean.veil": "lean",
+    "segments.liftDb": "dB",
+    "segments.liftEdgeS": "seconds",
+    "segments.filter.hz": "Hz",
+
+    "answers.spacingPhrases": "phrases",
+    "answers.gestureBars": "bars",
+    "answers.weights.*": "weight",
+    "answers.crashGain": "gain",
+    "answers.reverseBeats": "beats",
+    "answers.reverseGain": "gain",
+    "answers.breatheSteps": "sixteenths",
+    "answers.fieldDb": "dB",
+    "answers.fieldDbDrop": "dB",
+    "answers.leadBars": "bars",
+    "answers.releaseBeats": "beats",
+    "outs.into.*.*": "weight",
+    "outs.lean.root": "lean",
+    "cooldown.phrases.*": "weight",
+    "cooldown.lean.loom": "lean",
+    "cooldown.keep": "weight",
+    "cooldown.lean.root": "lean",
+    "segments.recent": "ratio",
+    "leastBpm": "bpm",
+    "segments.dropOutLeaves.*": "share",
+    "outs.withoutKick": "share",
+    "segments.filter.swellBeats": "beats",
+    "segments.filter.swellGain": "gain",
+    "segments.halfTime.hz": "Hz",
+    "outs.fill": "share",
+    "outs.lift.beats.*": "beats",
+    "outs.lift.semitones": "semitones",
+    "outs.lift.swellBeats.*": "beats",
+    "outs.lift.swellGain": "gain",
+    "outs.dip.hz": "Hz",
+    "build.level": "ratio",
+    "build.rollFrom": "sixteenths",
+    "build.stopStep": "sixteenths",
+    "build.stopBeatStep": "sixteenths",
+    "build.stopDb": "dB",
+    "build.cutS": "seconds",
+    "build.edgeS": "seconds",
+    "build.fieldDb": "dB",
+    "build.heldFieldDb": "dB"
+   },
+   "centre": {
+    "says": "the house's own birds (src/spell.ts HOUSE): every lean of this row is nought there",
+    "loom": 0.578,
+    "root": 0.717,
+    "veil": 0.473
+   },
+   "leastBpm": 70,
+   "vocabulary": {
+    "says": "one vocabulary (PLAN-UNIFY §2.4): every ending and phrase event the arrangement plays, with where it leads (its destinations: the phrase map's functions, an answer's arrival) and what the kit must have (its needs: a lane that sounds). Where it plays: `house`, the house's small things (`treatment:<kind>`, the rows of `recipes/treatments/` at the rates of the place table's `SUBSECTIONS`, the house's own the defaults) or this row's own (`segment:`, `answer:`, `out`); `producer`, the fast places' ending names (`src/passage.ts` `End`, at the weights of `recipes/ambient/producer.json`). Every name of either side is in exactly one entry (tools/check-passage.ts holds it)",
+    "entries": {
+     "fill": {
+      "destinations": ["approach", "interior", "arrival", "crest", "intoBreak", "intoDrop"],
+      "needs": ["backbeat", "kick"],
+      "house": "treatment:fill",
+      "producer": ["fill", "roll", "shortRoll", "snarePickup", "kickPickup", "openHatPickup", "openEnding"]
+     },
+     "drop-out": {
+      "destinations": ["interior", "approach", "intoBreak", "intoDrop"],
+      "needs": ["kick"],
+      "house": "treatment:drop-out",
+      "producer": ["kickOut", "beatSilence", "halfBarBreath", "lastBeatEmpty"]
+     },
+     "turnaround": {
+      "destinations": ["interior"],
+      "needs": ["kick", "backbeat", "offbeat"],
+      "house": "treatment:turnaround",
+      "producer": ["ghostTurn", "ghostTail", "ghostAnswer", "hatCut"]
+     },
+     "switch-up": {
+      "destinations": ["interior", "arrival"],
+      "needs": ["kick", "backbeat"],
+      "house": "treatment:switch-up",
+      "producer": []
+     },
+     "variation": {
+      "destinations": ["interior"],
+      "needs": ["offbeat"],
+      "house": "treatment:variation",
+      "producer": ["topsOpen", "topsClose", "topsDarken", "snareDeparture"]
+     },
+     "crash": {
+      "destinations": ["arrival"],
+      "needs": ["impact"],
+      "house": "answer:crash",
+      "producer": ["crash"]
+     },
+     "hats-breathe": {
+      "destinations": ["arrival"],
+      "needs": ["offbeat"],
+      "house": "answer:hatsBreathe",
+      "producer": ["hatsBreathe"]
+     },
+     "reverse": {
+      "destinations": ["arrival"],
+      "needs": ["swell"],
+      "house": "answer:reverse",
+      "producer": ["reverseCymbal"]
+     },
+     "kick-back": {
+      "destinations": ["intoDrop"],
+      "needs": ["kick"],
+      "house": null,
+      "producer": ["kickBack"]
+     },
+     "breakdown-lite": {
+      "destinations": ["interior"],
+      "needs": ["kick"],
+      "house": "segment:breakdown-lite",
+      "producer": []
+     },
+     "half-time": {
+      "destinations": ["interior"],
+      "needs": ["four"],
+      "house": "segment:half-time",
+      "producer": []
+     },
+     "filtered": {
+      "destinations": ["interior", "approach"],
+      "needs": [],
+      "house": "segment:filtered",
+      "producer": []
+     },
+     "bass-out": {
+      "destinations": ["intoDrop", "approach", "intoBreak"],
+      "needs": ["bassline"],
+      "house": "out",
+      "producer": []
+     }
+    }
+   },
+   "segments": {
+    "says": "sub-segments inside a long main (his word 10-13): a main, a drop or a groove longer than `longBars` bars or `longMostS` seconds, whichever is shorter, takes one phrase event per `everyS` seconds of its length (Loom up: denser, x0.67 at nought to x1.34 at one), never in its first phrase, its last, or the cooldown before a break, with at least `spacingPhrases` whole phrases of groove between two, on a phrase whose function the table names (an interior phrase, or an approach into an arrival), never over a bar the house's own small things already mark. Each sits at its phrase's end, the groove back on the phrase line: a drop-out bar (a drop-out row of the library that takes the kick out, or under a track row's own drums the bass and the chords, and only a row that leaves the bar a part to hold it after its clears: the bass sounding over `dropOutLeaves.bass` of it, the pad over `dropOutLeaves.drone`, or the keys over `dropOutLeaves.figure` — never a bar of nothing or the hand drums alone); a filtered phrase (the master's low-pass closed to `filter.hz` over `filter.closeBeats`, opened again over its last `filter.openBars`); a half-time phrase (the kick on one and three-and, the backbeat on three); a breakdown-lite (the kick, the backbeat, the sixteenths and the open hat out: the closed hats and the bed exposed, the melodic bus lifted `liftDb` as a breakdown lifts it); a fill (a fill row of the library) into the line. A span is `spanPhrases` of the phrase (at least `leastBars`); its last bar is the re-entry, a fill row there at `reentryFill`, the drums back for it. Which kind is drawn by the phrase's function among those the kit admits (a role a track row's cells own is never edited), a kind the main already played at `recent` of its weight, off a stream of the phrase's own. Never from a tempo under the row's `leastBpm`, never a held drone over a broken beat (the Spark and Loom combo his ear keeps, 10-13)",
+    "sections": ["main", "drop", "groove"],
+    "longBars": 32,
+    "longMostS": 60,
+    "everyS": 40,
+    "spacingPhrases": 1,
+    "spanPhrases": 0.5,
+    "leastBars": 2,
+    "dropOutLeaves": {"bass": 0.5, "drone": 0.5, "figure": 0.6},
+    "byFunction": {
+     "interior": {"breakdown-lite": 3, "half-time": 2, "filtered": 2, "drop-out": 2, "fill": 2},
+     "approach": {"fill": 3, "drop-out": 2, "filtered": 1}
+    },
+    "reentryFill": {"breakdown-lite": 1, "half-time": 1, "filtered": 0.5},
+    "recent": 0.35,
+    "lean": {"loom": 0.7},
+    "liftDb": 1.4,
+    "liftEdgeS": 0.4,
+    "filter": {
+     "says": "the filtered phrase (U2c, his ear 10-13 on U2b: 'fading in sounds cheap, likely need more like a build up and drop kind of approach'): the master's low-pass cut to `hz` at the phrase's start (a cut, never a fade), the tops thinning under it, then the build into the line (`build`), the low-pass opening with the roll to the stop; a reverse swell of `swellBeats` into the line at `swellGain` where the theme sounds the glue's swell and no gesture lands there",
+     "hz": 1800,
+     "swellBeats": 2,
+     "swellGain": 0.3
+    },
+    "halfTime": {
+     "says": "the half-time phrase's re-entry (U2c): the build into the line, the low-pass cut to `hz` where its bar starts and opening with the roll to the stop",
+     "hz": 1500
+    }
+   },
+   "answers": {
+    "says": "the drums answer a structural arrival (§1.3, §1.6): a section line the drums play into, the progression arriving after its harmony held a phrase, the keys' landing — at most one a `spacingPhrases` phrase, never where a gesture already stands within `gestureBars` of the line (a lead-in, a section's impact). The answer drawn by the producer's landing weights among the parts the cast admits: a crash into the hall (the glue's impact, where the palette carries one, at `crashGain`), the hats breathing over the arrival's first `breatheSteps` (never into a break; and out of the intro neither the breath nor the swell, a stumble on the bar the groove starts: a crash there or nothing), a reverse swell into it (the glue's swell, `reverseBeats` long, at `reverseGain`; the glue's own gates admit or refuse it as every glue noise); and the field leaning in, the melodic bus `fieldDb` up from `leadBars` before the line (`fieldDbDrop` into a drop, nothing into a break) and back over `releaseBeats` — half the fast places' own, the house being quiet about its section lines",
+    "spacingPhrases": 1,
+    "gestureBars": 0.6,
+    "weights": {"crash+reverse": 45, "hatsBreathe+reverse": 30, "crash": 15, "hatsBreathe": 10},
+    "crashGain": 0.5,
+    "reverseBeats": 4,
+    "reverseGain": 0.3,
+    "breatheSteps": 8,
+    "fieldDb": 1.5,
+    "fieldDbDrop": 2.25,
+    "leadBars": 0.5,
+    "releaseBeats": 2
+   },
+   "outs": {
+    "says": "the bass out before an anchor so its return lands with it (§1.10): before a drop, and before a main's return after a break, a build or a drop, where the bass plays into the line and on it, out for the producer's lengths turned into the theme's bars (5.5 s or 2.8 s into a drop, 1.4 s or 2.8 s into a return: the fast places' four and two, one and two bars), at least a bar; none at the weight `0`, which Root leans up (the low end's weight: x1.76 at one, x0.24 at nought). Only where the harmony or the hats hold the space without the bass (never a hole), and a bar whose kick is out keeps a harmony over `withoutKick` of it (never a bar of no kick, no bass and a stab: the guards' thin bar), and never over a bar the house's own small things or a sub-segment already mark. his ear 10-13 on the Dubstep spell's bass out before its drop: 'not bad, but cheap, need some drum filling, more accurate bass lift … otherwise it actually sounds like bass machine got a glitch while other tracks were keep going'. A bare bass gap with everything else carrying on is not taken: every out, the cooldown's included, is marked — a fill on its last bar (a fill row of the library, at `fill`, where the kit's backbeat or kick may be edited); the lift into the anchor (`lift`); and the other voices acknowledging it (`dip`). An out nothing can mark stays in",
+    "into": {
+     "drop": {"5.5": 70, "2.8": 30, "0": 0},
+     "return": {"1.4": 40, "2.8": 30, "0": 30}
+    },
+    "lean": {"root": 2},
+    "withoutKick": 0.5,
+    "fill": 1,
+    "lift": {
+     "says": "the lift into a drop or a return: the bass's own glide, where its voice glides, a note `semitones` under the anchor's first bass note sliding up into it over the out's last `beats` (by where it leads); and a reverse swell of `swellBeats` into the line (by where it leads, a cooldown's into its break), at `swellGain`, where the glue carries a swell the theme already sounds and no gesture (a lead-in's riser or sweep, a section's impact) lands there — a gesture already there is the lift. Never a glide into a break",
+     "beats": {"drop": 2, "return": 1},
+     "semitones": 12,
+     "swellBeats": {"drop": 8, "return": 4, "break": 4},
+     "swellGain": 0.35
+    },
+    "dip": {
+     "says": "the low-pass across an out (U2c: cut closed to `hz` at its start, opening with the build's roll to its stop, never a fade); a cooldown's tops thin into its break instead where they may",
+     "hz": 2500
+    }
+   },
+   "build": {
+    "says": "the build and the drop into a line (U2c, his ear 10-13 on U2b: 'we need to have more drum work on any little breaks like that, despite the filters and other voices, if track has drums, it's essential to use drums for emphasis these kind of moments … likely need more like a build up and drop kind of approach for more expression'): every sub-segment and every out leads with the drums. On the line's last bar the library's fill builds, its roll from `rollFrom` at the latest (two beats) at `level` of the backbeat hit it copies (a kit with no backbeat rolls its closed hats) (a build's peak at the lane's own level at most), the hats resting under the roll; the drums stop from `stopStep` (a drop-out bar under a row's own drums stops from `stopBeatStep`, the last beat), the bass out from the roll where it may leave, the field (the melodic bus) rising `fieldDb` with the roll (`heldFieldDb` where a track row owns the drums) and cut `stopDb` through the stop, every edge `edgeS`; then everything back at once on the line, a crash on its one where the theme strikes one and nothing lands there. Over a track row's own drums the build and the stop are overlays on that bar alone; a filter is cut closed in `cutS`, never faded",
+    "level": 0.7,
+    "rollFrom": 8,
+    "stopStep": 14,
+    "stopBeatStep": 12,
+    "stopDb": -12,
+    "cutS": 0.05,
+    "edgeS": 0.012,
+    "fieldDb": 1.5,
+    "heldFieldDb": 3
+   },
+   "cooldown": {
+    "says": "the cooldown at a main's end into a break (the producer's 'the drums alone are the cooldown', and its rule: never an interior stretch where the full groove restarts for a few bars before the break): its last quarter or half of a phrase (Loom up: the half, its weight x0.56 at nought to x1.52 at one), declared — no sub-segment in it, and the guards read it as a cooldown — with the bass out across it where the harmony or the hats hold the space without it (as the outs: a kickless bar keeps its harmony) and no bar of it is the house's own small things' (their drop-out on the main's last bar is the way out), kept at the weight `keep` against 80, which Root leans up (x0.24 at nought, x1.76 at one)",
+    "phrases": {"0.25": 60, "0.5": 40},
+    "keep": 20,
+    "lean": {"loom": 1, "root": 2}
+   }
+  }
+ ]
+}

@@ -32,7 +32,10 @@ import PRODUCER_FILE from '../recipes/ambient/producer.json' with { type: 'json'
 import { PASSAGE_ROWS, LEN, posOf, posAt as posFrom, sixteenthsOf, scalePitch, type PassageRow, type Line, type Strike, type BassOp, type DrumState, type End, type WeatherSpan, type Fx,
   type FieldSwell, type Bloom, type Holds, type Texture } from './passage.ts';
 import { Rng } from './rng.ts';
+import { lean as leanBy, leaned, leansOf, centreOf, strengthOf, shiftOf, type LeanRow } from './lean.ts';
 import type { PlanEvent } from './generator.ts';
+import type { MusicalTime } from './musical-time.ts';
+import { fadeSOf } from './hygiene.ts';
 
 type W = Record<string, number>;
 /** a phrase an archetype may draw; `needs` a scale step of the chord it sounds over to lie so many semitones over the chord's root (a natural thirteenth is a colour only where the mode has one) */
@@ -50,10 +53,14 @@ export interface ProducerRow {
   archetypes: Record<string, Archetype | string>;
   /** what was just drawn (a phrase, a riff variant) is drawn at `weight` of itself within `phrases` phrases */
   recent: { weight: number; phrases: number };
-  voice: { byFunction: Record<string, W>; leastRestBars: number; birds: Record<string, Record<string, number | string>>; exposedQuestionVel: number };
-  drums: { states: Record<string, W>; birds: Record<string, Record<string, number | string>>; endings: Record<string, W>; inflection: { chance: number; ends: W };
-    landing: W & { says?: unknown }; restrikeSwell: number; thinUnder: number; answerAfter: number; skeletonSpace: string };
+  voice: { byFunction: Record<string, W>; leastRestBars: number; birds: LeanRow; exposedQuestionVel: number };
+  drums: { states: Record<string, W>; birds: LeanRow; endings: Record<string, W>; inflection: { chance: number; ends: W };
+    landing: W & { says?: unknown }; restrikeSwell: number; thinUnder: number; answerAfter: number; skeletonSpace: string;
+    /** Veil on the fill-like endings and the reverse swells (PLAN-UNIFY U2, the fast places' birds), about the tile's own Veil */
+    fx?: LeanRow };
   bass: { leadIn: Record<string, W>; orchestra: { chance: number; where: Record<string, W> }; answers: Record<string, BassOp[]>; answerChance: number;
+    /** Root on the outs (the weight `0`) and the answers (`answer`) (PLAN-UNIFY U2, the fast places' birds), about the tile's own Root */
+    birds?: LeanRow;
     developed: { variants: Array<{ id: string; w: number; ops: BassOp[] }> }; first: W; floor: number; breath: BassOp[];
     register?: NonNullable<PassageRow['bass']['register']> };
   keys: { byFunction: Record<string, W>; dominant: { chance: number; drop: number; apartBars: number }; touch: StrikeRow; suspension: StrikeRow & { resolve: StrikeRow }; colour: StrikeRow;
@@ -71,10 +78,19 @@ export interface ProducerRow {
     endings: string[]; inflections: string[]; riserBeats: number };
   /** long holds fade */
   holds?: Holds;
+  /** the bed's register lean, carried into every pad the grammar writes (the planner's bed it retires leaned it): semitones per unit of a bird off the row's centre (the tile's own), rounded, at most `most` */
+  bedRegister?: Readonly<Record<string, unknown>> & { most: number };
   /** the pads as a line across each main passage; the drop's chord handed on; a bed where the groove would go bare */
   arc?: { first: Array<[string, number]>; later: Array<[string, number]>; voicings: number[][][]; voices: [number, number]; top: number; db: [number, number]; bars: [number, number];
     width: [number, number]; air: [number, number]; attack: [number, number]; release: number; rise: [number, number]; fadeBars: number; gapBelow: number; landingAt: number; takeover: number;
-    maxEmptyBars: number; cooldownDb: number; handover: { from: number; bars: number; level: number }; filler: { bars: number; level: number } };
+    maxEmptyBars: number; maxEmptyS: number; cooldownDb: number; handover: { from: number; bars: number; level: number }; filler: { bars: number; level: number };
+    /**
+     * the birds on every pad the grammar writes (PLAN-UNIFY U3, the fast places' birds), each about the tile's own value
+     * (`centre`, by bird), so the tile plays as it did: Zephyr's factors on the blooms' `width` and `air` (the one lean,
+     * exp(x · (bird − centre))); a Tide step on every pad's level in dB (x · (bird − centre), held to ±`mostDb`) where a
+     * row names one (the shipped row does not)
+     */
+    birds?: { centre: Record<string, number>; zephyr?: { width?: number; air?: number }; tide?: { db?: number }; mostDb: number } };
   /** the texture under the straight top (its spans are the arrangement's) */
   texture?: Omit<Texture, 'spans'>;
   /** every drop after the break restruck at its interior, the voice on top */
@@ -99,6 +115,10 @@ export interface ProducerInput {
   /** the first drop's bar: the row's positions are counted from it */
   drop: number;
   landings: ReadonlyArray<{ bar: number; change: boolean }>;
+  /** the theme's phrase, in written bars (`src/musical-time.ts`: eight at the fast places, where the grammar was written) */
+  phraseBars: number;
+  /** the theme's time (`src/musical-time.ts`): the knobs written in seconds out of bars resolve by it */
+  time: Pick<MusicalTime, 'barS'>;
   events: readonly PlanEvent[];
   barSeconds: number;
   isKick: (voice: string) => boolean;
@@ -107,6 +127,8 @@ export interface ProducerInput {
   degreeAt: (bar: number) => number;
   /** the key's tonic (a pitch class), for a line fitted to the bass's register */
   tonic: number;
+  /** the bed's voice, whose role-less pad notes the passage retires (no cover for a bare groove) */
+  bedVoice: string | null;
 }
 
 /** One phrase of the arrangement as the grammar chose it: what each part does and what it answers. */
@@ -140,15 +162,24 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
   const rng = new Rng(`${I.seed}::producer:${G.id}`);
   const bs = I.barSeconds;
   const RB = G.anticipation.releaseBeats;
-  // a weight table leaned by the birds: each bird's lean on a key (or on any key of a pair naming it), as far as the bird stands from its middle
-  const lean = (w: W, birds: Record<string, Record<string, number | string>>): W => {
+  // a weight table leaned by the birds (the one lean, `src/lean.ts`): each bird's lean on a key, or on any key of a pair naming it
+  const lean = (w: W, birds: LeanRow): W => {
     const out: W = { ...w };
-    for (const [bird, leans] of Object.entries(birds)) for (const [k, v] of Object.entries(leans)) {
+    const s = strengthOf(birds), c = centreOf(birds);
+    for (const [bird, leans] of leansOf(birds)) for (const [k, v] of Object.entries(leans)) {
       if (typeof v !== 'number') continue;
-      for (const key of Object.keys(out)) if (key === k || key.split('|').includes(k)) out[key] *= Math.exp(v * ((I.spell[bird] ?? 0.5) - 0.5) * 2);
+      for (const key of Object.keys(out)) if (key === k || key.split('|').includes(k)) out[key] *= leanBy(v, I.spell[bird], s, c);
     }
     return out;
   };
+  // the fast places' birds on the drums' fx and the bass (PLAN-UNIFY U2): ×1 at the tile, so the tile draws as it did
+  const fxLean = (w: W): W => (G.drums.fx ? lean(w, G.drums.fx) : w);
+  const bassLean = (w: W): W => (G.bass.birds ? lean(w, G.bass.birds) : w);
+  const answerChance = Math.min(1, G.bass.answerChance * (G.bass.birds ? leaned(1, 'answer', G.bass.birds, I.spell) : 1));
+  const restrikeSwell = Math.min(1, G.drums.restrikeSwell * (G.drums.fx ? leaned(1, 'reverse', G.drums.fx, I.spell) : 1));
+  // a riser into a drop is admitted at Veil's lean, held under one, off a stream of its own: at the tile and over it
+  // every riser plays as it did and no other die moves; under it some drops arrive without one
+  const riserAt = (q: number) => !G.drums.fx || new Rng(`${I.seed}::producer:riser:${q}`).chance(Math.min(1, leaned(1, 'riser', G.drums.fx, I.spell)));
   const draw = (w: W, allow: (k: string) => boolean = () => true): string => {
     const pairs = Object.entries(w).filter(([k, x]) => x > 0 && allow(k)).map(([v, x]) => ({ v, w: x }));
     return pairs.length ? rng.weighted(pairs) : 'none';
@@ -191,7 +222,8 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
   const cuts = new Set<number>([0, I.bars, wFrom, wTo, ...sections.map((s) => s.startBar)]);
   const grid: Array<[number, number]> = [];
   const sorted = [...cuts].filter((x) => x >= 0 && x <= I.bars).sort((a, b) => a - b);
-  for (let i = 0; i + 1 < sorted.length; i++) for (let p = sorted[i]; p < sorted[i + 1]; p += 8) grid.push([p, Math.min(p + 8, sorted[i + 1])]);
+  const PB = I.phraseBars;
+  for (let i = 0; i + 1 < sorted.length; i++) for (let p = sorted[i]; p < sorted[i + 1]; p += PB) grid.push([p, Math.min(p + PB, sorted[i + 1])]);
 
   // ----- the row it writes: the passage's vocabulary and its window's content, and the grammar's around it -----
   const lines: Line[] = passage.lines.filter((x) => inPassage(posOf(x.at).bar));
@@ -341,7 +373,6 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     const canDominant = arrives?.change && n >= 8 && (fn === 'approach' || fn === 'intoDrop') && kind !== 'intro'
       && !dominants.some((b) => Math.abs(b - q) < G.keys.dominant.apartBars);
     if (canDominant) dominant = rng.chance(fn === 'intoDrop' ? G.keys.dominant.drop : G.keys.dominant.chance);
-    if (dominant) dominants.push(q);
     if (featurePhrase && F) {
       // the moment's solo: the track's motif recalled and developed, each line where the row puts it
       const spans: Array<[number, number]> = [];
@@ -418,6 +449,10 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       } else voiceArch = 'rest';
     }
 
+    // the dominant is remembered once it is placed (the voice may strike it off for want of its rest): one that never
+    // sounded holds no spacing against the next (the deep review of 10-12)
+    if (dominant) dominants.push(q);
+
     // --- the drums around the voice: thinner under it, answering in its gap ---
     // the phrase's last bar is the drummer's ending, never thinned: under a closing ending and a bass already out it
     // would stack into a hole before the change
@@ -448,7 +483,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         // the build into the first drop rises to it as the break's does (the planner takes its kick out there)
         if (kind !== 'breakdown' && G.builds) {
           const Bx = G.exposed.build, from16 = (q - G.builds.riserBeats / 4) * 16;
-          fx.push({ at: posAt(from16), kind: 'riser', beats: G.builds.riserBeats, db: Bx.riserDb, send: 'riser', label: `the riser into the drop at ${q}` });
+          if (riserAt(q)) fx.push({ at: posAt(from16), kind: 'riser', beats: G.builds.riserBeats, db: Bx.riserDb, send: 'riser', label: `the riser into the drop at ${q}` });
           swellInto(from16, q, Bx.fieldDb, RB.build);
         }
       }
@@ -456,7 +491,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         markThinning(q, 'the tops close into the outro, a reverse swell into it', 'the outro begins with a crash into the hall');
         pick = 'topsClose+reverseCymbal';
       }
-      else { pick = draw(G.drums.endings[table], (k) => !building || k === 'none' || G.builds!.endings.includes(k)); if (pick !== 'none') end(q - 1, pick.split('+') as End[], `the ending (${table})`); }
+      else { pick = draw(fxLean(G.drums.endings[table]), (k) => !building || k === 'none' || G.builds!.endings.includes(k)); if (pick !== 'none') end(q - 1, pick.split('+') as End[], `the ending (${table})`); }
       plan.drums += `; ending ${pick}`;
       // the inflection inside the phrase
       const ib = fn === 'arrival' ? p + 1 : p + 3;
@@ -466,7 +501,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         plan.drums += `; ${e} at ${ib}`;
       }
       // the bass may answer into the ending's gap
-      if (bass && ['kickOut', 'openEnding', 'hatCut', 'ghostTurn'].includes(pick) && rng.chance(G.bass.answerChance)) answerTo = pick;
+      if (bass && ['kickOut', 'openEnding', 'hatCut', 'ghostTurn'].includes(pick) && rng.chance(answerChance)) answerTo = pick;
     }
     // the planner's own thinning (the drums falling to a skeleton, the bass gone) gets a way in: the tops close into it,
     // a crash into the hall marks it, the field leans in
@@ -480,7 +515,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     if (arrives && (drums || drumsIn(q, q + 1)) && kindAt(q) !== 'breakdown') {
       // the landing: the drums take part (a strong change), or at least lean into it (a restrike)
       const intoDrop = starts.get(q) === 'drop';
-      const g = arrives.change && !intoDrop ? draw(G.drums.landing) : intoDrop ? 'reverseCymbal' : rng.chance(G.drums.restrikeSwell) ? 'reverseCymbal' : 'hatsBreathe';
+      const g = arrives.change && !intoDrop ? draw(fxLean(G.drums.landing)) : intoDrop ? 'reverseCymbal' : rng.chance(restrikeSwell) ? 'reverseCymbal' : 'hatsBreathe';
       const parts = g.split('+');
       if (parts.includes('reverseCymbal')) end(q - 1, ['reverseCymbal'], `a reverse swell into the landing at ${q}`);
       const onIt = parts.filter((x) => x !== 'reverseCymbal');
@@ -561,9 +596,9 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       // out before an anchor, so its return lands with the chord
       let out = 0;
       if (dominant) out = bassIn(p, q - 1) ? 1 : 0;
-      else if (into === 'drop') out = bassIn(p, p + Math.max(1, n - 4)) ? Number(draw(G.bass.leadIn.drop)) : 0;
-      else if (fn === 'intoBreak') out = Number(draw(G.bass.leadIn.break));
-      else if (arrives?.change) out = Number(draw(G.bass.leadIn.change));
+      else if (into === 'drop') out = bassIn(p, p + Math.max(1, n - 4)) ? Number(draw(bassLean(G.bass.leadIn.drop))) : 0;
+      else if (fn === 'intoBreak') out = Number(draw(bassLean(G.bass.leadIn.break)));
+      else if (arrives?.change) out = Number(draw(bassLean(G.bass.leadIn.change)));
       // the drums alone are the cooldown: the last phrase before the break (or four bars before the outro), flowing
       // straight into its way in, once a passage
       const stretch = `${kind}:${stage}`;
@@ -613,7 +648,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         const B = E.build, b0 = Math.max(p, q - B.bars);
         states.push({ from: rel(b0), to: rel(q), state: 'B', fade: { source: q - b0, hp: B.hp, db: landingAt(b0) && B.landingDb ? B.landingDb : B.db } });
         end(q - 1, ['roll', 'reverseCymbal'], 'the roll accelerating into the drop, a reverse swell on it');
-        fx.push({ at: posAt((q - B.riserBeats / 4) * 16), kind: 'riser', beats: B.riserBeats, db: B.riserDb, send: 'riser', label: `the riser into the drop at ${q}` });
+        if (riserAt(q)) fx.push({ at: posAt((q - B.riserBeats / 4) * 16), kind: 'riser', beats: B.riserBeats, db: B.riserDb, send: 'riser', label: `the riser into the drop at ${q}` });
         swellInto(b0 * 16, q, B.fieldDb, RB.build);
         if (!(per.get(q)?.crash)) end(q, ['crash'], 'the drop\'s crash');
         // the keys' touch under the build, struck again every few bars, each louder, so the harmony climbs into the drop
@@ -655,7 +690,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     if (!l.change || !drumsIn(l.bar - 1, l.bar + 1) || kindAt(l.bar) === 'breakdown') continue;
     if (endings.some((x) => (x.bar === rel(l.bar) || x.bar === rel(l.bar - 1)) && x.end.some((e) => GESTURE.has(e)))) continue;
     if (states.some((x) => x.from === rel(l.bar) && (x.state === 'T' || x.state === 'H'))) continue;
-    const g = draw(G.drums.landing).split('+');
+    const g = draw(fxLean(G.drums.landing)).split('+');
     if (g.includes('reverseCymbal')) end(l.bar - 1, ['reverseCymbal'], `a reverse swell into the landing at ${l.bar}`);
     const on = g.filter((x) => x !== 'reverseCymbal') as End[];
     end(l.bar, on.length ? on : ['crash'], `the drums on the landing at ${l.bar}`);
@@ -766,7 +801,12 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     // no stretch of the groove without a bed or a phrase: a quiet pad where more than `maxEmptyBars` go bare
     const covered = new Set<number>();
     const cover = (a: number, z: number) => { for (let b = Math.floor(a); b < Math.ceil(z); b++) covered.add(b); };
-    for (const e of I.events) if (!e.p.gone && (e.role === 'sparse-keys' || e.layer === 'pad' || e.part === 'weather') && e.part !== 'soloist' && e.part !== 'soloist-swell' && Number(e.p.dur) >= 2 * bs) cover(e.t / bs, e.t / bs + Number(e.p.dur) / bs + 0.75);
+    // what the row retires is no cover (the deep review of 10-12): the bed's role-less notes, the planners' statements and
+    // echoes, the vinyl bed, the retired layers are gone by the time the track plays
+    const retiredHere = (e: PlanEvent) => (e.part != null && (passage.retire.parts.includes(e.part) || G.retire.parts.includes(e.part)))
+      || passage.retire.voices.includes(e.voice) || G.retire.voices.includes(e.voice) || G.retire.layers.includes(e.layer)
+      || (I.bedVoice != null && e.voice === I.bedVoice && e.layer === 'pad' && !e.role);
+    for (const e of I.events) if (!e.p.gone && !retiredHere(e) && (e.role === 'sparse-keys' || e.layer === 'pad' || e.part === 'weather') && Number(e.p.dur) >= 2 * bs) cover(e.t / bs, e.t / bs + Number(e.p.dur) / bs + 0.75);
     for (const k0 of strikes) { const x = posOf(k0.at); if (k0.bars >= 1) cover(I.drop + x.bar, I.drop + x.bar + k0.bars + 0.75); }
     for (const b of bloomsAbs()) cover(b.from, b.to);
     for (const L of lines) { const a = I.drop * 16 + sixteenthsOf(L.at); cover(a / 16, (a + phraseLen(L.phrase, L.skip ?? 0).total) / 16 + 1); }
@@ -776,7 +816,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       if (!groove(b) || covered.has(b)) continue;
       let z = b;
       while (z < I.bars && groove(z) && !covered.has(z)) z++;
-      if (z - b > A.maxEmptyBars) {
+      if (z - b > Math.min(A.maxEmptyBars, A.maxEmptyS / bs)) {
         const a = Math.max(0, b - 1), e = Math.min(capAfter(a, I.bars), a + Math.min(z - a + 1, A.filler.bars));
         if (e - a >= 2) { addPad(a, e, A.filler.level, b, `pad: a bed where the groove went bare (${b}-${z - 1})`); cover(a, e); }
       }
@@ -784,6 +824,24 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     }
     for (const [from, xs] of padPlans) { const pl = plans.find((y) => y.from === from); if (pl) pl.space = [pl.space, ...xs].filter(Boolean).join('; '); }
   }
+
+  // long holds fade by the ring's rule (`src/hygiene.ts`): the row's bars held between its bounds and leaned by its
+  // birds, in seconds by the theme's time, the ring past an end in the same proportion (at the tile's own Tide, its bars)
+  function holdsIn(H: Holds): Holds {
+    if (H.fadeLeastS == null || H.fadeMostS == null) return H;
+    const fadeS = fadeSOf(I.time, { fadeBars: H.fadeBars, fadeLeastS: H.fadeLeastS, fadeMostS: H.fadeMostS, lean: H.lean }, I.spell);
+    return { ...H, fadeS, tailS: fadeS * (H.tailBars / H.fadeBars) };
+  }
+
+  // the birds on the pads (PLAN-UNIFY U3): written only off the tile's own values, so the tile's row is the row it was
+  const padLean = (() => {
+    const B = G.arc?.birds;
+    if (!B) return null;
+    const off = (bird: string) => { const v = I.spell[bird], c = B.centre[bird]; return typeof v === 'number' && typeof c === 'number' ? v - c : 0; };
+    const width = Math.exp((B.zephyr?.width ?? 0) * off('zephyr')), air = Math.exp((B.zephyr?.air ?? 0) * off('zephyr'));
+    const db = Math.max(-B.mostDb, Math.min(B.mostDb, (B.tide?.db ?? 0) * off('tide')));
+    return width === 1 && air === 1 && db === 0 ? null : { width: +width.toFixed(4), air: +air.toFixed(4), db: +db.toFixed(2) };
+  })();
 
   // the row: the passage's vocabulary and its window, the grammar's phrases everywhere else, one window the whole track
   const row: PassageRow = {
@@ -795,14 +853,15 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     phrases: phrases as PassageRow['phrases'],
     lines: lines.sort((a, b) => sixteenthsOf(a.at) - sixteenthsOf(b.at)),
     keys: { ...passage.keys, strikes, drop: keysDrop, pickupSend: G.anticipation.keysPickupSend },
-    pad: { ...passage.pad, blooms },
+    pad: { ...passage.pad, blooms, ...(G.bedRegister ? { shift: Math.max(-G.bedRegister.most, Math.min(G.bedRegister.most, Math.round(shiftOf(G.bedRegister, I.spell)))) } : {}),
+      ...(padLean ? { lean: padLean } : {}) },
     wind: undefined,
     weather,
     fx,
     swells,
     drums: { ...passage.drums, states, endings, thinBars: thin },
     bass: { ...passage.bass, phrases: bassPhrases, floor: G.bass.floor, ...(G.bass.register ? { register: G.bass.register } : {}) },
-    ...(G.holds ? { holds: G.holds } : {}),
+    ...(G.holds ? { holds: holdsIn(G.holds) } : {}),
     ...(G.texture && tSpans.length ? { texture: { ...G.texture, spans: tSpans } } : {}),
   };
   return { row, phrases: plans.sort((a, b) => a.from - b.from), filters };

@@ -1,8 +1,10 @@
 // The sparse keys and the harmony they set (liquid-space round 1, `src/keys-phrase.ts`), in node:
 // the rows admitted; on the compiled program of the two checkpoint spells and a dozen seeds each,
-// every chord change on a landing, nothing held in the bass or the bed outside the arriving chord
-// at its onset, the strikes in their chord, the pickups owning their windows; the house and the
-// places without the part untouched; and live, on the engine's stand-in, the part's space built
+// as the app plays them (the producer's arrangement over them) and as the planner lays them alone
+// (`tools/as-played.ts`): every chord change on a landing, nothing held in the bass or the bed
+// outside the arriving chord at its onset, the strikes in their chord, the pickups owning their
+// windows, the departures the app's arrangement makes from them named and counted; the house and
+// the places without the part untouched; and live, on the engine's stand-in, the part's space built
 // once a theme, and let go at a seek and at a hand-over.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,13 +13,7 @@ import { parseSpell } from '../src/spell.ts';
 import { keysRowsFaults } from '../src/keys-phrase.ts';
 import { liveStandin } from '@deep-house/engine/standin';
 import { TICK_MS } from '@deep-house/engine/clock';
-import { strategyById } from '../src/strategies/index.ts';
-import { withoutTechniques } from '../src/places.ts';
-
-// The written passage (`src/passage.ts`) rewrites its window after the planners this file holds to their own
-// invariants; they are checked here as the planners laid them (the style with no place naming a passage), and the
-// passage by `check-passage.ts`.
-const PLANNERS = withoutTechniques(strategyById('house-v2').style, 'passage');
+import { APP, PLANNERS, faults, asPlayed, departuresSaid, type Departure } from './as-played.ts';
 
 const SPELLS: Record<string, string> = {
   A: 'em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85',
@@ -28,7 +24,7 @@ const quiet = <T>(fn: () => T): T => {
   console.log = console.info = console.warn = () => {};
   try { return fn(); } finally { [console.log, console.info, console.warn] = keep; }
 };
-const plan = (seed: string, spell: string | null, theme = 0) => quiet(() => planTheme(seed, theme, { strategy: 'house-v2', style: PLANNERS, ...(spell ? { spell: parseSpell(spell)! } : {}) }));
+const plan = (seed: string, spell: string | null, theme = 0, style: object = PLANNERS) => quiet(() => planTheme(seed, theme, { strategy: 'house-v2', style: style as typeof APP, ...(spell ? { spell: parseSpell(spell)! } : {}) }));
 const pc = (m: number) => ((Math.round(m) % 12) + 12) % 12;
 /** A note's pitch `dt` seconds in, through its bend (pairs of seconds and semitones over its note). */
 const pitchAt = (p: { midi: number; bend?: number[] }, dt: number): number => {
@@ -43,49 +39,79 @@ test('the keys rows are admitted: weights, bass homes only on tones of their cho
   assert.deepEqual(keysRowsFaults(), []);
 });
 
-for (const [name, spell] of Object.entries(SPELLS)) for (const seed of ['1', '17', ...Array.from({ length: 10 }, (_, i) => String(i + 2))]) {
-  test(`${name} seed ${seed}: the harmony changes only where the keys land, and nothing low or held is outside the arriving chord at its onset`, () => {
+/** The keys' rules over one theme's plan and program, gathered (`tools/as-played.ts`). */
+function harmonyFaults(t: ReturnType<typeof plan>): string[] {
+  const { out, check } = faults();
+  const prog = programOf(t);
+  const bs = t.barSeconds;
+  const landings = new Map(t.keys!.landings.map((l) => [l.bar, l]));
+  const tones = t.keys!.chords.map((c) => new Set(c.tones));
+  // every chord change on a landing that strikes that chord
+  for (const st of t.keys!.states.slice(1)) {
+    const l = landings.get(st.bar);
+    check(l && l.change && l.chord === st.chord, `a chord change at bar ${st.bar} with no landing striking it`);
+  }
+  // the progression every reader takes is the same state
+  const keys = prog.events.filter((e) => e.role === 'sparse-keys');
+  check(keys.length > 0, 'no keys in the program');
+  for (const e of keys) check(e.p.partSpace === 1 && !e.p.hall && !e.p.delay && !e.p.reverb, `a keys note at ${e.t} sends elsewhere than its space`);
+  // each strike's notes are its chord's
+  for (const e of keys.filter((x) => landings.has(x.bar!) && x.step === 0)) {
+    const l = landings.get(e.bar!)!;
+    check(tones[l.chord].has(pc(e.p.midi as number)), `the strike at bar ${e.bar} plays ${e.p.midi}, outside ${t.keys!.chords[l.chord].symbol}`);
+  }
+  // at each change: the bed and the bass sounding then (their release with them) are tones of the arriving chord
+  for (const st of t.keys!.states.slice(1)) {
+    const T = st.bar * bs, ok = tones[st.chord];
+    for (const e of prog.events) {
+      // the bed and the bass; the keys' own chord rings into its space as the lab's did, and is the part, not the bed
+      if ((e.layer !== 'pad' && e.layer !== 'bass') || e.role === 'sparse-keys') continue;
+      const p = e.p as { midi?: number; dur?: number; release?: number; bend?: number[] };
+      if (typeof p.midi !== 'number') continue;
+      const end = e.t + Number(p.dur ?? 0) + (e.layer === 'pad' ? Number(p.release ?? 0) : 0);
+      if (!(e.t <= T + 1e-6 && end > T + 1e-3)) continue;
+      const m = e.layer === 'bass' ? pitchAt(p as { midi: number; bend?: number[] }, T - e.t) : p.midi;
+      check(ok.has(pc(m)), `${e.layer} ${e.voice}${e.part ? `/${e.part}` : ''} holds ${m.toFixed(2)} across the change to ${t.keys!.chords[st.chord].symbol} at bar ${st.bar}`);
+    }
+  }
+  // a pickup owns its window: no texture struck inside one
+  for (const w of t.keys!.reserved.filter((x) => x.kind === 'pickup'))
+    for (const e of prog.events) if (e.role === 'texture' && e.t >= w.from * bs / 16 && e.t < w.to * bs / 16) out.push(`a texture at ${e.t} inside the pickup into bar ${w.bar}`);
+  // the part's space is in the theme's settings, one row
+  check(prog.settings.partSpace?.kind === 'space', 'the part\'s space is not in the theme\'s settings');
+  return out;
+}
+
+/**
+ * **What the app plays departs from the keys' rules here** (the producer's arrangement, `src/producer.ts`), each a
+ * finding for the bird-relative rounds, never a reason to plan without it: its pads (the arc's lines, the build's and
+ * the exposed section's, the drop's handover) and the wordless voice's held notes ring over a landing into a chord
+ * they are not tones of; a riff note it moved still glides over a change; its touches, suspensions and colours sound on a landing's beat beside the strike; its
+ * sixteenth texture under the straight top is laid without reading the keys' pickups.
+ */
+const DEPARTURES: readonly Departure[] = [
+  { id: 'a pad or a voice held across a change', match: /^pad \S+ holds .* across the change to/, why: 'the producer\'s pads and wordless voice ring over a landing into a chord they are not tones of (the long-hold fade and the arc\'s landing rule: U1, U3)' },
+  { id: 'the bass across a change', match: /^bass \S+ holds .* across the change to/, why: 'a riff note the producer moved or developed (its shift and variant ops) still gliding when the chord changes' },
+  { id: 'a strike outside its chord', match: /^the strike at bar \d+ plays/, why: 'the producer\'s own keys (a suspension, a colour) struck on a landing\'s beat beside the planner\'s strike' },
+  { id: 'a texture inside a pickup', match: /^a texture at .* inside the pickup/, why: 'the producer\'s sixteenth texture under the straight top does not read the keys\' pickups' },
+];
+const tally = new Map<string, { n: number; themes: number; first: string }>();
+const SEEDS = ['1', '17', ...Array.from({ length: 10 }, (_, i) => String(i + 2))];
+
+for (const [name, spell] of Object.entries(SPELLS)) for (const seed of SEEDS) {
+  test(`${name} seed ${seed}, as the app plays it: the harmony changes only where the keys land, and nothing low or held is outside the arriving chord at its onset`, (ctx) => {
+    const t = plan(seed, spell, 0, APP);
+    assert.ok(t.keys, 'the fast place plays no keys');
+    assert.ok(t.passage, 'the fast place arranges no passage');
+    asPlayed(ctx, harmonyFaults(t), DEPARTURES, tally);
+  });
+  test(`${name} seed ${seed}, the planner alone: the harmony changes only where the keys land, and nothing low or held is outside the arriving chord at its onset`, () => {
     const t = plan(seed, spell);
     assert.ok(t.keys, 'the fast place plays no keys');
-    const prog = programOf(t);
-    const bs = t.barSeconds;
-    const landings = new Map(t.keys!.landings.map((l) => [l.bar, l]));
-    const tones = t.keys!.chords.map((c) => new Set(c.tones));
-    // every chord change on a landing that strikes that chord
-    for (const st of t.keys!.states.slice(1)) {
-      const l = landings.get(st.bar);
-      assert.ok(l && l.change && l.chord === st.chord, `a chord change at bar ${st.bar} with no landing striking it`);
-    }
-    // the progression every reader takes is the same state
-    const keys = prog.events.filter((e) => e.role === 'sparse-keys');
-    assert.ok(keys.length > 0, 'no keys in the program');
-    for (const e of keys) assert.ok(e.p.partSpace === 1 && !e.p.hall && !e.p.delay && !e.p.reverb, `a keys note at ${e.t} sends elsewhere than its space`);
-    // each strike's notes are its chord's
-    for (const e of keys.filter((x) => landings.has(x.bar!) && x.step === 0)) {
-      const l = landings.get(e.bar!)!;
-      assert.ok(tones[l.chord].has(pc(e.p.midi as number)), `the strike at bar ${e.bar} plays ${e.p.midi}, outside ${t.keys!.chords[l.chord].symbol}`);
-    }
-    // at each change: the bed and the bass sounding then (their release with them) are tones of the arriving chord
-    for (const st of t.keys!.states.slice(1)) {
-      const T = st.bar * bs, ok = tones[st.chord];
-      for (const e of prog.events) {
-        // the bed and the bass; the keys' own chord rings into its space as the lab's did, and is the part, not the bed
-        if ((e.layer !== 'pad' && e.layer !== 'bass') || e.role === 'sparse-keys') continue;
-        const p = e.p as { midi?: number; dur?: number; release?: number; bend?: number[] };
-        if (typeof p.midi !== 'number') continue;
-        const end = e.t + Number(p.dur ?? 0) + (e.layer === 'pad' ? Number(p.release ?? 0) : 0);
-        if (!(e.t <= T + 1e-6 && end > T + 1e-3)) continue;
-        const m = e.layer === 'bass' ? pitchAt(p as { midi: number; bend?: number[] }, T - e.t) : p.midi;
-        assert.ok(ok.has(pc(m)), `${e.layer} ${e.voice} holds ${m.toFixed(2)} across the change to ${t.keys!.chords[st.chord].symbol} at bar ${st.bar}`);
-      }
-    }
-    // a pickup owns its window: no texture struck inside one
-    for (const w of t.keys!.reserved.filter((x) => x.kind === 'pickup'))
-      for (const e of prog.events) if (e.role === 'texture' && e.t >= w.from * bs / 16 && e.t < w.to * bs / 16) assert.fail(`a texture at ${e.t} inside the pickup into bar ${w.bar}`);
-    // the part's space is in the theme's settings, one row
-    assert.equal(prog.settings.partSpace?.kind, 'space');
+    assert.deepEqual(harmonyFaults(t), []);
   });
 }
+departuresSaid('the keys', DEPARTURES, tally);
 
 test('the house and the places without the part play no keys and build no part space', () => {
   for (const spell of [null, 'em:0.72,sp:0.10,ti:0.90,ze:0.25,ro:0.85,ve:0.15,lo:0.80', 'em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81']) for (const seed of ['1', '6', '27191']) {

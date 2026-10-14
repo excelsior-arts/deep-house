@@ -30,6 +30,8 @@ const opts = {strategy:'house-v2',spell:HOUSE};
 const trace = t => JSON.parse(t.dice.composition);
 const variantOf = id => style.composition.families.flatMap(f=>f.variants).find(v=>v.source?.id===id);
 const family = v => registry.BY_NAME[v].family;
+/** Whether the hand drums' rule (10-13) takes the drum family off this theme's sixteenths: a fast four-floor, or a continuous bed. */
+const withdrawsHands = t => { const b = registry.TIMBRES[t.dice.padTimbre]; return t.bpm >= 115 || (!!b && !b.struck && b.hold >= .5); };
 
 test('shipped parts have permanent identities, revisions, admission and neutral evidence references', () => {
   assert.ok(PART_LIBRARY.length>=3);
@@ -84,15 +86,19 @@ test('unsupported grammar, meter, scope and inaccurate claims cannot slip throug
 });
 
 test('automatically selected scores survive development and pickups without waking the brush', () => {
+  // Since 10-13 a row's hand drum plays over a sparse bed alone, so the three are met further out: the house's seeds
+  // 1-200, the first themes and then the second.
   const seen=new Set();
-  for(let seed=1;seed<=40&&seen.size<3;seed++) {
-    const t=planTheme(seed,0,{...opts,development:'percussion'}),tr=trace(t);
+  for(const n of [0,1])for(let seed=1;seed<=200&&seen.size<3;seed++) {
+    const t=planTheme(seed,n,{...opts,development:'percussion'}),tr=trace(t);
     for(const source of tr.recipes??[]) {
-      seen.add(source.id);
       const recipe=recipeById(source.id),part=recipe.wants.rhythm.sixteenth[1];
       const p=programOf(t),hits=p.events.filter(e=>e.part===source.id&&part.families.includes(family(e.voice)));
+      // over a continuous bed the row's hand drum leaves and its shaker plays on (10-13): that row is met elsewhere
+      if(!hits.length&&withdrawsHands(t)){assert.ok(p.events.some(e=>e.part===source.id),'the shaker plays on');continue;}
+      seen.add(source.id);
       assert.ok(hits.length>0,'selection must produce audible events');
-      assert.deepEqual(p,programOf(planTheme(seed,0,{...opts,development:'percussion'})));
+      assert.deepEqual(p,programOf(planTheme(seed,n,{...opts,development:'percussion'})));
       for(const s of t.arrangement.sections.filter(s=>s.kind==='bridge'&&t.arrangement.sections[s.index+1]?.kind==='main')) {
         const picked=hits.filter(e=>e.bar>=s.startBar&&e.bar<s.startBar+s.bars);
         assert.deepEqual(picked.map(e=>(e.bar-(s.startBar+s.bars-2))*16+e.step),part.pickup.steps);
@@ -175,17 +181,21 @@ test('every part admits a family: two or more registered voices, and the preferr
 });
 
 test('a hand row drawn by the catalogue and the same row pinned are one performance', () => {
-  let compared = 0;
-  for (let seed = 1; seed <= 40 && compared < 6; seed++) {
+  // A pin is explicit and keeps its hand drum on any bed; a drawn row over a continuous bed plays its shaker alone
+  // (10-13), which is the pinned row's shaker, note for note.
+  let compared = 0, shakerOnly = 0;
+  for (let seed = 1; seed <= 200 && compared < 6; seed++) {
     const t = planTheme(seed, 0, opts), source = trace(t).recipes?.[0];
     if (!source) continue;
     const pinned = planTheme(seed, 0, { ...opts, recipe: recipeById(source.id), accompaniment: 'auto' });
     const own = x => x.events.filter(e => e.part === source.id);
     assert.ok(own(t).length > 0);
-    assert.deepEqual(own(t), own(pinned), `${seed}: ${source.id} drew different streams ordinarily and pinned`);
-    compared++;
+    const left = !own(t).some(e => family(e.voice) === 'drum') && own(pinned).some(e => family(e.voice) === 'drum');
+    if (left) { assert.ok(withdrawsHands(t), `${seed}: the hand drum left where the rule does not take it`); shakerOnly++; }
+    assert.deepEqual(own(t), left ? own(pinned).filter(e => family(e.voice) !== 'drum') : own(pinned), `${seed}: ${source.id} drew different streams ordinarily and pinned`);
+    if (!left) compared++;
   }
-  assert.ok(compared >= 3);
+  assert.ok(compared >= 3 && shakerOnly > 0, `${compared} compared whole, ${shakerOnly} with the shaker alone`);
 });
 
 // --- the genres beyond the house (recipes-g1) --------------------------------
@@ -325,7 +335,11 @@ test('every genre row plays at its audit link and under its key on thirty seeds,
     for (const [role, voices] of [['kick', ['kick', 'kickLong', 'kickPunch', 'kickTight', 'kickKnock', 'kickPunchHigh']], ['backbeat', ['snare', 'snareDry', 'snareCrack', 'snareGhost', 'rimshot', 'clap']]]) {
       const cell = r.wants.rhythm?.[role]?.[0];
       if (!cell) continue;
-      const hits = events.filter(e => voices.includes(e.voice) && inMain(e));
+      // (a build overlaid on the row's drums on a phrase's or a bass out's last bar alone is the arrangement's, not the
+      // row's: U2b, his "need some drum filling"; U2c, "it's essential to use drums for emphasis these kind of moments")
+      const over = new Set([...(t.phrasing?.outs ?? []).filter(o => String(o.fill ?? '').endsWith('+over-a-row')),
+        ...(t.phrasing?.segments ?? []).filter(x => String(x.reentry ?? '').endsWith('+over-a-row'))].map(o => o.to - 1));
+      const hits = events.filter(e => voices.includes(e.voice) && inMain(e) && !over.has(e.bar));
       assert.ok(hits.length > 0, `${p.id}: no ${role} in its mains`);
       for (const e of hits) assert.ok(cell.steps.includes((e.bar % cell.bars) * 16 + e.step), `${p.id}: a ${role} at ${e.bar}:${e.step} is not its cell's`);
       // The backbeat is heard: the sub room's -60 dB clap level does not reach a row that asks for its level.

@@ -19,6 +19,7 @@
 
 import type { Style } from '@deep-house/engine/style';
 import { BY_NAME } from '@deep-house/engine/voices';
+import { dbToGain } from '@deep-house/engine/dsp';
 import VOICE_CLASSES from './voice-classes.json' with { type: 'json' };
 
 /** At or under this, a room's level for a word is that room saying "off". */
@@ -29,11 +30,24 @@ export const ROOM_OFF_DB = -40;
  * own number, or — where the room has turned the word off and the voice is not
  * the word's own — the style's base level for the word.
  */
-export function laneLevelDb(style: Style, levels: Record<string, number>, voice: string, key: string): number | undefined {
+export function laneLevelDb(style: Style, levels: Readonly<Record<string, number>>, voice: string, key: string): number | undefined {
   const room = levels[key];
   if (voice === key || !Number.isFinite(room) || room > ROOM_OFF_DB) return room;
   const base = (style.base.levels as Record<string, number>)[key];
   return Number.isFinite(base) ? base : room;
+}
+
+/**
+ * **A voice in the place of another, struck over a room's "off"**: a hit's gain is set against its own voice's level,
+ * and where the room has that voice's word off, the planner struck it some 50 dB over the room's −60; the voice that
+ * plays it instead (a kit lane's own voice, a place's drum swap) is moved by the difference, so it stands at its own
+ * level and not 50 dB over it (PLAN-UNIFY U1, bug 3). One, anywhere the first voice's lane sounds.
+ * @param levels the room's levels as the theme plays them
+ */
+export function offShift(style: Style, levels: Readonly<Record<string, number>>, from: string, to: string): number {
+  if (from === to) return 1;
+  const a = laneLevelDb(style, levels, from, BY_NAME[from]?.level), b = laneLevelDb(style, levels, to, BY_NAME[to]?.level);
+  return Number.isFinite(a) && Number.isFinite(b) && (a as number) <= ROOM_OFF_DB && a !== b ? dbToGain((a as number) - (b as number)) : 1;
 }
 
 // **The sub under what competes with it** (round EQ-5, 10-03: *"my ears hurt

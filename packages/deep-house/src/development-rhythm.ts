@@ -1,4 +1,4 @@
-import { lanesAtTempo } from './lanes.ts';
+import { lanesAtTempo, withdrawnAtTempo, type LaneTheme } from './lanes.ts';
 // Local rhythmic direction within the whole-theme contour. The style owns
 // the cells and palette; this player knows musical positions and role gates.
 import type { Style } from '@deep-house/engine/style';
@@ -47,15 +47,23 @@ export function rhythmDevelopmentProblems(p: RhythmDevelopmentPolicy, style: Sty
 }
 
 export function prepareRhythmDevelopment(style: Style, p: RhythmDevelopmentPolicy,
-  existing: readonly RhythmLane[], protectedRoles: readonly string[], forbids: readonly string[], bpm?: number, spell?: Readonly<Record<string, number>>) {
+  existing: readonly RhythmLane[], protectedRoles: readonly string[], forbids: readonly string[], bpm?: number, spell?: Readonly<Record<string, number>>, theme?: LaneTheme) {
   if (protectedRoles.includes(p.role) || forbids.includes(p.role)) return null;
   // The development's players answer the lane's tempo withdrawal as the lane's
-  // own draw does (`withdrawnAtTempo`, 10-02): a family the lane does not play
-  // at this tempo weighs nought here too.
-  const at=bpm!=null?lanesAtTempo(style,bpm,spell):style;
+  // own draw does (`withdrawnAtTempo`, 10-02; the theme's kit and bed, 10-13):
+  // a family the lane does not play here weighs nought here too.
+  const at=bpm!=null?lanesAtTempo(style,bpm,spell,theme):style;
   const palette={...at,lanes:at.lanes.map(l=>l.role!==p.role?l:{...l,
     voices:l.voices?.map(v=>({...v,w:v.w===0?0:(p.candidateWeights[v.v]??v.w)}))??null})};
-  const resolved=resolveRhythm({[p.role]:p.parts.map(part=>part.cells.space[0])},palette,forbids,'development');
+  // A player whose every family the lane withdraws here (the hand drums' replies
+  // on a fast four-floor or over a continuous bed, 10-13) leaves the ensemble
+  // and the others play on, as the lane's shaker-type players do; a recipe's
+  // prohibition still refuses the ensemble as a unit (below).
+  const lane=style.lanes.find(l=>l.role===p.role);
+  const gone=bpm!=null&&lane?withdrawnAtTempo(lane,bpm,spell,theme):new Set<string>();
+  const players=p.parts.filter(part=>!(part.cells.space[0].families??[]).every(f=>gone.has(f)));
+  if(!players.length)return null;
+  const resolved=resolveRhythm({[p.role]:players.map(part=>part.cells.space[0])},palette,forbids,'development');
   // A family prohibition may leave no compatible ensemble. Keep the requested
   // score rather than partially installing a second rhythm section.
   if(resolved.errors.length)return null;
@@ -72,7 +80,7 @@ export function prepareRhythmDevelopment(style: Style, p: RhythmDevelopmentPolic
     return {...r,lane:{...prior.lane,voices:prior.lane.voices!.map(v=>({...v,w:allowed.has(v.v)?v.w:0}))}};
   });
   return { lanes:[...existing.filter(r=>r.lane.role!==p.role),...developed],
-    parts:new Map(developed.map((r,i)=>[r.lane.id,p.parts[i]])),
+    parts:new Map(developed.map((r,i)=>[r.lane.id,players[i]])),
     gates:[...new Set(developed.flatMap(r=>r.lane.gate?[r.lane.gate]:[]))] };
 }
 

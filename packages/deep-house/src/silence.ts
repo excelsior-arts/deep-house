@@ -125,3 +125,86 @@ export function fillSilence(events: Ev[], sections: readonly Section[], bars: nu
   }
   return filled;
 }
+
+/** A bar's hats that still leave it exposed: a tick or two, a breakdown's and not a groove's. */
+export const EXPOSED_HATS_MOST = 2;
+/** The shortest exposed run that takes a bed: one bar alone is a breath. */
+export const EXPOSED_RUN_BARS = 2;
+/** How a bed under an exposed front lets go where the run ends, in seconds. */
+export const EXPOSED_RELEASE_S = 0.25;
+
+/**
+ * **A held front is never alone** (house-v2's `catalogue.exposed`, his ear 10-13 on seed 17 at the Downtempo tile).
+ * A bar is exposed where one of `fronts` has an onset in it and nothing else sounds there — no onset and nothing held
+ * over of any layer but the front's own and the glue (`fx`), the hats at most `EXPOSED_HATS_MOST` onsets. A run of
+ * `EXPOSED_RUN_BARS` or more takes the theme's bed as `fillSilence` takes it — the pad chords a whole number of loops
+ * away, copied in time, else the last chord before held across — `db` under its level, every note let go by the
+ * run's end over `EXPOSED_RELEASE_S`. Read off the events, after the gaps are filled, so a bar the gap rule filled
+ * is not exposed and a bar the gate opened with no front note in it is not either. Answers the runs it laid.
+ */
+export function bedUnderExposed(events: Ev[], fronts: readonly string[], db: number, bars: number, barSeconds: number, loopBars: number,
+  timeline?: Array<{ layers: string[] }>, laidEvents?: Set<object>): Array<{ from: number; bars: number }> {
+  const front = (e: Ev) => fronts.includes(e.voice) || fronts.includes(e.p.preset);
+  const frontOn = new Array<boolean>(bars).fill(false), other = new Array<boolean>(bars).fill(false), hats = new Array<number>(bars).fill(0);
+  for (const e of events) {
+    const a = Math.max(0, Math.floor(e.t / barSeconds + 1e-9));
+    if (a >= bars) continue;
+    if (front(e)) { frontOn[a] = true; continue; }
+    if (e.layer === 'fx') continue;
+    if (e.layer === 'hats') { hats[a]++; continue; }
+    const end = e.t + Math.max(e.p.dur ?? 0, 0);
+    const b = Math.min(bars - 1, Math.ceil(end / barSeconds - 1e-9) - 1);
+    for (let i = a; i <= Math.max(a, b) && i < bars; i++) other[i] = true;
+  }
+  const exposed = (b: number) => frontOn[b] && !other[b] && hats[b] <= EXPOSED_HATS_MOST;
+  const own = events.filter((e) => e.layer === 'pad');
+  const laid: Array<{ from: number; bars: number }> = [];
+  if (!own.length) return laid;
+  const endOf = (e: Ev) => e.t + Math.max(e.p.dur ?? 0, 0);
+  const gain = Math.pow(10, db / 20);
+  for (let from = 0; from < bars; from++) {
+    if (!exposed(from)) continue;
+    let n = 1;
+    while (from + n < bars && exposed(from + n)) n++;
+    if (n < EXPOSED_RUN_BARS) { from += n - 1; continue; }
+    const a = from * barSeconds, b = (from + n) * barSeconds;
+    const covers = (shift: number) => {
+      const lo = a - shift, hi = b - shift;
+      if (lo < 0 || hi > bars * barSeconds) return false;
+      const ivs = own.filter((e) => e.t < hi && endOf(e) > lo).map((e) => [Math.max(lo, e.t), Math.min(hi, endOf(e))]).sort((x, y) => x[0] - y[0]);
+      let at = lo;
+      for (const [x, y] of ivs) { if (x > at + 1e-6) return false; at = Math.max(at, y); }
+      return at >= hi - 1e-6;
+    };
+    let shift: number | null = null;
+    for (let k = 1; k * loopBars <= bars && shift == null; k++) {
+      if (covers(k * loopBars * barSeconds)) shift = k * loopBars * barSeconds;
+      else if (covers(-k * loopBars * barSeconds)) shift = -k * loopBars * barSeconds;
+    }
+    let add: Ev[] = [];
+    if (shift != null) {
+      for (const e of own) {
+        const t = Math.max(a, e.t + shift), end = Math.min(b, endOf(e) + shift);
+        if (end - t < 0.05) continue;
+        add.push({ ...e, t, bar: Math.floor(t / barSeconds + 1e-9), p: { ...e.p, dur: end - t } });
+      }
+    } else {
+      const before = own.filter((e) => e.t < a);
+      if (before.length) {
+        const last = Math.max(...before.map((e) => e.t));
+        add = before.filter((e) => Math.abs(e.t - last) < 1e-6).map((e) => ({ ...e, t: a, bar: from, p: { ...e.p, dur: b - a } }));
+      }
+    }
+    if (add.length) {
+      for (const e of add) e.p = { ...e.p, gain: (e.p.gain ?? 1) * gain,
+        ...(e.t + (e.p.dur ?? 0) >= b - 1e-6 ? { release: Math.min(e.p.release ?? EXPOSED_RELEASE_S, EXPOSED_RELEASE_S) } : {}) };
+      events.push(...add);
+      events.sort((x, y) => x.t - y.t);
+      if (laidEvents) for (const e of add) laidEvents.add(e);
+      if (timeline) for (let i = from; i < from + n; i++) if (timeline[i] && !timeline[i].layers.includes('pad')) timeline[i].layers = [...timeline[i].layers, 'pad'];
+      laid.push({ from, bars: n });
+    }
+    from += n - 1;
+  }
+  return laid;
+}

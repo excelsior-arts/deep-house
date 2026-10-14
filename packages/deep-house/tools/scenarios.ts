@@ -4338,6 +4338,60 @@ export const SCENARIOS = [
     },
   },
 
+  {
+    name: 'the sub-section marks stand at their sub-segments\' own bars, outside the section names and inside the bar numbers, and follow the theme',
+    area: 'ring',
+    // seed 1 by name: its first theme has a half-time phrase built into its line, two cooldowns, a bass out built into its return and answers
+    query: 'v=2&seed=1',
+    // His word, 10-13: little bars for the composer's sub-sections (`src/ring-subsections.ts`). Every mark is a real
+    // value: each of the theme's sub-segments, cooldowns, bass outs and answers has its mark starting at its own bar,
+    // no mark stands where the phrasing has nothing, every point of every mark lies between the section names (446)
+    // and the bar numbers (480), and the next theme draws its own.
+    page: body(`
+      const marks = () => [...document.querySelectorAll('#timeline [data-sub]')].map((e) => {
+        const n = e.getTotalLength(), rs = [];
+        for (let i = 0; i <= 8; i++) { const p = e.getPointAtLength((n * i) / 8); rs.push(Math.hypot(p.x - 500, p.y - 500)); }
+        return { kind: e.dataset.sub, from: +e.dataset.from, to: +e.dataset.to, lo: Math.min(...rs), hi: Math.max(...rs) };
+      });
+      const phr = () => { const t = ctl.readout().track; const p = t && t.phrasing; return p ? { segments: p.segments, answers: p.answers, outs: p.outs, cooldowns: p.cooldowns } : null; };
+      const first = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), marks: marks() };
+      await started();
+      ctl.skip();
+      await waitFor(() => ctl.readout().mix.themeNumber === 2, 30000);
+      await sleep(400);
+      const second = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), marks: marks() };
+      ctl.stop();
+      return { first, second };
+    `),
+    judge: (r) => {
+      const built = (row, said) => !!row && (said || []).some((t) => / rolling/.test(t));
+      const check = (x) => {
+        const bad = [];
+        const P = x.phrasing || { segments: [], answers: [], outs: [], cooldowns: [] };
+        const want = [
+          ...(P.segments || []).map((s) => ({ kind: s.kind, from: s.from })),
+          // a build heard on a line's last bar (U2c): its row named and a lane said rolling
+          ...(P.segments || []).filter((s) => built(s.reentry, s.answered) && s.to - s.from > 1).map((s) => ({ kind: 'fill', from: s.to - 1 })),
+          ...(P.cooldowns || []).map((c) => ({ kind: 'cooldown', from: c.from })),
+          ...(P.outs || []).map((o) => ({ kind: 'bass-out', from: o.from })),
+          ...(P.outs || []).filter((o) => built(o.fill, o.lift)).map((o) => ({ kind: 'fill', from: o.to - 1 })),
+          ...(P.answers || []).map((a) => ({ kind: 'answer', from: a.bar })),
+        ];
+        for (const w of want) if (!x.marks.some((m) => m.kind === w.kind && m.from === w.from)) bad.push(`no ${w.kind} mark at bar ${w.from}`);
+        for (const m of x.marks) if (!want.some((w) => w.kind === m.kind && w.from === m.from)) bad.push(`a ${m.kind} mark at bar ${m.from} the phrasing does not have`);
+        for (const m of x.marks) if (m.lo < 446 || m.hi > 470) bad.push(`a ${m.kind} mark at bar ${m.from} reaches ${m.lo.toFixed(1)}-${m.hi.toFixed(1)}`);
+        return { bad, n: x.marks.length, kinds: [...new Set(x.marks.map((m) => m.kind))].join(', ') };
+      };
+      const a = check(r.first), b = check(r.second);
+      const bad = [...a.bad.map((x) => `theme ${r.first.theme}: ${x}`), ...b.bad.map((x) => `theme ${r.second.theme}: ${x}`)];
+      return {
+        ok: !bad.length && a.n > 0 && r.second.theme !== r.first.theme,
+        why: bad.length ? bad.slice(0, 6).join('; ') : `theme ${r.first.theme} ${a.n} marks (${a.kinds}), theme ${r.second.theme} ${b.n} marks (${b.kinds})`,
+        note: `theme ${r.first.theme} of seed ${r.first.seed} drew ${a.n} marks (${a.kinds}) and theme ${r.second.theme} ${b.n} (${b.kinds}), each at its phrasing's own bar, every one between 446 and 470`,
+      };
+    },
+  },
+
   // --- the machine view (step 1b, 2026-09-19) -------------------------------
   //
   // Five rules, and each one is a sentence out of `PLAN-MACHINE-VIEW.md`: the
@@ -10665,6 +10719,22 @@ SCENARIOS.push({
     const p = own.page;
     try {
       await p.evaluate(body(OPEN_VIEW + 'return 1;'));
+      // Empty ground on the view as it opens, before anything scrolls: no box
+      // and no wire under it. The pointer goes there once the view is shut, so
+      // the view opens again with it resting on nothing. It stayed on duck's
+      // title, and the pane opens scrolled to its top, so what stood there was
+      // whatever the layout put there — in Firefox, whose type sets the
+      // diagram 19 px wider, the kick bus's title, whose own page then opened
+      // after its delay, rightly (the release check of 10-13: "meter").
+      const BARE = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && !!e.closest('#machine') && !e.closest('[data-box]') && !e.closest('[data-hit]') && !e.closest('[role="button"], button, a, input'); };
+      const bare = (x, y) => p.evaluate(([src, x, y]) => (0, eval)(src)(x, y), [String(BARE), x, y]);
+      const ground = await p.evaluate((src) => {
+        const ok = (0, eval)(src);
+        const r = document.getElementById('machineDiagram').getBoundingClientRect();
+        const l = Math.max(0, r.left), t = Math.max(0, r.top), rr = Math.min(innerWidth, r.right), b = Math.min(innerHeight, r.bottom);
+        for (let y = b - 20; y > t + 20; y -= 20) for (let x = l + 20; x < rr - 20; x += 20) if (ok(x, y)) return { x, y };
+        return null;
+      }, String(BARE));
       const at = await p.evaluate(() => { const g = document.querySelector('#machineDiagram [data-box="duck"]'); g.scrollIntoView({ block: 'center', inline: 'center' }); const r = g.getBoundingClientRect(); return { x: r.left + 20, y: r.top + 7 }; });
       await p.mouse.move(at.x, at.y, { steps: 3 });
       await p.waitForTimeout(1100);
@@ -10672,14 +10742,17 @@ SCENARIOS.push({
       await p.evaluate(() => document.querySelector('#machine [data-tool="close"]').focus());
       await p.keyboard.press('Enter');
       await p.waitForTimeout(400);
+      if (ground) await p.mouse.move(ground.x, ground.y);
       await p.evaluate(async () => { await window.ring.machine.open(); });
       await p.waitForTimeout(1500);
       const after = await p.evaluate(() => (document.querySelector('#machine [role="tooltip"][data-help]') || { getAttribute: () => null }).getAttribute('data-help'));
+      const still = ground ? await bare(ground.x, ground.y) : false;
       await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-      return { up, after };
+      return { up, after, ground, still };
     } finally { await own.close(); }
   },
-  judge: (r) => ({ ok: r.up === 'duck' && !r.after, why: JSON.stringify(r), note: `the page for ${r.up} was up when CLOSE was pressed by a key, and the view opened again with no page (${r.after})` }),
+  judge: (r) => ({ ok: r.up === 'duck' && !r.after && !!r.ground && r.still, why: JSON.stringify(r),
+    note: `the page for ${r.up} was up when CLOSE was pressed by a key, and the view opened again with no page (${r.after}), the pointer resting on empty ground at ${r.ground && `${r.ground.x}, ${r.ground.y}`}` }),
 });
 
 // (11) **One tolerance for the same spell** (the review: Ember held at 0.38 —
@@ -11195,7 +11268,12 @@ SCENARIOS.push({
         await p.evaluate(body(OPEN_VIEW + 'return 1;'));
         const seen = [];
         for (const id of IDS) {
-          const at = await p.evaluate((id) => { const g = document.querySelector(`#machineDiagram [data-box="${id}"]`); g.scrollIntoView({ block: 'center', inline: 'center' }); const r = g.getBoundingClientRect(); return { x: r.left + Math.min(20, r.width / 2), y: r.top + 7, box: { l: r.left, t: r.top, r: r.right, b: r.bottom } }; }, id);
+          // (the box's drawn frame, its first rect, and not the group: Firefox's
+          // rect of a group takes in the painted strokes inside it, and a strip
+          // key's transparent reach strokes, 32 square since the WebKit fix of
+          // 10-11, stood a lane row's group 19 px over the row, where top + 7
+          // was bare ground)
+          const at = await p.evaluate((id) => { const g = document.querySelector(`#machineDiagram [data-box="${id}"]`); g.scrollIntoView({ block: 'center', inline: 'center' }); const r = (g.querySelector('rect') || g).getBoundingClientRect(); return { x: r.left + Math.min(20, r.width / 2), y: r.top + 7, box: { l: r.left, t: r.top, r: r.right, b: r.bottom } }; }, id);
           await p.mouse.move(at.x - 300, at.y - 300);
           await p.waitForTimeout(80);
           await p.mouse.move(at.x, at.y, { steps: 3 });
@@ -11215,7 +11293,7 @@ SCENARIOS.push({
           row.scrollIntoView({ block: 'center' });
           await sleep(50);
           const key = row;
-          const box = row.getBoundingClientRect();
+          const box = row.querySelector('rect').getBoundingClientRect();
           const r = { left: box.left + 12, top: box.top + 4 };
           const o = { bubbles: true, pointerType: 'touch', pointerId: 7, isPrimary: true, clientX: r.left + 5, clientY: r.top + 5 };
           key.dispatchEvent(new PointerEvent('pointerdown', o));
@@ -11275,7 +11353,9 @@ SCENARIOS.push({
 
 /** Where a box's title and its body are, in the page's pixels. */
 const TITLE_AT = `
-  const titleOf = (id) => { const g = document.querySelector('#machineDiagram [data-box="' + id + '"]'); const r = g.getBoundingClientRect(); return { x: r.left + 24, y: r.top + 6, bx: r.left + r.width / 2, by: r.top + r.height * 0.75 }; };
+  // (the box's drawn frame, its first rect: Firefox's rect of a group takes in
+  // the strip keys' transparent reach strokes, 19 px over a lane row)
+  const titleOf = (id) => { const g = document.querySelector('#machineDiagram [data-box="' + id + '"]'); const r = (g.querySelector('rect') || g).getBoundingClientRect(); return { x: r.left + 24, y: r.top + 6, bx: r.left + r.width / 2, by: r.top + r.height * 0.75 }; };
 `;
 const TIP = () => { const t = document.querySelector('#machine [role="tooltip"][data-help]'); return t && getComputedStyle(t).opacity !== '0' ? t.getAttribute('data-help') : null; };
 

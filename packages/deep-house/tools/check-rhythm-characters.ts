@@ -144,3 +144,29 @@ test('pickup cells refuse unknown strokes, invalid spans and synthesis overrides
   const missing=structuredClone(part);missing.pickup.strokes=Array(missing.pickup.steps.length).fill('unknown-stroke');
   assert.ok(resolveRhythm({sixteenth:[missing]},style,[]).errors.length);
 });
+
+test('house-v2 voices its conga as the warm open colour and its bongo with the colour\'s articulation, in the room of a theme that sounds one; house-v1 and every other theme keep the original drums',async()=>{
+  const {baseV2,style:v2}=await import('../src/styles/deep-house-v2.ts');
+  const {style:v1}=await import('../src/styles/deep-house.ts');
+  const {INSTRUMENTS}=await import('@deep-house/engine/params');
+  const w=handCharacters['warm-open'].params,r=handCharacters['low-round'].params,c=handCharacters['crisp-hand'].params;
+  const conga=v2.voicings!.conga,bongo=v2.voicings!.bongo;
+  assert.deepEqual([conga.highHz,conga.lowHz,conga.drop,conga.dropTime,conga.mode,conga.bodyLp,conga.t10Open,conga.skin],
+    [w.headHz,r.headHz,w.bend,w.bendSeconds,w.modeRatio,w.headCutoff,w.damping,w.skin]);
+  assert.deepEqual([conga.slapHzHard,conga.slapHard,conga.t10Slap],[c.handHz,c.handLevel,c.damping]);
+  // the bongo keeps its own heads, filters and level, and takes the colour's bend, mode and skin
+  assert.deepEqual(Object.keys(bongo).sort(),['drop','dropTime','mode','skin']);
+  assert.deepEqual([bongo.drop,bongo.dropTime,bongo.mode,bongo.skin],[w.bend,w.bendSeconds,w.modeRatio,w.skin]);
+  // what no stroke writes is the drum's own, so the hand rows' strokes sound as they did
+  for(const k of ['slapQ','seconds','variants','variantCents','attack','trim','rateSpread','gainSpread','decaySpread','panSpread','velBright','velDecay','pan','room'])
+    assert.ok(!(k in conga),k);
+  // the base is the record's: the voicing lives in a theme's room, only where the theme sounds the drum
+  assert.equal(baseV2.conga,v1.base.conga);assert.equal(baseV2.bongo,v1.base.bongo);assert.deepEqual(v1.base.conga,INSTRUMENTS.conga);
+  const withHands=planTheme('39',0,{strategy:'house-v2',spell:{...HOUSE,ember:.35,tide:.7,root:.55}});
+  assert.ok(withHands.events.some(e=>e.voice==='conga'));
+  assert.equal((withHands.paramOverrides as any).conga.skin,w.skin);
+  for(const seed of ['1','3','5']){
+    const t=planTheme(seed,0,{strategy:'house-v2',spell:HOUSE});
+    for(const drum of ['conga','bongo'])assert.equal(t.events.some(e=>e.voice===drum),drum in (t.paramOverrides as any),`seed ${seed}: ${drum}`);
+  }
+});

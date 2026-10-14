@@ -15,6 +15,7 @@ import type { SubRates } from './subsections.ts';
 import type { WalkEntry } from './walk.ts';
 import type { GlideEntry, RiffEntry } from './glide.ts';
 import type { ComposerKnob } from './mined-phrase.ts';
+import type { TimeEntry } from './musical-time.ts';
 import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge, MalletStrike } from '@deep-house/engine/style';
 import { BY_NAME } from '@deep-house/engine/voices';
 import { GLIDE_LIBRARY, FORM_LIBRARY, SECTION_LIBRARY } from './recipes.ts';
@@ -22,8 +23,63 @@ import { KIT_IDS, kitOf, answersOf, statesOf } from './kit.ts';
 import { KEYS_ROWS } from './keys-phrase.ts';
 import { DEVELOPMENT_IDS, FAMILIES, developmentOf, developmentFaults, auxOf, auxFaults, surfaceOf, surfaceFaults, bassAnswersOf, type Family } from './phrase-development.ts';
 
+/**
+ * **What a grammar needs of the theme** (PLAN-UNIFY §0b), beside the inputs it cannot run without (the keys' harmony,
+ * a held part, a first drop): a place's row says what else it is written over, so a grammar is admitted by its own
+ * needs and never by another grammar's admission. `kit`: the place's own kit plays (`DrumsEntry.kit`), the drums
+ * whose phrases the row's conversation, passage and arrangement were written against.
+ */
+export type GrammarNeed = 'kit';
+export const GRAMMAR_NEEDS: readonly GrammarNeed[] = Object.freeze(['kit']);
+
 /** Where an entry plays. */
 export interface Place { birds: Partial<Spell>; tempo: readonly [number, number] }
+
+/**
+ * **A place's birds, leaned** (PLAN-UNIFY U2, the fast places' birds): a bird's lean on a knob the entry's reader
+ * names, the one lean (`src/lean.ts`) about `centre` — the bird's value where the place's own tile stands, so the tile
+ * plays its numbers to the bit and only the positions around it move. A knob a reader multiplies is `factorOf`
+ * (exp(x · (bird − centre))); one it moves by steps (dB) is `shiftOf` (x · (bird − centre)).
+ */
+export interface BirdLeans {
+  centre: Readonly<Partial<Record<Bird, number>>>;
+  /** by bird, its lean on each knob the readers name */
+  by: Readonly<Partial<Record<Bird, Readonly<Record<string, number>>>>>;
+  /** the most a shift moves its knob either way (its unit's), by knob */
+  most?: Readonly<Record<string, number>>;
+  /**
+   * a shift that reaches its knob's ends at the bird's own ends (its unit's, by knob): the bird's lean on it is then a
+   * sign, and the shift runs from the centre to ±this at nought and at one, linearly either side — a centre off the
+   * middle (the tile's Root at 0.75) still moves as far each way
+   */
+  ends?: Readonly<Record<string, number | readonly [number, number]>>;
+}
+/** A knob's factor under an entry's leans: the product of every bird's one lean on it (×1 where none names it). */
+export function leanFactor(L: BirdLeans | null | undefined, knob: string, spell: Spell): number {
+  if (!L) return 1;
+  let x = 1;
+  for (const [bird, leans] of Object.entries(L.by) as Array<[Bird, Readonly<Record<string, number>>]>) {
+    const k = leans[knob], c = L.centre[bird];
+    if (typeof k === 'number' && typeof c === 'number') x *= Math.exp(k * (spell[bird] - c));
+  }
+  return x;
+}
+/** A knob's shift under an entry's leans: the sum of every bird's step on it (nought where none names it). */
+export function leanShift(L: BirdLeans | null | undefined, knob: string, spell: Spell): number {
+  if (!L) return 0;
+  let x = 0;
+  for (const [bird, leans] of Object.entries(L.by) as Array<[Bird, Readonly<Record<string, number>>]>) {
+    const k = leans[knob], c = L.centre[bird];
+    if (typeof k !== 'number' || typeof c !== 'number') continue;
+    const end = L.ends?.[knob], d = spell[bird] - c;
+    // a pair of ends is the shift at the bird's nought and at its one (U2b: Root's low shelf, -4 dB down and +1.5 up
+    // about the tile's own Root), each reached linearly from the centre
+    x += Array.isArray(end) ? (d > 0 ? end[1] * d / Math.max(1e-9, 1 - c) : end[0] * -d / Math.max(1e-9, c))
+      : typeof end === 'number' ? Math.sign(k) * end * (d > 0 ? d / Math.max(1e-9, 1 - c) : d / Math.max(1e-9, c)) : k * d;
+  }
+  const most = L.most?.[knob];
+  return typeof most === 'number' ? Math.max(-most, Math.min(most, x)) : x;
+}
 /** An entry of a place table: its place and anything the table's reader wants. */
 export interface PlaceEntry { id: string; place: Place }
 
@@ -58,6 +114,17 @@ export function nearestEntry<T extends PlaceEntry>(table: readonly T[] | undefin
   return best;
 }
 
+/**
+ * **An entry's row**: what it says, without its id and its place — two entries with the same row play the same, so a
+ * spell crossing from one to the other moves nothing (the fast-birds analysis of 10-12: a place flip that lands on an
+ * identical row looked like steering). The house's own place is `house`.
+ */
+export function rowOf(e: PlaceEntry | null | undefined): string {
+  if (!e) return 'house';
+  const { id: _id, place: _place, ...row } = e as PlaceEntry & Record<string, unknown>;
+  return JSON.stringify(row);
+}
+
 /** One chord cycle: scale degrees from the tonic, a chord every `every` bars, the loop's length. */
 export interface Cycle { degrees: number[]; every: number; loop: number; voicing?: string; w: number }
 export interface HarmonyEntry extends PlaceEntry { pedal?: boolean; cycles?: Cycle[] }
@@ -77,6 +144,8 @@ export interface FormEntry extends PlaceEntry {
    * plays in place of `orders`, which stay for a theme none fits.
    */
   rows?: ReadonlyArray<{ v: string; w: number }>;
+  /** the birds on the rows' weights (PLAN-UNIFY U2): a bird's lean on the row named by the knob `row:<id>` */
+  leans?: BirdLeans;
 }
 export interface TreatmentEntry extends PlaceEntry { weights: Record<string, number> }
 export interface BassEntry extends PlaceEntry {
@@ -121,7 +190,11 @@ export interface LaneSoundEntry extends PlaceEntry { lane: 'pad' | 'stab'; sound
  * stated as it stands at the style's own base room; a theme in another room
  * keeps that room's own lean on top (`placedProfile`).
  */
-export interface EqEntry extends PlaceEntry { profile: Readonly<EqProfile> }
+export interface EqEntry extends PlaceEntry {
+  profile: Readonly<EqProfile>;
+  /** the birds on the profile (U2b, his ear 10-13 on the Drum & Bass tile's Root sweep): Root's on the low shelf (`lowShelfDb`, dB), nought at the tile */
+  leans?: BirdLeans;
+}
 /**
  * **The bass drive in parallel by place** (round B1): the driven copy of the
  * bass summed under the clean one (`effects/bass-drive.ts`), at a blend —
@@ -267,6 +340,17 @@ export interface DrumsEntry extends PlaceEntry {
    * a voice the map does not name plays as drawn.
    */
   sounds?: Readonly<Record<string, string>>;
+  /**
+   * The drawn voices whose swap changes the sound alone (PLAN-UNIFY U1, bug 3): the cast's units and every admission
+   * read on them are counted on the voice the draw chose (`EventMeta.drawn`), so a backbeat taking the crack moves
+   * nothing but the backbeat's sound.
+   */
+  soundOnly?: readonly string[];
+  /**
+   * The birds on the drums (PLAN-UNIFY U2, the fast places' birds): Root's on the bass line's lift (`subDb`, dB a unit,
+   * held to ±`subMostDb`) and Veil's on the throws' chance (`throws`, a factor held under one)
+   */
+  leans?: BirdLeans;
   /**
    * The bass compressor's numbers at the place (round DNB-2), over the room's
    * (`bass.comp`): a lift the line is given is a lift the compressor at the
@@ -681,7 +765,7 @@ export interface SupportEntry extends PlaceEntry {
  * entry with no `keys` is a place without the part: its themes keep the harmony they had.
  */
 export interface KeysEntry extends PlaceEntry {
-  keys?: Readonly<{ draw: string; levelDb: number }>;
+  keys?: Readonly<{ draw: string; levelDb: number; leans?: BirdLeans }>;
 }
 
 /**
@@ -699,9 +783,11 @@ export interface DevelopmentEntry extends PlaceEntry {
   surface?: string | ReadonlyArray<{ v: string; w: number }>;
   bass?: string;
   lean?: Readonly<Partial<Record<Family, number>>>;
+  /** the birds on the plan (PLAN-UNIFY U2): Veil's on the effect moves (`effect`, a factor on the family's lean) and on the chapters' deadline for something salient (`deadline`, a factor on its bars) */
+  leans?: BirdLeans;
   surfaceDb?: number;
   /** the ambient planner's rows (liquid-ambient, `src/ambient-plan.ts`): the bed's gestures and the chapters; absent, the bed is the keys planner's as written */
-  ambient?: Readonly<{ bed: string; chapters: string }>;
+  ambient?: Readonly<{ bed: string; chapters: string; needs?: readonly GrammarNeed[] }>;
 }
 
 /**
@@ -716,11 +802,15 @@ export interface AmbientVoicesEntry extends PlaceEntry {
    * the producer's grammar around it (`src/producer.ts`). Each is one line in a place's entry: a place that names
    * neither plays the planners' track.
    */
-  ambient?: Readonly<{ soloist: string; fillers: string; weather: string; admission: string; passage?: string; producer?: string }>;
+  ambient?: Readonly<{ soloist: string; fillers: string; weather: string; admission: string; passage?: string; producer?: string; needs?: readonly GrammarNeed[] }>;
 }
 
 /** **The small things by place** (round DNB-1, `src/subsections.ts`). */
-export interface SubSectionsEntry extends PlaceEntry { rates: SubRates }
+export interface SubSectionsEntry extends PlaceEntry {
+  rates: SubRates;
+  /** the birds on the rates (PLAN-UNIFY U2): Veil's on the fill at a section line (`fill`), a factor held under one */
+  leans?: BirdLeans;
+}
 /**
  * **The kinds of section by place** (round T2, `src/sections.ts`): the shares
  * a place prefers among the section rows of a kind, by row id. A row the
@@ -784,6 +874,8 @@ export interface StylePlaces {
   development?: readonly DevelopmentEntry[];
   /** the ambient voices by place (liquid-ambient): the soloist's, the conversation's, the weather's and the admission's rows; the house reads none */
   ambientVoices?: readonly AmbientVoicesEntry[];
+  /** time by place (PLAN-UNIFY §2.2, `src/musical-time.ts`): the felt pulse a place's kit makes and the phrase it pins; the house reads none (the ring's own rule) */
+  time?: readonly TimeEntry[];
 }
 
 /** The loop lengths a chord cycle may take, in bars: the phrase's own (`makeProgression` needs two chords' room). */
@@ -879,6 +971,17 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
     if (e.surfaceDb !== undefined && !(Number.isFinite(e.surfaceDb) && e.surfaceDb <= 6 && e.surfaceDb >= -24)) bad.push(`${e.id}: surfaceDb from -24 to 6`);
   }
   for (const e of p.support ?? []) for (const a of e.admits ?? []) if (a !== 'auxiliary') bad.push(`${e.id}: admits ${a}, which is not auxiliary`);
+  for (const e of [...(p.development ?? []), ...(p.ambientVoices ?? [])]) for (const n of e.ambient?.needs ?? [])
+    if (!GRAMMAR_NEEDS.includes(n)) bad.push(`${e.id}: needs ${n}, which is not a grammar's need (${GRAMMAR_NEEDS.join(', ')})`);
+  // time: a pinned phrase is a whole number of felt bars, a power of two of them; its Loom lean a centre in the bird's range
+  for (const e of p.time ?? []) {
+    if (e.felt !== undefined && e.felt !== 'whole' && e.felt !== 'half') bad.push(`${e.id}: felt ${e.felt}`);
+    const P = e.phrase;
+    if (!P) continue;
+    const felt = P.bars / (e.felt === 'half' ? 2 : 1);
+    if (!(Number.isInteger(felt) && felt >= 1 && (felt & (felt - 1)) === 0)) bad.push(`${e.id}: a phrase of ${P.bars} bars is not a power of two of felt bars`);
+    if (!(P.loom.centre >= 0 && P.loom.centre <= 1) || !Number.isFinite(P.loom.strength)) bad.push(`${e.id}: the phrase's Loom lean`);
+  }
   // a form row's states are states the kit plays (a full passage's) or the exposed ones the planner knows
   for (const r of FORM_LIBRARY) for (const st of ((r as { form?: { states?: unknown[] } }).form?.states ?? []).flat(2))
     if (typeof st === 'string' && !['bed', 'hints', 'pulse', 'half-time', 'developed'].includes(st)) bad.push(`${r.id}: form.states names ${st}`);
@@ -910,7 +1013,8 @@ export function withoutTechniques<S extends { places?: StylePlaces }>(style: S, 
     places: {
       ...P,
       ...(P.development && off.includes('ambient') ? { development: P.development.map((e) => drop(e, ['ambient'])!) } : {}),
-      ...(P.ambientVoices ? { ambientVoices: P.ambientVoices.map((e) => ({ ...e, ambient: drop(e.ambient, off.filter((k) => k !== 'ambient')) })) } : {}),
+      // the producer keeps the passage its row names, so a passage taken out takes the producer with it
+      ...(P.ambientVoices ? { ambientVoices: P.ambientVoices.map((e) => ({ ...e, ambient: drop(e.ambient, [...off.filter((k) => k !== 'ambient'), ...(off.includes('passage') ? ['producer'] : [])]) })) } : {}),
     },
   };
 }

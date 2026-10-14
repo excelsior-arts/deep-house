@@ -119,7 +119,9 @@ const heldMid: StruckFigure = {
  * sixteenth lane that talks: a shaker's shuffled sixteenths with the offbeat
  * sixteenths leaned on, and a clicky hand drum answering off the beat — the
  * loop a fast four carries, written from public knowledge as the pattern rows
- * are, swung 0.56, at the style's level on the lane.
+ * are, swung 0.56, at the style's level on the lane. A fast four-floor
+ * withdraws the hand drums (the sixteenth lane's `HANDS`, 10-13), so the
+ * answer leaves wherever the loop plays and the shaker's line is the loop.
  */
 const percLoop = [
   { bars: 1, steps: [2, 3, 6, 7, 10, 11, 14, 15], accents: [.34, .2, .38, .2, .34, .2, .4, .22],
@@ -350,10 +352,12 @@ const families: PartFamily[] = [
   { id: 'held-mid', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 } }, variants: [
     { id: 'offbeat-chords', weight: 1, request: { struckFigures: [heldMid], ambience: { figure: 'spacious' } } },
   ] },
-  // The fast band's percussion loop (GA4): a rule — a fast four-floor theme
-  // whose hands did not answer (they play up to 130 BPM) carries the loop, so
-  // the fast band's sixteenth lane always talks.
-  { id: 'perc-loop', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 } }, variants: [
+  // The fast band's percussion loop (GA4): a rule — every fast four-floor
+  // theme with a moving beat (Spark a quarter and over) whose sixteenth lane no
+  // earlier family took carries the loop. Under a quarter the beat is a
+  // straight, still one with few hits (10-02, the deep half-time), where the
+  // loop never played past 125 BPM: the lane's own draw is its sixteenth.
+  { id: 'perc-loop', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115 }, controls: { movement: { min: .25 } } }, variants: [
     { id: 'shuffle', weight: 1, request: { rhythm: { sixteenth: percLoop as any }, presence: { sixteenth: 'supporting' } } },
   ] },
   // The slow band's lazy kit (GA4): every drummed theme at 94 BPM or under

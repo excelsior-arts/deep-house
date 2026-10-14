@@ -18,11 +18,12 @@ import { style } from '../src/styles/deep-house-v2.ts';
 import { style as v1 } from '../src/styles/deep-house.ts';
 import { HOUSE, biasFor, musicalControls, type Spell } from '../src/spell.ts';
 import { recipeById, PART_LIBRARY } from '../src/recipes.ts';
-import { withdrawnFrom, withdrawnAtTempo } from '../src/lanes.ts';
+import { withdrawnFrom, withdrawnAtTempo, rowCellsAt } from '../src/lanes.ts';
+import { resolveRhythm } from '../src/parts/rhythm.ts';
 import { themeSeed } from '../src/set-plan.ts';
 import { maskSteps } from '../src/patterns.ts';
 import { BY_NAME, FAMILIES, TIMBRES } from '@deep-house/engine/voices';
-import { BENCHMARK_SEED, BENCHMARK_SPELL, BENCHMARK_THEMES, blessedLine, themeHash } from './link-digest.ts';
+import { BENCHMARK_SEED, BENCHMARK_SPELL, BENCHMARK_THEMES, blessedLine, themeHash, played } from './link-digest.ts';
 import { linkWrite } from '../src/link.ts';
 
 // The scene's rules are the composer's; the library's turn (GA1) is held out of
@@ -36,10 +37,14 @@ type Event = Plan['events'][number];
 const handsOf = (t: Plan) => t.events.filter(e => String(e.part ?? '').startsWith('house/hand'));
 // The same style with the scene taken out: the palette as it draws, which is
 // what an airy theme plays and what a drone-back theme plays with its pad
-// behind and its mid-band sixteenths under.
+// behind and its mid-band sixteenths under. The lane's own conditions (the
+// hand drums' tempo, kit and bed, 10-13) are the palette's, and stay.
 const noRule = {
   ...style,
-  lanes: style.lanes.map(({ withdraw: _, presence: __, ...l }) => l),
+  lanes: style.lanes.map(({ withdraw, presence: __, ...l }) => {
+    const own = (withdraw ?? []).filter(w => w.scene === undefined);
+    return own.length ? { ...l, withdraw: own } : l;
+  }),
   composition: { ...policy, scene: undefined },
 };
 const plans = SEEDS.map(seed => ({ seed, t: planTheme(seed, 0, opts), was: planTheme(seed, 0, { style: noRule as typeof style, spell: HOUSE, library: [] }) }));
@@ -122,9 +127,10 @@ test('the real-world class is a pace: a hit with no pitch always, a tone only wh
 test('a lane puts descriptor families to the question, never names, and only the sixteenth lane does', () => {
   for (const lane of style.lanes) for (const w of lane.withdraw ?? []) {
     assert.ok(w.families.every(f => (FAMILIES as readonly string[]).includes(f)), `${lane.id}: ${w.families} is not a descriptor family`);
-    // A withdrawal is the drone in front, or a tempo band (10-02: the hand drums above 125 BPM), never both and never neither.
-    if (w.scene !== undefined) { assert.equal(w.scene, 'drone-forward'); assert.equal(w.tempoFrom, undefined); }
-    else assert.ok(w.tempoFrom !== undefined || w.tempoTo !== undefined, `${lane.id}: a withdrawal with no scene and no tempo band`);
+    // A withdrawal is the drone in front, or a theme's conditions (a tempo band, a kit, a bed: the hand drums, 10-02 and
+    // 10-13), never both and never neither.
+    if (w.scene !== undefined) { assert.equal(w.scene, 'drone-forward'); assert.equal(w.tempoFrom, undefined); assert.equal(w.kits, undefined); assert.equal(w.bed, undefined); }
+    else assert.ok(w.tempoFrom !== undefined || w.tempoTo !== undefined || w.kits !== undefined || w.bed !== undefined, `${lane.id}: a withdrawal with no scene and no condition`);
   }
   assert.deepEqual(style.lanes.filter(l => l.withdraw?.length).map(l => l.id), ['sixteenth']);
   const sixteenth = style.lanes.find(l => l.id === 'sixteenth')!;
@@ -132,10 +138,18 @@ test('a lane puts descriptor families to the question, never names, and only the
   assert.ok(live.every(v => withdrawnFrom(sixteenth, 'drone-forward').has(BY_NAME[v].family)), 'every live sixteenth is put to the question');
   assert.equal(withdrawnFrom(sixteenth, 'drone-back').size, 0);
   assert.equal(withdrawnFrom(sixteenth, undefined).size, 0);
-  // The tempo band: the drum family is withdrawn at a half-time's pace and not at the house's.
-  assert.deepEqual([...withdrawnAtTempo(sixteenth, 137, { spark: 0.10 })], ['drum']);
-  assert.equal(withdrawnAtTempo(sixteenth, 137, { spark: 0.50 }).size, 0, 'the fast four-floor with a beat keeps its hands');
-  assert.equal(withdrawnAtTempo(sixteenth, 100, { spark: 0.10 }).size, 0);
+  // Where the hand drums belong (10-13): the drum family leaves a fast four-floor whatever its Spark, and a continuous
+  // bed at any tempo; a sparse bed at the house's pace, a broken kit over a sparse bed, keep them.
+  const sparse = { hold: 0.3, struck: true }, strings = { hold: 0.52, struck: false }, swell = { hold: 0.32, struck: false };
+  for (const spark of [0.10, 0.50]) assert.deepEqual([...withdrawnAtTempo(sixteenth, 137, { spark }, { kit: 'fourFloor', bed: sparse })], ['drum'], `a fast four-floor at Spark ${spark}`);
+  assert.deepEqual([...withdrawnAtTempo(sixteenth, 115, undefined, { kit: 'fourFloor', bed: swell })], ['drum']);
+  assert.equal(withdrawnAtTempo(sixteenth, 114, undefined, { kit: 'fourFloor', bed: swell }).size, 0);
+  assert.equal(withdrawnAtTempo(sixteenth, 137, undefined, { kit: 'breaks', bed: sparse }).size, 0, 'a broken kit over a sparse bed keeps its hands');
+  assert.equal(withdrawnAtTempo(sixteenth, 100, undefined, { kit: 'fourFloor', bed: sparse }).size, 0, 'the house\'s pace over a sparse bed keeps them');
+  for (const kit of ['fourFloor', 'breaks']) assert.deepEqual([...withdrawnAtTempo(sixteenth, 88, undefined, { kit, bed: strings })], ['drum'], `a continuous bed, ${kit}`);
+  // a struck bed is never continuous, however long it rings; a reader that knows no theme asks no theme's condition
+  assert.equal(withdrawnAtTempo(sixteenth, 88, undefined, { kit: 'fourFloor', bed: { hold: 0.9, struck: true } }).size, 0);
+  assert.equal(withdrawnAtTempo(sixteenth, 137, { spark: 0.10 }).size, 0);
 });
 
 test('over seeds 1-200 every theme has a scene, air exactly where the texture is air, and where there is a coin the drone is in front about half the time', () => {
@@ -266,7 +280,9 @@ test('a drone-back theme is the airy draw with its pad at the background presenc
       || !t.events.some(e => e.layer === 'pad') || JSON.parse(String(t.dice.composition)).selected['ringing-keys'],
       `seed ${seed}: the pad is behind the drone`);
   }
-  assert.ok(themes > 30 && under > 0, `${themes} drone-back themes, ${under} sixteenths under`);
+  // Since the hand drums' bed rule (10-13) a mid-band drum behind the drone needs a sparse bed, which no drone-back
+  // theme of seeds 1-200 draws; where one does, it is under by the table (the next test, and seed 33's below).
+  assert.ok(themes > 30, `${themes} drone-back themes, ${under} sixteenths under`);
 });
 
 test('the sixteenth lane\'s presence is by measured band, only behind the drone, and reaches the mid-band voices alone', () => {
@@ -282,21 +298,22 @@ test('the sixteenth lane\'s presence is by measured band, only behind the drone,
   assert.ok(v1.lanes.every(l => !l.presence));
 });
 
-test("seed 33's woodblock sits at Eugene's 20 %: what he heard, 14 dB down, which renders 10.6 LU under the hats layer", () => {
-  // 20 % on the machine view's fader is -13.98 dB. Rendered 09-23, first main
-  // bars 24-32, each layer alone: the woodblock -28.38 -> -41.19 LUFS against
-  // the hats layer's -30.62 (+2.24 -> -10.57 LU); tools/imprint/kitchen-presence.ts
-  // holds it and 79's and 142's bongo at least 6 LU under.
-  const t = at(33), heard = plans[32].was;
+test("seed 33's woodblock sat at Eugene's 20 % behind the drone; since 10-13 its strings bed takes the hand drums off the lane and a shaker-type voice plays its figure", () => {
+  // 20 % on the machine view's fader is -13.98 dB: the table's drone-back
+  // presence for a mid-band sixteenth (rendered 09-23, first main bars 24-32,
+  // each layer alone: the woodblock -28.38 -> -41.19 LUFS against the hats
+  // layer's -30.62; tools/imprint/kitchen-presence.ts holds the mid-band voices
+  // at least 6 LU under). The rule stands for a drum behind the drone over a
+  // sparse bed; seed 33's bed is the strings (hold 0.52, held), a continuous
+  // bed, so the drum family leaves its sixteenth lane (`HANDS`), as it leaves
+  // 79's and 142's (the strings and the wave pad).
+  for (const v of ['woodblock', 'bongo', 'cowbell']) assert.ok(Math.abs(presenceDb(v, 'drone-back') - 20 * Math.log10(.2)) < .05, `${v} at his 20 %`);
+  const t = at(33);
   assert.equal(sceneOfDice(t.dice), 'drone-back');
-  const wood = t.events.filter(e => e.voice === 'woodblock'), was = heard.events.filter(e => e.voice === 'woodblock');
-  // (44 woodblocks in its 80 bars before round S19, 36 in its 68 since)
-  assert.ok(wood.length > 30 && wood.length === was.length);
-  wood.forEach((e, i) => {
-    const db = 20 * Math.log10((e.p.gain ?? 1) / (was[i].p.gain ?? 1));
-    assert.ok(Math.abs(db - 20 * Math.log10(.2)) < .05, `woodblock ${db.toFixed(2)} dB, not his 20 %`);
-  });
-  for (const seed of [79, 142]) assert.ok(at(seed).events.some(e => e.voice === 'bongo' && !e.part && (e.p.gain ?? 1) < .2), `seed ${seed}: the bongo under`);
+  assert.equal(t.dice.padTimbre, 'strings');
+  const lane = t.events.filter(e => e.layer === 'shaker' && !e.part);
+  assert.ok(lane.length > 30 && lane.every(e => BY_NAME[e.voice].family === 'noise'), 'the lane plays on, a shaker-type voice');
+  for (const seed of [33, 79, 142]) assert.ok(!at(seed).events.some(e => e.layer === 'shaker' && BY_NAME[e.voice].family === 'drum'), `seed ${seed}: no hand drum over its bed`);
 });
 
 test('an airy theme plays exactly what it played before the rule, percussion included', () => {
@@ -440,9 +457,12 @@ test("Eugene's seeds: 50, 13 and 20 in front with nothing struck beside them; 8 
     assert.ok(!t.events.some(e => e.layer === 'shaker') && !handsOf(t).length, `seed ${seed}: no sixteenths, no hands`);
     assert.ok(!['fmGlass', 'piano'].includes(t.dice.keysPreset) && !TIMBRES[t.dice.keysPreset].struck, `seed ${seed}: keys ${t.dice.keysPreset}`);
   }
-  // 8 (drone + lead) keeps its congas; 33 (body + chords) its woodblock, under.
+  // 8 and 33 behind. 8 kept its congas there until 10-13; its bed is a continuous one (held, half the bar and more),
+  // so the hand row's conga leaves and its shaker plays on.
   for (const seed of [8, 33]) assert.equal(sceneOfDice(at(seed).dice), 'drone-back', `seed ${seed}`);
-  assert.ok(handsOf(at(8)).some(e => e.voice === 'conga'));
+  const bed8 = TIMBRES[at(8).dice.padTimbre];
+  assert.ok(!bed8.struck && bed8.hold >= .5, `seed 8's bed ${at(8).dice.padTimbre}`);
+  assert.ok(handsOf(at(8)).length > 0 && handsOf(at(8)).every(e => BY_NAME[e.voice].family === 'noise'));
   for (const seed of [5, 12]) assert.equal(sceneOfDice(at(seed).dice), 'air', `seed ${seed}`);
 });
 
@@ -462,4 +482,46 @@ test('R35: the drone in front\'s redraw drops families and never adds one the pa
   // Measured 09-24: 4 of 54 forward themes at ember 0.7 gained the ringing keys (22, 88, 99, 112).
   assert.ok(forward > 30, `${forward} forward themes`);
   assert.deepEqual(gained, [], 'a forward theme gained a family');
+});
+
+test("a track row's own hand cell answers the lane's rule (10-13, the afro-house row's bongo): it leaves where the lane withdraws the drums, its shaker cell plays on; a role with no other cell keeps its cell on the shaker-type players", () => {
+  const sixteenth = (id: string) => resolveRhythm({ sixteenth: recipeById(id)!.wants.rhythm!.sixteenth }, style, []).lanes;
+  const afro = sixteenth('house/afro-house'), funky = sixteenth('garage/uk-funky');
+  assert.deepEqual(afro.map(c => c.part.families), [['drum'], ['noise']]);
+  const continuous = { kit: 'fourFloor', bed: { hold: 0.9, struck: false } }, sparse = { kit: 'fourFloor', bed: { hold: 0.3, struck: true } };
+  assert.deepEqual(rowCellsAt(afro, style.lanes, 101, undefined, continuous).map(c => c.part.families), [['noise']], 'over a continuous bed');
+  assert.deepEqual(rowCellsAt(afro, style.lanes, 121, undefined, sparse).map(c => c.part.families), [['noise']], 'on a fast four-floor');
+  assert.equal(rowCellsAt(afro, style.lanes, 101, undefined, sparse), afro, 'a sparse bed at the house\'s pace keeps them');
+  // a role whose only cell is a hand cell keeps the cell, played by the players the withdrawal leaves (its own stream)
+  const onShaker = rowCellsAt(funky, style.lanes, 130, undefined, sparse);
+  assert.equal(onShaker.length, 1);
+  assert.deepEqual([onShaker[0].lane.id, onShaker[0].part.steps, onShaker[0].part.families], [funky[0].lane.id, funky[0].part.steps, ['noise']]);
+  assert.ok(onShaker[0].lane.voices!.every(e => e.w === 0 || BY_NAME[e.v].family === 'noise') && onShaker[0].lane.voices!.some(e => e.w > 0));
+  // The ring: Zephyr 0.95 seed 11 draws the row over the saw pad, Zephyr and Gleam over the rhodes, both at 101 BPM.
+  const ze = played('seed=11&v=2&spell=ze:0.95').plan, zg = played('seed=11&v=2&spell=ze:0.80,gl:0.80').plan;
+  for (const t of [ze, zg]) assert.equal(t.drawn?.id, 'house/afro-house');
+  const drums = (t: Plan) => t.events.filter(e => e.layer === 'shaker' && BY_NAME[e.voice].family === 'drum');
+  const shaker = (t: Plan) => t.events.filter(e => e.layer === 'shaker' && BY_NAME[e.voice].family === 'noise');
+  assert.equal(drums(ze).length, 0, 'the bongo leaves the saw pad');
+  assert.ok(shaker(ze).length > 1000, 'the row\'s shaker plays on');
+  assert.ok(drums(zg).length > 100 && shaker(zg).length === shaker(ze).length, 'over the rhodes the hand cell stays');
+});
+
+test("a row whose only sixteenth cell is a hand cell keeps the row's every other part where the rule takes its hands (the review of part 2, 10-13): the UK funky row at its place, seeds 11 and 12", () => {
+  // The base is the same request with the lane's theme conditions taken out, so the row's own cell plays its hand drum.
+  const unruled = { ...style, lanes: style.lanes.map(l => (l.withdraw ? { ...l, withdraw: l.withdraw.filter(w => w.scene !== undefined) } : l)) };
+  const row = recipeById('garage/uk-funky')!;
+  const place = { ...HOUSE, ember: 0.70, spark: 0.40, zephyr: 0.60, root: 0.60, tide: 0.45 };
+  for (const seed of ['11', '12']) {
+    const t = planTheme(seed, 0, { strategy: 'house-v2', spell: place, recipe: row });
+    const base = planTheme(seed, 0, { style: unruled as typeof style, spell: place, recipe: row });
+    const other = (p: Plan) => p.events.filter(e => e.layer !== 'shaker');
+    assert.deepEqual(other(t), other(base), `seed ${seed}: every layer but the sixteenth is the base's`);
+    assert.deepEqual(t.automation, base.automation, `seed ${seed}: the automation is the base's`);
+    const was = base.events.filter(e => e.layer === 'shaker'), now = t.events.filter(e => e.layer === 'shaker');
+    assert.ok(was.some(e => BY_NAME[e.voice].family === 'drum'), `seed ${seed}: the base plays the row's hand cell`);
+    assert.ok(now.length > 100 && now.length === was.length, `seed ${seed}: the sixteenth is not empty, the row's own positions`);
+    assert.ok(now.every(e => BY_NAME[e.voice].family === 'noise'), `seed ${seed}: shaker-type players`);
+    assert.deepEqual(now.map(e => [e.bar, e.step]), was.map(e => [e.bar, e.step]));
+  }
 });

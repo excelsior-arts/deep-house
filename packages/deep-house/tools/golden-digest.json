@@ -31,24 +31,24 @@
    "strategy": "house-v2",
    "masters": {
     "1": [
-     {"index":0,"seed":"1#0","preset":"sub","bpm":104,"bars":152,"events":2827,"hash":"dff043df3b2febed3c3fbf12ea68dd7a236425701203570aa5de990b042b01a7"},
-     {"index":1,"seed":"1#1","preset":"sub","bpm":104.1,"bars":144,"events":2262,"hash":"56beb33202342628bac925a1f0b0fa9dc5ed907db378220bb16e0fa1bc015054"},
-     {"index":2,"seed":"1#2","preset":"growl","bpm":104.3,"bars":92,"events":1271,"hash":"263aaa37303773acd3ff1b6aca628aba901f0122542326c16d729dfa8e7a2f0e"},
-     {"index":3,"seed":"1#3","preset":"growl","bpm":104.4,"bars":104,"events":2419,"hash":"b8af4d933f0b9f9565d34e666c16eb670b75df4d4e438a78b9f94c6e91147f1a"},
-     {"index":4,"seed":"1#4","preset":"growl","bpm":104.6,"bars":116,"events":3851,"hash":"a2bceb9a0e06fe645816d38d6f42c951a3ab83778d6f012e80b1a6dc3d7ed37d"},
-     {"index":5,"seed":"1#5","preset":"sub","bpm":104.7,"bars":96,"events":2312,"hash":"e069c5cbb00a0f40d651238b2a9b289b0978ad46b5ad675f3999345f3a3ac97c"}
+     {"index":0,"seed":"1#0","preset":"sub","bpm":104,"bars":152,"events":2814,"hash":"6a76c0a263ec0bb98ebd6af3311ef243bf46a1ac23169d1082a35feea14d7199"},
+     {"index":1,"seed":"1#1","preset":"sub","bpm":104.1,"bars":144,"events":2207,"hash":"07b17930d7041f4d41ff69e2545a2795e62ec4702df456c889deb33735a507d8"},
+     {"index":2,"seed":"1#2","preset":"growl","bpm":104.3,"bars":92,"events":1261,"hash":"b968f3380e606d129d235a6bebf36f4e8573b556e0333558a6f16075fbb4e01a"},
+     {"index":3,"seed":"1#3","preset":"growl","bpm":104.4,"bars":104,"events":2153,"hash":"73edc33e903850689bba185ac67c6f62bdd26c3fbd18fdc9b11ec8d480cfc9c7"},
+     {"index":4,"seed":"1#4","preset":"growl","bpm":104.6,"bars":116,"events":3819,"hash":"721205127d58e05db373ad7803793b05a68d92b9beaab6c6d82b6e3b12b08aa4"},
+     {"index":5,"seed":"1#5","preset":"sub","bpm":104.7,"bars":96,"events":2280,"hash":"042e5b3169f93a3b83eb0b9532eef8b11c8d2b8a1c14d22f666ffba6352af43b"}
     ],
     "21323": [
-     {"index":0,"seed":"21323#0","preset":"growl","bpm":100,"bars":104,"events":2013,"hash":"b64d2575d098a06d59ebdca2c2dc132c5e9a6102a529c32e38a7e01f6d0c08a4"},
-     {"index":1,"seed":"21323#1","preset":"growl","bpm":100.1,"bars":116,"events":2485,"hash":"e5bbedee454c6ff4c3a7282f44b96e55d0159b0218529e734361666c4b227706"},
-     {"index":2,"seed":"21323#2","preset":"growl","bpm":100.3,"bars":128,"events":4428,"hash":"4ce5c258707c6be589fa59a815411f79015cac8795220933ae292111e86116ba"},
-     {"index":3,"seed":"21323#3","preset":"growl","bpm":100.4,"bars":148,"events":2354,"hash":"fd626111d30649f1bc8570ec8fea4ff9197c82509a05b98b62427cddb7a0c1be"}
+     {"index":0,"seed":"21323#0","preset":"growl","bpm":100,"bars":104,"events":1989,"hash":"cee03f5436b09a24bd0740659b5d11143564f0b832867fe2bc18aa60f9814234"},
+     {"index":1,"seed":"21323#1","preset":"growl","bpm":100.1,"bars":116,"events":2462,"hash":"66778ce727732132c971706971e727116ef1b9c163064aaf10d27c6a3fccb3ee"},
+     {"index":2,"seed":"21323#2","preset":"growl","bpm":100.3,"bars":128,"events":4102,"hash":"4f67ddb15867eeaca4fd8318d6902d6bbb7fc61aa9c355ee55fa087ec6badd00"},
+     {"index":3,"seed":"21323#3","preset":"growl","bpm":100.4,"bars":148,"events":2337,"hash":"d78a7f572f2dfc3bc64fca633113d18548cc1d6f7806bb5b0f31d0c81ba24c52"}
     ],
     "92970": [
-     {"index":0,"seed":"92970#0","preset":"growl","bpm":101,"bars":116,"events":2374,"hash":"94f8b272985b02883c55ae0b6fbf9630a929692bd0239e7764e4e2d40ae7021e"},
-     {"index":1,"seed":"92970#1","preset":"sub","bpm":101.1,"bars":100,"events":2092,"hash":"78a57162816803c2279430ca8cb1626baa0ade996148f86429cd51a5e4aa1bf7"},
-     {"index":2,"seed":"92970#2","preset":"growl","bpm":101.3,"bars":88,"events":1960,"hash":"fae755c1fdb54733b67b815b5c06d35c49b005d0b2ee68b8378f5778569b64e8"},
-     {"index":3,"seed":"92970#3","preset":"growl","bpm":101.4,"bars":88,"events":1690,"hash":"999af818e90ce01711f200781d816da30de55cb8096809c1401b466b69521987"}
+     {"index":0,"seed":"92970#0","preset":"growl","bpm":101,"bars":116,"events":2350,"hash":"297c5f1a22ad1f4ef9401d3f95163696c177e9823bbc5bde40a347e23162ce79"},
+     {"index":1,"seed":"92970#1","preset":"sub","bpm":101.1,"bars":100,"events":1828,"hash":"e84f0bcfacb7d8824a862d560d81f1298b61bca15fbb688bda284ac363931843"},
+     {"index":2,"seed":"92970#2","preset":"growl","bpm":101.3,"bars":88,"events":1901,"hash":"04ea14d7afc7de9f74aad36a98e804dac870682af0b75fe30f3cb68c881e0106"},
+     {"index":3,"seed":"92970#3","preset":"growl","bpm":101.4,"bars":88,"events":1672,"hash":"acc247d5cd6ad8effef96c8ab578aa059f5b7a2a7b3ad5b917df63f687ef15b3"}
     ]
    }
   }

@@ -58,6 +58,8 @@ import { percentOf, valueOfPercent, percentShown, percentText, RIM_PERCENT, near
 import { switchOn } from './lanes.ts';
 import { castPool, pickCast } from './cast-pool.ts';
 import { startScribe } from './machine/scribe.ts';
+// What the arrangement's phrases did inside the theme, as marks on the rim (10-13).
+import { subMarksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
 import type { Candidate } from './cast-pool.ts';
 import { reducedMotion, coarsePointer } from './motion.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
@@ -1681,6 +1683,8 @@ function buildTimeline(r: Readout) {
     }
   }
 
+  drawSubMarks(r);
+
   // bar numbers: every sixteen bars, or wider on a long theme so the rim
   // stays readable instead of becoming a ruler
   const minuteFracs: number[] = [];
@@ -1703,6 +1707,38 @@ function buildTimeline(r: Readout) {
     }, gTimeline);
     txt(gTimeline, `${i + 1}:00`, px(f, R_NUM).toFixed(1), (py(f, R_NUM) + 4).toFixed(1), 11, { op: 0.72, ls: 0.1, raw: true });
   });
+}
+
+/**
+ * **The sub-sections, small** (his word, 10-13: *"little bars here and there similar to what we have, maybe dashed
+ * lines"*): what the arrangement's phrases did inside the theme — a breakdown-lite, a half-time or a filtered phrase,
+ * a drop-out bar, a fill, the cooldown, the bass out, the drums answering a line — each at its real bars, outside the
+ * section names in the section plan's line work (`src/ring-subsections.ts` says which mark is which). Drawn with the
+ * plan and only with it, so they stand still: no motion, nothing on a beat, nothing a seam or a theme change restarts.
+ */
+function drawSubMarks(r: Readout) {
+  const phrasing = (r.track as { phrasing?: Parameters<typeof subMarksOf>[0] } | null)?.phrasing;
+  for (const m of subMarksOf(phrasing, r.bars)) {
+    const st = SUB_STYLE[m.kind];
+    const f0 = m.from / r.bars;
+    const data = { 'data-sub': m.kind, 'data-from': m.from, 'data-to': m.to };
+    const stroke = (f: number, r0: number, r1: number) => el('path', {
+      class: 'ln', ...data, 'stroke-width': st.w, 'stroke-linecap': 'butt', opacity: st.op,
+      d: `M${px(f, r0).toFixed(1)} ${py(f, r0).toFixed(1)} L${px(f, r1).toFixed(1)} ${py(f, r1).toFixed(1)}`,
+    }, gTimeline);
+    // the line the drums answer: across both tracks
+    if (st.shape === 'tick') { stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
+    // a bar emptied: its two lines across the phrase track, nothing between
+    if (st.shape === 'pair') { stroke(f0, R_SUB - 3, R_SUB + 3); stroke(m.to / r.bars, R_SUB - 3, R_SUB + 3); continue; }
+    const rr = st.track === 'low' ? R_SUB_LOW : R_SUB;
+    // a hair short of the next mark's first bar, as the section arcs stop short of theirs
+    const f1 = Math.min(m.to / r.bars - 0.0015, 0.9999);
+    if (!(f1 > f0)) continue;
+    const p = el('path', {
+      class: 'ln', ...data, d: arcPath(rr, f0, f1), 'stroke-width': st.w, 'stroke-linecap': 'butt', opacity: st.op,
+    }, gTimeline);
+    if (st.dash) p.style.strokeDasharray = st.dash;
+  }
 }
 
 // Which coming plan's lanes are drawn, by the lanes' own identity: `lanesOf`
@@ -3717,10 +3753,18 @@ function turnWords(turnDeg: number, force: boolean) {
     // (a side taken where nothing was clear is kept while it is no more
     // crowded than it was when it was taken)
     const keep = !fresh && costAt(was, -WORD_HOLD, back, true, still) <= wordCost[i] && !onTrack(boxFor(was));
-    // a crowded side is left for a clear one as soon as there is one
+    // a crowded side is left for a clear one as soon as there is one — and,
+    // for a bird at rest, one clear with the star turned back to where the
+    // side was taken, as the keep is asked: the sway turns the arrangement
+    // against the transport, the caption and the track's edge, so a side it
+    // alone uncovers is the sway moving the words (the release check of
+    // 10-13: seed 1's keys at 51 BPM read "Bright piano keys", wider than
+    // the reed organ's line, found no side clear on the desktop's square, and
+    // hopped round Zephyr as the sway opened one)
     const retry = keep && wordCost[i] > 0 && (!still || now - wordRetry[i] > WORD_SETTLE);
     if (retry) wordRetry[i] = now;
-    if (keep && (wordCost[i] === 0 || !retry || !order.some((k) => clearFor(k) > 0))) best = was;
+    const clearBack = (k: number) => offTrack(k) && costAt(k, WORD_SLACK, back, true, still) === 0;
+    if (keep && (wordCost[i] === 0 || !retry || !order.some((k) => (still ? clearBack(k) : clearFor(k) > 0)))) best = was;
     else if (fresh && solved[i] !== undefined) best = solved[i]!;
     // a new side: the first clear through the whole sway, else the one clear
     // now and through the most of it, the order breaking a tie
@@ -3732,6 +3776,9 @@ function turnWords(turnDeg: number, force: boolean) {
         else if (f >= 0 && best < 0) { best = k; }
       }
     }
+    // (a retry the room answered at the side's own turn and the star's turn
+    // does not: the side is kept)
+    if (best < 0 && keep) best = was;
     if (best < 0) {
       // nowhere clear by the slack: the least crowded spot off the track
       // through the whole sway, the one the words are on winning a tie, and
@@ -3909,6 +3956,11 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
         if (!last) return;
         paintAll(last);
         paintHeld(last);
+        // and the screen reader hears the reading the tell now draws: the
+        // promise read when the plan was not in hand yet was the one before it
+        // (the release check of 10-13: Veil at the rim was heard "drone
+        // forward" while the line under it read "drone behind")
+        sayCell(c, last);
         if (panelCell === c) paintPanel();
         if (tell.at >= 0 && tell.cell === c && controls && (c.pulling || c.held)) showTell(c);
       }, (e) => {

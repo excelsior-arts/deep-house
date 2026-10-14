@@ -38,11 +38,14 @@ import { resolveSettings } from '@deep-house/engine/settings';
 import type { Lane, Room, Style } from '@deep-house/engine/style';
 import { MOTIF_RECIPES } from '../recipe.ts';
 import type { LayerTable } from '../spell.ts';
+import { HOUSE } from '../spell.ts';
+import type { LeanedVoicing } from '../generator.ts';
 import { places, EQ_V2 } from './deep-house-places.ts';
 import { placesFaults, type StylePlaces } from '../places.ts';
 import { controls, composition } from './deep-house-parts.ts';
 import type { BirdResponse } from '../composition-policy.ts';
 import { characters, keyboardPatches } from './deep-house-characters.ts';
+import { handCharacters } from './deep-house-hand-characters.ts';
 import type { SoundCharacters } from '../parts/sound.ts';
 import type { CompositionPolicy } from '../composition-policy.ts';
 
@@ -69,6 +72,10 @@ export type StrategyStyle = Style & {
   places: StylePlaces;
   /** round EQ-3: a room that writes no sixteenths takes the lane at these densities, this far under its offbeat hat (`src/generator.ts`) */
   sixteenthsLean?: Readonly<{ densities: readonly string[]; underHatDb: number }>;
+  /** 10-13, the clean keys: the keyboard rows this style plays clean (no strike noise, past the harmonic bus's edge), written into a theme's settings only where the theme sounds one of them (`src/generator.ts`) */
+  cleanKeys?: readonly string[];
+  /** 10-13, the hand voicing: a voice's settings block as this style voices it, written into a theme's room only where the theme sounds that voice (`src/generator.ts`) */
+  voicings?: Readonly<Record<string, Readonly<Record<string, number>> | LeanedVoicing>>;
 };
 
 // --- the switches ------------------------------------------------------------
@@ -391,6 +398,39 @@ export const switches = Object.freeze({
    */
   neverSilent: true,
   /**
+   * **The arrangement's hygiene** — PLAN-UNIFY U1 (his word on the unification,
+   * 10-11: every technique at every bird position). On, the last pass over a
+   * theme the producer does not arrange fades every long hold that would stop
+   * and lays a quiet bed where the groove would go bare, in the theme's own time
+   * (`src/hygiene.ts`, `recipes/arrangement/hygiene.json`); the fast places'
+   * producer does the same with its own row.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  hygiene: true,
+  /**
+   * **The arrangement's phrases** — PLAN-UNIFY U2 (his word 10-13: *"the mains lack sub segments … we divide only
+   * break, groove, and in and out"*). On, where a theme's small things are the house's own (no phrase planner over its
+   * kit), a main longer than about 32 bars or a minute takes sub-segments by the phrase map — a drop-out bar, a
+   * filtered or half-time phrase, a breakdown-lite, a fill, each with its re-entry — the drums answer the structural
+   * arrivals, the bass leaves before a drop and a return, and a main's end into a break is its cooldown
+   * (`src/phrasing.ts`, `recipes/arrangement/phrasing.json`). The house moves, on purpose.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  phrasing: true,
+  /**
+   * **The pad arc** — PLAN-UNIFY U3 (his goal: *"the pads move across the main and still sit behind"*). On, where the
+   * producer does not arrange the track, each long main reshapes the theme's own pad — the chord's voices, its level,
+   * width and air rising to a crest phrase and settling, every restrike kept, never a new layer — around the
+   * arrangement's phrases (`src/pad-arc.ts`, `recipes/arrangement/pad-arc.json`), from 70 BPM up. The slow side's arc (a
+   * slow breath, not a line) is behind the row's own switch, `slow.on`, off: he calls the ambients "actually the most
+   * interesting content" (10-13), and 27191 stays as it is until his ear says otherwise.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  padArc: true,
+  /**
    * **The library reaches the draw** — round GA1, Eugene 09-26: *"we go all in
    * on styles … diversity is the priority. We need to wire the new recipes."*
    * On, one theme in three of a set is the library's turn (`libraryTurn`), and
@@ -609,6 +649,45 @@ function withMid<T extends { v: string }>(list: readonly T[], laneId: string): r
 // was; with the drone in front it is held off anyway.
 const SIXTEENTH_PRESENCE = Object.freeze([{ scene: 'drone-back', midFrom: 50, db: -14 }]);
 
+// **Where the hand drums belong** (by ear, 10-13, of the bongo through a
+// four-on-the-floor for 140 bars at 129 BPM over a supersaw pad: *"too fast
+// for congas so it sounds like something else … congas on slower tracks, and
+// more sparse and acoustic like, so congas won't go over noisy continuous
+// synth pads / strings, as the instruments are from different genres"*). It
+// builds on his rule of 09-22 (hands *"sound good on sparse rhythmical tracks
+// … a lot of air"*, not on *"synth-like endless sustain"*) and on the hand
+// drums leaving a fast, straight beat (10-02, the bongo at 137 "annoying as
+// hell"). Hand drums — the sixteenth lane's `drum` family: the membranes,
+// the toms, the woodblock, the cowbell — are admitted at slower tempos over a
+// sparse bed, and withdrawn, at every reader of the lane's candidates (the
+// lane's own draw, the composition's hand rows and percussion loop, the
+// development's players):
+//
+//   from a fast four-floor   the four-floor kit at 115 BPM and over, where the
+//                            tempo labels' driving band begins and the fast
+//                            band's own parts (GA4) open; the house's 95-105
+//                            stays below it. It takes in 10-02's band (125 BPM
+//                            and over with Spark under a quarter, always the
+//                            four-floor kit) and ends that rule's exception
+//                            for the fast four-floor's percussion loop, which
+//                            was kept for the link it held and never by ear
+//   over a continuous bed    a bed (the drawn pad, a held lead being the pad)
+//                            that is not struck and holds at least half the
+//                            bar by its own declared hold (`TIMBRES`): the
+//                            strings (0.52), the organ, every synth pad (0.7
+//                            to 0.95), a held synth lead; a sparse bed — the
+//                            rhodes (0.3, struck), the swell (0.32), the
+//                            struck keys — keeps them. At any tempo and kit.
+//
+// A part's cell of the family leaves and its other players play on (a hand
+// row's shaker, the loop's shuffle, the development's brush). An explicit
+// pin's own role and a track row's own part keep their windows, as a part's
+// windows always have (`resolveRhythm`).
+const HANDS = Object.freeze([
+  { tempoFrom: 115, kits: ['fourFloor'], families: ['drum'] },
+  { bed: { holdFrom: 0.5 }, families: ['drum'] },
+]);
+
 // **The floor under a drone in front** (Eugene, 10-01, round GA7: on the slow
 // side of Ember *a drone may stay the foreground and a soft four-floor kick
 // plus hats may play under it*; where the floor is, is the composition's
@@ -657,13 +736,10 @@ const LANE_KITCHEN: Readonly<Record<string, Partial<Lane>>> = Object.freeze({
   // at a sixteenth mask's pace every one of them is withdrawn, so the lane is
   // held off. Behind the drone, or on air, it draws as it always did.
   sixteenth: { list: 'sixteenthVoices', voices: withMid(withTrims(SIXTEENTH_VOICES, 'sixteenth'), 'sixteenth'), figure: 'sixteenthMask',
-    // And the hand drums leave a fast, straight beat (10-02, seed 6 at the
-    // deep half-time: the bongo on sixteenths at 137 BPM under a beat with
-    // few hits, the woodblock's cousin): above 125 BPM with Spark under a
-    // quarter the `drum` family is withdrawn from this lane and the
-    // shaker-type players remain; the fast four-floor's own percussion loop
-    // (GA4, Spark about a half) keeps its hands.
-    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }, { tempoFrom: 125, controls: { spark: { max: 0.25 } }, families: ['drum'] }], presence: SIXTEENTH_PRESENCE },
+    // And the hand drums play where they belong (`HANDS`, above): off a fast
+    // four-floor and off a continuous bed the `drum` family is withdrawn from
+    // this lane and the shaker-type players remain.
+    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }, ...HANDS], presence: SIXTEENTH_PRESENCE },
   backbeat: { list: 'backbeatVoices', voices: withTrims(BACKBEAT_VOICES, 'backbeat'), floor: FLOOR_OFF },
   glueImpact: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'impact' },
   glueSwell: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'swell' },
@@ -969,11 +1045,133 @@ const presentPiano = Object.freeze({ ...base.piano,
   dryLevel: .85, sustainLevel: .32, partialDecay: .40,
 });
 
+/**
+ * **The clean keys** (his ear 10-13, seed 4 at Tide 0.95: the electric piano's
+ * noise "makes it cheap"; then, on round 1's softer strike and lower bus top,
+ * the electric piano "still looks like a bug, for that particular clean
+ * acoustic instrument it is not fitting, like we were doing for bells and
+ * vibes", the glass at Tide and Zephyr 0.9 "still sounds like audio bug", the
+ * held rhodes at Gleam 0.95 "still a bit off"). SPARK-1's grain row gives every
+ * keyboard a strike of band-passed noise (`keys.edge.chiff`) and the harmonic
+ * bus a driven copy (`harmonicEdge`). On the electric piano as this style voices
+ * it (no tine, a 2:1 body), the glass and the rhodes -- a few near-sines each --
+ * neither is a partial of the note: the strike is a band of noise, and the clip's
+ * copy of a chord of sines is a cloud of sums and differences (in eight bars of
+ * seed 4's electric piano alone, 29,310 of 43,532 spectral peaks off the notes'
+ * harmonics; 993 of 5,730 without the two, its 4-8 kHz 52 dB down). HF-NOISE took the bells and the vibes past the edge
+ * for that reason (their rows' `edge: false`); these three are played the same
+ * way, and with no strike: their notes take the bus's clean door and build no
+ * noise. Written into a theme's settings only where the theme sounds one of
+ * them and its room has a strike or an edge to take away, so every other
+ * theme -- and the organ's key click and the pluck in a room shared with one of
+ * these -- carries the room it always did (`notes/rounds/keys-noise.md`).
+ */
+const CLEAN_KEYS = Object.freeze(['keysEp', 'keysGlass', 'keysRhodes']);
+
+/**
+ * **The hand voicing** (his ear, 10-13: seed 8's conga "had decent timbre (not
+ * as bouncy HF that makes it sound like some arcade game sound… a hand
+ * conversation)"; the afro-house row's bongo "rather annoying timbre"). The
+ * hand colours he kept on 09-22 (`deep-house-hand-characters.ts`: warm open,
+ * low round, soft skin, crisp hand) reached only the three hand rows, which
+ * write them on every stroke; every other conga and bongo — the lane's own
+ * draw, a track row's hand cell, the development's replies — struck the
+ * original drum: the head falling 1.26x over 45 ms (about 330 cents, read on a
+ * render) and a triangle mode ringing 0.28 s over it, 20-30 dB more energy at
+ * 1-4 kHz after the hand than any kept colour. Here both drums are voiced as
+ * the kept colours: the conga is the warm open tone (its low tuning the low
+ * round body, its slap the crisp hand), the bongo keeps its own heads and its
+ * filters and takes the colour's articulation (a 1.025 bend over 12 ms, the
+ * sine mode at 1.59 and the skin's damped modes). A stroke a part writes still
+ * sets its own numbers. The voicing is written into a theme's room only where
+ * the theme sounds a conga or a bongo (`voicings`, read by the generator), so a
+ * theme without one carries the room it always did. Measured on isolated hits: the open conga's glide
+ * 330 -> 106 cents and its 1-4 kHz ring -43 -> -76 dB, as the warm open colour
+ * (95 cents, -75 dB), at the same level within 0.1 dB; the open bongo's glide
+ * 330 -> 12 cents, its 1.5 kHz-up share -42 -> -69 dB, 0.5 dB quieter (its
+ * trim is the hand rows' too, and theirs is the approved level, so it stays).
+ * Every number the hand rows' strokes write is theirs, so they sound as before.
+ */
+const warm = handCharacters['warm-open'].params, round = handCharacters['low-round'].params, crisp = handCharacters['crisp-hand'].params;
+const HAND_VOICINGS = Object.freeze({
+  conga: Object.freeze({
+    highHz: warm.headHz, lowHz: round.headHz, drop: warm.bend, dropTime: warm.bendSeconds, mode: warm.modeRatio,
+    modeLevel: warm.modeLevel, modeDecay: warm.modeDecay, bodyLevel: warm.headLevel, bodyLp: warm.headCutoff,
+    slapHz: warm.handHz, slapOpen: warm.handLevel, slapDecay: warm.handDecay, t10Open: warm.damping,
+    lowRing: round.damping / warm.damping, slapHzHard: crisp.handHz, slapHard: crisp.handLevel, t10Slap: crisp.damping,
+    skin: warm.skin,
+  }),
+  bongo: Object.freeze({ drop: warm.bend, dropTime: warm.bendSeconds, mode: warm.modeRatio, skin: warm.skin }),
+});
+
+/**
+ * **The reed, bright or dark by Zephyr** (his ear 10-13 on seed 1: "it sounds
+ * so annoying in this track"; on the darker reed: "choosing bright or dark
+ * shouldn't be to me, but to birds positions"). The reed organ's row puts a
+ * +7 dB peak at 1150 Hz under a 4.2 kHz lowpass: its loudest third-octave is
+ * 1.25 kHz and its 0.8-2 kHz band 3.0 dB over its 0.2-0.8 kHz on held notes,
+ * where every synth pad sits at or under nought — a harmonium's honk, in the
+ * band the ear hears best. The darker end puts the peak at 850 Hz +3.5 dB under
+ * 3 kHz: 0.8-2 kHz level with 0.2-0.8 kHz, 4-6 kHz 2.5-4 dB down, the trim
+ * 0.724 -> 0.9 so it reads the loudness its timbre declares (-12) as before,
+ * within 0.1 LU on held notes and on stabs. Zephyr (the air, the brightness)
+ * walks the reed between the two ends with the one lean (`shiftOf`): the dark
+ * end at Zephyr nought, the row's own at 0.754 and over, half-way at the
+ * house's Zephyr (0.377). Written into a theme's room only where the theme
+ * sounds the reed (`voicings`, read by the generator).
+ */
+const REED_DARK = Object.freeze({ formantHz: 850, formantDb: 3.5, lpHz: 3000, trim: 0.9 });
+const REED_VOICING = Object.freeze({
+  lean: Object.freeze({ zephyr: 0.5 / HOUSE.zephyr, centre: HOUSE.zephyr }),
+  from: REED_DARK,
+  to: Object.freeze(Object.fromEntries(Object.keys(REED_DARK).map((k) => [k, (base.reedOrgan as Record<string, number>)[k]]))),
+});
+
 /** Shared foundation with v2's loudness and authored instrument characters. */
 export const baseV2 = Object.freeze({ ...base, master: { ...base.master, ...EQ_V2 }, loudness: loudnessV2, sawLead: smoothSaw, piano: presentPiano, keyboardPatches });
 
 /** That table resolved once, the way every style resolves its own. */
 export const settings = resolveSettings({ base: baseV2 });
+
+// --- far-apart scenes ---------------------------------------------------------
+//
+// **The reed organ off the synth beds** (his ear 10-13, `?seed=1&v=2`: "it
+// sounds so annoying in this track"). The reed is a harmonium — two saws
+// through a fixed +7 dB peak at 1.15 kHz, the acoustic folk end of the keys —
+// and the stab lane plays it as a sixteenth-long strike on the pad's own chord
+// tones. Over a synth bed it is the acoustic front voice over synth pads he
+// called "a bad match, too wide music scenes apart" (golden 38, 10-13), the
+// hand drums' lesson in the keys. On the grid (seeds 1-40, the guards'
+// spells) it was drawn on 139 of 1320 themes, 100 of them over a synth bed;
+// the other 39 lie over the strings, the rhodes, the swell and the organ and
+// keep it. The synth beds are named: the ensembles and the held synth lead
+// that make a pad of oscillators, as `TIMBRES` has them.
+const SYNTH_BEDS = Object.freeze(['supersawPad', 'sawPad', 'wavePad', 'formantPad', 'grainPad', 'shimmerPad', 'supersawLead']);
+// **The redrawn front's level** (`db`, his ear 10-13 on seed 1's tri lead: "better, still levels a bit off"): the
+// reed's figure is a sixteenth-long strike its 45 ms attack never fully opened, and the voice drawn in its place
+// opens on every one — seed 1's tri lead reads 1.6-1.7 dB over the reed at the same notes. Golden 38's tri lead
+// (his "tri in front, wave pad behind") sits 4.1-4.3 dB under its pad in the mains; seed 1's sat 0.2-2.1 dB under
+// its supersaw. Three decibels down brings it to 38's balance. A struck replacement keeps its own level (it stands at
+// or under the reed already).
+// **The bed under it** (`bedMostDb`, his ear 10-13 on seed 24: "still foregrounds pads dominating drums and
+// everything else"): in the growl room the pad's lane is -6 dB, two over the sub room's -7.9 to -8.0, and the reed
+// stood over it (seed 24: the reed 5.7 dB over the wave pad at the same bars). With the reed gone the wave pad
+// stands 9.5 dB over the drums in the main, the most of 295 house and mid-ring themes (median 4.2; golden 38 7.2,
+// golden 34 2.9). Under a redrawn front the bed plays no hotter than the sub room's -8 on its lane, and the front no
+// hotter than the sub room's -12.5 on the keys' (the growl room's keys are -9.5: seed 24's tri lead stood 5.3-6.6 dB
+// over its drums where 38's stands 1.8-3.2).
+const APART = Object.freeze([Object.freeze({ front: Object.freeze(['reedOrgan']), beds: SYNTH_BEDS, db: -3, bedMostDb: -8, frontMostDb: -12.5 })]);
+
+// The reed's level (his ear 10-13, round 3). `frontDb`: in the mains the reed stood 1.5 dB over its swell to 6.7
+// under its pad (seed 17, Downtempo and Tide 0.95) and added 0.6-2.4 dB to the mix, where golden 38's tri lead stands
+// 4.1-4.3 under its wave pad and adds 0.5; three decibels down is a lead over its bed. Inside an exposed run the reed
+// stands where the stage settles after it, without the breakdown's melodic lift, at the main's velocity
+// (`generator.ts`), so its level is the main's through the break and across the seam (round 4).
+// `sparseBedMostDb` (round 4, the rule reviewed over the 38 reed themes' mains): the reed adds 0.7 dB to its mix at
+// the median (golden 38's tri 0.5), but 2.1-5.3 in fourteen themes, every one in the growl room (keys -9.5) over a
+// sparse bed (the rhodes, the swell), where the reed is the only held voice; over the growl room's strings it adds
+// 0.4-1.1. Over a sparse bed the reed plays no hotter than the sub room's -12.5 on the keys' lane.
+const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8, frontDb: -3, sparseBedMostDb: -12.5 });
 
 // --- the catalogue -----------------------------------------------------------
 
@@ -1072,6 +1270,28 @@ export const catalogue = {
    * `holdLeanFor`; house-v1 carries no block and hands every list through.
    */
   holdLean: { densities: ['minimal'], lists: ['leadTimbres', 'padPartners', 'stabPartners'] },
+  /**
+   * **Timbres from far-apart scenes don't share a track** (his ear 10-13: an
+   * acoustic-sounding front voice over synth pads is "a bad match, too wide
+   * music scenes apart"; seed 1's reed organ over its supersaw pad "sounds so
+   * annoying"). A row names front timbres and the beds they are not drawn
+   * over: the keys' or a struck lead's draw that lands on one over one of its
+   * beds is drawn again off the same stream with the row's front timbres at
+   * nought (`generator.ts`, `apart`), so no other die moves. The first row is
+   * the reed organ — a harmonium, a sawtooth through a fixed nasal peak at
+   * 1.15 kHz — off the synth beds; over the strings, the rhodes, the swell
+   * and the organ it stays. The table is where the other acoustic fronts go,
+   * each on his A/B.
+   */
+  apart: APART,
+  /**
+   * **A held reed is never the only voice** (his ear 10-13 on the Downtempo
+   * tile's seed 17: "reed organ in empty quiet room is like a little torture
+   * for listener, although the motif is interesting"). A bar where one of these
+   * fronts plays the figure with no bed and no kick under it takes the theme's
+   * own bed back, `bedDb` under the pad's level (`generator.ts`, `EXPOSED`).
+   */
+  exposed: EXPOSED,
 };
 
 const candidates = candidateListsV2(catalogue);
@@ -1311,6 +1531,11 @@ export const style = {
   // (`src/generator.ts`, `notes/rounds/eq-3.md`). v1 has no field: its rooms
   // are as measured.
   sixteenthsLean: Object.freeze({ densities: Object.freeze(['medium', 'busy']), underHatDb: -11 }),
+  // 10-13, the clean keys: the electric piano, the glass and the rhodes with
+  // no strike noise and past the bus's edge, written only where a theme sounds
+  // one (`src/generator.ts`). v1 has no field: its rooms build neither.
+  cleanKeys: CLEAN_KEYS,
+  voicings: Object.freeze({ ...HAND_VOICINGS, reedOrgan: REED_VOICING }),
 } satisfies StrategyStyle;
 
 {

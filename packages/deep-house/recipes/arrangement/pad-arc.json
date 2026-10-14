@@ -1,0 +1,52 @@
+{
+ "schema": 1,
+ "kind": "arrangement-pad-arc",
+ "round": "unify-u3",
+ "revision": 1,
+ "note": "The pad arc at every house-v2 position the producer does not arrange (PLAN-UNIFY §1.12, U3; his goal for the round: \"the pads move across the main and still sit behind\"). The theme's own pad is reshaped across each long main, never a second pad laid over it and never a new layer: each restrike keeps its time, its chord and its length, and takes its place on the main's arc, from a thin, close, dry opening to a crest and settling into the main's end. Along the arc (0 its thinnest, 1 its crest): how many of the chord's voices sound (the top ones leave at the thin end, the chord as written at the crest, never fewer than `voicing.least`), the level, the width (the voice's own spread) and the air (its reverb send). The arc reads the arrangement's phrases (`track.phrasing`): the crest is a phrase no sub-segment stands in, ending where the main's cooldown starts, and the arc holds still across a sub-segment (a breakdown-lite, a filtered phrase), so the two gestures never fight. Each knob is in the unit it declares (src/musical-time.ts) and leaned by the one lean (src/lean.ts), about the house's own birds. Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "ring",
+   "name": "the ring's own pad arc",
+   "units": {
+    "says": "what each knob counts: bars are the theme's written grid, phrases the phrase map's; dB absolute; width and air factors on the note's own spread and reverb send; an arc position 0 to 1; a lean is the one lean's",
+    "leastBpm": "bpm",
+    "leastPhrases": "phrases",
+    "shape.open": "position",
+    "shape.afterDrop": "position",
+    "shape.settle": "position",
+    "voicing.least": "count",
+    "voicing.drop": "count",
+    "levelDb": "dB",
+    "width": "ratio",
+    "air": "ratio",
+    "lean.zephyr": "lean"
+   },
+   "centre": { "says": "the house's own birds (src/spell.ts HOUSE): every lean of this row is nought there", "zephyr": 0.377 },
+   "leastBpm": 70,
+   "sections": ["main", "groove"],
+   "leastPhrases": 3,
+   "shape": {
+    "says": "where the arc stands at the main's first bar (`open`; `afterDrop` where a drop hands the main its energy), rising in a straight line to the crest, the crest held across its phrase, then settling to `settle` at the main's last bar; `crest`: `last` puts it on the last phrase before the cooldown (the line toward the main's end, the house), `middle` on the phrase nearest the main's middle (a breath)",
+    "open": 0.25,
+    "afterDrop": 0.55,
+    "settle": 0.45,
+    "crest": "last"
+   },
+   "voicing": { "says": "at the thin end up to `drop` of the chord's voices leave, by function from its root: the extensions first (the ninth, the eleventh, the thirteenth), then the seventh, then a doubled root or fifth; never the third, never under `least` voices, and a chord with nothing that may leave is not thinned; they return as the arc rises; a chord a track row's own part owns keeps every voice", "least": 3, "drop": 2 },
+   "levelDb": [-2, 0.5],
+   "width": [0.75, 1.1],
+   "air": [0.8, 1.2],
+   "lean": { "says": "Zephyr, brightness and air: the arc's width and air wider and airier up (x0.86 at nought, x1.28 at one about the house's 0.377)", "zephyr": { "width": 0.4, "air": 0.4 } },
+   "slow": {
+    "says": "the slow side (under `leastBpm`), behind its own switch (`on`, off: the ambients are \"actually the most interesting content\", his word 10-13, and 27191 stays as it is; one optional pair waits for his ear): a slow breath, not a line — the crest in the main's middle, the chord's voices kept, the level, width and air moving less",
+    "on": false,
+    "shape": { "open": 0.35, "afterDrop": 0.5, "settle": 0.35, "crest": "middle" },
+    "voicing": null,
+    "levelDb": [-1.5, 0.5],
+    "width": [0.9, 1.05],
+    "air": [0.85, 1.15]
+   }
+  }
+ ]
+}

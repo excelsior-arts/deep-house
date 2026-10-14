@@ -24,6 +24,7 @@
 // Nothing here knows a genre or a place: a place table names the rows (`KeysEntry`),
 // the seed draws inside them, each draw off a stream of its own (`<seed>::keys:*`), so
 // adding this part moves no other die.
+import { lean as leanBy } from './lean.ts';
 import PHRASE_FILE from '../recipes/keys/phrases.json' with { type: 'json' };
 import MOTIF_FILE from '../recipes/keys/motifs.json' with { type: 'json' };
 import DENSITY_FILE from '../recipes/keys/density.json' with { type: 'json' };
@@ -33,6 +34,7 @@ import DRAW_FILE from '../recipes/keys/draw.json' with { type: 'json' };
 import { SPACE_ROWS } from '@deep-house/engine/space-rows';
 import type { SpaceRow } from '@deep-house/engine/space';
 import { BY_NAME } from '@deep-house/engine/voices';
+import { costOf as effectsCost, EFFECT_COST } from '@deep-house/engine/effects';
 import { Rng } from './rng.ts';
 
 // --- the rows -------------------------------------------------------------------
@@ -63,7 +65,16 @@ export interface TrackDensityRow {
   /** the bed around a landing: how many voices, how long before the strike a bare landing thins it, how long after it the moved voice returns, and its release where it leaves */
   bed: { voices: number; bareLeadSteps: number; returnSteps: number; thinRelease: number };
 }
-interface ToneRow { id: string; name: string; gainDb: number; sparseDb?: Record<string, number>; layers: Array<{ sound: string; hands: 'both' | 'right'; gainDb: number }>; inserts: Array<{ effect: string; params: Record<string, number> }> }
+interface ToneRow {
+  id: string; name: string; gainDb: number; sparseDb?: Record<string, number>; layers: Array<{ sound: string; hands: 'both' | 'right'; gainDb: number }>; inserts: Array<{ effect: string; params: Record<string, number> }>;
+  /**
+   * where a bird's swap sounds this tone over the one the draw chose (PLAN-UNIFY U3), at no more cost than that one:
+   * its dear inserts (its own room) become a send to the field's shared hall at `hall` with the note's direct level at
+   * `direct` (the room's dry share), and its cheap ones (its EQ), where the drawn tone's inserts cannot pay for them,
+   * the note's own low-pass at `lpMul`
+   */
+  swap?: { hall?: number; direct?: number; lpMul?: number };
+}
 interface WetRow { id: string; send: number; dry: number; trimDb: number }
 /** A choice the draw row weighs, by row id. */
 type Weights = Record<string, number>;
@@ -168,6 +179,13 @@ export function keysRowsFaults(): string[] {
     }
   }
   for (const t of TONES) for (const l of t.layers) if (!BY_NAME[l.sound]) bad.push(`tone ${t.id}: ${l.sound} is no voice`);
+  // a tone a draw row may draw, which a bird's swap may sound over another (PLAN-UNIFY U3), carries a stand-in for every insert the drawn tone may not pay
+  // for: the note's low-pass for a cheap one, the field's hall for a dear one
+  const drawable = new Set(DRAWS.flatMap((d) => Object.entries(d.tone).filter(([, w]) => w > 0).map(([k]) => k)));
+  for (const t of TONES.filter((x) => drawable.has(x.id))) {
+    if (t.inserts.some((e) => EFFECT_COST[e.effect] === 'cheap') && t.swap?.lpMul == null) bad.push(`tone ${t.id}: a cheap insert and no swap.lpMul`);
+    if (t.inserts.some((e) => EFFECT_COST[e.effect] !== 'cheap') && t.swap?.hall == null) bad.push(`tone ${t.id}: a dear insert and no swap.hall`);
+  }
   const ids: Record<ChoiceName, readonly string[]> = { tone: TONES.map((r) => r.id), space: Object.keys(SPACE_ROWS), motif: MOTIFS.map((r) => r.id),
     wetness: WETNESS.map((r) => r.id), density: DENSITIES.filter((r) => r.scope === 'track').map((r) => r.id), phrase: PHRASES.map((r) => r.id) };
   for (const d of DRAWS) {
@@ -191,7 +209,15 @@ export function keysRowsFaults(): string[] {
 // --- the place's choice -----------------------------------------------------------
 
 /** What a place's keys entry names: the draw row its themes draw their keys from (`draw.json`), and the part's level in the place's mix. */
-export interface KeysChoice { draw: string; levelDb: number }
+export interface KeysChoice {
+  draw: string;
+  levelDb: number;
+  /**
+   * the place's birds on the draw (PLAN-UNIFY U3, the fast places' birds), over the row's own: a bird's lean on a choice
+   * named `<choice>:<id>` (`tone:fm-ep`), exp(x · (bird − centre)) about the place's own tile, so the tile draws as it did
+   */
+  leans?: Readonly<{ centre: Readonly<Record<string, number>>; by: Readonly<Record<string, Readonly<Record<string, number>>>> }>;
+}
 /** A hand's override for an audition (a tool's, no link reads it yet): any of the rows by id. */
 export type KeysOverride = Partial<Record<'tone' | 'space' | 'motif' | 'wetness' | 'density' | 'phrase', string>>;
 
@@ -265,6 +291,18 @@ export interface KeysPlan {
   choice: Required<KeysOverride>;
   /** how many landings the density drew before the budget, and how many it kept */
   drawn: number;
+  /**
+   * the tone the draw chose, where the place's birds swapped only its instrument (PLAN-UNIFY U3, `KeysChoice.leans`):
+   * its layers' voices, which every admission and the cast count (as a backbeat's crack is, `DrumsEntry.soundOnly`);
+   * the swap never costs more than the drawn tone (`ToneRow.swap`): the sounding tone keeps its cheap inserts where the
+   * drawn tone's inserts pay for them, else its notes' own low-pass (`lpMul`); its dear ones become a send to the
+   * field's shared hall (`hall`); absent where the sounding tone is the drawn one
+   */
+  cast?: { tone: string; voices: string[]; lpMul?: number; hall?: number; direct?: number;
+    /** the part space as the drawn tone would have built it: what the cast and the admissions count (the sounded one costs no more) */
+    space: SpaceRow;
+    /** where the theme builds no shared hall: the part space with the tone's own room, where the drawn tone's inserts pay for it (else the room is gone) */
+    ownRoom?: SpaceRow };
 }
 
 export interface KeysInput {
@@ -311,7 +349,8 @@ export function transposeInto(row: PhraseRow, root: number, scale: readonly numb
 const moveSymbol = (s: string, t: number) => s.replace(/^([A-G](?:#|b)?)/, (m) => SPELL[mod(NAMES[m] + t, 12)]);
 
 /** The part's space as one row: the tone's inserts before the space's, the wetness on its dry and its sends, the levels in its trim. */
-export function partSpaceRow(tone: ToneRow, spaceId: string, wet: WetRow, levelDb: number): SpaceRow {
+/** `insertsOf`: the inserts the space carries (a tone the birds swapped, PLAN-UNIFY U3, carries only what costs no more than the drawn one's); its own level trim always */
+export function partSpaceRow(tone: ToneRow, spaceId: string, wet: WetRow, levelDb: number, insertsOf: Pick<ToneRow, 'inserts'> = tone): SpaceRow {
   const space = SPACE_ROWS[spaceId];
   if (!space) throw new Error(`keys: no space row ${spaceId}`);
   // the wetness step holds the space's loudness (`wetness.json`): its return's share of the energy at its own levels
@@ -323,7 +362,7 @@ export function partSpaceRow(tone: ToneRow, spaceId: string, wet: WetRow, levelD
     schema: 1, kind: 'space', id: 'keysPart', revision: 1,
     dry: +(space.dry * wet.dry).toFixed(4),
     trimDb: +Math.max(-24, Math.min(12, trimDb)).toFixed(3),
-    inserts: [...tone.inserts.map((e) => ({ effect: e.effect, params: { ...e.params } })), ...space.inserts.map((e) => ({ effect: e.effect, params: { ...e.params } }))],
+    inserts: [...insertsOf.inserts.map((e) => ({ effect: e.effect, params: { ...e.params } })), ...space.inserts.map((e) => ({ effect: e.effect, params: { ...e.params } }))],
     sends: space.sends.map((s) => ({ ...s, params: { ...s.params }, level: +(s.level * wet.send).toFixed(4), ...(s.after ? { after: s.after.map((e) => ({ effect: e.effect, params: { ...e.params } })) } : {}) })),
   }) as SpaceRow;
 }
@@ -342,17 +381,24 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   const o = input.override ?? {};
   const D = byId(DRAWS, input.choice.draw, 'draw');
   // each choice off a stream of its own, by the row's weights leaned by the birds: a new choice moves no other
-  const lean = (c: ChoiceName, id: string) => {
+  const lean = (c: ChoiceName, id: string, sounding = true) => {
     let m = 1;
     for (const [bird, leans] of Object.entries(D.birds ?? {})) {
       const x = leans[c]?.[id], v = input.spell[bird];
-      if (x && Number.isFinite(v)) m *= Math.exp(x * D.strength * (v - D.centre));
+      m *= leanBy(x, v, D.strength, D.centre);
+    }
+    const P = sounding ? input.choice.leans : undefined;
+    if (P) for (const [bird, leans] of Object.entries(P.by)) {
+      const x = leans[`${c}:${id}`], v = input.spell[bird], at = P.centre[bird];
+      if (typeof x === 'number' && typeof v === 'number' && typeof at === 'number' && v !== at) m *= Math.exp(x * (v - at));
     }
     return m;
   };
-  const draw = (c: Exclude<ChoiceName, 'phrase'>): string => o[c] ?? new Rng(`${seed}::keys:${c}`)
-    .weighted(Object.entries(D[c]).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v) })));
+  const draw = (c: Exclude<ChoiceName, 'phrase'>, sounding = true): string => o[c] ?? new Rng(`${seed}::keys:${c}`)
+    .weighted(Object.entries(D[c]).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v, sounding) })));
   const tone = byId(TONES, draw('tone'), 'tone');
+  // the tone the row's own draw chose (the place's birds left out, off the same stream): what the cast counts
+  const drawnTone = input.choice.leans ? byId(TONES, draw('tone', false), 'tone') : tone;
   const spaceId = draw('space');
   const motif = byId(MOTIFS, draw('motif'), 'motif');
   const wet = byId(WETNESS, draw('wetness'), 'wetness');
@@ -567,11 +613,24 @@ export function planKeys(input: KeysInput): KeysPlan | null {
     const cls = classOf(s.kind), rule = density.sections[cls];
     return { index: s.index, startBar: s.startBar, bars: s.bars, cls, levelDb: rule.levelDb ?? 0, send: rule.send ?? 1, dry: rule.dry ?? 1 };
   });
-  const space = partSpaceRow(tone, spaceId, wet, input.choice.levelDb);
+  // a tone the birds swapped (PLAN-UNIFY U3) sounds as itself at no more cost than the drawn one: its cheap inserts (an
+  // EQ, a drive) where the drawn tone's inserts pay for them, else its notes' own low-pass; its dear ones (its room) a
+  // send to the field's shared hall, which adds no units; never the drawn tone's inserts
+  const swapped = drawnTone !== tone;
+  const cheap = tone.inserts.filter((e) => EFFECT_COST[e.effect] === 'cheap'), dear = tone.inserts.filter((e) => EFFECT_COST[e.effect] !== 'cheap');
+  const keepCheap = !swapped || effectsCost(cheap.map((e) => e.effect)) <= effectsCost(drawnTone.inserts.map((e) => e.effect));
+  const space = partSpaceRow(tone, spaceId, wet, input.choice.levelDb, swapped ? { ...tone, inserts: keepCheap ? cheap : [] } : tone);
+  const swapLp = swapped && !keepCheap && cheap.length && tone.swap?.lpMul != null ? tone.swap.lpMul : null;
+  const swapHall = swapped && dear.length && tone.swap?.hall != null ? tone.swap.hall : null;
+  const swapDirect = swapHall != null && tone.swap?.direct != null ? tone.swap.direct : null;
+  // where the theme builds no shared hall (no passage): its own room, where the drawn tone's inserts pay for it, else none
+  const ownRoom = swapHall != null && effectsCost([...(keepCheap ? cheap : []), ...dear].map((e) => e.effect)) <= effectsCost(drawnTone.inserts.map((e) => e.effect))
+    ? partSpaceRow(tone, spaceId, wet, input.choice.levelDb, { inserts: [...(keepCheap ? cheap : []), ...dear] }) : null;
   const layers = tone.layers.map((l) => ({ voice: l.sound, gain: 10 ** (l.gainDb / 20), hands: l.hands }));
   return {
     phrase: row.id, transpose: t, chords, landings, notes, states, reserved, bed, sections: sectionMix, space, layers,
     choice: { tone: tone.id, space: spaceId, motif: motif.id, wetness: wet.id, density: density.id, phrase: row.id }, drawn: drawnCount,
+    ...(swapped ? { cast: { tone: drawnTone.id, voices: drawnTone.layers.map((l) => l.sound), ...(swapLp != null ? { lpMul: swapLp } : {}), ...(swapHall != null ? { hall: swapHall } : {}), ...(swapDirect != null ? { direct: swapDirect } : {}), ...(ownRoom ? { ownRoom } : {}), space: partSpaceRow(tone, spaceId, wet, input.choice.levelDb, drawnTone) } } : {}),
   };
 }
 
@@ -598,11 +657,14 @@ export interface KeysReadout {
   /** the windows the keys own, in sixteenths from the theme's start: a pickup up to its strike, the strike's own beat */
   reserved: KeysWindow[];
   drawn: number;
+  /** a tone the birds swapped for its sound (PLAN-UNIFY U3): the drawn tone, and the part space's inserts the cast counts */
+  cast?: { tone: string; inserts: string[] };
 }
 export function keysReadout(plan: KeysPlan): KeysReadout {
   return {
     phrase: plan.phrase, transpose: plan.transpose, choice: { ...plan.choice },
     chords: plan.chords.map((c) => ({ symbol: c.symbol, rootPc: c.rootPc, bassPc: c.bassPc, bass: c.bass, tones: [...c.tones] })),
     states: plan.states.map((s) => ({ ...s })), landings: plan.landings.map((l) => ({ ...l })), reserved: plan.reserved.map((w) => ({ ...w })), drawn: plan.drawn,
+    ...(plan.cast ? { cast: { tone: plan.cast.tone, inserts: plan.cast.space.inserts.map((e) => e.effect) } } : {}),
   };
 }

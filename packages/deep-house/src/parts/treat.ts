@@ -3,7 +3,6 @@
 // pulse, a second part on its own bar cycle. Split out of generator.ts in the
 // composer fix round of 09-22 without moving an event.
 import type { Lane, Style } from '@deep-house/engine/style';
-import type { Settings } from '@deep-house/engine/settings';
 import type { NoteParams } from '@deep-house/engine/voices/descriptor';
 import { BY_NAME } from '@deep-house/engine/voices';
 import { dbToGain } from '@deep-house/engine/dsp';
@@ -33,7 +32,8 @@ export function rollTexture({ style, parts, forbids, dice, partStream }:
 
 export interface Treatment {
   style: Style;
-  S: Settings;
+  /** the room's levels as the theme plays them (`S` with the sixteenths' lean over it), never the bare `S.levels` */
+  levels: Readonly<Record<string, number>>;
   parts: MusicalParts;
   characters: SoundCharacters | undefined;
   events: PlanEvent[];
@@ -54,7 +54,7 @@ export interface Treatment {
 }
 
 /** The post-passes, in the order they always ran, before the events are sorted. */
-export function treat({ style, S, parts, characters, events, upperEvents, phraseParameters, LANES, voiceOf, UPPERS, TEXTURE,
+export function treat({ style, levels, parts, characters, events, upperEvents, phraseParameters, LANES, voiceOf, UPPERS, TEXTURE,
   silent, bars, arrangement, progression, at, beat, barSeconds, push }: Treatment): void {
   // Space follows the actual musical role; it never changes a note's
   // onset, pitch, strength or the dry kick/bass. Engine defaults survive when
@@ -69,8 +69,8 @@ export function treat({ style, S, parts, characters, events, upperEvents, phrase
   };
   for (const role of Object.keys(parts.presence)) {
     for (const e of eventsForRole(role)) {
-      const level = BY_NAME[e.voice].level as keyof typeof S.levels;
-      const baseLevel = style.base.levels[level], roomLevel = laneLevelDb(style, S.levels as Record<string, number>, e.voice, level) as number;
+      const level = BY_NAME[e.voice].level as keyof Style['base']['levels'];
+      const baseLevel = style.base.levels[level], roomLevel = laneLevelDb(style, levels, e.voice, level) as number;
       if (!Number.isFinite(baseLevel) || !Number.isFinite(roomLevel)) throw new Error(`recipe presence: no level for ${role}`);
       const targetLevel = parts.presence[role as keyof typeof parts.presence] === 'background'
         ? Math.min(baseLevel, roomLevel) + characters!.presence.backgroundDb : baseLevel;

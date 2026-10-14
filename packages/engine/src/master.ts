@@ -41,6 +41,7 @@ import { liveArmed } from './voices/live.ts';
 import { isOffline } from './effects/shell.ts';
 import type { EffectInstance } from './effects/contract.ts';
 import { asSpace, buildSpace, type SpaceInstance } from './effects/space.ts';
+import { letGoOfAll, owning, ownedBy } from './graph-scope.ts';
 
 // Everything in this file is handed the settings it is to build under, as its
 // second argument, and reads nothing else (PLAN-V1-NEXT round C). That
@@ -369,6 +370,8 @@ export interface ThemeGraph {
   /** the returns built so far, by id; looking never builds one */
   builtReturns(): string[];
   disposeBackground(): void;
+  /** Disconnect every node this graph built (`graph-scope.ts`): the last step of a teardown, once the deck is off the sum. */
+  letGo(): void;
 }
 
 /**
@@ -666,6 +669,14 @@ export function warmRoom(ctx: BaseAudioContext, settings: Settings): void {
 }
 
 export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions = {}): ThemeGraph {
+  // Every node this graph builds, now and in its lazy builders later, so its
+  // teardown can let go of all of them (`graph-scope.ts`; a render collects none).
+  const owned: AudioNode[] = [];
+  return owning(ctx, owned, () => graphOf(ctx, settings, opts, owned));
+}
+
+function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, owned: AudioNode[]): ThemeGraph {
+  const own = <A extends unknown[], R>(build: (...args: A) => R): ((...args: A) => R) => ownedBy(ctx, owned, build);
   // Anything whose only path to the destination is through an AudioParam can
   // be collected while it is still meant to be running. Hold on to them.
   const keepAlive: AudioNode[] = [];
@@ -1271,7 +1282,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // impulse is one computation, cached), and a theme whose hall is the
   // piano's alone builds one, as it always did.
   const halls: { held: GainNode | null; struck: GainNode | null } = { held: null, struck: null };
-  const hall = (which: 'held' | 'struck'): GainNode => {
+  const hall = own((which: 'held' | 'struck'): GainNode => {
     const had = halls[which];
     if (had) return had;
     const hallIn = ctx.createGain();
@@ -1296,21 +1307,21 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     lp.connect(level);
     level.connect(which === 'struck' ? struckDuck : duck);
     return hallIn;
-  };
+  });
 
   // This return joins the drums after the melodic sidechain, so a long
   // background tail is not reshaped into a breath on every kick. The source
   // note retains its own dry bus and the existing musical parts keep theirs.
   let background: BackgroundSpace | null = null;
-  const backgroundInput = (): GainNode => {
+  const backgroundInput = own((): GainNode => {
     background ??= backgroundSpace(ctx, drums, beatSeconds, settings.backgroundSpaces?.background ?? DEFAULT_SPACES.background);
     return background.input;
-  };
+  });
   let immersed: BackgroundSpace | null = null;
-  const immersedInput = (): GainNode => {
+  const immersedInput = own((): GainNode => {
     immersed ??= backgroundSpace(ctx, drums, beatSeconds, settings.backgroundSpaces?.immersed ?? DEFAULT_SPACES.immersed);
     return immersed.input;
-  };
+  });
 
   // The melodic bus's section sweeps (house-v2's `busSweeps`, round S2). Only
   // the melodic bus may take one: it carries the pads, the keys (through their
@@ -1345,12 +1356,12 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     path.sweep = { hp: hp.stage, lp: lp.stage };
     return path.sweep;
   };
-  const sweepOf = (): BusSweep => {
+  const sweepOf = own((): BusSweep => {
     if (held.sweep) return held.sweep;
     const made = sweepIn(held);
     if (struck) twinSweep(made, sweepIn(struck.path));
     return made;
-  };
+  });
 
   // **The outgoing harmony's close** (round MIX-X4; Eugene, 10-02, on the
   // harmonic cross: a fade alone reads plain). One low-pass after the seam
@@ -1374,12 +1385,12 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     path.lp = f;
     return f;
   };
-  const harmonicLpOf = (): BiquadFilterNode => {
+  const harmonicLpOf = own((): BiquadFilterNode => {
     if (held.lp) return held.lp;
     const made = closeIn(held);
     if (struck) twin('harmonicLp.frequency', made.frequency, closeIn(struck.path).frequency);
     return made;
-  };
+  });
 
   // **The struck path** (round PIANO-2): the second harmonic path, ending on
   // `struckDuck`, with a door for each harmonic bus — the melodic bus's own
@@ -1442,7 +1453,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     }
   };
   let struck: { path: HarmonicPath; buses: Buses } | null = null;
-  const struckOf = (): { path: HarmonicPath; buses: Buses } => {
+  const struckOf = own((): { path: HarmonicPath; buses: Buses } => {
     if (struck) return struck;
     const path = harmonicPath(struckDuck);
     const keys = chorusInto(path.melodic);
@@ -1462,7 +1473,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     if (held.lp) twin('harmonicLp.frequency', held.lp.frequency, closeIn(path).frequency);
     if (held.sweep) twinSweep(held.sweep, sweepIn(path));
     return struck;
-  };
+  });
 
   // **The clean doors** (round HF-NOISE): a door into a harmonic path that
   // passes the edge by. The edge is a clipper on the sum, and what it makes of
@@ -1478,7 +1489,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // a note asks, which a deck does when it is made (`prepareReturns`); none
   // where the path built no edge, whose bus is clean already.
   const cleans: { held: Buses | null; struck: Buses | null } = { held: null, struck: null };
-  const cleanOf = (which: 'held' | 'struck'): Buses | null => {
+  const cleanOf = own((which: 'held' | 'struck'): Buses | null => {
     const built = cleans[which];
     if (built) return built;
     const path = which === 'struck' ? struckOf().path : held;
@@ -1492,7 +1503,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     twin('melodic.gain', melodic.gain, m.gain);
     twin('harmonic.gain', harmonic.gain, h.gain);
     return (cleans[which] = { melodic: bus(m, which), keys: bus(chorusInto(m), which) });
-  };
+  });
 
   // **The echo** (round KV1): the kitchen's tape delay (`effects/tape-delay.ts`)
   // as a send a note asks for by amount — `p.echo` — so a part can have its own
@@ -1502,7 +1513,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // graph's beat; returned into the duck with the delay line, so its repeats
   // breathe with the kick too.
   let echo: EffectInstance | null = null;
-  const echoInput = (): GainNode => {
+  const echoInput = own((): GainNode => {
     if (echo) return echo.input as GainNode;
     const { level, ...params } = ECHO_SEND;
     echo = tapeDelay(ctx, settings, { ...params, beat: beatSeconds }, opts.at ?? 0);
@@ -1511,7 +1522,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     echo.output.connect(back);
     back.connect(duck);
     return echo.input as GainNode;
-  };
+  });
 
   // **A part's own space** (liquid-space round 1, `settings.partSpace`): a space
   // row the theme's composer chose for one part — the sparse keys' tone inserts
@@ -1520,14 +1531,14 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // room, so it returns into the struck voices' shallow duck, as the piano's own
   // struck hall does; its tail rings out on `disposeBackground`.
   let partSpace: SpaceInstance | null = null;
-  const partSpaceInput = (): GainNode | undefined => {
+  const partSpaceInput = own((): GainNode | undefined => {
     if (!P.partSpace) return undefined;
     if (!partSpace) {
       partSpace = buildSpace(ctx, settings, asSpace(P.partSpace), { beat: beatSeconds, at: opts.at ?? 0 });
       partSpace.output.connect(struckDuck);
     }
     return partSpace.input as GainNode;
-  };
+  });
 
   // **The theme's shared returns** (`settings.returns`): named space rows, each built
   // once for the graph the first time a note's key or a line's path names it, and never where the
@@ -1535,7 +1546,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
   // composer writes from the drums' actual hits) into the width stage beside the melodic duck, so the
   // field breathes with the kick and the snare by the composer's depth and not by the room's pump.
   const returns = new Map<string, ReturnInstance>();
-  const returnOf = (id: string): ReturnInstance | null => {
+  const returnOf = own((id: string): ReturnInstance | null => {
     const built = returns.get(id);
     if (built) return built;
     const row = P.returns?.[id];
@@ -1548,7 +1559,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     const r: ReturnInstance = { space, levels: space.levels, duck: d, doors: space.doors };
     returns.set(id, r);
     return r;
-  };
+  });
   const returnDoor = (key: string): AudioNode | null => {
     const [id, send] = key.split('.');
     const r = returnOf(id);
@@ -1668,6 +1679,7 @@ export function buildGraph(ctx: BaseAudioContext, settings: Settings, opts: Grap
     returnDoor,
     builtReturns: () => [...returns.keys()],
     disposeBackground: () => { background?.dispose(); immersed?.dispose(); echo?.dispose(); bassDriveFx?.dispose(); partSpace?.dispose(); for (const r of returns.values()) r.space.dispose(); },
+    letGo: () => letGoOfAll(owned),
   };
   return made;
 }

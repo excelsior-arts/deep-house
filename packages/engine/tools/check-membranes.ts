@@ -27,3 +27,12 @@ test('each membrane colour owns its cache identity and controls are taken into t
   assert.equal(membraneSpec(INSTRUMENTS.conga,{skin:1,headHz:210}).key,key);
   assert.notEqual(membraneSpec({...INSTRUMENTS.conga,slapQ:2},base).key,key);
 });
+
+test('a settings block may voice the skin on every hit; a row has none; a stroke still sets its own numbers',()=>{
+  const voiced={...INSTRUMENTS.conga,skin:1,drop:1.025,dropTime:.012};
+  const open=membraneSpec(voiced,{});assert.equal(open.skin,1);assert.equal(open.drop,1.025);
+  const unvoiced={...INSTRUMENTS.conga,skin:0};assert.equal(membraneSpec(unvoiced,{}).skin,undefined);
+  const stroke={headHz:210,bend:1.025,bendSeconds:.012,damping:.17,headCutoff:2300,headLevel:.52,modeRatio:1.59,modeLevel:.34,modeDecay:.16,skin:.8,handLevel:.46,handHz:1900,handDecay:.018};
+  const a=membraneSpec(voiced,stroke),b=membraneSpec(INSTRUMENTS.conga,stroke);
+  const {key:ka,...ra}=a,{key:kb,...rb}=b;assert.deepEqual(ra,rb);assert.equal(a.skin,.8);
+});

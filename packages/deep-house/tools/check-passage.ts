@@ -11,7 +11,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planTheme, programOf } from '../src/mix.ts';
 import { parseSpell } from '../src/spell.ts';
-import { PASSAGE_ROWS, posOf } from '../src/passage.ts';
+import { PASSAGE_ROWS, posOf, END_NAMES } from '../src/passage.ts';
+import { PHRASING_ROWS, SEGMENT_KINDS } from '../src/phrasing.ts';
+import { PLAYED_KINDS } from '../src/treatment.ts';
 import { PRODUCER_ROWS } from '../src/producer.ts';
 import { withoutTechniques } from '../src/places.ts';
 import { strategyById } from '../src/strategies/index.ts';
@@ -29,7 +31,10 @@ const quiet = <T>(fn: () => T): T => {
   try { return fn(); } finally { [console.log, console.info, console.warn] = keep; }
 };
 const V2 = strategyById('house-v2').style;
-const PLANNERS = withoutTechniques(V2, 'passage'), PASSAGE_ALONE = withoutTechniques(V2, 'producer');
+// the ring's hygiene (`src/hygiene.ts`) off in both: it reads the whole track, so it answers what the window holds
+// (PLAN-UNIFY U1); the passage's own confinement is what these hold
+const noHygiene = (st: typeof V2) => ({ ...st, switches: { ...(st as { switches?: Record<string, boolean> }).switches, hygiene: false } }) as typeof V2;
+const PLANNERS = noHygiene(withoutTechniques(V2, 'passage')), PASSAGE_ALONE = noHygiene(withoutTechniques(V2, 'producer'));
 const plan = (seed: string, spell: string | null, style = V2) => quiet(() => planTheme(seed, 0, { strategy: 'house-v2', style, ...(spell ? { spell: parseSpell(spell)! } : {}) })) as any;
 const off = (seed: string, spell: string) => plan(seed, spell, PLANNERS);
 const passageAlone = (seed: string, spell: string) => plan(seed, spell, PASSAGE_ALONE);
@@ -55,8 +60,66 @@ test('the passage rows are admitted: returns that are spaces, lines over phrases
   }
 });
 
+// **Every number of a producer row says what it counts** (PLAN-UNIFY U0: the knobs get their units). A row's `units`
+// maps a knob's path (`*` any key or index) to a unit of `src/musical-time.ts`; a list of numbers takes its path's
+// unit, a list mixing words and numbers (a tuple) a unit per place.
+const UNITS = new Set<string>(['bars', 'felt-bars', 'beats', 'felt-beats', 'sixteenths', 'phrases', 'seconds', 'ms', 'dB', 'Hz', 'semitones', 'cents', 'MIDI',
+  'scale-steps', 'octaves', 'weight', 'share', 'lean', 'velocity', 'gain', 'pan', 'ratio', 'count', 'position', 'mark']);
+function numberPaths(x: unknown, path: string[], out: string[][]): void {
+  if (typeof x === 'number') { out.push(path); return; }
+  if (Array.isArray(x)) {
+    const flat = x.every((v) => !Array.isArray(v) && (typeof v !== 'object' || v === null));
+    if (flat && x.some((v) => typeof v === 'number')) { out.push(path); return; }
+    if (x.length && x.every((v) => Array.isArray(v) && v.every((w) => typeof w === 'number' || Array.isArray(w)))) { out.push(path); return; }
+    for (const v of x) numberPaths(v, [...path, '*'], out);
+    return;
+  }
+  if (x && typeof x === 'object') for (const [k, v] of Object.entries(x)) if (k !== 'says' && k !== 'note' && k !== 'units') numberPaths(v, [...path, k], out);
+}
+test('one vocabulary (PLAN-UNIFY §2.4): every ending of the producer, every kind of the house\'s small things and every phrase event of the arrangement in exactly one entry', () => {
+  for (const R of Object.values(PHRASING_ROWS)) {
+    const E = Object.entries(R.vocabulary.entries);
+    const once = (what: string, has: (e: (typeof E)[number][1]) => boolean) => {
+      const at = E.filter(([, e]) => has(e)).map(([id]) => id);
+      assert.equal(at.length, 1, `${R.id}: ${what} is in ${at.length ? at.join(', ') : 'no entry'}`);
+    };
+    for (const name of END_NAMES) once(`the producer's ending ${name}`, (e) => e.producer.includes(name));
+    for (const kind of PLAYED_KINDS) once(`the small things' ${kind}`, (e) => e.house === `treatment:${kind}`);
+    for (const kind of SEGMENT_KINDS.filter((k) => k !== 'drop-out' && k !== 'fill')) once(`the segment ${kind}`, (e) => e.house === `segment:${kind}`);
+    for (const part of ['crash', 'hatsBreathe', 'reverse']) once(`the answer's ${part}`, (e) => e.house === `answer:${part}`);
+    // every ending the producer's row draws is a name of the vocabulary's
+    for (const G of Object.values(PRODUCER_ROWS)) {
+      const drawn = [...Object.values(G.drums.endings).flatMap((w) => Object.keys(w)), ...Object.keys(G.drums.inflection.ends), ...Object.keys(G.drums.landing).filter((k) => k !== 'says')]
+        .flatMap((k) => k.split('+')).filter((k) => k !== 'none');
+      for (const k of drawn) assert.ok((END_NAMES as readonly string[]).includes(k), `${G.id}: draws ${k}, no ending of that name`);
+    }
+  }
+});
+
+test('every number of a producer row declares its unit', () => {
+  for (const G of Object.values(PRODUCER_ROWS)) {
+    const units = ((G as unknown as { units?: Record<string, string | string[]> }).units ?? {});
+    const pats = Object.entries(units).filter(([k]) => k !== 'says').map(([k, u]) => ({ parts: k.split('.'), u }));
+    for (const { u } of pats) for (const w of [u].flat()) assert.ok(UNITS.has(w), `${G.id}: ${w} is not a unit`);
+    const paths: string[][] = [];
+    numberPaths(G, [], paths);
+    for (const p of paths) {
+      const m = pats.filter((x) => x.parts.length === p.length && x.parts.every((a, i) => a === '*' || a === p[i]));
+      assert.ok(m.length, `${G.id}: ${p.join('.')} declares no unit`);
+    }
+  }
+});
+
 const SEEDS = ['1', '17', ...Array.from({ length: 10 }, (_, i) => String(i + 2))];
-const key = (e: any) => `${e.t.toFixed(5)}|${e.voice}|${JSON.stringify(e.p)}`;
+// a keys tone the birds swapped sends its room into the field's hall where the theme builds one, and keeps its own room
+// or none where not (PLAN-UNIFY U3): the hall is the passage's, so with the passage off its keys sound without that send
+// across the whole track; that send is the one thing the window does not confine
+const unswapped = (e: any) => {
+  if (!(e.drawn && e.role === 'sparse-keys')) return e.p;
+  const { direct: _d, returns, ...p } = e.p; const { 'field.hall': _h, ...r } = returns ?? {};
+  return { ...p, ...(Object.keys(r).length ? { returns: r } : {}) };
+};
+const key = (e: any) => `${e.t.toFixed(5)}|${e.voice}|${JSON.stringify(unswapped(e))}`;
 for (const [name, spell] of Object.entries(SPELLS)) for (const seed of SEEDS) {
   test(`${name} seed ${seed}: the passage alone confined to its window`, () => {
     const t = passageAlone(seed, spell);

@@ -102,6 +102,8 @@ export interface TextureBed {
   bedHold: number;
   /** whether the lead is one that holds the chord */
   leadHolds: boolean;
+  /** whether the pad timbre is struck (its declared fact): a struck bed is never a continuous one (the hand drums' rule, 10-13) */
+  bedStruck?: boolean;
 }
 export type ControlValue = number | string;
 /** One explicit musical part; its identity is independent of its instrument. */

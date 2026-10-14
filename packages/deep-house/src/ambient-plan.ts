@@ -22,6 +22,7 @@
 //
 // Every draw is off a stream of its own (`<seed>::ambient:*`), so a seed's kit, riff, keys and form draws are the
 // ones they were. Weights and ranges are the rows' (listening hypotheses, his to move); this file holds none.
+import { lean, shiftOf } from './lean.ts';
 import BED_FILE from '../recipes/ambient/bed.json' with { type: 'json' };
 import CHAPTER_FILE from '../recipes/ambient/chapters.json' with { type: 'json' };
 import { Rng } from './rng.ts';
@@ -242,7 +243,7 @@ const leanOf = (L: Leans, spell: Readonly<Record<string, number>>, id: string): 
   for (const [bird, leans] of Object.entries(L)) {
     if (bird === 'centre' || bird === 'strength' || typeof leans !== 'object' || leans === null) continue;
     const x = (leans as Record<string, unknown>)[id], v = spell[bird];
-    if (finite(x) && finite(v)) m *= Math.exp(x * L.strength * (v - L.centre));
+    m *= lean(x, v, L.strength, L.centre);
   }
   return m;
 };
@@ -458,7 +459,7 @@ export function planAmbient(I: AmbientInput): AmbientPlan {
   const nl = (r: Rng, rg: Range) => Math.max(minNote, Math.min(maxNote, lerp(r, rg) * k * lenLean));
   // the register leaned by the birds: whole semitones, bounded
   const RB = B.register.birds;
-  const shift = RB ? Math.max(-RB.most, Math.min(RB.most, Math.round(Object.entries(RB).reduce((a, [bird, x]) => bird === 'centre' || bird === 'most' || !finite(I.spell[bird]) || !finite(x) ? a : a + x * (I.spell[bird] - RB.centre), 0)))) : 0;
+  const shift = RB ? Math.max(-RB.most, Math.min(RB.most, Math.round(shiftOf(RB, I.spell)))) : 0;
   const windowOf = (cls: 'full' | 'exposed'): Range => [B.register[cls][0] + shift, B.register[cls][1] + shift];
 
   /**

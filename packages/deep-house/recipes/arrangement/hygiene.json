@@ -1,0 +1,60 @@
+{
+ "schema": 1,
+ "kind": "arrangement-hygiene",
+ "round": "unify-u1",
+ "revision": 1,
+ "note": "The arrangement's hygiene at every house-v2 position the producer does not arrange (PLAN-UNIFY U1: §1.8 the long-hold fade, §1.17 the gap filler), each knob in the unit it declares (src/musical-time.ts) and leaned by the one lean (src/lean.ts). The fast places keep their own numbers in the producer's row (`holds`, `arc.filler`), which resolve to the same rule. A repair, not a layer: a hold is faded only where it would stop (it ends while the music goes on, nothing harmonic takes over within a felt beat, and its own release is shorter than the fade it wants), and a bed is laid only where the groove would go bare (nothing harmonic, melodic or textural over the drums and the bass: a sparse texture, a struck bell or a marimba, is present). Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "ring",
+   "name": "the ring's own hygiene",
+   "units": {
+    "says": "what each knob counts (src/musical-time.ts): bars are the theme's written grid, felt beats its felt pulse; seconds and dB are absolute; a share is 0 to 1; a lean is the one lean's",
+    "holds.leastS": "seconds",
+    "holds.fadeBars": "bars",
+    "holds.fadeLeastS": "seconds",
+    "holds.fadeMostS": "seconds",
+    "holds.tailShare": "share",
+    "holds.handoverFeltBeats": "felt-beats",
+    "holds.lean.tide": "lean",
+    "holds.lean.centre": "share",
+    "holds.lean.strength": "lean",
+    "holds.leastBpm": "bpm",
+    "gaps.emptyBars": "bars",
+    "gaps.emptyMostS": "seconds",
+    "gaps.fillerBars": "bars",
+    "gaps.leastBars": "bars",
+    "gaps.levelDb": "dB",
+    "gaps.attackS": "seconds",
+    "gaps.hatsLeast": "count",
+    "gaps.bassMoves": "count"
+   },
+   "holds": {
+    "says": "a held chord or pad of `leastS` or more that ends while the music goes on, with nothing harmonic struck within `handoverFeltBeats` of its end and a release shorter than its fade, fades over its last stretch (squared, as the fast places' holds: some 12 dB down halfway) and rings on past its written end by `tailShare` of the fade where nothing harmonic follows. The fade is `fadeBars` bars held between `fadeLeastS` and `fadeMostS` seconds (2 s at 174 BPM, 3.4 s at 105, 5 s at 50), then leaned by Tide (a wetter field lets a hold ring longer: x0.71 at nought, x1.41 at one). From `leastBpm` up only: the slow side's cut notes are its own way of delivering pads (his ear, 10-13); and never on a scene `skipScenes` names, where the held layer in front is the drone (his ear, 10-13: keep the combo). A struck texture (a bell, a marimba: the `texture` and `detail` roles) decays in its own envelope and is not a hold",
+    "leastS": 2,
+    "fadeBars": 1.5,
+    "fadeLeastS": 2,
+    "fadeMostS": 5,
+    "tailShare": 0.5,
+    "handoverFeltBeats": 1,
+    "layers": ["keys", "pad"],
+    "skipRoles": ["texture", "detail"],
+    "leastBpm": 70,
+    "skipScenes": ["drone-forward"],
+    "lean": { "centre": 0.5, "strength": 0.6931, "tide": 1 }
+   },
+   "gaps": {
+    "says": "a quiet bed where the groove (a main, a drop or a build, the drums or the bass playing, after the theme's first harmony) would go bare for more than `emptyBars` bars or `emptyMostS` seconds, whichever is shorter (4 bars at 174 BPM, 8 s at the house and the slow side), where nothing holds the space: no harmonic, melodic or textural note, no moving bass line (`bassMoves` pitches in the bar) and no ticking hats (`hatsLeast` in the bar), for a break of bass and hats is a solid break (his ear, 10-13): the theme's own held chord over the chord in force (the nearest one it struck over that chord), `levelDb` under it, swelling in over `attackS` from the bar before the bare run, at most `fillerBars` bars and never across a chord change, faded out as a long hold is; at least `leastBars` bars or none. Nothing is laid where the theme struck no held chord over that chord",
+    "emptyBars": 4,
+    "emptyMostS": 8,
+    "fillerBars": 6,
+    "leastBars": 2,
+    "levelDb": -6,
+    "attackS": 1.5,
+    "layers": ["pad", "keys"],
+    "hatsLeast": 2,
+    "bassMoves": 2
+   }
+  }
+ ]
+}

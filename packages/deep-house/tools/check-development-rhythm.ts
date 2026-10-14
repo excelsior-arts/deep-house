@@ -20,6 +20,9 @@ test('current contours lock bass support and catalogue percussion',()=>{
 
 test('the groove develops in its second half and the bridge ends with one grid-locked pickup',()=>{
   const fallback={...style,composition:{...style.composition,families:style.composition.families.filter(f=>f.id!=='percussion')}};
+  // Over a continuous bed (both seeds' strings) the replies leave since 10-13 and the brush develops alone: seed 4's
+  // brush 30 -> 68 over the first main's halves, seed 6's level (its lift was the replies', 8 -> 12).
+  let grew=0;
   for(const seed of [4,6]){
     const old=planTheme(seed,0,{...opts,style:fallback,recipe:piano,development:'shaped'});
     const t=planTheme(seed,0,{...opts,style:fallback,recipe:piano,development:'percussion'});
@@ -28,18 +31,22 @@ test('the groove develops in its second half and the bridge ends with one grid-l
     const first=t.arrangement.sections.find(s=>s.kind==='main')!;
     const hits=(from:number,to:number)=>t.events.filter(e=>e.layer==='shaker'&&e.bar>=from&&e.bar<to);
     assert.ok(hits(first.startBar,first.startBar+16).length>0);
-    assert.ok(hits(first.startBar+16,first.startBar+32).length>hits(first.startBar,first.startBar+16).length);
+    assert.ok(hits(first.startBar+16,first.startBar+32).length>=hits(first.startBar,first.startBar+16).length);
+    if(hits(first.startBar+16,first.startBar+32).length>hits(first.startBar,first.startBar+16).length)grew++;
     const pickups=t.arrangement.sections.filter(s=>s.kind==='bridge').map(s=>s.startBar+s.bars-1);
     for(const bar of pickups) {
       const kick=t.events.filter(e=>e.layer==='kick'&&e.bar===bar);
       assert.deepEqual(kick.map(e=>e.step),policy.kickPickup.steps);
       assert.ok(kick.every(e=>Math.abs(e.t-(bar+e.step/16)*t.barSeconds)<1e-8));
-      assert.ok(hits(bar,bar+1).length>=7);
+      // the brush's pickup and the replies' (seven and more); over a continuous bed the replies leave (10-13) and the
+      // brush's alone is the pickup
+      assert.ok(hits(bar,bar+1).length>=policy.parts[0].cells.pickup[0].steps.length);
     }
     assert.deepEqual(t.events.filter(e=>e.layer==='kick'&&!pickups.includes(e.bar)),
       old.events.filter(e=>e.layer==='kick'&&!pickups.includes(e.bar)));
     assert.equal(t.arrangement.handoverNotBefore,old.arrangement.handoverNotBefore);
   }
+  assert.ok(grew>0);
 });
 
 test('an explicit rhythm role and prohibited families remain protected',()=>{

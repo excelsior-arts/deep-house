@@ -1,6 +1,6 @@
 {
   "name": "@deep-house/app",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Deep House — the composer and the page: the dice, the corpus, the style, the sound stage, the set and the ring.",
   "private": true,
   "type": "module",

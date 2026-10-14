@@ -21,6 +21,7 @@
 // places, contours and techniques) and `admission.json` (the budget's order and target). Weights are listening
 // hypotheses, his to move.
 
+import { leaned, type LeanRow } from './lean.ts';
 import { dbToGain } from '@deep-house/engine/dsp';
 import SOLOIST_FILE from '../recipes/ambient/soloist.json' with { type: 'json' };
 import FILLERS_FILE from '../recipes/ambient/fillers.json' with { type: 'json' };
@@ -68,7 +69,7 @@ export type StatementKind = 'statement' | 'recurrence' | 'developed' | 'spacious
 export interface FillersRow {
   id: string;
   vocabularies: Array<{ id: string; w: number; owner: Owner; gestures: Gesture[] }>;
-  birds: Record<string, Record<string, number | string>>;
+  birds: LeanRow;
   owners: {
     soloist: { notes: Range; minGapBars: number; gapBars: Range; least?: number };
     keys: { notes: Range; minGapBars: number; gapBars: Range; least?: number; register: Range; vel: Range; lenSteps: Range; levelDb: number };
@@ -99,10 +100,15 @@ export interface WeatherRow {
   id: string;
   sounds: { wind: string; upper: string; rain: string; dark: string; rumble: string };
   families: WeatherFamily[];
-  birds: Record<string, Record<string, number | string>>;
+  birds: LeanRow;
   contours: Array<{ id: string; w: number; level: Array<[number, number]>; bright: Array<[number, number]> }>;
   main: Record<Main, { midi: number; vel: number; reverb: number; levelDb: number; bright?: number }>;
   upperTone: { midi: number; vel: number; reverb: number; levelDb: number; lpMul: Range };
+  /**
+   * the birds on the upper air (PLAN-UNIFY U3, the fast places' birds), about the place's own tile (`centre`, by bird):
+   * Zephyr's step on its level (dB a unit, held to ±`mostDb`) and its lean on its brightness (a factor on the low-pass)
+   */
+  upperBirds?: { centre: Record<string, number>; zephyr?: { db?: number; bright?: number }; mostDb: number };
   rumbleTone: { midi: number; vel: number; reverb: number };
   segmentBars: number;
   tailS: number;
@@ -354,15 +360,6 @@ export interface AmbientVoicesInput {
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 const lerp = (r: Rng, [a, b]: Range) => a + (b - a) * r.float();
 const pick = <T>(r: Rng, items: ReadonlyArray<readonly [T, number]>): T => r.weighted(items.map(([v, w]) => ({ v, w })));
-/** a bird's lean on a weight: times exp(lean x (bird - 0.5)), the keys' draw's convention */
-const leaned = (w: number, id: string, birds: Record<string, Record<string, number | string>>, spell: Readonly<Record<string, number>>) => {
-  let x = w;
-  for (const [bird, leans] of Object.entries(birds)) {
-    const lean = leans[id];
-    if (typeof lean === 'number') x *= Math.exp(lean * ((spell[bird] ?? 0.5) - 0.5));
-  }
-  return x;
-};
 /** `k` scale steps from `midi` along `scale` (pitch classes), from a note that may sit off the scale */
 function scaleStep(midi: number, k: number, scale: readonly number[]): number {
   let x = midi, left = Math.abs(k);
@@ -953,8 +950,11 @@ export function ambientEvents(plan: AmbientVoicesPlan, I: { barSeconds: number; 
     const contour = W.contours.find((c) => c.id === span.contour);
     if (span.technique === 'upper') {
       const U = W.upperTone;
+      // Zephyr, how bright the air: the upper air a little louder and brighter up, about the tile's own value
+      const UB = W.upperBirds, off = UB && typeof UB.centre.zephyr === 'number' && typeof I.spell.zephyr === 'number' ? I.spell.zephyr - UB.centre.zephyr : 0;
+      const upDb = off ? Math.max(-UB!.mostDb, Math.min(UB!.mostDb, (UB!.zephyr?.db ?? 0) * off)) : 0, upLp = off ? Math.exp((UB!.zephyr?.bright ?? 0) * off) : 1;
       out.push({ voice: span.voice, t: span.from * bs, bar: span.from, part: 'weather-upper',
-        p: { dur: +(n * bs - W.tailS).toFixed(4), vel: U.vel, gain: +dbToGain(U.levelDb + span.db).toFixed(5), lpMul: [...U.lpMul], midi: U.midi, reverb: +Math.max(0, U.reverb + reverbLean).toFixed(3),
+        p: { dur: +(n * bs - W.tailS).toFixed(4), vel: U.vel, gain: +dbToGain(U.levelDb + span.db + upDb).toFixed(5), lpMul: off ? U.lpMul.map((x) => +Math.min(4, x * upLp).toFixed(3)) : [...U.lpMul], midi: U.midi, reverb: +Math.max(0, U.reverb + reverbLean).toFixed(3),
           ...(span.voice !== W.sounds.upper ? { hpMul: [62, 62] } : {}) } });
       continue;
     }
