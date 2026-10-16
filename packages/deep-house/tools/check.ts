@@ -6425,7 +6425,9 @@ check('a derived tempo family is one grid, and a broken kit is a snare', () => {
     must(t.dice.breakMask, `a broken theme drew no break`);
     drawn.add(t.dice.breakMask);
     const row = breaks.find((b) => b.name === t.dice.breakMask);
-    const steps = new Set(t.events.filter((e) => e.voice === 'kick').map((e) => e.step));
+    // (a build's bars are the arrangement's gesture, a kick roll or a stutter's eighths among them: U2d)
+    const built = new Set((t.phrasing?.builds ?? []).flatMap((b) => (b.beats > 4 ? [b.line - 2, b.line - 1] : [b.line - 1])));
+    const steps = new Set(t.events.filter((e) => e.voice === 'kick' && !built.has(e.bar)).map((e) => e.step));
     for (const st of steps) must(row.m[st] === 'x', `the kick fired on step ${st} and ${row.name} does not`);
     snares += t.events.filter((e) => e.voice === 'snare').length;
     claps += t.events.filter((e) => e.voice === 'clap').length;

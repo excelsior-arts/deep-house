@@ -23,6 +23,13 @@ import type { Contract, Fields, PatchOf } from './schema.ts';
 const clampTo = (v: unknown, fallback: number, lo: number, hi: number): number =>
   typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
 
+// The fall a note asks: its `release` held to the row's own and four seconds (`glue`), times its `tailMul` (a build's
+// tail by the birds, the composer's gesture table), held the same; absent, as it was.
+const tailOf = (p: NoteParams, own: number): number => {
+  const r = clampTo(p.release, own, own, 4);
+  return p.tailMul == null ? r : Math.max(own, Math.min(4, r * clampTo(p.tailMul, 1, 0.1, 10)));
+};
+
 /**
  * **What of a glue gesture's envelope a note may write** (round S2 of the
  * composer, house-v2's `glueFades`): the rise on the line (`attack`, seconds),
@@ -55,13 +62,18 @@ export const NOISE_RISE: Topology = {
     const S = P(row, RISE);
     time = startTime(ctx, time);
     const dur = p.dur ?? S.dur;
-    const src = noiseSource(ctx, time, dur + 0.2);
+    // the noise runs through its fall (the row's, a written `release`, a `tailMul`), never shorter than it always did
+    const release = tailOf(p, S.release);
+    const src = noiseSource(ctx, time, dur + Math.max(0.2, release + 0.05));
 
     const bp = ctx.createBiquadFilter();
     bp.type = 'bandpass';
     bp.Q.value = S.q;
     bp.frequency.setValueAtTime(S.fromHz, time);
-    bp.frequency.exponentialRampToValueAtTime(p.top ?? S.topHz, time + dur);
+    // `bandMul`: the climb's top moved by the note (a build's colour by the birds, the composer's gesture table), held
+    // above where it starts; absent, the top as it was
+    const top = p.top ?? S.topHz;
+    bp.frequency.exponentialRampToValueAtTime(p.bandMul == null ? top : Math.max(S.fromHz * 1.5, Math.min(16000, top * clampTo(p.bandMul, 1, 0.125, 4))), time + dur);
 
     // The one place an exponential attack is not a step: this swell rises over
     // `dur` seconds, so its last millisecond covers a hundredth of a dB. Every
@@ -70,8 +82,7 @@ export const NOISE_RISE: Topology = {
     g.gain.value = 0;
     g.gain.setValueAtTime(0.0001, time);
     g.gain.exponentialRampToValueAtTime(p.gain ?? S.gain, time + dur * S.rise);
-    // Its fall after the line: the row's unless the note says (`glue`).
-    const release = clampTo(p.release, S.release, S.release, 4);
+    // Its fall after the line: the row's unless the note says (`glue`), times the note's `tailMul` (never under the row's)
     g.gain.exponentialRampToValueAtTime(GAIN_FLOOR, time + dur + release);
     g.gain.linearRampToValueAtTime(0, time + dur + release + 0.04);
 
@@ -145,18 +156,26 @@ export const REVERSE_SWELL: Topology = {
     const dur = p.dur ?? S.dur;
     const start = startTime(ctx, time);
     time = start + dur;
-    const src = noiseSource(ctx, Math.max(0, start), dur + 0.05);
+    // the noise runs through its fall (the row's, a written `release`, a `tailMul`), never shorter than it always did
+    const release = tailOf(p, S.release);
+    const src = noiseSource(ctx, Math.max(0, start), dur + Math.max(0.05, release + 0.05));
     const bp = ctx.createBiquadFilter();
     bp.type = 'bandpass';
     bp.Q.value = S.q;
-    bp.frequency.value = S.bandHz;
+    // `bandMul` and `sweep`: the band at the arrival moved by the note, and where it starts, `sweep` octaves under it,
+    // opening into it (a build's colour by the birds, the composer's gesture table); absent, the row's band held
+    if (p.bandMul == null && p.sweep == null) bp.frequency.value = S.bandHz;
+    else {
+      const band = Math.max(60, Math.min(16000, S.bandHz * clampTo(p.bandMul, 1, 0.125, 4)));
+      bp.frequency.setValueAtTime(Math.max(40, band / 2 ** clampTo(p.sweep, 0, 0, 4)), Math.max(0, start));
+      bp.frequency.exponentialRampToValueAtTime(band, time);
+    }
     const g = ctx.createGain();
     g.gain.value = 0;
     g.gain.setValueAtTime(0.0001, Math.max(0, start));
     g.gain.exponentialRampToValueAtTime(p.gain ?? S.gain, time);
     // Its fall after the arrival: the row's to silence unless the note says
-    // (`glue`), and then a curve rather than a line.
-    const release = clampTo(p.release, S.release, S.release, 4);
+    // (`glue`, times its `tailMul`), and then a curve rather than a line.
     if (release <= S.release) g.gain.linearRampToValueAtTime(0, time + S.release);
     else {
       g.gain.exponentialRampToValueAtTime(GAIN_FLOOR, time + release);

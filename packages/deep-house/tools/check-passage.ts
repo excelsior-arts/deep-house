@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 import { planTheme, programOf } from '../src/mix.ts';
 import { parseSpell } from '../src/spell.ts';
 import { PASSAGE_ROWS, posOf, END_NAMES } from '../src/passage.ts';
-import { PHRASING_ROWS, SEGMENT_KINDS } from '../src/phrasing.ts';
+import { PHRASING_ROWS, SEGMENT_KINDS, GESTURES, gestureFaults, gestureSound, densified, glueParams, glueSoundOf } from '../src/phrasing.ts';
+import { HOUSE } from '../src/spell.ts';
 import { PLAYED_KINDS } from '../src/treatment.ts';
 import { PRODUCER_ROWS } from '../src/producer.ts';
 import { withoutTechniques } from '../src/places.ts';
@@ -94,6 +95,46 @@ test('one vocabulary (PLAN-UNIFY §2.4): every ending of the producer, every kin
       for (const k of drawn) assert.ok((END_NAMES as readonly string[]).includes(k), `${G.id}: draws ${k}, no ending of that name`);
     }
   }
+});
+
+test('the build-and-drop gestures (U2d): every row well formed, every number with its unit', () => {
+  assert.deepEqual(gestureFaults(GESTURES), []);
+  assert.ok(GESTURES.rows.length >= 6 && GESTURES.rows.length <= 8, 'six to eight kinds');
+  const units = ((GESTURES as unknown as { units?: Record<string, string> }).units ?? {});
+  const pats = Object.entries(units).filter(([k]) => k !== 'says').map(([k, u]) => ({ parts: k.split('.'), u }));
+  for (const { u } of pats) assert.ok(UNITS.has(u), `gestures: ${u} is not a unit`);
+  const paths: string[][] = [];
+  numberPaths({ rows: Object.fromEntries(GESTURES.rows.map((r) => [r.id, r])), choice: GESTURES.choice, landings: GESTURES.landings, sound: GESTURES.sound }, [], paths);
+  for (const p of paths) assert.ok(pats.some((x) => x.parts.length === p.length && x.parts.every((a, i) => a === '*' || a === p[i])), `gestures: ${p.join('.')} declares no unit`);
+  // a malformed row is refused
+  const bad = { ...GESTURES, rows: [{ ...GESTURES.rows[0], lead: { lanes: ['bassline'], pattern: '9999' }, land: { crash: 1 } } as never, ...GESTURES.rows.slice(1)] };
+  assert.equal(gestureFaults(bad).length, 3);
+});
+
+test('the gestures\' sound by the birds (his word 10-13: "these effects should account for birds positions as well"): nothing at the house, darker at the heavy end', () => {
+  // the house's own birds move nothing: no colour is written, every pattern is as written
+  assert.deepEqual(gestureSound(HOUSE as unknown as Record<string, number>, GESTURES.centre), {});
+  assert.deepEqual(glueParams(undefined, { gain: 0.7 }), {});
+  // the Dubstep spell's dark, heavy end (Root high, Spark and Veil low): the reverse and the whoosh's sweep darker, the stop longer
+  const dub = { ...(HOUSE as unknown as Record<string, number>), ember: 0.92, tide: 0.9, zephyr: 0.25, root: 0.85, veil: 0.15, spark: 0.1, loom: 0.8 };
+  const sh = gestureSound(dub, GESTURES.centre);
+  assert.ok(sh['filtered.cut'] < 0 && sh['filtered.open'] < 0 && sh['reverse.band'] < 0 && sh['reverse.sweep'] > 0 && sh['whoosh.hp'] < 0 && sh['riser.band'] < 0 && sh['crash.bright'] < 0 && sh['stop.length'] > 0, JSON.stringify(sh));
+  for (const [id, v] of Object.entries(sh)) assert.ok(v >= GESTURES.sound.params[id].range[0] && v <= GESTURES.sound.params[id].range[1], `${id} in its range`);
+  const swell = glueParams(glueSoundOf(sh, 'reverse', 'swell'), { gain: 0.7 }) as Record<string, number>;
+  assert.ok(swell.bandMul < 1 && swell.sweep > 0, 'the reverse darker and opening');
+  // a wetter glue keeps its direct sound: the level up as much as the direct share down; a band moved down keeps its level
+  const wet = glueParams({ wet: 4 }, { gain: 0.7 }) as Record<string, number>;
+  assert.ok(Math.abs(wet.gain / 0.7 * wet.direct - 1) < 1e-3, 'the direct held');
+  assert.ok(Math.abs((glueParams({ band: -1 }, { gain: 0.7 }) as Record<string, number>).gain / 0.7 - Math.SQRT2) < 1e-3, 'the band\'s level held');
+  // the bright side brightens where the table lets it, and never darkens
+  const bright = gestureSound({ ...(HOUSE as unknown as Record<string, number>), veil: 0.95, spark: 0.9, root: 0.5 }, GESTURES.centre);
+  assert.ok((bright['reverse.band'] ?? 0) > 0 && !(bright['crash.bright'] < 0));
+  // a roll's density: nought keeps the pattern; filled before the line at the lower neighbour; thinned early, its last beat kept
+  assert.equal(densified('3.3.4.4.45566677', 0), '3.3.4.4.45566677');
+  assert.equal(densified('3...3...4.4.5667', 0.5), '3...3.3344445667');
+  const thin = densified('3.3.4.4.45566677', -0.5);
+  assert.equal(thin.slice(-4), '6677');
+  assert.ok([...thin].filter((c) => c !== '.').length < 12);
 });
 
 test('every number of a producer row declares its unit', () => {

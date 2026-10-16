@@ -42,8 +42,11 @@ test('the groove develops in its second half and the bridge ends with one grid-l
       // brush's alone is the pickup
       assert.ok(hits(bar,bar+1).length>=policy.parts[0].cells.pickup[0].steps.length);
     }
-    assert.deepEqual(t.events.filter(e=>e.layer==='kick'&&!pickups.includes(e.bar)),
-      old.events.filter(e=>e.layer==='kick'&&!pickups.includes(e.bar)));
+    // The kick the development leaves alone is the groove's: the arrangement's phrasing (U2-U2e) reads the drawn kit,
+    // which the development draws, so its sub-segments may fall elsewhere under each, and its bars are not compared.
+    const phrased=new Set([t,old].flatMap(p=>(p.phrasing?.segments??[]).flatMap((g:any)=>Array.from({length:g.to-g.from+1},(_,i)=>g.from+i))));
+    const groove=(p:typeof t)=>p.events.filter(e=>e.layer==='kick'&&!pickups.includes(e.bar)&&!phrased.has(e.bar)&&!String(e.by??'').startsWith('phrasing'));
+    assert.deepEqual(groove(t),groove(old));
     assert.equal(t.arrangement.handoverNotBefore,old.arrangement.handoverNotBefore);
   }
   assert.ok(grew>0);

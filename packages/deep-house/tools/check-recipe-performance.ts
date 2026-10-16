@@ -9,7 +9,7 @@ import { laneLevelDb } from '../src/lane-level.ts';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { planTheme } from '../src/set-plan.ts';
-import { programOf } from '../src/performance.ts';
+import { programOf, stage } from '../src/performance.ts';
 import { strategyById } from '../src/strategies/index.ts';
 import { HOUSE, biasFor } from '../src/spell.ts';
 import { interpretWants } from '../src/interpret.ts';
@@ -75,7 +75,9 @@ test('explicit percussion cells play the requested positions, keep gates, and ne
     assert.ok(!track.dice.motifRegister, 'no forbidden or replaced motif is reported as playing');
     // (a phrase's build and stop overlay the row's cells on its last bar alone: U2c, his word 10-13 for the drums at a break)
     const built = ((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
-      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(track);
+      .filter((x: any) => x.build || (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)
+      // (a gesture over two bars builds on the bar before too: U2d)
+      .concat((t.phrasing?.builds ?? []).filter((b: any) => b.beats > 4).map((b: any) => b.line - 2))))(track);
     const sixteenth = track.events.filter(e => e.layer === 'shaker' && !built.has(e.bar!));
     assert.ok(sixteenth.length > 0, 'the requested role really plays');
     const choices = new Set(sixteenth.map(e => e.voice));
@@ -285,7 +287,21 @@ test('continuous pitched percussion keeps every pulse while an independent ornam
     const before = planTheme(seed, 0, { ...opts, recipe: seasonedRecipe });
     assert.deepEqual(both.events.filter(e => e.layer !== 'keys'), before.events.filter(e => e.layer !== 'keys'), 'all foundation events and their parameters remain fixed');
     const body = both.events.filter(e => e.voice === bodyVoice);
-    assert.deepEqual(body, alone.events.filter(e => e.voice === bodyVoice), 'adding an ornament cannot redraw or displace the repeating part');
+    // ...in its notes. Its level follows the stage, which hears the ornament as the keys' novelty, and a front stands no
+    // higher on the stage than the style's `front.liftDb` (the front-level round): its gains move by exactly the
+    // difference of that cap between the two stages, and by nothing else
+    const solo = alone.events.filter(e => e.voice === bodyVoice);
+    const notes = (xs: typeof body) => xs.map(e => ({ ...e, p: { ...e.p, gain: undefined }, frontDb: undefined }));
+    assert.deepEqual(notes(body), notes(solo), 'adding an ornament cannot redraw or displace the repeating part');
+    const F = (style as unknown as { catalogue: { front: { liftDb: number; bpm: readonly [number, number] } } }).catalogue.front;
+    const share = Math.max(0, Math.min(1, (both.bpm - F.bpm[0]) / (F.bpm[1] - F.bpm[0])));
+    const rowsBoth = stage(both as any), rowsSolo = stage(alone as any);
+    const capOf = (rows: ReturnType<typeof stage>, bar: number) => Math.min(0, F.liftDb - (rows[bar]?.level.keys ?? 0));
+    body.forEach((e, i) => {
+      const moved = 20 * Math.log10((e.p.gain ?? 1) / (solo[i].p.gain ?? 1));
+      const want = (e as { frontDb?: number }).frontDb === undefined ? 0 : share * (capOf(rowsBoth, e.bar) - capOf(rowsSolo, e.bar));
+      assert.ok(Math.abs(moved - want) < 1e-9, `bar ${e.bar}: the repeating part moved ${moved.toFixed(3)} dB where the stage's cap moved ${want.toFixed(3)}`);
+    });
     assert.ok(body.length > 0);
     const perBar = new Map<number, typeof body>();
     for (const e of body) {

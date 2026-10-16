@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "recipe",
   "id": "house/afro-house",
-  "revision": 1,
+  "revision": 2,
   "name": "Afro house",
   "scope": "track",
   "applies": null,
@@ -99,17 +99,17 @@
             30
           ],
           "accents": [
-            0.6,
-            0.45,
-            0.55,
-            0.5,
-            0.45,
-            0.55,
-            0.6,
-            0.4,
-            0.55,
-            0.45,
-            0.5
+            0.2,
+            0.2,
+            0.22,
+            0.2,
+            0.065,
+            0.065,
+            0.2,
+            0.2,
+            0.22,
+            0.065,
+            0.2
           ],
           "families": [
             "drum"
@@ -131,7 +131,21 @@
               "beats": 0.004
             },
             "dynamics": 0.08
-          }
+          },
+          "character": "hand-conversation",
+          "strokes": [
+            "low",
+            "tone",
+            "slap",
+            "tone",
+            "touch",
+            "touch",
+            "low",
+            "tone",
+            "slap",
+            "touch",
+            "low"
+          ]
         },
         {
           "bars": 1,
@@ -300,7 +314,7 @@
   "provenance": {
     "pattern": "afro house: the four under interlocking hand drums on a twelve-against-four feel, a sixteenth shaker, a soft clap on two and four, an open hat on the offbeat and a sparse, syncopated bass",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars. The hand drums play the three-against-two of the clave family (a son-clave-shaped line in the first bar, its answer in the second) with fills; a sixteenth shaker under them; the clap soft on two and four; an open hat on each and. The bass leaves the one and lands on the a of one and the and of three. Swing 0.56 on the percussion.",
+    "note": "Two bars. The hand drums play the three-against-two of the clave family (a son-clave-shaped line in the first bar, its answer in the second) with fills; a sixteenth shaker under them; the clap soft on two and four; an open hat on each and. The bass leaves the one and lands on the a of one and the and of three. Swing 0.56 on the percussion. The hand line is struck as a conversation (10-13): the low drum's bass tone on the one, on two and on the and of four, open tones and slaps on the strong offbeats, fingertip ghosts under the claps; the hand rows' own character and accents.",
     "standing": {
       "reaches": true,
       "eventRateZ": -0.8,

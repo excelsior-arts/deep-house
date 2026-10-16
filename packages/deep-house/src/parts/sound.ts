@@ -7,6 +7,8 @@ export interface RhythmCharacter extends RhythmSound {
   requires: string[];
   /** Complete sound for each musical stroke; no implicit parameter merging. */
   strokes?: Record<string, RhythmSound>;
+  /** The part's level over every stroke's own matched `gainDb`, in decibels (10-13, the hand part's level); none is nought. */
+  levelDb?: number;
 }
 export interface SoundCharacters {
   rhythm?: Record<string, RhythmCharacter>;
@@ -50,6 +52,7 @@ export function characterProblems(c: SoundCharacters): string[] {
     if (!requires || !sound(r, requires)) bad.push(`rhythm character ${name}: declared controls, finite params among them and a gain within 18 dB`);
     else if (r.strokes !== undefined && (!object(r.strokes) || !Object.values(r.strokes).every(s => sound(s, requires))))
       bad.push(`rhythm character ${name}: every stroke a complete sound over the character's own controls`);
+    if (r?.levelDb !== undefined && !(Number.isFinite(r.levelDb) && Math.abs(r.levelDb) <= 18)) bad.push(`rhythm character ${name}: a part level within 18 dB`);
   }
   for (const [name, p] of Object.entries(c.phrases || {})) {
     if (!p || !Array.isArray(p.requires) || !p.requires.every(k => typeof k === 'string')

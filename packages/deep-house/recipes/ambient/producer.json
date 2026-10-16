@@ -197,7 +197,11 @@
     "feature.bass.scoopSt": "semitones",
     "feature.bass.scoopS": "seconds",
     "feature.bass.db": "dB",
-    "feature.bass.dbPerSt": "dB"
+    "feature.bass.dbPerSt": "dB",
+    "gestures.centre.*": "share",
+    "gestures.stopDb": "dB",
+    "gestures.edgeS": "seconds",
+    "gestures.peak.level": "share"
    },
    "retire": {
     "says": "the planners' figure everywhere: the evenly spaced soloist statements and their swells, the keys' automatic answers and their echoed statements, the reverse arrivals, the bed's background notes, the drop's incidental vinyl layer and the planner's riser (the build writes its own); and the conga's isolated hits, where no hand part is written",
@@ -1760,6 +1764,16 @@
      "states": "S|R",
      "answer": "ghostTail"
     }
+   },
+   "gestures": {
+    "says": "the drum-led build into every drop and the half-time breath's return, and its landing (his word 10-13 on the Drum & Bass tile's drop: 'lost drum emphasis and other voices build up, so it feels strange'; on the house's builds: 'it's essential to use drums for emphasis … more like a build up and drop'). The kinds are the vocabulary's rows (recipes/arrangement/gestures.json) the liquid kit takes: a snare roll on the crack, a hat roll into a choked open hat, the kick doubling, a full stop with one hit on the and, a whoosh; drawn per line off a stream of its own, never the theme's last kind again, the bigger and the longer weighed up (every one is a big arrival); `birds` lean the rows' own leans about `centre`, the Drum & Bass tile's own Veil and Spark, so the tile draws as the rows weigh; every bird of `centre` leans the gestures' sound (the vocabulary's `sound` table: a whoosh's top, the riser's band, tail and sends, a roll's density and length, the stop's length, the landing crash's size, brightness and ring) about the tile's own, so the tile sounds as it did. The other voices build with the drums and fall silent with them: the pad entry that would fade out before the line rises on into it, cut where the stop starts; the field (every chord, line, bed and weather note) is cut `stopDb` through the stop (a full stop's own cut through its whole window), back on the line, or on its second beat where the kick lands alone; every edge `edgeS`. No build rests a `keep` lane but a silence: the kick plays on under a whoosh, its lift climbing over the last bar into the stop (the sweep over the drums, never the sweep alone; his ear 10-13 on the house's whoosh: 'without drum support a bit flat'). A `peak` roll's last played beat climbs on to `level` of the hit it copies (a Drum & Bass roll reaches the drop), its earlier beats keeping the row's ramp; no riser under a silence; the cut takes only what sounds into it from before the line (the landing's chord strikes whole on the one)",
+    "kinds": ["snare-roll", "hat-roll", "kick-roll", "full-stop", "whoosh"],
+    "birds": ["veil", "spark"],
+    "centre": {"veil": 0.6, "spark": 0.85, "root": 0.75, "zephyr": 0.6, "tide": 0.45, "loom": 0.85},
+    "stopDb": -12,
+    "edgeS": 0.012,
+    "keep": ["kick"],
+    "peak": {"kinds": ["snare-roll", "hat-roll", "whoosh"], "level": 1}
    }
   }
  ]

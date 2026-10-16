@@ -30,6 +30,7 @@ import type { PlanEvent, PlanPoint } from './generator.ts';
 import { bendInRoom, type BendRoom } from './mined-phrase.ts';
 import { fadeHolds } from './hygiene.ts';
 import type { LeanRow } from './lean.ts';
+import { glueParams, type GlueSound } from './phrasing.ts';
 
 type Pos = string; // `bar:beat`, the bar relative to the first drop, the beat 1-4 with `e`, `&` or `a`
 interface Send { direct: number; hall: number; echo: number; dub?: number }
@@ -79,6 +80,27 @@ export interface DrumState { from: number; to: number; state: 'S' | 'R' | 'X' | 
   fade?: { source: number; hp: [number, number]; db: [number, number] };
   /** a send profile for the snares of the span: a skeleton's hits carried by the hall and the echo, so its gaps ring */
   space?: string }
+/**
+ * **A drum-led build into a line and its landing** (fast-drops: the producer's drops and the half-time breath's return,
+ * drawn off `recipes/arrangement/gestures.json`): on the line's last bar (two where `beats` is 8) the `lead` lane, the
+ * first of its lanes the kit plays, is cleared from the window's start and plays its pattern (sixteenths, one per
+ * step of the window, right-aligned to the line; a digit is a hit at that many tenths of the lane's own hit, `X` a whole one); `lanes`
+ * add theirs over the last bar (`C` the open hat at 0.7, choked where the window ends); `rest` lanes go quiet from the
+ * window's start (the kick never before the last bar's half); `silence` quiets every drum lane across the window before
+ * its own hits; then every drum is out over the last `stop` sixteenths, the bass out from the window (or the stop), and
+ * the line lands (`kick`: the kick alone through its first beat, the bass's first note on the second; `bass`: the kick
+ * and the bass alone, the bass struck at the line's top). `hpHz`: a high-pass sweeping up across every pitched note
+ * sounding over the window, to that corner where the stop starts and gone on the line. Lanes are the kit's roles:
+ * `kick`, `backbeat` (the snare's crack, its ghosts resting with it), `offbeat` (the closed hats), `sixteenth` (the soft
+ * hats), `open`. Every hit is a copy of the kit's own; no build ever adds a voice.
+ */
+export interface DropBuild { line: number; kind: string; name: string; beats: number; stop: number; land: 'stroke' | 'kick' | 'bass' | 'none'; into: 'drop' | 'return';
+  lead?: { lanes: string[]; pattern: string }; lanes?: Record<string, string>; rest: string[]; bass: 'window' | 'stop'; silence?: boolean; hpHz?: number; label: string;
+  /** the field cut (every chord and line, the bed and the weather: what the drums lead) `db` from the window's start, the
+   * stop's or the line, to the line or through its first beat (a landing of the kick alone), every edge `edgeS` */
+  cut?: { db: number; from: 'window' | 'stop' | 'line'; to: 'line' | 'beat'; edgeS: number };
+  /** the landing crash's colour by the birds (the gestures' sound table about the fast place's own: its size, brightness and ring) */
+  stroke?: GlueSound }
 /** a weather span: its level, its sends, brighter (its low-pass corners scaled), its pan walked across the span, or gone */
 export interface WeatherSpan { from: number; to: number; db?: number; send?: string; gone?: boolean; bright?: number; lid?: number; pan?: [number, number]; panBars?: number; label?: string;
   /** the level walked across the span (dB at its start and its end: the wind rising toward an entry); the pan's shape (a sine drifts, a triangle travels); the hall's share in place of the send's */
@@ -86,7 +108,9 @@ export interface WeatherSpan { from: number; to: number; db?: number; send?: str
   /** the bar (relative) the pan's travel is counted from, where a span continues another's */
   panAt?: number }
 /** a gesture of the glue: a crash or ride into the hall on a landing, a reverse-like swell into one, a riser into a drop */
-export interface Fx { at: Pos; kind: 'crash' | 'swell' | 'riser'; beats?: number; db?: number; send?: string; label?: string }
+export interface Fx { at: Pos; kind: 'crash' | 'swell' | 'riser'; beats?: number; db?: number; send?: string; label?: string;
+  /** a build's riser coloured by the birds (the gestures' sound table: its band, its tail, its sends) */
+  sound?: GlueSound }
 /** the field swelling (the shared returns' level), in dB from `from` to `to`, back over `release` beats */
 export interface FieldSwell { from: Pos; to: Pos; db: number; release?: number }
 
@@ -137,7 +161,9 @@ export interface PassageRow {
     /** the hats by state: the answering bar's accents, the straight top's two weights, the spotlight's, a thinning's and the breath's scale */
     hats: { answering: { soft: number; loud: number; ceiling: number }; straight: [number, number]; spotlight: [number, number]; thin: number; breath: number };
     /** bars (relative) where the drums thin under the voice, whatever their state */
-    thinBars?: number[] };
+    thinBars?: number[];
+    /** the drum-led builds into the drops and returns, and their landings (the producer writes them) */
+    builds?: DropBuild[] };
   bass: { variants: Record<string, BassOp[] | string>; phrases: Array<{ from: number; variant: string | BassOp[]; label?: string }>; floor?: number;
     /** every bend kept inside the riff's register (`bendInRoom`), its window in sixteenths */
     register?: Omit<BendRoom, 'windowS'> & { windowSteps: number } };
@@ -156,7 +182,10 @@ export interface PassageRow {
  * (`top`), and a fade over its last bars written into the same path.
  */
 export interface Bloom { at: Pos; over: 'here' | 'arrival'; notes: number[]; bars: number; attack: number; release: number; send: string; label?: string;
-  db?: number; width?: number; air?: number; rise?: [number, number]; top?: number; fadeBars?: number }
+  db?: number; width?: number; air?: number; rise?: [number, number]; top?: number; fadeBars?: number;
+  /** a drum-led build's line (fast-drops): the entry's rise carried on, in place of its fade, to `bars` from its start
+   * (the line), cut at `cut` (bars from its start: where the build's silence or stop starts), else released on the line */
+  into?: { bars: number; cut?: number } }
 /** The fade every long hold gets where it ends while the music goes on (`holds` in the producer row). */
 export interface Holds { leastS: number; fadeBars: number; tailBars: number; handoverBeats: number; easeDb: number; layers: string[];
   /** the fade in seconds, out of bars held between two bounds and leaned by its birds (`fadeLeastS`, `fadeMostS`, `lean`: `src/hygiene.ts`, `fadeSOf`) */
@@ -255,9 +284,15 @@ export interface PassageResult {
   added: Record<string, number>;
   timeline: Array<{ bar: number; drums: string; harmony: string; bass: string; voice: string; space: string }>;
   summary: string;
+  /** every drum-led build heard, in line order (absolute bars), where the row writes builds: what the ring may mark */
+  builds?: Array<{ line: number; kind: string; beats: number; stop: number; land: DropBuild['land']; into: DropBuild['into']; big: true; label: string }>;
 }
 
 const round = (v: number, n = 5) => +v.toFixed(n);
+/** The pitched layers a whoosh's high-pass sweeps: what holds a chord or sings a line, and the bass. */
+/** The field a build's cut takes besides the pitched layers: the weather, its upper air and the textures. */
+const FIELD_PARTS: ReadonlySet<string> = new Set(['weather', 'weather-upper', 'texture']);
+const PITCHED: ReadonlySet<string> = new Set(['keys', 'pad', 'lead', 'stab', 'arp', 'pluck', 'piano', 'bell', 'vocal', 'strings', 'melodic', 'bass']);
 
 export function playPassage(I: PassageInput): PassageResult {
   const R = I.row;
@@ -558,7 +593,9 @@ export function playPassage(I: PassageInput): PassageResult {
       path = [];
       const f0 = B.fadeBars ? Math.max(dur * 0.35, dur - B.fadeBars * bs) : dur;
       for (let k = 0; k <= 8; k++) { const t = f0 * k / 8; path.push(round(t, 4), round(lvl(t / dur), 4)); }
-      if (B.fadeBars) for (let k = 1; k <= 6; k++) { const t = f0 + (dur - f0) * k / 6; path.push(round(t, 4), round(lvl(t / dur) * (1 - k / 6) ** 2, 4)); }
+      // (a build's line: the rise on its slope to the line or the cut, then out)
+      if (B.into) { const e = (B.into.cut ?? B.into.bars) * bs; path.push(round(e, 4), round(lvl(Math.min(1.25, e / dur)), 4)); if (B.into.cut != null) path.push(round(e + 0.012, 4), 0); }
+      else if (B.fadeBars) for (let k = 1; k <= 6; k++) { const t = f0 + (dur - f0) * k / 6; path.push(round(t, 4), round(lvl(t / dur) * (1 - k / 6) ** 2, 4)); }
     }
     midis.forEach((m, i) => {
       const { swell: _swell, ...p0 } = bedT.p as NoteParams & { swell?: unknown };
@@ -566,7 +603,7 @@ export function playPassage(I: PassageInput): PassageResult {
       const pan = width && midis.length > 1 ? round(Math.max(-1, Math.min(1, width * (i % 2 ? 1 : -1) * (0.35 + 0.65 * i / (midis.length - 1)))), 3) : null;
       const sends = air != null ? { direct: send(B.send).direct, returns: { 'field.hall': air } } : returnsOf(send(B.send));
       push({ ...bedT, t: tOf(bar, step), bar, step, note: I.noteName(m), part: 'study-pad', label: B.label ?? `pad bloom ${bar}`,
-        p: { ...p0, midi: m, dur: round(dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain: round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0) + (PL?.db ?? 0)), 6), ...sends,
+        p: { ...p0, midi: m, dur: round(B.into ? (B.into.cut ?? B.into.bars) * bs + (B.into.cut != null ? 0.012 : 0) : dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain: round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0) + (PL?.db ?? 0)), 6), ...sends,
           ...(pan != null ? { panPath: pan } : {}), ...(path ? { gainPath: path } : {}) } }, 'pad-bloom');
     });
     say(bar, 'space', `pad bloom into the hall${midis.length > 2 ? ` (${midis.length} voices)` : ''}`);
@@ -886,6 +923,90 @@ export function playPassage(I: PassageInput): PassageResult {
     }
   }
 
+  // ----- the drum-led builds into the drops and returns, and their landings (fast-drops) -----
+  // the drums lead the line's last bar (or two) with the gesture the producer drew, stop where it says, and land on the
+  // line; the bass's part (out, the landing's first note) and a whoosh's sweep are laid once the bass is written, below
+  const heardBuilds: NonNullable<PassageResult['builds']> = [];
+  const buildsLaid: Array<{ b: DropBuild; line: number; bar: number; startStep: number; stopStep: number; twoBar: boolean }> = [];
+  {
+    const laneOfHit = (e: PlanEvent): string | null => (I.isKick(e.voice) ? 'kick' : e.layer === 'clap' ? 'backbeat' : !isHat(e) ? null
+      : e.voice === 'hatOpen' ? 'open' : e.voice === 'hatSoft' ? 'sixteenth' : 'offbeat');
+    // every drum of a bar: the kit's lanes, and a texture's shaker or a part's hand drums with them (a stop is a stop)
+    const drumsOfBar = (bar: number) => [...bar$(bar), ...evs.filter((e) => (e.layer === 'shaker' || e.layer === 'perc') && e.bar === bar)].filter(live);
+    // a lane's own hit to copy: its strongest unfiltered hit on the line, the bar after it, or the window's own bars
+    const templateOf = (lane: string, bars: number[]) => {
+      for (const b of bars) {
+        const xs = bar$(b).filter((e) => live(e) && e.p.hpPath === undefined && e.p.gainPath === undefined && laneOfHit(e) === lane && !(lane === 'backbeat' && isGhost(e)));
+        if (xs.length) return xs.reduce((m, e) => (Number(e.p.vel ?? 0) > Number(m.p.vel ?? 0) ? e : m));
+      }
+      return undefined;
+    };
+    const copyHit = (T: PlanEvent, bar: number, step: number, level: number, label: string, chokeAt?: number) => {
+      const off = stepIn(T, T.bar) - Math.round(stepIn(T, T.bar));
+      // a copy of the kit's own hit, at `level` of its velocity, never its filter, its sends or its removal; a choked
+      // hit's ring cut where the window ends, by a gain path on the hit
+      const { gone: _g, hpPath: _h, lpPath: _l, returns: _r, direct: _d, gainPath: _gp, ...p0 } = T.p as NoteParams & { gone?: number };
+      const t = round(tOf(bar, step + off), 6);
+      const cutS = chokeAt !== undefined && chokeAt > step ? tOf(bar, chokeAt) - t : null;
+      const e = push({ ...T, t, bar, step, label, p: { ...p0, vel: round(Number(T.p.vel ?? 1) * level, 4),
+        ...(cutS !== null && cutS > 0.01 ? { gainPath: [0, 1, round(cutS - 0.008, 4), 1, round(cutS, 4), 0] } : {}) } }, 'build-hit');
+      const l = byBar.get(bar) ?? []; l.push(e); byBar.set(bar, l);
+      return e;
+    };
+    for (const b of D.builds ?? []) {
+      const line = I.drop + b.line, bar = line - 1;
+      if (bar < from || line > to) continue;
+      const twoBar = b.beats * 4 > 16, startStep = twoBar ? 0 : 16 - Math.min(b.beats * 4, 16), stopStep = 16 - b.stop;
+      const barsOf = twoBar ? [bar - 1, bar] : [bar], tpl = [line, line + 1, bar, bar - 1];
+      const name = `${b.name} into ${line}`;
+      let heard = 0;
+      const lead = b.lead ? b.lead.lanes.map((l) => ({ l, T: templateOf(l, tpl) })).find((x) => x.T) ?? null : null;
+      const leadAll = lead && b.lead ? b.lead.pattern.padStart(barsOf.length * 16, '.') : null;
+      barsOf.forEach((bb, i) => {
+        const first = twoBar && i === 0, fromStep = twoBar ? 0 : startStep;
+        // the silence first (every drum lane out across the window), the rests, the lead lane cleared and played, the
+        // lanes it adds over the last bar
+        if (b.silence) for (const e of drumsOfBar(bb)) if (stepIn(e, bb) >= fromStep - 0.4) { gone(e); heard++; }
+        for (const r of b.rest) if (r !== lead?.l && !(r === 'kick' && first)) {
+          const f = r === 'kick' ? Math.max(fromStep, 8) : fromStep;
+          for (const e of bar$(bb)) if (live(e) && laneOfHit(e) === r && stepIn(e, bb) >= f - 0.4) { gone(e); heard++; }
+        }
+        if (lead && leadAll) {
+          for (const e of bar$(bb)) if (live(e) && laneOfHit(e) === lead.l && stepIn(e, bb) >= fromStep - 0.4) gone(e);
+          const m = leadAll.slice(i * 16, i * 16 + 16);
+          for (let st = 0; st < 16; st++) if (((m[st] >= '1' && m[st] <= '9') || m[st] === 'X') && (first || st < stopStep)) { copyHit(lead.T!, bb, st, m[st] === 'X' ? 1 : Number(m[st]) / 10, name); heard++; }
+        }
+        if (!first) for (const [r, pat] of Object.entries(b.lanes ?? {})) {
+          if (r === lead?.l) continue;
+          const T = templateOf(r, tpl) ?? (r === 'open' ? byVoice.get('hatOpen')?.find((e) => live(e) && e.p.hpPath === undefined && e.p.gainPath === undefined) : undefined);
+          if (!T) continue;
+          const m = pat.padStart(stopStep, '.').padEnd(16, '.');
+          for (let st = 0; st < 16; st++) {
+            if (m[st] === 'C') { copyHit(T, bb, st, 0.7, name, stopStep); heard++; }
+            // (an added hit only where its lane plays none: the crack keeps its own; a quieter ghost yields to it)
+            else if ((m[st] >= '1' && m[st] <= '9') || m[st] === 'X') {
+              const level = m[st] === 'X' ? 1 : Number(m[st]) / 10, v = Number(T.p.vel ?? 1) * level;
+              const there = bar$(bb).filter((e) => live(e) && laneOfHit(e) === r && Math.round(stepIn(e, bb)) === st);
+              if (there.some((e) => !isGhost(e) || Number(e.p.vel ?? 1) >= v)) continue;
+              for (const e of there) gone(e);
+              copyHit(T, bb, st, level, name); heard++;
+            }
+          }
+        }
+      });
+      // the stop: every drum out over the last sixteenths before the line
+      if (b.stop > 0) for (const e of drumsOfBar(bar)) if (stepIn(e, bar) >= stopStep - 0.4) { gone(e); heard++; }
+      // the landing: the kick alone (or the kick and the bass) through the line's first beat
+      if (b.land === 'kick' || b.land === 'bass') for (const e of drumsOfBar(line)) if (!I.isKick(e.voice) && stepIn(e, line) < 3.6) gone(e);
+      say(barsOf[0], 'drums', `the build into ${line}: ${b.label}`);
+      if (b.land !== 'none') say(line, 'drums', b.land === 'stroke' ? 'the build lands: the crash on the one' : b.land === 'kick' ? 'the build lands: the kick alone through the first beat' : 'the build lands: the kick and the bass alone through the first beat');
+      // the landing crash coloured by the birds (its size, its brightness, its ring)
+      if (b.land === 'stroke' && b.stroke) { const c = soundingAt('crash', tOf(line, 0)); if (c) c.p = { ...c.p, ...glueParams(b.stroke, c.p) }; }
+      buildsLaid.push({ b, line, bar, startStep, stopStep, twoBar });
+      if (heard) heardBuilds.push({ line, kind: b.kind, beats: b.beats, stop: b.stop, land: b.land, into: b.into, big: true, label: b.label });
+    }
+  }
+
   // ----- the bass -----
   const bassAll = evs.filter((e) => e.layer === 'bass' && typeof e.p.midi === 'number' && !e.p.gone);
   const variant = (id: string | BassOp[]): BassOp[] => { if (Array.isArray(id)) return id; const v = R.bass.variants[id]; if (!Array.isArray(v)) throw new Error(`passage ${R.id}: no bass variant ${id}`); return v; };
@@ -980,6 +1101,76 @@ export function playPassage(I: PassageInput): PassageResult {
       if (b.some((v, i) => v !== (e.p.bend as number[])[i])) { e.p = { ...e.p, bend: b }; note(added, 'bend kept in its register'); }
     }
   }
+  // the builds' bass: out from the window (or from the stop) to the line, and the landing's first note; a whoosh's
+  // high-pass sweeping up across every pitched note sounding over its window, in octaves, gone on the line (fast-drops)
+  for (const { b, line, bar, startStep, stopStep, twoBar } of buildsLaid) {
+    const lineT = line * bs, w0 = tOf(twoBar ? bar - 1 : bar, startStep);
+    // (a silence's bass a sixteenth early, its release gone by the time the drums stop)
+    const a = b.bass === 'stop' ? tOf(bar, stopStep) : w0 - (b.silence ? s16 : 0);
+    const isBass = (e: PlanEvent) => e.layer === 'bass' && typeof e.p.midi === 'number' && !e.p.gone;
+    if (a < lineT - s16 / 2) for (const e of evs) {
+      if (!isBass(e)) continue;
+      if (e.t >= a - 1e-6 && e.t < lineT - s16 / 2) gone(e);
+      else if (e.t < a && e.t + Number(e.p.dur) > a) e.p = { ...e.p, dur: round(Math.max(0.12, a - e.t - 0.02), 4) };
+    }
+    if (b.land === 'kick' || b.land === 'bass') {
+      const lineNotes = evs.filter((e) => isBass(e) && e.t >= lineT - s16 / 2 && e.t < lineT + bs).sort((x, y) => x.t - y.t);
+      const first = lineNotes[0], t1 = lineT + I.beat;
+      if (first && first.t < t1 - 1e-6) {
+        if (b.land === 'bass') {
+          const top = Math.max(...lineNotes.map((e) => Number(e.p.vel ?? 1)));
+          if (Number(first.p.vel ?? 1) < top) first.p = { ...first.p, vel: top };
+        } else {
+          // the first beat the kick's alone: the line's first note moved to the second beat (where none starts there),
+          // every other note of the first beat out
+          const onTwo = lineNotes.some((e) => Math.abs(e.t - t1) < 1e-3), d = Number(first.p.dur) - (t1 - first.t);
+          for (const e of lineNotes) if (e.t < t1 - 1e-6 && (e !== first || onTwo || d <= 0.05)) gone(e);
+          if (!onTwo && d > 0.05) { first.t = round(t1, 6); first.bar = line; first.step = 4; first.p = { ...first.p, dur: round(d, 4) }; }
+        }
+      }
+    }
+    if (b.hpHz) {
+      const z = tOf(bar, stopStep), hz = b.hpHz;
+      const corners = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ t: w0 + (z - w0) * f, hz: 30 * (hz / 30) ** f }));
+      for (const e of evs) {
+        const d = Number(e.p.dur ?? 0);
+        if (typeof e.p.midi !== 'number' || e.p.gone || !PITCHED.has(e.layer) || e.p.hpPath !== undefined || !(e.t < lineT - s16 / 2 && e.t + d > w0)) continue;
+        // (a note sounding from before the window: its path's first knot at the window's start)
+        const path: number[] = [round(Math.max(0, w0 - e.t), 4), round(e.t >= w0 ? 30 * (hz / 30) ** Math.min(1, (e.t - w0) / (z - w0)) : 30, 4)];
+        for (const c of corners) if (c.t > e.t + 1e-4) path.push(round(c.t - e.t, 4), round(c.hz, 4));
+        if (e.t + d > lineT + 0.01) path.push(round(Math.max(lineT, e.t) - e.t, 4), round(hz, 4), round(lineT - e.t + 0.01, 4), 30);
+        e.p = { ...e.p, hpPath: path };
+      }
+      say(bar, 'space', `the high-pass sweeping up to ${hz} Hz into ${line}`);
+    }
+    // the field cut through the stop (a full stop's whole window), back on the line or on its second beat: a gain path on
+    // every chord, line, bed and weather note sounding there, times its own
+    if (b.cut) {
+      const E = b.cut.edgeS, f = dbToGain(b.cut.db);
+      const cA = b.cut.from === 'window' ? w0 : b.cut.from === 'stop' ? tOf(bar, stopStep) : lineT, cZ = b.cut.to === 'beat' ? lineT + I.beat : lineT;
+      const knots = [{ t: cA - E, f: 1 }, { t: cA + E, f }, { t: cZ - E, f }, { t: cZ + E / 4, f: 1 }];
+      const at = (ks: Array<{ t: number; f: number }>, t: number) => {
+        if (t <= ks[0].t) return ks[0].f;
+        for (let i = 1; i < ks.length; i++) if (t <= ks[i].t) return ks[i - 1].f + (ks[i].f - ks[i - 1].f) * (t - ks[i - 1].t) / (ks[i].t - ks[i - 1].t);
+        return ks[ks.length - 1].f;
+      };
+      let n = 0;
+      for (const e of evs) {
+        if (e.p.gone || e.layer === 'bass' || e.layer === 'shaker' || e.layer === 'perc' || !(PITCHED.has(e.layer) || FIELD_PARTS.has(String(e.part)))) continue;
+        const end = e.t + Number(e.p.dur ?? 0) + Number(e.p.release ?? 0.5);
+        // (a note struck on the line or after it, the landing's chord, plays whole: the cut is the build's)
+        if (!(e.t < lineT - 1e-3 && end > cA - E)) continue;
+        const own = typeof e.p.gainPath === 'number' ? [0, e.p.gainPath] : Array.isArray(e.p.gainPath) ? (e.p.gainPath as number[]) : [0, 1];
+        const ownK = Array.from({ length: own.length / 2 }, (_, i) => ({ t: e.t + own[2 * i], f: own[2 * i + 1] }));
+        const ts = [...new Set([...ownK.map((k) => k.t), ...knots.map((k) => k.t)].filter((t) => t >= e.t).map((t) => round(t - e.t, 4)))].sort((x, y) => x - y);
+        if (ts[0] !== 0) ts.unshift(0);
+        e.p = { ...e.p, gainPath: ts.flatMap((t) => [t, round(at(ownK, e.t + t) * at(knots, e.t + t), 4)]) };
+        n++;
+      }
+      if (n) say(b.cut.from === 'window' ? (twoBar ? bar - 1 : bar) : bar, 'space', `the field cut ${b.cut.db} dB ${b.cut.from === 'window' ? 'through the silence' : b.cut.from === 'stop' ? 'through the stop' : 'on the line'}${b.cut.to === 'beat' ? ', back on the line\'s second beat' : ', back on the line'}`);
+    }
+  }
+
   // the dips rebuilt from the snares that now play (a note steps aside under each)
   const cracks = evs.filter((e) => isCrack(e) && !e.p.gone && e.t >= from * bs - bs && e.t < to * bs + bs).map((e) => e.t).sort((a, b) => a - b);
   for (const e of evs) {
@@ -1003,7 +1194,8 @@ export function playPassage(I: PassageInput): PassageResult {
     else if (F.kind === 'swell') swellInto(bar, label, F.beats);
     else {
       const T = fxTemplate('riser');
-      fxAt('riser', t, { dur: round((F.beats ?? D.riser.beats) * I.beat, 4), gain: round(Number(T.p.gain ?? D.riser.gain) * dbToGain(F.db ?? 0), 6), ...(F.send ? returnsOf(send(F.send), false) : {}) }, label, 'riser');
+      const gain = round(Number(T.p.gain ?? D.riser.gain) * dbToGain(F.db ?? 0), 6);
+      fxAt('riser', t, { dur: round((F.beats ?? D.riser.beats) * I.beat, 4), gain, ...(F.send ? returnsOf(send(F.send), false) : {}), ...glueParams(F.sound, { gain }) }, label, 'riser');
     }
     say(bar, 'space', label);
   }
@@ -1096,6 +1288,7 @@ export function playPassage(I: PassageInput): PassageResult {
     id: R.id, window: { from, to }, returns, budget,
     lines: Object.keys(returns).map((id) => ({ param: `returns.${id}.duck.gain`, points: pts })),
     removed, added, timeline,
+    ...(R.drums.builds ? { builds: heardBuilds } : {}),
     summary: `the passage ${R.id} over bars ${from}-${to}: ${Object.values(added).reduce((a, b) => a + b, 0)} events written, ${Object.values(removed).reduce((a, b) => a + b, 0)} retired, the cast ${budget.after} units${budget.gave.length ? ` (the returns gave up ${budget.gave.join(', ')})` : ''}${keysVoice ? ', the phrases on the keys (the soloist over the ceiling)' : ''}`,
   };
 }

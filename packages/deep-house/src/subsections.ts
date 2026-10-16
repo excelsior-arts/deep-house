@@ -452,17 +452,21 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
   const note = (s: SubSection, glued = false) => { if (changed() !== mark || glued) heard.add(s); mark = changed(); };
   // A hit a figure writes is the row's, by `by`: copied from the bar's own hit
   // for its sound, never under a part's name it was not written by (C02).
-  const copy = (e: Ev, bar: number, step: number, vel: number, by: string): Ev => {
+  const copy = (e: Ev, bar: number, step: number, vel: number, by: string, chokeAt?: number): Ev => {
     const { part: _part, ...rest } = e;
-    return { ...rest, t: at(bar, step) + (e.t - at(e.bar!, e.step ?? 0)), bar, step, p: { ...e.p, vel }, by };
+    const t = at(bar, step) + (e.t - at(e.bar!, e.step ?? 0));
+    // a choked hit (U2d): its ring cut where the letter says, by a gain path over the hit (any voice reads one)
+    const cutS = chokeAt !== undefined && chokeAt > step ? at(bar, chokeAt) - t : null;
+    const p = cutS !== null && cutS > 0.01 ? { ...e.p, vel, gainPath: [0, 1, +(cutS - 0.008).toFixed(4), 1, +cutS.toFixed(4), 0] } : { ...e.p, vel };
+    return { ...rest, t, bar, step, p, by };
   };
   // The bar as the edits so far left it: its own hits not dropped, and what was added.
   const current = (bar: number, role: string) => [
     ...(byBar.get(bar) || []).filter((e) => isRole(e, role) && !drop.has(e)),
     ...add.filter((e) => e.bar === bar && isRole(e, role) && !drop.has(e)),
   ];
-  const remove = (bar: number, role: string, from = 0) => {
-    for (const e of current(bar, role)) if ((e.step ?? 0) >= from) drop.add(e);
+  const remove = (bar: number, role: string, from = 0, until = 16) => {
+    for (const e of current(bar, role)) if ((e.step ?? 0) >= from && (e.step ?? 0) < until) drop.add(e);
     // A held role: a note begun before the cleared step and still sounding there stops where the clearing begins.
     if (roles[role]?.held) {
       const t0 = at(bar, from);
@@ -490,6 +494,8 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     if (policy !== 'stack') {
       const here = current(ev.bar!, role).filter((e) => (e.step ?? 0) === ev.step);
       if (here.length && policy === 'add-if-absent') return;
+      // (a quieter hit, a ghost, yields to a louder one; a hit at least as loud keeps the step)
+      if (policy === 'over-quieter' && here.some((e) => (e.p.vel ?? 1) >= (ev.p.vel ?? 1))) return;
       for (const e of here) drop.add(e);
     }
     add.push(ev);
@@ -506,7 +512,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     const t = templates(bar, role);
     // A clear alone needs nothing to copy; a held note ringing into the bar is a thing to cut.
     if (!t.from && !(e.clear !== undefined && !e.mask && !e.roll && !e.double && roles[role].held)) return 'empty';
-    if (e.clear !== undefined) remove(bar, role, e.clear);
+    if (e.clear !== undefined) remove(bar, role, e.clear, e.until ?? 16);
     if (!t.from) return 'applied';
     if (e.mask) {
       const m = e.mask[k % e.mask.length];
@@ -514,7 +520,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
         const c = m[step];
         if (c === '.') continue;
         const l = letters[c];
-        insert(role, copy(l.ghost ? t.ghost! : t.from, bar, step, l.absolute ? l.level : t.vel * l.level, by), 'mask', e.insert);
+        insert(role, copy(l.ghost ? t.ghost! : t.from, bar, step, l.absolute ? l.level : t.vel * l.level, by, l.chokeAt), 'mask', e.insert);
       }
     }
     if (e.roll) {

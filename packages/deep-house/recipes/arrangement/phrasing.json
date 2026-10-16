@@ -23,6 +23,12 @@
     "segments.lean.veil": "lean",
     "segments.liftDb": "dB",
     "segments.liftEdgeS": "seconds",
+    "segments.more.everyBars": "bars",
+    "segments.more.everyS": "seconds",
+    "segments.more.longBars": "bars",
+    "segments.more.longMostS": "seconds",
+    "segments.more.majorBars": "bars",
+    "segments.more.majorLeastBars": "bars",
     "segments.filter.hz": "Hz",
 
     "answers.spacingPhrases": "phrases",
@@ -156,7 +162,7 @@
     }
    },
    "segments": {
-    "says": "sub-segments inside a long main (his word 10-13): a main, a drop or a groove longer than `longBars` bars or `longMostS` seconds, whichever is shorter, takes one phrase event per `everyS` seconds of its length (Loom up: denser, x0.67 at nought to x1.34 at one), never in its first phrase, its last, or the cooldown before a break, with at least `spacingPhrases` whole phrases of groove between two, on a phrase whose function the table names (an interior phrase, or an approach into an arrival), never over a bar the house's own small things already mark. Each sits at its phrase's end, the groove back on the phrase line: a drop-out bar (a drop-out row of the library that takes the kick out, or under a track row's own drums the bass and the chords, and only a row that leaves the bar a part to hold it after its clears: the bass sounding over `dropOutLeaves.bass` of it, the pad over `dropOutLeaves.drone`, or the keys over `dropOutLeaves.figure` — never a bar of nothing or the hand drums alone); a filtered phrase (the master's low-pass closed to `filter.hz` over `filter.closeBeats`, opened again over its last `filter.openBars`); a half-time phrase (the kick on one and three-and, the backbeat on three); a breakdown-lite (the kick, the backbeat, the sixteenths and the open hat out: the closed hats and the bed exposed, the melodic bus lifted `liftDb` as a breakdown lifts it); a fill (a fill row of the library) into the line. A span is `spanPhrases` of the phrase (at least `leastBars`); its last bar is the re-entry, a fill row there at `reentryFill`, the drums back for it. Which kind is drawn by the phrase's function among those the kit admits (a role a track row's cells own is never edited), a kind the main already played at `recent` of its weight, off a stream of the phrase's own. Never from a tempo under the row's `leastBpm`, never a held drone over a broken beat (the Spark and Loom combo his ear keeps, 10-13)",
+    "says": "sub-segments inside a long main (his word 10-13): a main, a drop or a groove longer than `longBars` bars or `longMostS` seconds, whichever is shorter, takes one phrase event per `everyS` seconds of its length (Loom up: denser, x0.67 at nought to x1.34 at one), never in its first phrase, its last, or the cooldown before a break, with at least `spacingPhrases` whole phrases of groove between two, on a phrase whose function the table names (an interior phrase, or an approach into an arrival), never over a bar the house's own small things already mark. Each sits at its phrase's end, the groove back on the phrase line: a drop-out bar (a drop-out row of the library that takes the kick out, or under a track row's own drums the bass and the chords, and only a row that leaves the bar a part to hold it after its clears: the bass sounding over `dropOutLeaves.bass` of it, the pad over `dropOutLeaves.drone`, or the keys over `dropOutLeaves.figure` — never a bar of nothing or the hand drums alone); a filtered phrase (the master's low-pass closed to `filter.hz` over `filter.closeBeats`, opened again over its last `filter.openBars`); a half-time phrase (the kick on one and three-and, the backbeat on three); a breakdown-lite (the kick, the backbeat, the sixteenths and the open hat out: the closed hats and the bed exposed, the melodic bus at the groove's level: the duck's mean its kicks gave the bed and no longer give it taken off, `liftDb` on top, 0 since the U2e review found the phrase 3 dB louder a bar than the groove); a fill (a fill row of the library) into the line. A span is `spanPhrases` of the phrase (at least `leastBars`); its last bar is the re-entry, a fill row there at `reentryFill`, the drums back for it. Which kind is drawn by the phrase's function among those the kit admits (a role a track row's cells own is never edited), a kind the main already played at `recent` of its weight, off a stream of the phrase's own. Never from a tempo under the row's `leastBpm`, never a held drone over a broken beat (the Spark and Loom combo his ear keeps, 10-13)",
     "sections": ["main", "drop", "groove"],
     "longBars": 32,
     "longMostS": 60,
@@ -172,7 +178,16 @@
     "reentryFill": {"breakdown-lite": 1, "half-time": 1, "filtered": 0.5},
     "recent": 0.35,
     "lean": {"loom": 0.7},
-    "liftDb": 1.4,
+    "more": {
+     "says": "U2e (his word 10-13, seed 11 at Zephyr high: 'need more frequent sub sequence … the more boring the ring in terms of graphics, the more boring the music too'; the Techno tile seed 7: 'main segments need major sub segmentation'): after the sub-segments above (each kept as it was drawn) and the bass's outs, a main, a drop or a groove longer than `longBars` bars or `longMostS` seconds, whichever is shorter, takes more of them until no stretch of it runs past `everyBars` bars or `everyS` seconds, whichever is shorter (Loom leaning it as it leans the rate above), with nothing marked: a section line, the house's own small things, a sub-segment, an out, the cooldown. Each goes on the candidate phrase (an interior or an approach, as above) that best splits the longest such stretch, drawn as above among the kinds the kit admits, a kind the section already played at `recent`. The groove keeps its identity between them: a span (a breakdown-lite, a half-time or a filtered phrase) never in a phrase next to another span; a drop-out bar or a fill may be. A section of `majorBars` or more takes one major sub-segment at least (a breakdown-lite or a half-time of `majorLeastBars` or more; under a track row's own drums, whose kick no phrase event edits, the filtered phrase), placed first where the section has none; where the house's own one bar holds every free phrase's last bar, the major one ends on it, that bar its way back in, only where it is heard as one (a fill or a turnaround the bar's kit sounds, or a drop-out bar taking nothing the span took; never a glue-only row). Each goes where it most cuts what runs past the cap; the section's first phrase only where the line's own stretch runs past it, and only a fill or a drop-out bar",
+     "everyBars": 16,
+     "everyS": 30,
+     "longBars": 16,
+     "longMostS": 30,
+     "majorBars": 32,
+     "majorLeastBars": 4
+    },
+    "liftDb": 0,
     "liftEdgeS": 0.4,
     "filter": {
      "says": "the filtered phrase (U2c, his ear 10-13 on U2b: 'fading in sounds cheap, likely need more like a build up and drop kind of approach'): the master's low-pass cut to `hz` at the phrase's start (a cut, never a fade), the tops thinning under it, then the build into the line (`build`), the low-pass opening with the roll to the stop; a reverse swell of `swellBeats` into the line at `swellGain` where the theme sounds the glue's swell and no gesture lands there",

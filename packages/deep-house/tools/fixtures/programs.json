@@ -3,63 +3,63 @@
   "rows": {
     "pump/base/3": {
       "kind": "approved",
-      "sha256": "fe4b7771d88fdf7329f4da439eebe0f9612c431fbb536a306afda21d29ca5edf"
+      "sha256": "622b52c64a38cf715de13addc04031576923c9f39505ee3d9d9fb64099870e60"
     },
     "lick/base/3": {
       "kind": "approved",
-      "sha256": "7591426da5c8d5171072d4e4f350292cf4b93173105b1eed54456c4d5a639ab1"
+      "sha256": "13576687e68e01130c8b45b507608180d365aed8e8b4677ca47d733aa3bc7358"
     },
     "answer/base/3": {
       "kind": "approved",
-      "sha256": "6fb5d34b7b7288baee34ae61b872cf8133dceb3c8dbd201e88217aaf9bc694da"
+      "sha256": "d4b319c22c29b1b3715aebb7d1a2534edc2dab9a5f9ca09e8d7f01992f87f5d1"
     },
     "pump/auto/4": {
       "kind": "context",
-      "sha256": "dd1767fea46fc68e9f09600727a9a74eec31d1990ca8f926449d4fd2ad561d41"
+      "sha256": "d13a6c0e4262d2791fa4ee7fda0181e46a3c86e7739dc58596ca5f620aebafaf"
     },
     "calm-piano-01/auto/4": {
       "kind": "context",
-      "sha256": "0a0748e3c0740803a9b8a2d1f5ed91505edc1a124154238d623f0a83aace51d1"
+      "sha256": "6786eab9cf4a311992be35e9e3f638dd1ebee1f28fc65635736145b1be22b4de"
     },
     "calm-piano-01/auto/6": {
       "kind": "context",
-      "sha256": "3ce58a8f5ea4c2b11b6af179f2b9747aa54a36e93b092f5af4cabe393fd36a54"
+      "sha256": "c28f0615dc307eee62beb17c235e60635a9f55ac80943bc0c0a10e19be53655f"
     },
     "calm-piano-02/base/6": {
       "kind": "context",
-      "sha256": "439a2b602ef7c38f9d6c6e7798932372faae570b85c34df466be4d709178e3c5"
+      "sha256": "af0487362e7910039f8a611a97bb586b48f2ce26b1827d6855f180c8377d49ed"
     },
     "pump/phrased/4": {
       "kind": "context",
-      "sha256": "a25338be5d18fb0d398634244021b9e7ae877d7b59188b03c13d458d750d73fd"
+      "sha256": "085629fab017a69de7219de6684f6175b8a2cc2b566d3f739c833cb376804205"
     },
     "calm-piano-02/phrased/4": {
       "kind": "context",
-      "sha256": "6192c1c178ae96e142ad38c2c87dd2deb630498ba5e427f30e4c7ead9f0feb41"
+      "sha256": "8c4bbf30187394cecd054081074dd84087d7aabba29ea4d527782031e2fab39f"
     },
     "calm-piano-02/shaped/6": {
       "kind": "context",
-      "sha256": "33b498f609b4de64254b6e0aa2c3cb62f8acbe5b7507261d6f28ea6806e5b70e"
+      "sha256": "990686d52000dfdf73c6b896439803fe161bb1f5b08e7a8ac8f61b5eb9704dbd"
     },
     "pump/shaped/4": {
       "kind": "context",
-      "sha256": "a617a3bc6270fd3040d3ce46e8bb25c06c4b71396994efc903aebd7520d18dbc"
+      "sha256": "932c237798589a87dbc68b645228cca2d511cba928858d3a9043e4534c2c214e"
     },
     "calm-piano-02/shaped/4": {
       "kind": "context",
-      "sha256": "553614681457c33b17134cb189c2f2b5b1961d559454d404db59cb623333fb3d"
+      "sha256": "30318883b8ed6890ff5848fae68dccb95db42112f795cfc1686b74c265be2267"
     },
     "calm-piano-02/percussion/6": {
       "kind": "context",
-      "sha256": "33b498f609b4de64254b6e0aa2c3cb62f8acbe5b7507261d6f28ea6806e5b70e"
+      "sha256": "990686d52000dfdf73c6b896439803fe161bb1f5b08e7a8ac8f61b5eb9704dbd"
     },
     "pump/percussion/4": {
       "kind": "context",
-      "sha256": "a617a3bc6270fd3040d3ce46e8bb25c06c4b71396994efc903aebd7520d18dbc"
+      "sha256": "932c237798589a87dbc68b645228cca2d511cba928858d3a9043e4534c2c214e"
     },
     "ringing-chords-01/percussion/4": {
       "kind": "context",
-      "sha256": "a926d9f1c916ec0611b58c4fe9145875c693c33424d123cc49b097a1ceb63147"
+      "sha256": "7307af2d053c6d856e7275b4b42f87f54386fba3ac1ff91dae2d1c137a844649"
     }
   }
 }

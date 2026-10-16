@@ -74,7 +74,9 @@ export const GLUE_SLOTS: readonly string[] = Object.freeze(['impact', 'swell', '
  * hit (a ghost) rather than its loudest, and whether the level is absolute
  * rather than a share of the copied hit's velocity.
  */
-export interface Letter { level: number; ghost?: boolean; absolute?: boolean }
+export interface Letter { level: number; ghost?: boolean; absolute?: boolean;
+  /** the hit's ring cut at this step of its bar (U2d: an open hat choked where a build's window ends), by a gain path on the hit */
+  chokeAt?: number }
 
 /** The three letters every row has. A row may add its own under `figure.letters`. */
 export const DEFAULT_LETTERS: Readonly<Record<string, Letter>> = Object.freeze({
@@ -87,6 +89,8 @@ export const DEFAULT_LETTERS: Readonly<Record<string, Letter>> = Object.freeze({
 export interface LaneEdit {
   /** the lane's own hits from this step go (0: the whole bar); absent, they stay */
   clear?: number;
+  /** the clear stops before this step (U2d: a landing's lanes out for the line's first beat alone); absent, to the bar's end */
+  until?: number;
   /** one sixteen-step string per bar, tiled over a span: a letter is a hit, `.` a rest */
   mask?: readonly string[];
   /** a hit on every step from `from` to the bar's end, the levels climbing by `rise` from `base`: hit k of n at base + rise·k/n */
@@ -97,14 +101,15 @@ export interface LaneEdit {
    * how a hit this lane writes meets a hit of the role already on its step,
    * where the row means other than its operation's own policy
    * (`src/subsections.ts` `INSERTION`): `add-if-absent`, `replace`, or `stack`
-   * — both sound, said on purpose
+   * — both sound, said on purpose; `over-quieter`, the step's hit kept unless it is quieter than the new one (a ghost
+   * yields to a build's louder hit, fast-drops)
    */
   insert?: Insertion;
 }
 
 /** How a written hit meets one already on its step (`src/subsections.ts` `INSERTION`). */
-export type Insertion = 'add-if-absent' | 'replace' | 'stack';
-export const INSERTIONS: readonly Insertion[] = Object.freeze(['add-if-absent', 'replace', 'stack'] as const);
+export type Insertion = 'add-if-absent' | 'replace' | 'stack' | 'over-quieter';
+export const INSERTIONS: readonly Insertion[] = Object.freeze(['add-if-absent', 'replace', 'stack', 'over-quieter'] as const);
 
 /** A figure: lane edits by role, the letters they use, and what else the bars carry. */
 export interface Figure {
@@ -203,7 +208,8 @@ function lanesProblems(lanes: unknown, at: string, bars: number, letters: Readon
     if (!FIGURE_ROLES.includes(role)) { bad.push(`${here} is not a role a figure edits (${FIGURE_ROLES.join(', ')})`); continue; }
     const e = edit as LaneEdit | null;
     if (!e || typeof e !== 'object' || Array.isArray(e)) { bad.push(`${here} is not an edit`); continue; }
-    for (const f of Object.keys(e)) if (!['clear', 'mask', 'roll', 'double', 'insert'].includes(f)) bad.push(`${here}.${f} is not an edit`);
+    for (const f of Object.keys(e)) if (!['clear', 'until', 'mask', 'roll', 'double', 'insert'].includes(f)) bad.push(`${here}.${f} is not an edit`);
+    if (e.until !== undefined && !(isCount(e.until) && e.until <= 16 && e.clear !== undefined && e.until > e.clear)) bad.push(`${here}.until is not a step after its clear`);
     if (e.insert !== undefined) {
       if (!INSERTIONS.includes(e.insert)) bad.push(`${here}.insert is not ${INSERTIONS.join(', ')}`);
       if (e.mask === undefined && e.roll === undefined && e.double === undefined) bad.push(`${here}.insert says how a written hit meets one already there, and this lane writes none`);

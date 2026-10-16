@@ -50,6 +50,8 @@ import { rollTexture, treat } from './parts/treat.ts';
 import { SCALES, makeProgression, chordAtBar, noteName, foldTo, foldInto, DEGREE_NAMES } from './theory.ts';
 import { planKeys, inPickup, keysReadout, type KeysPlan, type KeysChord, type KeysReadout } from './keys-phrase.ts';
 import { laneLevelDb, offShift } from './lane-level.ts';
+import { stage } from './performance.ts';
+import type { PlannedTheme } from './performance.ts';
 import { walkAt, walked } from './walk.ts';
 import type { Chord, Progression } from './theory.ts';
 import { makeArrangement, filterCurve, pushCurve, layersAtBar, phraseGrid, sectionWindowBars, setGrid, type Section } from './arrangement.ts';
@@ -70,13 +72,15 @@ import { TREATMENTS as TREATMENT_ROWS, SECTION_LIBRARY as SECTION_ROWS, FORM_LIB
 import { drawSectionRows, grammarWith, type SectionPin } from './sections.ts';
 import { sweepsOf, sweepCurves, glueFadesOf, type BusSweepCurves } from './sweep.ts';
 import * as P from './patterns.ts';
+import { handPart, type HandPhrases } from './hand-phrase.ts';
 import { planAmbient, chapterPolicy, settleAmbient, detailWindows, voicesSlots, bedRowOf, type AmbientPlan } from './ambient-plan.ts';
 import { PASSAGE_ROWS, playPassage, type PassageResult } from './passage.ts';
 import { PRODUCER_ROWS, arrange, type PhrasePlan, type FilterSpan } from './producer.ts';
 import { musicalTime, type MusicalTime } from './musical-time.ts';
 import { planPhraseMap, type PhraseMap } from './phrase-map.ts';
 import { applyHygiene, HYGIENE_ROWS, type HygieneResult } from './hygiene.ts';
-import { planPhrasing, summarised, said as saidOf, bumpCurve, dipCurve, factorCurve, PHRASING_ROWS, TONAL_LAYERS, type Phrasing, type BarKit } from './phrasing.ts';
+import { momentsOf, type Moment, type MomentsInput } from './moments.ts';
+import { planPhrasing, summarised, said as saidOf, bumpCurve, dipCurve, factorCurve, glueParams, PHRASING_ROWS, TONAL_LAYERS, type Phrasing, type BarKit } from './phrasing.ts';
 import { applyPadArc, PAD_ARC_ROWS, type PadArc } from './pad-arc.ts';
 import type { SpaceRow } from '@deep-house/engine/space';
 
@@ -279,6 +283,8 @@ export interface EventMeta {
   drawn?: string;
   /** an exposed held front's note: the stage stands it where it settles after this bar (`performance.ts`, `stageHold`) */
   stageHold?: number;
+  /** the decibels the front rule took off this note (`catalogue.front`), which the loudness trim gives back (`loudness.ts`) */
+  frontDb?: number;
 }
 
 /**
@@ -524,6 +530,13 @@ export interface Track {
    * house-v2's positions the producer does not arrange, from 70 BPM up (the slow side behind its own switch), where it ran
    */
   padArc?: PadArc;
+  /**
+   * **every moment the composer made, in one list** (U2e, `src/moments.ts`): the arrangement's phrases, the house's own
+   * small things as heard, the lead-ins' risers, the pad arc's crest, the producer's and the development's moves, each
+   * labelled at its real bars in the ring's mark kinds; house-v2's positions, where it found any. The ring draws them
+   * (`marksOf`); nothing the program plays reads them.
+   */
+  moments?: Moment[];
 }
 
 /**
@@ -913,6 +926,8 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
   const bias = wanted.bias;
   const RANGE = bias.ranges;
   const CAT = style.catalogue;
+  /** the style's hand grammar (`src/hand-phrase.ts`); house-v1 has none */
+  const HAND_ROW = (style as Style & { handPhrases?: HandPhrases }).handPhrases ?? null;
   const FIG = style.figures;
   const CORPUS = style.corpus;
 
@@ -1573,6 +1588,29 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       ? (style.lanes as Lane[]).find((l) => l.role === lane.role && l.gate === word && (l.voices || []).some((c) => c.v === voice)) : undefined;
     return trimOf(own ?? lane, voice);
   };
+  /**
+   * **A hand drum on the sixteenth lane plays a hand part** (`src/hand-phrase.ts`, his ear 10-13 on house seed 35:
+   * "too primitive, only one hit"): where the lane's own draw lands on a voice the style's hand-phrases row plays,
+   * the bar's hits are the row's phrase, struck in the row's character's strokes and feel, at the lane's own level
+   * and the row's `db`. Its draws are off streams of its own (`<seed>::hands…`). A style with no row (house-v1)
+   * plays the mask as it always did.
+   */
+  const handPartOf = HAND_ROW ? handPart(HAND_ROW, seed, bias.spell as unknown as Record<string, number>) : null;
+  const handHits = (lane: Lane, voice: string, c: BarContext, own: Record<string, number>) => {
+    const row = HAND_ROW!, feel = row.feel, character = characters?.rhythm?.[row.character];
+    for (const h of handPartOf!.bar(c.bar - c.section.startBar, c.section.index)) {
+      const sound = character?.strokes?.[h.stroke];
+      const human = new Rng(`${seed}::hands:feel:${c.bar}:${h.step}`);
+      const time = c.bar * barSeconds + Math.max(0, Math.min(4 - 1e-6,
+        P.stepToBeats(h.step, feel.swing) + feel.delay.beats + human.float(-feel.timing.beats, feel.timing.beats))) * beat;
+      push(voice, time, {
+        vel: h.accent * human.float(1 - feel.dynamics, 1),
+        pan: human.float(-S.space.hatPan, S.space.hatPan),
+        ...own,
+        ...(sound ? { ...sound.params, gain: (own.gain ?? 1) * dbToGain(sound.gainDb + (character!.levelDb ?? 0) + row.db) } : { gain: (own.gain ?? 1) * dbToGain(row.db) }),
+      }, { bar: c.bar, step: h.step, layer: layerOf(voice) });
+    }
+  };
   const sources: FigureGroup[] = sourcesOf(LANES);
   const firstByRole = (role: string) => LANES.find((l) => l.role === role) || null;
   /**
@@ -2026,6 +2064,9 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       for (const lane of g.lanes.filter((l) => laneOn(l, c.layers))) for (const h of hits) {
         const voice = voiceOf(lane);
         const t = Math.max(0, at(c.bar, h.step) - S.hatNudge);
+        // A hand drum plays its own phrase (`handHits`, below), drawn off streams of its own; the bar's stream is
+        // drawn here as it always was, so nothing else of the bar moves.
+        if (HAND_ROW && HAND_ROW.voices.includes(voice)) { c.r.float(); c.r.float(); continue; }
         push(
           voice,
           t,
@@ -2037,6 +2078,10 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
           },
           { bar: c.bar, step: h.step, layer: layerOf(voice) }
         );
+      }
+      if (HAND_ROW) for (const lane of g.lanes.filter((l) => laneOn(l, c.layers))) {
+        const voice = voiceOf(lane);
+        if (HAND_ROW.voices.includes(voice)) handHits(lane, voice, c, leaned(lane, voice));
       }
     },
 
@@ -3116,6 +3161,13 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const voices = new Set(notes.map((e) => e.voice));
     return voices.size > 0 && [...voices].every(glidesInto) && (!turnedBass || glidesInto(turnedBass)) && notes.some((e) => (e.step ?? 0) !== 0);
   };
+  // the glue's gates' verdict on the theme as it stands (house-v2's `glueGates`, read again below on the final events)
+  const glueKept = () => {
+    if (!switchOn(style, 'glueGates')) return true;
+    const s2 = style as { layers?: { rows: Record<string, { mean: Record<string, number> }> }; hatCentroid?: Record<string, number> };
+    const brightness = Object.fromEntries(Object.entries(s2.layers?.rows ?? {}).map(([k, r]) => [k, r.mean.zephyr]));
+    return glueVerdict({ style, spell: bias.spell, events, kit: DERIVED?.kit, brightness, hatCentroid: s2.hatCentroid ?? {} }).keep;
+  };
   const phrased = phrasingOn ? (() => {
     const roleLayers = (role: string) => new Set(LANES.filter((l) => l.role === role).map((l) => layerOf(voiceOf(l))));
     const K = roleLayers('kick'), B = roleLayers('backbeat'), O = roleLayers('offbeat'), BASS = roleLayers('bassline');
@@ -3134,7 +3186,7 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       if (e.p.gone || e.bar == null || e.bar < 0 || e.bar > bars) continue;
       const k = kitAt[e.bar];
       if (SIXTEENTH.has(e.layer)) k.tops = k.sixteenths = true;
-      else if (O.has(e.layer) && OPEN.has(e.voice)) k.tops = true;
+      else if (O.has(e.layer) && OPEN.has(e.voice)) k.tops = k.open = true;
       if (typeof e.p.midi === 'number') for (const part of ['bass', 'drone', 'figure'] as const) if (PARTS[part].has(e.layer)) {
         const a = Math.max(0, Math.floor(e.t / s16)), z = Math.min(partSounding[part].length, Math.ceil((e.t + Number(e.p.dur ?? 0)) / s16));
         for (let i = a; i < z; i++) partSounding[part][i] = 1;
@@ -3169,6 +3221,7 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const gestures = events.filter((e) => e.layer === 'fx' && !/weather|vinyl|airBed/i.test(e.voice)).flatMap((e) => [e.t, e.t + Number(e.p.dur ?? 0)]);
     return planPhrasing({ row: PHRASING_ROWS.ring, seed, spell: bias.spell, bpm, time: time!, map: phraseMap!, sections: arrangement.sections, bars,
       drawn: subs, treatments: TREATMENT_ROWS, four: !breakRow, kit: (b) => kitAt[b] ?? kitAt[bars], keep: pickupBars, held: heldRoles,
+      openShared: LANES.some((l) => l.role === 'offbeat' && l.slot !== 'open' && OPEN.has(voiceOf(l))),
       gestured: (b) => gestures.some((t) => Math.abs(t - b * barSeconds) <= near),
       // a part's lane (a pinned part's, a part the composition drew: a hand row) is never a build's to roll or thin; a
       // track row's own cells are (his word on the drums at a break), and the stop silences every lane
@@ -3185,7 +3238,12 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       // the glue's gates govern — never on a held bed the palette drew into the slot (a vinyl bed struck at a line is a
       // crackle, not a crash or a swell)
       can: { crash: !!stroke && !!fx.impact && !((TIMBRES[stroke.voice]?.hold ?? 0) >= 1), reverse: !!swell && isNoiseGlue(swell.voice), glide: bassGlides(BASS),
-        swell: !!swell && isNoiseGlue(swell.voice) && events.some((e) => e.voice === swell.voice) },
+        swell: !!swell && isNoiseGlue(swell.voice) && events.some((e) => e.voice === swell.voice),
+        // the glue's riser where the theme already sounds it (U2d: a whoosh's riser, never a voice the cast did not count)
+        riser: !!rise && fx.riser && events.some((e) => e.voice === rise.voice) && glueKept(),
+        strokeSounds: !!stroke && events.some((e) => e.voice === stroke.voice),
+        // ...and whether the glue's gates below will keep its noises (U2d: a reverse cymbal or a riser the gate takes is no gesture)
+        glue: glueKept() },
       beatS: beat });
   })() : null;
   if (phrased) {
@@ -3246,7 +3304,8 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     // a voice the arrangement's phrases took off its last bars is played there as it was (U2c: a build's hats resting
     // took a loose hat struck only on two fill bars out of the theme: never a voice the cast counted taken away)
     if (beforeSubs) {
-      const now = new Set(events.map((e) => e.voice));
+      // (a build's own copies are not the voice heard: U2d, a choked open hat copied from the one loose hat a rest took)
+      const now = new Set(events.filter((e) => !(typeof e.by === 'string' && e.by.includes('+build'))).map((e) => e.voice));
       const lost = beforeSubs.filter((e) => !now.has(e.voice) && phrased!.subs.some((x) => e.bar >= x.startBar && e.bar < x.startBar + x.bars));
       // never inside a build's roll or its stop (the review of U2c): a hit there is put back only outside the window, and
       // a voice with none outside keeps one, moved to the beat before its window
@@ -3259,8 +3318,14 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
         const hits = lost.filter((e) => e.voice === voice);
         const kept = hits.filter(outside);
         if (kept.length) { events.push(...kept); continue; }
-        const e = hits[0], w = windowAt.get(e.bar)!, step = Math.max(0, w - 4);
-        events.push({ ...e, t: at(e.bar, step) + (e.t - at(e.bar, e.step ?? 0)), step });
+        // (the beat before the window, over the bar line where the window starts on its one: U2d's builds of a bar or two)
+        const e = hits[0];
+        let bar = e.bar, step = windowAt.get(e.bar)! - 4;
+        while (step < 0 || (windowAt.has(bar) && step >= windowAt.get(bar)!)) {
+          if (step < 0) { bar -= 1; step += 16; } else step -= 4;
+          if (bar < 0) { bar = e.bar; step = 0; break; }
+        }
+        events.push({ ...e, t: at(bar, step) + (e.t - at(e.bar, e.step ?? 0)), bar, step });
       }
     }
     // the arrangement's phrases are named on the track's `phrasing`, not on the readout's bars (read by nothing new)
@@ -3288,11 +3353,11 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const answered = new Set(phrased.phrasing.answers.filter((x) => x.parts.includes('reverse')).map((x) => x.bar));
     if (swell && events.some((e) => e.voice === swell.voice))
       for (const x of M.swells) if (heardBy(x.by) && !answered.has(x.bar))
-        push(swell.voice, x.bar * barSeconds, { dur: x.beats * beat, gain: x.gain }, { bar: x.bar, layer: layerOf(swell.voice), label: `a reverse swell into ${x.bar}, the arrangement's phrase` });
+        push(swell.voice, x.bar * barSeconds, { dur: x.beats * beat, gain: x.gain, ...glueParams(x.sound, { gain: x.gain }) }, { bar: x.bar, layer: layerOf(swell.voice), label: `a reverse swell into ${x.bar}, the arrangement's phrase` });
     // a build's crash on the line (U2b, U2c), the theme's own struck crash, never a second one on the bar
     if (stroke && events.some((e) => e.voice === stroke.voice))
       for (const c of M.crashes) if (heardBy(c.by) && !events.some((e) => e.voice === stroke.voice && e.bar === c.bar))
-        push(stroke.voice, c.bar * barSeconds, { gain: PHRASING_ROWS.ring.answers.crashGain }, { bar: c.bar, layer: layerOf(stroke.voice), label: `a crash on ${c.bar}, the build's landing` });
+        push(stroke.voice, c.bar * barSeconds, { gain: PHRASING_ROWS.ring.answers.crashGain, ...glueParams(c.sound, { gain: PHRASING_ROWS.ring.answers.crashGain }) }, { bar: c.bar, layer: layerOf(stroke.voice), label: `a crash on ${c.bar}, the build's landing` });
     const bassLayers = new Set(LANES.filter((l) => l.role === 'bassline').map((l) => layerOf(voiceOf(l))));
     // the line's median velocity: a glide is struck at least at it (the review of U2b: 17 of 252 glides copied a
     // ghost note's and landed at ghost velocity)
@@ -3311,6 +3376,63 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       if (Number(first.p.vel ?? 1) < vel) first.p = { ...first.p, vel };
       glided.add(g);
     }
+    // **The gestures' marks** (U2d, `recipes/arrangement/gestures.json`), each only where its build was heard: the glue's
+    // riser under a whoosh (the theme's own, where it sounds), the high-pass sweeping up across every pitched note
+    // sounding over a whoosh's window (a path on the note, any voice reads one), the bass gated with the field across a
+    // stutter, and the landing's bass (the kick alone: its first note moved to the second beat; the kick and the bass:
+    // struck at the line's top)
+    if (rise && events.some((e) => e.voice === rise.voice))
+      for (const x of M.risers) if (heardBy(x.by) && !events.some((e) => e.voice === rise.voice && e.bar === x.bar - 1))
+        push(rise.voice, x.bar * barSeconds - x.beats * beat, { dur: x.beats * beat, gain: x.gain, ...glueParams(x.sound, { gain: x.gain }) }, { bar: x.bar - 1, layer: layerOf(rise.voice), label: `a riser into ${x.bar}, the build's` });
+    const pitched = (e: PlanEvent) => typeof e.p.midi === 'number' && !e.p.gone && (TONAL_LAYERS.has(e.layer) || bassLayers.has(e.layer));
+    const round4 = (x: number) => +x.toFixed(4);
+    for (const h of M.hps) if (heardBy(h.by)) {
+      // an even rise in octaves in five corners, from the floor to `hz` where the window ends, held to the line, gone after it
+      const corners = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ t: h.a + (h.z - h.a) * f, hz: 30 * (h.hz / 30) ** f }));
+      for (const e of events) {
+        const d = Number(e.p.dur ?? 0);
+        if (!pitched(e) || e.p.hpPath !== undefined || !(e.t < Math.ceil(h.z / barSeconds - 1e-6) * barSeconds && e.t + d > h.a)) continue;
+        const line = Math.ceil(h.z / barSeconds - 1e-6) * barSeconds;
+        const path: number[] = [0, round4(e.t >= h.a ? 30 * (h.hz / 30) ** Math.min(1, (e.t - h.a) / (h.z - h.a)) : 30)];
+        for (const c of corners) if (c.t > e.t + 1e-4) path.push(round4(c.t - e.t), round4(c.hz));
+        if (e.t + d > line + 0.01) path.push(round4(Math.max(line, e.t) - e.t), round4(h.hz), round4(line - e.t + 0.01), 30);
+        e.p = { ...e.p, hpPath: path };
+      }
+    }
+    for (const g of M.gates) if (heardBy(g.by)) {
+      for (const e of events) {
+        const d = Number(e.p.dur ?? 0);
+        if (!bassLayers.has(e.layer) || typeof e.p.midi !== 'number' || e.p.gone || e.p.gainPath !== undefined || !(e.t < g.z && e.t + d > g.a)) continue;
+        const path: number[] = [0, 1];
+        for (let t = g.a; t < g.z - 1e-6; t += g.s16) {
+          const h = t + g.s16 / 2;
+          for (const [x, f] of [[h - 0.006, 1], [h + 0.006, g.depth], [t + g.s16 - 0.006, g.depth], [t + g.s16 + 0.003, 1]] as const)
+            if (x > e.t + 1e-4 && x < e.t + d) path.push(round4(x - e.t), round4(f));
+        }
+        if (path.length > 2) e.p = { ...e.p, gainPath: path };
+      }
+    }
+    const landed = new Set<PlanEvent>();
+    for (const l of M.landings) if (heardBy(l.by)) {
+      const t0 = l.bar * barSeconds;
+      const line = events.filter((e) => bassLayers.has(e.layer) && typeof e.p.midi === 'number' && !e.p.gone && e.t >= t0 - 1e-6 && e.t < t0 + barSeconds);
+      const first = [...line].sort((a, b) => a.t - b.t)[0];
+      if (!first || first.part) continue;
+      if (l.kind === 'bass') {
+        const top = Math.max(...line.map((e) => Number(e.p.vel ?? 1)));
+        if (Number(first.p.vel ?? 1) < top) first.p = { ...first.p, vel: top };
+      } else {
+        // the first beat the kick's alone: the line's first note moved to the second beat (where none starts there),
+        // every other note of the first beat out
+        const t1 = t0 + beat, early = line.filter((e) => e.t < t1 - 1e-6 && !e.part);
+        const onTwo = line.some((e) => Math.abs(e.t - t1) < 1e-3);
+        for (const e of early) landed.add(e);
+        const d = Number(first.p.dur ?? 0) - (t1 - first.t);
+        if (first.t < t1 - 1e-6 && !onTwo && d > 0.05) { landed.delete(first); first.t = t1; first.step = 4; first.p = { ...first.p, dur: round4(d) }; }
+      }
+    }
+    // (a note no longer than the beat the kick holds alone is that beat's: it goes)
+    if (landed.size) { const kept = events.filter((e) => !landed.has(e)); events.length = 0; events.push(...kept); }
   }
   treat({ style, levels: roomLevels, parts, characters, events, upperEvents, phraseParameters, LANES, voiceOf, UPPERS, TEXTURE, silent,
     bars, arrangement, progression, at, beat, barSeconds, push });
@@ -3846,7 +3968,11 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const thinned = new Set(hatsBySection(events, arrangement));
     // ...and a build's roll on the hats (U2c, the arrangement's phrases) is the build's
     const built = (e: PlanEvent) => typeof e.by === 'string' && e.by.includes('+build');
-    const kept = stateHits.size || events.some(built) ? events.filter((e) => thinned.has(e) || stateHits.has(e) || built(e)) : [...thinned];
+    // (a build's choked open hat only in a voice still heard outside the builds: U2d, an open hat borrowed from a voice
+    // the thinning takes is no voice the cast counted)
+    const heard = new Set(events.filter((e) => (thinned.has(e) || stateHits.has(e)) && !built(e)).map((e) => e.voice));
+    const borrowed = (e: PlanEvent) => built(e) && Array.isArray(e.p.gainPath) && !heard.has(e.voice);
+    const kept = stateHits.size || events.some(built) ? events.filter((e) => (thinned.has(e) || stateHits.has(e) || built(e)) && !borrowed(e)) : [...thinned];
     if (kept.length !== events.length) { events.length = 0; events.push(...kept); }
   }
   const sparseInput = { style, spell: bias.spell, bars, barSeconds, beat, arrangement, events, lanes: LANES };
@@ -3985,11 +4111,41 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const heardIn = (from: number, to: number) => phrased.subs.some((x) => phraseHeard.has(x) && x.startBar < to && x.startBar + x.bars > from);
     const segments = P.segments.filter((x) => x.kind === 'filtered' || heardIn(x.from, x.to));
     const heardBy = (by?: SubSection) => !by || phraseHeard.has(by);
+    // **The bed kept at the groove's level** (the U2e review: the house's breakdown-lite read 3 dB louder a bar than the
+    // groove around it, the kick's duck let go and the lift on top, then a fall of 3 dB as the kick came back — the
+    // opposite of a drop): under a breakdown-lite or a half-time phrase the melodic bus takes the duck's mean the
+    // groove's kicks gave it and the phrase's own kicks no longer give it, read off the theme's kicks and the room's duck
+    // shape (`duckShape`, the pads' line), with the row's `liftDb` on top. Never above the groove: a phrase that ducks
+    // more keeps the bus as it is.
+    const SC = S.sidechain as typeof S.sidechain & { firstLeg?: number };
+    const duckDepth = 10 ** ((bedRow?.duckDb ?? SC.depthDb) / 20);
+    const legs: Array<[number, number]> = [[0, 1], [SC.attack, duckDepth * 1.12], [drumsRow?.duck?.minimumAt ?? SC.minimumAt, duckDepth],
+      [beat * (drumsRow?.duck?.firstLeg ?? SC.firstLeg ?? 0.45), duckDepth + (1 - duckDepth) * 0.6], [beat * (drumsRow?.duck?.recoverBy ?? SC.recoverBy), 1]];
+    const duckAt = (dt: number) => {
+      for (let i = 1; i < legs.length; i++) if (dt <= legs[i][0]) { const [t0, v0] = legs[i - 1], [t1, v1] = legs[i]; return v0 + (v1 - v0) * (dt - t0) / Math.max(1e-9, t1 - t0); }
+      return 1;
+    };
+    const kicks = events.filter((e) => BY_NAME[e.voice]?.roles.includes('kick')).map((e) => e.t).sort((x, y) => x - y);
+    /** the duck's mean power over the bars [fromBar, toBar), skipping [skipA, skipZ) */
+    const duckPower = (fromBar: number, toBar: number, skipA = 0, skipZ = 0) => {
+      let sum = 0, n = 0, k = 0;
+      for (let t = fromBar * barSeconds; t < toBar * barSeconds; t += 0.004) {
+        if (t >= skipA * barSeconds && t < skipZ * barSeconds) continue;
+        while (k < kicks.length && kicks[k] <= t) k++;
+        const g = k > 0 ? duckAt(t - kicks[k - 1]) : 1;
+        sum += g * g; n++;
+      }
+      return n ? sum / n : 1;
+    };
     for (const x of segments) {
-      const a = x.from * barSeconds, d = x.to * barSeconds;
-      if (x.kind === 'breakdown-lite') {
-        const e = R.segments.liftEdgeS, end = (x.reentry ? x.to - 1 : x.to) * barSeconds;
-        automation.melodicGain = bumpCurve(automation.melodicGain, Math.max(0.01, a - e), a + e, end - e, end, dbToGain(R.segments.liftDb));
+      const a = x.from * barSeconds;
+      if (x.kind === 'breakdown-lite' || x.kind === 'half-time') {
+        // the phrase's own bars (its figure ends on the bar its build or the house's bar plays), against the rest of its section's groove
+        const last = x.to - 1, sec = arrangement.sections.find((q) => x.from >= q.startBar && x.from < q.startBar + q.bars);
+        const inside = duckPower(x.from, last), groove = sec ? duckPower(sec.startBar, sec.startBar + sec.bars, x.from, x.to) : inside;
+        const keepDb = Math.min(0, 10 * Math.log10(groove / Math.max(1e-9, inside)));
+        const e = R.segments.liftEdgeS, end = last * barSeconds;
+        automation.melodicGain = bumpCurve(automation.melodicGain, Math.max(0.01, a - e), a + e, end - e, end, dbToGain(R.segments.liftDb + keepDb));
       }
     }
     // the builds' filter cuts and openings and their field (its rise, the stop, back on the line) (U2c), each where heard,
@@ -4009,8 +4165,8 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     const lays = (m: (typeof phrased.moves.dips)[number]) => heardBy(m.by) && !moving(m.a, m.into ? m.reopen!.d : m.d, !!m.hold && !m.into);
     for (const m of phrased.moves.dips) if (lays(m)) {
       // a dip held into the next opens as it would have where the next is not laid (never a fade across a stretch)
-      if (m.into && !lays(m.into)) { automation.macroFilter = dipCurve(automation.macroFilter, m.a, m.b, m.reopen!.c, m.reopen!.d, m.hz); dipped.add(m); continue; }
-      automation.macroFilter = dipCurve(automation.macroFilter, m.a, m.b, m.c, m.d, m.hz, !!m.hold);
+      if (m.into && !lays(m.into)) { automation.macroFilter = dipCurve(automation.macroFilter, m.a, m.b, m.reopen!.c, m.reopen!.d, m.hz, false, m.top, m.edge); dipped.add(m); continue; }
+      automation.macroFilter = dipCurve(automation.macroFilter, m.a, m.b, m.c, m.d, m.hz, !!m.hold, m.top, m.edge);
       dipped.add(m);
     }
     for (const g of phrased.moves.gains) if (heardBy(g.by)) automation.melodicGain = factorCurve(automation.melodicGain, g.knots);
@@ -4026,12 +4182,19 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     // the stroke named as it sounds: a sweep, an impact or a crash (the review of U2c: 232 of 589 "crashes" were a sweep)
     const strokeWord = (bar: number) => stroke && /sweep/i.test(stroke.voice) ? `a sweep into ${bar}` : stroke && /impact/i.test(stroke.voice) ? `an impact on ${bar}` : `a crash on ${bar}`;
     for (const n of phrased.notes) for (const x of n.said) if (x.crash !== undefined) x.text = strokeWord(x.crash);
+    const heardBuilds: import('./phrasing.ts').Build[] = [];
     for (const n of phrased.notes) {
       const { label, parts } = saidOf(n, holds);
       if (n.segment) { n.segment.label = label; if (parts.length) n.segment.answered = parts; else delete n.segment.answered; }
       if (n.out) { n.out.label = label; n.out.lift = parts; }
+      // the gesture its build played, where its lead was heard (U2d: the ring's fill mark reads it)
+      const lead = n.said.find((x) => x.gesture && holds(x));
+      for (const x of [n.segment, n.out]) if (x) { if (lead) x.build = lead.gesture; else delete x.build; }
+      if (lead?.build) heardBuilds.push(lead.build);
     }
-    return summarised({ segments, answers: P.answers, outs: P.outs.filter((x) => heardIn(x.from, x.to)), cooldowns: P.cooldowns });
+    const outsHeard = P.outs.filter((x) => heardIn(x.from, x.to));
+    return summarised({ segments, answers: P.answers, outs: outsHeard, cooldowns: P.cooldowns,
+      builds: heardBuilds.filter((b) => segments.some((x) => x.to === b.line && x.build) || outsHeard.some((x) => x.to === b.line && x.build)).sort((a, b) => a.line - b.line) });
   })() : null;
 
   // **What the spell asks of the voices this theme actually drew**
@@ -4532,6 +4695,18 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
     }) : null;
   if (padArc) track.padArc = padArc;
 
+  // **Every moment on the ring** (U2e, `src/moments.ts`; his word 10-13: "has little sub segments that are not marked on
+  // the ring in any way"): read off what the theme already wrote down, so it moves no note. house-v2's (its `phrasing`
+  // switch): the record's ring draws what it always did.
+  if (switchOn(style, 'phrasing')) {
+    const risers = rise ? track.events.filter((e) => e.voice === rise.voice && e.layer === layerOf(rise.voice) && Number(e.p.dur ?? 0) >= 2 * beat
+      && !(typeof e.label === 'string' && /the build's/.test(e.label)) && !(typeof e.by === 'string' && e.by.startsWith('phrasing/')))
+      .map((e) => ({ from: Math.floor(e.t / barSeconds + 1e-6), to: Math.round((e.t + Number(e.p.dur)) / barSeconds), label: typeof e.label === 'string' ? e.label : 'a riser into the line' })) : [];
+    const moments = momentsOf({ bars, phrasing: track.phrasing ?? null, house: namedSubs, risers, padArc: track.padArc ?? null,
+      passage: track.passage ?? null, development: (track.development as MomentsInput['development']) ?? null });
+    if (moments.length) track.moments = moments;
+  }
+
   // **The arrangement's hygiene** (PLAN-UNIFY U1, `src/hygiene.ts`): at every position the producer does not arrange,
   // the last pass over the events — a quiet bed where the groove would go bare, then a fade on every long hold that
   // would stop — in the theme's own time and leaned by its birds. Where the producer arranged the track its row's own
@@ -4646,6 +4821,76 @@ function composeTheme({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forc
       if (!isFront(e)) continue;
       const p = e.p as Record<string, number>;
       p.gain = (p.gain ?? 1) * dbToGain(frontDb);
+    }
+  }
+
+  // **Every front under its bed, every bed under its drums** (`catalogue.front`; his ear 10-13: the reed's -3 dB as a
+  // lead "was the trick, need to review other places"; then, on -3 dB off the glass, the organ stab and the vibes,
+  // "still too loud"; on seed 48476 his desk put the organ 9.1 dB and the pad 1.9 dB down, and the pulse lead 6 dB down,
+  // "probably even that too little"; on golden 38's pad, "too loud"). What stood a front over its bed and the drums,
+  // over the grid's mains (`rounds/front-level.md`):
+  //   - **the stage's lift.** Where the stage puts the keys in front (most main bars past a section's eighth) it lifts
+  //     them 4.5 dB and sends the pad back 3.2. A front on the keys' lane stands no higher on the stage than `liftDb`:
+  //     the pad still goes back, so the front still comes forward, by the pad's step and not over it.
+  //   - **the growl room's lanes**, keys -9.5 and pad -6 dB: a front no hotter than `mostDb` on the keys' lane, a bed no
+  //     hotter than `bedMostDb` on the pad's (the sub room's levels, the caps a redrawn front and its bed take).
+  //   - **a synth bed** (`beds`) stands 2-3 dB hotter over the kick and hats than the strings, the rhodes or the swell:
+  //     `bedDb` under its lane (or the room's cap, the lower), and a front the stage and the room move goes `followDb`
+  //     down with it.
+  // The fronts that sit well under their bed even when lifted (`under`), the piano's lane and the reed (`EXPOSED`)
+  // keep their stage and lane, and go down only with their bed. Scaled from nothing to the whole over `bpm` (off the
+  // slow side, and no cliff a set's drift can cross), and off a passage the producer arranges. Written into the notes last, with the reed's, so the floors and the bell read the bed as it
+  // was, and the loudness trim, planned after this, reads the notes at the level they play.
+  const FRONT: { mostDb?: number; liftDb?: number; bedDb?: number; followDb?: number; bedMostDb?: number; beds?: readonly string[]; bpm?: readonly [number, number]; under?: readonly string[] } | null = CAT.front ?? null;
+  // ...in full from the top of `bpm`, not at all from its foot, and in a straight line between, so a set that drifts a
+  // little faster every theme never crosses a cliff
+  const frontShare = FRONT?.bpm ? Math.max(0, Math.min(1, (bpm - FRONT.bpm[0]) / (FRONT.bpm[1] - FRONT.bpm[0]))) : 1;
+  if (FRONT && frontShare > 0 && !(passage && producerRow)) {
+    // every move written onto the note and kept beside it (`frontDb`), so the loudness trim gives the theme back what
+    // the rule took out of it
+    const move = (e: PlanEvent, db: number) => {
+      const d = db * frontShare;
+      if (!d) return;
+      const p = e.p as Record<string, number>;
+      p.gain = (p.gain ?? 1) * dbToGain(d);
+      e.frontDb = (e.frontDb ?? 0) + d;
+    };
+    const presetOf = (e: PlanEvent) => (e.p as { preset?: string }).preset ?? '';
+    const reed = (e: PlanEvent) => !!EXPOSED && (EXPOSED.fronts.includes(e.voice) || EXPOSED.fronts.includes(presetOf(e)));
+    const fronts = track.events.filter((e) => e.layer === 'keys' && !e.role);
+    // ...of which the stage and the room move the ones on the keys' lane that have no level rule of their own (the
+    // reed's) and do not already sit under their bed
+    const moved = (e: PlanEvent) => BY_NAME[e.voice]?.level === 'keys' && !reed(e) && !FRONT.under?.includes(presetOf(e) || e.voice);
+    const apart = redrawnFrom ? APART.find((r) => r.front.includes(redrawnFrom)) : undefined;
+    const redrawnSounds = !!apart && track.events.some((e) => e.voice === stabTimbre || presetOf(e) === stabTimbre);
+    // the bed: no hotter than the room's cap on its lane, and a synth bed `bedDb` under its lane, the lower of the two;
+    // under a redrawn front the far-apart rule has already held it to its row's most (`APART.bedMostDb`)
+    const synthBed = !!FRONT.bedDb && !!FRONT.beds?.includes(padTimbre);
+    const padLane = roomLevels.pad;
+    const roomCap = (most: number | undefined) => most !== undefined && Number.isFinite(padLane) ? Math.min(0, most - padLane) : 0;
+    const held = redrawnSounds ? roomCap(apart!.bedMostDb) : 0;
+    for (const e of track.events) {
+      if (e.layer !== 'pad') continue;
+      const db = Math.min(roomCap(FRONT.bedMostDb), synthBed && FRONT.beds!.includes(e.voice) ? FRONT.bedDb! : 0) - held;
+      if (db < 0) move(e, db);
+    }
+    // the fronts: one the stage and the room move goes down with a synth bed by `followDb`; any other (the
+    // reed, a front already under its bed, the piano's lane) goes down with its bed by whatever moved the bed, so it
+    // stands against it as it did
+    const bedMove = Math.min(roomCap(FRONT.bedMostDb), synthBed ? FRONT.bedDb! : 0) - held;
+    if (fronts.length) {
+      const capDb = FRONT.mostDb !== undefined && Number.isFinite(roomLevels.keys) ? Math.min(0, FRONT.mostDb - roomLevels.keys) : 0;
+      const rows = FRONT.liftDb !== undefined && fronts.some(moved) ? stage(track as unknown as PlannedTheme, style) : null;
+      for (const e of fronts) {
+        let db = Math.min(0, bedMove);
+        if (moved(e)) {
+          const lift = rows && e.bar != null ? rows[e.bar]?.level.keys ?? 0 : 0;
+          // a front the far-apart rule redrew already stands at its row's most on the lane (`APART.frontMostDb`)
+          const redrawn = redrawnSounds && apart!.frontMostDb !== undefined && (e.voice === stabTimbre || presetOf(e) === stabTimbre);
+          db = (synthBed ? FRONT.followDb ?? FRONT.bedDb! : 0) + (redrawn ? 0 : capDb) + (rows && lift > FRONT.liftDb! ? FRONT.liftDb! - lift : 0);
+        }
+        move(e, db);
+      }
     }
   }
 

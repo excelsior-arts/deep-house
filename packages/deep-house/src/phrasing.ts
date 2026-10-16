@@ -23,11 +23,12 @@
 // Every draw is off a stream of its own (`<seed>::phrasing:…`), so a segment drawn or not moves no other die. Nothing
 // here names a place, a genre or a seed.
 import PHRASING_FILE from '../recipes/arrangement/phrasing.json' with { type: 'json' };
+import GESTURES_FILE from '../recipes/arrangement/gestures.json' with { type: 'json' };
 import { Rng } from './rng.ts';
 import { lean } from './lean.ts';
 import { weightOf, type Recipe } from './recipe.ts';
-import { inBox, type SubSection } from './subsections.ts';
-import type { LaneEdit } from './treatment.ts';
+import { inBox, laneRoleOf, type SubSection } from './subsections.ts';
+import type { LaneEdit, Letter } from './treatment.ts';
 import type { MusicalTime } from './musical-time.ts';
 import type { PhraseMap } from './phrase-map.ts';
 import type { Spell } from './spell.ts';
@@ -48,7 +49,9 @@ export interface PhrasingRow {
   segments: { sections: string[]; longBars: number; longMostS: number; everyS: number; spacingPhrases: number; spanPhrases: number; leastBars: number;
     dropOutLeaves: { bass: number; drone: number; figure: number };
     byFunction: Record<string, W>; reentryFill: W; recent: number; lean: W; liftDb: number; liftEdgeS: number;
-    filter: { hz: number; swellBeats: number; swellGain: number }; halfTime: { hz: number } };
+    filter: { hz: number; swellBeats: number; swellGain: number }; halfTime: { hz: number };
+    /** U2e: more sub-segments, until no stretch of a long section runs unmarked past the shorter of `everyBars` and `everyS` */
+    more?: { everyBars: number; everyS: number; longBars: number; longMostS: number; majorBars: number; majorLeastBars: number } };
   build: { level: number; rollFrom: number; stopStep: number; stopBeatStep: number; stopDb: number; cutS: number; edgeS: number; fieldDb: number; heldFieldDb: number };
   answers: { spacingPhrases: number; gestureBars: number; weights: W; crashGain: number; reverseBeats: number; reverseGain: number; breatheSteps: number;
     fieldDb: number; fieldDbDrop: number; leadBars: number; releaseBeats: number };
@@ -58,6 +61,118 @@ export interface PhrasingRow {
   cooldown: { phrases: W; keep: number; lean: W };
 }
 
+/** How a drop lands on its line (U2d): the theme's own stroke, the kick alone through the first beat, or the kick and the bass. */
+export type LandingKind = 'stroke' | 'kick' | 'bass';
+/**
+ * **A build-and-drop gesture** (U2d, `recipes/arrangement/gestures.json`): a row of the vocabulary, read by the
+ * interpreter below. Patterns are sixteenths right-aligned to the end of the gesture's window; every hit is a copy of
+ * a hit the theme's own kit plays, every fx the glue's own voice where the theme already sounds it.
+ */
+export interface GestureRow {
+  id: string; name: string; says?: string;
+  /** how big a gesture it is, 1 to 3: a bigger arrival draws the bigger */
+  size: number; weight: number;
+  birds?: W; beats: W; stop: W; land: Partial<Record<LandingKind, number>>;
+  /** the lane the pattern leads on: the first of `lanes` the kit plays (never a part's), cleared from the window's start */
+  lead?: { lanes: string[]; pattern: string | Record<string, string> };
+  /** other lanes' patterns, added */
+  lanes?: Record<string, string | Record<string, string>>;
+  /** a figure added over the line's last bar (a bar's sixteenths, ending where the stop starts) on the first of `lanes` the kit plays (never a part's): its hits only where the lane plays none (the whoosh's drums, his ear 10-13) */
+  lift?: { lanes: string[]; pattern: string };
+  /** lanes resting from the window's start */
+  rest?: string[];
+  /** the bass out from the window's start, out from the stop, or gated with the field */
+  bass: 'window' | 'stop' | 'gate';
+  field?: { cutDb?: number; cutFrom?: 'window'; gateDb?: number };
+  /** the window is a stop: every drum lane silent across it (a part's hand drums too, as the stop), the gesture's own hits written after */
+  silence?: boolean;
+  fx?: { hpHz?: number; riserGain?: number; swellGain?: number };
+  /** what the moment must offer: `swell` (the theme sounds the glue's swell and nothing lands on the line), `notIntoBreak`, `kick` (the kick plays in the build's bar: a whoosh's sweep is over the drums, never alone) */
+  needs?: string[];
+}
+/** One parameter of the gestures' sound table: what it moves, the kinds it moves (every one where none is named), its unit, its birds' moves and its range. */
+export interface SoundParam { of: string; kinds?: string[]; unit: 'octaves' | 'lean' | 'dB' | 'share'; birds: W; range: [number, number] }
+export interface GestureFile {
+  centre: Record<string, number | string>;
+  choice: { size: Record<'big' | 'small', W>; recent: number; repeat: number; longer: { big: number } };
+  landings: { big: W };
+  /** how each gesture sounds by the birds: the one table (his word 10-13, "these effects should account for birds positions as well") */
+  sound: { params: Record<string, SoundParam> };
+  rows: GestureRow[];
+}
+/** The build-and-drop vocabulary, as written. */
+export const GESTURES: Readonly<GestureFile> = GESTURES_FILE as unknown as GestureFile;
+
+/**
+ * **A gesture's sound by the birds** (his word 10-13 on U2d's pairs: "these effects should account for birds positions
+ * as well"): each parameter of the table's move at a spell, about `centre` (the house's own birds; a fast place's own for
+ * the producer's builds): the sum over its birds of the bird's move per unit times the bird's distance from the centre,
+ * held to its range — nought at the centre, where nothing is written. Only the parameters that move are named.
+ */
+export function gestureSound(spell: Readonly<Record<string, number>>, centre: Readonly<Record<string, number | string>>, G: Readonly<GestureFile> = GESTURES): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, P] of Object.entries(G.sound.params)) {
+    let x = 0;
+    for (const [bird, k] of Object.entries(P.birds)) {
+      const v = spell[bird], c = centre[bird];
+      if (typeof v === 'number' && typeof c === 'number' && Number.isFinite(v) && v !== c) x += k * (v - c);
+    }
+    const y = Math.max(P.range[0], Math.min(P.range[1], x));
+    if (y !== 0) out[id] = y;
+  }
+  return out;
+}
+/** A table parameter's move for one gesture: nought where it moves another kind. */
+export const soundFor = (shift: Readonly<Record<string, number>>, id: string, kind: string, G: Readonly<GestureFile> = GESTURES): number =>
+  (G.sound.params[id]?.kinds && !G.sound.params[id].kinds!.includes(kind) ? 0 : shift[id] ?? 0);
+/**
+ * A weight leaned per unit of a quantity by a lean parameter of the table (`roll.length` per doubling of the window,
+ * `stop.length` per beat of the stop): the one lean of each of its birds on `units` of the move, multiplied in the
+ * table's order (one bird is the same double the one lean gives), or the range's edge where the sum passes it.
+ */
+export function soundLean(spell: Readonly<Record<string, number>>, centre: Readonly<Record<string, number | string>>, id: string, units: number, G: Readonly<GestureFile> = GESTURES): number {
+  const P = G.sound.params[id];
+  if (!P || !units) return 1;
+  let x = 0, f = 1;
+  for (const [bird, k] of Object.entries(P.birds)) {
+    const v = spell[bird], c = centre[bird];
+    if (typeof v !== 'number' || typeof c !== 'number') continue;
+    x += k * (v - c);
+    f *= lean(k * units, v, 1, c);
+  }
+  return x < P.range[0] || x > P.range[1] ? Math.exp(Math.max(P.range[0], Math.min(P.range[1], x)) * units) : f;
+}
+/**
+ * **A roll's density** (the table's `roll.density`): above nought, that share of the rests between its first hit and
+ * its last filled, the latest first, each at the lower of its neighbours' levels; below, every other hit of its earliest
+ * share thinned (its first kept), never in the last beat. A choked letter or a whole hit is a neighbour, never added.
+ */
+export function densified(pat: string, share: number): string {
+  if (!share) return pat;
+  const lvl = (c: string) => (c >= '1' && c <= '9' ? Number(c) : c === 'X' ? 10 : c === 'C' ? 7 : 0);
+  const hits = [...pat].map((c, i) => (lvl(c) ? i : -1)).filter((i) => i >= 0);
+  if (hits.length < 2) return pat;
+  const a = hits[0], z = hits[hits.length - 1], out = pat.split('');
+  if (share > 0) {
+    const rests = [];
+    for (let i = z - 1; i > a; i--) if (out[i] === '.') rests.push(i);
+    const n = Math.round(rests.length * Math.min(1, share));
+    for (const i of rests.slice(0, n)) {
+      let l = i - 1; while (l > a && !lvl(pat[l])) l--;
+      let r = i + 1; while (r < z && !lvl(pat[r])) r++;
+      out[i] = String(Math.max(1, Math.min(9, lvl(pat[l]), lvl(pat[r]))));
+    }
+  } else {
+    const early = hits.filter((i) => i < a + (pat.length - a) * Math.min(1, -share) && i < pat.length - 4);
+    early.forEach((i, k) => { if (k % 2 === 1 && pat[i] !== 'C') out[i] = '.'; });
+  }
+  return out.join('');
+}
+/** One build as it was drawn (U2d): its line, the gesture, its length in beats, its stop in sixteenths, its landing, and whether the line is a big arrival. */
+export interface Build { line: number; kind: string; beats: number; stop: number; land: LandingKind | 'none'; big: boolean;
+  /** where it leads: a phrase's line inside a main, a drop, a main's return, a break */
+  into: 'line' | 'drop' | 'return' | 'break' }
+
 const FILE = PHRASING_FILE as unknown as { rows: PhrasingRow[] };
 /** The phrasing rows, by id (`recipes/arrangement/phrasing.json`). */
 export const PHRASING_ROWS: Readonly<Record<string, PhrasingRow>> = Object.freeze(Object.fromEntries(FILE.rows.map((r) => [r.id, r])));
@@ -65,6 +180,10 @@ export const PHRASING_ROWS: Readonly<Record<string, PhrasingRow>> = Object.freez
 /** A sub-segment as the ring may show it: its kind, its bars, the phrase function it answers and its name; what answered it (U2b). */
 export interface Segment {
   kind: SegmentKind; from: number; to: number; fn: string; label: string; reentry: string | null; answered?: string[];
+  /** the gesture its build into the line played, where heard (U2d) */
+  build?: string;
+  /** U2e: back in by the house's own one bar at this bar (the phrase's last), in place of a build of its own */
+  houseEnd?: number;
 }
 /** A structural arrival answered: its bar, what arrives, and the answer's parts. */
 export interface Answer { bar: number; by: string; into: string; parts: string[]; field: number; label: string }
@@ -73,21 +192,67 @@ export interface Answer { bar: number; by: string; into: string; parts: string[]
  * fill on its last bar, the lift into the line (the bass's own glide, a reverse swell, or the gesture already there)
  * and the other voices' acknowledgement (the tops thinning, or the low-pass dipping).
  */
-export interface Out { from: number; to: number; into: 'drop' | 'return' | 'break'; label: string; fill?: string | null; lift?: string[]; ack?: 'tops' | 'dip' }
+export interface Out { from: number; to: number; into: 'drop' | 'return' | 'break'; label: string; fill?: string | null; lift?: string[]; ack?: 'tops' | 'dip';
+  /** the gesture its build into the line played, where heard (U2d) */
+  build?: string }
+/**
+ * A glue note's colour by the birds (the gestures' sound table, nought or absent where the birds are the house's): its
+ * noise band in octaves (`band`; a swell's `sweep` octaves under it at its onset), its fall after the line and its sends
+ * against its direct sound (`tail`, a lean; `wet`, dB), and a landing stroke's level (`size`, dB), low-pass (`bright`,
+ * octaves under 16 kHz) and ring (`decay`, a lean).
+ */
+export interface GlueSound { band?: number; sweep?: number; tail?: number; wet?: number; size?: number; bright?: number; decay?: number }
+/** The glue's note parameters for a colour (the engine's `bandMul`, `sweep`, `tailMul`, the level held as the band moves; the sends' share by the level and `direct`; a stroke's level, its low-pass and its ring by a gain path); none where it is nought. */
+export function glueParams(c: GlueSound | undefined, p: Readonly<Record<string, unknown>>, ringS = 2.4): Record<string, unknown> {
+  if (!c) return {};
+  const o: Record<string, unknown> = {}, r4 = (x: number) => +x.toFixed(4);
+  if (c.band) o.bandMul = r4(2 ** c.band);
+  if (c.sweep) o.sweep = r4(c.sweep);
+  if (c.tail) o.tailMul = r4(Math.exp(c.tail));
+  let g = typeof p.gain === 'number' ? p.gain : 1;
+  // wetter: the note's level up and its direct share down by the same, so the direct sound holds and the sends move
+  if (c.wet) { const w = 10 ** (c.wet / 20); g *= w; o.direct = r4(Math.min(2, 1 / w)); }
+  if (c.size) g *= 10 ** (c.size / 20);
+  // (a noise band moved down an octave carries half the power: its level held, 3 dB an octave)
+  if (c.band) g *= 2 ** (-c.band / 2);
+  if (c.wet || c.size || c.band) o.gain = +g.toFixed(6);
+  if (c.bright) o.lpPath = Math.round(16000 * 2 ** c.bright);
+  if (c.decay) { const d = ringS * Math.exp(c.decay); o.gainPath = [0, 1, r4(Math.min(0.05, d / 4)), 1, r4(d), 0]; }
+  return o;
+}
+/** A gesture's glue colour off the table's moves (`gestureSound`): `glue` for a riser or a swell, `stroke` for a landing's stroke. */
+export function glueSoundOf(shift: Readonly<Record<string, number>>, kind: string, what: 'riser' | 'swell' | 'stroke'): GlueSound | undefined {
+  const c: GlueSound = {};
+  const put = (k: keyof GlueSound, id: string) => { const v = soundFor(shift, id, kind); if (v) c[k] = v; };
+  if (what === 'riser') { put('band', 'riser.band'); put('tail', 'glue.tail'); put('wet', 'glue.wet'); }
+  if (what === 'swell') { put('band', 'reverse.band'); put('sweep', 'reverse.sweep'); put('tail', 'glue.tail'); put('wet', 'glue.wet'); }
+  if (what === 'stroke') { put('size', 'landing.size'); put('bright', 'crash.bright'); put('decay', 'crash.decay'); }
+  return Object.keys(c).length ? c : undefined;
+}
 /** A gesture the pass asks of the automation and the glue (U2b): a dip of the master's low-pass, a swell of the field, a reverse swell, the bass's glide. */
 export interface Moves {
   /** the low-pass from `a` closed to `hz` by `b`, held, opened from `c` back to its own line at `d` (seconds); held closed to `d` and handed to the curve there where `hold` (a cooldown into its break) */
   dips: Array<{ a: number; b: number; c: number; d: number; hz: number; hold?: boolean; by?: SubSection;
+    /** the opening's top at `d - edge`, octaves under the line's own there (the table's `filtered.open`), the line's own on `d` */
+    top?: number; edge?: number;
     /** held closed into this next dip (its own opening kept in `reopen`, for where the next is not laid) */
     into?: Moves['dips'][number]; reopen?: { c: number; d: number } }>;
   /** the melodic bus shaped by factors at knots (seconds; 1 outside them): a build's rise, its stop, back on the line */
   gains: Array<{ knots: Array<{ t: number; f: number }>; by?: SubSection }>;
-  /** a reverse swell into bar `bar`'s one, `beats` long */
-  swells: Array<{ bar: number; beats: number; gain: number; by?: SubSection }>;
+  /** a reverse swell into bar `bar`'s one, `beats` long (a reverse gesture's coloured by the birds: `sound`) */
+  swells: Array<{ bar: number; beats: number; gain: number; by?: SubSection; sound?: GlueSound }>;
   /** the bass's glide into bar `bar`'s first note, from `semitones` under it over the last `beats` before the line */
   glides: Array<{ bar: number; beats: number; semitones: number; by?: SubSection }>;
   /** a crash on bar `bar`'s one (an overlaid fill's landing, where the theme sounds its crash and nothing lands there) */
-  crashes: Array<{ bar: number; by?: SubSection }>;
+  crashes: Array<{ bar: number; by?: SubSection; sound?: GlueSound }>;
+  /** a high-pass sweeping up across every pitched note sounding from `a` to `z` (seconds), to `hz` at `z` and gone after it (U2d's whoosh) */
+  hps: Array<{ a: number; z: number; hz: number; by?: SubSection }>;
+  /** the bass gated on and off every sixteenth (`s16` seconds) from `a` to `z`, its off half at `depth` (U2d's stutter) */
+  gates: Array<{ a: number; z: number; s16: number; depth: number; by?: SubSection }>;
+  /** the glue's riser over the `beats` before bar `bar`'s one, at `gain`, where the theme sounds it (U2d's whoosh) */
+  risers: Array<{ bar: number; beats: number; gain: number; by?: SubSection; sound?: GlueSound }>;
+  /** a landing that moves the bass on bar `bar`: `kick`, its first note to the second beat; `bass`, its first note struck at the line's top (U2d) */
+  landings: Array<{ bar: number; kind: 'kick' | 'bass'; by?: SubSection }>;
 }
 /**
  * **What a phrase's label may say** (the review of U2b: a label named marks that were never heard): each part of an
@@ -95,6 +260,8 @@ export interface Moves {
  * The composer keeps the parts that hold and writes the label from them (`said`).
  */
 export interface Said { text: string; by?: SubSection; crash?: number; swell?: number; dip?: Moves['dips'][number]; glide?: Moves['glides'][number];
+  /** the gesture this part is the lead of (U2d): the build named on its segment or out where it holds */
+  gesture?: string; build?: Build;
   /** the text where its dip ended held closed into the next (a filtered phrase into a cooldown or an out) */
   heldText?: string }
 export interface Note { segment?: Segment; out?: Out; head: string; said: Said[]; tail: string }
@@ -105,7 +272,9 @@ export const said = (n: Note, holds: (x: Said) => boolean): { label: string; par
 };
 
 /** What the pass did: the track's `phrasing`, read by nothing new (the ring may show `segments` later). */
-export interface Phrasing { segments: Segment[]; answers: Answer[]; outs: Out[]; cooldowns: Array<{ from: number; to: number; label: string }>; summary: string }
+export interface Phrasing { segments: Segment[]; answers: Answer[]; outs: Out[]; cooldowns: Array<{ from: number; to: number; label: string }>; summary: string;
+  /** every build heard, in line order: which gesture, how long, its stop and its landing (U2d) */
+  builds?: Build[] }
 
 /** The harmonic and melodic layers: what holds a chord or sings a line (the guards' own list, `tools/check-program-guards.ts`). */
 export const TONAL_LAYERS: ReadonlySet<string> = new Set(['keys', 'pad', 'lead', 'stab', 'arp', 'pluck', 'piano', 'bell', 'vocal', 'strings', 'melodic']);
@@ -117,6 +286,8 @@ export interface BarKit {
   tops?: boolean;
   /** the sixteenth lane sounds in the bar (U2b: an out's fill rolls on it where a track row owns the backbeat and the kick) */
   sixteenths?: boolean;
+  /** the open hat sounds in the bar (U2d: what a gesture's rest of it would take) */
+  open?: boolean;
   /** the groove's drums sound in the bar: the kick, the backbeat or the hats (the sixteenth lane alone is a part's colour, a pickup's) */
   drums: boolean;
   /** the space held without the bass: a harmonic or melodic note sounding in the bar, or the hats ticking (two onsets or more) */
@@ -144,9 +315,17 @@ export interface PhrasingInput {
   /** a gesture stands within the answers' `gestureBars` of a bar's one (a lead-in, a section's impact, a stroke) */
   gestured: (bar: number) => boolean;
   /** the glue's crash (the impact slot) and reverse swell (the swell slot) the palette carries; whether the bass's voice glides, and whether the theme already sounds the glue's swell (U2b: the pass's own swells, never a voice the cast did not count) */
-  can: { crash: boolean; reverse: boolean; glide?: boolean; swell?: boolean };
+  can: { crash: boolean; reverse: boolean; glide?: boolean; swell?: boolean;
+    /** the theme sounds the glue's riser (U2d: a whoosh's riser, never a voice the cast did not count) */
+    riser?: boolean;
+    /** the theme already strikes its stroke voice (U2d: a stroke landing is heard only where it does) */
+    strokeSounds?: boolean;
+    /** the glue's gates keep its noises in this theme (U2d: a reverse cymbal only where its swell will sound) */
+    glue?: boolean };
   /** the theme's beat and bar, in seconds (U2b: the automation's gestures) */
   beatS?: number;
+  /** the open hat's slot plays a voice the closed hats play too (U2d: an open hat resting would take the closed hats with it) */
+  openShared?: boolean;
   /** roles no build edits, in the lane table's words (a part's: a pinned one, the listener's word, or one the composition drew, so the two play as one; only the stop's eighth silences them) */
   spare?: ReadonlySet<string>;
   /** the arrangement's own filter line moves between two bars (U2c review: no dip is laid there, so an out marks itself otherwise or is not taken) */
@@ -171,28 +350,23 @@ const TOPS_THIN = figureRow('phrasing/tops-thin', 'the tops thin', 'switch-up', 
 const bassOutFrom = (step: number) => step > 0 ? figureRow(`phrasing/bass-out-from-${step}`, 'bass out', 'drop-out', { lanes: { bassline: { clear: step } } }) : BASS_OUT;
 // **The build** (U2c; his ear 10-13 on U2b's pairs: "we need to have more drum work on any little breaks like that …
 // if track has drums, it's essential to use drums for emphasis these kind of moments, also fading in sounds cheap,
-// likely need more like a build up and drop kind of approach"): the library's fill, its roll held at `level` of the
-// backbeat's own hit it copies (a build's peak never over the lane), the hats resting under the roll so it reads; over a
-// track row's own drums an overlay on that one bar (U2b's `overlay`). Every other bar of the row is its own.
-const rollFrom = (row: Recipe): number => Math.min(16, ...Object.values(row.figure?.lanes ?? {}).map((e) => e.roll?.from ?? 16));
-/** The lane a build rolls on: the backbeat where the kit has one, else its closed hats, its sixteenths, its kick. */
+// likely need more like a build up and drop kind of approach") and **its vocabulary** (U2d; his word 10-13 on the
+// Dubstep spell's out: "this is exactly what we needed, and likely need more, as in generated music, variety is a
+// saving straw"): every build plays a gesture of `recipes/arrangement/gestures.json` — a snare roll, a hat roll into a
+// choked open hat, the kick doubling, a stutter, a whoosh, a full stop with one hit, a reverse cymbal — drawn per
+// moment. Its hits are copies of the theme's own (`playSubSections`), over a track row's own drums an overlay on the
+// window's bars alone (U2b's `overlay`). Every other bar of the row is its own.
+/** The lane a build leads on: the backbeat where the kit has one, else its closed hats, its sixteenths, its kick (U2c's order: a build is laid where one of them plays). */
 type RollLane = 'backbeat' | 'offbeat' | 'sixteenth' | 'kick';
-const ROLLS: Readonly<Record<RollLane, string>> = { backbeat: 'the backbeat rolling', offbeat: 'the hats rolling', sixteenth: 'the sixteenths rolling', kick: 'the kick rolling' };
-const buildOf = (row: Recipe, level: number, over: boolean, longest: number, lane: RollLane): Recipe => {
-  // the library row's roll (its shape and its level, held at `level`), from `longest` at the latest (two beats), on the
-  // lane the kit has; the hats rest under it from there, and the kick's gap is the row's own (a step after the roll)
-  const src = Object.values(row.figure?.lanes ?? {}).find((e) => e.roll)?.roll ?? { from: 8, base: 0.45, rise: 0.5 };
-  const from = Math.min(src.from, longest);
-  const roll = { from, base: +(src.base * level).toFixed(4), rise: +(src.rise * level).toFixed(4) };
-  const kick = row.figure?.lanes?.kick?.clear;
-  // (the rolling lane last, so the open hat's rest never takes a roll its closed hat plays where the two share a voice)
-  const lanes: Record<string, LaneEdit> = { ...(lane !== 'offbeat' ? { offbeat: { clear: from } } : {}), open: { clear: from },
-    ...(kick !== undefined && lane !== 'kick' ? { kick: { clear: Math.min(kick, from + 1) } } : {}) };
-  lanes[lane] = { clear: from, roll };
-  return figureRow(`${row.id}+build+${lane}${over ? '+over-a-row' : ''}`, row.name, 'fill', { lanes });
+/** A pattern's letters: a digit is a hit at that many tenths of the copied hit's level. */
+const DIGITS: Readonly<Record<string, Letter>> = Object.freeze(Object.fromEntries(Array.from({ length: 9 }, (_, i) => [String(i + 1), { level: (i + 1) / 10 }])));
+/** A gesture's pattern for a window of `n` sixteenths: its own for the window's beats where it names one per length, right-aligned and cut from the left. */
+const patternOf = (spec: string | Record<string, string>, beats: number, n: number): string => {
+  const raw = typeof spec === 'string' ? spec : spec[String(beats)] ?? spec[Object.keys(spec).sort((x, y) => Number(y) - Number(x))[0]] ?? '';
+  return raw.length >= n ? raw.slice(raw.length - n) : '.'.repeat(n - raw.length) + raw;
 };
-// the roll's shape where the library offers no fill at the place
-const DEFAULT_FILL = figureRow('phrasing/roll', 'a roll', 'fill', { lanes: { backbeat: { clear: 8, roll: { from: 8, base: 0.45, rise: 0.5 } } } });
+const BEAT_WORDS: Readonly<Record<number, string>> = { 1: 'the last beat', 2: 'the last two beats', 4: 'the last bar', 8: 'the last two bars' };
+const STOP_WORDS: Readonly<Record<number, string>> = { 2: 'eighth', 4: 'beat' };
 // the stop: every drum lane out from a step to the line (an eighth, or the last beat), so the line lands on silence
 const stopFrom = (step: number): Recipe => figureRow(`phrasing/stop-${step}`, 'the stop', 'drop-out',
   { lanes: { kick: { clear: step }, backbeat: { clear: step }, offbeat: { clear: step }, sixteenth: { clear: step }, open: { clear: step } } });
@@ -211,7 +385,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const R = I.row, T = I.time, L = I.map.time.phraseBars, bs = T.barS, beat = I.beatS ?? bs / 4;
   const segments: Segment[] = [], answers: Answer[] = [], outs: Out[] = [], cooldowns: Phrasing['cooldowns'] = [];
   const subs: SubSection[] = [];
-  const moves: Moves = { dips: [], gains: [], swells: [], glides: [], crashes: [] };
+  const moves: Moves = { dips: [], gains: [], swells: [], glides: [], crashes: [], hps: [], gates: [], risers: [], landings: [] };
   const notes: Note[] = [];
   // a reverse swell into a line where the glue carries one and no gesture lands there already (each line once)
   const swellInto = (bar: number, beats: number, gain: number, by?: SubSection) => {
@@ -225,6 +399,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   // hats' own figure over a phrase's second half, is a part's figure and lets a phrase event sit over it)
   const marked = new Set<number>([...I.keep]);
   for (const s of I.drawn) if (s.kind !== 'variation') for (let b = s.startBar; b < s.startBar + s.bars; b++) marked.add(b);
+  // (the house's own alone: a gesture's lead-in bar and a landing's line never sit on them, U2d)
+  const houseMarked: ReadonlySet<number> = new Set(marked);
   const free = (a: number, z: number) => { for (let b = a; b < z; b++) if (marked.has(b)) return false; return true; };
   const take = (a: number, z: number) => { for (let b = a; b < z; b++) marked.add(b); };
   const every = (a: number, z: number, f: (k: BarKit) => boolean) => { for (let b = a; b < z; b++) if (!f(I.kit(b))) return false; return true; };
@@ -265,65 +441,262 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   };
   const fillable = (bar: number) => { const k = I.kit(bar); return (editable('backbeat') && k.backbeat) || (editable('kick') && k.kick) || (editable('sixteenth') && !!k.sixteenths); };
 
-  // **The build and the drop into a line** (U2c, his ear 10-13 on U2b: "a build up and drop kind of approach"): on the
-  // line's last bar the drums build (`buildOf`: the library's fill, its roll over the last beat or two), stop on the last
-  // eighth (`stopStep`: the drums and, where it may leave, the bass out; the field cut `stopDb`), and everything comes
-  // back at once on the line with a crash on its one (the theme's own, where nothing lands there already). Over a track
-  // row's own drums the build and the stop are overlays on that bar alone. The other voices are timed to it: the bass
-  // out from the roll, the field rising `fieldDb` with the roll, a filter cut closed (`filter`) and opening with the roll
-  // to the stop — never a fade.
-  interface BuildOpts { rng: Rng; row?: Recipe | null; filter?: number; filterFrom?: number; hold?: boolean; field?: number; stop?: boolean; crash?: boolean; bass?: boolean }
-  const buildInto = (line: number, kind: string, o: BuildOpts): { said: Said[]; lead: SubSection | null; row: Recipe | null } => {
-    const bar = line - 1, k = I.kit(bar), said: Said[] = [];
+  // **The build and the drop into a line** (U2c, his ear 10-13 on U2b: "a build up and drop kind of approach"; U2d,
+  // "variety is a saving straw"): on the line's last bar (or its last two) the drums build with a gesture of the
+  // vocabulary, the drums stop (an eighth, a beat, or not at all; the bass out where it may leave, the field cut
+  // `stopDb`), and the drop lands (the theme's own stroke, the kick alone through the first beat, or the kick and the
+  // bass). A build is laid where U2c laid one (a lane the kit plays); which gesture is drawn after every build of the
+  // theme is placed, in line order, so no kind follows itself (`realize` below). The other voices are timed to it: the
+  // bass out from the window, the field rising `fieldDb` with it, a filter cut closed (`filter`) and opening with it to
+  // the stop — never a fade.
+  interface BuildOpts { rng: Rng; row?: Recipe | null; filter?: number; filterFrom?: number; hold?: boolean; field?: number; stop?: boolean; crash?: boolean; bass?: boolean;
+    /** into a big arrival (a drop, a main's return): a bigger gesture, a longer one (U2d) */
+    big?: boolean; into?: Build['into'] }
+  /** A build placed, its gesture drawn later: its said parts are filled in place, and `done` hands its lead row to its segment or out. */
+  interface Pending { line: number; kind: string; o: BuildOpts; said: Said[]; done?: (row: Recipe | null) => void;
+    /** placed by U2e's second pass: its gesture drawn after every first-pass build's, so those stay as they were drawn */
+    more?: boolean }
+  const pending: Pending[] = [];
+  const buildInto = (line: number, kind: string, o: BuildOpts): Pending => {
+    const p: Pending = { line, kind, o, said: [] };
+    pending.push(p);
+    return p;
+  };
+  const G = GESTURES, spellOf = I.spell as unknown as Record<string, number>;
+  const leanG = (leans: W) => { let x = 1; for (const [bird, v] of Object.entries(leans)) { const c = G.centre[bird]; if (typeof c === 'number') x *= lean(v, spellOf[bird], 1, c); } return x; };
+  // the gestures' sound by the birds (the table's moves about the house's own: none at the house)
+  const SH = gestureSound(spellOf, G.centre);
+  /** The build of one line, its gesture drawn after `prev` (the theme's last build's kind) and `used` (every kind it played). */
+  const realize = (p: Pending, avoid: ReadonlySet<string>, used: ReadonlySet<string>, busy: ReadonlySet<number>): Build | null => {
+    const { line, o } = p, bar = line - 1, k = I.kit(bar), items: Said[] = [];
     // a build and a stop edit the drums of their bar: an overlay wherever any drum lane they touch is a row's (the
     // review of U2c: a row owning the kick and the hats, not the backbeat, ticked its hats through the stop)
     const own = (['kick', 'backbeat', 'offbeat', 'sixteenth', 'open'] as const).some((r) => !editable(r));
-    const spare = I.spare ?? new Set<string>(), lane = laneAt(bar);
-    const fills = rowsOf('fill', kind);
-    const base = o.row ?? (lane && fills.length ? drawRow(o.rng, fills) : null) ?? DEFAULT_FILL;
-    let lead: SubSection | null = null, row: Recipe | null = null;
+    const spare = I.spare ?? new Set<string>(), lane = laneAt(bar), tLine = line * bs, E = B.edgeS;
+    const intoBreak = o.stop === false, big = !!o.big, inBreak = sectionAt(bar)?.kind === 'breakdown';
+    // a lane a gesture may play at a bar: the kit plays it there (never the hats in a breakdown, S6), and it is no part's
+    const mayLane = (r: string) => !spare.has(laneRoleOf(r));
+    const has = (r: string, at = bar) => {
+      const x = I.kit(at);
+      return mayLane(r) && (r === 'backbeat' ? x.backbeat : r === 'offbeat' ? x.offbeat && !inBreak : r === 'sixteenth' ? !!x.sixteenths : r === 'kick' ? x.kick : r === 'open' ? !inBreak : false);
+    };
+    // a lane a gesture's rest would quiet at this bar: one that sounds there (the open hat not where it is the closed
+    // hats' own voice, which its rest skips)
+    const rests = (r: string, at = bar) => { const x = I.kit(at); return mayLane(r) && (r === 'open' ? !!x.open && !I.openShared : r === 'offbeat' ? x.offbeat : r === 'sixteenth' ? !!x.sixteenths : r === 'kick' ? x.kick : r === 'backbeat' ? x.backbeat : false); };
+    const leadOf = (g: GestureRow) => (g.lead ? g.lead.lanes.find((r) => has(r)) ?? null : null);
+    const rng = new Rng(`${I.seed}::phrasing:gesture:${line}`);
+    let gesture: GestureRow | null = null, beats = 2, stopSteps = 0;
     if (lane) {
-      row = buildOf(base, B.level, own, B.rollFrom, lane);
-      lead = sub('fill', row, bar, 1, `${ROLLS[lane]} into ${line}${own ? ', over the row\'s drums' : ''}`);
-      if (own) { lead.overlay = true; lead.spare = spare; }
-      subs.push(lead);
-      said.push({ text: `${ROLLS[lane]}${own ? ' over the row\'s drums' : ''}`, by: lead });
+      const needs = (g: GestureRow) => (g.needs ?? []).every((n) => (n === 'swell' ? !!I.can.swell && I.can.glue !== false && !I.gestured(line) : n === 'notIntoBreak' ? !intoBreak : n === 'kick' ? has('kick') : false));
+      // a gesture with no lead lane is heard by what rests under it, by the lift it adds, or by its swell
+      const admits = (g: GestureRow) => needs(g) && (g.lead ? !!leadOf(g) : (g.rest ?? []).some((r) => rests(r)) || !!g.lift?.lanes.some((r) => has(r)) || !!g.fx?.swellGain);
+      const ok = G.rows.filter(admits);
+      const size = G.choice.size[big ? 'big' : 'small'];
+      const w = (g: GestureRow, repeat: number) => g.weight * (size[String(g.size)] ?? 1) * leanG(g.birds ?? {}) * (avoid.has(g.id) ? repeat : used.has(g.id) ? G.choice.recent : 1);
+      // never the theme's last kind again, unless it is the only one the moment admits
+      let pairs = ok.map((g) => ({ v: g, w: w(g, G.choice.repeat) })).filter((x) => x.w > 0);
+      if (!pairs.length) pairs = ok.map((g) => ({ v: g, w: w(g, 1) })).filter((x) => x.w > 0);
+      gesture = pairs.length ? rng.weighted(pairs) : null;
     }
-    const from = row ? rollFrom(row) : 8, t0 = bar * bs + from * s16, tStop = bar * bs + B.stopStep * s16, tLine = line * bs;
-    const stop = o.stop !== false && !!lane;
-    if (stop) {
-      // the stop silences every drum lane on its eighth, a part's hand drums with them (the review of U2c: the house's
-      // hand-drum parts played through it), so it is an overlay always — on its own steps alone
-      const st = sub('drop-out', stopFrom(B.stopStep), bar, 1, `the stop ${bar}`);
+    if (gesture) {
+      // its length: two bars only where the bar before is the section's, plays drums and is no other small thing's
+      // (and never over a track row's own drums: an overlay is that one bar's alone, U2b)
+      const twoOk = !own && bar - 1 >= (sectionAt(bar)?.startBar ?? bar) && I.kit(bar - 1).drums && !houseMarked.has(bar - 1) && !busy.has(bar - 1);
+      const bw: W = {};
+      for (const [x, wt] of Object.entries(gesture.beats)) {
+        const n = Number(x), d = Math.log2(n / 2);
+        if (n > 4 && !twoOk) continue;
+        bw[x] = wt * soundLean(spellOf, G.centre, 'roll.length', d) * (big ? G.choice.longer.big ** d : 1);
+      }
+      beats = Number(weighted(rng, bw) ?? 2);
+      // (the longer stop leaned by the birds, per beat of it: `stop.length`)
+      const sw: W = SH['stop.length'] ? Object.fromEntries(Object.entries(gesture.stop).map(([x, wt]) => [x, wt * soundLean(spellOf, G.centre, 'stop.length', Number(x) / 4)])) : gesture.stop;
+      stopSteps = intoBreak ? 0 : Number(weighted(rng, sw) ?? 0);
+    }
+    // the window: from its start to the stop's first step (the line where there is no stop)
+    // the landing: drawn among those the line takes (never into a break)
+    let land: LandingKind | 'none' = 'none';
+    if (gesture && !intoBreak && o.crash !== false) {
+      const struckThere = answers.some((x) => x.bar === line && x.parts.includes('crash'));
+      // (the line is the next phrase's: never a track row's own drums, whose bars past the build are the row's, U2b)
+      const lineFree = !own && line < I.bars && !houseMarked.has(line) && !pending.some((q) => q.line === line + 1) && I.kit(line).kick && !I.gestured(line) && !struckThere;
+      const okL: Record<LandingKind, boolean> = {
+        stroke: I.can.crash || I.gestured(line),
+        kick: lineFree && !moves.glides.some((g) => g.bar === line) && (editable('bassline') || !I.kit(line).bass),
+        bass: lineFree && editable('bassline') && I.kit(line).bass,
+      };
+      const lw: W = {};
+      for (const [x, wt] of Object.entries(gesture.land)) if (okL[x as LandingKind]) lw[x] = (wt ?? 0) * (big ? G.landings.big[x] ?? 1 : 1);
+      land = (weighted(rng, lw) as LandingKind | null) ?? 'none';
+    }
+    // a big arrival lands on silence (an eighth's stop at least, where the gesture has none of its own) where nothing
+    // else is heard there (no stroke the theme sounds, no gesture there, no landing of the kick or the bass), and
+    // under a sweep that plays no drum of its own (a whoosh: the drums would tick on into the drop)
+    if (gesture && big && !intoBreak && stopSteps === 0 && !gesture.silence && gesture.field?.gateDb === undefined && !gesture.fx?.swellGain
+      && ((!gesture.lead) || (!(land === 'stroke' && (I.gestured(line) || I.can.strokeSounds !== false)) && land !== 'kick' && land !== 'bass'))) stopSteps = 2;
+    // the window: its beats before the line on the bar's grid, to the stop's first step (the line where there is none)
+    const twoBar = !!gesture && beats * 4 > 16;
+    const startStep = !gesture ? 8 : twoBar ? 0 : 16 - Math.min(beats * 4, 16);
+    // (a stop leaves the window a beat at least)
+    if (gesture && 16 - stopSteps - startStep < 4 && !twoBar) stopSteps = 0;
+    const stopStep = gesture ? 16 - stopSteps : B.stopStep;
+    const w0 = twoBar ? (bar - 1) * bs : bar * bs + startStep * s16, tEnd = bar * bs + stopStep * s16;
+    let lead: SubSection | null = null, row: Recipe | null = null;
+    const leadLane = gesture ? leadOf(gesture) : null;
+    if (gesture?.silence) {
+      // a full stop's window silences every drum lane as the stop does (an overlay always), before its one hit is written
+      const st = sub('drop-out', stopFrom(startStep), bar, 1, `the silence ${bar}`);
       st.overlay = true;
       subs.push(st);
-      said.push({ text: 'a stop on the last eighth', by: st });
+    }
+    if (gesture) {
+      const barsOf = twoBar ? [bar - 1, bar] : [bar];
+      // the lead's pattern on the bar's grid, ending on the line (the stop takes its tail); an added lane's ends where
+      // the window ends (an accent into the stop)
+      const span = barsOf.length * 16;
+      // (a roll's density by the birds: `roll.density`)
+      const dense = soundFor(SH, 'roll.density', gesture.id);
+      const leadAll = gesture.lead ? densified(patternOf(gesture.lead.pattern, beats, beats * 4), dense).padStart(span, '.') : null;
+      // the lift: a figure on the first of its lanes the kit plays in the last bar, the lead's lane never
+      const liftLane = gesture.lift?.lanes.find((r) => r !== leadLane && has(r)) ?? null;
+      for (const b of barsOf) {
+        const first = twoBar && b === bar - 1, from = twoBar ? 0 : startStep, k0 = first ? 0 : span - 16;
+        // the rests first, then the lead lane, then the lanes it adds (the open hat after the hats it rolls on)
+        const lanes: Record<string, LaneEdit> = {};
+        // (a resting kick keeps the last bar's first half: never a bar of no kick under an out, the guards' thin bar;
+        // and the open hat never rests where it is the closed hats' own voice: it would take them with it)
+        for (const r of gesture.rest ?? []) if (r !== leadLane && rests(r, b) && !(r === 'kick' && first))
+          lanes[r] = { clear: r === 'kick' ? Math.max(from, 8) : from };
+        if (leadLane && leadAll) lanes[leadLane] = { clear: from, mask: [leadAll.slice(k0, k0 + 16)] };
+        if (!first) for (const [r, spec] of Object.entries(gesture.lanes ?? {})) {
+          if (r === leadLane || !has(r, b)) continue;
+          const m = patternOf(spec, beats, stopStep - startStep).padStart(stopStep, '.').padEnd(16, '.');
+          if (/[^.]/.test(m)) lanes[r] = { mask: [m] };
+        }
+        // (the lift climbs into the stop, its hits only where its lane plays none or plays quieter: a ghost yields to it)
+        if (!first && liftLane && gesture.lift && !lanes[liftLane]) {
+          const m = densified(patternOf(gesture.lift.pattern, 4, stopStep), dense).padStart(stopStep, '.').padEnd(16, '.');
+          if (/[^.]/.test(m)) lanes[liftLane] = { mask: [m], insert: 'over-quieter' };
+        }
+        if (!Object.keys(lanes).length) continue;
+        // `C`: the open hat choked where the window ends
+        const letters = { ...DIGITS, C: { level: 0.7, chokeAt: stopStep } };
+        const r0 = figureRow(`phrasing/${gesture.id}+build+${leadLane ?? 'rests'}${first ? '+lead-in' : ''}${own ? '+over-a-row' : ''}`, gesture.name, 'fill', { lanes, letters });
+        const s0 = sub('fill', r0, b, 1, `${gesture.name} into ${line}${own ? ', over the row\'s drums' : ''}`);
+        if (own) { s0.overlay = true; s0.spare = spare; }
+        subs.push(s0);
+        if (!first) { lead = s0; row = r0; }
+      }
+    }
+    // (a gesture with no lead lane is heard by its own sound, a sweep or a swell: its rests are its colour, not its proof)
+    const by = lead && gesture?.lead ? { by: lead } : {};
+    const stop = !!gesture && stopSteps > 0 && !intoBreak;
+    if (stop) {
+      // the stop silences every drum lane from its step, a part's hand drums with them (the review of U2c: the house's
+      // hand-drum parts played through it), so it is an overlay always — on its own steps alone
+      const st = sub('drop-out', stopFrom(stopStep), bar, 1, `the stop ${bar}`);
+      st.overlay = true;
+      subs.push(st);
+      items.push({ text: `a stop on the last ${STOP_WORDS[stopSteps] ?? `${stopSteps} sixteenths`}`, by: st });
     }
     if (o.bass !== false && editable('bassline') && bassMayLeave(k)) {
-      const bo = sub('drop-out', bassOutFrom(Math.min(from, B.stopStep)), bar, 1, `bass out ${bar}, the build's`);
-      subs.push(bo);
-      said.push({ text: `the bass out from step ${Math.min(from, B.stopStep)}`, by: bo });
+      // (a silence's bass a sixteenth early, its release gone by the time the drums stop)
+      const fromStep = !gesture ? Math.min(8, B.stopStep) : gesture.bass === 'window' ? Math.max(0, (twoBar ? 0 : startStep) - (gesture.silence ? 1 : 0)) : Math.min(stopStep, 16);
+      if (fromStep < 16) {
+        const bo = sub('drop-out', bassOutFrom(fromStep), bar, 1, `bass out ${bar}, the build's`);
+        subs.push(bo);
+        items.push({ text: `the bass out from step ${fromStep}`, by: bo });
+      }
     }
     if (o.filter) {
       const a = o.filterFrom ?? bar * bs;
+      // the cut and the opening's top by the birds (`filtered.cut`, `filtered.open`: darker at the heavy end, his ear
+      // 10-13 on the Dubstep spell's reverse into a filtered phrase's line, "for dubstep a bit too bright")
+      const hz = Math.round(o.filter * 2 ** (SH['filtered.cut'] ?? 0)), top = SH['filtered.open'];
       // into a break the low-pass is held closed and handed to the break's own (the review of U2b: it reopened over the
       // out's last beats and fell again with the break's cut, 9 kHz to 900 Hz in 50 ms)
-      const dip = o.hold ? { a, b: a + B.cutS, c: tLine - 0.05 * bs, d: tLine - 0.05 * bs, hz: o.filter, hold: true }
-        : { a, b: a + B.cutS, c: Math.max(a + B.cutS + 0.01, t0), d: tStop, hz: o.filter };
-      const m = { ...dip, ...(lead ? { by: lead } : {}) };
+      const dip = o.hold ? { a, b: a + B.cutS, c: tLine - 0.05 * bs, d: tLine - 0.05 * bs, hz, hold: true }
+        : { a, b: a + B.cutS, c: Math.max(a + B.cutS + 0.01, w0), d: tEnd, hz, ...(top ? { top, edge: B.edgeS } : {}) };
+      const m = { ...dip, ...by };
       moves.dips.push(m);
-      said.push({ text: o.hold ? `the low-pass cut to ${o.filter} Hz into the break` : `the low-pass cut to ${o.filter} Hz and opening with the roll`, dip: m,
-        heldText: `the low-pass cut to ${o.filter} Hz and held closed into what follows` });
+      items.push({ text: o.hold ? `the low-pass cut to ${hz} Hz into the break` : `the low-pass cut to ${hz} Hz and opening with the build`, dip: m,
+        heldText: `the low-pass cut to ${hz} Hz and held closed into what follows` });
     }
+    const landBeat = land === 'kick' || land === 'bass';
+    // the field: rising with the build, cut through the stop (a full stop's whole window), back on the line (on its
+    // second beat where the kick lands alone)
     const field = o.field ?? 0;
-    if (field || stop) {
-      const E = B.edgeS;
-      moves.gains.push({ knots: [{ t: t0, f: 1 }, { t: tStop - E, f: gain(field) }, { t: tStop + E, f: stop ? gain(B.stopDb) : 1 }, { t: tLine - E, f: stop ? gain(B.stopDb) : 1 }, { t: tLine + E / 4, f: 1 }],
-        ...(lead ? { by: lead } : {}) });
-      if (field) said.push({ text: `the field rising ${field} dB with it`, ...(lead ? { by: lead } : {}) });
+    if (!gesture) {
+      if (field) {
+        moves.gains.push({ knots: [{ t: w0, f: 1 }, { t: tEnd - E, f: gain(field) }, { t: tEnd + E, f: 1 }, { t: tLine - E, f: 1 }, { t: tLine + E / 4, f: 1 }], ...by });
+        items.push({ text: `the field rising ${field} dB with it`, ...by });
+      }
+    } else {
+      const cutWindow = gesture.field?.cutFrom === 'window', cutting = stop || cutWindow;
+      const cut = gain(gesture.field?.cutDb ?? B.stopDb), cutA = cutWindow ? w0 : stop ? tEnd : tLine, cutZ = landBeat ? tLine + beat : tLine;
+      if (field || cutting || landBeat) {
+        const knots: Array<{ t: number; f: number }> = [];
+        if (cutA - E > w0 + E) knots.push({ t: w0, f: 1 }, { t: cutA - E, f: gain(field) });
+        else knots.push({ t: cutA - E, f: 1 });
+        if (cutting || landBeat) knots.push({ t: cutA + E, f: cut }, { t: cutZ - E, f: cut }, { t: cutZ + E / 4, f: 1 });
+        else knots.push({ t: tLine + E / 4, f: 1 });
+        moves.gains.push({ knots: knots.filter((x, i) => i === 0 || x.t > knots[i - 1].t + 1e-6), ...by });
+        if (field && !cutWindow) items.push({ text: `the field rising ${field} dB with it`, ...by });
+      }
+      // the stutter's gate: the field and the bass on and off each sixteenth across the window
+      if (gesture.field?.gateDb !== undefined) {
+        const g = gain(gesture.field.gateDb), e = E / 2, gk: Array<{ t: number; f: number }> = [{ t: w0 - e, f: 1 }];
+        for (let t = w0; t < tEnd - 1e-6; t += s16) { const h = t + s16 / 2; gk.push({ t: h - e, f: 1 }, { t: h + e, f: g }, { t: t + s16 - e, f: g }, { t: t + s16 + e / 2, f: 1 }); }
+        moves.gains.push({ knots: gk, ...by });
+        if (o.bass !== false) moves.gates.push({ a: w0, z: tEnd, s16, depth: g, ...by });
+        items.push({ text: 'the field and the bass gated in sixteenths', ...by });
+      }
+      if (gesture.fx?.hpHz) {
+        // (its top by the birds: `whoosh.hp`)
+        const hz = Math.round(gesture.fx.hpHz * 2 ** soundFor(SH, 'whoosh.hp', gesture.id));
+        moves.hps.push({ a: w0, z: tEnd, hz, ...by });
+        items.push({ text: `the high-pass sweeping up to ${hz} Hz`, ...by });
+      }
+      if (gesture.fx?.riserGain && I.can.riser && !I.gestured(line)) {
+        const sound = glueSoundOf(SH, gesture.id, 'riser');
+        moves.risers.push({ bar: line, beats: (tLine - w0) / beat, gain: gesture.fx.riserGain, ...by, ...(sound ? { sound } : {}) });
+        items.push({ text: 'the riser under it', ...by });
+      }
+      if (gesture.fx?.swellGain) {
+        // the cymbal is the gesture's own: over its whole window at its own level, in place of a shorter swell a filtered
+        // phrase or an out's lift laid on the line (said once, by whoever laid it first)
+        const had = moves.swells.findIndex((x) => x.bar === line), beats0 = (tLine - w0) / beat;
+        // (its colour by the birds: the band, its opening, its tail and its sends)
+        const sound = glueSoundOf(SH, gesture.id, 'swell');
+        if (had >= 0) moves.swells[had] = { ...moves.swells[had], beats: Math.max(moves.swells[had].beats, beats0), gain: Math.max(moves.swells[had].gain, gesture.fx.swellGain), ...(sound ? { sound } : {}) };
+        else if (swellInto(line, beats0, gesture.fx.swellGain, lead ?? undefined)) {
+          if (sound) moves.swells[moves.swells.length - 1].sound = sound;
+          items.push({ text: `the reverse swell rising into ${line}`, swell: line });
+        }
+      }
     }
-    if (o.crash !== false && I.can.crash && !I.gestured(line)) { moves.crashes.push({ bar: line, ...(lead ? { by: lead } : {}) }); said.push({ text: `a crash on ${line}`, crash: line }); }
-    return { said, lead, row };
+    const build: Build | null = gesture ? { line, kind: gesture.id, beats, stop: stopSteps, land, big, into: o.into ?? 'line' } : null;
+    if (gesture) items.unshift({ text: `${gesture.name} (${BEAT_WORDS[beats] ?? `${beats} beats`})${own ? ' over the row\'s drums' : ''}`, ...by, gesture: gesture.id, ...(build ? { build } : {}) });
+    if (land === 'stroke' && !I.gestured(line) && I.can.crash) {
+      // (the landing's size, and the crash's brightness and ring, by the birds)
+      const sound = gesture ? glueSoundOf(SH, gesture.id, 'stroke') : undefined;
+      moves.crashes.push({ bar: line, ...by, ...(sound ? { sound } : {}) });
+      items.push({ text: `a crash on ${line}`, crash: line });
+    }
+    else if (landBeat) {
+      const lanes: Record<string, LaneEdit> = {};
+      for (const r of ['backbeat', 'offbeat', 'sixteenth', 'open']) if (mayLane(r)) lanes[r] = { clear: 0, until: 4 };
+      const ls = sub('drop-out', figureRow(`phrasing/land-${land}${own ? '+over-a-row' : ''}`, land === 'kick' ? 'the kick alone' : 'the kick and the bass', 'drop-out', { lanes }), line, 1,
+        `${land === 'kick' ? 'the kick alone' : 'the kick and the bass'} on ${line}'s first beat`);
+      if (own) { ls.overlay = true; ls.spare = spare; }
+      subs.push(ls);
+      // (the landing is the build's: heard with its lead, the line's first beat already the kick's alone where nothing rests there)
+      moves.landings.push({ bar: line, kind: land as 'kick' | 'bass', ...by });
+      items.push({ text: land === 'kick' ? `the kick alone through ${line}'s first beat` : `the kick and the bass alone through ${line}'s first beat`, ...by });
+    } else if (!gesture && o.crash !== false && I.can.crash && !I.gestured(line)) { moves.crashes.push({ bar: line, ...by }); items.push({ text: `a crash on ${line}`, crash: line }); }
+    p.said.unshift(...items);
+    p.done?.(row);
+    return build;
   };
 
   // **An out is marked** (U2b; his ear 10-13 on the Dubstep spell's: "not bad, but cheap, need some drum filling, more
@@ -337,13 +710,14 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const markable = (from: number, to: number, intoBreak: boolean) => {
     return !!laneAt(to - 1) || (intoBreak && topsMayThin(from, to - 1)) || !I.filterMoves?.(from, to);
   };
-  const markOut = (out: SubSection, from: number, to: number, into: 'drop' | 'return' | 'break', kind: string): { m: Pick<Out, 'fill' | 'ack'>; said: Said[] } => {
+  const markOut = (out: SubSection, from: number, to: number, into: 'drop' | 'return' | 'break', kind: string): { m: Pick<Out, 'fill' | 'ack'>; said: Said[]; b: Pending | null } => {
     const last = to - 1;
     const rng = new Rng(`${I.seed}::phrasing:mark:${to}`);
     const tops = into === 'break' && topsMayThin(from, last);
     const b = rng.chance(O.fill) ? buildInto(to, kind, { rng, filter: tops ? undefined : O.dip.hz, filterFrom: from * bs, bass: false,
-      ...(into === 'break' ? { stop: false, crash: false, hold: true } : {}) }) : null;
-    const said: Said[] = [...(b?.said ?? [])];
+      into, ...(into === 'break' ? { stop: false, crash: false, hold: true } : { big: true }) }) : null;
+    // (the build's own parts are put in front of these when its gesture is drawn)
+    const said: Said[] = b ? b.said : [];
     if (into !== 'break' && I.can.glide && I.kit(to).bass) {
       const g = { bar: to, beats: O.lift.beats[into], semitones: O.lift.semitones, by: out };
       moves.glides.push(g);
@@ -361,7 +735,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       moves.dips.push(dip);
       said.push({ text: `the low-pass cut to ${O.dip.hz} Hz across it`, dip });
     }
-    return { m: { fill: b?.row?.id ?? null, ack: tops ? 'tops' : 'dip' }, said };
+    return { m: { fill: null, ack: tops ? 'tops' : 'dip' }, said, b };
   };
 
   // ----- the cooldowns: a main's end into a break, declared, the bass out across it -----
@@ -386,8 +760,9 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       take(from, end);
       const out = sub('drop-out', BASS_OUT, o0, end - o0, 'bass out (the cooldown)');
       subs.push(out);
-      const { m, said: sd } = markOut(out, o0, end, 'break', s.kind);
+      const { m, said: sd, b } = markOut(out, o0, end, 'break', s.kind);
       const o: Out = { from: o0, to: end, into: 'break', label: '', ...m };
+      if (b) b.done = (row) => { o.fill = row?.id ?? null; };
       notes.push({ out: o, head: `the bass out ${o0 === from ? 'across the cooldown' : `over the cooldown's last bar`} into the break at ${end}`, said: sd, tail: '' });
       outs.push(o);
     }
@@ -398,6 +773,86 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const longAt = Math.min(S.longBars, S.longMostS / bs);
   const rate = leanOf(R, S.lean, I.spell);
   const span = Math.min(L - 1, Math.max(S.leastBars, Math.round(S.spanPhrases * L)));
+  type Phrase = PhraseMap['phrases'][number];
+  type Sec = (typeof sections)[number];
+  /** What the kit admits at a phrase's end, each kind by its needs. */
+  const admitsAt = (p: Phrase, fills: Recipe[], drops: Recipe[]): Record<SegmentKind, boolean> => {
+    const last = p.to - 1;
+    return {
+      'breakdown-lite': editable('kick') && every(p.to - span, p.to, (k) => k.kick),
+      'half-time': I.four && editable('kick') && every(p.to - span, p.to, (k) => k.kick),
+      filtered: every(p.to - span, p.to, (k) => k.drums || k.bass),
+      'drop-out': I.kit(last).drums && drops.some((r) => leaves(r, last)),
+      fill: ((editable('backbeat') && I.kit(last).backbeat) || (editable('kick') && I.kit(last).kick)) && fills.length > 0,
+    };
+  };
+  /**
+   * A sub-segment of `kind` at phrase `p`'s end, its build placed; false where its bars are another's. `houseEnd` (U2e, a
+   * major sub-segment only): the house's own one bar on the phrase's last (a turnaround, a drop-out bar, a fill) is its
+   * way back in, in place of a build of its own.
+   */
+  const placeSegment = (s: Sec, p: Phrase, kind: SegmentKind, rng: Rng, fills: Recipe[], drops: Recipe[], more: boolean, houseEnd?: SubSection): boolean => {
+      const last = p.to - 1;
+      const n = kind === 'drop-out' || kind === 'fill' ? 1 : span;
+      const from = p.to - n;
+      if (houseEnd && !(n > 1 && kind !== 'filtered')) return false;
+      if (!free(from, houseEnd ? last : p.to)) return false;
+      // the re-entry's fill drawn as it was (its die kept), played as the build (U2c)
+      const reentry = n > 1 && !houseEnd && rng.chance(S.reentryFill[kind] ?? 0) && ((editable('backbeat') && I.kit(last).backbeat) || (editable('kick') && I.kit(last).kick)) ? drawRow(rng, fills) : null;
+      const where = `${from}-${p.to - 1}`;
+      const k = I.kit(last);
+      // where a track row owns the drums the other voices answer the more
+      const ownDrums = !((editable('backbeat') && k.backbeat) || (editable('kick') && k.kick));
+      let label: string, built: { said: Said[]; pend: Pending | null };
+      const into = (o: BuildOpts) => { const pend = buildInto(p.to, s.kind, o); if (more) pend.more = true; return { said: pend.said, pend }; };
+      if (houseEnd) {
+        subs.push(sub('switch-up', kind === 'half-time' ? HALF_TIME : BREAKDOWN_LITE, from, last - from, `${kind} ${where}`));
+        built = { said: [{ text: `back in by the house's own ${houseEnd.label} on ${last}` }], pend: null };
+        label = kind === 'half-time' ? `half-time phrase ${where}: the kick on one and three-and, the backbeat on three`
+          : `breakdown-lite ${where}: the kick, the backbeat and the tops out, the bed exposed`;
+      } else if (kind === 'breakdown-lite') {
+        subs.push(sub('switch-up', BREAKDOWN_LITE, from, last - from, `breakdown-lite ${where}`));
+        built = into({ rng, row: reentry ?? undefined, bass: false });
+        label = `breakdown-lite ${where}: the kick, the backbeat and the tops out, the bed exposed`;
+      } else if (kind === 'half-time') {
+        subs.push(sub('switch-up', HALF_TIME, from, last - from, `half-time ${where}`));
+        built = into({ rng, row: reentry ?? undefined, filter: S.halfTime.hz, field: B.fieldDb });
+        label = `half-time phrase ${where}: the kick on one and three-and, the backbeat on three`;
+      } else if (kind === 'filtered') {
+        // the low-pass cut closed at the phrase's start (a cut, never a fade), the tops thinning under it
+        const thin = topsMayThin(from, last) ? sub('switch-up', TOPS_THIN, from, last - from, `the tops thin ${from}-${last - 1}`) : null;
+        if (thin) subs.push(thin);
+        built = into({ rng, row: reentry ?? undefined, filter: S.filter.hz, filterFrom: from * bs, field: ownDrums ? B.heldFieldDb : B.fieldDb });
+        if (thin) built.said.unshift({ text: 'the tops thin', by: thin });
+        if (swellInto(p.to, S.filter.swellBeats, S.filter.swellGain)) built.said.push({ text: `a reverse swell into ${p.to}`, swell: p.to });
+        label = `filtered phrase ${where}`;
+      } else if (kind === 'fill') {
+        built = into({ rng, bass: false });
+        label = `a fill into the line at ${p.to}`;
+      } else {
+        const row = drawRow(rng, drops.filter((r) => leaves(r, last)))!;
+        subs.push(sub(kind, row, last, 1, `${row.name} ${last}`));
+        label = `a drop-out bar (${row.name}) at ${last}, the groove back on ${p.to}`;
+        const said: Said[] = [];
+        // a row's own drums stop on the last beat over it, so the drums lead the bar out too
+        if (ownDrums && (k.kick || k.backbeat)) {
+          const st = sub('drop-out', stopFrom(B.stopBeatStep), last, 1, `the stop ${last}, over the row's drums`);
+          // a pinned or drawn part's drums keep their bar (as the build's and the landing's overlays do)
+          st.overlay = true; st.spare = I.spare ?? new Set<string>();
+          subs.push(st);
+          said.push({ text: 'the drums stopping on the last beat', by: st });
+        }
+        if (I.can.crash && !I.gestured(p.to)) { moves.crashes.push({ bar: p.to }); said.push({ text: `a crash on ${p.to}`, crash: p.to }); }
+        built = { said, pend: null };
+      }
+      take(from, p.to);
+      const seg: Segment = { kind, from, to: p.to, fn: p.fn, label, reentry: null, ...(houseEnd ? { houseEnd: last } : {}) };
+      if (built.pend) built.pend.done = (row) => { seg.reentry = row?.id ?? null; };
+      notes.push({ segment: seg, head: label, said: built.said, tail: '' });
+      segments.push(seg);
+      return true;
+  };
+
   for (const s of sections) {
     if (!S.sections.includes(s.kind) || !(s.bars > longAt) || span < 1) continue;
     const end = s.startBar + s.bars, cool = coolFrom.get(s.index) ?? end;
@@ -412,71 +867,16 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       if (chosen.length >= want) break;
       if (chosen.some((f) => Math.abs(f - p.from) < (1 + S.spacingPhrases) * L)) continue;
       const rng = new Rng(`${I.seed}::phrasing:${s.index}:${p.from}`);
-      const last = p.to - 1;
       const fills = rowsOf('fill', s.kind);
       const drops = rowsOf('drop-out', s.kind, dropsBar);
-      // what the kit admits at this phrase's end, each kind by its needs
-      const admits: Record<SegmentKind, boolean> = {
-        'breakdown-lite': editable('kick') && every(p.to - span, p.to, (k) => k.kick),
-        'half-time': I.four && editable('kick') && every(p.to - span, p.to, (k) => k.kick),
-        filtered: every(p.to - span, p.to, (k) => k.drums || k.bass),
-        'drop-out': I.kit(last).drums && drops.some((r) => leaves(r, last)),
-        fill: ((editable('backbeat') && I.kit(last).backbeat) || (editable('kick') && I.kit(last).kick)) && fills.length > 0,
-      };
+      const admits = admitsAt(p, fills, drops);
       // a kind the main already played is drawn at `recent` of its weight, so a long main changes its gesture
       const w = Object.fromEntries(Object.entries(S.byFunction[p.fn]).filter(([k]) => admits[k as SegmentKind])
         .map(([k, x]) => [k, segments.some((g) => g.kind === k && g.from >= s.startBar && g.to <= end) ? x * S.recent : x]));
       const kind = weighted(rng, w) as SegmentKind | null;
       if (!kind) continue;
-      const n = kind === 'drop-out' || kind === 'fill' ? 1 : span;
-      const from = p.to - n;
-      if (!free(from, p.to)) continue;
-      // the re-entry's fill drawn as it was (its die kept), played as the build (U2c)
-      const reentry = n > 1 && rng.chance(S.reentryFill[kind] ?? 0) && ((editable('backbeat') && I.kit(last).backbeat) || (editable('kick') && I.kit(last).kick)) ? drawRow(rng, fills) : null;
-      const where = `${from}-${p.to - 1}`;
-      const k = I.kit(last);
-      // where a track row owns the drums the other voices answer the more
-      const ownDrums = !((editable('backbeat') && k.backbeat) || (editable('kick') && k.kick));
-      let label: string, built: ReturnType<typeof buildInto> | null = null;
-      if (kind === 'breakdown-lite') {
-        subs.push(sub('switch-up', BREAKDOWN_LITE, from, last - from, `breakdown-lite ${where}`));
-        built = buildInto(p.to, s.kind, { rng, row: reentry ?? undefined, bass: false });
-        label = `breakdown-lite ${where}: the kick, the backbeat and the tops out, the bed exposed`;
-      } else if (kind === 'half-time') {
-        subs.push(sub('switch-up', HALF_TIME, from, last - from, `half-time ${where}`));
-        built = buildInto(p.to, s.kind, { rng, row: reentry ?? undefined, filter: S.halfTime.hz, field: B.fieldDb });
-        label = `half-time phrase ${where}: the kick on one and three-and, the backbeat on three`;
-      } else if (kind === 'filtered') {
-        // the low-pass cut closed at the phrase's start (a cut, never a fade), the tops thinning under it
-        const thin = topsMayThin(from, last) ? sub('switch-up', TOPS_THIN, from, last - from, `the tops thin ${from}-${last - 1}`) : null;
-        if (thin) subs.push(thin);
-        built = buildInto(p.to, s.kind, { rng, row: reentry ?? undefined, filter: S.filter.hz, filterFrom: from * bs, field: ownDrums ? B.heldFieldDb : B.fieldDb });
-        if (thin) built.said.unshift({ text: 'the tops thin', by: thin });
-        if (swellInto(p.to, S.filter.swellBeats, S.filter.swellGain)) built.said.push({ text: `a reverse swell into ${p.to}`, swell: p.to });
-        label = `filtered phrase ${where}`;
-      } else if (kind === 'fill') {
-        built = buildInto(p.to, s.kind, { rng, bass: false });
-        label = `a fill into the line at ${p.to}`;
-      } else {
-        const row = drawRow(rng, drops.filter((r) => leaves(r, last)))!;
-        subs.push(sub(kind, row, last, 1, `${row.name} ${last}`));
-        label = `a drop-out bar (${row.name}) at ${last}, the groove back on ${p.to}`;
-        const said: Said[] = [];
-        // a row's own drums stop on the last beat over it, so the drums lead the bar out too
-        if (ownDrums && (k.kick || k.backbeat)) {
-          const st = sub('drop-out', stopFrom(B.stopBeatStep), last, 1, `the stop ${last}, over the row's drums`);
-          st.overlay = true;
-          subs.push(st);
-          said.push({ text: 'the drums stopping on the last beat', by: st });
-        }
-        if (I.can.crash && !I.gestured(p.to)) { moves.crashes.push({ bar: p.to }); said.push({ text: `a crash on ${p.to}`, crash: p.to }); }
-        built = { said, lead: null, row: null };
-      }
-      take(from, p.to);
+      if (!placeSegment(s, p, kind, rng, fills, drops, false)) continue;
       chosen.push(p.from);
-      const seg: Segment = { kind, from, to: p.to, fn: p.fn, label, reentry: built.row?.id ?? null };
-      notes.push({ segment: seg, head: label, said: built.said, tail: '' });
-      segments.push(seg);
     }
   }
 
@@ -499,10 +899,146 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     take(from, a.bar);
     const out = sub('drop-out', BASS_OUT, from, n, `bass out before ${a.bar}`);
     subs.push(out);
-    const { m, said: sd } = markOut(out, from, a.bar, into, before.kind);
+    const { m, said: sd, b } = markOut(out, from, a.bar, into, before.kind);
     const o: Out = { from, to: a.bar, into, label: '', ...m };
+    if (b) b.done = (row) => { o.fill = row?.id ?? null; };
     notes.push({ out: o, head: `the bass out ${n} bar${n > 1 ? 's' : ''} before the ${into === 'drop' ? 'drop' : 'return'} at ${a.bar}, back with it`, said: sd, tail: '' });
     outs.push(o);
+  }
+
+  // ----- more sub-segments (U2e; his word 10-13: "need more frequent sub sequence … the more boring the ring in terms
+  // of graphics, the more boring the music too", and on the Techno tile, "main segments need major sub segmentation") -----
+  // After everything above is placed as it was drawn: a long section takes more sub-segments until no stretch of it runs
+  // unmarked past the shorter of 16 bars and 30 s (Loom leaning it as it leans the rate), each on the candidate phrase
+  // that best splits the longest stretch; a big section takes one major sub-segment at least. The groove keeps its
+  // identity between them: never two spans in neighbouring phrases.
+  const MORE = S.more;
+  if (MORE && span >= 1) {
+    const gapMost = Math.min(MORE.everyBars, MORE.everyS / bs) / rate;
+    const longMore = Math.min(MORE.longBars, MORE.longMostS / bs);
+    const SPANS: readonly SegmentKind[] = ['breakdown-lite', 'half-time', 'filtered'];
+    const MAJOR: readonly SegmentKind[] = ['breakdown-lite', 'half-time'];
+    for (const s of sections) {
+      if (!S.sections.includes(s.kind) || !(s.bars > longMore)) continue;
+      const end = s.startBar + s.bars, cool = coolFrom.get(s.index) ?? end;
+      const candidates = I.map.phrases.filter((p) => p.from >= s.startBar && p.to <= end && p.to - p.from === L
+        && p.from > s.startBar && p.to < end && p.to <= cool && !!S.byFunction[p.fn]);
+      // the section's first phrase (U2e review: at the house's tempo a first phrase of 8 bars and a drop-out on the
+      // second's last left 15 bars, 34-39 s, from the line with no mark): only where the line's stretch is over the cap,
+      // and only a fill or a drop-out bar on its last bar, drawn at an interior phrase's weights
+      const first = I.map.phrases.find((p) => p.from === s.startBar && p.to - p.from === L && p.to < end && p.to <= cool);
+      const LIGHT: readonly SegmentKind[] = ['fill', 'drop-out'];
+      const fnOf = (p: Phrase) => (p === first ? 'interior' : p.fn);
+      if (!candidates.length && !first) continue;
+      const fills = rowsOf('fill', s.kind);
+      const drops = rowsOf('drop-out', s.kind, dropsBar);
+      const inSection = () => segments.filter((g) => g.from >= s.startBar && g.to <= end);
+      // what the section already marks: its lines, the cooldown's start, the house's own small things, the sub-segments, the outs
+      const marks = (): number[] => {
+        const xs = new Set<number>([s.startBar, cool]);
+        // (never a variation, the hats' own figure a phrase event may sit over, nor a glue-only row the glue's gates may
+        // take: the U2e review found a main's first 15 bars unmarked behind them)
+        for (const x of I.drawn) {
+          if (x.kind === 'variation' || (!Object.keys(x.row?.figure?.lanes ?? {}).length && !x.row?.figure?.layers)) continue;
+          for (const b of [x.startBar, x.startBar + x.bars]) if (b > s.startBar && b < cool) xs.add(b);
+        }
+        for (const b of I.keep) if (b > s.startBar && b < cool) xs.add(b);
+        for (const g of inSection()) { xs.add(g.from); xs.add(g.to); }
+        for (const o of outs) if (o.from > s.startBar && o.from < cool) xs.add(o.from);
+        return [...xs].sort((a, b) => a - b);
+      };
+      // the kinds a phrase may take here: a span only where no span stands in a neighbouring phrase (or its own)
+      const kindsAt = (p: Phrase): SegmentKind[] => {
+        if (inSection().some((g) => g.to === p.to)) return [];
+        const a = admitsAt(p, fills, drops);
+        const spanNear = inSection().some((g) => SPANS.includes(g.kind) && Math.abs(g.to - p.to) < (1 + S.spacingPhrases) * L);
+        // (never a drop-out bar whose stop would fall over a part's drums, a pin's or a drawn recipe's: a part is exact
+        // through this pass; a track row's own drums stop on the last beat as U2's do)
+        const k0 = I.kit(p.to - 1), spare = I.spare ?? new Set<string>();
+        const ownDrums = !((editable('backbeat') && k0.backbeat) || (editable('kick') && k0.kick)) && ((spare.has('kick') && k0.kick) || (spare.has('backbeat') && k0.backbeat));
+        return (Object.keys(S.byFunction[fnOf(p)] ?? {}) as SegmentKind[]).filter((k) => a[k] && (!SPANS.includes(k) || !spanNear) && !(k === 'drop-out' && ownDrums)
+          && (p !== first || LIGHT.includes(k)) && free(p.to - (k === 'drop-out' || k === 'fill' ? 1 : span), p.to));
+      };
+      // the longest stretch a placement at phrase `p` leaves (its mark from its first bar to its line)
+      const longestWith = (p: Phrase, n: number) => {
+        const xs = [...marks(), p.to - n, p.to].sort((a, b) => a - b);
+        let most = 0;
+        for (let i = 1; i < xs.length; i++) most = Math.max(most, xs[i] - xs[i - 1]);
+        return most;
+      };
+      const longest = () => longestWith({ from: -1, to: s.startBar } as Phrase, 0);
+      const place = (p: Phrase, kinds: SegmentKind[], houseEnd?: SubSection): boolean => {
+        const rng = new Rng(`${I.seed}::phrasing:more:${s.index}:${p.from}`);
+        const w = Object.fromEntries(Object.entries(S.byFunction[fnOf(p)] ?? {}).filter(([k]) => kinds.includes(k as SegmentKind))
+          .map(([k, x]) => [k, inSection().some((g) => g.kind === k) ? x * S.recent : x]));
+        const kind = weighted(rng, w) as SegmentKind | null;
+        return !!kind && placeSegment(s, p, kind, rng, fills, drops, true, houseEnd);
+      };
+      // the house's own one bar on a phrase's last, every bar before it free: a major sub-segment may end on it, the
+      // house's bar its way back in (the house marks most of its phrases' ends). Only a bar heard as a move back in (the
+      // U2e review): a fill or a turnaround, or a drop-out bar that takes nothing the span already took (the bass out
+      // after a breakdown-lite); never a glue-only row (the glue's gates may take its only sound), never a second
+      // drop-out of the same lanes (a bar of the pad alone, then a bare line)
+      const lanesOf = (r: Recipe | undefined) => Object.keys(r?.figure?.lanes ?? {});
+      const houseEndOf = (p: Phrase, kind: SegmentKind): SubSection | undefined => {
+        const last = p.to - 1;
+        if (inSection().some((g) => g.to === p.to) || !free(p.to - span, last)) return undefined;
+        const took = new Set(lanesOf(kind === 'half-time' ? HALF_TIME : BREAKDOWN_LITE));
+        return I.drawn.find((x) => {
+          if (x.startBar !== last || x.bars !== 1) return false;
+          const lanes = lanesOf(x.row), layers = x.row?.figure?.layers;
+          if (!lanes.length && !layers) return false;
+          // heard: a lane of it the bar's kit sounds and a figure may edit (a ghost pickup on a backbeat the kit has not is no way back in)
+          const k = I.kit(last);
+          const sounds: Record<string, boolean> = { kick: k.kick, backbeat: k.backbeat, offbeat: k.offbeat, sixteenth: !!k.sixteenths, open: !!k.open, bassline: k.bass, figure: k.cover.figure > 0 };
+          if (!layers && !lanes.some((l) => sounds[l] && editable(l))) return false;
+          // ...and not a lane a variation over the bar plays its own figure on (a hat gap under the quarter hats is the variation's bar)
+          const under = I.drawn.filter((y) => y !== x && y.kind === 'variation' && y.startBar <= last && y.startBar + y.bars > last).flatMap((y) => lanesOf(y.row));
+          if (!layers && lanes.every((l) => !(sounds[l] && editable(l)) || under.includes(l))) return false;
+          if (x.kind === 'fill' || x.kind === 'turnaround') return true;
+          return x.kind === 'drop-out' && !layers && lanes.every((l) => !took.has(l));
+        });
+      };
+      const majorAtHouseEnd = (p: Phrase): SegmentKind[] => {
+        const a = admitsAt(p, fills, drops);
+        const spanNear = inSection().some((g) => SPANS.includes(g.kind) && Math.abs(g.to - p.to) < (1 + S.spacingPhrases) * L);
+        return spanNear ? [] : MAJOR.filter((k) => a[k] && k in S.byFunction[p.fn] && !!houseEndOf(p, k));
+      };
+      // the major sub-segment first, where the section is big and has none: on the phrase that best splits its longest stretch
+      const majorOk = span >= MORE.majorLeastBars;
+      if (s.bars >= MORE.majorBars && majorOk && !inSection().some((g) => MAJOR.includes(g.kind))) {
+        const major = (p: Phrase) => { const ks = kindsAt(p); const m = ks.filter((k) => MAJOR.includes(k)); return m.length ? m : !editable('kick') ? ks.filter((k) => k === 'filtered') : []; };
+        const best = candidates.filter((p) => major(p).length).sort((a, b) => longestWith(a, span) - longestWith(b, span) || a.from - b.from)[0];
+        if (best && !(inSection().some((g) => g.kind === 'filtered') && !major(best).some((k) => MAJOR.includes(k)))) place(best, major(best));
+        // none free to its line: one ending on the house's own bar
+        if (!inSection().some((g) => MAJOR.includes(g.kind))) {
+          const end = candidates.filter((p) => majorAtHouseEnd(p).length).sort((a, b) => longestWith(a, span) - longestWith(b, span) || a.from - b.from)[0];
+          if (end) {
+            const rng = new Rng(`${I.seed}::phrasing:more:${s.index}:${end.from}`), ks = majorAtHouseEnd(end);
+            const w = Object.fromEntries(Object.entries(S.byFunction[end.fn]).filter(([k]) => ks.includes(k as SegmentKind))
+              .map(([k, x]) => [k, inSection().some((g) => g.kind === k) ? x * S.recent : x]));
+            const kind = weighted(rng, w) as SegmentKind | null;
+            if (kind) placeSegment(s, end, kind, rng, fills, drops, true, houseEndOf(end, kind));
+          }
+        }
+      }
+      const lead = () => (marks().find((b) => b > s.startBar) ?? end) - s.startBar;
+      // what runs past the cap, summed over the stretches a placement at `p` leaves (U2e review: two stretches of 15 bars,
+      // neither placement alone shortening the longest, had left both)
+      const overWith = (p: Phrase, n: number) => {
+        const xs = [...marks(), p.to - n, p.to].sort((a, b) => a - b);
+        let over = 0;
+        for (let i = 1; i < xs.length; i++) over += Math.max(0, xs[i] - xs[i - 1] - gapMost);
+        return over;
+      };
+      for (let guard = 0; guard <= candidates.length && longest() > gapMost + 1e-6; guard++) {
+        const now = overWith({ from: -1, to: s.startBar } as Phrase, 0);
+        const pool = first && lead() > gapMost + 1e-6 ? [first, ...candidates] : candidates;
+        const best = pool.filter((p) => kindsAt(p).length).map((p) => ({ p, over: overWith(p, 1), after: longestWith(p, 1) }))
+          .filter((x) => x.over < now - 1e-6).sort((a, b) => a.over - b.over || a.after - b.after || a.p.from - b.p.from)[0];
+        if (!best || !place(best.p, kindsAt(best.p))) break;
+      }
+    }
   }
 
   // ----- the drums answering the structural arrivals -----
@@ -528,6 +1064,26 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       label: `the drums answer the ${a.by === 'section' ? `${into} at` : a.by === 'progression' ? 'progression\'s arrival at' : 'landing at'} ${a.bar}: ${pick.replace(/\+/g, ', ')}${field ? `, the field ${field} dB into it` : ''}` });
   }
 
+  // ----- the builds' gestures, drawn in line order (U2d): never a kind twice in a row within the theme -----
+  const builds: Build[] = [];
+  {
+    let prev: string | null = null;
+    const used = new Set<string>(), busy = new Set<number>();
+    for (const p of pending.filter((x) => !x.more).sort((x, y) => x.line - y.line)) {
+      const b = realize(p, new Set(prev ? [prev] : []), used, busy);
+      busy.add(p.line - 1).add(p.line);
+      if (b) { prev = b.kind; used.add(b.kind); builds.push(b); }
+    }
+    // U2e's builds after them, so every build above keeps the gesture it drew: never the kind of the build before it or after it
+    for (const p of pending.filter((x) => x.more).sort((x, y) => x.line - y.line)) {
+      const before = builds.filter((x) => x.line < p.line).sort((x, y) => y.line - x.line)[0], after = builds.filter((x) => x.line > p.line).sort((x, y) => x.line - y.line)[0];
+      const b = realize(p, new Set([before?.kind, after?.kind].filter((x): x is string => !!x)), used, busy);
+      busy.add(p.line - 1).add(p.line);
+      if (b) { used.add(b.kind); builds.push(b); }
+    }
+    builds.sort((x, y) => x.line - y.line);
+  }
+
   // a dip opening within half a bar of the next one's cut is held closed into it (the review of U2c: a filtered phrase's
   // re-entry into a cooldown opened to 15 kHz and was cut to 2.5 kHz 50 ms later)
   moves.dips.sort((x, y) => x.a - y.a);
@@ -535,7 +1091,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     const cur = moves.dips[i], next = moves.dips[i + 1];
     if (!cur.hold && next.a >= cur.b && next.a - cur.d < bs / 2) { cur.reopen = { c: cur.c, d: cur.d }; cur.into = next; cur.hold = true; cur.c = cur.d = next.a; }
   }
-  return { phrasing: summarised({ segments, answers, outs, cooldowns }), subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes };
+  return { phrasing: summarised({ segments, answers, outs, cooldowns, builds }), subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes };
 }
 
 /** The pass's one line, for the readout. */
@@ -594,7 +1150,7 @@ export function factorCurve(points: Array<{ t: number; value: number }>, knots: 
  * `c` back to its own value at `d`; the points between `a` and `d` are the dip's, the rest the curve's own. With `c` at
  * `b` there is no hold: the line closes to `b` and opens from there.
  */
-export function dipCurve(points: Array<{ t: number; value: number }>, a: number, b: number, c: number, d: number, hz: number, hold = false): Array<{ t: number; value: number }> {
+export function dipCurve(points: Array<{ t: number; value: number }>, a: number, b: number, c: number, d: number, hz: number, hold = false, top = 0, edge = 0.012): Array<{ t: number; value: number }> {
   if (!(d > a)) return points;
   const valueAt = (t: number) => {
     let prev = points[0];
@@ -608,7 +1164,9 @@ export function dipCurve(points: Array<{ t: number; value: number }>, a: number,
   // held, the line stays closed to `d` and the curve's own next point takes it from there (a cooldown into its break)
   if (hold) return [...points.filter((p) => p.t < a - 1e-9 || p.t > d + 1e-9), { t: a, value: v0 }, { t: b, value: close }, ...(d > b + 1e-9 ? [{ t: d, value: close }] : [])]
     .sort((x, y) => x.t - y.t);
-  return [...points.filter((p) => p.t < a - 1e-9 || p.t > d + 1e-9), { t: a, value: v0 }, { t: b, value: close }, ...(c > b + 1e-9 ? [{ t: c, value: open }] : []), { t: d, value: v1 }]
+  // (an opening that stops short of the line's own: to `top` octaves under it at `d - edge`, the line's own on `d`)
+  const short = top < 0 && d - edge > Math.max(b, c) + 1e-6 ? [{ t: d - edge, value: Math.max(open, Math.round(v1 * 2 ** top)) }] : [];
+  return [...points.filter((p) => p.t < a - 1e-9 || p.t > d + 1e-9), { t: a, value: v0 }, { t: b, value: close }, ...(c > b + 1e-9 ? [{ t: c, value: open }] : []), ...short, { t: d, value: v1 }]
     .sort((x, y) => x.t - y.t);
 }
 
@@ -631,7 +1189,47 @@ export function phrasingFaults(row: PhrasingRow): string[] {
   for (const k of [...Object.keys(row.segments.lean), ...Object.keys(row.outs.lean), ...Object.keys(row.cooldown.lean)]) if (typeof row.centre[k] !== 'number') bad.push(`a lean on ${k} with no centre`);
   return bad;
 }
+/**
+ * **The gesture rows' faults** (U2d): every row's weights numbers, its lanes the figure roles, its patterns only digits
+ * (a level in tenths, at most 0.7 of the copied hit on a lead: a build never peaks over its lane), `C` and rests, its
+ * landings and bass the interpreter's words, every bird it leans on a centre, every need known.
+ */
+export function gestureFaults(G: GestureFile): string[] {
+  const bad: string[] = [];
+  const num = (x: unknown) => typeof x === 'number' && Number.isFinite(x);
+  const LANES_OK = ['kick', 'backbeat', 'offbeat', 'sixteenth', 'open'];
+  const ids = new Set<string>();
+  const pats = (spec: unknown): string[] => (typeof spec === 'string' ? [spec] : spec && typeof spec === 'object' ? Object.values(spec as Record<string, string>) : []);
+  for (const r of G.rows) {
+    const at = `gesture ${r.id}`;
+    if (ids.has(r.id)) bad.push(`${at}: twice`);
+    ids.add(r.id);
+    if (!(num(r.weight) && r.weight >= 0) || !(num(r.size) && r.size >= 1 && r.size <= 3)) bad.push(`${at}: a weight and a size 1 to 3`);
+    for (const [k, w] of [...Object.entries(r.beats), ...Object.entries(r.stop)]) if (!num(Number(k)) || !num(w)) bad.push(`${at}: ${k} ${w}`);
+    if (Object.keys(r.beats).some((k) => ![1, 2, 4, 8].includes(Number(k)))) bad.push(`${at}: beats are 1, 2, 4 or 8`);
+    if (Object.keys(r.stop).some((k) => ![0, 2, 4].includes(Number(k)))) bad.push(`${at}: a stop is 0, 2 or 4 sixteenths`);
+    for (const k of Object.keys(r.land)) if (!['stroke', 'kick', 'bass'].includes(k)) bad.push(`${at}: no landing ${k}`);
+    if (!['window', 'stop', 'gate'].includes(r.bass)) bad.push(`${at}: bass is window, stop or gate`);
+    for (const l of [...(r.lead?.lanes ?? []), ...(r.rest ?? []), ...Object.keys(r.lanes ?? {}), ...(r.lift?.lanes ?? [])]) if (!LANES_OK.includes(l)) bad.push(`${at}: ${l} is not a drum lane`);
+    for (const p of [...pats(r.lead?.pattern), ...pats(r.lift?.pattern)]) if (!/^[1-7.]+$/.test(p)) bad.push(`${at}: the lead's or the lift's pattern ${p} is digits 1-7 and rests`);
+    for (const spec of Object.values(r.lanes ?? {})) for (const p of pats(spec)) if (!/^[1-9C.]+$/.test(p)) bad.push(`${at}: a lane's pattern ${p}`);
+    for (const k of Object.keys(r.birds ?? {})) if (typeof G.centre[k] !== 'number') bad.push(`${at}: a lean on ${k} with no centre`);
+    for (const n of r.needs ?? []) if (!['swell', 'notIntoBreak', 'kick'].includes(n)) bad.push(`${at}: no need ${n}`);
+    if (!r.lead && !(r.rest ?? []).length && !r.lift && !r.fx?.swellGain) bad.push(`${at}: nothing it plays`);
+  }
+  // the sound table: every parameter's unit known, its birds on a centre, its range holding nought (the house's own),
+  // its kinds the rows'; the parameters the interpreters read all there
+  for (const [id, P] of Object.entries(G.sound?.params ?? {})) {
+    if (!['octaves', 'lean', 'dB', 'share'].includes(P.unit)) bad.push(`sound ${id}: no unit ${P.unit}`);
+    for (const [k, x] of Object.entries(P.birds)) if (typeof G.centre[k] !== 'number' || !num(x)) bad.push(`sound ${id}: a move on ${k} with no centre`);
+    if (!(Array.isArray(P.range) && P.range.length === 2 && P.range[0] <= 0 && P.range[1] >= 0)) bad.push(`sound ${id}: a range holding nought`);
+    for (const k of P.kinds ?? []) if (!ids.has(k)) bad.push(`sound ${id}: no kind ${k}`);
+  }
+  for (const id of ['filtered.cut', 'filtered.open', 'reverse.band', 'reverse.sweep', 'whoosh.hp', 'riser.band', 'glue.tail', 'glue.wet', 'roll.density', 'roll.length', 'stop.length', 'landing.size', 'crash.bright', 'crash.decay'])
+    if (!G.sound?.params?.[id]) bad.push(`sound: no ${id}`);
+  return bad;
+}
 {
-  const bad = Object.values(PHRASING_ROWS).flatMap(phrasingFaults);
+  const bad = [...Object.values(PHRASING_ROWS).flatMap(phrasingFaults), ...gestureFaults(GESTURES)];
   if (bad.length) throw new Error(`the phrasing rows: ${bad.join('; ')}`);
 }

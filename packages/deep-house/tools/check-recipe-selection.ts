@@ -56,7 +56,9 @@ test('motif comparisons retain drums, harmony, tempo and non-target bass events'
     assert.deepEqual(t.timeline,tracks[0].timeline);
     // a bass out's marks follow the bass (U2b: its fill on its last bar, a swell into its line; a bass motif that holds
     // its line where another leaves it lays no out there), so the drums are compared off the bars of either's outs
-    const marked=new Set([t,tracks[0]].flatMap(x=>(x.phrasing?.outs??[]).flatMap(o=>[o.to-1,o.to])));
+    // (U2d: a theme's builds draw their gestures in line order, so an out one motif lays and another does not moves the
+    // next build's gesture: the drums are compared off every build's bars of either, its lead-in and its line with them)
+    const marked=new Set([t,tracks[0]].flatMap(x=>[...(x.phrasing?.outs??[]).flatMap(o=>[o.to-1,o.to]),...(x.phrasing?.builds??[]).flatMap(b=>[b.line-2,b.line-1,b.line])]));
     const drums=(x:typeof t)=>x.events.filter(e=>['drum','noise'].includes(BY_NAME[e.voice]?.family)&&!marked.has(e.bar));
     assert.ok(drums(t).length > 0); assert.deepEqual(drums(t),drums(tracks[0]));
   }

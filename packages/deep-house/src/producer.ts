@@ -29,8 +29,10 @@
 // TypeScript tables, the choices rows, the pitches scale steps over the track's own chords.
 
 import PRODUCER_FILE from '../recipes/ambient/producer.json' with { type: 'json' };
+import GESTURES_FILE from '../recipes/arrangement/gestures.json' with { type: 'json' };
 import { PASSAGE_ROWS, LEN, posOf, posAt as posFrom, sixteenthsOf, scalePitch, type PassageRow, type Line, type Strike, type BassOp, type DrumState, type End, type WeatherSpan, type Fx,
-  type FieldSwell, type Bloom, type Holds, type Texture } from './passage.ts';
+  type FieldSwell, type Bloom, type Holds, type Texture, type DropBuild } from './passage.ts';
+import { gestureSound, soundFor, soundLean, densified, glueSoundOf, type GestureFile, type GestureRow, type Build, type LandingKind } from './phrasing.ts';
 import { Rng } from './rng.ts';
 import { lean as leanBy, leaned, leansOf, centreOf, strengthOf, shiftOf, type LeanRow } from './lean.ts';
 import type { PlanEvent } from './generator.ts';
@@ -99,7 +101,30 @@ export interface ProducerRow {
   feature?: { bars: number; after: number; lines: Array<Line & { label?: string }>;
     bass: { top: number; notes: Array<[string, number, number, number]>; vel: number; scoopSt: number; scoopS: number; db: number; dbPerSt: number };
     drums: { states: string; answer: string } };
+  /**
+   * **The drum-led build and landing into every drop and the half-time breath's return** (fast-drops; his word 10-13 on
+   * the Drum & Bass tile: "the drop … lost drum emphasis and other voices build up, so it feels strange"): the
+   * vocabulary's rows (`recipes/arrangement/gestures.json`, U2d) the kit takes, drawn per line off a stream of its own,
+   * never the theme's last kind again, leaned by `birds` about `centre` (the tile's own, so a bird at the tile leans
+   * nothing); every bird of `centre` leans the gestures' sound (the vocabulary's `sound` table) about the tile's own
+   */
+  gestures?: { kinds: string[]; birds: string[]; centre: Record<string, number>;
+    /** the field's cut through a stop (a gesture's own `field.cutDb` in its place), every edge in seconds */
+    stopDb: number; edgeS: number;
+    /** the lanes no build rests here but a silence (the kick: the drums lead the build, never the sweep alone) */
+    keep: string[];
+    /** the rolls whose last played beat climbs on to `level` of the hit it copies (a fast place's roll reaches the drop;
+     * the house's builds keep U2c's 0.7), the beats before it keeping their ramp */
+    peak: { kinds: string[]; level: number } };
 }
+const GESTURES = GESTURES_FILE as unknown as GestureFile;
+/** A build's length in words, by its beats. */
+const BEAT_WORDS: Readonly<Record<number, string>> = { 1: 'the last beat', 2: 'the last two beats', 4: 'the last bar', 8: 'the last two bars' };
+/** A gesture's pattern for `beats` (its own for that length where it names one per length, else its longest), right-aligned to `n` sixteenths. */
+const patternFor = (spec: string | Record<string, string>, beats: number, n: number): string => {
+  const raw = typeof spec === 'string' ? spec : spec[String(beats)] ?? spec[Object.keys(spec).sort((x, y) => Number(y) - Number(x))[0]] ?? '';
+  return raw.length >= n ? raw.slice(raw.length - n) : '.'.repeat(n - raw.length) + raw;
+};
 
 const FILE = PRODUCER_FILE as unknown as { rows: ProducerRow[] };
 /** The producer rows, by id (`recipes/ambient/producer.json`). */
@@ -244,6 +269,15 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
   delete phrases.says;
   const plans: PhrasePlan[] = [];
   const end = (bar: number, e: End[], says: string) => { if (e.length) endings.push({ bar: rel(bar), end: e, says }); };
+  // the lines a drum-led build leads into (fast-drops): a drop, and the half-time breath's return; each line's gesture
+  // is drawn after the phrases, in line order, off a stream of its own (no die of the grammar's moves)
+  const GB = G.gestures;
+  const arrivals: Array<{ line: number; into: 'drop' | 'return'; plan: PhrasePlan }> = [];
+  const arriveAt = (line: number, into: 'drop' | 'return', plan: PhrasePlan) => {
+    const was = arrivals.find((x) => x.line === line);
+    if (!was) arrivals.push({ line, into, plan });
+    else if (into === 'drop') was.into = 'drop';
+  };
   /** the field swelling from a sixteenth into the downbeat of `bar`, back over `release` beats */
   const swellInto = (from16: number, bar: number, db: number, release: number) => swells.push({ from: posAt(from16), to: posAt(bar * 16), db, release });
   /** a return marked: a reverse swell into `bar`, a crash on it into the hall, the field leaning in */
@@ -357,11 +391,14 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     plan.drums = kind === 'breakdown' ? 'none (the harmony alone)' : !drums ? 'none' : n >= 8 ? `${s1} ${p}-${half - 1}, ${s2} ${half}-${q - 1}` : `${s1}`;
     if (s2 === 'T') crestNext = true;
     // the half-time breath, with its way in and its way out
+    // (the breath's way out is the build into its return where the row draws one, laid with the drummer's ending below;
+    // a breath into the outro keeps its fill, the outro's own way in following it)
+    const breathOut = s2 === 'H' && !!GB && into !== 'outro';
     if (s2 === 'H') {
       end(half - 1, ['halfBarBreath', 'snareDeparture', 'topsClose', 'reverseCymbal'], 'the way into the half-time breath: the tops close, the snare thrown into the echo, a reverse swell into the gap');
-      end(q - 1, ['fill'], 'the way out: the snare\'s fill rising, its last hit thrown');
+      if (!breathOut) end(q - 1, ['fill'], 'the way out: the snare\'s fill rising, its last hit thrown');
       swellInto((q - 1) * 16, q, G.anticipation.fieldDb, RB.breath);
-      plan.drums += ' (in: tops closing, snare thrown, reverse swell; out: fill, crash, tops opening)';
+      plan.drums += breathOut ? ' (in: tops closing, snare thrown, reverse swell; out: a drum-led build into its return)' : ' (in: tops closing, snare thrown, reverse swell; out: fill, crash, tops opening)';
     }
 
     // --- the voice: the function's utterance, target first ---
@@ -477,9 +514,17 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       else if (arrives || into === 'drop') table = 'arrival';
       else table = 'plain';
       let pick = 'none';
-      if (table === 'dominant') { end(q - 1, ['ghostAnswer', 'lastBeatEmpty'], 'a short ghost answer, then the leading tone alone over the dominant'); pick = 'ghostAnswer+lastBeatEmpty'; }
+      // the bar before the line is the build's (fast-drops): no ending of the drummer's is written there
+      let built = false;
+      if (table === 'dominant') {
+        // (the passing dominant's arrival is the voice's: its leading tone alone over the dominant, as it was)
+        // (a breath's return over it is the build's as every other: the drums lead into the line)
+        if (breathOut) { arriveAt(q, 'return', plan); built = true; pick = 'build'; }
+        else { end(q - 1, ['ghostAnswer', 'lastBeatEmpty'], 'a short ghost answer, then the leading tone alone over the dominant'); pick = 'ghostAnswer+lastBeatEmpty'; }
+      }
       else if (into === 'drop') {
-        end(q - 1, ['roll'], 'the roll into the drop'); pick = 'roll';
+        if (GB) { arriveAt(q, 'drop', plan); built = true; pick = 'build'; }
+        else { end(q - 1, ['roll'], 'the roll into the drop'); pick = 'roll'; }
         // the build into the first drop rises to it as the break's does (the planner takes its kick out there)
         if (kind !== 'breakdown' && G.builds) {
           const Bx = G.exposed.build, from16 = (q - G.builds.riserBeats / 4) * 16;
@@ -491,8 +536,12 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         markThinning(q, 'the tops close into the outro, a reverse swell into it', 'the outro begins with a crash into the hall');
         pick = 'topsClose+reverseCymbal';
       }
-      else { pick = draw(fxLean(G.drums.endings[table]), (k) => !building || k === 'none' || G.builds!.endings.includes(k)); if (pick !== 'none') end(q - 1, pick.split('+') as End[], `the ending (${table})`); }
-      plan.drums += `; ending ${pick}`;
+      else {
+        pick = draw(fxLean(G.drums.endings[table]), (k) => !building || k === 'none' || G.builds!.endings.includes(k));
+        if (breathOut) { arriveAt(q, 'return', plan); built = true; }
+        if (pick !== 'none' && !built) end(q - 1, pick.split('+') as End[], `the ending (${table})`);
+      }
+      plan.drums += built ? '' : `; ending ${pick}`;
       // the inflection inside the phrase
       const ib = fn === 'arrival' ? p + 1 : p + 3;
       if (n >= 8 && s1 !== 'H' && s1 !== 'T' && rng.chance(G.drums.inflection.chance) && !endings.some((x) => x.bar === rel(ib))) {
@@ -502,6 +551,8 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       }
       // the bass may answer into the ending's gap
       if (bass && ['kickOut', 'openEnding', 'hatCut', 'ghostTurn'].includes(pick) && rng.chance(answerChance)) answerTo = pick;
+      // (a build's bar has no ending's gap to answer: the die is cast all the same, so no later one moves)
+      if (built) answerTo = '';
     }
     // the planner's own thinning (the drums falling to a skeleton, the bass gone) gets a way in: the tops close into it,
     // a crash into the hall marks it, the field leans in
@@ -647,7 +698,8 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       if (fn === 'intoDrop') {
         const B = E.build, b0 = Math.max(p, q - B.bars);
         states.push({ from: rel(b0), to: rel(q), state: 'B', fade: { source: q - b0, hp: B.hp, db: landingAt(b0) && B.landingDb ? B.landingDb : B.db } });
-        end(q - 1, ['roll', 'reverseCymbal'], 'the roll accelerating into the drop, a reverse swell on it');
+        if (GB) { end(q - 1, ['reverseCymbal'], 'a reverse swell on the build into the drop'); arriveAt(q, 'drop', plan); }
+        else end(q - 1, ['roll', 'reverseCymbal'], 'the roll accelerating into the drop, a reverse swell on it');
         if (riserAt(q)) fx.push({ at: posAt((q - B.riserBeats / 4) * 16), kind: 'riser', beats: B.riserBeats, db: B.riserDb, send: 'riser', label: `the riser into the drop at ${q}` });
         swellInto(b0 * 16, q, B.fieldDb, RB.build);
         if (!(per.get(q)?.crash)) end(q, ['crash'], 'the drop\'s crash');
@@ -665,7 +717,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         // the space holds while the drums come in: the pad under the build, on the arriving chord's fifth and seventh,
         // held across the whole build and rising into the drop
         blooms.push({ at: `${rel(b0)}:1`, over: 'here', notes: B.pad.notes, bars: Math.min(B.pad.bars, q - b0), attack: B.pad.attack, release: B.pad.release, send: E.pad.send, ...(B.pad.rise ? { rise: B.pad.rise } : {}), label: `pad under the build into ${q}` });
-        plan.drums = `B ${b0}-${q - 1}: the drop's drums fading in through a high-pass ${B.hp[0]}->${B.hp[1]} Hz, ${B.db[0]}->${B.db[1]} dB; the roll in ${q - 1}`;
+        plan.drums = `B ${b0}-${q - 1}: the drop's drums fading in through a high-pass ${B.hp[0]}->${B.hp[1]} Hz, ${B.db[0]}->${B.db[1]} dB${GB ? '' : `; the roll in ${q - 1}`}`;
         plan.space += `the riser and the field swelling (+${B.fieldDb} dB) into ${q}`;
         says.push(`the build: drums, riser, field and ${dominant ? 'the dominant with the voice\'s leading tone' : 'the voice\'s approach'} all point at ${q}`);
       } else plan.space += 'the weather forward and moving across the field';
@@ -683,12 +735,126 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     plansDone++;
   }
 
+  // ----- the drum-led build into every drop and the breath's return, and the landing (fast-drops) -----
+  // His word 10-13 on the Drum & Bass tile's drop: "lost drum emphasis and other voices build up, so it feels strange".
+  // On the line's last bar (or its last two) the drums lead with a gesture of the vocabulary (U2d's rows the kit takes:
+  // a snare or hat roll, the kick doubling, a full stop with one hit, a whoosh), the drums and the bass stop (an eighth,
+  // a beat, or not at all), and the line lands (the theme's crash on the one, the kick alone through its first beat, or
+  // the kick and the bass); the pads that would fade into the line rise into it instead (the arc, below). Drawn in line
+  // order, each off its own stream: never the theme's last kind again, a played one at the vocabulary's `recent`, the
+  // bigger and the longer weighed up (every one of these lines is a big arrival), Veil and Spark leaning the kinds about
+  // the tile's own.
+  const builds: DropBuild[] = [];
+  const buildLines = new Set<number>();
+  if (GB) {
+    const s16 = bs / 16;
+    const isGhost = (e: PlanEvent) => e.voice === 'snareGhost' || e.p.hit === 'ghost';
+    const laneOf = (e: PlanEvent): string | null => (I.isKick(e.voice) ? 'kick' : e.layer === 'clap' ? (isGhost(e) ? null : 'backbeat') : e.layer !== 'hats' ? null
+      : e.voice === 'hatOpen' ? 'open' : e.voice === 'hatSoft' ? 'sixteenth' : 'offbeat');
+    const kitAt = (a: number, b: number) => { const k = new Set<string>(); for (const e of I.events) if (!e.p.gone && e.bar >= a && e.bar < b) { const r = laneOf(e); if (r) k.add(r); } return k; };
+    const crashSounds = I.events.some((e) => e.voice === 'crash' && !e.p.gone) || endings.some((x) => x.end.includes('crash'));
+    const pick = (r: Rng, w: W): string | null => { const pairs = Object.entries(w).filter(([, x]) => x > 0).map(([v, x]) => ({ v, w: x })); return pairs.length ? r.weighted(pairs) : null; };
+    const leanG = (g: GestureRow) => GB.birds.reduce((x, bird) => x * leanBy(g.birds?.[bird] ?? 0, I.spell[bird], 1, GB.centre[bird] ?? 0.5), 1);
+    // the gestures' sound by the birds, about the fast place's own (none at the tile)
+    const SH = gestureSound(I.spell as unknown as Record<string, number>, GB.centre);
+    const C = GESTURES.choice;
+    // a roll's last played beat (the four sixteenths before the stop) climbing evenly from its first hit's level to the
+    // peak's (`X` a whole hit), the beats before it as the row writes them
+    const peaked = (kind: string, pat: string, stop: number) => {
+      if (!GB.peak.kinds.includes(kind)) return pat;
+      const z = pat.length - stop, a = Math.max(0, z - 4), hits: number[] = [];
+      for (let i = a; i < z; i++) if (pat[i] >= '1' && pat[i] <= '9') hits.push(i);
+      if (hits.length < 2) return pat;
+      const v0 = Number(pat[hits[0]]) / 10, top = GB.peak.level, out = pat.split('');
+      hits.forEach((i, k) => { const v = v0 + (top - v0) * k / (hits.length - 1); out[i] = v >= 0.95 ? 'X' : String(Math.max(1, Math.min(9, Math.round(v * 10)))); });
+      return out.join('');
+    };
+    let prev: string | null = null;
+    const usedKinds = new Set<string>();
+    for (const A of [...arrivals].sort((a, b) => a.line - b.line)) {
+      const q = A.line, r = new Rng(`${I.seed}::producer:gesture:${q}`);
+      // the kit around the line: what the drums play there (a build's `B` bars are the drop's own drums, cloned)
+      const kit = kitAt(q - 1, q + 1);
+      const leadOf = (g: GestureRow) => (g.lead ? g.lead.lanes.find((l) => kit.has(l)) ?? null : null);
+      // a gesture with no lead lane of its own (a whoosh: the drums thinned under its sweep) only where the drums it keeps
+      // play whole: never over the breath's half-time or the break's build fading in, where it would leave the bar to
+      // the fx (the emphasis his word asks back is the drums')
+      const whole = !states.some((x) => (x.state === 'H' || x.state === 'B' || x.state === 'O') && rel(q - 1) >= x.from && rel(q - 1) < x.to);
+      const ok = GESTURES.rows.filter((g) => GB.kinds.includes(g.id) && (!g.needs?.includes('kick') || kit.has('kick')) && (g.lead ? !!leadOf(g) : whole && [...(g.rest ?? []), ...(g.lift?.lanes ?? [])].some((l) => kit.has(l))));
+      const w = (g: GestureRow, repeat: number) => g.weight * (C.size.big[String(g.size)] ?? 1) * leanG(g) * (g.id === prev ? repeat : usedKinds.has(g.id) ? C.recent : 1);
+      let pairs = ok.map((g) => ({ v: g, w: w(g, C.repeat) })).filter((x) => x.w > 0);
+      if (!pairs.length) pairs = ok.map((g) => ({ v: g, w: w(g, 1) })).filter((x) => x.w > 0);
+      if (!pairs.length) {
+        // no gesture the kit takes: the producer's own way in, as it was
+        end(q - 1, [A.into === 'drop' ? 'roll' : 'fill'], A.into === 'drop' ? 'the roll into the drop' : 'the way out: the snare\'s fill rising, its last hit thrown');
+        continue;
+      }
+      const g = r.weighted(pairs);
+      // its length: two bars only where the bar before is the same section's, the drums play there and no other small
+      // thing of the drummer's stands on it
+      const twoOk = sectionOf(q - 2) === sectionOf(q - 1) && (drumsIn(q - 2, q - 1) || states.some((x) => x.state === 'B' && rel(q - 2) >= x.from && rel(q - 2) < x.to))
+        && !endings.some((x) => x.bar === rel(q - 2));
+      const bw: W = {};
+      const spellOf = I.spell as unknown as Record<string, number>;
+      for (const [x, wt] of Object.entries(g.beats)) { const n = Number(x); if (n > 4 && !twoOk) continue; bw[x] = wt * C.longer.big ** Math.log2(n / 2) * soundLean(spellOf, GB.centre, 'roll.length', Math.log2(n / 2)); }
+      const beats = Number(pick(r, bw) ?? 2);
+      // (the longer stop leaned by the birds, per beat of it)
+      let stop = Number(pick(r, SH['stop.length'] ? Object.fromEntries(Object.entries(g.stop).map(([x, wt]) => [x, wt * soundLean(spellOf, GB.centre, 'stop.length', Number(x) / 4)])) : g.stop) ?? 0);
+      // the landing, among those the line takes: the theme's crash on the one; the kick alone through the first beat (the
+      // kick on the line); the kick and the bass (a bass note on the first beat)
+      const kickOnLine = I.events.some((e) => !e.p.gone && I.isKick(e.voice) && Math.abs(e.t - q * bs) < s16 / 2);
+      const bassOnOne = I.events.some((e) => !e.p.gone && e.layer === 'bass' && typeof e.p.midi === 'number' && e.t >= q * bs - 1e-6 && e.t < q * bs + 4 * s16);
+      const okL: Record<LandingKind, boolean> = { stroke: crashSounds, kick: kickOnLine, bass: kickOnLine && bassOnOne };
+      const lw: W = {};
+      for (const [x, wt] of Object.entries(g.land)) if (okL[x as LandingKind]) lw[x] = (wt ?? 0) * (GESTURES.landings.big[x] ?? 1);
+      const land = (pick(r, lw) as LandingKind | null) ?? 'none';
+      // a big arrival lands on silence (an eighth's stop at least) where its gesture has none of its own and nothing else
+      // lands on the line; a whoosh always (no drum of its own: the hats would tick on into the drop)
+      if (stop === 0 && !g.silence && g.field?.gateDb === undefined && !g.fx?.swellGain && (!g.lead || land === 'none')) stop = 2;
+      const twoBar = beats * 4 > 16, startStep = twoBar ? 0 : 16 - Math.min(beats * 4, 16);
+      if (!twoBar && 16 - stop - startStep < 4) stop = 0;
+      if (land === 'stroke' && !(per.get(q)?.crash) && !endings.some((x) => x.bar === rel(q) && x.end.includes('crash'))) end(q, ['crash'], `the build lands: a crash on ${q}`);
+      const landWords = land === 'stroke' ? 'the crash on the one' : land === 'kick' ? 'the kick alone through the first beat' : land === 'bass' ? 'the kick and the bass alone through the first beat' : '';
+      const label = `${g.name} (${BEAT_WORDS[beats] ?? `${beats} beats`}${stop ? `, a stop on the last ${stop === 2 ? 'eighth' : stop === 4 ? 'beat' : `${stop} sixteenths`}` : ''}${landWords ? `; ${landWords}` : ''})`;
+      const stopStep = 16 - stop;
+      const cutFrom = g.field?.cutFrom === 'window' ? 'window' as const : stop > 0 ? 'stop' as const : 'line' as const, landBeat = land === 'kick' || land === 'bass';
+      // the roll's density by the birds; the lift on the first of its lanes the kit plays (never the lead's), climbing
+      // into the stop as a roll does here
+      const dense = soundFor(SH, 'roll.density', g.id);
+      const leadLane = leadOf(g), liftLane = g.lift?.lanes.find((l) => l !== leadLane && kit.has(l)) ?? null;
+      const lanes = { ...Object.fromEntries(Object.entries(g.lanes ?? {}).map(([k, v]) => [k, peaked(g.id, patternFor(v, beats, stopStep - startStep), 0)])),
+        ...(g.lift && liftLane && !g.lanes?.[liftLane] ? { [liftLane]: peaked(g.id, densified(patternFor(g.lift.pattern, 4, stopStep), dense), 0) } : {}) };
+      const stroke = land === 'stroke' ? glueSoundOf(SH, g.id, 'stroke') : undefined;
+      builds.push({ line: rel(q), kind: g.id, name: g.name, beats, stop, land, into: A.into,
+        ...(g.lead ? { lead: { lanes: [...g.lead.lanes], pattern: peaked(g.id, densified(patternFor(g.lead.pattern, beats, beats * 4), dense), stop) } } : {}),
+        ...(Object.keys(lanes).length ? { lanes } : {}),
+        rest: (g.rest ?? []).filter((l) => g.silence || !GB.keep.includes(l)), bass: g.bass === 'stop' ? 'stop' : 'window', ...(g.silence ? { silence: true } : {}),
+        ...(g.fx?.hpHz ? { hpHz: Math.round(g.fx.hpHz * 2 ** soundFor(SH, 'whoosh.hp', g.id)) } : {}), ...(stroke ? { stroke } : {}), label,
+        // the field cut through the stop (a full stop's whole window), back on the line, or on its second beat where the
+        // kick or the kick and the bass land alone: the drums lead, the field never builds over their silence
+        ...(cutFrom !== 'line' || landBeat ? { cut: { db: g.field?.cutDb ?? GB.stopDb, from: cutFrom, to: landBeat ? 'beat' as const : 'line' as const, edgeS: GB.edgeS } } : {}) });
+      buildLines.add(q);
+      // the other voices build into it: the glue's riser over the window, where the theme sounds one and none lands on
+      // the line already (a whoosh's; a return's, admitted as a drop's riser is, by Veil)
+      if (!g.silence && (g.fx?.riserGain || A.into === 'return') && fx.some((f) => f.kind === 'riser') && !fx.some((f) => f.kind === 'riser' && sixteenthsOf(f.at) + 4 * (f.beats ?? 0) === rel(q) * 16)
+        && (g.fx?.riserGain || riserAt(q))) {
+        const a16 = twoBar ? (q - 2) * 16 : (q - 1) * 16 + startStep;
+        const sound = glueSoundOf(SH, g.id, 'riser');
+        fx.push({ at: posAt(a16), kind: 'riser', beats: (q * 16 - a16) / 4, send: 'riser', label: `the riser under the build into ${q}`, ...(sound ? { sound } : {}) });
+      }
+      A.plan.drums += `; the build into ${q}: ${label}`;
+      A.plan.answers = [A.plan.answers, `the drums lead the build into ${q} and land on it`].filter(Boolean).join('; ');
+      prev = g.id;
+      usedKinds.add(g.id);
+    }
+  }
+
   // every chord change the drums play into is answered by them: the passage is written for its own track's landings, and
   // a landing can fall inside a phrase; where nothing in the bar before or on the landing is a landing's gesture, the
   // drums take part there too
   for (const l of I.landings) {
     if (!l.change || !drumsIn(l.bar - 1, l.bar + 1) || kindAt(l.bar) === 'breakdown') continue;
-    if (endings.some((x) => (x.bar === rel(l.bar) || x.bar === rel(l.bar - 1)) && x.end.some((e) => GESTURE.has(e)))) continue;
+    if (endings.some((x) => (x.bar === rel(l.bar) || x.bar === rel(l.bar - 1)) && x.end.some((e) => GESTURE.has(e))) || buildLines.has(l.bar)) continue;
     if (states.some((x) => x.from === rel(l.bar) && (x.state === 'T' || x.state === 'H'))) continue;
     const g = draw(fxLean(G.drums.landing)).split('+');
     if (g.includes('reverseCymbal')) end(l.bar - 1, ['reverseCymbal'], `a reverse swell into the landing at ${l.bar}`);
@@ -822,6 +988,24 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
       }
       b = z;
     }
+    // the voices build with the drums (fast-drops): the line's entry that would fade out before a drum-led build rises on
+    // into it in place of its fade, cut where the build's silence or its stop starts (else released on the line), so the
+    // build never leads into a hole in the bed. Laid after the bed's cover is read: no other entry moves
+    const abs0 = bloomsAbs();
+    for (const b of builds) {
+      const q = I.drop + b.line, twoBar = b.beats * 4 > 16;
+      const w0 = twoBar ? q - 2 : q - Math.min(b.beats * 4, 16) / 16;
+      const cut = b.silence ? w0 : b.stop > 0 ? q - b.stop / 16 : null;
+      blooms.forEach((B, i) => {
+        const { from, to } = abs0[i];
+        if (!B.fadeBars || to > q + 1e-6 || to <= q - 2 || capAfter(from, q) < q || abs0.some((o, j) => j !== i && o.from >= to - 1e-6 && o.from < q)) return;
+        const fade0 = from + Math.max(B.bars * 0.35, B.bars - B.fadeBars);
+        if (cut != null && cut <= fade0 + 1e-6) return;
+        // (a copy: the row's own blooms are shared)
+        blooms[i] = { ...B, into: { bars: +(q - from).toFixed(4), ...(cut != null ? { cut: +(cut - from).toFixed(4) } : {}) } };
+        sayPad(from, `the pad rising on into the build into ${q}${cut != null ? `, cut where the ${b.silence ? 'silence' : 'stop'} starts` : ''}`);
+      });
+    }
     for (const [from, xs] of padPlans) { const pl = plans.find((y) => y.from === from); if (pl) pl.space = [pl.space, ...xs].filter(Boolean).join('; '); }
   }
 
@@ -859,7 +1043,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     weather,
     fx,
     swells,
-    drums: { ...passage.drums, states, endings, thinBars: thin },
+    drums: { ...passage.drums, states, endings, thinBars: thin, ...(builds.length ? { builds } : {}) },
     bass: { ...passage.bass, phrases: bassPhrases, floor: G.bass.floor, ...(G.bass.register ? { register: G.bass.register } : {}) },
     ...(G.holds ? { holds: holdsIn(G.holds) } : {}),
     ...(G.texture && tSpans.length ? { texture: { ...G.texture, spans: tSpans } } : {}),

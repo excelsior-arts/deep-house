@@ -106,7 +106,7 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
           vel: part.accents[i] * (feel ? human!.float(1-feel.dynamics,1) : r.float(0.96, 1)),
           ...(lane.role === 'kick' ? {} : { pan: r.float(-S.space.hatPan, S.space.hatPan) }),
           ...trim,
-          ...(sound ? { ...sound.params, gain:(trim.gain ?? 1)*dbToGain(sound.gainDb) } : {}),
+          ...(sound ? { ...sound.params, gain:(trim.gain ?? 1)*dbToGain(sound.gainDb + (character!.levelDb ?? 0)) } : {}),
         }, { bar: c.bar, step, layer: layerOf(voice), ...(pinned?.role === lane.role ? { part: pinned.id } : selectedRecipeFor(lane.role) ? { part: selectedRecipeFor(lane.role)!.id } : {}) });
       });
     }

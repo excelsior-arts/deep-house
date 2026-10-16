@@ -65,7 +65,9 @@ test('developed ordinary and pinned tracks contain real contrast, bounded sectio
         if (!claimed) assert.ok(!t.events.some(e=>e.layer==='shaker'&&e.bar>=s.startBar&&e.bar<s.startBar+8));
         // (a phrase's build and stop, on its last bar alone, are the arrangement's over the score: U2c)
         else { const built=((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
-      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(t); assert.ok(t.events.filter(e=>e.layer==='shaker'&&!built.has(e.bar!)).every(e=>e.part),'catalogue scores retain their own musical rests'); }
+      .filter((x: any) => x.build || (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)
+      // (a gesture over two bars builds on the bar before too: U2d)
+      .concat((t.phrasing?.builds ?? []).filter((b: any) => b.beats > 4).map((b: any) => b.line - 2))))(t); assert.ok(t.events.filter(e=>e.layer==='shaker'&&!built.has(e.bar!)).every(e=>e.part),'catalogue scores retain their own musical rests'); }
         assert.notDeepEqual(s.phrases[0].layers,s.phrases[1].layers);
       }
     }

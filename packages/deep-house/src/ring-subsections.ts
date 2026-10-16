@@ -8,13 +8,20 @@
 //
 //   the phrase track  the sub-segments of a long main and the cooldown into a break
 //   the low track     the bass out before a drop or a return, and across a cooldown
-//   a stroke          the drums answering an arrival, across both tracks at the arrival's bar
+//   a stroke          the drums answering an arrival, across both tracks at the arrival's bar (a turn: the phrase track's alone)
 //
-// A later kind (the pad's arc) is one more row of `SUB_STYLE` and one more line of `subMarksOf`. Nothing here draws;
-// the ring does (`drawSubMarks`). Nothing here names a place, a genre or a seed.
+// Since U2e every moment the theme already wrote down is marked (`track.moments`, `src/moments.ts`, read by `marksOf`):
+// the phrasing's marks above, the house's own small things (a switch-up a short dash, a turnaround a stroke across the
+// phrase track, a variation the groove's light long dash), the lead-ins' risers (fine dots into the line), the pad
+// arc's crest (a hairline on the low track), and the fast places' producer and development (their half-time breaths,
+// states, endings, outs, cooldowns and arrivals in the same kinds). A later kind is one more row of `SUB_STYLE`.
+// Nothing here draws; the ring does (`drawSubMarks`). Nothing here names a place, a genre or a seed.
 
 /** Every kind a mark is drawn as. */
-export type SubMarkKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-out' | 'fill' | 'cooldown' | 'bass-out' | 'answer';
+export type SubMarkKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-out' | 'fill' | 'cooldown' | 'bass-out' | 'answer'
+  // U2e (`src/moments.ts`): the house's own switch-ups, a turn at a line (a turnaround, a development's answer), a riser
+  // leading into a line, a crest (the pad arc's, the producer's spotlight and closing moment), a groove's other state
+  | 'switch-up' | 'turn' | 'lead-in' | 'crest' | 'groove';
 
 /** One mark: its kind, its bars (`to` exclusive; an answer is the line at `from`, `to` the same bar) and its line. */
 export interface SubMark { kind: SubMarkKind; from: number; to: number; label: string }
@@ -48,23 +55,34 @@ export const SUB_STYLE: Readonly<Record<SubMarkKind, SubStyle>> = Object.freeze(
   'bass-out': { track: 'low', shape: 'span', w: 2, dash: '1.5 3.5', op: 0.75 },
   // the drums answering the line: a stroke across both tracks
   answer: { track: 'both', shape: 'tick', w: 1.6, dash: null, op: 0.5 },
+  // U2e: the house's own switch-up (a stretch of the groove changed), a short dash between the breakdown's and half-time's
+  'switch-up': { track: 'phrase', shape: 'span', w: 2, dash: '3 5', op: 0.6 },
+  // a turn at a line (a turnaround, a development's answer, a producer's ghost turn): a stroke across the phrase track alone
+  turn: { track: 'phrase', shape: 'tick', w: 1.4, dash: null, op: 0.55 },
+  // a riser leading into a line: fine dots rising to it
+  'lead-in': { track: 'phrase', shape: 'span', w: 1.2, dash: '1 3', op: 0.7 },
+  // a crest (the pad arc's, the producer's spotlight and closing moment): a hairline on the low track
+  crest: { track: 'low', shape: 'span', w: 1, dash: null, op: 0.45 },
+  // the groove's other state for a stretch (a variation, a roller's answer): a light long dash
+  groove: { track: 'phrase', shape: 'span', w: 1.2, dash: '4 3', op: 0.45 },
 });
 
 /** The phrasing as the track carries it (a structural read: the plan may come off a worker as plain data). */
 interface PhrasingLike {
-  segments?: ReadonlyArray<{ kind: string; from: number; to: number; label?: string; reentry?: string | null; answered?: readonly string[] }>;
+  segments?: ReadonlyArray<{ kind: string; from: number; to: number; label?: string; reentry?: string | null; answered?: readonly string[]; build?: string; houseEnd?: number }>;
   answers?: ReadonlyArray<{ bar: number; label?: string }>;
-  outs?: ReadonlyArray<{ from: number; to: number; label?: string; fill?: string | null; lift?: readonly string[] }>;
+  outs?: ReadonlyArray<{ from: number; to: number; label?: string; fill?: string | null; lift?: readonly string[]; build?: string }>;
   cooldowns?: ReadonlyArray<{ from: number; to: number; label?: string }>;
 }
 
 const SEGMENT: Record<string, SubMarkKind> = { 'breakdown-lite': 'breakdown-lite', 'half-time': 'half-time', filtered: 'filtered', 'drop-out': 'drop-out', fill: 'fill' };
 /**
- * A build heard on a line's last bar (U2c: the drums roll into the line and stop on its last eighth; a re-entry's fill
- * is played as the build): its row named, and the track saying a lane rolled — what the labels say is what was heard.
+ * A build heard on a line's last bar (U2c: the drums build into the line; a re-entry's fill is played as the build):
+ * the gesture the track names as heard (U2d: a roll, a stutter, a whoosh, a full stop, a reverse cymbal …), or, on a
+ * track written before the gestures, its row named and a lane said rolling — what the labels say is what was heard.
  */
-export const builtOn = (row: string | null | undefined, said: readonly string[] | undefined): boolean =>
-  !!row && (said ?? []).some((x) => / rolling/.test(x));
+export const builtOn = (row: string | null | undefined, said: readonly string[] | undefined, build?: string | null): boolean =>
+  !!build || (!!row && (said ?? []).some((x) => / rolling/.test(x)));
 /**
  * The marks of a theme's phrasing, in bar order, each at its real bars and clipped to the theme. A segment with a
  * build into its line is its body and the fill on its last bar; a cooldown with the bass out across it is both, one
@@ -81,18 +99,30 @@ export function subMarksOf(phrasing: PhrasingLike | null | undefined, bars: numb
   for (const s of phrasing.segments ?? []) {
     const kind = SEGMENT[s.kind];
     if (!kind) continue;
-    const long = s.to - s.from > 1, built = builtOn(s.reentry, s.answered);
+    const long = s.to - s.from > 1, built = builtOn(s.reentry, s.answered, s.build);
     // the body: a filtered phrase opens over its last bar, so it runs to its end; any other span hands its last bar
     // to the build
-    add(kind, s.from, long && built && kind !== 'filtered' ? s.to - 1 : s.to, s.label);
+    // (U2e: a span back in by the house's own bar ends where that bar starts; the bar is the house's mark)
+    add(kind, s.from, typeof s.houseEnd === 'number' ? s.houseEnd : long && built && kind !== 'filtered' ? s.to - 1 : s.to, s.label);
     if (long && built) add('fill', s.to - 1, s.to, s.label);
   }
   for (const c of phrasing.cooldowns ?? []) add('cooldown', c.from, c.to, c.label);
   for (const o of phrasing.outs ?? []) {
     add('bass-out', o.from, o.to, o.label);
     // the drums build into the line the bass comes back on (U2c), on the phrase track over the out's last bar
-    if (builtOn(o.fill, o.lift)) add('fill', o.to - 1, o.to, o.label);
+    if (builtOn(o.fill, o.lift, o.build)) add('fill', o.to - 1, o.to, o.label);
   }
   for (const a of phrasing.answers ?? []) add('answer', a.bar, a.bar, a.label);
   return out.sort((x, y) => x.from - y.from || x.to - y.to);
+}
+
+/**
+ * **The marks a theme draws** (U2e): every moment the theme carries (`track.moments`, `src/moments.ts`: the phrasing's,
+ * the house's own small things, the lead-ins, the pad arc's crest, the producer's and the development's), or, on a
+ * track written before them, its phrasing's.
+ */
+export function marksOf(track: { moments?: ReadonlyArray<SubMark>; phrasing?: Parameters<typeof subMarksOf>[0] } | null | undefined, bars: number): SubMark[] {
+  if (!track || !(bars > 0)) return [];
+  if (Array.isArray(track.moments)) return track.moments.filter((m) => m.kind in SUB_STYLE && m.from >= 0 && m.from < bars).map((m) => ({ kind: m.kind, from: m.from, to: Math.min(bars, m.to), label: m.label }));
+  return subMarksOf(track.phrasing, bars);
 }

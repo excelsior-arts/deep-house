@@ -59,7 +59,7 @@ import { switchOn } from './lanes.ts';
 import { castPool, pickCast } from './cast-pool.ts';
 import { startScribe } from './machine/scribe.ts';
 // What the arrangement's phrases did inside the theme, as marks on the rim (10-13).
-import { subMarksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
+import { marksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
 import type { Candidate } from './cast-pool.ts';
 import { reducedMotion, coarsePointer } from './motion.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
@@ -1717,8 +1717,7 @@ function buildTimeline(r: Readout) {
  * plan and only with it, so they stand still: no motion, nothing on a beat, nothing a seam or a theme change restarts.
  */
 function drawSubMarks(r: Readout) {
-  const phrasing = (r.track as { phrasing?: Parameters<typeof subMarksOf>[0] } | null)?.phrasing;
-  for (const m of subMarksOf(phrasing, r.bars)) {
+  for (const m of marksOf(r.track as Parameters<typeof marksOf>[0], r.bars)) {
     const st = SUB_STYLE[m.kind];
     const f0 = m.from / r.bars;
     const data = { 'data-sub': m.kind, 'data-from': m.from, 'data-to': m.to };
@@ -1727,7 +1726,8 @@ function drawSubMarks(r: Readout) {
       d: `M${px(f, r0).toFixed(1)} ${py(f, r0).toFixed(1)} L${px(f, r1).toFixed(1)} ${py(f, r1).toFixed(1)}`,
     }, gTimeline);
     // the line the drums answer: across both tracks
-    if (st.shape === 'tick') { stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
+    // (a turn at a line: across the phrase track alone)
+    if (st.shape === 'tick') { if (st.track === 'phrase') stroke(f0, R_SUB - 3, R_SUB + 3); else stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
     // a bar emptied: its two lines across the phrase track, nothing between
     if (st.shape === 'pair') { stroke(f0, R_SUB - 3, R_SUB + 3); stroke(m.to / r.bars, R_SUB - 3, R_SUB + 3); continue; }
     const rr = st.track === 'low' ? R_SUB_LOW : R_SUB;

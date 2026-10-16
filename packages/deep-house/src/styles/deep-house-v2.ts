@@ -34,6 +34,8 @@ import { REGISTRY as EFFECTS } from '@deep-house/engine/effects';
 import layerSignatures from '@deep-house/engine/voices/signatures' with { type: 'json' };
 import loudnessFit from './deep-house-v2-loudness.json' with { type: 'json' };
 import laneTrims from './deep-house-v2-lane-trims.json' with { type: 'json' };
+import handPhrasesRow from './deep-house-v2-hand-phrases.json' with { type: 'json' };
+import { handPhrasesFaults, type HandPhrases } from '../hand-phrase.ts';
 import { resolveSettings } from '@deep-house/engine/settings';
 import type { Lane, Room, Style } from '@deep-house/engine/style';
 import { MOTIF_RECIPES } from '../recipe.ts';
@@ -76,6 +78,8 @@ export type StrategyStyle = Style & {
   cleanKeys?: readonly string[];
   /** 10-13, the hand voicing: a voice's settings block as this style voices it, written into a theme's room only where the theme sounds that voice (`src/generator.ts`) */
   voicings?: Readonly<Record<string, Readonly<Record<string, number>> | LeanedVoicing>>;
+  /** 10-13, the hand grammar: what a hand drum drawn on the sixteenth lane plays (`src/hand-phrase.ts`) */
+  handPhrases?: Readonly<HandPhrases>;
 };
 
 // --- the switches ------------------------------------------------------------
@@ -1065,8 +1069,20 @@ const presentPiano = Object.freeze({ ...base.piano,
  * them and its room has a strike or an edge to take away, so every other
  * theme -- and the organ's key click and the pluck in a room shared with one of
  * these -- carries the room it always did (`notes/rounds/keys-noise.md`).
+ *
+ * **And the FM keys** (his ear 10-13, seed 4 at Tide 0.95 again: "still this
+ * annoying HF noise on the bell like voice", on a cut rendered before these
+ * three were clean). The two struck FM keyboards the house plays under an
+ * edge are the same case: the FM electric piano (`fmEp`, a 1:1 body and a tine
+ * at 14 times the note, its own 4-8 kHz 63-67 dB under the whole) and the FM
+ * glass (`fmGlass`, a body at 4.27 and a second modulator at 1.71:
+ * inharmonic). The clip's copy of either is a hiss over its ring, 9-34 dB over
+ * the voice's own 4-8 kHz and no line in it in four windows of five, and it
+ * takes the glass's own partials from 0.72-0.75 of its top to 0.01-0.03. They
+ * build no strike; the clean door is all they take, and their own top -- the
+ * FM's sidebands, the tine, the attack -- stays (`notes/rounds/bell-noise.md`).
  */
-const CLEAN_KEYS = Object.freeze(['keysEp', 'keysGlass', 'keysRhodes']);
+const CLEAN_KEYS = Object.freeze(['keysEp', 'keysGlass', 'keysRhodes', 'fmEp', 'fmGlass']);
 
 /**
  * **The hand voicing** (his ear, 10-13: seed 8's conga "had decent timbre (not
@@ -1103,6 +1119,23 @@ const HAND_VOICINGS = Object.freeze({
   }),
   bongo: Object.freeze({ drop: warm.bend, dropTime: warm.bendSeconds, mode: warm.modeRatio, skin: warm.skin }),
 });
+
+/**
+ * **The hand grammar** (his ear 10-13, house seed 35: "still barely hear conga and it's too primitive, only one hit,
+ * doesn't sound like congas"). The sixteenth lane's own draw struck a hand drum on the mined sixteenth mask, a
+ * shaker's figure: one drum, one stroke, at seed 35 one hit a bar on the a of four. The row
+ * (`deep-house-v2-hand-phrases.json`) is a two-drum conversation in the hand rows' own character (the kept colours of
+ * 09-22, seed 8's sound): two-bar cells with open tones and slaps on the strong offbeats and ghosted fingertips and
+ * heels between, an answer bar closing every phrase of four or eight bars, the phrase after it leading on the other
+ * drum. Every choice is leaned by the birds and drawn off streams of its own. Refused at load if a stroke is not the
+ * character's.
+ */
+const HAND_PHRASES = Object.freeze(handPhrasesRow as unknown as HandPhrases);
+{
+  const strokes = Object.keys(characters.rhythm?.[HAND_PHRASES.character]?.strokes ?? {});
+  const bad = handPhrasesFaults(HAND_PHRASES, strokes);
+  if (bad.length) throw new Error(`house-v2 hand phrases: ${bad.join('; ')}`);
+}
 
 /**
  * **The reed, bright or dark by Zephyr** (his ear 10-13 on seed 1: "it sounds
@@ -1172,6 +1205,36 @@ const APART = Object.freeze([Object.freeze({ front: Object.freeze(['reedOrgan'])
 // sparse bed (the rhodes, the swell), where the reed is the only held voice; over the growl room's strings it adds
 // 0.4-1.1. Over a sparse bed the reed plays no hotter than the sub room's -12.5 on the keys' lane.
 const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8, frontDb: -3, sparseBedMostDb: -12.5 });
+
+// **Every front under its bed, every bed under its drums** (his ear 10-13: the reed's -3 dB as a lead "was the trick,
+// need to review other places"; -3 dB off the glass, the organ stab and the vibes "still too loud"; on seed 48476 his
+// desk put the organ 9.1 dB and its pad 1.9 dB down, and the pulse lead 6 dB down, "probably even that too little";
+// golden 38's pad "too loud"). Measured over the grid's mains (seeds 1-40, 1030 themes, the 8 bars from each
+// densest main's ninth, K-weighted stems): a front added 1.4 dB to its mix at the median and 4.8 at the 90th
+// percentile, where his desk on seed 48476 and golden 34 have it adding 0.6-0.7; a bed stood 4.3 dB over the kick and
+// hats at the median, golden 34's 3.6. The causes: the stage's front lift, the growl room's lanes, the synth beds.
+// `generator.ts`, `FRONT`:
+// - `liftDb`: a keys-lane front stands no higher on the stage than -1.5 dB (its front lift is +4.5; the pad still goes
+//   back 3.2, so the front still steps forward by the pad's step);
+// - `mostDb`, `bedMostDb`: no hotter than the sub room's -12.5 on the keys' lane and -8 on the pad's (the growl
+//   room's -9.5 and -6 are 3 and 2 over; the caps a redrawn front and its bed already take);
+// - `beds`/`bedDb`: a synth bed (the ensembles, 5.0-5.9 dB over the kick and hats at the median, against 2.6-3.5 for
+//   the strings, the rhodes and the swell) 5 dB under its lane, or the room's cap where that is lower (his ear 10-15 on
+//   golden 38's second main at 3 dB: "still loud"), and a front the stage and the room move goes 3.5 dB down with it
+//   (`followDb`: seed 48476's third theme then stands within 0.7 dB of his desk, front against bed and against drums);
+// - `under`: the fronts that sat 5 dB or more under their bed even when lifted (the saw lead, the clav, the pluck, the
+//   rhodes: the `sawLead` and `clavKey` voices and the keys voice's `pluck` and `rhodes` presets; the `karplusPluck` and
+//   `fmPluck` voices are moved), the piano's lane and the reed (`EXPOSED`) keep their stage and lane and go down only
+//   with their bed: in the growl room the reed goes 2 dB down with its bed's cap;
+// - `bpm`: the moves scaled from nothing at 60 BPM to the whole at 80 (the slow side, 48-53, keeps its level; a set that
+//   drifts faster theme by theme crosses no cliff);
+// - `makeup`: what the loudness fit takes off a window for the rule (`loudness.ts`, `lufsAfter`): its keys and its pad
+//   read as carrying these shares of its loudness before the master, fitted on the grid's 858 moved mains (K-weighted
+//   stems, residual 1.06 dB), and the loss taken through the master's slope out of the limiter.
+const FRONT = Object.freeze({
+  liftDb: -1.5, mostDb: -12.5, bedMostDb: -8, beds: SYNTH_BEDS, bedDb: -5, followDb: -3.5, bpm: Object.freeze([60, 80] as const),
+  under: Object.freeze(['sawLead', 'clavKey', 'pluck', 'rhodes']), makeup: Object.freeze({ keys: 0.59, pad: 0.36 }),
+});
 
 // --- the catalogue -----------------------------------------------------------
 
@@ -1292,6 +1355,13 @@ export const catalogue = {
    * own bed back, `bedDb` under the pad's level (`generator.ts`, `EXPOSED`).
    */
   exposed: EXPOSED,
+  /**
+   * **Every front under its bed, every bed under its drums** (his ear 10-13: the reed's -3 dB as a lead "was the
+   * trick, need to review other places"; his desk on seed 48476: the organ 9.1 dB and its pad 1.9 dB down). A keys-lane
+   * front stands no higher than `liftDb` on the stage and `mostDb` on its lane, a bed no hotter than `bedMostDb` on its
+   * lane, a synth bed `bedDb` down and its front with it (`generator.ts`, `FRONT`).
+   */
+  front: FRONT,
 };
 
 const candidates = candidateListsV2(catalogue);
@@ -1532,10 +1602,15 @@ export const style = {
   // are as measured.
   sixteenthsLean: Object.freeze({ densities: Object.freeze(['medium', 'busy']), underHatDb: -11 }),
   // 10-13, the clean keys: the electric piano, the glass and the rhodes with
-  // no strike noise and past the bus's edge, written only where a theme sounds
-  // one (`src/generator.ts`). v1 has no field: its rooms build neither.
+  // no strike noise and past the bus's edge, and the FM electric piano and the
+  // FM glass past the edge, written only where a theme sounds one
+  // (`src/generator.ts`). v1 has no field: its rooms build neither.
   cleanKeys: CLEAN_KEYS,
   voicings: Object.freeze({ ...HAND_VOICINGS, reedOrgan: REED_VOICING }),
+  // 10-13, the hand grammar (his ear on house seed 35: "too primitive, only one hit"): a hand drum the sixteenth
+  // lane draws plays a two-drum conversation off this row, in the hand rows' own character (`src/hand-phrase.ts`).
+  // v1 has no field: its lane strikes the mask.
+  handPhrases: HAND_PHRASES,
 } satisfies StrategyStyle;
 
 {

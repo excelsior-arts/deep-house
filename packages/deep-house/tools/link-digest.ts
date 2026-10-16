@@ -238,7 +238,7 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  * (`shipped rows moved since the cut: N`), and the round note names them.
  *
  * The window is the cut's and no other's: it opens only while the last cut is
- * `cut` (master bb97182, the v2.2.0 cut; the v2.1.0 cut's window, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
+ * `cut` (master 7478618, the v2.2.1 cut; the v2.2.0 cut's window, 10-12 to 10-15, the v2.1.0 cut's, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
  * itself; this statement is then removed. A shipped row dropped from the grid
  * is refused inside the window as outside.
  *
@@ -251,9 +251,9 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  */
 export interface FreezeWindow { cut: string; since: string; reason: string }
 export const WINDOW: FreezeWindow = Object.freeze({
-  cut: 'bb97182d84e53f9e56f5e4b3060d9dc74456dbc6',
-  since: '2026-10-12',
-  reason: 'Eugene, 10-12, on the bird-relative unification after the v2.2.0 cut: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes" (each sound-moving round brings its pairs); and 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". Eugene, 10-11, on the vibes and bells fix that moves 55 shipped settings hashes: "sound good, thank you"; and on the work after v2.1.0: "we likely will have to settle things, with potential sacrifices with known golden tracks" — the rounds between the v2.1.0 cut and the next move house-v2 links where he heard and approved the change; a link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
+  cut: '7478618e6278131343b5c46e8b6f1ff6843ee339',
+  since: '2026-10-15',
+  reason: 'Eugene, 10-13, on the rounds after the v2.2.1 cut: "it should go to next release with addition of more breaks" (U2d/U2e, the fast places\' drops, the front voice\'s level, the hand drums, each with its A/B pairs heard before it merges); and 10-12: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes"; 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". A link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
 });
 /** The window, where the last cut is the one it was stated for; null outside it. */
 export function openWindow(ref = 'refs/heads/master'): FreezeWindow | null {

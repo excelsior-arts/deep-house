@@ -1,0 +1,44 @@
+{
+  "kind": "hand-phrases",
+  "schema": 1,
+  "says": "The hand drums' own grammar where the sixteenth lane's draw lands on one of them: a two-bar phrase across two drums (the high drum's open tone, the low drum's bass tone), open tones and slaps on the strong offbeats, ghosted fingertips and heels between, and an answer bar closing every phrase of four or eight bars; the phrase after an answer leads on the other drum. Steps are sixteenths of the phrase (0-31); strokes are the hand character's own (tone, low, slap, touch, heel).",
+  "voices": ["conga", "bongo"],
+  "character": "hand-conversation",
+  "feel": { "swing": 0.535, "delay": { "beats": 0.008 }, "timing": { "beats": 0.006 }, "dynamics": 0.1 },
+  "accents": { "tone": 0.2, "low": 0.2, "slap": 0.21, "touch": 0.065, "heel": 0.06 },
+  "strong": { "steps": [6, 14], "lift": 1.1 },
+  "db": -3,
+  "phraseBars": { "4": 1, "8": 1 },
+  "cells": [
+    { "id": "house-tumbao", "weight": 1, "hits": [
+      [0, "heel"], [3, "touch"], [6, "slap"], [7, "touch"], [8, "heel"], [10, "tone"], [11, "touch"], [14, "tone"],
+      [16, "heel"], [19, "touch"], [22, "slap"], [23, "touch"], [24, "heel"], [26, "low"], [28, "touch"], [30, "low"] ] },
+    { "id": "offbeat-talk", "weight": 1, "hits": [
+      [2, "touch"], [6, "tone"], [7, "touch"], [10, "tone"], [13, "touch"], [14, "slap"],
+      [18, "touch"], [22, "tone"], [24, "heel"], [26, "low"], [27, "touch"], [30, "low"], [31, "touch"] ] },
+    { "id": "call-across", "weight": 1, "hits": [
+      [3, "touch"], [6, "tone"], [8, "heel"], [10, "tone"], [14, "tone"], [15, "touch"],
+      [16, "heel"], [22, "low"], [23, "touch"], [26, "low"], [28, "heel"], [30, "slap"] ] },
+    { "id": "sparse-pair", "weight": 0.8, "hits": [
+      [3, "touch"], [6, "tone"], [11, "touch"], [14, "tone"],
+      [19, "touch"], [22, "low"], [26, "touch"], [30, "low"] ] },
+    { "id": "rolling", "weight": 0.6, "hits": [
+      [0, "heel"], [2, "tone"], [3, "touch"], [5, "touch"], [6, "slap"], [8, "heel"], [10, "tone"], [11, "touch"], [13, "touch"], [14, "low"], [15, "low"],
+      [16, "heel"], [18, "tone"], [19, "touch"], [21, "touch"], [22, "slap"], [24, "heel"], [26, "tone"], [27, "tone"], [29, "touch"], [30, "low"], [31, "touch"] ] }
+  ],
+  "answers": [
+    { "id": "walk-down", "weight": 1, "hits": [[2, "touch"], [6, "tone"], [7, "tone"], [10, "low"], [11, "touch"], [12, "low"], [14, "low"]] },
+    { "id": "slap-call", "weight": 1, "hits": [[3, "touch"], [6, "slap"], [8, "heel"], [10, "slap"], [11, "touch"], [14, "tone"], [15, "tone"]] },
+    { "id": "roll-in", "weight": 0.8, "hits": [[6, "tone"], [9, "touch"], [10, "tone"], [11, "tone"], [12, "low"], [13, "touch"], [14, "low"], [15, "low"]] },
+    { "id": "breath", "weight": 0.6, "hits": [[0, "heel"], [6, "tone"], [14, "low"]] }
+  ],
+  "lean": {
+    "says": "Spark (movement) walks the cell from the sparse pair to the rolling one and the answer from the breath to the roll; Tide (space) leans to the sparse pair; Loom (form) to the tumbao; Veil (the rate of change) answers every four bars rather than eight. The centre is the house's own value of each bird, so at the house every weight is as written.",
+    "centre": { "spark": 0.275, "tide": 0.558, "loom": 0.578, "veil": 0.473 },
+    "strength": 1,
+    "spark": { "rolling": 3, "house-tumbao": 1.5, "sparse-pair": -3, "roll-in": 2, "breath": -2 },
+    "tide": { "sparse-pair": 2, "rolling": -1.5 },
+    "loom": { "house-tumbao": 2, "sparse-pair": -1 },
+    "veil": { "4": 3, "8": -3, "slap-call": 1.5 }
+  }
+}

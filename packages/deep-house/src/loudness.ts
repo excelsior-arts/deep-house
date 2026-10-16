@@ -132,7 +132,10 @@ export interface LoudnessRow {
 export interface LoudnessEvent {
   t: number;
   layer?: string | null;
+  role?: string | null;
   p?: Record<string, number>;
+  /** the decibels the front rule took off the note (`generator.ts`, `catalogue.front`) */
+  frontDb?: number;
 }
 
 /** A planned theme, as the whole model reads one. */
@@ -263,6 +266,8 @@ export interface LoudnessFeatures {
    * row says (round DNB-4, `DrumsEntry.measuredLufs`), else not a number
    */
   placeMeasuredLufs: number;
+  /** what the front rule took out of the window, in dB before the master (`catalogue.front.makeup`, `lufsAfter`) */
+  frontLossDb: number;
   /** one per gated lane, in the lane table's own words */
   [share: `share_${string}`]: number;
 }
@@ -384,7 +389,7 @@ function chosenWindow(track: LoudnessTrack, style: Style): { w: { from: number; 
     const all = mainWindows(track, bars, kind), calm = all.filter(steady);
     for (const w of calm.length ? calm : all) {
       const f = featuresAt(track, style, w, index);
-      const v = lufsOf(f, style);
+      const v = lufsAfter(f, style);
       if (v > loudest) { loudest = v; best = { w, f }; }
     }
     if (best) return best;
@@ -505,6 +510,20 @@ function lufsOf(f: LoudnessFeatures, style: Style): number {
   return v;
 }
 
+/**
+ * **What the fit predicts once the front rule has played** (`catalogue.front`, the front-level round). The fit reads a
+ * note at the gain it was written at before the rule (`featuresAt`), since the model weighs a keys note's gain at a
+ * fraction of a decibel a decibel and would leave a theme whose front went 9 dB down 1-2 LU under its target. What the
+ * rule took out of the window (`frontLossDb`, in dB before the master) is then taken off through the master's slope
+ * coming out of the limiter. A window the rule never touched reads exactly what it always read.
+ */
+function lufsAfter(f: LoudnessFeatures, style: Style): number {
+  const v = lufsOf(f, style);
+  if (!f.frontLossDb) return v;
+  const mo = modelOf(f, style);
+  return v - f.frontLossDb * (mo.slopeDown ?? style.settings.loudness.slopeDown ?? 1);
+}
+
 /** The headroom a features vector allows, in dB, or null for a model with none. */
 function headroomOf(f: LoudnessFeatures, style: Style): number | null {
   if (!style.settings.loudness.headroom) return null;
@@ -515,7 +534,9 @@ function headroomOf(f: LoudnessFeatures, style: Style): number | null {
     const col = LOUDNESS_COLUMNS[k];
     if (col) v += H.coef[k] * (col(f) - (H.centre[k] ?? 0));
   }
-  return v;
+  // ...read, like the loudness, off the notes as written before the front rule: what the rule took out of the window
+  // is that much less level going into the limiter, so it is that much more trim the window can take (`lufsAfter`)
+  return v + (f.frontLossDb || 0);
 }
 
 // **How far a theme may be trimmed before its limiter pumps**, in dB, or null
@@ -624,6 +645,8 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
   // arrangement sets nine decibels under a piano and a pad at its room's level
   // are one gate and one timbre, and only the notes say which one is playing.
   const EV: Record<string, { n: number; vel: number; wet: number; delay: number; gainDb: number; energy: number }> = {};
+  // ...and what the front rule kept of the keys' and the pad's energy there (`lufsAfter`)
+  const was: Record<string, number> = { keys: 0, pad: 0 }, now: Record<string, number> = { keys: 0, pad: 0 };
   for (const ev of index ? eventsNear(track, index, w.from, w.bars) : track.events) {
     if (ev.t < t0 || ev.t >= t1) continue;
     const l = ev.layer;
@@ -633,10 +656,17 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     a.vel += ev.p?.vel ?? 1;
     a.wet += (ev.p?.reverb ?? 0) + (ev.p?.hall ?? 0);
     a.delay += ev.p?.delay ?? 0;
-    const g = ev.p?.gain ?? 1;
+    // the gain the note was written at, before the front rule took its `frontDb` off (`lufsAfter`)
+    const g = (ev.p?.gain ?? 1) / 10 ** ((ev.frontDb ?? 0) / 20);
     a.gainDb += 20 * Math.log10(Math.max(1e-4, g));
-    a.energy += (g * (ev.p?.vel ?? 1)) ** 2 * Math.min(ev.p?.dur ?? 0.25, t1 - ev.t);
+    const x = (g * (ev.p?.vel ?? 1)) ** 2 * Math.min(ev.p?.dur ?? 0.25, t1 - ev.t);
+    a.energy += x;
+    if ((l === 'keys' && !ev.role) || l === 'pad') { was[l] += x; now[l] += x * 10 ** ((ev.frontDb ?? 0) / 10); }
   }
+  const front = (style as { catalogue?: { front?: { makeup?: { keys: number; pad: number } } } }).catalogue?.front?.makeup;
+  const kept = (l: string) => (was[l] > 0 ? now[l] / was[l] : 1);
+  const left = front ? 1 - front.keys * (1 - kept('keys')) - front.pad * (1 - kept('pad')) : 1;
+  const frontLossDb = left < 1 ? -10 * Math.log10(Math.max(0.05, left)) : 0;
   const rate = (l: string) => (EV[l] ? EV[l].n / k : 0);
   const mean = (l: string, f: 'vel' | 'wet' | 'delay' | 'gainDb') => (EV[l] && EV[l].n ? EV[l][f] / EV[l].n : 0);
 
@@ -772,6 +802,7 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     windowKind: ((track.arrangement && track.arrangement.sections) || []).find((s) => s.startBar <= w.from && w.from < s.startBar + s.bars)?.kind ?? '',
     placeTargetLufs: Number.isFinite(track.sound?.targetLufs) ? track.sound!.targetLufs! : NaN,
     placeMeasuredLufs: Number.isFinite(track.sound?.measuredLufs) ? track.sound!.measuredLufs! : NaN,
+    frontLossDb,
   };
   for (const n of LAYERS) f[`share_${n}`] = share[n];
   return f;
@@ -868,7 +899,7 @@ export const LOUDNESS_COLUMNS: Record<string, LoudnessColumn> = {
 
 // What the record is predicted to measure, in LUFS, before anything is built.
 export function predictedLufs(track: LoudnessTrack, style: Style = track.style!, window?: { from: number; bars: number }): number {
-  return lufsOf(loudnessFeatures(track, style, window), style);
+  return lufsAfter(loudnessFeatures(track, style, window), style);
 }
 
 // The theme's trim, in dB: how far the fit says it is from the target, divided
@@ -900,7 +931,7 @@ export function loudnessTrimDb(track: LoudnessTrack, style: Style = track.style!
   // headroom are read off the same features, found once.
   const { f } = chosenWindow(track, style);
   const mo = modelOf(f, style);
-  const need = mo.targetLufs - lufsOf(f, style);
+  const need = mo.targetLufs - lufsAfter(f, style);
   // Two slopes, because a limiter is a one-sided thing: driving a theme *into*
   // the ceiling gives back less of the decibel than pulling it back out of the
   // ceiling does, and one number in the middle over-trims everything quiet and

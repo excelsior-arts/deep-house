@@ -921,13 +921,16 @@ test('B2: inside a fast place\'s groove a bar the kit plays has its hats whereve
   let bars = 0;
   for (let seed = 1; seed <= 12; seed++) for (let n = 0; n < 2; n++) {
     const t = planTheme(seed, n, { strategy: 'house-v2', spell: tile });
+    // a drum-led build's own bars (fast-drops, his ear 10-13/10-15) are the gesture's: a kick doubling rests the hats
+    const built = new Set(((t as any).passage?.builds ?? []).flatMap((g: { line: number; beats: number }) =>
+      Array.from({ length: Math.ceil(g.beats / 4) }, (_, i) => g.line - 1 - i)));
     for (const s of t.arrangement.sections) {
       if (!['drop', 'main', 'groove'].includes(s.kind)) continue;
       const inSec = t.events.filter((e) => e.bar != null && e.bar >= s.startBar && e.bar < s.startBar + s.bars);
       if (!inSec.some((e) => e.layer === 'hats')) continue;
       for (let b = s.startBar; b < s.startBar + s.bars; b++) {
         const here = inSec.filter((e) => e.bar === b);
-        if (!here.some((e) => e.layer === 'kick' || e.layer === 'clap')) continue;
+        if (!here.some((e) => e.layer === 'kick' || e.layer === 'clap') || built.has(b)) continue;
         bars++;
         assert.ok(here.some((e) => e.layer === 'hats'), `${seed}#${n}: the ${s.kind} at ${s.startBar} plays bar ${b} with no hats`);
       }

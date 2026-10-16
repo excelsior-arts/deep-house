@@ -1,0 +1,24 @@
+{
+ "schema": 1,
+ "kind": "arrangement-liveliness",
+ "round": "unify-u2e",
+ "note": "The band each theme's ring is read against (tools/liveliness.ts, the program guards' liveliness): a report, never a gate. His word 10-13: 'techno and technically deep house do assume repetitiveness to give you that meditative groove, but the license should still be there in our rhythms and arrangement, and it should be clearly visible in the ring as a marker we composed it right'; the Ambient and the Drum & Bass rings are the lively anchors. A row by tempo (the slow side under the arrangement's phrases, the groove from there up), each number leaned by the one lean (src/lean.ts) about the house's own birds, so the house reads its numbers as written. Every number is a first guess, set against his anchors over the guard grid's seeds 1-12.",
+ "rows": [
+  {
+   "id": "slow",
+   "says": "the slow side (under the arrangement's phrases' 70 BPM): its liveliness is in its lanes, its marks few (the ambients he calls the most interesting content): a mark or so every two minutes, a breath of four minutes at most unmarked, the band mostly open",
+   "underBpm": 70,
+   "centre": {},
+   "band": {"perMin": 0.4, "longestS": 240, "chess": 0.25},
+   "lean": {"perMin": {}, "longestS": {}, "chess": {}}
+  },
+  {
+   "id": "groove",
+   "says": "from 70 BPM up: at the house four marks and a half a minute, 45 s at most with no mark (his 'boring ring'), and a third of the band at full thickness (the groove's license to repeat); Veil (the rate of change) and Spark (the broken beat) ask more marks and less solid ink, Veil a shorter stretch; Ember (the tempo) lets a faster four-on-the-floor repeat a little more",
+   "leastBpm": 70,
+   "centre": {"veil": 0.473, "spark": 0.275, "ember": 0.394},
+   "band": {"perMin": 4.5, "longestS": 45, "chess": 0.36},
+   "lean": {"perMin": {"veil": 0.5, "spark": 0.5}, "longestS": {"veil": -0.5}, "chess": {"spark": -0.75, "ember": 0.5}}
+  }
+ ]
+}

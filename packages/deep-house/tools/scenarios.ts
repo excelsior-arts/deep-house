@@ -4339,7 +4339,7 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'the sub-section marks stand at their sub-segments\' own bars, outside the section names and inside the bar numbers, and follow the theme',
+    name: 'the sub-section marks stand at their moments\' own bars, outside the section names and inside the bar numbers, and follow the theme',
     area: 'ring',
     // seed 1 by name: its first theme has a half-time phrase built into its line, two cooldowns, a bass out built into its return and answers
     query: 'v=2&seed=1',
@@ -4354,12 +4354,13 @@ export const SCENARIOS = [
         return { kind: e.dataset.sub, from: +e.dataset.from, to: +e.dataset.to, lo: Math.min(...rs), hi: Math.max(...rs) };
       });
       const phr = () => { const t = ctl.readout().track; const p = t && t.phrasing; return p ? { segments: p.segments, answers: p.answers, outs: p.outs, cooldowns: p.cooldowns } : null; };
-      const first = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), marks: marks() };
+      const mom = () => { const t = ctl.readout().track; return t && Array.isArray(t.moments) ? t.moments.map((m) => ({ kind: m.kind, from: m.from, by: m.by })) : null; };
+      const first = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), moments: mom(), marks: marks() };
       await started();
       ctl.skip();
       await waitFor(() => ctl.readout().mix.themeNumber === 2, 30000);
       await sleep(400);
-      const second = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), marks: marks() };
+      const second = { seed: ctl.readout().seed, theme: ctl.readout().mix.themeNumber, phrasing: phr(), moments: mom(), marks: marks() };
       ctl.stop();
       return { first, second };
     `),
@@ -4368,7 +4369,9 @@ export const SCENARIOS = [
       const check = (x) => {
         const bad = [];
         const P = x.phrasing || { segments: [], answers: [], outs: [], cooldowns: [] };
-        const want = [
+        // U2e: every moment the track carries (`track.moments`: the phrasing's, the house's own small things, the
+        // lead-ins, the pad arc's crest, the producer's), each a mark at its own bar; the phrasing's are among them
+        const phrasingWant = [
           ...(P.segments || []).map((s) => ({ kind: s.kind, from: s.from })),
           // a build heard on a line's last bar (U2c): its row named and a lane said rolling
           ...(P.segments || []).filter((s) => built(s.reentry, s.answered) && s.to - s.from > 1).map((s) => ({ kind: 'fill', from: s.to - 1 })),
@@ -4377,8 +4380,10 @@ export const SCENARIOS = [
           ...(P.outs || []).filter((o) => built(o.fill, o.lift)).map((o) => ({ kind: 'fill', from: o.to - 1 })),
           ...(P.answers || []).map((a) => ({ kind: 'answer', from: a.bar })),
         ];
+        const want = x.moments ? x.moments.map((m) => ({ kind: m.kind, from: m.from })) : phrasingWant;
+        for (const w of phrasingWant) if (x.moments && !want.some((m) => m.kind === w.kind && m.from === w.from)) bad.push(`the moments miss the phrasing's ${w.kind} at bar ${w.from}`);
         for (const w of want) if (!x.marks.some((m) => m.kind === w.kind && m.from === w.from)) bad.push(`no ${w.kind} mark at bar ${w.from}`);
-        for (const m of x.marks) if (!want.some((w) => w.kind === m.kind && w.from === m.from)) bad.push(`a ${m.kind} mark at bar ${m.from} the phrasing does not have`);
+        for (const m of x.marks) if (!want.some((w) => w.kind === m.kind && w.from === m.from)) bad.push(`a ${m.kind} mark at bar ${m.from} the track does not have`);
         for (const m of x.marks) if (m.lo < 446 || m.hi > 470) bad.push(`a ${m.kind} mark at bar ${m.from} reaches ${m.lo.toFixed(1)}-${m.hi.toFixed(1)}`);
         return { bad, n: x.marks.length, kinds: [...new Set(x.marks.map((m) => m.kind))].join(', ') };
       };

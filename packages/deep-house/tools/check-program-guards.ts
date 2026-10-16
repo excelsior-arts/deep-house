@@ -45,6 +45,10 @@
 //     phrase entering, a layer coming or going) for longer than 60 s, Veil shortening it to 45 s;
 //   - **cost**: a cast over the phone's 220 units; events a minute over the phone's budget.
 //
+// Beside them, **the ring's liveliness** (U2e, `tools/liveliness.ts`): marks a minute, the longest unmarked stretch
+// (his "boring ring" over 45 s), how the marks gather, and how the lanes look (the band inked, the chessboard, the depth),
+// each theme against its place's band. A reading, never a finding.
+//
 // The measured hole (a build bar quieter than the bar before) reads a render, so it stays in the timeline tool.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,7 +64,10 @@ import { lean } from '../src/lean.ts';
 import { nearestEntry, rowOf, type StylePlaces } from '../src/places.ts';
 import { castOf } from './ambient-program.ts';
 import { themeHash } from './link-digest.ts';
+import { livelinessOf, bandOf, outOfBand, type Liveliness } from './liveliness.ts';
 
+/** His "boring ring" (10-13): a stretch of the rim with no mark on it longer than this, in seconds. */
+export const LIVELY_BORING_S = 45;
 /** The Pages preview a finding's link opens on (`t=` the second to hear); `--base` names another (a local build). */
 export const PREVIEW = 'https://eugene-tea.github.io/deep-house/';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -212,7 +219,7 @@ export function guards(plan: Theme, spell: Partial<Spell> = HOUSE): Finding[] {
   const lastT = Math.max(...ev.map((e) => e.t));
   // per bar: drum onsets, snare onsets by quarter, kicks by step, the layers struck, tonal and bed sounding, bass sounding
   const perBar = Array.from({ length: bars + 1 }, () => ({ drums: 0, snares: 0, lastBeatDrums: 0, lastBeatSnares: 0, kicks: 0, kickSteps: new Set<number>(), hats: new Set<number>(),
-    hatVoices: new Set<string>(), tonal: false, bed: false, bass: false, layers: new Set<string>(), byRole: new Map<string, Set<number>>(), bassPitches: new Set<number>(), fx: 0 }));
+    hatVoices: new Set<string>(), tonal: false, bed: false, bass: false, layers: new Set<string>(), byRole: new Map<string, Set<number>>(), bassPitches: new Set<number>(), fx: 0, built: 0 }));
   for (const e of ev) {
     const b = Math.floor(e.t / bs + 1e-6);
     if (b < 0 || b > bars) continue;
@@ -240,6 +247,9 @@ export function guards(plan: Theme, spell: Partial<Spell> = HOUSE): Finding[] {
       perBar[b].bed = true; if (tonal(e)) perBar[b].tonal = true;
     }
   }
+  // a build's own hits, off the plan (the program's events carry no `by`): U2d, a kick roll, a hat roll, a stutter as
+  // much a fill as a snare roll
+  for (const e of plan.events as Array<Ev & { by?: string }>) if (typeof e.by === 'string' && e.by.includes('+build') && DRUMS.has(e.layer) && e.bar != null && e.bar >= 0 && e.bar <= bars) perBar[e.bar].built++;
   const tonalSpans = ev.filter(tonal).map((e) => [e.t, endOf(e) + Math.min(releaseOf(e) ?? 0, bs)] as [number, number]).sort((a, b) => a[0] - b[0]);
   const merged: Array<[number, number]> = [];
   for (const s of tonalSpans) { const l = merged[merged.length - 1]; if (l && s[0] <= l[1]) l[1] = Math.max(l[1], s[1]); else merged.push([...s]); }
@@ -260,7 +270,7 @@ export function guards(plan: Theme, spell: Partial<Spell> = HOUSE): Finding[] {
     if (L < 2 || L >= bars || kindAt(L) === 'breakdown') continue;
     const before = perBar[L - 1], prior = perBar[L - 2];
     if (!before.drums) continue; // the drums do not play into it: their entry is the answer
-    const fill = before.lastBeatSnares >= prior.lastBeatSnares + LIMITS.fillBeat || before.snares >= prior.snares + LIMITS.fillBar;
+    const fill = before.lastBeatSnares >= prior.lastBeatSnares + LIMITS.fillBeat || before.snares >= prior.snares + LIMITS.fillBar || before.built >= LIMITS.fillBar;
     const breath = (before.lastBeatDrums <= LIMITS.breathBeat * prior.lastBeatDrums && prior.lastBeatDrums > 0) || before.drums <= LIMITS.breathBar * prior.drums;
     const entry = perBar[L].drums > LIMITS.entry * Math.max(1, before.drums);
     const on = perBar[L].hats, shared = [...on].filter((x) => before.hats.has(x)).length;
@@ -590,7 +600,9 @@ export function birdInertness(): Record<string, Record<string, { tracks: number;
 /** A finding's whole link: the page, the written link, the second its bar starts at. */
 export const findingLink = (link: string, barSeconds: number, bar: number, base = PREVIEW) => `${base}?${link}&t=${Math.max(0, Math.floor(bar * barSeconds))}`;
 
-interface Row { spell: string; seed: string; link: string; bpm: number; barSeconds: number; phraseBars: number; ms: number; found: Finding[] }
+interface Row { spell: string; seed: string; link: string; bpm: number; barSeconds: number; phraseBars: number; ms: number; found: Finding[];
+  /** the ring's liveliness (U2e, `tools/liveliness.ts`): a reading, never a finding */
+  live: Liveliness; out: string[] }
 
 /** The worst ten: by weight inside each guard, ranked across guards by how far over the guard's own median it stands; no more than two of one guard and one of a theme a guard. */
 function worstTen(rows: Row[]) {
@@ -619,6 +631,8 @@ function main() {
       const xs = found.filter((f) => f.guard === g);
       console.log(`${g}: ${xs.length ? xs.map((f) => `${f.bar} ${f.says}`).join('; ') : 'none'}`);
     }
+    const live = livelinessOf(plan as unknown as Parameters<typeof livelinessOf>[0]), band = bandOf(spell as unknown as Record<string, number>, (plan as unknown as Theme).bpm);
+    console.log(`liveliness: ${JSON.stringify(live)}; band ${JSON.stringify(band)}${outOfBand(live, band).length ? `; out: ${outOfBand(live, band).join(', ')}` : ''}`);
     return;
   }
   const line = argv.includes('--line');
@@ -630,12 +644,19 @@ function main() {
     const { plan, spell } = playedWith(link);
     const ms = performance.now() - a;
     const P = plan as unknown as Theme;
-    rows.push({ spell: g.name, seed, link, bpm: P.bpm, barSeconds: P.barSeconds, phraseBars: timeOf(P, spell).phraseBars, ms, found: guards(P, spell) });
+    const live = livelinessOf(P as unknown as Parameters<typeof livelinessOf>[0]);
+    rows.push({ spell: g.name, seed, link, bpm: P.bpm, barSeconds: P.barSeconds, phraseBars: timeOf(P, spell).phraseBars, ms, found: guards(P, spell),
+      live, out: outOfBand(live, bandOf(spell as unknown as Record<string, number>, P.bpm)) });
   }
   const ms = performance.now() - t0;
   const total = (g: Guard) => rows.reduce((a, r) => a + r.found.filter((f) => f.guard === g).length, 0);
-  if (line) { console.log(`program guards (a report, not a gate; npm run guards for the table and the birds): ${GUARDS.map((g) => `${g} ${total(g)}`).join(' · ')} over ${rows.length} themes in ${(ms / 1000).toFixed(1)} s`); return; }
-  const was = fs.existsSync(BASELINE) ? JSON.parse(fs.readFileSync(BASELINE, 'utf8')) as { totals: Record<string, number>; perSpell: Record<string, Record<string, number>>; birds?: ReturnType<typeof birdInertness> } : null;
+  // the ring's liveliness (U2e): his "boring ring", a stretch of more than 45 s with no mark; and each theme against its place's band
+  const boring = rows.filter((r) => r.live.longestS > LIVELY_BORING_S).length, outBand = rows.filter((r) => r.out.length).length;
+  const med = (xs: number[]) => { const v = [...xs].sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0; };
+  const liveLine = `liveliness ${med(rows.map((r) => r.live.perMin)).toFixed(1)} marks a minute (median), ${boring} themes with over ${LIVELY_BORING_S} s unmarked, ${outBand} out of their band`;
+  if (line) { console.log(`program guards (a report, not a gate; npm run guards for the table and the birds): ${GUARDS.map((g) => `${g} ${total(g)}`).join(' · ')} · ${liveLine} over ${rows.length} themes in ${(ms / 1000).toFixed(1)} s`); return; }
+  const was = fs.existsSync(BASELINE) ? JSON.parse(fs.readFileSync(BASELINE, 'utf8')) as { totals: Record<string, number>; perSpell: Record<string, Record<string, number>>; birds?: ReturnType<typeof birdInertness>;
+    liveliness?: { line: string } } : null;
   const names = [...new Set(rows.map((r) => r.spell))];
   const w = Math.max(...names.map((n) => n.length));
   const short: Record<Guard, string> = { unlabelled: 'unlab', landing: 'land', hole: 'hole', thin: 'thin', empty: 'empty', stop: 'stop', drone: 'drone', register: 'reg', density: 'dens', front: 'front', salient: 'salnt', cost: 'cost' };
@@ -652,6 +673,20 @@ function main() {
   const totals = Object.fromEntries(GUARDS.map((g) => [g, total(g)]));
   console.log(`${'total'.padEnd(w)}  ${GUARDS.map((g) => String(totals[g]).padStart(6)).join('')}`);
   if (was) console.log(`${'baseline'.padEnd(w)}  ${GUARDS.map((g) => String(was.totals[g] ?? '-').padStart(6)).join('')}`);
+  // the ring's liveliness by spell: the medians of its readings, the themes over 45 s unmarked, the themes out of their band
+  console.log(`\nthe ring's liveliness (a reading, not a gate; tools/liveliness.ts): medians by spell, and the themes out of their place's band`);
+  console.log(`${'spell'.padEnd(w)}  ${['/min', 'gap s', 'clust', 'fill', 'chess', 'depth', '>45s', 'out'].map((x) => x.padStart(6)).join('')}`);
+  const liveSpell: Record<string, Record<string, number>> = {};
+  for (const n of names) {
+    const rs = rows.filter((r) => r.spell === n);
+    const m = (k: keyof Liveliness) => med(rs.map((r) => r.live[k] as number));
+    liveSpell[n] = { perMin: m('perMin'), longestS: m('longestS'), cluster: m('cluster'), fill: m('fill'), chess: m('chess'), depth: m('depth'),
+      boring: rs.filter((r) => r.live.longestS > LIVELY_BORING_S).length, out: rs.filter((r) => r.out.length).length };
+    const L = liveSpell[n];
+    console.log(`${n.padEnd(w)}  ${[L.perMin.toFixed(1), L.longestS.toFixed(0), L.cluster.toFixed(2), L.fill.toFixed(2), L.chess.toFixed(2), L.depth.toFixed(2), String(L.boring), String(L.out)].map((x) => x.padStart(6)).join('')}`);
+  }
+  console.log(liveLine);
+  if (was?.liveliness) console.log(`baseline: ${was.liveliness.line}`);
   const { all, worst } = worstTen(rows);
   console.log('\nthe worst ten (at most two a guard):');
   for (const f of worst) console.log(`  ${f.guard} · ${f.row.spell} seed ${f.row.seed} bar ${f.bar} (${f.part}): ${f.says}\n    ${findingLink(f.row.link, f.row.barSeconds, Math.max(0, f.bar - 2), base)}`);
@@ -681,6 +716,7 @@ function main() {
       examples,
       worst: worst.map((f) => ({ guard: f.guard, spell: f.row.spell, seed: f.row.seed, bar: f.bar, part: f.part, weight: f.weight, says: f.says, link: findingLink(f.row.link, f.row.barSeconds, Math.max(0, f.bar - 2)) })),
       birds,
+      liveliness: { line: liveLine, perSpell: liveSpell },
     };
     fs.writeFileSync(BASELINE, `${JSON.stringify(doc, null, 1)}\n`);
     console.log(`baseline written: ${path.relative(process.cwd(), BASELINE)} (${all.length} findings)`);

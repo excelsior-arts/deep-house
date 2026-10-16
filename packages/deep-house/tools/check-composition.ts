@@ -47,7 +47,9 @@ test('explicit kick cells replace the floor and per-part feel stays bounded and 
   assert.deepEqual(t.events.filter(e=>e.layer==='bass'),plain.events.filter(e=>e.layer==='bass'));
   // (a phrase's build and stop overlay the row's cells on its last bar alone: U2c, his word 10-13 for the drums at a break)
   const built=((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
-      .filter((x: any) => (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)))(t);
+      .filter((x: any) => x.build || (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)
+      // (a gesture over two bars builds on the bar before too: U2d)
+      .concat((t.phrasing?.builds ?? []).filter((b: any) => b.beats > 4).map((b: any) => b.line - 2))))(t);
   const kicks=t.events.filter(e=>BY_NAME[e.voice].roles.includes('kick')&&!built.has(e.bar!));assert.ok(kicks.length>0);
   for(const e of kicks){assert.equal(e.bar!%2,0);assert.ok(kick.steps.includes(e.step!));}
   for(const row of t.timeline.filter(r=>r.bar%2===1))assert.ok(!row.layers.includes('kick'));
