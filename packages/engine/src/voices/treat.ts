@@ -33,6 +33,11 @@
 //               everywhere; this takes it down in the one octave it is in the
 //               way, which is the only move that buys separation without
 //               buying a hole in the middle of the record
+//   p.band      { hz, db, q } — the same bell, for the timbre's own band and
+//               not the tune's: written by the composer where a timbre is
+//               denser in a band than the record's other voices of its kind
+//               (a bed's 2-4 kHz), so it stands where its level says. It sits
+//               beside a `dip`, never in place of one
 //
 // A ±0.5 octave move is a multiplier of 2^±0.5, so the numbers below read in
 // octaves wherever they can.
@@ -309,6 +314,11 @@ export function insert(
   let node: AudioNode = own.stage ? tail : stageTone(ctx, p, tail, time, end);
   if (p.dip && (p.dip.db ?? 0) < -0.05) {
     const d = dipInsert(ctx, p.dip);
+    node.connect(d);
+    node = d;
+  }
+  if (p.band && (p.band.db ?? 0) < -0.05) {
+    const d = dipInsert(ctx, p.band);
     node.connect(d);
     node = d;
   }

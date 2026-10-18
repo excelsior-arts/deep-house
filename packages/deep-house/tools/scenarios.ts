@@ -12047,14 +12047,18 @@ SCENARIOS.push({
     await started();
     await sleep(600);
     window.ring.pull(2, 0.9);
-    await frame(); await frame();
+    // the promise is planned on the planner's worker since 10-12 and lands
+    // when it lands: two frames were the page's own plan, not the worker's
+    const asked = performance.now();
+    await waitFor(() => window.ring.impliedPlan(2), 5000);
+    const took = Math.round(performance.now() - asked);
     const got = window.ring.impliedPlan(2);
     const r = ctl.readout();
     const spell = {};
     for (const c of window.ring.cells()) if (c.held) spell[c.bird] = c.value;
     const want = got ? ctl.planned(got.about, r.seed, ctl.state.strategyTo ?? r.strategy, spell) : null;
     const said = (t) => t ? JSON.stringify({ bpm: t.bpm, room: t.presetLabel, key: t.key && t.key.name, bars: t.bars, dice: t.dice }) : null;
-    const out = { got: said(got && got.plan), want: said(want), recipe: r.recipe, implied: window.ring.cells()[2].implied,
+    const out = { got: said(got && got.plan), want: said(want), recipe: r.recipe, implied: window.ring.cells()[2].implied, took,
       keys: got && got.plan.dice ? got.plan.dice.keys : null, wantKeys: want && want.dice ? want.dice.keys : null };
     window.ring.release(null);
     ctl.stop();
@@ -12062,8 +12066,8 @@ SCENARIOS.push({
   `),
   judge: (r) => ({
     ok: !!r.got && r.got === r.want,
-    why: !r.got ? 'no promise was worked out for the held bird' : `the promise was read off ${r.got.slice(0, 160)} where the set plans ${String(r.want).slice(0, 160)}`,
-    note: `under ${r.recipe}, Zephyr held at 90 % promises "${r.implied}" off the control's own plan (keys ${r.keys}, as planned ${r.wantKeys})`,
+    why: !r.got ? `no promise was worked out for the held bird inside ${r.took} ms` :`the promise was read off ${r.got.slice(0, 160)} where the set plans ${String(r.want).slice(0, 160)}`,
+    note: `under ${r.recipe}, Zephyr held at 90 % promises "${r.implied}" off the control's own plan (keys ${r.keys}, as planned ${r.wantKeys}), landed from the worker ${r.took} ms after the pull`,
   }),
 });
 

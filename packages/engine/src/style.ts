@@ -168,6 +168,13 @@ export interface StyleTable {
     /** The theme's own sum through a soft clipper after its trim (round DNB-4), as `drumClip`'s numbers; absent, nothing is built. */
     mixClip?: { driveDb: number; knee?: number; curve?: number; makeupDb?: number };
     /**
+     * The theme's sum through a soft clipper ahead of its trim, in the master's tone (round drum-clip): the curve's top
+     * `overDb` over the limiter's ceiling at the limiter's input, at a trim of nought; `knee` and `curve` as
+     * `drumClip`'s; no oversampling unless asked (an oversampled shaper is 4 ms late, and a theme a set blends with
+     * would play 4 ms behind its neighbour). Absent, nothing is built.
+     */
+    sumClip?: { overDb: number; knee?: number; curve?: number; oversample?: OverSampleType };
+    /**
      * A gentle compressor on the theme's own sum after its trim (round DNB-5),
      * before any `mixClip` and the master every deck shares: the level from
      * the balance and a decibel or two of glue, where a clip took it before.
@@ -434,6 +441,15 @@ export interface Lane {
    * the word for the scene.
    */
   presence?: ReadonlyArray<{ scene: string; midFrom: number; db: number }>;
+  /**
+   * A candidate drawn a little more often where it belongs: `voice`'s weight times `times`, the weight it gains taken
+   * off `from`'s (never under nought), so every other candidate's share of the draw stays where it was. It holds in a
+   * tempo band (`tempoFrom` inclusive, `tempoTo` exclusive, in BPM) on the `kits` named (the composer's words), over a
+   * bed whose declared facts it names (`bed.struck`: a struck bed), and only where the lane's draw admits both
+   * candidates (nothing withdraws either here). Candidates the lane lists, by name.
+   */
+  lean?: ReadonlyArray<{ voice: string; from: string; times: number; tempoFrom?: number; tempoTo?: number; kits?: readonly string[];
+    bed?: { struck?: boolean } }>;
   /**
    * What this lane plays where the composition says the drone in front stands
    * on a floor (a soft grid under it, the composer's `floor`): `db` under its

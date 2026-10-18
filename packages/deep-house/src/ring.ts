@@ -1727,7 +1727,8 @@ function drawSubMarks(r: Readout) {
     }, gTimeline);
     // the line the drums answer: across both tracks
     // (a turn at a line: across the phrase track alone)
-    if (st.shape === 'tick') { if (st.track === 'phrase') stroke(f0, R_SUB - 3, R_SUB + 3); else stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
+    // (a chord the keys strike: across the low track alone)
+    if (st.shape === 'tick') { if (st.track === 'phrase') stroke(f0, R_SUB - 3, R_SUB + 3); else if (st.track === 'low') stroke(f0, R_SUB_LOW - 3, R_SUB_LOW + 3); else stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
     // a bar emptied: its two lines across the phrase track, nothing between
     if (st.shape === 'pair') { stroke(f0, R_SUB - 3, R_SUB + 3); stroke(m.to / r.bars, R_SUB - 3, R_SUB + 3); continue; }
     const rr = st.track === 'low' ? R_SUB_LOW : R_SUB;

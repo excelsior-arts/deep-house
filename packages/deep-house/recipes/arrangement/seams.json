@@ -1,0 +1,33 @@
+{
+ "schema": 1,
+ "kind": "arrangement-seams",
+ "round": "hat-moves",
+ "revision": 1,
+ "note": "A noise transition earns its place (his word 10-16 on golden 38's second theme, the house's ride-in between two halves of a main: 'a little whoosh/wind effect in between two fairly similar-in-level segments, moreover on the sparse acoustic side of things … maybe it's more suited to segment seams that change from higher to lower or the other way (dynamic), and to tracks where we have synth pads and other noisy voices, where in this sparse acoustic set just drum work could be a better fit'). Every noise gesture at a seam (the house's glue rows, U2d's whoosh and reverse) is read two ways: the energy across the seam (the drums, the bass and the harmony the bars before it and after it play) and the bed's texture there (a held synthetic bed or an air bed admits noise; a struck bed, keys alone, the hand drums playing lean it away). The two readings multiply into a share, and a die off the seam's own stream keeps the noise at that share; where it is refused the seam gets drum work (another gesture of the drums, or the hats' moves of recipes/arrangement/hat-moves.json) or space. src/seams.ts reads this row.",
+ "units": {
+  "says": "`energy.bars` bars read each side of the seam (the bar the gesture sits on left out; a two-bar gesture's window, as laid, reads from its first bar); a bar's energy is the sum of its weights over what it plays (the kick, the backbeat, the closed hats, the tops, the bass, each 1 or 0, a figure's mask over a lane 0.5; the harmony's share of the bar; the tonal voices sounding over a beat of it or more over `voicesFull`, so a pad or a lead entering or leaving moves it where the harmony already covers the bar; the drum onsets over `densityFull`), so 0 to the weights' sum; the drums, the bass and the harmony's cover sum to 1, and each tonal voice is 0.12 more, as much as a backbeat, so a pad or a lead entering on a level groove reads as a lift; under a filtered phrase's low-pass each reading times `filtered`. `fit`: how the energy's change after against before admits a gesture of a direction (`up` rising, `down` falling, `any` either way): nought up to `dead`, all of it from `dead + span`. `texture`: the held voices' own hold (a pad, a held lead, a reese bass under it; a struck one none, the sine sub none) from `holdFrom` (nought) to `holdFull` (all), an air bed `air`; times `hands` where the hand part plays at the seam",
+  "energy.weights.*": "share",
+  "energy.densityFull": "onsets",
+  "energy.voicesFull": "voices",
+  "energy.filtered.*": "share",
+  "fit.*": "share",
+  "texture.holdFrom": "share",
+  "texture.holdFull": "share",
+  "texture.air": "share",
+  "texture.hands": "ratio"
+ },
+ "energy": {
+  "bars": 2,
+  "weights": {"kick": 0.35, "backbeat": 0.15, "hats": 0.1, "tops": 0.08, "bass": 0.15, "harmony": 0.1, "density": 0.07, "voices": 0.36},
+  "densityFull": 24,
+  "voicesFull": 3,
+  "filtered": {"hats": 0.2, "tops": 0.2, "backbeat": 0.6, "harmony": 0.5, "voices": 0.5, "onsets": 0.6}
+ },
+ "fit": {"dead": 0.08, "span": 0.1},
+ "texture": {"holdFrom": 0.35, "holdFull": 0.7, "air": 1, "hands": 0.5},
+ "noise": {
+  "says": "the gestures that are noise, with the direction each belongs to (his word: a seam 'from higher to lower or the other way'): a riser up into more; the sweep slot's voice a falling sweep, down into less; a whoosh, a reverse and a swell either way (a whoosh still needs the kick under it and never goes into a break, its row's own needs): U2d's rows by id, the house's glue rows by their slot",
+  "gestures": {"whoosh": "any", "reverse": "any"},
+  "glue": {"sweep": "down", "riser": "up", "swell": "any"}
+ }
+}

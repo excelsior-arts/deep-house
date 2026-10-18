@@ -33,6 +33,7 @@ import {
 import { REGISTRY as EFFECTS } from '@deep-house/engine/effects';
 import layerSignatures from '@deep-house/engine/voices/signatures' with { type: 'json' };
 import loudnessFit from './deep-house-v2-loudness.json' with { type: 'json' };
+import type { FrontHeadroom } from '../loudness.ts';
 import laneTrims from './deep-house-v2-lane-trims.json' with { type: 'json' };
 import handPhrasesRow from './deep-house-v2-hand-phrases.json' with { type: 'json' };
 import { handPhrasesFaults, type HandPhrases } from '../hand-phrase.ts';
@@ -692,6 +693,17 @@ const HANDS = Object.freeze([
   { bed: { holdFrom: 0.5 }, families: ['drum'] },
 ]);
 
+// **The conga a little more often where the hands belong** (his word 10-16, of the congas that came and went: "not
+// overdo it, just increase the presence"). At the house's own pace under the fast four-floor's edge (95 BPM up to
+// `HANDS`' 115) on a four-floor, over a struck bed (the rhodes, the struck keys: the sparsest beds `HANDS` keeps, where
+// seed 35's and Gleam's congas he liked play; the swell, held, is left to the draw as it was), and only where the
+// lane's draw admits the conga at all, the conga's weight on the sixteenth lane is twice what it was, the weight it
+// gains taken off the shaker's (at the house 0.33 → 0.66, the shaker 1 → 0.67), so the bongo, the tom, the cabasa
+// and the woodblock are drawn exactly where they were and every theme the lean moves goes from the shaker to the conga.
+// A place whose birds lean the lane's draw (Gleam's bright end weighs the conga at a thousandth of the shaker) keeps
+// that lean: twice a little is still a little.
+const HANDS_LEAN = Object.freeze([{ voice: 'conga', from: 'shaker', times: 2, tempoFrom: 95, tempoTo: 115, kits: ['fourFloor'], bed: { struck: true } }]);
+
 // **The floor under a drone in front** (Eugene, 10-01, round GA7: on the slow
 // side of Ember *a drone may stay the foreground and a soft four-floor kick
 // plus hats may play under it*; where the floor is, is the composition's
@@ -743,7 +755,7 @@ const LANE_KITCHEN: Readonly<Record<string, Partial<Lane>>> = Object.freeze({
     // And the hand drums play where they belong (`HANDS`, above): off a fast
     // four-floor and off a continuous bed the `drum` family is withdrawn from
     // this lane and the shaker-type players remain.
-    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }, ...HANDS], presence: SIXTEENTH_PRESENCE },
+    withdraw: [{ scene: 'drone-forward', families: ['drum', 'noise'] }, ...HANDS], presence: SIXTEENTH_PRESENCE, lean: HANDS_LEAN },
   backbeat: { list: 'backbeatVoices', voices: withTrims(BACKBEAT_VOICES, 'backbeat'), floor: FLOOR_OFF },
   glueImpact: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'impact' },
   glueSwell: { list: 'textureVoices', voices: TEXTURE_VOICES, incumbent: 'swell' },
@@ -1013,7 +1025,7 @@ const CLAMP_UP_NO_KICK_DB_V2 = 2;
 type FittedModel = { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
 const { targetLufs, slopeUp, slopeDown, intercept, coef, centre, headroom: h, families: fams } = loudnessFit as unknown as {
   targetLufs: number; slopeUp: number; slopeDown: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>;
-  headroom?: { activeMax: number; deepestMax: number; marginDb: number; intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+  headroom?: { activeMax: number; deepestMax: number; marginDb: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>; front?: FrontHeadroom; clipDepth?: FittedModel };
   families?: Record<string, FittedModel & { targetLufs?: number; headroom?: FittedModel }>;
 };
 // The model's reach (round LOUD-1): a model per family of windows the house's
@@ -1026,6 +1038,16 @@ const families = fams && Object.freeze(Object.fromEntries(Object.entries(fams).m
   intercept: m.intercept, coef: m.coef, centre: m.centre,
   ...(m.headroom ? { headroom: Object.freeze({ intercept: m.headroom.intercept, coef: m.headroom.coef, centre: m.headroom.centre }) } : {}),
 })])));
+// ...and the windows the front rule moved, read by a share's and a depth's model of their own (round saw-bed,
+// `tools/headroom-front.ts`; `src/loudness.ts` `headroomOf` says why). Measured, so it is the JSON's; carried by the
+// rule it answers for (`FRONT.headroom`, below) and not by the settings a program is compiled with, which it does not
+// change
+const frontHeadroom = h?.front && Object.freeze({ blendDb: h.front.blendDb,
+  share: Object.freeze({ marginDb: h.front.share.marginDb, intercept: h.front.share.intercept, coef: h.front.share.coef, centre: h.front.share.centre }),
+  depth: Object.freeze({ marginDb: h.front.depth.marginDb, intercept: h.front.depth.intercept, coef: h.front.depth.coef, centre: h.front.depth.centre }) });
+// ...and the saw-bed's depth line as fitted without the clip, which the sum clip reads for how deep the hit would go
+// (`FRONT.clip`, below; `src/loudness.ts` `clipPlan`)
+const clipDepth = h?.clipDepth && Object.freeze({ intercept: h.clipDepth.intercept, coef: h.clipDepth.coef, centre: h.clipDepth.centre });
 const headroom = h && Object.freeze({ activeMax: h.activeMax, deepestMax: h.deepestMax, marginDb: h.marginDb, intercept: h.intercept, coef: h.coef, centre: h.centre });
 const loudnessV2 = Object.freeze({ targetLufs, clampDb: CLAMP_DB_V2, clampUpNoKickDb: CLAMP_UP_NO_KICK_DB_V2, slopeUp, slopeDown, intercept, coef, centre, window: 'loudest' as const, ...(headroom ? { headroom } : {}), ...(families ? { families } : {}) });
 
@@ -1107,6 +1129,11 @@ const CLEAN_KEYS = Object.freeze(['keysEp', 'keysGlass', 'keysRhodes', 'fmEp', '
  * 330 -> 12 cents, its 1.5 kHz-up share -42 -> -69 dB, 0.5 dB quieter (its
  * trim is the hand rows' too, and theirs is the approved level, so it stays).
  * Every number the hand rows' strokes write is theirs, so they sound as before.
+ *
+ * **No spread of its own** (`panSpread: 0`, the hand stage): the drum's own pan spread (±0.07 the conga, ±0.09 the
+ * bongo, off the strike time) was a random place per hit on top of the plan's. Where the style seats the hand player
+ * (`stage` in `deep-house-v2-hand-phrases.json`), each hit stands on its drum of the pair with a humanise of at most
+ * 0.015 in the plan, and the plan's pan is the pan heard.
  */
 const warm = handCharacters['warm-open'].params, round = handCharacters['low-round'].params, crisp = handCharacters['crisp-hand'].params;
 const HAND_VOICINGS = Object.freeze({
@@ -1115,9 +1142,9 @@ const HAND_VOICINGS = Object.freeze({
     modeLevel: warm.modeLevel, modeDecay: warm.modeDecay, bodyLevel: warm.headLevel, bodyLp: warm.headCutoff,
     slapHz: warm.handHz, slapOpen: warm.handLevel, slapDecay: warm.handDecay, t10Open: warm.damping,
     lowRing: round.damping / warm.damping, slapHzHard: crisp.handHz, slapHard: crisp.handLevel, t10Slap: crisp.damping,
-    skin: warm.skin,
+    skin: warm.skin, panSpread: 0,
   }),
-  bongo: Object.freeze({ drop: warm.bend, dropTime: warm.bendSeconds, mode: warm.modeRatio, skin: warm.skin }),
+  bongo: Object.freeze({ drop: warm.bend, dropTime: warm.bendSeconds, mode: warm.modeRatio, skin: warm.skin, panSpread: 0 }),
 });
 
 /**
@@ -1231,9 +1258,35 @@ const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8,
 // - `makeup`: what the loudness fit takes off a window for the rule (`loudness.ts`, `lufsAfter`): its keys and its pad
 //   read as carrying these shares of its loudness before the master, fitted on the grid's 858 moved mains (K-weighted
 //   stems, residual 1.06 dB), and the loss taken through the master's slope out of the limiter.
+// - `peak` (round saw-bed, his ear 10-16 on golden 38's second main: "still a bit too loud"): what the headroom reads
+//   the rule as taking off the window's peaks (`loudness.ts`, `frontPeakDb`). A limiter works on peaks, and a house
+//   peak is a kick hit with the bass, the bed and the keys under it: each part's amplitude as the plan wrote it (its
+//   notes' energy over the window, its lane on) plus these offsets in dB against the kick, and the keys' and the pad's
+//   share of that sum less what the rule kept of them. Fitted on 166 of the grid's moved mains, each trim window
+//   rendered with the rule and without it, the block peaks ahead of the limiter read as the fit reads them: the real
+//   headroom the rule freed is a median 1.1 dB, where crediting the loudness it took (`makeup`) gave 2.2 and over-gave
+//   a decibel or more on 92 of the 166 (golden 38: 4.55 given, 1.64 freed; its kick limited in 27 % of its blocks).
+//   Residual 1.12 dB (1.18 held out), against 2.39;
+// - `bands` (the same round): a bed timbre denser in a band than the record's other beds, that band taken down with
+//   a bell on its notes (the engine's `p.band`) and the bell's K-weighted level written beside them (`levelDb`, the
+//   fit's `bandDb`). The wave pad's second frame is every partial at 1/√n with a hump five partials up: on golden 38's
+//   own notes it reads the formant pad's K-weighted level (−11.8 against −11.9) and 1.6 dB over the saw pad, but 2-4
+//   kHz is −7.3 dB of it, against −11 to −15 for the saw, supersaw and formant pads; in the output its 2-4 kHz stood
+//   6-8 dB over golden 34's strings at the same balance against the drums.
+// - `clip` (round drum-clip; `loudness.ts` `clipPlan`, the engine's `master.sumClip`): the moved windows' sum through a
+//   soft clip ahead of the trim, its top on the 8 dB depth line at the trim the window wants (its loudness, under the
+//   share line), and that trim no more than `mostDb` past where the saw-bed's depth line, fitted without the clip
+//   (`depth`, the JSON's `headroom.clipDepth`), reads the hit reaching the line. The saw-bed refit found the kick and
+//   the clap landing on one backbeat to be the loudest block of 688 of 971 moved mains, and the trim gave their
+//   loudness back only by driving that hit 10-20 dB into the limiter. `mostDb` 4: the clip's planned shave, at which
+//   the residual it leaves is 26-45 dB under the window and the share line does not move.
 const FRONT = Object.freeze({
   liftDb: -1.5, mostDb: -12.5, bedMostDb: -8, beds: SYNTH_BEDS, bedDb: -5, followDb: -3.5, bpm: Object.freeze([60, 80] as const),
   under: Object.freeze(['sawLead', 'clavKey', 'pluck', 'rhodes']), makeup: Object.freeze({ keys: 0.59, pad: 0.36 }),
+  peak: Object.freeze({ keys: 15, pad: 20, bass: 34 }),
+  bands: Object.freeze({ wavePad: Object.freeze({ hz: 2800, db: -6, q: 0.9, levelDb: -1.5 }) }),
+  ...(frontHeadroom ? { headroom: frontHeadroom } : {}),
+  ...(frontHeadroom && clipDepth ? { clip: Object.freeze({ mostDb: 4, knee: 0.6, curve: 2, depth: clipDepth }) } : {}),
 });
 
 // --- the catalogue -----------------------------------------------------------

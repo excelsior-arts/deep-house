@@ -8,7 +8,8 @@
 //
 //   the phrase track  the sub-segments of a long main and the cooldown into a break
 //   the low track     the bass out before a drop or a return, and across a cooldown
-//   a stroke          the drums answering an arrival, across both tracks at the arrival's bar (a turn: the phrase track's alone)
+//   a stroke          the drums answering an arrival, across both tracks at the arrival's bar (a turn: the phrase track's
+//                     alone; a chord the keys strike: the low track's alone)
 //
 // Since U2e every moment the theme already wrote down is marked (`track.moments`, `src/moments.ts`, read by `marksOf`):
 // the phrasing's marks above, the house's own small things (a switch-up a short dash, a turnaround a stroke across the
@@ -21,7 +22,9 @@
 export type SubMarkKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-out' | 'fill' | 'cooldown' | 'bass-out' | 'answer'
   // U2e (`src/moments.ts`): the house's own switch-ups, a turn at a line (a turnaround, a development's answer), a riser
   // leading into a line, a crest (the pad arc's, the producer's spotlight and closing moment), a groove's other state
-  | 'switch-up' | 'turn' | 'lead-in' | 'crest' | 'groove';
+  | 'switch-up' | 'turn' | 'lead-in' | 'crest' | 'groove'
+  // dnb-marks (`src/moments.ts`): a chord the keys strike (the producer's touches, suspensions, colours, shells)
+  | 'keys';
 
 /** One mark: its kind, its bars (`to` exclusive; an answer is the line at `from`, `to` the same bar) and its line. */
 export interface SubMark { kind: SubMarkKind; from: number; to: number; label: string }
@@ -30,7 +33,9 @@ export interface SubMark { kind: SubMarkKind; from: number; to: number; label: s
  * How a kind is drawn, in ring units:
  *   `span`  an arc over its bars, dashed by `dash` (null is a whole line)
  *   `pair`  two short strokes across the phrase track at its bar's two lines, nothing between — a bar emptied
- *   `tick`  a stroke across both tracks at its bar line
+ *   `tick`  a stroke at its bar line: across both tracks, or across its own track alone
+ * A drop-out's pair and a span may start and end inside a bar (a bar emptied from its last beat, a build of two beats):
+ * they are drawn at their real length.
  */
 export interface SubStyle { track: 'phrase' | 'low' | 'both'; shape: 'span' | 'pair' | 'tick'; w: number; dash: string | null; op: number }
 
@@ -65,6 +70,9 @@ export const SUB_STYLE: Readonly<Record<SubMarkKind, SubStyle>> = Object.freeze(
   crest: { track: 'low', shape: 'span', w: 1, dash: null, op: 0.45 },
   // the groove's other state for a stretch (a variation, a roller's answer): a light long dash
   groove: { track: 'phrase', shape: 'span', w: 1.2, dash: '4 3', op: 0.45 },
+  // dnb-marks: a chord the keys strike (a touch, a suspension, a colour, the dominant's shells): a stroke across the low
+  // track alone, the harmony's own beside the bass's dots
+  keys: { track: 'low', shape: 'tick', w: 1.2, dash: null, op: 0.5 },
 });
 
 /** The phrasing as the track carries it (a structural read: the plan may come off a worker as plain data). */
@@ -73,6 +81,8 @@ interface PhrasingLike {
   answers?: ReadonlyArray<{ bar: number; label?: string }>;
   outs?: ReadonlyArray<{ from: number; to: number; label?: string; fill?: string | null; lift?: readonly string[]; build?: string }>;
   cooldowns?: ReadonlyArray<{ from: number; to: number; label?: string }>;
+  /** the hats' moves (hat-moves): their bar, the sixteenth their window starts on, their words */
+  hats?: ReadonlyArray<{ bar: number; from: number; label: string }>;
 }
 
 const SEGMENT: Record<string, SubMarkKind> = { 'breakdown-lite': 'breakdown-lite', 'half-time': 'half-time', filtered: 'filtered', 'drop-out': 'drop-out', fill: 'fill' };

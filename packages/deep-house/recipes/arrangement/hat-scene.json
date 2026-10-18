@@ -1,0 +1,40 @@
+{
+ "schema": 1,
+ "kind": "arrangement-hat-scene",
+ "round": "hat-scene",
+ "revision": 2,
+ "note": "The hats and the scene (his word 10-16 on the hats' moves: 'relate them to the scene itself, as this is that kind of coherence we seeking, voices give it a main gravity that hats can work of on segments while adding their accents for vectors of track change upward/downward/seam on similar segment parts for liveliness'). The scene's rhythm is read bar by bar from the theme's own sounding voices (the keys, the stabs and the lead, the bass, the pad's strikes, the hand part), never a track recipe's or a pin's part. Over a phrase it is the gravity: the steps its onsets come back to, how busy its bars are, how often they rest. Inside the phrase the hats work off it: a little softer and thinner where the voices are busy, a little fuller where they rest, their accents with the gravity's offbeats and out of the way of its sixteenths; a house hat variation that would fill over busy voices or thin over resting ones takes the next of its kind. At a transition the move's kind leans to the vector of change the voices make across the seam (recipes/arrangement/hat-moves.json `vectors`). src/hat-scene.ts reads this row. Every number is a starting point for listening.",
+ "units": {
+  "says": "`voices`: what one onset of each voice adds to a bar's load (each step counted once a voice); `busy`: a bar's load from which its voices are busy (the hand part counts light: its own room is the hat moves' `hands`, and a conga part alone never makes a bar busy); a bar rests where its figure (the keys, the stabs, the lead) strikes nothing while the phrase's figure strikes in some of its bars (a phrase with no figure at all has no rest to fill: there the hats are the figure). `both`: a bar whose load is busy while its figure rests is one of the two, never both: `busy`, the bass and the hand part keep it moving, so it is neither filled nor lifted. `recur`: a step is the gravity's where the phrase's figure, bass or hand part strikes it on that share of its bars or more. `vary`: a hat variation fights where it adds `adds` hits a bar or more over a span whose bars are busy on `busy` of them, adds a sixteenth on the gravity's own, or takes `takes` hits a bar or more over a span that rests on `rest` of its bars. `level`: decibels on the hats' own hits (`lock` on an offbeat the gravity accents where it accents some and not all; `stack` on a sixteenth the bar's figure strikes too; `busy` and `rest` on the bar, both only in a phrase whose figure plays in some of its bars: a phrase with no figure at all has neither, there the hats are the figure and are never stepped back for the bass and the hand part; never past `most` either way; a lift carried past the hit's full velocity by its gain, the velocity held to 1). `thin.ghost`: a hit at that share of its voice's loudest in the bar or under it is a ghost, and a ghost stacked on the figure's sixteenth in a busy bar is taken out. `fill`: in a resting bar, one ghost of the closed hat at `level` of its loudest, on the first of `steps` that no hat, bass or hand strikes, at `chance` (Spark leaning it). `vector.dead`: the change of the voices' energy across a seam (the seams' reading without the hats) under which the seam is level",
+  "voices.*": "load",
+  "busy": "load",
+  "both": "busy or rest",
+  "recur": "share",
+  "vary.busy": "share",
+  "vary.rest": "share",
+  "vary.adds": "hits",
+  "vary.takes": "hits",
+  "level.*": "dB",
+  "thin.ghost": "share",
+  "fill.chance": "share",
+  "fill.level": "share",
+  "fill.lean.*": "lean",
+  "fill.steps": "sixteenths",
+  "vector.dead": "share",
+  "moves.busy": "ratio"
+ },
+ "centre": {
+  "says": "the house's own birds (src/spell.ts HOUSE): every lean below is nought there",
+  "spark": 0.275, "veil": 0.473
+ },
+ "voices": {"figure": 1, "bass": 0.5, "hands": 0.25, "pad": 0.25},
+ "busy": 5,
+ "both": "busy",
+ "recur": 0.5,
+ "vary": {"busy": 0.5, "rest": 0.5, "adds": 3, "takes": 2},
+ "level": {"lock": 1, "stack": -1.5, "busy": -0.75, "rest": 0.75, "most": 1.5},
+ "thin": {"ghost": 0.45},
+ "fill": {"chance": 0.5, "level": 0.35, "lean": {"spark": 1.5}, "steps": [15, 13, 11, 7]},
+ "vector": {"dead": 0.08},
+ "moves": {"says": "where the bar's voices are busy, the busy rows' weight (a roll, a swung push, a triplet over a busy figure is two grooves)", "busy": 0}
+}

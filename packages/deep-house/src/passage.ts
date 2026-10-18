@@ -73,6 +73,12 @@ const ENDS: Readonly<Record<End, true>> = Object.freeze({ ghostTurn: true, openE
   snareDeparture: true, topsDarken: true, ghostAnswer: true, lastBeatEmpty: true, fill: true, roll: true, snarePickup: true, crash: true, hatsBreathe: true,
   reverseCymbal: true, topsClose: true, topsOpen: true, ghostTail: true, kickPickup: true, openHatPickup: true, beatSilence: true, kickBack: true });
 export const END_NAMES: readonly End[] = Object.freeze(Object.keys(ENDS) as End[]);
+/**
+ * **The endings that empty the bar's end** (every drum out from a sixteenth to the line): the step each one clears from,
+ * as the pass below plays it (a hit within 0.4 of a step before it is taken with it). The ring draws these at their
+ * real length (`src/moments.ts`); an ending that takes one lane out (a kick out, a hat cut) leaves the bar playing.
+ */
+export const END_EMPTIES: Readonly<Partial<Record<End, number>>> = Object.freeze({ halfBarBreath: 8, lastBeatEmpty: 12, beatSilence: 12 });
 export interface DrumState { from: number; to: number; state: 'S' | 'R' | 'X' | 'T' | 'H' | 'O' | 'B'; spotlight?: [number, number]; topFrom?: number; topVel?: number;
   /** the drums thinned under a phrase: no ghosts, no open hat, the tops a little softer */
   thin?: boolean;
@@ -838,9 +844,9 @@ export function playPassage(I: PassageInput): PassageResult {
       if (end === 'reverseCymbal') swellInto(bar + 1, `the reverse swell into ${bar + 1}`);
       if (end === 'topsClose') sweepTops(bar, tops.closeHz as [number, number], 4);
       if (end === 'topsOpen') sweepTops(bar, tops.openHz as [number, number], 0);
-      if (end === 'beatSilence') for (const e of bar$(bar)) if (live(e) && stepIn(e, bar) >= 11.6) gone(e);
+      if (end === 'beatSilence') for (const e of bar$(bar)) if (live(e) && stepIn(e, bar) >= END_EMPTIES.beatSilence! - 0.4) gone(e);
       if (end === 'openEnding') for (const e of here) if ((isCrack(e) && stepIn(e, bar) > 10) || (isGhost(e) && stepIn(e, bar) > 10)) gone(e);
-      if (end === 'halfBarBreath') for (const e of here) if (stepIn(e, bar) >= 7.6) gone(e);
+      if (end === 'halfBarBreath') for (const e of here) if (stepIn(e, bar) >= END_EMPTIES.halfBarBreath! - 0.4) gone(e);
       if (end === 'kickOut') for (const e of here) if (I.isKick(e.voice) && stepIn(e, bar) > 6) gone(e);
       if (end === 'shortRoll') {
         // the roll's gap is the snare's and the kick's: the hats carry on through it, so the mix never falls away
@@ -860,7 +866,7 @@ export function playPassage(I: PassageInput): PassageResult {
         const x = Math.max(0, Math.min(1, (stepIn(e, bar) - D.darken.fromStep) / (16 - D.darken.fromStep)));
         e.p = { ...e.p, gain: round(Number(e.p.gain ?? 1) * dbToGain(D.darken.db * (0.35 + 0.65 * x)), 6) };
       }
-      if (end === 'lastBeatEmpty') for (const e of bar$(bar)) if (live(e) && stepIn(e, bar) >= 11.6) gone(e);
+      if (end === 'lastBeatEmpty') for (const e of bar$(bar)) if (live(e) && stepIn(e, bar) >= END_EMPTIES.lastBeatEmpty! - 0.4) gone(e);
     }
     if (found || ends.length) say(bar, 'drums', what + (ends.length ? `; ${ends.join(', ')}` : '') + (endSays ? ` (${endSays})` : ''));
   }

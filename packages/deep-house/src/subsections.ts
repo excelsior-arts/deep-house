@@ -67,6 +67,11 @@ export interface SubSection {
   /** a variation's other rows, in the draw's order after it: played in turn where the drawn one had nothing to change (round M1) */
   alternates?: Recipe[];
   /**
+   * the row the draw made, where the scene plays another's hats over its bars (round hat-scene, `src/hat-scene.ts`):
+   * what the arrangement's phrases read of the bar, so nothing but the hats follows the scene
+   */
+  drawn?: Recipe;
+  /**
    * an overlay on a row's own drums (PLAN-UNIFY U2b, his ear 10-13: "need some drum filling" on a bass out under a
    * track row's drums): the figure plays its hits on its own bars even where an explicit part owns the role, and may
    * thin the part's hits there, so the fill reads; every other bar of the part is its own
@@ -74,7 +79,17 @@ export interface SubSection {
   overlay?: boolean;
   /** roles an overlay never edits, in the lane table's words (a pinned part: the listener's word, kept exact) */
   spare?: ReadonlySet<string>;
+  /**
+   * the kit rests here and the hand player with it (his word 10-16, "complete phrasing", and its review): a stop, a
+   * silence, the kick alone through a landing's first beat, a breakdown-lite's bed exposed. A figure that clears every
+   * drum role (a drop-out bar, a breath) says so by its lanes (`silencesKit`) and needs no flag
+   */
+  silence?: boolean;
 }
+
+/** Whether a figure takes the whole kit out: it clears every drum role (the kick, the backbeat, the hats, the sixteenths). */
+export const silencesKit = (row: Recipe): boolean =>
+  Object.keys(ROLE_LAYERS).every((role) => row.figure?.lanes?.[role]?.clear !== undefined);
 
 /**
  * **How much a place draws**: the chance a main or a drop of 24 bars or more
@@ -178,8 +193,9 @@ export function footprint(row: Recipe): Set<string> {
   const out = new Set<string>(Object.keys(f.lanes ?? {}));
   for (const w of Object.values(f.without ?? {})) for (const role of Object.keys(w.lanes ?? {})) out.add(role);
   for (const list of [f.layers?.on, f.layers?.off, f.layers?.swap]) for (const role of list ?? []) out.add(role);
-  if (out.has('offbeat')) out.add('open');
-  if (out.has('open')) out.add('offbeat');
+  if (out.has('offbeat') || out.has('closed')) out.add('open');
+  if (out.has('open') || out.has('closed')) out.add('offbeat');
+  if (out.has('offbeat')) out.add('closed');
   return out;
 }
 
@@ -358,7 +374,7 @@ export const DRUM_ROLE_LANES: RoleLanes = Object.freeze(Object.fromEntries(Objec
  * `heldRoles`) are written in the lane table's words, so a figure's role is
  * read through this before it is asked whether it is held.
  */
-export const laneRoleOf = (role: string): string => (role === 'open' ? 'offbeat' : role === 'drone' ? 'sustained' : role);
+export const laneRoleOf = (role: string): string => (role === 'open' || role === 'closed' ? 'offbeat' : role === 'drone' ? 'sustained' : role);
 
 /**
  * **How an added hit meets a hit of its role already on its step** (C01 of
@@ -416,7 +432,7 @@ export type GlueAt = (slot: string, line: number, bars: number, level: number) =
  */
 export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (bar: number, step: number) => number,
   crash: { voice: string; layer: string } | null,
-  keep: { bars?: ReadonlySet<number>; roles?: RoleLanes; glue?: GlueAt; held?: ReadonlySet<string> } = {}): SubSection[] {
+  keep: { bars?: ReadonlySet<number>; roles?: RoleLanes; glue?: GlueAt; held?: ReadonlySet<string>; own?: (e: Ev) => boolean } = {}): SubSection[] {
   // A bar another small thing already owns (the development's pickup) is
   // left alone, and an event a recipe asked for by name (`part`) is never
   // dropped: an explicit cell is a promise the overlay keeps (DNB-1 landing;
@@ -452,11 +468,13 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
   const note = (s: SubSection, glued = false) => { if (changed() !== mark || glued) heard.add(s); mark = changed(); };
   // A hit a figure writes is the row's, by `by`: copied from the bar's own hit
   // for its sound, never under a part's name it was not written by (C02).
-  const copy = (e: Ev, bar: number, step: number, vel: number, by: string, chokeAt?: number): Ev => {
+  const copy = (e: Ev, bar: number, step: number, vel: number, by: string, chokeAt?: number, l?: Letter): Ev => {
     const { part: _part, ...rest } = e;
-    const t = at(bar, step) + (e.t - at(e.bar!, e.step ?? 0));
+    // (a hit moved off its step, hat-moves: by sixteenths of the bar's own length)
+    const s16 = l?.shift || l?.chokeAfter ? (at(bar + 1, 0) - at(bar, 0)) / 16 : 0;
+    const t = at(bar, step) + (e.t - at(e.bar!, e.step ?? 0)) + (l?.shift ? l.shift * s16 : 0);
     // a choked hit (U2d): its ring cut where the letter says, by a gain path over the hit (any voice reads one)
-    const cutS = chokeAt !== undefined && chokeAt > step ? at(bar, chokeAt) - t : null;
+    const cutS = l?.chokeAfter ? l.chokeAfter * s16 : chokeAt !== undefined && chokeAt > step ? at(bar, chokeAt) - t : null;
     const p = cutS !== null && cutS > 0.01 ? { ...e.p, vel, gainPath: [0, 1, +(cutS - 0.008).toFixed(4), 1, +cutS.toFixed(4), 0] } : { ...e.p, vel };
     return { ...rest, t, bar, step, p, by };
   };
@@ -465,8 +483,16 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     ...(byBar.get(bar) || []).filter((e) => isRole(e, role) && !drop.has(e)),
     ...add.filter((e) => e.bar === bar && isRole(e, role) && !drop.has(e)),
   ];
+  // **A player's own hits a clear leaves** (`keep.own`, his word 10-16 on the congas: "complete phrasing"): the hand
+  // player's phrase on a lane the hats' own variations thin (quarter hats, open hats, the hats resting, a hat gap, the
+  // tops thinning) is the player's — a clear takes the lane's other hits around it. Where the kit rests the player
+  // rests with it: a sub-section that silences (`SubSection.silence`, or a figure that clears every drum role:
+  // a drop-out bar, a breath, a stop) takes the player's hits as it takes the rest, a part's hand hits with them.
+  let silencing = false;
+  const silences = (s: SubSection, row: Recipe) => !!s.silence || silencesKit(row);
+  const owned = (e: Ev) => !silencing && !!keep.own?.(e);
   const remove = (bar: number, role: string, from = 0, until = 16) => {
-    for (const e of current(bar, role)) if ((e.step ?? 0) >= from && (e.step ?? 0) < until) drop.add(e);
+    for (const e of current(bar, role)) if ((e.step ?? 0) >= from && (e.step ?? 0) < until && !owned(e)) drop.add(e);
     // A held role: a note begun before the cleared step and still sounding there stops where the clearing begins.
     if (roles[role]?.held) {
       const t0 = at(bar, from);
@@ -508,6 +534,12 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
    */
   const edit = (bar: number, k: number, role: string, e: LaneEdit, letters: Readonly<Record<string, Letter>>, by: string): 'applied' | 'empty' | 'owned' => {
     if (!roles[role]) return 'empty';
+    // the kit resting takes every hand hit of its window, a part's too (a hand row's, a pin's): the player rests with
+    // it — where the kit does rest (the figure may edit the kick here: over a track row's own kick the row plays on,
+    // its hands with it)
+    const editable = (r: string) => !reserved.has(r) || (overlaying && !spareNow.has(laneRoleOf(r)));
+    if (silencing && e.clear !== undefined && keep.own && (editable(role) || editable('kick'))) for (const x of current(bar, role))
+      if (keep.own(x) && (x.step ?? 0) >= e.clear && (x.step ?? 0) < (e.until ?? 16)) dropped.add(x);
     if (reserved.has(role) && !(overlaying && !spareNow.has(laneRoleOf(role)))) return 'owned';
     const t = templates(bar, role);
     // A clear alone needs nothing to copy; a held note ringing into the bar is a thing to cut.
@@ -520,7 +552,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
         const c = m[step];
         if (c === '.') continue;
         const l = letters[c];
-        insert(role, copy(l.ghost ? t.ghost! : t.from, bar, step, l.absolute ? l.level : t.vel * l.level, by, l.chokeAt), 'mask', e.insert);
+        insert(role, copy(l.ghost ? t.ghost! : t.from, bar, step, l.absolute ? l.level : t.vel * l.level, by, l.chokeAt, l.shift || l.chokeAfter ? l : undefined), 'mask', e.insert);
       }
     }
     if (e.roll) {
@@ -546,6 +578,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
   for (const s of subs) {
     if (s.kind !== 'switch-up' && s.kind !== 'variation') continue;
     mark = changed();
+    silencing = silences(s, s.row);
     for (let b = s.startBar; b < s.startBar + s.bars; b++) play(s.row, b, b - s.startBar);
     // A variation whose row found nothing to change (a hat figure in a room with no closed hat)
     // takes its kind's next row on the same bars, so the span is heard where any row can be —
@@ -553,9 +586,11 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     for (const alt of s.alternates ?? []) {
       if (changed() !== mark) break;
       if (clashes(alt, s, subs)) continue;
+      silencing = silences(s, alt);
       for (let b = s.startBar; b < s.startBar + s.bars; b++) play(alt, b, b - s.startBar);
       if (changed() !== mark) { s.row = alt; s.label = alt.name; s.figure = alt.id; }
     }
+    silencing = false;
     note(s);
   }
   for (const s of subs) {
@@ -564,8 +599,9 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     const f = s.row.figure!;
     overlaying = !!s.overlay;
     spareNow = s.spare ?? new Set();
+    silencing = silences(s, s.row);
     for (let b = s.startBar; b < s.startBar + s.bars; b++) play(s.row, b, b - s.startBar);
-    overlaying = false;
+    overlaying = silencing = false;
     if (f.stroke && crash) {
       // The crash on the one after: add-if-absent against the theme's crashes and the strokes already laid (a crash on the one never lands on itself).
       const b = s.startBar + s.bars;

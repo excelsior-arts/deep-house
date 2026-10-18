@@ -9,6 +9,7 @@
   "strong": { "steps": [6, 14], "lift": 1.1 },
   "db": -3,
   "phraseBars": { "4": 1, "8": 1 },
+  "through": ["build"],
   "cells": [
     { "id": "house-tumbao", "weight": 1, "hits": [
       [0, "heel"], [3, "touch"], [6, "slap"], [7, "touch"], [8, "heel"], [10, "tone"], [11, "touch"], [14, "tone"],
@@ -33,12 +34,30 @@
     { "id": "breath", "weight": 0.6, "hits": [[0, "heel"], [6, "tone"], [14, "low"]] }
   ],
   "lean": {
-    "says": "Spark (movement) walks the cell from the sparse pair to the rolling one and the answer from the breath to the roll; Tide (space) leans to the sparse pair; Loom (form) to the tumbao; Veil (the rate of change) answers every four bars rather than eight. The centre is the house's own value of each bird, so at the house every weight is as written.",
-    "centre": { "spark": 0.275, "tide": 0.558, "loom": 0.578, "veil": 0.473 },
+    "says": "Spark (movement) walks the cell from the sparse pair to the rolling one and the answer from the breath to the roll; Tide (space) leans to the sparse pair; Loom (form) to the tumbao; Veil (the rate of change) answers every four bars rather than eight; Zephyr (the air) seats the player farther off the middle. The centre is the house's own value of each bird, so at the house every weight is as written.",
+    "centre": { "spark": 0.275, "tide": 0.558, "loom": 0.578, "veil": 0.473, "zephyr": 0.377 },
     "strength": 1,
     "spark": { "rolling": 3, "house-tumbao": 1.5, "sparse-pair": -3, "roll-in": 2, "breath": -2 },
     "tide": { "sparse-pair": 2, "rolling": -1.5 },
     "loom": { "house-tumbao": 2, "sparse-pair": -1 },
-    "veil": { "4": 3, "8": -3, "slap-call": 1.5 }
+    "veil": { "4": 3, "8": -3, "slap-call": 1.5 },
+    "zephyr": { "seat-near": -2.5, "seat-far": 2.5 }
+  },
+  "stage": {
+    "says": "Where the hand player sits and where each drum stands. The pair stands a fixed distance apart, mirrored about the player's seat: the low drum on the side toward the middle, the high drum outward. A bongo pair stands closer than a conga and its low drum. The seat is drawn once a theme, its distance off the middle by weight (Zephyr, the air and the width of the blooms, leans it out) and its side by a coin; no drum of any seat stands past 0.5. Each stroke of the character names its drum and its stroke: the open tone on the high drum, the bass tone on the low one, the slap, the fingertip and the heel on the high drum, the one the hands rest on. A hit strays from its drum by at most the humanise.",
+    "strokes": {
+      "tone": { "drum": "high", "stroke": "open" },
+      "low": { "drum": "low", "stroke": "open" },
+      "slap": { "drum": "high", "stroke": "slap" },
+      "touch": { "drum": "high", "stroke": "tip" },
+      "heel": { "drum": "high", "stroke": "heel" }
+    },
+    "widths": { "conga": 0.25, "bongo": 0.15 },
+    "seats": [
+      { "id": "seat-near", "weight": 1, "at": 0.06 },
+      { "id": "seat-mid", "weight": 1, "at": 0.14 },
+      { "id": "seat-far", "weight": 0.7, "at": 0.22 }
+    ],
+    "humanise": 0.015
   }
 }

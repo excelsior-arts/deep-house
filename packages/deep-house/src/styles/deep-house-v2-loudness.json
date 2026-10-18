@@ -122,6 +122,102 @@
       "minor": 0,
       "velHats": 0.762219,
       "loopBars": 5.9
+    },
+    "front": {
+      "note": "Written by tools/headroom-front.ts --fit --write: the grid's moved house mains rendered at nought, the share line (15 % of the 10 ms blocks) and the depth line (the loudest block 8 dB over) fitted apart, each with its margin; each window rendered with the sum clip its plan sets (round drum-clip), so the depth line reads the room the clip leaves. The share line as the block held it (--only depth).",
+      "measuredAt": "2026-10-17",
+      "sample": {
+        "windows": 971,
+        "seeds": [
+          1,
+          40
+        ]
+      },
+      "selection": {
+        "gainDb": 0.03,
+        "heldOut": "five outer folds by seed (seed mod 5), the selection and the fit run again on the other four"
+      },
+      "blendDb": 0.5,
+      "share": {
+        "marginDb": 1.5,
+        "residual": {
+          "r2": 0.651,
+          "inSample": 1.2907,
+          "crossValidated": 1.386,
+          "worstHeldOut": 5.5393,
+          "selectionCv": 1.3018,
+          "n": 971
+        },
+        "intercept": 2.46728,
+        "coef": {
+          "bpm": -0.05454,
+          "harmonicEnergyDb": -0.12571,
+          "chords": -0.32621,
+          "wetKeys": 0.63716,
+          "voicingElevenths": -0.79041,
+          "knobDb": -0.20406,
+          "ratePad": -0.11168,
+          "gainPad": -0.12873,
+          "wetPad": -1.04615
+        },
+        "centre": {
+          "bpm": 113.968074,
+          "harmonicEnergyDb": -15.567611,
+          "chords": 2.345005,
+          "wetKeys": 0.5958,
+          "voicingElevenths": 0,
+          "knobDb": 0.552564,
+          "ratePad": 2.110067,
+          "gainPad": -1.175072,
+          "wetPad": 0.583744
+        }
+      },
+      "depth": {
+        "marginDb": 0,
+        "residual": {
+          "r2": 0.6455,
+          "inSample": 0.9833,
+          "crossValidated": 1.0119,
+          "worstHeldOut": 5.1379,
+          "selectionCv": 0.9877,
+          "n": 971
+        },
+        "intercept": 1.4661,
+        "coef": {
+          "clipHeld": 0.86069,
+          "peakClap": -0.02088
+        },
+        "centre": {
+          "clipHeld": 1.352556,
+          "peakClap": -24.967024
+        }
+      }
+    },
+    "clipDepth": {
+      "note": "The saw-bed's depth line as it was fitted on the moved house mains without a clip (round saw-bed, tools/headroom-front.ts, 971 windows, measured 2026-10-16): the room the loudest block leaves under the 8 dB line, in dB of trim. Kept as fitted for the sum clip's rule (src/loudness.ts, clipPlan): how deep the hit would go without the clip. A refit of headroom.front never writes it.",
+      "intercept": 1.77041,
+      "coef": {
+        "peakClap": -0.11185,
+        "lvSub": -0.58323,
+        "voicingElevenths": -1.19458,
+        "shareSixteenths": -1.2305,
+        "rateShaker": 0.16366
+      },
+      "centre": {
+        "peakClap": -24.967024,
+        "lvSub": -16.980433,
+        "voicingElevenths": 0,
+        "shareSixteenths": 0,
+        "rateShaker": 1.734938
+      },
+      "residual": {
+        "r2": 0.4289,
+        "inSample": 1.7721,
+        "crossValidated": 1.8351,
+        "worstHeldOut": 8.1821,
+        "selectionCv": 1.7798,
+        "n": 971
+      }
     }
   },
   "families": {

@@ -528,7 +528,14 @@ async function run(list, { want = 'lufs', label = 'measuring' } = {}) {
 // whose every value is 0 or 1 is left where it is; anything else is centred on
 // the measured mean, so the intercept is the loudness of an average theme and a
 // coefficient is a decibel per unit of departure from it.
-function pool(rows, { instruments = false } = {}) {
+//
+// **The theme's sum clip's columns are the depth line's alone** (round drum-clip): `clipRoom` and `clipHeld` read the
+// trim the clip's top is set for, and that trim is planned off the main loudness model and the share line
+// (`loudness.ts` `clipPlan`, which reads `need` while `clipRoomDb` is still nought). A fit of either, of the base
+// headroom model or of a family that took a clip column would be fitted on its own output. They are left out of every
+// pool unless the fit opts in with `clip: true`, which only the depth line's (`tools/headroom-front.ts`) does.
+export const CLIP_COLUMNS: readonly string[] = Object.freeze(['clipRoom', 'clipHeld']);
+function pool(rows, { instruments = false, clip = false } = {}) {
   const c = {};
   // Not part of the record and never written into params.ts: the one-hot pool
   // the property pool is measured against, so "does an instrument need its own
@@ -553,7 +560,7 @@ function pool(rows, { instruments = false } = {}) {
   // never saw (round EQ-5: the held drone, which has no kick).
   const EXCLUDE = new Set((arg('exclude', '') || '').split(',').filter(Boolean));
   for (const name of [...Object.keys(LOUDNESS_COLUMNS), ...Object.keys(extra)]) {
-    if (EXCLUDE.has(name)) continue;
+    if (EXCLUDE.has(name) || (!clip && CLIP_COLUMNS.includes(name))) continue;
     const f = LOUDNESS_COLUMNS[name] || extra[name];
     const xs = rows.map(f);
     const binary = xs.every((x) => x === 0 || x === 1);
@@ -629,9 +636,11 @@ function crossVal(rows, y, names, cand, folds = 5) {
   return { rmse: Math.sqrt(ss / n), worst };
 }
 
-export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey = 'lufs' } = {}) {
-  const y = rows.map((r) => r[yKey]);
-  const cand = pool(rows, { instruments });
+// Forward selection on the rows given: the column that lowers the cross-validated residual most, taken while it
+// lowers it by more than `gain` (the best of the round, not the first to clear the bar: a later column that beats
+// the first by less than `gain` is still the better one).
+function select(rows, y, { max, gain, instruments, clip }) {
+  const cand = pool(rows, { instruments, clip });
   // `--without a,b` keeps columns out of the selection (round DNB-4: the bass's
   // note rate, which read a switch-up's doubled line at the fast broken place
   // as two decibels louder than it measured, through a compressed bass).
@@ -640,21 +649,53 @@ export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey
   let best = crossVal(rows, y, names, cand);
   for (;;) {
     if (names.length >= max) break;
-    let pick = null, pickCv = best;
+    let pick = null, pickCv = null;
     for (const n of Object.keys(cand)) {
       if (names.includes(n)) continue;
       const cv = crossVal(rows, y, [...names, n], cand);
-      if (cv.rmse < pickCv.rmse - gain) { pick = n; pickCv = cv; }
+      if (!pickCv || cv.rmse < pickCv.rmse) { pick = n; pickCv = cv; }
     }
-    if (!pick) break;
+    if (!pick || !(pickCv.rmse < best.rmse - gain)) break;
     names.push(pick);
     best = pickCv;
   }
+  return { cand, names, best };
+}
+
+// The selection scores its candidates by the same five folds it would report, so that figure is the winner's of
+// many and reads low (round saw-bed: 1.27 and 1.69 dB written, 1.50 and 1.86 on seeds the selection never saw).
+// `outer` makes the held-out figure honest: it names each row's outer fold (or null for a row only ever trained on),
+// and for each fold the whole selection and fit run again on the other rows and are scored on that fold's alone.
+// `cv` is then that figure; `cvSelection` the one the selection steered by. Without `outer`, `cv` is as it was.
+export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey = 'lufs', outer = null, clip = false } = {}) {
+  const y = rows.map((r) => r[yKey]);
+  const { cand, names, best } = select(rows, y, { max, gain, instruments, clip });
   const w = solve(design(rows, names, cand), y);
   const mean = y.reduce((a, v) => a + v, 0) / y.length;
   const sst = y.reduce((a, v) => a + (v - mean) ** 2, 0);
   const res = rmse(rows, y, names, cand, w);
   const r2 = 1 - (res * res * rows.length) / sst;
+  let held = null;
+  if (outer) {
+    const keys = [...new Set(rows.map(outer).filter((k) => k != null))];
+    let ss = 0, n = 0, worst = 0;
+    for (const k of keys) {
+      const tr = rows.filter((r) => outer(r) !== k), te = rows.filter((r) => outer(r) === k);
+      const trY = tr.map((r) => r[yKey]);
+      const m = select(tr, trY, { max, gain, instruments, clip });
+      const wk = solve(design(tr, m.names, m.cand), trY);
+      if (!wk) throw new Error(`fit: the outer fold ${k} is singular`);
+      const X = design(te, m.names, m.cand);
+      te.forEach((r, i) => {
+        let p = 0;
+        for (let j = 0; j < wk.length; j++) p += X[i][j] * wk[j];
+        const e = Math.abs(p - r[yKey]);
+        ss += e * e; n++;
+        if (e > worst) worst = e;
+      });
+    }
+    held = { rmse: Math.sqrt(ss / n), worst, n, folds: keys.length };
+  }
   return {
     names,
     intercept: +w[0].toFixed(5),
@@ -662,8 +703,9 @@ export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey
     centre: Object.fromEntries(names.map((n) => [n, cand[n].centre])),
     r2: +r2.toFixed(4),
     rmse: +res.toFixed(4),
-    cv: +best.rmse.toFixed(4),
-    cvWorst: +best.worst.toFixed(4),
+    cv: +(held ?? best).rmse.toFixed(4),
+    cvWorst: +(held ?? best).worst.toFixed(4),
+    ...(held ? { cvSelection: +best.rmse.toFixed(4), heldOutRows: held.n, heldOutFolds: held.folds } : {}),
     n: rows.length,
   };
 }

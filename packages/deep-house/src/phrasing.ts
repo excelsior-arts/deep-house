@@ -32,6 +32,9 @@ import type { LaneEdit, Letter } from './treatment.ts';
 import type { MusicalTime } from './musical-time.ts';
 import type { PhraseMap } from './phrase-map.ts';
 import type { Spell } from './spell.ts';
+import { planHatMoves, type HatMove, type HatSteps, type HatTransition } from './hat-moves.ts';
+import { SEAMS, readSeam, type BarBed, type BarEnergy, type Direction, type SeamReading } from './seams.ts';
+import { busyAt, callAt, vectorOf, type SceneBar } from './hat-scene.ts';
 
 type W = Record<string, number>;
 export type SegmentKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-out' | 'fill';
@@ -274,7 +277,16 @@ export const said = (n: Note, holds: (x: Said) => boolean): { label: string; par
 /** What the pass did: the track's `phrasing`, read by nothing new (the ring may show `segments` later). */
 export interface Phrasing { segments: Segment[]; answers: Answer[]; outs: Out[]; cooldowns: Array<{ from: number; to: number; label: string }>; summary: string;
   /** every build heard, in line order: which gesture, how long, its stop and its landing (U2d) */
-  builds?: Build[] }
+  builds?: Build[];
+  /** the hats' moves at the transitions, as heard (hat-moves) */
+  hats?: HatMove[];
+  /** every noise transition read at its seam (hat-moves, `src/seams.ts`): kept, or refused for drum work or space */
+  seams?: Seam[];
+  /** what the scene did to the hats (round hat-scene, `src/hat-scene.ts`): the variations given another row's hats and
+   * why, the hats' own hits it moved or took out, and the resting bars it filled */
+  scene?: { varied: Array<{ bar: number; bars: number; from: string; to: string; why: string }>; shaped: number; out: number; filled: number[] } }
+/** A noise transition read at its seam: the gesture or the glue row, its bar and line, the reading, and what played. */
+export interface Seam { bar: number; line: number; what: string; dir: Direction; reading: SeamReading; verdict: 'kept' | 'drums' | 'space'; instead?: string }
 
 /** The harmonic and melodic layers: what holds a chord or sings a line (the guards' own list, `tools/check-program-guards.ts`). */
 export const TONAL_LAYERS: ReadonlySet<string> = new Set(['keys', 'pad', 'lead', 'stab', 'arp', 'pluck', 'piano', 'bell', 'vocal', 'strings', 'melodic']);
@@ -294,6 +306,16 @@ export interface BarKit {
   held: boolean;
   /** how much of the bar each held part sounds over (0 to 1): the bass, the held layer (the pad), the struck figure (the keys) */
   cover: { bass: number; drone: number; figure: number; harmony: number };
+  /** the steps the hand part strikes on (hat-moves: where the hats leave room, where a gap answers) */
+  hands?: number[];
+  /** the drum onsets of the bar (the seams' energy) */
+  onsets?: number;
+  /** the steps the hats strike on (hat-moves: a gap only where it takes a hit) */
+  hatSteps?: number[];
+  /** the tonal voices sounding over a beat of the bar or more (the seams' energy: a pad or a lead entering or leaving) */
+  voices?: number;
+  /** the loudest hit of the open hat and of the closed hats (hat-moves: a mask on both hats copies the louder) */
+  hatLoud?: { open: number; closed: number };
 }
 
 export interface PhrasingInput {
@@ -334,6 +356,18 @@ export interface PhrasingInput {
   keep: ReadonlySet<number>;
   /** the roles an explicit part owns, in the lane table's words (a track row's rhythm cells, a pin): never edited */
   held: ReadonlySet<string>;
+  /** the bed at a bar (the seams' texture): the held bed's hold, an air bed */
+  bed?: (bar: number) => Omit<BarBed, 'hands'>;
+  /** the open hat's hits, before any figure (hat-moves: a move on the open hat copies the theme's own) */
+  openHits?: ReadonlyArray<{ bar: number; step: number }>;
+  /** a house glue row would sound its slot's voice into the line (the composer's own test: the slot's voice, its fx, no glue near);
+   * without it every glue row is taken to sound (its bars are its own, never a hat move's) and none is read at its seam */
+  glueWould?: (slot: string, line: number, bars: number) => boolean;
+  /** the open hat's ring to -10 dB, in seconds (hat-moves: a choke, a lift or a wash needs a hat that rings) */
+  openRing?: number;
+  /** the scene at a bar (round hat-scene): what the theme's own voices strike on its sixteenths; without it the hats'
+   * moves read no vector and no figure (a track recipe's or a pin's parts are never read) */
+  scene?: (bar: number) => SceneBar | null;
 }
 
 /** A row of a figure, as `playSubSections` plays it (a treatment's shape; written here, never in the library). */
@@ -381,7 +415,7 @@ function leanOf(row: PhrasingRow, leans: W, spell: Readonly<Spell>): number {
   return x;
 }
 
-export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubSection[]; moves: Moves; notes: Note[] } {
+export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubSection[]; moves: Moves; notes: Note[]; refusedGlue: string[]; hatBars: ReadonlySet<number> } {
   const R = I.row, T = I.time, L = I.map.time.phraseBars, bs = T.barS, beat = I.beatS ?? bs / 4;
   const segments: Segment[] = [], answers: Answer[] = [], outs: Out[] = [], cooldowns: Phrasing['cooldowns'] = [];
   const subs: SubSection[] = [];
@@ -466,8 +500,41 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const leanG = (leans: W) => { let x = 1; for (const [bird, v] of Object.entries(leans)) { const c = G.centre[bird]; if (typeof c === 'number') x *= lean(v, spellOf[bird], 1, c); } return x; };
   // the gestures' sound by the birds (the table's moves about the house's own: none at the house)
   const SH = gestureSound(spellOf, G.centre);
+  // ----- the seams (hat-moves, `src/seams.ts`): a bar's energy as the kit plays it under the figures laid over it -----
+  const seams: Seam[] = [];
+  const ROLE_ENERGY: Readonly<Record<string, Array<keyof BarEnergy>>> = { kick: ['kick'], backbeat: ['backbeat'], offbeat: ['hats', 'tops'], sixteenth: ['tops'], open: ['tops'], bassline: ['bass'], figure: ['harmony', 'voices'], drone: ['harmony', 'voices'] };
+  // (`dipped`: a bar under a low-pass not laid yet, the filtered phrase's own, which its build lays after its seam is read;
+  // `voicesOnly`, round hat-scene: the scene's energy, the hats and their own figures left out, so the vector a hat move
+  // leans to is what the other voices do across the seam)
+  const energyAt = (b: number, dipped?: (b: number) => boolean, voicesOnly = false): BarEnergy | null => {
+    if (b < 0 || b >= I.bars) return null;
+    const k = I.kit(b);
+    const e: BarEnergy = { kick: +k.kick, backbeat: +k.backbeat, hats: voicesOnly ? 0 : +k.offbeat, tops: voicesOnly ? +!!k.sixteenths : +!!k.tops, bass: +k.bass, harmony: k.cover.harmony, voices: k.voices ?? 0, onsets: k.onsets ?? 0 };
+    for (const x of [...I.drawn, ...subs]) {
+      if (b < x.startBar || b >= x.startBar + x.bars) continue;
+      // (a variation the scene gave another row's hats is read as drawn: round hat-scene moves nothing but the hats)
+      for (const [role, edit] of Object.entries((x.drawn ?? x.row)?.figure?.lanes ?? {})) {
+        if (!editable(role) && !x.overlay) continue;
+        if (voicesOnly && (role === 'offbeat' || role === 'open' || role === 'closed')) continue;
+        const f = edit.mask ? 0.5 : edit.clear !== undefined && edit.until === undefined ? edit.clear / 16 : 1;
+        for (const key of ROLE_ENERGY[role] ?? []) e[key] *= f;
+      }
+    }
+    // (under a filtered phrase's low-pass the tops go and the harmony dulls: the cut's own energy, `energy.filtered`)
+    const t0 = b * bs, t1 = (b + 1) * bs;
+    if (dipped?.(b) || moves.dips.some((d) => t0 >= d.a - 1e-6 && t1 <= Math.max(d.c, d.b) + 1e-6)) for (const [k, f] of Object.entries(SEAMS.energy.filtered)) e[k as keyof BarEnergy] *= f;
+    return e;
+  };
+  const bedAt = (b: number): BarBed | null => (b < 0 || b >= I.bars ? null : { ...(I.bed?.(b) ?? { hold: 0, air: false }), hands: !!I.kit(b).hands?.length });
+  const seamAt = (bar: number, line: number, dir: Direction, dipped?: (b: number) => boolean) => readSeam(bar, line, dir, (b) => energyAt(b, dipped), bedAt);
   /** The build of one line, its gesture drawn after `prev` (the theme's last build's kind) and `used` (every kind it played). */
-  const realize = (p: Pending, avoid: ReadonlySet<string>, used: ReadonlySet<string>, busy: ReadonlySet<number>): Build | null => {
+  /**
+   * `dry`: the gesture drawn and nothing laid (every build's draw is known before any is laid, so a noise gesture swapped
+   * for the drums never changes another build's draw); `near`, the kinds of the builds either side, drawn and as played
+   * (a swap is never one of them). Returns the build as played and the kind drawn.
+   */
+  const realize = (p: Pending, avoid: ReadonlySet<string>, used: ReadonlySet<string>, busy: ReadonlySet<number>, dry = false,
+    near: ReadonlySet<string> = new Set()): { build: Build | null; drawn: string } | null => {
     const { line, o } = p, bar = line - 1, k = I.kit(bar), items: Said[] = [];
     // a build and a stop edit the drums of their bar: an overlay wherever any drum lane they touch is a row's (the
     // review of U2c: a row owning the kick and the hats, not the backbeat, ticked its hats through the stop)
@@ -486,6 +553,20 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     const leadOf = (g: GestureRow) => (g.lead ? g.lead.lanes.find((r) => has(r)) ?? null : null);
     const rng = new Rng(`${I.seed}::phrasing:gesture:${line}`);
     let gesture: GestureRow | null = null, beats = 2, stopSteps = 0;
+    // (a noise gesture refused at its seam: the drums take its build, the line keeps the landings it was drawn for)
+    let swappedFrom: GestureRow | null = null, drawnId: string | null = null, laid = false;
+    // its length: two bars only where the bar before is the section's, plays drums and is no other small thing's
+    // (and never over a track row's own drums: an overlay is that one bar's alone, U2b)
+    const twoOk = !own && bar - 1 >= (sectionAt(bar)?.startBar ?? bar) && I.kit(bar - 1).drums && !houseMarked.has(bar - 1) && !busy.has(bar - 1);
+    const lengthOf = (g: GestureRow): number => {
+      const bw: W = {};
+      for (const [x, wt] of Object.entries(g.beats)) {
+        const n = Number(x), d = Math.log2(n / 2);
+        if (n > 4 && !twoOk) continue;
+        bw[x] = wt * soundLean(spellOf, G.centre, 'roll.length', d) * (big ? G.choice.longer.big ** d : 1);
+      }
+      return Number(weighted(rng, bw) ?? 2);
+    };
     if (lane) {
       const needs = (g: GestureRow) => (g.needs ?? []).every((n) => (n === 'swell' ? !!I.can.swell && I.can.glue !== false && !I.gestured(line) : n === 'notIntoBreak' ? !intoBreak : n === 'kick' ? has('kick') : false));
       // a gesture with no lead lane is heard by what rests under it, by the lift it adds, or by its swell
@@ -497,18 +578,29 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       let pairs = ok.map((g) => ({ v: g, w: w(g, G.choice.repeat) })).filter((x) => x.w > 0);
       if (!pairs.length) pairs = ok.map((g) => ({ v: g, w: w(g, 1) })).filter((x) => x.w > 0);
       gesture = pairs.length ? rng.weighted(pairs) : null;
-    }
-    if (gesture) {
-      // its length: two bars only where the bar before is the section's, plays drums and is no other small thing's
-      // (and never over a track row's own drums: an overlay is that one bar's alone, U2b)
-      const twoOk = !own && bar - 1 >= (sectionAt(bar)?.startBar ?? bar) && I.kit(bar - 1).drums && !houseMarked.has(bar - 1) && !busy.has(bar - 1);
-      const bw: W = {};
-      for (const [x, wt] of Object.entries(gesture.beats)) {
-        const n = Number(x), d = Math.log2(n / 2);
-        if (n > 4 && !twoOk) continue;
-        bw[x] = wt * soundLean(spellOf, G.centre, 'roll.length', d) * (big ? G.choice.longer.big ** d : 1);
+      // **a noise gesture earns its place** (hat-moves; his word 10-16): read at its seam, kept at the reading's share off
+      // a die of its own; refused, the drums build instead (a gesture of the drums, off a stream of its own), or nothing
+      const dir = gesture ? SEAMS.noise.gestures[gesture.id] : undefined;
+      drawnId = gesture?.id ?? null;
+      if (gesture && dir && !dry) {
+        // (read over the window as it is laid: a two-bar one from the bars before its first)
+        beats = lengthOf(gesture);
+        laid = true;
+        // (out of a filtered phrase, its bars before the line are under the low-pass this build lays)
+        const reading = seamAt(bar - (beats > 4 ? 1 : 0), line, dir, o.filter ? (b) => b >= Math.round((o.filterFrom ?? bar * bs) / bs) && b < bar : undefined);
+        const was = gesture.id;
+        swappedFrom = gesture;
+        if (!new Rng(`${I.seed}::phrasing:seam:${line}`).chance(reading.share)) {
+          const alt = pairs.filter((x) => !SEAMS.noise.gestures[x.v.id] && !near.has(x.v.id));
+          gesture = alt.length ? new Rng(`${I.seed}::phrasing:seam-draw:${line}`).weighted(alt) : null;
+          laid = false;
+          seams.push({ bar, line, what: was, dir, reading, verdict: gesture ? 'drums' : 'space', ...(gesture ? { instead: gesture.id } : {}) });
+        } else seams.push({ bar, line, what: was, dir, reading, verdict: 'kept' });
       }
-      beats = Number(weighted(rng, bw) ?? 2);
+    }
+    if (dry) return drawnId ? { build: null, drawn: drawnId } : null;
+    if (gesture) {
+      if (!laid) beats = lengthOf(gesture);
       // (the longer stop leaned by the birds, per beat of it: `stop.length`)
       const sw: W = SH['stop.length'] ? Object.fromEntries(Object.entries(gesture.stop).map(([x, wt]) => [x, wt * soundLean(spellOf, G.centre, 'stop.length', Number(x) / 4)])) : gesture.stop;
       stopSteps = intoBreak ? 0 : Number(weighted(rng, sw) ?? 0);
@@ -526,7 +618,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
         bass: lineFree && editable('bassline') && I.kit(line).bass,
       };
       const lw: W = {};
-      for (const [x, wt] of Object.entries(gesture.land)) if (okL[x as LandingKind]) lw[x] = (wt ?? 0) * (big ? G.landings.big[x] ?? 1 : 1);
+      const was = swappedFrom?.land, keepsWas = !!was && Object.keys(gesture.land).some((x) => x in was);
+      for (const [x, wt] of Object.entries(gesture.land)) if (okL[x as LandingKind] && (!keepsWas || x in was!)) lw[x] = (wt ?? 0) * (big ? G.landings.big[x] ?? 1 : 1);
       land = (weighted(rng, lw) as LandingKind | null) ?? 'none';
     }
     // a big arrival lands on silence (an eighth's stop at least, where the gesture has none of its own) where nothing
@@ -689,6 +782,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       const ls = sub('drop-out', figureRow(`phrasing/land-${land}${own ? '+over-a-row' : ''}`, land === 'kick' ? 'the kick alone' : 'the kick and the bass', 'drop-out', { lanes }), line, 1,
         `${land === 'kick' ? 'the kick alone' : 'the kick and the bass'} on ${line}'s first beat`);
       if (own) { ls.overlay = true; ls.spare = spare; }
+      // (the kick alone means alone: the hand player rests through the beat too)
+      ls.silence = true;
       subs.push(ls);
       // (the landing is the build's: heard with its lead, the line's first beat already the kick's alone where nothing rests there)
       moves.landings.push({ bar: line, kind: land as 'kick' | 'bass', ...by });
@@ -696,7 +791,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     } else if (!gesture && o.crash !== false && I.can.crash && !I.gestured(line)) { moves.crashes.push({ bar: line, ...by }); items.push({ text: `a crash on ${line}`, crash: line }); }
     p.said.unshift(...items);
     p.done?.(row);
-    return build;
+    return drawnId ? { build, drawn: drawnId } : null;
   };
 
   // **An out is marked** (U2b; his ear 10-13 on the Dubstep spell's: "not bad, but cheap, need some drum filling, more
@@ -806,12 +901,13 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       let label: string, built: { said: Said[]; pend: Pending | null };
       const into = (o: BuildOpts) => { const pend = buildInto(p.to, s.kind, o); if (more) pend.more = true; return { said: pend.said, pend }; };
       if (houseEnd) {
-        subs.push(sub('switch-up', kind === 'half-time' ? HALF_TIME : BREAKDOWN_LITE, from, last - from, `${kind} ${where}`));
+        subs.push({ ...sub('switch-up', kind === 'half-time' ? HALF_TIME : BREAKDOWN_LITE, from, last - from, `${kind} ${where}`), ...(kind === 'half-time' ? {} : { silence: true }) });
         built = { said: [{ text: `back in by the house's own ${houseEnd.label} on ${last}` }], pend: null };
         label = kind === 'half-time' ? `half-time phrase ${where}: the kick on one and three-and, the backbeat on three`
           : `breakdown-lite ${where}: the kick, the backbeat and the tops out, the bed exposed`;
       } else if (kind === 'breakdown-lite') {
-        subs.push(sub('switch-up', BREAKDOWN_LITE, from, last - from, `breakdown-lite ${where}`));
+        // (the tops out and the bed exposed: the hand player rests with the kit)
+        subs.push({ ...sub('switch-up', BREAKDOWN_LITE, from, last - from, `breakdown-lite ${where}`), silence: true });
         built = into({ rng, row: reentry ?? undefined, bass: false });
         label = `breakdown-lite ${where}: the kick, the backbeat and the tops out, the bed exposed`;
       } else if (kind === 'half-time') {
@@ -993,7 +1089,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
           const sounds: Record<string, boolean> = { kick: k.kick, backbeat: k.backbeat, offbeat: k.offbeat, sixteenth: !!k.sixteenths, open: !!k.open, bassline: k.bass, figure: k.cover.figure > 0 };
           if (!layers && !lanes.some((l) => sounds[l] && editable(l))) return false;
           // ...and not a lane a variation over the bar plays its own figure on (a hat gap under the quarter hats is the variation's bar)
-          const under = I.drawn.filter((y) => y !== x && y.kind === 'variation' && y.startBar <= last && y.startBar + y.bars > last).flatMap((y) => lanesOf(y.row));
+          const under = I.drawn.filter((y) => y !== x && y.kind === 'variation' && y.startBar <= last && y.startBar + y.bars > last).flatMap((y) => lanesOf(y.drawn ?? y.row));
           if (!layers && lanes.every((l) => !(sounds[l] && editable(l)) || under.includes(l))) return false;
           if (x.kind === 'fill' || x.kind === 'turnaround') return true;
           return x.kind === 'drop-out' && !layers && lanes.every((l) => !took.has(l));
@@ -1066,22 +1162,147 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
 
   // ----- the builds' gestures, drawn in line order (U2d): never a kind twice in a row within the theme -----
   const builds: Build[] = [];
+  const hatMoves: HatMove[] = [];
+  // the bars the hats are a gesture's, a stop's, a landing's, the house's own small things', a move's (round hat-scene:
+  // the scene's shaping of the hats' own hits leaves them as those lay them)
+  const hatBars = new Set<number>();
   {
-    let prev: string | null = null;
-    const used = new Set<string>(), busy = new Set<number>();
-    for (const p of pending.filter((x) => !x.more).sort((x, y) => x.line - y.line)) {
-      const b = realize(p, new Set(prev ? [prev] : []), used, busy);
-      busy.add(p.line - 1).add(p.line);
-      if (b) { prev = b.kind; used.add(b.kind); builds.push(b); }
-    }
-    // U2e's builds after them, so every build above keeps the gesture it drew: never the kind of the build before it or after it
-    for (const p of pending.filter((x) => x.more).sort((x, y) => x.line - y.line)) {
-      const before = builds.filter((x) => x.line < p.line).sort((x, y) => y.line - x.line)[0], after = builds.filter((x) => x.line > p.line).sort((x, y) => x.line - y.line)[0];
-      const b = realize(p, new Set([before?.kind, after?.kind].filter((x): x is string => !!x)), used, busy);
-      busy.add(p.line - 1).add(p.line);
-      if (b) { used.add(b.kind); builds.push(b); }
+    // the draws first, nothing laid (`dry`), then the builds laid: a noise gesture its seam refuses is swapped for the
+    // drums there alone, every other build drawing as it did; the chain reads the kinds drawn
+    const drawnAt = new Map<number, string>(), finalAt = new Map<number, string>();
+    const nearOf = (line: number) => {
+      const lines = [...drawnAt.keys()].sort((a, b) => a - b), i = lines.indexOf(line), ks = new Set<string>();
+      for (const l of [lines[i - 1], lines[i + 1]]) if (l !== undefined) { ks.add(drawnAt.get(l)!); if (finalAt.has(l)) ks.add(finalAt.get(l)!); }
+      return ks;
+    };
+    for (const dry of [true, false]) {
+      let prev: string | null = null;
+      const used = new Set<string>(), busy = new Set<number>(), drawn: Array<{ line: number; kind: string }> = [];
+      const take = (p: Pending, r: ReturnType<typeof realize>) => {
+        if (!r) return;
+        drawn.push({ line: p.line, kind: r.drawn });
+        if (dry) drawnAt.set(p.line, r.drawn);
+        else if (r.build) { finalAt.set(p.line, r.build.kind); builds.push(r.build); }
+      };
+      for (const p of pending.filter((x) => !x.more).sort((x, y) => x.line - y.line)) {
+        const r = realize(p, new Set(prev ? [prev] : []), used, busy, dry, dry ? undefined : nearOf(p.line));
+        busy.add(p.line - 1).add(p.line);
+        if (r) { prev = r.drawn; used.add(r.drawn); }
+        take(p, r);
+      }
+      // U2e's builds after them, so every build above keeps the gesture it drew: never the kind of the build before it or after it
+      for (const p of pending.filter((x) => x.more).sort((x, y) => x.line - y.line)) {
+        const before = drawn.filter((x) => x.line < p.line).sort((x, y) => y.line - x.line)[0], after = drawn.filter((x) => x.line > p.line).sort((x, y) => x.line - y.line)[0];
+        const r = realize(p, new Set([before?.kind, after?.kind].filter((x): x is string => !!x)), used, busy, dry, dry ? undefined : nearOf(p.line));
+        busy.add(p.line - 1).add(p.line);
+        if (r) used.add(r.drawn);
+        take(p, r);
+      }
     }
     builds.sort((x, y) => x.line - y.line);
+  }
+
+  // ----- the house's glue rows at their seams (hat-moves): a ride-in's sweep, a riser, a swell into a line, each read as
+  // a gesture of the drums' is; refused, its bar is the hats' (the drums in its place) -----
+  const refusedGlue: string[] = [];
+  // (a house glue row sounds only where no glue is near its line: an answer's crash or swell among it)
+  const glueNear = (line: number, n: number) => answers.some((a) => a.bar >= line - n - 1 && a.bar <= line + 1 && a.parts.some((q) => q === 'crash' || q === 'reverse'));
+  const swaps: HatTransition[] = [];
+  // (a caller that cannot say whether a glue row sounds lays every one: none is read at its seam, none refused)
+  for (const x of I.glueWould ? I.drawn : []) {
+    const g = x.row?.figure?.glue, dir = g ? SEAMS.noise.glue[g.slot] : undefined;
+    if (!g || !dir || x.kind === 'variation' || !I.glueWould!(g.slot, x.startBar + x.bars, g.bars ?? 1) || glueNear(x.startBar + x.bars, g.bars ?? 1)) continue;
+    const line = x.startBar + x.bars, bar = line - 1;
+    const reading = seamAt(bar, line, dir);
+    if (new Rng(`${I.seed}::phrasing:seam:glue:${line}`).chance(reading.share)) { seams.push({ bar, line, what: x.row.id, dir, reading, verdict: 'kept' }); continue; }
+    refusedGlue.push(`${g.slot}@${line}`);
+    swaps.push({ bar, line, where: `in place of ${x.label}`, swap: true });
+    seams.push({ bar, line, what: x.row.id, dir, reading, verdict: 'space' });
+  }
+
+  // ----- the hats' moves at the transitions (hat-moves, `src/hat-moves.ts`; his word 10-16 on seed 35: "explore a bit
+  // more interesting hi-hat patterns in sub-segments transitions"): into and out of every sub-segment and the house's
+  // own hat variations, and in place of a refused noise row; never on a bar a gesture, a stop, a landing or the house's
+  // own small things hold (the hats follow those) -----
+  {
+    const busyHats = new Set<number>(I.keep);
+    const touchesHats = (r: Recipe | undefined) => Object.keys(r?.figure?.lanes ?? {}).some((l) => ['offbeat', 'open', 'closed'].includes(l));
+    // (a glue-only row of the house's that will not sound, its slot's voice gated or a glue near its line, holds nothing;
+    // where the caller cannot say, it sounds, and its bars are its own)
+    const silentGlue = (x: SubSection) => { const f = x.row?.figure, g = f?.glue; return !!g && !!I.glueWould && !Object.keys(f?.lanes ?? {}).length && !f?.layers && !f?.stroke
+      && (!I.glueWould(g.slot, x.startBar + x.bars, g.bars ?? 1) || glueNear(x.startBar + x.bars, g.bars ?? 1)); };
+    for (const x of I.drawn) if (x.kind !== 'variation' && (x.kind !== 'switch-up' || touchesHats(x.row)) && !silentGlue(x)) for (let b = x.startBar; b < x.startBar + x.bars; b++) busyHats.add(b);
+    const SPAN_ROWS = new Set<Recipe>([BREAKDOWN_LITE, HALF_TIME, TOPS_THIN]);
+    for (const x of subs) if (!SPAN_ROWS.has(x.row) && !x.row.id.startsWith('phrasing/bass-out')) for (let b = x.startBar; b < x.startBar + x.bars; b++) busyHats.add(b);
+    // (a gesture's whole window, a sweep's two bars among it, is the gesture's: the hats follow it)
+    for (const b of builds) for (let x = b.line - Math.max(1, Math.ceil(b.beats / 4)); x <= b.line; x++) busyHats.add(x);
+    const toppedOut = (b: number) => subs.some((x) => (x.row === TOPS_THIN || x.row === BREAKDOWN_LITE) && b >= x.startBar && b < x.startBar + x.bars);
+    const T: HatTransition[] = [...swaps];
+    const built = new Set(builds.map((b) => b.line));
+    for (const g of segments) {
+      if (g.kind !== 'fill') T.push({ bar: g.from - 1, line: g.from, where: `into the ${g.kind}` });
+      // (the way out that already has a gesture, a build's or the house's own small thing's, is the gesture's alone: a
+      // move on the bar before it would double it)
+      if (g.kind === 'drop-out' || g.kind === 'fill' || built.has(g.to) || g.houseEnd !== undefined) continue;
+      const bar = g.to - 1;
+      if (bar >= g.from) T.push({ bar, line: bar + 1, where: `out of the ${g.kind}` });
+    }
+    for (const v of I.drawn) if (v.kind === 'variation') {
+      T.push({ bar: v.startBar - 1, line: v.startBar, where: `into the ${v.label}` });
+      T.push({ bar: v.startBar + v.bars - 1, line: v.startBar + v.bars, where: `out of the ${v.label}` });
+    }
+    for (const t of T) if (toppedOut(t.bar)) t.closedOnly = true;
+    // (round hat-scene: the vector the voices make across each seam, their energy two bars before the move's bar against
+    // two from the line, the hats and their figures left out)
+    if (I.scene) for (const t of T) t.vector = vectorOf(readSeam(t.bar, t.line, 'any', (b) => energyAt(b, undefined, true), bedAt).delta);
+    const sceneAt = I.scene;
+    const steps = (xs: number[] | undefined) => xs ?? [];
+    const hm = planHatMoves({ seed: I.seed, spell: spellOf, four: I.four, transitions: T, busy: busyHats, openRing: I.openRing ?? Infinity,
+      hats: (b) => b >= 0 && b < I.bars && I.kit(b).offbeat && editable('offbeat') && R.segments.sections.includes(sectionAt(b)?.kind ?? ''),
+      // (an open hat the figures leave somewhere: never one the house's own hat figures or the phrases' tops take everywhere)
+      open: !I.openShared && editable('open') && (I.openHits ?? []).some((h) => ![...I.drawn, ...subs].some((x) => h.bar >= x.startBar && h.bar < x.startBar + x.bars
+        && Object.entries(x.row?.figure?.lanes ?? {}).some(([l, e]) => (l === 'offbeat' || l === 'open') && e.clear !== undefined && h.step >= e.clear && h.step < (e.until ?? 16)))
+        && !answers.some((a) => a.bar === h.bar && a.parts.includes('hatsBreathe') && h.step < R.answers.breatheSteps)),
+      // (the hand part alone answers a gap: the drum score never follows the harmonic parts, a part laid over a theme
+      // keeps its drums as they were)
+      hands: (b) => steps(I.kit(b).hands),
+      // the hats' steps as the house's own hat figures and the spans leave them (a variation's mask, a clear), all of them
+      // and the closed and the open hats' own (a move that would change none of them is never drawn)
+      // (a variation may play one of its alternates in place of its row: the steps every one of them leaves)
+      hatSteps: (b) => {
+        const open0 = new Set((I.openHits ?? []).filter((h) => h.bar === b).map((h) => h.step));
+        // (where the open hat is the closed hats' own voice, every hit of it is the closed lane's too)
+        const all0 = [...new Set(steps(I.kit(b).hatSteps))];
+        let st: HatSteps = { all: all0, open: [...open0], closed: I.openShared ? all0 : all0.filter((q) => !open0.has(q)) };
+        const after = (e: LaneEdit | undefined, ys: number[]) => {
+          if (!e) return ys;
+          const zs = e.clear !== undefined ? ys.filter((q) => q < e.clear! || q >= (e.until ?? 16)) : [...ys];
+          for (const m of e.mask ?? []) [...m].forEach((c, q) => { if (c !== '.') zs.push(q); });
+          return [...new Set(zs)];
+        };
+        // (a mask on both hats copies the bar's loudest hit: its hits are that voice's lane's, the open's or the closed's;
+        // where the two are as loud, neither's)
+        const loud = I.kit(b).hatLoud, by = !loud || loud.open === loud.closed || I.openShared ? null : loud.open > loud.closed ? 'open' : 'closed';
+        const through = (r: Recipe | undefined, x: HatSteps): HatSteps => {
+          const L = r?.figure?.lanes ?? {}, bare = L.offbeat && { ...L.offbeat, mask: undefined };
+          const open = after(L.open, after(by === 'open' ? L.offbeat : bare, x.open)), closed = after(L.closed, after(by === 'closed' || I.openShared ? L.offbeat : bare, x.closed));
+          return { all: [...new Set([...after(L.offbeat, x.all), ...open, ...closed])], open, closed };
+        };
+        for (const x of [...I.drawn, ...subs.filter((y) => SPAN_ROWS.has(y.row))]) if (b >= x.startBar && b < x.startBar + x.bars) {
+          const ways = [x.row, ...(x.alternates ?? [])].map((r) => through(r, st));
+          const every = (k: keyof HatSteps) => ways[0][k].filter((q) => ways.every((w) => w[k].includes(q)));
+          st = { all: every('all'), open: every('open'), closed: every('closed') };
+        }
+        return st;
+      },
+      ...(sceneAt ? { scene: { busy: (b: number) => { const x = sceneAt(b); return !!x && busyAt(x); }, call: (b: number) => { const x = sceneAt(b); return x ? callAt(x) : []; },
+        kicks: (b: number) => { const x = sceneAt(b); return x ? x.kick.flatMap((y, q) => (y > 0 ? [q] : [])) : []; } } } : {}) });
+    subs.push(...hm.subs);
+    hatMoves.push(...hm.moves);
+    for (const b of busyHats) hatBars.add(b);
+    for (const m of hm.moves) hatBars.add(m.bar);
+    // a refused glue row whose bar took no move is space
+    for (const sw of seams) if (sw.verdict === 'space' && !SEAMS.noise.gestures[sw.what] && hm.moves.some((m) => m.swap && m.bar === sw.bar)) { sw.verdict = 'drums'; sw.instead = hm.moves.find((m) => m.bar === sw.bar)!.kind; }
   }
 
   // a dip opening within half a bar of the next one's cut is held closed into it (the review of U2c: a filtered phrase's
@@ -1091,7 +1312,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     const cur = moves.dips[i], next = moves.dips[i + 1];
     if (!cur.hold && next.a >= cur.b && next.a - cur.d < bs / 2) { cur.reopen = { c: cur.c, d: cur.d }; cur.into = next; cur.hold = true; cur.c = cur.d = next.a; }
   }
-  return { phrasing: summarised({ segments, answers, outs, cooldowns, builds }), subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes };
+  return { phrasing: summarised({ segments, answers, outs, cooldowns, builds, ...(hatMoves.length ? { hats: hatMoves } : {}), ...(seams.length ? { seams } : {}) }),
+    subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes, refusedGlue, hatBars };
 }
 
 /** The pass's one line, for the readout. */

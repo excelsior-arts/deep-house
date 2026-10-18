@@ -1,0 +1,540 @@
+{
+ "note": "Written by tools/headroom-front.ts --report --names: the grid's house mains (seeds 1-12, theme 0) the trim leaves more than 2 LU under their target, each with its window measured at nought: how far its own headroom (15 % of the blocks, the loudest 8 dB over; a window with a sum clip, the depth its clip could give at its cap) would take it, and why it stays (depth: its loudest block, the clap's hit as a rule, past what the clip may take; share: the kick and the bed; either one when the measured headroom leaves it within 0.5 LU of the line or past it; clamp; margin: the model's margin for its own error, its measured headroom would give it back). tools/check.ts fails on a theme past the line that is not named here, and on a name that is no longer past it.",
+ "measuredAt": "2026-10-17",
+ "shortLu": 2,
+ "themes": [
+  {
+   "link": "seed=8&v=2&spell=em:0.88,ti:0.70,ze:0.60,ro:0.60,ve:0.60",
+   "place": "tile Trance",
+   "shortLu": 3.35,
+   "trimDb": -1.36,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": -0.36,
+    "depthDb": 5.81,
+    "shortAtItLu": 2.85
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=11&v=2&spell=em:0.88,ti:0.70,ze:0.60,ro:0.60,ve:0.60",
+   "place": "tile Trance",
+   "shortLu": 2.56,
+   "trimDb": -1.54,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": -2.73,
+    "depthDb": 3.07,
+    "shortAtItLu": 3.16
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=3&v=2&spell=em:0.75,ze:0.50,ro:0.60,ve:0.60",
+   "place": "tile Techno",
+   "shortLu": 2.6,
+   "trimDb": 2.97,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.22,
+    "depthDb": 3.35,
+    "shortAtItLu": 2.35
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=6&v=2&spell=em:0.75,ze:0.50,ro:0.60,ve:0.60",
+   "place": "tile Techno",
+   "shortLu": 2.99,
+   "trimDb": 0.695,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 3.34,
+    "depthDb": 1.65,
+    "shortAtItLu": 2.36
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=7&v=2&spell=em:0.75,ze:0.50,ro:0.60,ve:0.60",
+   "place": "tile Techno",
+   "shortLu": 2.34,
+   "trimDb": 2.679,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.23,
+    "depthDb": 3.51,
+    "shortAtItLu": 1.79
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=12&v=2&spell=em:0.75,ze:0.50,ro:0.60,ve:0.60",
+   "place": "tile Techno",
+   "shortLu": 2.14,
+   "trimDb": 0.136,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 1.15,
+    "depthDb": 1.5,
+    "shortAtItLu": 1.46
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=8&v=2",
+   "place": "tile Deep House",
+   "shortLu": 3.82,
+   "trimDb": 3.622,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.81,
+    "depthDb": 3.54,
+    "shortAtItLu": 3.87
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=3&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
+   "place": "tile Breaks",
+   "shortLu": 2.39,
+   "trimDb": 3.433,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 4.7,
+    "depthDb": 4.45,
+    "shortAtItLu": 1.71
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=5&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
+   "place": "tile Breaks",
+   "shortLu": 2.16,
+   "trimDb": 0.088,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 0.26,
+    "depthDb": 6.92,
+    "shortAtItLu": 2.05
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=8&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
+   "place": "tile Breaks",
+   "shortLu": 2.23,
+   "trimDb": 0.277,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 2.51,
+    "depthDb": 0.2,
+    "shortAtItLu": 2.28
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=10&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
+   "place": "tile Breaks",
+   "shortLu": 2.05,
+   "trimDb": 0.078,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 0.29,
+    "depthDb": 7.05,
+    "shortAtItLu": 1.91
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=7&v=2&spell=em:0.35,ti:0.70,ro:0.55",
+   "place": "tile Downtempo",
+   "shortLu": 4.6,
+   "trimDb": -1.798,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 3.82,
+    "depthDb": -1.38,
+    "shortAtItLu": 4.39
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=em:0.27,ti:0.55,ze:0.30,ro:0.80,gl:0.20,ve:0.25,sp:0.60",
+   "place": "tile Trip Hop",
+   "shortLu": 2.41,
+   "trimDb": 0.646,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.5,
+    "depthDb": 0.53,
+    "shortAtItLu": 2.49
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=1&v=2&spell=ze:0.95",
+   "place": "ring zephyr",
+   "shortLu": 2.11,
+   "trimDb": 1.123,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 3.15,
+    "depthDb": 9.86,
+    "shortAtItLu": 0.77
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=3&v=2&spell=ze:0.95",
+   "place": "ring zephyr",
+   "shortLu": 3.77,
+   "trimDb": -0.563,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 4.84,
+    "depthDb": 0.3,
+    "shortAtItLu": 3.29
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=7&v=2&spell=ze:0.95",
+   "place": "ring zephyr",
+   "shortLu": 2.12,
+   "trimDb": -0.931,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 2.58,
+    "depthDb": 3.03,
+    "shortAtItLu": 0
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=10&v=2&spell=ze:0.95",
+   "place": "ring zephyr",
+   "shortLu": 2.01,
+   "trimDb": 0.556,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 2.72,
+    "depthDb": 5.77,
+    "shortAtItLu": 0.57
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=3&v=2&spell=gl:0.95",
+   "place": "ring gleam",
+   "shortLu": 3.46,
+   "trimDb": -0.397,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 5.14,
+    "depthDb": 0.33,
+    "shortAtItLu": 3.04
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=gl:0.95",
+   "place": "ring gleam",
+   "shortLu": 3.04,
+   "trimDb": 3.22,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 5.07,
+    "depthDb": 3.89,
+    "shortAtItLu": 2.59
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=3&v=2&spell=ro:0.95",
+   "place": "ring root",
+   "shortLu": 3.08,
+   "trimDb": -0.397,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 4.14,
+    "depthDb": 0.23,
+    "shortAtItLu": 2.73
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=7&v=2&spell=ro:0.95",
+   "place": "ring root",
+   "shortLu": 2.86,
+   "trimDb": -2.079,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 1.9,
+    "depthDb": -1.5,
+    "shortAtItLu": 2.57
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=ro:0.95",
+   "place": "ring root",
+   "shortLu": 3.59,
+   "trimDb": 3.322,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.38,
+    "depthDb": 4.15,
+    "shortAtItLu": 3.04
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=4&v=2&spell=ti:0.95",
+   "place": "ring tide",
+   "shortLu": 2,
+   "trimDb": 0.084,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 2.28,
+    "depthDb": 5.41,
+    "shortAtItLu": 0.54
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=4&v=2&spell=ve:0.95",
+   "place": "ring veil",
+   "shortLu": 2.68,
+   "trimDb": 2.959,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.56,
+    "depthDb": 3.96,
+    "shortAtItLu": 2.01
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=ve:0.95",
+   "place": "ring veil",
+   "shortLu": 3.35,
+   "trimDb": 3.252,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 5.93,
+    "depthDb": 3.22,
+    "shortAtItLu": 3.37
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=4&v=2&spell=em:0.80,sp:0.80",
+   "place": "ring ember+spark",
+   "shortLu": 2.14,
+   "trimDb": -0.022,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 2.65,
+    "depthDb": 3.4,
+    "shortAtItLu": 0.37
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=5&v=2&spell=em:0.80,sp:0.80",
+   "place": "ring ember+spark",
+   "shortLu": 2.45,
+   "trimDb": -0.518,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 0.16,
+    "depthDb": 6.99,
+    "shortAtItLu": 2.08
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=10&v=2&spell=em:0.80,sp:0.80",
+   "place": "ring ember+spark",
+   "shortLu": 2.21,
+   "trimDb": -0.533,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": -0.16,
+    "depthDb": 7.52,
+    "shortAtItLu": 2.02
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=3&v=2&spell=ze:0.80,gl:0.80",
+   "place": "ring zephyr+gleam",
+   "shortLu": 3.53,
+   "trimDb": -0.516,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 5.06,
+    "depthDb": 0.3,
+    "shortAtItLu": 3.07
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=3&v=2&spell=ro:0.80,gl:0.80",
+   "place": "ring gleam+root",
+   "shortLu": 3.46,
+   "trimDb": -0.397,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 5.08,
+    "depthDb": 0.25,
+    "shortAtItLu": 3.09
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=ro:0.80,gl:0.80",
+   "place": "ring gleam+root",
+   "shortLu": 3.04,
+   "trimDb": 3.22,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 5.09,
+    "depthDb": 3.9,
+    "shortAtItLu": 2.59
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=7&v=2&spell=ro:0.80,lo:0.80",
+   "place": "ring root+loom",
+   "shortLu": 2.46,
+   "trimDb": -1.922,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 3.54,
+    "depthDb": 0.5,
+    "shortAtItLu": 1.17
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=8&v=2&spell=ti:0.80,ve:0.80",
+   "place": "ring tide+veil",
+   "shortLu": 3.64,
+   "trimDb": 2.155,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 2.22,
+    "depthDb": 3.25,
+    "shortAtItLu": 3.59
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=3&v=2&spell=em:0.80,ve:0.80",
+   "place": "ring veil+ember",
+   "shortLu": 2.22,
+   "trimDb": 2.647,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 4.15,
+    "depthDb": 3.45,
+    "shortAtItLu": 1.69
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=6&v=2&spell=em:0.80,ve:0.80",
+   "place": "ring veil+ember",
+   "shortLu": 2.1,
+   "trimDb": -0.181,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": -0.16,
+    "depthDb": 0.6,
+    "shortAtItLu": 2.09
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=12&v=2&spell=em:0.80,ve:0.80",
+   "place": "ring veil+ember",
+   "shortLu": 2.22,
+   "trimDb": -0.104,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 1.05,
+    "depthDb": 1.97,
+    "shortAtItLu": 1.47
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=7&v=2&spell=sp:0.90,lo:0.90",
+   "place": "ring sparkxloom",
+   "shortLu": 2.1,
+   "trimDb": -2.188,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 3.3,
+    "depthDb": 1,
+    "shortAtItLu": 0.34
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=7&v=2&spell=ti:0.90,ze:0.90",
+   "place": "ring zephyrxtide",
+   "shortLu": 2.45,
+   "trimDb": -2.325,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 0.12,
+    "depthDb": -0.28,
+    "shortAtItLu": 1.42
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=9&v=2&spell=ti:0.90,ze:0.90",
+   "place": "ring zephyrxtide",
+   "shortLu": 2.48,
+   "trimDb": -1.176,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": -0.24,
+    "depthDb": 11.19,
+    "shortAtItLu": 2.01
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=3&v=2&spell=gl:0.90,ve:0.90",
+   "place": "ring gleamxveil",
+   "shortLu": 2.55,
+   "trimDb": 2.885,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 7.15,
+    "depthDb": 3.14,
+    "shortAtItLu": 2.38
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=gl:0.90,ve:0.90",
+   "place": "ring gleamxveil",
+   "shortLu": 3.15,
+   "trimDb": 3.497,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 5.85,
+    "depthDb": 3.83,
+    "shortAtItLu": 2.93
+   },
+   "why": "depth"
+  }
+ ]
+}

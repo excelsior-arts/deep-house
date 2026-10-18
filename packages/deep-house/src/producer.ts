@@ -172,6 +172,32 @@ export interface PhrasePlan {
   answers: string;
 }
 
+/**
+ * **What the producer did, as the ring reads it** (dnb-marks; his word 10-16: "would be good to mark DnB moments"):
+ * every moment of the row it writes, the first passage's window as the grammar's phrases, in absolute bars and as
+ * fields, so `src/moments.ts` reads them without parsing a word. Read off the row as it is handed to `playPassage`:
+ * nothing here is played.
+ *
+ *   states     the drums' states other than the straight groove (`to` exclusive; a spotlight's bars inside a `T`)
+ *   endings    the drummer's endings and inflections, each at its bar (the vocabulary's names)
+ *   bassOuts   the bass out over its bars, where the phrase writes no note of its own into the gap (the breath's held
+ *              floor and the climb are notes, not an out); `cooldown` where it is the drums alone into a break or the outro
+ *   cooldowns  the drums alone (the orchestra) into a break or the outro
+ *   feature    the closing arc's moment: the motif recalled and the bass's climb
+ *   keys       every strike of the keys the row writes (a touch, a suspension and its resolution, a colour, the
+ *              dominant's shells, a drop's restrike, the build's touches, the written passage's own), at its position
+ *
+ * The drum-led builds into the drops and returns are the passage's own readout (`track.passage.builds`, as heard).
+ */
+export interface ProducerMarks {
+  states: Array<{ from: number; to: number; state: DrumState['state']; spotlight?: [number, number] }>;
+  endings: Array<{ bar: number; end: End[] }>;
+  bassOuts: Array<{ from: number; to: number; cooldown?: boolean }>;
+  cooldowns: Array<{ from: number; to: number; into: 'break' | 'outro' }>;
+  feature: { from: number; to: number } | null;
+  keys: Array<{ at: number; bars: number; label: string }>;
+}
+
 /** A span whose filters the arrangement opens: the master's macro low-pass and the melodic bus's sweep corners, each walked from the first value to the second (absolute bars). */
 export interface FilterSpan { from: number; to: number; macro: [number, number]; lp: [number, number]; hp: [number, number]; says: string }
 
@@ -180,7 +206,7 @@ const TRIES = 5;
 /** The endings that answer a landing: one in the bar before it or on it and the drums already took part. */
 const GESTURE = new Set<End>(['fill', 'roll', 'shortRoll', 'crash', 'hatsBreathe', 'openEnding', 'snarePickup', 'ghostAnswer', 'reverseCymbal', 'topsOpen']);
 
-export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePlan[]; filters: FilterSpan[] } {
+export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePlan[]; filters: FilterSpan[]; marks: ProducerMarks } {
   const G = I.row;
   const passage = PASSAGE_ROWS[G.passage];
   if (!passage) throw new Error(`producer ${G.id}: no passage row ${G.passage}`);
@@ -268,7 +294,9 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
   const phrases: Record<string, unknown> = { ...passage.phrases, ...G.phrases };
   delete phrases.says;
   const plans: PhrasePlan[] = [];
-  const end = (bar: number, e: End[], says: string) => { if (e.length) endings.push({ bar: rel(bar), end: e, says }); };
+  // the drums alone into a break or the outro, as the ring reads them (`ProducerMarks`)
+  const cooldowns: ProducerMarks['cooldowns'] = [];
+  const end =(bar: number, e: End[], says: string) => { if (e.length) endings.push({ bar: rel(bar), end: e, says }); };
   // the lines a drum-led build leads into (fast-drops): a drop, and the half-time breath's return; each line's gesture
   // is drawn after the phrases, in line order, off a stream of its own (no die of the grammar's moves)
   const GB = G.gestures;
@@ -660,6 +688,7 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
         orchestra = Number(draw(where[cool]));
         orchestraUsed.add(stretch);
         out = 0;
+        if (orchestra) cooldowns.push({ from: q - orchestra, to: q, into: cool === 'intoBreak' ? 'break' : 'outro' });
       }
       if (out) {
         ops.push({ op: 'out', from: n - out, to: n });
@@ -1048,5 +1077,48 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     ...(G.holds ? { holds: holdsIn(G.holds) } : {}),
     ...(G.texture && tSpans.length ? { texture: { ...G.texture, spans: tSpans } } : {}),
   };
-  return { row, phrases: plans.sort((a, b) => a.from - b.from), filters };
+  return { row, phrases: plans.sort((a, b) => a.from - b.from), filters, marks: marksOfRow(row, I.drop, passage, cooldowns, feature != null && F ? { from: feature, to: feature + F.bars } : null, plans) };
+}
+
+/**
+ * The row's moments as fields (`ProducerMarks`), in absolute bars, read off the row the producer hands `playPassage`;
+ * the first passage's phrases (written as the passage row's window, their plan words empty until now) are given
+ * their words from the same fields, so the readout says what they did as the grammar's phrases do. Reads the row, writes
+ * only the plan's words.
+ */
+function marksOfRow(row: PassageRow, drop: number, passage: PassageRow, cooldowns: ProducerMarks['cooldowns'], feature: ProducerMarks['feature'], plans: PhrasePlan[]): ProducerMarks {
+  const abs = (at: string) => { const p = posOf(at); return drop + p.bar + p.step / 16; };
+  const states = row.drums.states.filter((s) => s.state !== 'S' && s.to > s.from)
+    .map((s) => ({ from: drop + s.from, to: drop + s.to, state: s.state, ...(s.spotlight ? { spotlight: [drop + s.spotlight[0], drop + s.spotlight[1]] as [number, number] } : {}) }))
+    .sort((a, b) => a.from - b.from);
+  const endings = row.drums.endings.map((x) => ({ bar: drop + x.bar, end: [...x.end] })).sort((a, b) => a.bar - b.bar);
+  // the bass out: every `out` of a phrase's ops, where the phrase writes no note of its own into the gap
+  const bassOuts: ProducerMarks['bassOuts'] = [];
+  for (const ph of row.bass.phrases) {
+    const ref = ph.variant;
+    const ops: BassOp[] = typeof ref === 'string' ? (Array.isArray(passage.bass.variants[ref]) ? passage.bass.variants[ref] as BassOp[] : []) : (ref ?? []);
+    for (const op of ops) {
+      if (op.op !== 'out') continue;
+      const a = op.from ?? 0, z = op.to ?? 8;
+      if (ops.some((x) => x.op === 'add' && x.at && posOf(x.at).bar >= a && posOf(x.at).bar < z)) continue;
+      const from = drop + ph.from + a, to = drop + ph.from + z;
+      bassOuts.push({ from, to, ...(cooldowns.some((c) => c.from === from && c.to === to) ? { cooldown: true } : {}) });
+    }
+  }
+  bassOuts.sort((a, b) => a.from - b.from);
+  const keys = row.keys.strikes.map((k) => ({ at: abs(k.at), bars: k.bars, label: k.label ?? (k.dominant ? 'keys: the written passage\'s dominant shell' : 'keys: the written passage\'s strike') }))
+    .sort((a, b) => a.at - b.at);
+  // the first passage's phrases: their words from the fields, as the grammar's say theirs
+  const span = (a: number, z: number) => `${a}-${z - 1}`;
+  for (const pl of plans) if (pl.by === 'passage') {
+    const inside = (b: number) => b >= pl.from && b < pl.to;
+    const st = states.filter((s) => s.from < pl.to && s.to > pl.from).map((s) => `${s.state} ${span(Math.max(pl.from, s.from), Math.min(pl.to, s.to))}`);
+    const en = endings.filter((x) => inside(x.bar)).map((x) => `${x.end.join('+')} at ${x.bar}`);
+    pl.drums = [...st, ...en].join('; ') || 'S';
+    const ph = row.bass.phrases.find((x) => drop + x.from === pl.from);
+    const outs = bassOuts.filter((o) => inside(o.from)).map((o) => `out ${span(o.from, o.to)}`);
+    pl.bass = [typeof ph?.variant === 'string' ? ph.variant : ph ? 'written ops' : 'the planner\'s', ...outs].join('; ');
+    pl.keys = keys.filter((k) => inside(Math.floor(k.at))).map((k) => `${k.label} at ${+k.at.toFixed(2)}`).join('; ') || 'none';
+  }
+  return { states, endings, bassOuts, cooldowns: [...cooldowns].sort((a, b) => a.from - b.from), feature, keys };
 }

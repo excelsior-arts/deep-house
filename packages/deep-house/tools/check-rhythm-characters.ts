@@ -155,10 +155,12 @@ test('house-v2 voices its conga as the warm open colour and its bongo with the c
     [w.headHz,r.headHz,w.bend,w.bendSeconds,w.modeRatio,w.headCutoff,w.damping,w.skin]);
   assert.deepEqual([conga.slapHzHard,conga.slapHard,conga.t10Slap],[c.handHz,c.handLevel,c.damping]);
   // the bongo keeps its own heads, filters and level, and takes the colour's bend, mode and skin
-  assert.deepEqual(Object.keys(bongo).sort(),['drop','dropTime','mode','skin']);
+  assert.deepEqual(Object.keys(bongo).sort(),['drop','dropTime','mode','panSpread','skin']);
   assert.deepEqual([bongo.drop,bongo.dropTime,bongo.mode,bongo.skin],[w.bend,w.bendSeconds,w.modeRatio,w.skin]);
+  // the hand stage: no pan spread of the drum's own, so the plan's pan (its drum of the pair) is the pan heard
+  assert.deepEqual([conga.panSpread,bongo.panSpread],[0,0]);
   // what no stroke writes is the drum's own, so the hand rows' strokes sound as they did
-  for(const k of ['slapQ','seconds','variants','variantCents','attack','trim','rateSpread','gainSpread','decaySpread','panSpread','velBright','velDecay','pan','room'])
+  for(const k of ['slapQ','seconds','variants','variantCents','attack','trim','rateSpread','gainSpread','decaySpread','velBright','velDecay','pan','room'])
     assert.ok(!(k in conga),k);
   // the base is the record's: the voicing lives in a theme's room, only where the theme sounds the drum
   assert.equal(baseV2.conga,v1.base.conga);assert.equal(baseV2.bongo,v1.base.bongo);assert.deepEqual(v1.base.conga,INSTRUMENTS.conga);
@@ -169,4 +171,29 @@ test('house-v2 voices its conga as the warm open colour and its bongo with the c
     const t=planTheme(seed,0,{strategy:'house-v2',spell:HOUSE});
     for(const drum of ['conga','bongo'])assert.equal(t.events.some(e=>e.voice===drum),drum in (t.paramOverrides as any),`seed ${seed}: ${drum}`);
   }
+});
+
+test('the hand stage: every hand hit names its stroke and drum, the pair stands mirrored about one seat a theme, the low drum toward the middle; house-v1 names none',async()=>{
+  const {planned}=await import('./measure-lanes.ts');
+  const {handPhrasesFaults}=await import('../src/hand-phrase.ts');
+  const row=(style as any).handPhrases,stage=row.stage,strokes=Object.keys(handConversation.strokes);
+  // the lane's grammar (house seed 35), a hand row (Gleam high seed 8) and the afro-house row's hand cell (seed 13 theme 2)
+  for(const [seed,theme,spell] of [['35',0,''],['8',0,'gl:0.95'],['13',2,'ze:0.80,gl:0.80']] as const){
+    const hands=programOf(planned(seed,theme,'house-v2',spell)).events.filter(e=>e.voice==='conga'||e.voice==='bongo');
+    assert.ok(hands.length,`${seed}: hands`);
+    const voice=hands[0].voice,width=stage.widths[voice];
+    assert.ok(hands.every(e=>e.voice===voice&&['open','slap','mute','heel','tip'].includes(e.stroke!)&&['high','low'].includes(e.drum!)),`${seed}: every hit named`);
+    const mid=(d:string)=>{const p=hands.filter(e=>e.drum===d).map(e=>e.p.pan);return (Math.min(...p)+Math.max(...p))/2;};
+    const hi=mid('high'),lo=mid('low'),seat=(hi+lo)/2;
+    assert.ok(stage.seats.some((s:any)=>Math.abs(Math.abs(seat)-s.at)<1e-9+stage.humanise),`${seed}: a seat of the row's (${seat})`);
+    assert.ok(Math.abs(hi-lo-2*width*Math.sign(seat))<2*stage.humanise,`${seed}: the pair ${2*width} apart, the high drum outward`);
+    for(const e of hands)assert.ok(Math.abs(e.p.pan-(e.drum==='high'?hi:lo))<=stage.humanise+1e-9,`${seed}: a hit within the humanise of its drum`);
+    assert.ok(hands.filter(e=>e.drum==='low').every(e=>e.stroke==='open'),`${seed}: the low drum speaks the bass tone`);
+  }
+  const v1=programOf(planned('35',0,'house-v1','')).events;
+  assert.ok(v1.every(e=>e.stroke===undefined&&e.drum===undefined));
+  // the row's own check: a stage past half way, a humanise over 0.02 and a stroke without a drum are refused
+  assert.deepEqual(handPhrasesFaults(row,strokes),[]);
+  for(const bad of [{widths:{conga:.4}},{humanise:.05},{strokes:{...stage.strokes,heel:undefined}}])
+    assert.ok(handPhrasesFaults({...row,stage:{...stage,...bad}},strokes).length,JSON.stringify(bad));
 });

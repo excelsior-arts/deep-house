@@ -27,7 +27,8 @@ import { planTheme, planTheme as planThemeOf, presetOfTheme, makeSetClock, seamF
 import { generate } from '../src/generator.ts';
 import { dbToGain, startTime, leadStats } from '@deep-house/engine/dsp';
 import { THIRDS } from '@deep-house/engine/meter';
-import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, trimTargetLufs, LOUDNESS_COLUMNS, knobDbOf } from '../src/loudness.ts';
+import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, headroomLimit, trimTargetLufs, LOUDNESS_COLUMNS, knobDbOf, loudnessFamily } from '../src/loudness.ts';
+import { grid as guardGrid, linkOf as guardLinkOf, playedWith as guardPlayedWith } from './check-program-guards.ts';
 import v2LoudnessFit from '../src/styles/deep-house-v2-loudness.json' with { type: 'json' };
 import { pushCurve } from '../src/arrangement.ts';
 import {
@@ -3115,6 +3116,99 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
   must(s20.trimDb <= headroomDb(s20, v2) - M.headroom.marginDb + 1e-3,
     `house-v2 seed 20 theme 0 trims ${s20.trimDb} dB, past its headroom of ${(headroomDb(s20, v2) - M.headroom.marginDb).toFixed(2)}`);
   return `house-v1 reads its first-main window on 180 themes; house-v2 fits ${n} themes at their loudest main (${moved} of them not the first main's window), none predicted more than ${residual} LU over the target (worst ${worst.toFixed(2)} at ${worstAt}), ${held} held by the headroom, ${positive} trimmed up; seed 20 trims ${s20.trimDb} dB at bars ${w20.from}..${w20.from + W}, inside its headroom`;
+});
+
+// The grid's mains (theme 0 of seeds 1-12 at every spell), planned once for the two checks below.
+let gridMains = null;
+const theGridMains = () => gridMains ??= guardGrid().filter((g) => g.name !== '27191 ambient').flatMap((g) => g.seeds.map((seed) => {
+  const link = guardLinkOf(seed, g.spell, 0);
+  const { plan } = guardPlayedWith(link);
+  return { place: g.name, seed, link, plan, f: loudnessFeatures(plan, plan.style) };
+}));
+
+// **No theme far under its target, unless its own headroom cannot give it back** (round saw-bed). A trim the headroom
+// holds leaves a theme quieter than its neighbours in a set, and the front rule, which takes the bed and the keys down
+// and leaves the kick and the clap where they were, made more of them: what lifts such a theme is more of its loudest
+// block in the limiter. Every house main of the grid is read by the model, and one more than `shortLu` under its
+// target must be named in tools/loudness-shortfall.json, which `tools/headroom-front.ts --report --names` writes off
+// the windows rendered at nought, each with how far under it stood and why it stays there: its loudest block (depth),
+// the kick and the bed (share), or the clamp, where its measured headroom would leave it within half a LU of the line
+// or past it. A name is a shortfall at the size it was measured: one that sinks more than `GROW_LU` further fails.
+// The model's own error is the other reason, and it is not one the headroom cannot give back, so it is held apart:
+// `margin`, a theme whose measured headroom would give its loudness back but the model's reading less its margin does
+// not, is allowed at most `MARGIN_MAX` names. A name that is no longer past the line fails too, so the list stays the
+// truth. The allowance was 7 at the saw-bed refit; with the sum clip (round drum-clip) the clap holds far fewer, and
+// what holds the ones just past the line is more often the share line's 1.5 dB margin: 10, four of them windows the
+// front rule never moved, as at saw-bed. Capped at that count, a decision and not a fit.
+const GROW_LU = 0.5, MARGIN_MAX = 10;
+check(`a house main more than 2 LU under its target is one its headroom cannot give back, by name and no deeper than named + ${GROW_LU} LU; at most ${MARGIN_MAX} more held by the model's error and margin alone`, () => {
+  const names = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'loudness-shortfall.json'), 'utf8'));
+  const named = new Map(names.themes.map((x) => [x.link, x]));
+  const M = strategyById('house-v2').style.settings.loudness;
+  const unnamed = [], stale = [], deeper = [], why = {};
+  let n = 0, past = 0;
+  for (const { place, seed, link, plan, f } of theGridMains()) {
+    if (loudnessFamily(f) !== 'house') continue;
+    n++;
+    const target = trimTargetLufs(plan), pred = predictedLufs(plan);
+    const by = target - (pred + plan.trimDb * (plan.trimDb >= 0 ? M.slopeUp : M.slopeDown));
+    const x = named.get(link);
+    if (by > names.shortLu) {
+      past++;
+      if (!x) unnamed.push(`${place} seed ${seed} (${by.toFixed(2)} LU under, trim ${plan.trimDb})`);
+      else {
+        why[x.why] = (why[x.why] ?? 0) + 1;
+        if (by > x.shortLu + GROW_LU) deeper.push(`${place} seed ${seed} (named at ${x.shortLu} LU under, now ${by.toFixed(2)})`);
+      }
+    } else if (x) stale.push(`${place} seed ${seed} (named, now ${by.toFixed(2)} LU under)`);
+  }
+  must(!unnamed.length, `${unnamed.length} house mains more than ${names.shortLu} LU under their target and not named in tools/loudness-shortfall.json: ${unnamed.slice(0, 8).join('; ')}`);
+  must(!deeper.length, `${deeper.length} named in tools/loudness-shortfall.json sit more than ${GROW_LU} LU deeper than named: ${deeper.slice(0, 8).join('; ')}`);
+  must(!stale.length, `${stale.length} named in tools/loudness-shortfall.json are no longer past the line: ${stale.slice(0, 8).join('; ')}`);
+  must((why.margin ?? 0) <= MARGIN_MAX, `${why.margin} house mains past the line are held by the model's error and margin alone, over the ${MARGIN_MAX} allowed`);
+  return `${past} of ${n} house mains more than ${names.shortLu} LU under their target, every one named: ${Object.entries(why).map(([k, v]) => `${v} ${k}`).join(', ')}`;
+});
+
+// **The refit is the house's** (round saw-bed). The peak credit, the band bell's level and the moved windows' share
+// and depth models were measured on the house's windows; a family with a model of its own (the drop's, the drumless,
+// a placed one) reads the front rule's loss as it did before them, in both fields the headroom reads, and never the
+// front block's models. So its trims stand where they stood.
+check('a family with a model of its own reads the front rule as before the headroom refit', () => {
+  const by = {};
+  for (const { place, seed, plan, f } of theGridMains()) {
+    const fam = loudnessFamily(f);
+    if (fam === 'house') continue;
+    by[fam] = (by[fam] ?? 0) + 1;
+    must(f.frontPeakDb === f.frontLossDb, `${place} seed ${seed} (${fam}): the headroom credits ${f.frontPeakDb} dB off the peaks against the ${f.frontLossDb} the rule took`);
+    const lim = headroomLimit(plan);
+    must(lim == null || lim === 'base', `${place} seed ${seed} (${fam}): its headroom is read by the front block's ${lim} model`);
+    must(!plan.paramOverrides?.master?.sumClip, `${place} seed ${seed} (${fam}): it plans the house's sum clip`);
+  }
+  return `${Object.entries(by).map(([k, v]) => `${v} ${k}`).join(', ')} mains read the front rule as before the refit (its loss their credit where they have a headroom, never the front block's models, no sum clip)`;
+});
+
+// **The sum clip is the moved house windows', set by the headroom** (round drum-clip, `src/loudness.ts` `clipPlan`).
+// Every house main the front rule moved plans one and no other main does; its top stands on the depth line at the trim
+// it is set for, and that trim is no more than the clip's `mostDb` past where the saw-bed's depth line reads the hit
+// reaching the line, nor over what the loudness asks or the share line reads.
+check('the sum clip is planned on the moved house mains alone, its top on the depth line, its shave no more than its cap', () => {
+  const v2 = strategyById('house-v2').style;
+  const C = v2.catalogue.front.clip, D = v2.settings.loudness.headroom.deepestMax;
+  let on = 0, shaved = 0, most = 0;
+  for (const { place, seed, plan, f } of theGridMains()) {
+    const clip = plan.paramOverrides?.master?.sumClip;
+    const want = loudnessFamily(f) === 'house' && f.frontLossDb > 0;
+    must(!!clip === want, `${place} seed ${seed}: ${clip ? 'a clip where the front rule moved nothing' : 'no clip on a moved house main'}`);
+    if (!clip) continue;
+    on++;
+    must(Math.abs(clip.overDb - (D - f.clipRoomDb)) < 2e-3, `${place} seed ${seed}: the clip's top ${clip.overDb} dB over is not the depth line at ${f.clipRoomDb.toFixed(3)} dB of trim`);
+    const shave = f.clipRoomDb - f.clipDepthDb;
+    must(shave <= C.mostDb + 1e-9, `${place} seed ${seed}: the clip is set ${shave.toFixed(2)} dB past the depth line's reading, over its ${C.mostDb}`);
+    if (shave > 0) shaved++;
+    most = Math.max(most, shave);
+  }
+  must(on > 0, 'no grid main plans a sum clip');
+  return `${on} moved house mains plan a sum clip; ${shaved} are set past where the saw-bed depth line reads the hit (at most ${most.toFixed(2)} dB, the cap ${C.mostDb})`;
 });
 
 // **The trim reads its window once, and reads it as the walk did** (the

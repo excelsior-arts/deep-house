@@ -76,7 +76,11 @@ export const GLUE_SLOTS: readonly string[] = Object.freeze(['impact', 'swell', '
  */
 export interface Letter { level: number; ghost?: boolean; absolute?: boolean;
   /** the hit's ring cut at this step of its bar (U2d: an open hat choked where a build's window ends), by a gain path on the hit */
-  chokeAt?: number }
+  chokeAt?: number;
+  /** the hit's ring cut this many sixteenths after it (hat-moves: a choke pattern, each open hat shut by the next) */
+  chokeAfter?: number;
+  /** the hit moved off its step by this many sixteenths (hat-moves: a thirty-second's flam, a triplet across a beat, a swung push) */
+  shift?: number }
 
 /** The three letters every row has. A row may add its own under `figure.letters`. */
 export const DEFAULT_LETTERS: Readonly<Record<string, Letter>> = Object.freeze({

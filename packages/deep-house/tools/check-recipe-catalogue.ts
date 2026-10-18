@@ -24,6 +24,7 @@ import { HOUSE, biasFor } from '../src/spell.ts';
 import { planTheme, programOf, recipesFor } from '../src/mix.ts';
 import * as registry from '@deep-house/engine/voices';
 import { inside } from '../src/parts/rhythm.ts';
+import { handCellBar } from '../src/parts/perform-rhythm.ts';
 import { fixture } from './fixtures/programs.ts';
 
 const opts = {strategy:'house-v2',spell:HOUSE};
@@ -106,7 +107,8 @@ test('automatically selected scores survive development and pickups without waki
       }
       for(const e of hits) {
         const section=t.arrangement.sections.find(s=>e.bar>=s.startBar&&e.bar<s.startBar+s.bars);
-        if(section.kind!=='bridge')assert.ok(part.steps.includes((e.bar%part.bars)*16+e.step));
+        // a hand cell counts from its section's first bar, a section that ends inside one playing its close (10-16)
+        if(section.kind!=='bridge')assert.ok(part.steps.includes(handCellBar(part.bars,e.bar-section.startBar,section.bars)*16+e.step));
       }
       assert.ok(!t.dice.rhythmDevelopment,'generic development must not replace a selected catalogue score');
     }

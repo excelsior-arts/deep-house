@@ -1,0 +1,207 @@
+{
+ "schema": 1,
+ "kind": "arrangement-hat-moves",
+ "round": "hat-moves",
+ "revision": 3,
+ "note": "The hats' transition vocabulary (his word 10-16 on house seed 35: 'space is huge, so congas fill in well that upper mid freq, that said we could explore a bit more interesting hi-hat patterns in sub-segments transitions'; standing: 'tracks alive: the small things, fills, breaks, variations every few bars'). At the bar into each of the arrangement's sub-segments and out of it (src/phrasing.ts: a drop-out bar, a filtered, a half-time or a breakdown-lite phrase), into and out of each of the house's own hat variations, and where a noise transition was refused (recipes/arrangement/seams.json: the drum work in its place), the hats play one of these rows: a short figure on their own lanes, drawn per transition off a stream of its own, leaned by the birds, never the same move twice in a row within a theme. A row names lanes, steps and levels, never a voice: every hit is a copy of a hit the theme's own hats play (src/subsections.ts), so no row adds an instrument. Since round hat-scene (his word 10-16: 'voices give it a main gravity that hats can work of on segments while adding their accents for vectors of track change upward/downward/seam on similar segment parts for liveliness') each transition carries the vector the voices make across its seam (recipes/arrangement/hat-scene.json `vector`: their energy two bars before against two from the line, the hats left out), and a row's `vectors` lean it: lifts, building rolls and triplets into more; thinning, chokes, gaps and the roll that thins into less; on a level seam a small answer to the figure. Where the bar's voices are busy the busy rows are kept out, as they are out of the hand player's room. Every number is a starting point for listening.",
+ "units": {
+  "says": "a pattern is sixteenths right-aligned to the bar's end (one per window length, by beats); a digit is a hit at that many tenths of the lane's own loudest hit in the bar, `o` a ghost (its quietest at 0.3), a row's own letters as written: `level` its tenths as a share, `shift` sixteenths off its step (a thirty-second's flam half of one, a triplet a third), `chokeAfter` its ring cut that many sixteenths after it. A move stays under the groove (0.7 of the lane's loudest hit at most), but a `full` row, an accent into the line, reaches the lane's own level on its last or main hit, so the accent never reads as a dip. The lanes: `closed`, the closed hats alone; `open`, the open hat (copied from the theme's own, whichever bar it is in); `offbeat`, both. `clear`: the lane's own hits out from the window's start (a row that only clears takes `take` hits at least, or it is never drawn there). A row is drawn only where it changes the hats: a move that would add nothing never spends the transition. `busy`: a row of many small hits, kept out of the hand player's room. `needs`: `open`, the theme plays an open hat of its own voice whose ring to -10 dB is `open.ring` seconds at least (a tight hat in the open slot has no tail to choke, lift or wash); `talk`, the hand part strikes inside the window (the gap answers it); `call`, the theme's own figure (the keys, the stabs, the lead) strikes in the bar (a part a track recipe or a pin lays is never read). `vectors`: the row's weight by the vector of change across the seam, `up` into more, `down` into less, `level` (1 where a row names none; never drawn at nought, and a row with a nought is drawn only where the seam's vector is read: a theme whose parts a track recipe lays reads none). `keeps`: the row's weight by the vector where the figure keeps playing across the seam (it strikes in the move's bar and in the line's), in place of `vectors` there. `answer`: call and response, the closed hats over the window on their offbeats at `time` but where the figure strikes, and an answer to each of its strikes at `hit`, in its gap before the next strike: on the first sixteenth after it where no note of the figure sounds (every one stopped `clear` of a sixteenth before it at least: a strum's late voices, the hats' own swing and humanising), or where it rings on, on the next offbeat half a beat after it at least, never on a kick",
+  "chance": "share",
+  "lean.*": "lean",
+  "recent": "ratio",
+  "open.ring": "seconds",
+  "rows.*.take": "hits",
+  "repeat": "ratio",
+  "hands.busy": "ratio",
+  "hands.accent": "ratio",
+  "talk": "ratio",
+  "length.*": "lean",
+  "density.*": "ratio",
+  "density.range": "share",
+  "rows.*.weight": "weight",
+  "rows.*.birds.*": "lean",
+  "rows.*.beats.*": "weight",
+  "rows.*.vectors.*": "ratio",
+  "rows.*.keeps.*": "ratio",
+  "rows.*.answer.clear": "sixteenths"
+ },
+ "centre": {
+  "says": "the house's own birds (src/spell.ts HOUSE): every lean below is nought there",
+  "veil": 0.473, "spark": 0.275, "loom": 0.578, "tide": 0.558, "root": 0.717, "zephyr": 0.377
+ },
+ "box": {
+  "says": "where the hats move: a four-floor kit, Ember inside this range. The fast side, the slow side and the broken kits keep their own",
+  "ember": [0.3, 0.8]
+ },
+ "chance": 0.85,
+ "open": {"says": "the rows that need the open hat need one that rings", "ring": 0.1},
+ "lean": {"veil": 1},
+ "recent": 0.5,
+ "repeat": 0,
+ "hands": {
+  "says": "where the hand part plays in the move's bar (his word 10-16: the congas fill the upper mids): the busy rows are kept out of its 2-4 kHz room (`busy`), the accents on the open and closed hats leaned in (`accent`)",
+  "busy": 0,
+  "accent": 1.5
+ },
+ "talk": 3,
+ "length": {"says": "a longer window's weight per doubling (Loom the form)", "loom": 2},
+ "density": {"says": "a busy roll's rests filled (above nought) or its early hits thinned (below), by Spark (the movement)", "spark": 2, "range": [-0.5, 0.5]},
+ "rows": [
+  {
+   "id": "open-lift",
+   "name": "an open-hat lift",
+   "says": "the closed hats out and the open hat on every offbeat into the line, climbing to the groove's own level on the last: the house's lift into a new phrase",
+   "accent": true,
+   "full": true,
+   "weight": 3,
+   "birds": {"tide": 2, "veil": 1},
+   "beats": {"2": 2, "4": 1.5},
+   "vectors": {"up": 3, "level": 1, "down": 0.3},
+   "needs": ["open"],
+   "letters": {"A": {"level": 1}},
+   "lanes": {
+    "closed": {"clear": "window"},
+    "open": {"clear": "window", "pattern": {"2": "..6...A.", "4": "..5...5...6...A."}}
+   }
+  },
+  {
+   "id": "roll-thin",
+   "name": "a sixteenth roll that thins",
+   "says": "the closed hats rolling in sixteenths, then eighths, then one hit and air before the line",
+   "busy": true,
+   "dense": true,
+   "weight": 2.5,
+   "birds": {"spark": 2.5, "tide": -1},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"down": 2.5, "level": 0.7, "up": 0.2},
+   "lanes": {"closed": {"clear": "window", "pattern": {"2": "65655.4.", "4": "4.4.4.4.56565.4."}}}
+  },
+  {
+   "id": "flam",
+   "name": "a flammed hat",
+   "says": "the last offbeats struck with a grace a thirty-second before them, the last at the groove's own level (never a thirty-second roll at the house's tempo: a flam is one grace)",
+   "accent": true,
+   "full": true,
+   "weight": 2,
+   "birds": {"spark": 1, "root": 1},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"up": 2, "level": 1.5, "down": 0.5},
+   "letters": {"g": {"level": 0.4, "shift": 0.5}, "A": {"level": 1}},
+   "lanes": {"closed": {"clear": "window", "pattern": {"2": ".g6..gA.", "4": ".g5..g5..g6..gA."}}}
+  },
+  {
+   "id": "swing-push",
+   "name": "a swung push",
+   "says": "the closed hats in sixteenths with every other one pushed late and soft, a shuffle leaning into the line",
+   "busy": true,
+   "weight": 2,
+   "birds": {"spark": 2, "veil": 0.5},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"up": 1.5, "level": 1.2, "down": 0.3},
+   "letters": {"s": {"level": 0.35, "shift": 0.33}},
+   "lanes": {"closed": {"clear": "window", "pattern": {"2": "5s6s5s6.", "4": "..6s..6s5s6s5s6."}}}
+  },
+  {
+   "id": "choke",
+   "name": "a choke pattern",
+   "says": "the open hat on the offbeats, each shut a sixteenth and a half later, the last at the groove's own level, the closed hat ticking the beats under it",
+   "accent": true,
+   "full": true,
+   "weight": 2,
+   "birds": {"veil": 1.5, "tide": -1.5, "spark": 0.5},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"down": 2, "level": 1, "up": 0.3},
+   "needs": ["open"],
+   "letters": {"C": {"level": 0.7, "chokeAfter": 1.5}, "D": {"level": 1, "chokeAfter": 1.5}},
+   "lanes": {
+    "closed": {"clear": "window", "pattern": {"2": "4...4...", "4": "4...4...4...4..."}},
+    "open": {"clear": "window", "pattern": {"2": "..C...D.", "4": "..C...C...C.C.D."}}
+   }
+  },
+  {
+   "id": "ride-swap",
+   "name": "the hats onto the open voice, ride-like",
+   "says": "for the bar into the line the closed hats rest and the open hat plays every eighth, soft, a ride's wash",
+   "accent": true,
+   "weight": 1.5,
+   "birds": {"tide": 2.5, "loom": 1, "veil": 0.5},
+   "beats": {"4": 1},
+   "vectors": {"up": 1.5, "level": 1.5, "down": 0.5},
+   "needs": ["open"],
+   "lanes": {
+    "closed": {"clear": "window"},
+    "open": {"pattern": {"4": "4.5.4.5.4.5.4.5."}}
+   }
+  },
+  {
+   "id": "pedal-ghost",
+   "name": "a pedal-hat ghost pattern",
+   "says": "the pedal's figure under the offbeats, the closed hat's ghost on every beat and the last one doubled (the kit has no pedal hat of its own: the closed hat plays it at a ghost's level)",
+   "weight": 1.5,
+   "birds": {"spark": -1.5, "veil": -1, "tide": -0.5},
+   "beats": {"4": 1},
+   "vectors": {"level": 1.5, "down": 2, "up": 0.3},
+   "lanes": {"closed": {"pattern": {"4": "o...o...o...o.o."}}}
+  },
+  {
+   "id": "triplet",
+   "name": "a triplet across the last beat",
+   "says": "the closed hats in triplets across the last beat (or two), climbing into the line",
+   "busy": true,
+   "weight": 2,
+   "birds": {"spark": 1.5, "veil": 1},
+   "beats": {"1": 2, "2": 1},
+   "vectors": {"up": 2.5, "level": 0.8, "down": 0.3},
+   "letters": {"a": {"level": 0.5}, "b": {"level": 0.55, "shift": 0.333}, "c": {"level": 0.6, "shift": 0.667}, "d": {"level": 0.6}, "e": {"level": 0.65, "shift": 0.333}, "f": {"level": 0.7, "shift": 0.667}},
+   "lanes": {"closed": {"clear": "window", "pattern": {"1": "def.", "2": "abc.def."}}}
+  },
+  {
+   "id": "hat-gap",
+   "name": "a hat gap",
+   "says": "both hats out over the last beat or two, where the hand part speaks there: the gap answers it (never a gap of one hit)",
+   "weight": 1,
+   "birds": {"veil": 1, "spark": -1, "tide": 1},
+   "beats": {"1": 2, "2": 1},
+   "vectors": {"down": 3, "level": 1, "up": 0.2},
+   "needs": ["talk"],
+   "take": 2,
+   "lanes": {"offbeat": {"clear": "window"}}
+  },
+  {
+   "id": "roll-build",
+   "name": "a sixteenth roll that builds",
+   "says": "the closed hats in eighths, then sixteenths, climbing into the line: the roll that thins turned round, for a seam into more",
+   "busy": true,
+   "dense": true,
+   "weight": 2,
+   "birds": {"spark": 2, "tide": 1},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"up": 3, "level": 0.3, "down": 0},
+   "lanes": {"closed": {"clear": "window", "pattern": {"2": "3.4.4567", "4": "3...3.3.4.4.4567"}}}
+  },
+  {
+   "id": "thin-out",
+   "name": "the hats thinning out",
+   "says": "the closed hats on fewer offbeats, each softer, and the last one out before the line: the hats breathing out into less",
+   "weight": 1.5,
+   "birds": {"veil": 1, "spark": -1},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"down": 2, "level": 0.3, "up": 0},
+   "lanes": {"closed": {"clear": "window", "pattern": {"2": "..4.....", "4": "..5...4...3....."}}}
+  },
+  {
+   "id": "answer",
+   "name": "a hat answer",
+   "says": "for the last beats into the line the closed hats step off the figure's strikes and answer each in its gap once its note has stopped (or on the next offbeat where it rings on), keeping their offbeats around it: call and response with the keys, the stabs or the lead, a small variation on a level seam",
+   "accent": true,
+   "weight": 2,
+   "birds": {"spark": 0.5, "veil": 0.5},
+   "beats": {"2": 2, "4": 1},
+   "vectors": {"level": 3, "up": 0.25, "down": 0.25},
+   "keeps": {"down": 2},
+   "needs": ["call"],
+   "answer": {"hit": "7", "time": "5", "clear": 0.25},
+   "lanes": {"closed": {"clear": "window"}}
+  }
+ ]
+}

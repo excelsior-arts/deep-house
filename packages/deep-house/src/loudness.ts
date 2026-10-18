@@ -136,6 +136,8 @@ export interface LoudnessEvent {
   p?: Record<string, number>;
   /** the decibels the front rule took off the note (`generator.ts`, `catalogue.front`) */
   frontDb?: number;
+  /** the level its band bell took off the note, the gain unmoved (`catalogue.front.bands`) */
+  bandDb?: number;
 }
 
 /** A planned theme, as the whole model reads one. */
@@ -268,6 +270,36 @@ export interface LoudnessFeatures {
   placeMeasuredLufs: number;
   /** what the front rule took out of the window, in dB before the master (`catalogue.front.makeup`, `lufsAfter`) */
   frontLossDb: number;
+  /** what the front rule took off the window's peaks, in dB ahead of the limiter (`catalogue.front.peak`, `headroomOf`) */
+  frontPeakDb: number;
+  /**
+   * what that is read from: the kick's, the bass's, the pad's and the keys' amplitude in the window as the plan wrote
+   * it (dB, before the rule, the room's lane levels on, `catalogue.front.peak`'s offsets not), and the share of the
+   * keys' and the pad's amplitude the rule kept. Plain numbers, so a window read through the bars and by the walk
+   * compare field by field
+   */
+  frontPeakKick: number;
+  frontPeakBass: number;
+  frontPeakPad: number;
+  frontPeakKeys: number;
+  frontKeysKept: number;
+  frontPadKept: number;
+  /**
+   * what limits a window, as the plan writes it once the front rule has played (round saw-bed, the headroom refit):
+   * the bed's and the keys' notes over the window at the level they play, their lanes on, and the clap's, in dB on the
+   * kick's footing (`frontPeakKick`); `SILENT_DB` where a part has no notes
+   */
+  padNowDb: number;
+  keysNowDb: number;
+  clapDb: number;
+  /**
+   * the theme's sum clip (round drum-clip, `catalogue.front.clip`): the trim the clip is set for (its curve's top on
+   * the depth line at that trim), and how deep the loudest block would stand without it, as the saw-bed's depth line
+   * read it (the room it leaves, dB of trim); both nought where no clip is planned (`clipOn` 0)
+   */
+  clipOn: number;
+  clipRoomDb: number;
+  clipDepthDb: number;
   /** one per gated lane, in the lane table's own words */
   [share: `share_${string}`]: number;
 }
@@ -524,19 +556,126 @@ function lufsAfter(f: LoudnessFeatures, style: Style): number {
   return v - f.frontLossDb * (mo.slopeDown ?? style.settings.loudness.slopeDown ?? 1);
 }
 
+const valueOf = (m: LoudnessModel, f: LoudnessFeatures): number => {
+  let v = m.intercept;
+  for (const k of Object.keys(m.coef)) {
+    const col = LOUDNESS_COLUMNS[k];
+    if (col) v += m.coef[k] * (col(f) - (m.centre[k] ?? 0));
+  }
+  return v;
+};
+
 /** The headroom a features vector allows, in dB, or null for a model with none. */
 function headroomOf(f: LoudnessFeatures, style: Style): number | null {
   if (!style.settings.loudness.headroom) return null;
   const H = modelOf(f, style).headroom;
   if (!H || !H.coef) return null;
-  let v = H.intercept;
-  for (const k of Object.keys(H.coef)) {
-    const col = LOUDNESS_COLUMNS[k];
-    if (col) v += H.coef[k] * (col(f) - (H.centre[k] ?? 0));
-  }
-  // ...read, like the loudness, off the notes as written before the front rule: what the rule took out of the window
-  // is that much less level going into the limiter, so it is that much more trim the window can take (`lufsAfter`)
-  return v + (f.frontLossDb || 0);
+  // ...read, like the loudness, off the notes as written before the front rule: what the rule took off the window's
+  // peaks is that much less going into the limiter, so it is that much more trim the window can take. The peaks and
+  // not the loudness (round saw-bed): a quieter bed under a kick takes less off the peak than off the loudness, and
+  // crediting the loudness drove golden 38's kick into the limiter in 27 % of its blocks (`frontPeakDb`). The house's
+  // windows only: the peak credit was fitted on them, and a family with a model of its own (the drop's) carries the
+  // loss as it read it before in both fields (`featuresAt`), so its trims stand where they stood.
+  const base = valueOf(H, f) + (f.frontPeakDb || 0);
+  // **A window the front rule moved reads the limiter its own way** (round saw-bed, the refit). The base model was
+  // fitted on 120 windows of the house before the rule existed, and read the grid's moved mains 3 dB off either way
+  // (rms, against its own 1.3 held out). It folds two limits into one number: the level 15 % of the 10 ms blocks
+  // reach (the kick and the bed under it, the share a limiter pumps on) and the loudest block (the clap's hit, more
+  // often than anything else's), which have little to do with each other. So `front` holds the two apart, each fitted
+  // on the grid's moved mains rendered at nought, each with its own margin for its own error, and the trim may use
+  // the lower. A window the rule never touched reads the base exactly as it did (golden 34), and one it touched by
+  // less than `blendDb` is read on a line between the two, so a theme the rule fades into over the slow side's tempo
+  // ramp crosses no cliff. Returned on the base's footing (its `marginDb` added back), so the trim takes it as before.
+  const F = frontHeadroomOf(f, style);
+  if (!F || !(f.frontLossDb > 0)) return base;
+  const margin = style.settings.loudness.headroom!.marginDb;
+  const front = Math.min(valueOf(F.share, f) - F.share.marginDb, valueOf(F.depth, f) - F.depth.marginDb) + margin;
+  const w = Math.min(1, f.frontLossDb / F.blendDb);
+  return w >= 1 ? front : base + w * (front - base);
+}
+
+/** The moved windows' headroom, where the style's front rule carries one (`catalogue.front.headroom`), for the house's windows only: a family with a model of its own reads its own. */
+function frontHeadroomOf(f: LoudnessFeatures, style: Style): FrontHeadroom | null {
+  if (loudnessFamily(f) !== 'house') return null;
+  return (style as { catalogue?: { front?: { headroom?: FrontHeadroom } } }).catalogue?.front?.headroom ?? null;
+}
+
+/**
+ * **The theme's sum clip** (round drum-clip, `catalogue.front.clip`; the engine's `master.sumClip`). The saw-bed refit
+ * found the loudest block of most moved house mains to be the kick and the clap landing on one backbeat: the depth
+ * line held 688 of 971 of them, and the trim could give their loudness back only by driving that hit 10-20 dB into
+ * the limiter, which ducks the whole mix for a beat after it. A clip ahead of the limiter takes the top of that hit
+ * off where it stands and moves nothing after it. Its rule, from the headroom reading and never a coin:
+ *
+ * - the trim the window wants: what its loudness asks, no more than the share line (the kick and the bed under it,
+ *   which the clip never reaches) less its margin, the trim the share allows, so the clip takes no more than the trim
+ *   played asks; and no more than `mostDb` past where the saw-bed's depth line (`depth`, fitted on the windows without
+ *   a clip and kept as it was fitted) reads the hit reaching the 8 dB line: the clip's planned shave is at most
+ *   `mostDb`;
+ * - the clip's top on the 8 dB line at that trim (`overDb`: the depth line less the trim, over the limiter's ceiling at
+ *   its input, at a trim of nought). A hit under it passes as it came; one over it is rounded to it.
+ *
+ * Planned on every house window the front rule moved (the windows the share and depth lines read), with or without a
+ * shave in view: where the depth line reads the hit under the top, the clip is a wire unless the line misread it. A
+ * window the rule never touched, and every family with a model of its own, plays as before.
+ */
+export interface FrontClip {
+  /** the most dB past the saw-bed depth line's reading the clip is set to take off the loudest block */
+  mostDb: number;
+  knee: number;
+  curve: number;
+  /** the saw-bed's depth line, as fitted without the clip: the room the loudest block leaves, in dB of trim */
+  depth: LoudnessModel;
+}
+
+function frontClipOf(style: Style): FrontClip | null {
+  return (style as { catalogue?: { front?: { clip?: FrontClip } } }).catalogue?.front?.clip ?? null;
+}
+
+/** The clip a features vector plans, or null: the trim its top is set for and the room the depth line read without it. */
+function clipPlan(f: LoudnessFeatures, style: Style): { roomDb: number; depthDb: number } | null {
+  const F = frontHeadroomOf(f, style), C = frontClipOf(style);
+  const H = style.settings.loudness.headroom;
+  if (!F || !C || !H || !(f.frontLossDb > 0)) return null;
+  const mo = modelOf(f, style);
+  const M = style.settings.loudness;
+  const need = mo.targetLufs - lufsAfter(f, style);
+  const s = (need >= 0 ? mo.slopeUp ?? M.slopeUp : mo.slopeDown ?? M.slopeDown) || 1;
+  const depthDb = valueOf(C.depth, f);
+  const want = Math.min(need / s, valueOf(F.share, f) - F.share.marginDb, depthDb + C.mostDb);
+  return { roomDb: Math.max(-M.clampDb, Math.min(M.clampDb, want)), depthDb };
+}
+
+/** The engine's `master.sumClip` (round drum-clip). */
+export interface SumClip { overDb: number; knee: number; curve: number }
+
+/** The sum clip a window's features plan, or null where they plan none. */
+function sumClipAt(f: LoudnessFeatures, C: FrontClip, style: Style): SumClip | null {
+  if (!f.clipOn) return null;
+  return { overDb: +(style.settings.loudness.headroom!.deepestMax - f.clipRoomDb).toFixed(3), knee: C.knee, curve: C.curve };
+}
+
+/** The engine's `master.sumClip` a theme's plan asks for (round drum-clip), or null where it plans none. */
+export function sumClipOf(track: LoudnessTrack, style: Style = track.style!): SumClip | null {
+  const C = frontClipOf(style);
+  return C ? sumClipAt(chosenWindow(track, style).f, C, style) : null;
+}
+
+/** The moved windows' headroom (`headroomOf`): the share's and the depth's models, each with the margin it carries. */
+export interface FrontHeadroom {
+  blendDb: number;
+  share: LoudnessModel & { marginDb: number };
+  depth: LoudnessModel & { marginDb: number };
+}
+
+/** Which of the headroom's limits holds a window's trim, where one does: `share` (the kick and the bed), `depth` (the loudest block), or `base` (a window the rule never moved, or the blend). */
+export function headroomLimit(track: LoudnessTrack, style: Style = track.style!): 'share' | 'depth' | 'base' | null {
+  const f = loudnessFeatures(track, style);
+  const H = style.settings.loudness.headroom ? modelOf(f, style).headroom : null;
+  if (!H || !H.coef) return null;
+  const F = frontHeadroomOf(f, style);
+  if (!F || !(f.frontLossDb >= F.blendDb)) return 'base';
+  return valueOf(F.share, f) - F.share.marginDb <= valueOf(F.depth, f) - F.depth.marginDb ? 'share' : 'depth';
 }
 
 // **How far a theme may be trimmed before its limiter pumps**, in dB, or null
@@ -595,6 +734,9 @@ const maskDensity = (m: unknown): number => {
   return n / m.length;
 };
 
+/** The level a part with no notes reads, in dB: finite, so a features vector never holds an infinity. */
+const SILENT_DB = -120;
+
 // Add loudnesses the way loudnesses add: in power, not in decibels.
 const sumDb = (parts: number[]): number => {
   let p = 0;
@@ -647,6 +789,10 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
   const EV: Record<string, { n: number; vel: number; wet: number; delay: number; gainDb: number; energy: number }> = {};
   // ...and what the front rule kept of the keys' and the pad's energy there (`lufsAfter`)
   const was: Record<string, number> = { keys: 0, pad: 0 }, now: Record<string, number> = { keys: 0, pad: 0 };
+  // ...and the same without the band bell, which a family with a model of its own does not read (below)
+  const stepped: Record<string, number> = { keys: 0, pad: 0 };
+  // ...and of their amplitude, which is what a peak is made of (`headroomOf`)
+  const nowAmp: Record<string, number> = { keys: 0, pad: 0 };
   for (const ev of index ? eventsNear(track, index, w.from, w.bars) : track.events) {
     if (ev.t < t0 || ev.t >= t1) continue;
     const l = ev.layer;
@@ -661,12 +807,16 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     a.gainDb += 20 * Math.log10(Math.max(1e-4, g));
     const x = (g * (ev.p?.vel ?? 1)) ** 2 * Math.min(ev.p?.dur ?? 0.25, t1 - ev.t);
     a.energy += x;
-    if ((l === 'keys' && !ev.role) || l === 'pad') { was[l] += x; now[l] += x * 10 ** ((ev.frontDb ?? 0) / 10); }
+    // ...and what it kept of them, the band bell's level beside the gain the rule took (`bandDb`)
+    if ((l === 'keys' && !ev.role) || l === 'pad') { const kept = (ev.frontDb ?? 0) + (ev.bandDb ?? 0); was[l] += x; now[l] += x * 10 ** (kept / 10); stepped[l] += x * 10 ** ((ev.frontDb ?? 0) / 10); nowAmp[l] += x * 10 ** (kept / 20); }
   }
   const front = (style as { catalogue?: { front?: { makeup?: { keys: number; pad: number } } } }).catalogue?.front?.makeup;
-  const kept = (l: string) => (was[l] > 0 ? now[l] / was[l] : 1);
-  const left = front ? 1 - front.keys * (1 - kept('keys')) - front.pad * (1 - kept('pad')) : 1;
-  const frontLossDb = left < 1 ? -10 * Math.log10(Math.max(0.05, left)) : 0;
+  const lossOf = (n: Record<string, number>) => {
+    const kept = (l: string) => (was[l] > 0 ? n[l] / was[l] : 1);
+    const left = front ? 1 - front.keys * (1 - kept('keys')) - front.pad * (1 - kept('pad')) : 1;
+    return left < 1 ? -10 * Math.log10(Math.max(0.05, left)) : 0;
+  };
+  const frontLossDb = lossOf(now);
   const rate = (l: string) => (EV[l] ? EV[l].n / k : 0);
   const mean = (l: string, f: 'vel' | 'wet' | 'delay' | 'gainDb') => (EV[l] && EV[l].n ? EV[l][f] / EV[l].n : 0);
 
@@ -737,6 +887,33 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
   for (const voice of Object.keys(track.knobs || {})) {
     if (!harmonicVoices.has(voice)) knobsElsewhere += knobDbOf(track.knobs, voice);
   }
+  // **What the front rule took off the peaks** (round saw-bed, his ear 10-16 on golden 38's second main: "still a bit
+  // too loud"). The headroom guards the limiter, and a limiter works on peaks, not on loudness. A peak in a house main
+  // is a kick hit with the bass, the bed and the keys sounding under it, so what a quieter bed takes off it is the
+  // bed's share of that sum: each part's amplitude as the plan wrote it (its notes' energy over the window, its lane
+  // on), less what the rule kept of the keys' and the pad's (`catalogue.front.peak`, offsets fitted on renders).
+  // A part with no notes in the window reads `SILENT_DB` (-120, as `sumDb` does), a finite number a fit or a readout can
+  // hold, and adds nothing to the sum below.
+  const rateDb = (e: number, lane = 0) => (e > 0 ? Math.max(SILENT_DB, 10 * Math.log10(e / Math.max(1e-9, t1 - t0)) + lane) : SILENT_DB);
+  const frontPeakParts = {
+    kick: rateDb(EV.kick?.energy ?? 0),
+    bass: rateDb(EV.bass?.energy ?? 0, L.sub ?? 0),
+    pad: rateDb(was.pad, L.pad ?? 0),
+    keys: rateDb(was.keys, L.keys ?? 0),
+    keysKept: was.keys > 0 ? nowAmp.keys / was.keys : 1,
+    padKept: was.pad > 0 ? nowAmp.pad / was.pad : 1,
+  };
+  const peakAt = (style as { catalogue?: { front?: { peak?: { keys: number; pad: number; bass: number } } } }).catalogue?.front?.peak;
+  let frontPeakDb = frontLossDb;
+  if (peakAt && frontLossDb) {
+    const P = frontPeakParts;
+    const amp = (db: number, offset = 0) => (db > SILENT_DB ? 10 ** ((db + offset) / 20) : 0);
+    const a = { kick: amp(P.kick), bass: amp(P.bass, peakAt.bass), pad: amp(P.pad, peakAt.pad), keys: amp(P.keys, peakAt.keys) };
+    const sum = a.kick + a.bass + a.pad + a.keys;
+    const kept = sum > 0 ? 1 - (a.keys / sum) * (1 - P.keysKept) - (a.pad / sum) * (1 - P.padKept) : 1;
+    frontPeakDb = kept < 1 ? -20 * Math.log10(Math.max(0.05, kept)) : 0;
+  }
+
   const f: LoudnessFeatures = {
     density: track.density,
     bpm: track.bpm,
@@ -803,8 +980,29 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     placeTargetLufs: Number.isFinite(track.sound?.targetLufs) ? track.sound!.targetLufs! : NaN,
     placeMeasuredLufs: Number.isFinite(track.sound?.measuredLufs) ? track.sound!.measuredLufs! : NaN,
     frontLossDb,
+    frontPeakDb,
+    frontPeakKick: frontPeakParts.kick,
+    frontPeakBass: frontPeakParts.bass,
+    frontPeakPad: frontPeakParts.pad,
+    frontPeakKeys: frontPeakParts.keys,
+    frontKeysKept: frontPeakParts.keysKept,
+    frontPadKept: frontPeakParts.padKept,
+    padNowDb: rateDb(now.pad, L.pad ?? 0),
+    keysNowDb: rateDb(now.keys, L.keys ?? 0),
+    clapDb: rateDb(EV.clap?.energy ?? 0, L.clap ?? 0),
+    clipOn: 0,
+    clipRoomDb: 0,
+    clipDepthDb: 0,
   };
   for (const n of LAYERS) f[`share_${n}`] = share[n];
+  // **A family with a model of its own reads the rule as it did before this round** (round saw-bed): the band bell
+  // and the peak credit were measured on the house's windows, and the drop's trims stand where they stood. Its bed's
+  // bell sounds there as it does in the house; its level is not read.
+  if (loudnessFamily(f) !== 'house') f.frontPeakDb = f.frontLossDb = lossOf(stepped);
+  const clip = clipPlan(f, style);
+  f.clipOn = clip ? 1 : 0;
+  f.clipRoomDb = clip ? clip.roomDb : 0;
+  f.clipDepthDb = clip ? clip.depthDb : 0;
   return f;
 }
 
@@ -889,6 +1087,20 @@ export const LOUDNESS_COLUMNS: Record<string, LoudnessColumn> = {
   gainPad: (f) => f.gainPad,
   gainBass: (f) => f.gainBass,
   gainHats: (f) => f.gainHats,
+  // What limits a window once the front rule has played (round saw-bed): the kick, the bed and the keys over it at the
+  // level they play, and the clap, whose hit is a window's loudest block more often than anything else's. A part with
+  // no notes reads `SILENT_DB` (-120) and a column reads it as forty decibels under the kick, which is silent enough for
+  // a sum and not so far that a line through it is thrown.
+  peakKick: (f) => f.frontPeakKick,
+  peakBed: (f) => Math.max(f.frontPeakKick - 40, f.padNowDb),
+  peakKeys: (f) => Math.max(f.frontPeakKick - 40, f.keysNowDb),
+  peakClap: (f) => Math.max(f.frontPeakKick - 40, f.clapDb),
+  bedOverKick: (f) => Math.max(-40, f.padNowDb - f.frontPeakKick),
+  // The theme's sum clip (round drum-clip): the trim its top is set on the depth line for, and the room the loudest
+  // block leaves with it, read as the larger of that and what the saw-bed's depth line read without it (a clip only
+  // ever takes a peak down, so a window whose hit stands under its top keeps the room it had).
+  clipRoom: (f) => f.clipRoomDb,
+  clipHeld: (f) => Math.max(f.clipRoomDb, f.clipDepthDb),
   // How much of the harmonic layer is going to the room, share-weighted: a
   // theme whose chords are drowned reads quieter than one whose chords are dry
   // at the same level, and the wetness die is a plan fact.
@@ -925,11 +1137,33 @@ export function predictedLufs(track: LoudnessTrack, style: Style = track.style!,
 // Read off the base table and not off a room's, the way `hatEnergy` is, so
 // planning a theme never depends on any other theme.
 export function loudnessTrimDb(track: LoudnessTrack, style: Style = track.style!): number {
-  const M = style.settings.loudness;
-  if (!M || !M.coef || !Object.keys(M.coef).length) return 0;
   // One window and one vector for both halves (R31): the prediction and the
   // headroom are read off the same features, found once.
+  return fitted(style) ? trimAt(chosenWindow(track, style).f, style) : 0;
+}
+
+/**
+ * **The trim and the sum clip off one read of the window** (the review of drum-clip): the plan asks for both at the
+ * window its trim is fitted for, and `chosenWindow` walks every main window of the theme to find it, so the planner
+ * reads it once and hands the one vector to both. The same features, so the same trim and the same clip as
+ * `loudnessTrimDb` and `sumClipOf` give apart.
+ */
+export function loudnessPlanOf(track: LoudnessTrack, style: Style = track.style!): { trimDb: number; sumClip: SumClip | null } {
+  const C = frontClipOf(style), fit = fitted(style);
+  if (!fit && !C) return { trimDb: 0, sumClip: null };
   const { f } = chosenWindow(track, style);
+  return { trimDb: fit ? trimAt(f, style) : 0, sumClip: C ? sumClipAt(f, C, style) : null };
+}
+
+/** A style whose loudness block holds a fitted model (a trim to read); one without trims every theme by nought. */
+const fitted = (style: Style): boolean => {
+  const M = style.settings.loudness;
+  return !!(M && M.coef && Object.keys(M.coef).length);
+};
+
+/** The trim a window's features ask for (`loudnessTrimDb`). */
+function trimAt(f: LoudnessFeatures, style: Style): number {
+  const M = style.settings.loudness;
   const mo = modelOf(f, style);
   const need = mo.targetLufs - lufsAfter(f, style);
   // Two slopes, because a limiter is a one-sided thing: driving a theme *into*

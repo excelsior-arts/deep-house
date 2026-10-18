@@ -704,12 +704,12 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   // instant — is rounded where it stands, so the limiter after it holds a
   // ceiling and does not pull the whole mix down for a beat. Absent, the trim
   // is the theme's last node, as it always was.
-  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number }, into: AudioNode, mono: boolean): AudioNode => {
+  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number; oversample?: OverSampleType }, into: AudioNode, mono: boolean): AudioNode => {
     const pre = ctx.createGain();
     pre.gain.value = dbToGain(C.driveDb);
     const shaper = ctx.createWaveShaper();
     shaper.curve = softClipCurve(C.curve ?? 2, C.knee ?? 0.6);
-    shaper.oversample = P.master.oversample;
+    shaper.oversample = C.oversample ?? P.master.oversample;
     const post = ctx.createGain();
     // the drive back down, and the clip's make-up where a room asks one (10-06, hands-on: a master pushed into the limiter, as source 9's is)
     post.gain.value = dbToGain(-C.driveDb + (C.makeupDb ?? 0));
@@ -748,7 +748,48 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   // What the theme's stages end on. It was called `dcBlock`, the name of the
   // master's high-pass, which it is not: it is the theme's output gain, and the
   // DC block is in the chain behind it (R80).
-  const themeEnd = themeOut;
+  // **A soft clip on the theme's sum, ahead of its trim, where the limiter hears it** (round drum-clip,
+  // `master.sumClip`). The kick and the bass reach the theme's end on their own bus and the clap on the drums', and
+  // the master behind the trim lifts 160 Hz to 3 kHz by 7-8 dB, so the loudest instant the limiter is asked about —
+  // the kick and the clap landing on one backbeat — is neither bus's peak nor the theme's end's. So the clip works in
+  // the master's own tone: the theme's sum through the master's five tone stages at this room's profile, the curve,
+  // and the five back out (each stage's gain negated, which is its exact inverse), so whatever stays under the
+  // curve's knee leaves as it came and the master puts back what was taken out. Its ceiling is `overDb` over the
+  // limiter's, at the limiter's input and a trim of nought; the trim after it moves every peak by itself, as before.
+  // Absent, the trim is where the theme's stages end, as it always was.
+  const SC = P.master.sumClip;
+  let themeEnd: AudioNode = themeOut;
+  if (SC && Number.isFinite(SC.overDb)) {
+    const eq = eqProfileOf(P.master);
+    const M = P.master;
+    const stages = (sign: number): BiquadFilterNode[] => ([
+      ['lowshelf', M.lowShelfHz, eq.lowShelfDb, null],
+      ['peaking', M.lowMidHz, eq.lowMidDb, M.lowMidQ],
+      ['peaking', M.midHz, eq.midDb, M.midQ],
+      ['peaking', M.presenceHz, eq.presenceDb, M.presenceQ],
+      ['highshelf', M.airHz, eq.airDb, null],
+    ] as const).map(([type, hz, db, q]) => {
+      const f = ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.value = hz;
+      f.gain.value = sign * db;
+      if (q != null) f.Q.value = q;
+      return f;
+    });
+    const up = stages(1), down = stages(-1);
+    const knee = SC.knee ?? 0.6, curve = SC.curve ?? 2;
+    // the curve's top (`softClipCurve`: knee + (1 - knee) / curve, however hard it is hit) at the ceiling asked
+    const top = (M.limiter.ceiling * dbToGain(SC.overDb)) / (M.gain || 1);
+    const driveDb = 20 * Math.log10((knee + (1 - knee) / curve) / top);
+    const sum = ctx.createGain();
+    let at: AudioNode = sum;
+    for (const f of up) { at.connect(f); at = f; }
+    const back = down[0];
+    for (let i = 0; i + 1 < down.length; i++) down[i].connect(down[i + 1]);
+    down[down.length - 1].connect(themeOut);
+    at.connect(clipNodes({ driveDb, knee, curve, oversample: SC.oversample ?? 'none' }, back, false));
+    themeEnd = sum;
+  }
 
   // Macro filter: the one automated knob of the arrangement. Its Q is 0.707,
   // which in Web Audio's units is +0.707 dB at the corner and **not**

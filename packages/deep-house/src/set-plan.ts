@@ -41,7 +41,7 @@ import { generate, resolveRoom, leadTimbreOfTheme, rollTempo } from './generator
 import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
-import { loudnessTrimDb } from './loudness.ts';
+import { loudnessTrimDb, loudnessPlanOf } from './loudness.ts';
 import { classicRoles } from './roles.ts';
 import { seamPlan, blendAsked, seamTempo, glideBarsFor } from './performance.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
@@ -604,10 +604,16 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
   // `renderTrack` both hand it to `buildGraph` as the theme's own
   // output gain, so the live decks, the offline mix and a single-track render
   // level the same way.
-  track.trimDb = loudnessTrimDb(track, style);
+  //
+  // **The theme's sum clip** (round drum-clip, `loudness.ts` `sumClipOf`) is planned with it, off the same read of the
+  // same window (`loudnessPlanOf`), where the front rule moved a house window; beside the plan, in the room it is
+  // built with, as the trim is.
+  const { trimDb, sumClip } = loudnessPlanOf(track, style);
+  track.trimDb = trimDb;
   // ...never over the place's ceiling, where the place states one (round DNB-3: the model does not see the place's lifts).
   const most = track.sound?.trimMostDb;
   if (most != null && track.trimDb > most) track.trimDb = most;
+  if (sumClip) track.paramOverrides = mergeParams(track.paramOverrides || {}, { master: { sumClip } });
   // **The trim under the classic roles** (round DUB-1): a theme whose place
   // turned the roles round carries the trim it would have had without them,
   // so `roles=classic` plays the theme as it was, level and all.

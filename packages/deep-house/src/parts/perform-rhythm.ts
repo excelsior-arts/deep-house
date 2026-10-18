@@ -44,6 +44,12 @@ export interface RhythmPerformer {
   characters: SoundCharacters | undefined;
   pinned: PartPin | null;
   selectedRecipeFor: (role: string) => (RecipeSource & { family: string }) | undefined;
+  /**
+   * Where a hand hit stands (the style's hand stage, `src/hand-phrase.ts`): its pan, off the hit's own pan draw, and
+   * its stroke and drum as plan data; a hit the stage does not place keeps the lane's pan. Absent, every hit does.
+   */
+  placeHand?: (voice: string, stroke: string | undefined, draw: (lo: number, hi: number) => number) =>
+    { pan: number; tags: Pick<EventMeta, 'stroke' | 'drum'> };
 }
 
 /**
@@ -72,9 +78,22 @@ export function kickPickupHits({ rhythmMotion, rhythmPolicy, pinned }: RhythmPer
   return pickup ? rhythmPolicy!.kickPickup.steps.map((step,i)=>({step,vel:rhythmPolicy!.kickPickup.accents[i]})) : null;
 }
 
+/**
+ * **A hand cell's bar** (his word 10-16, "better and complete phrasing"): a hand player's cell is a phrase, counted from
+ * its section's first bar, so it turns on the section's lines and not on the set's (an eight-bar cell on the set's line
+ * started its call four bars into half the sections and was cut there before its answer). Where the section ends inside
+ * a cell (eight bars in a twelve-bar section), the bars left play the cell's own close: its last bars, so the phrase
+ * still ends on its answer at the section's line.
+ */
+export function handCellBar(cellBars: number, barInSection: number, sectionBars: number): number {
+  const start = Math.floor(barInSection / cellBars) * cellBars;
+  const left = Math.min(cellBars, Math.max(1, sectionBars - start));
+  return cellBars - left + (barInSection - start);
+}
+
 /** A requested part replaces its role's mask, keeping its gate and palette. */
 export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy, arrangement, at, beat, barSeconds,
-  laneOn, voiceOf, trimOf, cellTrimOf, push, characters, pinned, selectedRecipeFor }: RhythmPerformer): FigureSource {
+  laneOn, voiceOf, trimOf, cellTrimOf, push, characters, pinned, selectedRecipeFor, placeHand }: RhythmPerformer): FigureSource {
   return (g, c) => {
     for (const lane of g.lanes) {
       if (!laneOn(lane, c.layers)) continue;
@@ -82,13 +101,15 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
       const pickup = c.rhythmPickups?.get(lane.id);
       // Opening one requested player's pickup must not wake another player
       // sharing its role gate (for example the continuous shaker).
-      if (!moving && !pickup && !laneOn(lane,layersAtBar(arrangement,c.bar).layers)) continue;
+      // (the hands a build plays through are asked with the lane off in the plan: `BarContext.handsThrough`, hand cells alone)
+      if (!moving && !pickup && !c.handsThrough && !laneOn(lane,layersAtBar(arrangement,c.bar).layers)) continue;
       // The bar's phase, worked out once for the bar (`rhythmGates`).
       const phase = moving ? c.rhythmPhase ?? null : null;
       if(moving&&!phase)continue;
       const part = pickup?.part ?? (moving ? rhythmCell(moving,phase!,seed,c.section.index,
         Math.floor((c.bar-c.section.startBar)/rhythmPolicy!.phraseBars)) : rhythm.find(r => r.lane.id === lane.id)!.part);
-      const offset = pickup?.offset ?? (c.bar % part.bars) * STEPS_PER_BAR;
+      if (c.handsThrough && !part.strokes) continue;
+      const offset = pickup?.offset ?? (part.strokes ? handCellBar(part.bars, c.bar - c.section.startBar, c.section.bars) : c.bar % part.bars) * STEPS_PER_BAR;
       const r = new Rng(`${seed}::${lane.id}:${c.bar}`);
       const voice = voiceOf(lane);
       if (lane.role === 'kick' && !c.kickThisBar) continue;
@@ -102,12 +123,17 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
         const human = feel ? new Rng(`${seed}::${lane.id}:feel:${c.bar}:${s}`) : null;
         const time = feel ? c.bar*barSeconds + Math.max(0,Math.min(4-1e-6,
           P.stepToBeats(step,feel.swing)+feel.delay.beats+human!.float(-feel.timing.beats,feel.timing.beats)))*beat : at(c.bar,step);
+        const vel = part.accents[i] * (feel ? human!.float(1-feel.dynamics,1) : r.float(0.96, 1));
+        // A hand hit stands on its drum of the pair (the stage); every other hit takes the lane's pan, one draw either way.
+        const placed = lane.role === 'kick' ? null : placeHand
+          ? placeHand(voice, part.strokes?.[i], (lo, hi) => r.float(lo, hi))
+          : { pan: r.float(-S.space.hatPan, S.space.hatPan), tags: {} };
         push(voice, time, {
-          vel: part.accents[i] * (feel ? human!.float(1-feel.dynamics,1) : r.float(0.96, 1)),
-          ...(lane.role === 'kick' ? {} : { pan: r.float(-S.space.hatPan, S.space.hatPan) }),
+          vel,
+          ...(placed ? { pan: placed.pan } : {}),
           ...trim,
           ...(sound ? { ...sound.params, gain:(trim.gain ?? 1)*dbToGain(sound.gainDb + (character!.levelDb ?? 0)) } : {}),
-        }, { bar: c.bar, step, layer: layerOf(voice), ...(pinned?.role === lane.role ? { part: pinned.id } : selectedRecipeFor(lane.role) ? { part: selectedRecipeFor(lane.role)!.id } : {}) });
+        }, { bar: c.bar, step, layer: layerOf(voice), ...(pinned?.role === lane.role ? { part: pinned.id } : selectedRecipeFor(lane.role) ? { part: selectedRecipeFor(lane.role)!.id } : {}), ...placed?.tags });
       });
     }
   };

@@ -159,16 +159,43 @@ export function laneWeight(lane: Lane, bias: Bias, grid?: LaneGrid): (e: LaneCan
  * @returns lane id -> the voice's event name
  */
 export type LaneWithdrawal = (lane: Lane, voice: string) => boolean;
-export function laneVoices(style: Style, seed: string | number, bias: Bias, withdrawn?: LaneWithdrawal, grid?: LaneGrid): Record<string, string> {
+export function laneVoices(style: Style, seed: string | number, bias: Bias, withdrawn?: LaneWithdrawal, grid?: LaneGrid,
+  theme?: { bpm: number; kit?: string; bed?: { struck?: boolean } }): Record<string, string> {
   const out: Record<string, string> = {};
   for (const lane of style.lanes) {
     if (!lane.voices || !lane.voices.length) continue;
     const weight = laneWeight(lane, bias, grid);
-    const drawn = new Rng(`${seed}::lane:${lane.id}`).pickWeighted([...lane.voices],
-      withdrawn ? (e, i) => (withdrawn(lane, String(e.v)) ? 0 : weight(e, i)) : weight);
+    const asked = withdrawn ? (e: LaneCandidate, i: number) => (withdrawn(lane, String(e.v)) ? 0 : weight(e, i)) : weight;
+    const drawn = new Rng(`${seed}::lane:${lane.id}`).pickWeighted([...lane.voices], leanedWeights(lane, asked, theme));
     out[lane.id] = drawn ? String(drawn.v) : String(lane.incumbent ?? lane.voices[0].v);
   }
   return out;
+}
+
+/**
+ * **A lane's leans, where they hold** (`Lane.lean`, his word 10-16 on the congas: "not overdo it"): a candidate's weight
+ * raised by its lean's `times`, the weight it gains taken off its `from`'s, in the lean's tempo band, on its kits and
+ * over the bed it names, where the draw admits both. A weighted draw walks its ladder in the list's order, so moving weight between two
+ * candidates leaves every other candidate's rung where it was: of the themes whose draw moves, every one moves from
+ * `from` to `voice`. No theme read (a tool asking the catalogue alone) is no lean.
+ */
+export function leanedWeights(lane: Lane, weight: (e: LaneCandidate, i: number) => number,
+  theme?: { bpm: number; kit?: string; bed?: { struck?: boolean } }): (e: LaneCandidate, i: number) => number {
+  const leans = theme ? (lane.lean ?? []).filter((L) => (L.tempoFrom == null || theme.bpm >= L.tempoFrom) && (L.tempoTo == null || theme.bpm < L.tempoTo)
+    && (!L.kits || (theme.kit !== undefined && L.kits.includes(theme.kit)))
+    && (L.bed?.struck === undefined || theme.bed?.struck === L.bed.struck)) : [];
+  if (!leans.length) return weight;
+  const list = lane.voices || [];
+  const w = list.map((e, i) => weight(e, i));
+  for (const L of leans) {
+    const a = list.findIndex((e) => e.v === L.voice), b = list.findIndex((e) => e.v === L.from);
+    if (a < 0 || b < 0 || !(w[a] > 0) || !(w[b] > 0)) continue;
+    const gain = Math.min(w[b], w[a] * (L.times - 1));
+    if (!(gain > 0)) continue;
+    w[a] += gain;
+    w[b] -= gain;
+  }
+  return (_e, i) => w[i];
 }
 
 export const familyOf = (voice: string): string => (BY_NAME[voice] || { family: '' }).family;

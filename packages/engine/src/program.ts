@@ -91,6 +91,9 @@ export interface ProgramEvent {
   treatment?: 'none';
   /** Optional musical role, independent of the physical voice/layer. */
   role?: 'texture' | 'sparse-keys' | 'detail';
+  /** A hand drum's stroke as a player names it, and the drum of its pair: plan data for readouts; no voice reads it. */
+  stroke?: 'open' | 'slap' | 'mute' | 'heel' | 'tip';
+  drum?: 'high' | 'low';
   i: number;
   voice: string;
   layer: string;

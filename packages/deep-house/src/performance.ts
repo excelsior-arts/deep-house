@@ -183,6 +183,9 @@ export interface PlanEvent {
   note?: string;
   /** an exposed held front's note (`generator.ts`): it stands where the stage settles after this bar */
   stageHold?: number;
+  /** a hand drum's stroke and the drum of its pair (the hand stage, `src/hand-phrase.ts`): for readouts, never rendered */
+  stroke?: 'open' | 'slap' | 'mute' | 'heel' | 'tip';
+  drum?: 'high' | 'low';
   }
 
 /** One bar of a plan's timeline: where it sits, and what is playing over it. */
@@ -1877,6 +1880,8 @@ export function compilePerformance(
       ...(ev.part ? { part: ev.part } : {}),
       ...(ev.role ? { role: ev.role } : {}),
       ...(ev.treatment ? { treatment: ev.treatment } : {}),
+      ...(ev.stroke ? { stroke: ev.stroke } : {}),
+      ...(ev.drum ? { drum: ev.drum } : {}),
       bus,
       level: levelKey ?? null,
       bar: ev.bar ?? null,
