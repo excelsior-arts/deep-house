@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "chantOm",
+  "revision": 1,
+  "topology": "chant",
+  "parameters": {
+    "throats": [
+      0.2,
+      1,
+      0.12
+    ],
+    "detuneCents": 9,
+    "driftCents": 3,
+    "driftHz": 0.06,
+    "sourceTilt": 1.4,
+    "breath": 0.02,
+    "hum": [
+      280,
+      1050,
+      2400
+    ],
+    "humLevel": [
+      1,
+      0.12,
+      0.04
+    ],
+    "openHz": 4200,
+    "humHz": 700,
+    "humDb": -2,
+    "roundAt": 0.3,
+    "closeAt": 0.62,
+    "attack": 1.6,
+    "release": 2.4,
+    "overtone": 0,
+    "overtoneQ": 40,
+    "overtoneLevel": 3,
+    "harmonics": [
+      6,
+      8,
+      9,
+      10,
+      12,
+      10,
+      9,
+      8,
+      6,
+      5
+    ],
+    "harmonicSeconds": 2.4,
+    "glide": 0.5,
+    "spread": 0.6,
+    "trim": 1.5,
+    "dry": 0.8,
+    "reverb": 0.6,
+    "delay": 0.08
+  },
+  "descriptor": {
+    "family": "vocal",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "controls": {
+      "overtone": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 1,
+        "default": 0
+      }
+    },
+    "timbres": {
+      "chantOm": {
+        "family": "vocal",
+        "struck": false,
+        "hold": 0.9,
+        "brightnessHz": 1200,
+        "loudnessDb": -15.8
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-voices",
+    "module": "chant.ts",
+    "note": "A wordless sung drone (PLAN-AMBIENT §3.3): one syllable on a low fundamental, opening on the room's a, rounding to its o by 0.3 of the note and closing to the lips' hum by 0.62, the formants gliding the whole way and the lid closing to 700 Hz. One throat carrying it and two faint ones nine cents apart in all, each drifting a few cents at a sixteenth of a Hz, and no vibrato: it is meant to read as a held rank of voices and never as a person. The overtone mode (a note's control) lays a narrow formant on one harmonic at a time, 6th to 12th and back, 2.4 s on each.",
+    "notes": {
+      "hum": "The closed m: the first formant at 280 Hz, the upper two nearly gone (0.12, 0.04), so what is left is the fundamental and its first few harmonics through the nose.",
+      "overtoneLevel": "The narrow band's gain at overtone 1: a band of Q 40 passes one harmonic, and at 3 it stands 12-20 dB over the harmonics beside it, which step back (the upper two formants to 0.3) while it sings; at 8 the whole syllable rose 9 dB and the band was all there was.",
+      "harmonics": "The plan's 5th-12th, as a walk: up from the 6th to the 12th and back down to the 5th. A note may not write its own yet; a planner that wants another walk is a row of its own.",
+      "throats": "Three throats nine cents apart in all, at 0.2, 1 and 0.12 (the lowest-tuned first): one throat carries the voice and two faint ones a few cents either side of it. At equal levels their beating pumped the whole body 10-12 dB (the harmonic standing on a formant beats as deep as the throats' levels allow); at 0.7, 1, 0.5 it still swung 12 dB, at these 5 dB at most (3.5 over nine tenths of the time) against 2.5 for one throat alone, measured on a 20 s syllable. The centre one carries the overtone mode alone, its drift parked while it does."
+    }
+  }
+}

@@ -705,14 +705,14 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const added = { ...file, rows: [...file.rows, extra] };
   assert.ok(linkDigest.sinceCut(file, added).some((f) => f.includes('no blessing was added')));
   assert.deepEqual(linkDigest.sinceCut(file, { ...added, blessings: [...file.blessings, 'v3 joins the grid'] }), []);
-  // The stated window (Eugene, 09-26, "go for it", for v2.0.0; 10-11 for v2.1.0; 10-12 for v2.2.0; 10-15 for v2.2.1; 10-16 for v2.2.2): a shipped row may play
+  // The stated window (Eugene, 09-26, "go for it", for v2.0.0; 10-11 for v2.1.0; 10-12 for v2.2.0; 10-15 for v2.2.1; 10-16 for v2.2.2; 10-17 for v2.2.3): a shipped row may play
   // otherwise when the newest blessing counts it, and only then; a dropped row
   // is refused inside it as outside. Both strategies alike since V1-1 (10-02):
   // the record's rows were held by name until then, with their own words
   // (`recordMovedWords`, gone); house-v1 is a composing preset, not a byte
   // lock, and a shared mixing path that moves its rows is counted with the rest.
   const w = linkDigest.WINDOW;
-  assert.equal(w.since, '2026-10-16');
+  assert.equal(w.since, '2026-10-17');
   assert.match(w.reason, /sacrifices with known golden tracks/);
   assert.ok(!('strategy' in w), 'the window names a strategy, and it covers both');
   const v2 = file.rows.findIndex((r) => r.strategy === 'house-v2'), v1 = file.rows.findIndex((r) => r.strategy === 'house-v1');

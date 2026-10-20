@@ -504,6 +504,16 @@ export const SHEET = `
 #machine .view.scrolling .spell-grid .cell { flex-direction: row; align-items: baseline; gap: 2px; }
 #machine .view.scrolling .spell-grid .cell .v { font-size: 11px; }
 #machine .view.scrolling .spell-grid .cell .k .notch { display: none; }
+/* The load row (round apple-1): its name, then its cells as the spell's are —
+   a name over a value, a phone's side by side — in columns as wide as the
+   widest value needs, so how many to a row is the width's alone. */
+#machine .fact.load { flex-direction: column; align-items: stretch; gap: ${SPACE.hair}px; }
+#machine .fact.wide.load > .k { width: auto; }
+#machine .load-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); column-gap: ${SPACE.hair}px; row-gap: ${SPACE.s}px; }
+#machine .load-grid .cell { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+#machine .fact.wide .load-grid .cell .k { width: auto; opacity: .7; }
+#machine .load-grid .cell .v { font-size: 11px; max-width: 100%; }
+#machine .view.scrolling .load-grid .cell .v { font-size: 11px; }
 #machine .fact .v.warn { color: ${INK.amber}; }
 #machine .fact .v.bad { color: ${INK.red}; }
 #machine .swatch {

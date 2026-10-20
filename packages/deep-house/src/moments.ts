@@ -15,6 +15,14 @@
 //                endings and inflections by the one vocabulary, the bass's outs, the cooldowns, the closing arc's moment,
 //                the keys' strikes, and the drum-led builds into the drops and returns as heard (`track.passage.builds`)
 //   development  the phrase development's moves (`track.development.answers`)
+//   sea          the sea's shape where a place lays one (`track.sea`, `src/surf.ts`): a crest along each wave that swells
+//                over half the sea's full size (so a set's large waves run together and a lull or a calm is bare), a turn
+//                at each set's line (the chord moves there), a struck tick at each bell on a break, and a stroke across
+//                both tracks at a great wave; all at the seconds they play, so the marks are as irregular as the sea
+//   conversation the struck voices' conversation where a place lays one (`track.conversation`, `src/slow-conversation.ts`,
+//                read off its strikes): each exchange a pair of strokes across the low track, the call's and its
+//                answer's (the breath between them the gap), a call left open (no answer, only the ground's) a stroke
+//                there alone, and a turn where another voice takes the calls or the answers (Veil's change of hands)
 //
 // It reads; it writes nothing the program plays, so a theme sounds exactly as it did. Nothing here names a place, a
 // genre or a seed.
@@ -22,9 +30,10 @@ import PHRASING_FILE from '../recipes/arrangement/phrasing.json' with { type: 'j
 import { subMarksOf, SUB_STYLE, type SubMarkKind } from './ring-subsections.ts';
 import { END_EMPTIES, type End } from './passage.ts';
 import type { ProducerMarks } from './producer.ts';
+import { timbrePhrase } from './bird-labels.ts';
 
 /** Where a moment was written. */
-export type MomentSource = 'phrasing' | 'house' | 'glue' | 'arc' | 'producer' | 'development';
+export type MomentSource = 'phrasing' | 'house' | 'glue' | 'arc' | 'producer' | 'development' | 'sea' | 'conversation';
 /**
  * One moment: its mark kind, its bars (`to` exclusive; a stroke at a line has `to` equal to `from`), its words, and its
  * source. A bar emptied from a sixteenth to its line, and a build of a beat or two, stand at their real length: `from`
@@ -90,7 +99,50 @@ export interface MomentsInput {
    */
   development?: { answers?: ReadonlyArray<{ bar: number; answer: string }>; phrases?: ReadonlyArray<{ family?: string; variant?: string; at?: number }>;
     emptied?: Readonly<Record<string, readonly [number, number]>> } | null;
+  /**
+   * the sea (`SurfSummary` in `src/surf.ts`, its anchors): each wave's swell start, crest and end in seconds, its size,
+   * its set and what it is (`peak`, `great`); each set's line in seconds; the bells' onsets in seconds; a bar's seconds
+   */
+  sea?: { waveList: ReadonlyArray<readonly [number, number, number, number, number, string, ...unknown[]]>; setLines: readonly number[]; bells?: readonly number[]; barSeconds: number } | null;
+  /**
+   * the conversation's calls and answers as struck (seconds, the part, the voice, the note), a bar's seconds and the
+   * longest breath before an answer it was laid with (`ConversationSummary.breathS`)
+   */
+  conversation?: { strikes: ReadonlyArray<ConversationStrike>; barSeconds: number; breathS?: number } | null;
 }
+
+/** One of the conversation's strikes as the ring reads it. */
+export interface ConversationStrike { t: number; part: string; voice: string; note?: string }
+/** An exchange as the ring reads it: its calls and its answers, either list possibly empty (a call left open, an answer alone). */
+export interface Exchange { calls: ConversationStrike[]; answers: ConversationStrike[] }
+/**
+ * **The conversation's exchanges, as a listener hears them** (ambient-waves-4, the review of 10-19: the marks had joined
+ * a call left open to the next call's answer 34 s on, and an answer to the lone answers of the breakdown a minute on).
+ * A call's notes and the answer to it follow each other within a breath; a gap longer than the conversation's own
+ * breath (`breathS`, the longest the answerer waits, and two sixteenths for a strike placed on the grid a little late)
+ * closes the exchange. So calls with no answer within a breath are a call left open, and answers with no call before
+ * them within a breath (the breakdown's answerer alone) an answer alone. `strikes` in time order, calls and answers only.
+ */
+export function exchangesOf(strikes: ReadonlyArray<ConversationStrike>, breathS: number, barSeconds: number): Exchange[] {
+  const gap = breathS + barSeconds / 8;
+  const out: Exchange[] = [];
+  let cur: Exchange | null = null;
+  let last = -Infinity;
+  for (const x of strikes) {
+    const near = x.t - last <= gap;
+    const call = x.part === 'conversation-call';
+    // a call joins the exchange only while no answer has come (a call after an answer opens the next one)
+    if (cur && near && (call ? !cur.answers.length : true)) (call ? cur.calls : cur.answers).push(x);
+    else { cur = call ? { calls: [x], answers: [] } : { calls: [], answers: [x] }; out.push(cur); }
+    last = x.t;
+  }
+  return out;
+}
+/** The longest breath a conversation's marks read where its summary carries none: the row's own (`answerer.afterS`, 3-8 s). */
+const BREATH_S = 8;
+
+/** A wave the ring draws a crest along: one that swells over half the sea's full size (`sizeMost` 1.5 at most; 0.75). */
+export const SEA_CREST_SIZE = 0.75;
 
 /**
  * The theme's moments, in bar order, each clipped to the theme and each once (a kind at a bar). The producer's groove
@@ -134,6 +186,39 @@ export function momentsOf(I: MomentsInput): Moment[] {
     for (const o of P.bassOuts) add('bass-out', o.from, o.to, o.cooldown ? `the bass out across the cooldown ${span(o.from, o.to)}` : `the bass out ${span(o.from, o.to)}, back on ${o.to}`, 'producer');
     if (P.feature) add('crest', P.feature.from, P.feature.to, `the closing arc's moment ${span(P.feature.from, P.feature.to)}: the motif recalled, the bass climbing`, 'producer');
     for (const k of P.keys) add('keys', k.at, k.at, k.label, 'producer');
+  }
+  // the sea: its large waves' crests, its sets' lines, its bells and its great waves, at their seconds
+  const S = I.sea;
+  if (S && S.barSeconds > 0) {
+    const bar = (t: number) => t / S.barSeconds;
+    const f = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+    S.setLines.forEach((t, k) => { if (k > 0) add('turn', bar(t), bar(t), `set ${k + 1} from ${f(t)}: the chord moves with the sea`, 'sea', true); });
+    for (const [t0, crest, until, size, , what] of S.waveList) {
+      if (size >= SEA_CREST_SIZE) add('crest', bar(t0), bar(until), `a wave of ${size.toFixed(2)} cresting at ${f(crest)}`, 'sea', true);
+      if (what === 'great') add('answer', bar(crest), bar(crest), `a great wave cresting at ${f(crest)}`, 'sea', true);
+    }
+    for (const t of S.bells ?? []) add('keys', bar(t), bar(t), `the bell on the break at ${f(t)}`, 'sea', true);
+  }
+  // the conversation: each exchange (a call, the calls struck with it, and the answers to it within a breath) a pair of
+  // strokes, the call's and its first answer's, as its label says; a call left open a stroke alone, and an answer alone
+  // (the breakdown's answerer) a stroke alone; a turn where another voice takes the calls or the answers
+  const C = I.conversation;
+  if (C && C.barSeconds > 0) {
+    const bar = (t: number) => t / C.barSeconds;
+    const f = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+    const said = (x: { voice: string; note?: string }) => `${timbrePhrase(x.voice)}${x.note ? ` ${x.note}` : ''}`;
+    const S = [...C.strikes].filter((x) => x.part === 'conversation-call' || x.part === 'conversation-answer').sort((a, b) => a.t - b.t);
+    let caller: string | null = null, answerer: string | null = null;
+    for (const { calls, answers } of exchangesOf(S, C.breathS ?? BREATH_S, C.barSeconds)) {
+      const call = calls[0], answer = answers[0];
+      if (call && caller && call.voice !== caller) add('turn', bar(call.t), bar(call.t), `${timbrePhrase(call.voice)} takes the calls at ${f(call.t)}`, 'conversation', true);
+      if (answer && answerer && answer.voice !== answerer) add('turn', bar(answer.t), bar(answer.t), `${timbrePhrase(answer.voice)} takes the answers at ${f(answer.t)}`, 'conversation', true);
+      if (call) caller = call.voice;
+      if (answer) answerer = answer.voice;
+      if (call && answer) add('exchange', bar(call.t), bar(answer.t), `the call at ${f(call.t)} (${calls.map(said).join(', ')}), answered at ${f(answer.t)} (${answers.map(said).join(', ')})`, 'conversation', true);
+      else if (call) add('keys', bar(call.t), bar(call.t), `a call left open at ${f(call.t)} (${calls.map(said).join(', ')}): only the ground answers`, 'conversation', true);
+      else add('keys', bar(answer.t), bar(answer.t), `an answer alone at ${f(answer.t)} (${answers.map(said).join(', ')})`, 'conversation', true);
+    }
   }
   // the drum-led builds into the drops and the breath's returns (fast-drops), each over its own beats into its line
   for (const b of I.passage?.builds ?? []) add('fill', b.line - b.beats / 4, b.line, `the build into ${b.line}: ${b.label}`, 'producer', true);

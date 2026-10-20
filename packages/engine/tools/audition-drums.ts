@@ -128,6 +128,10 @@ export const DRUM_SCENES: DrumScene[] = [
   { id: 'tambourine', voice: 'tambourine', pattern: 'offbeat', role: 'sixteenth' },
   { id: 'cowbell', voice: 'cowbell', pattern: 'eighths', role: 'sixteenth' },
   { id: 'woodblock', voice: 'woodblock', pattern: 'perc', role: 'sixteenth' },
+  // ambient-bells (10-17): the slow conversation's hand, a hint and never a strike.
+  { id: 'woodblockSoft', voice: 'woodblockSoft', pattern: 'perc', role: 'sixteenth' },
+  { id: 'frameDrum', voice: 'frameDrum', pattern: 'perc', role: 'sixteenth' },
+  { id: 'shakerSoft', voice: 'shakerSoft', pattern: 'perc', role: 'sixteenth' },
   { id: 'kickLong', voice: 'kickLong', pattern: 'four', role: 'kick' },
   { id: 'kickPunch', voice: 'kickPunch', pattern: 'four', role: 'kick' },
   // Round DNB-2: the short kick and the dry snare a place swaps in at the fast broken beat.

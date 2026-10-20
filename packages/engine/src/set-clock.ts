@@ -23,6 +23,16 @@
 // the blend, on the outgoing deck alone. The clock has the two moves it always
 // had — `pin` and `glide` — and they are all any of that needs.
 //
+// **A free theme is not on it** (PLAN-AMBIENT §4, the second clock, C2). A
+// theme whose program says `clock: 'free'` is counted in its own seconds, by an
+// offset (`deckContextTime` in `deck.ts`), so the grid is the metered decks'
+// alone. A seam with a free side neither rides nor glides it: into a free theme
+// the grid is pinned where the metered one left it and holds there, which no
+// deck hears; out of one, the grid jumps to the arriving metered theme's own
+// tempo at the blend's first instant, a jump nobody hears either, since the
+// only deck up is the free one (`seamTempo`'s `free` kind, `performance.ts`).
+// The two moves it always had, and `jump`, are still all it needs.
+//
 // It is here rather than in the mix since round E: a clock is time, and time is
 // not a deck. Nothing in this file builds a node, reads a context or knows what
 // a theme is — `tools/check.ts` sweeps it, `tools/setplan.ts` lays a whole set

@@ -151,7 +151,8 @@ export interface LoudnessTrack extends WindowTrack {
   events: LoudnessEvent[];
   dice?: LoudnessDice;
   paramOverrides?: LoudnessOverrides;
-  key?: { scaleName?: string } | null;
+  /** `keyScale`: the key die's own mode where a place drew another (PLAN-AMBIENT Phase 6), the word the model was fitted on */
+  key?: { scaleName?: string; keyScale?: string } | null;
   progression?: { chords: unknown[] } | null;
   /** the music it was planned as; the three entry points default to it */
   style?: Style;
@@ -918,7 +919,7 @@ function featuresAt(track: LoudnessTrack, style: Style, w: { from: number; bars:
     density: track.density,
     bpm: track.bpm,
     themeBars: track.bars,
-    scale: (track.key && track.key.scaleName) || 'minor',
+    scale: (track.key && (track.key.keyScale ?? track.key.scaleName)) || 'minor',
     voicingStyle: d.voicingStyle,
     loopBars: d.loopBars || 0,
     chords: (track.progression && track.progression.chords.length) || 0,

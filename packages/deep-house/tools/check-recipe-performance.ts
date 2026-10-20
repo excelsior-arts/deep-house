@@ -205,8 +205,14 @@ test('a struck phrase coexists with the bass, preserves the drum score, and foll
     const after = planTheme(seed, 0, { ...opts, recipe: seasonedRecipe });
     const foundation = (t: typeof after) => t.events.filter(e => ['bass', 'kick'].includes(e.layer));
     assert.deepEqual(foundation(after), foundation(before), 'all kick and bass note parameters survive, not only counts');
-    const drumScore = (t: typeof after) => t.events.filter(e => !['keys', 'pad', 'bass'].includes(e.layer)).map(e => ({ t: e.t, voice: e.voice, vel: e.p.vel, pan: e.p.pan }));
-    assert.deepEqual(drumScore(after), drumScore(before));
+    const drumScore = (t: typeof after, only?: Set<string>) => t.events.filter(e => !['keys', 'pad', 'bass'].includes(e.layer) && (!only || only.has(e.voice))).map(e => ({ t: e.t, voice: e.voice, vel: e.p.vel, pan: e.p.pan }));
+    // the two rows draw their timbres apart (their forbids differ), and a row's hand cell leaves over a continuous bed
+    // (`rowCellsAt`): where the two beds differ, a lane one of them withdrew is the bed's, and every other lane is the score
+    const lanes = (t: typeof after) => new Set(drumScore(t).map(e => e.voice));
+    const shared = new Set([...lanes(after)].filter(v => lanes(before).has(v)));
+    if (before.dice.padTimbre === after.dice.padTimbre) assert.deepEqual(drumScore(after), drumScore(before));
+    else assert.deepEqual(drumScore(after, shared), drumScore(before, shared));
+    assert.ok(shared.size >= Math.max(lanes(after).size, lanes(before).size) - 1, 'at most the one hand cell answers the bed');
     assert.equal(after.dice.motifRegister, 'bass');
     assert.ok(!after.events.some(e => e.layer === 'pad'));
     const upper = after.events.filter(e => e.layer === 'keys');
@@ -229,7 +235,7 @@ test('a struck phrase coexists with the bass, preserves the drum score, and foll
     assert.equal(backbeat.length, before.events.filter(e => registry.BY_NAME[e.voice].roles.includes('backbeat')).length);
     assert.ok(backbeat.every(e => e.p.reverb === .85), 'space follows any played backbeat; a gated role is not invented');
     assert.ok(compiled.events.some(e => e.layer === 'shaker' && e.p.reverb === .85));
-    for (const e of after.events.filter(e => e.layer === 'shaker')) {
+    for (const e of after.events.filter(e => e.layer === 'shaker' && shared.has(e.voice))) {
       const old = before.events.find(b => b.voice === e.voice && b.t === e.t)!;
       const level = registry.BY_NAME[e.voice].level;
       const settings = compiled.settings;

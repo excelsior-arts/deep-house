@@ -14,7 +14,9 @@
 // nought, so every bird position there resolves to today's eight bars exactly (the U0 round is sound-neutral; a later
 // round gives the lean its strength). Nothing here names a place, a genre or a seed: the place tables say where.
 import { lean } from './lean.ts';
-import type { PlaceEntry } from './places.ts';
+import { readPlace } from './places.ts';
+import type { PlaceEntry, StylePlaces, Zone } from './places.ts';
+import type { Spell } from './spell.ts';
 
 /** The pulse a theme is felt in: its written beat, or half of it where the kit plays half-time. */
 export type Felt = 'whole' | 'half';
@@ -30,6 +32,65 @@ export interface TimeEntry extends PlaceEntry {
    * the one lean at `loom.strength` (its target in seconds; nought keeps `bars` at every Loom).
    */
   phrase?: Readonly<{ bars: number; loom: Readonly<{ centre: number; strength: number }> }>;
+  /**
+   * **The second clock** (PLAN-AMBIENT §4, stage C1): `'free'` is a place whose themes are written in seconds. Such a
+   * theme plans at `FREE_BPM`, so every structure that counts bars (the sections, the steps, the timeline) still
+   * exists and means seconds; its program says so (`Program.clock`), its deck maps those seconds onto the context by
+   * offset, and a seam never rides or glides it toward a metered tempo (C2, C3). Absent is the bar clock, which every
+   * place shipped today keeps: no shipped entry says `'free'`.
+   */
+  clock?: 'free';
+}
+
+/** A free theme's nominal tempo: a beat is a second and a bar four (PLAN-AMBIENT §4.2). */
+export const FREE_BPM = 60;
+
+/**
+ * **Which clock a theme plays on**, by its place's time entry where the style reads places (`TimeEntry.clock`):
+ * `'free'` or the bar clock. Asked at the tempo the theme was drawn at (the place's address), before it is planned at
+ * the nominal one, by the set (`set-plan.ts`, so its length in minutes becomes bars at 60) and by a lone theme alike.
+ */
+export function clockAt(places: StylePlaces | undefined, spell: Spell, bpm: number, zone?: Zone | null): 'bars' | 'free' {
+  // through the one read (PLAN-ZONES §3.2): inside a zone its own time row or its borrow, at any tempo; outside, the
+  // nearest time entry less every zone's, at the tempo drawn
+  return places && readPlace(places, 'time', spell, bpm, zone)?.clock === 'free' ? 'free' : 'bars';
+}
+
+/**
+ * **The tail a free theme hands over with, in seconds** (PLAN-AMBIENT §4.3, C3; his ear 10-18 on the first seam: a
+ * 77 s tail under the house "too long, use birds and we can reduce it in half at least, use general wisdom on humans
+ * perception of change patience"). A tail is a change, not a hold: a listener hears the arriving texture as arrived in
+ * a few seconds, a blend reads as a deliberate move for some 8-32 bars of the arriving beat, and an overlap that stops
+ * changing reads as indecision far sooner than one that keeps changing. So the free side thins from the moment the
+ * low end changes hands (`seamCurves`, the free tail) and its seconds are two parts, each one bird's:
+ *
+ *   presence  Loom, the listener's patience: 15 s at nought, 30 s at one, geometric between (the one lean about the
+ *             middle). From the blend's start to the free side's last new note: the top closing from the start, the
+ *             level falling from the swap, its voices leaving one by one.
+ *   ring      Tide, the space: 3 s at nought, 9 s at one, geometric between. Past the last note only the decays and
+ *             the room are left, closing; Tide lengthens the ring and never the presence.
+ *
+ * Together 18 s at the shortest corner and 39 s at the longest; the Ambient tile (Loom 0.80, Tide 0.85) is 26.1 + 7.0
+ * = 33.1 s. A free theme's own blend is that in its four-second bars, rounded up (`planTheme`), with the seconds beside
+ * it (`blendSeconds`), and a seam out of one lays those seconds on the bar the grid it hands to counts
+ * (`freeSeamBars`). No other bird reads it: Ember sets the arriving tempo, so only the bar the tail is rounded to and
+ * where the swap falls (eight arriving bars, never past the blend's half); Veil's rests are the theme's own.
+ */
+export const FREE_TAIL = Object.freeze({
+  presence: Object.freeze({ leastS: 15, mostS: 30 }),
+  ring: Object.freeze({ leastS: 3, mostS: 9 }),
+});
+const geometric = (range: Readonly<{ leastS: number; mostS: number }>, v: number): number => {
+  const mid = Math.sqrt(range.leastS * range.mostS);
+  return Math.min(range.mostS, Math.max(range.leastS, mid * lean(1, v, log2(range.mostS / range.leastS) * Math.LN2, 0.5)));
+};
+/** The free side's presence, Loom's: blend start to its last new note. */
+export const freePresenceSeconds = (loom: number): number => geometric(FREE_TAIL.presence, loom);
+/** The free side's ring, Tide's: its last new note to gone. */
+export const freeRingSeconds = (tide: number): number => geometric(FREE_TAIL.ring, tide);
+/** The whole tail a free theme hands over with: Loom's presence and Tide's ring. */
+export function freeBlendSeconds(loom: number, tide: number): number {
+  return freePresenceSeconds(loom) + freeRingSeconds(tide);
 }
 
 /** The ring's phrase target, in seconds: 12 s at Loom nought, 24 s at one, geometric between (the one lean). */

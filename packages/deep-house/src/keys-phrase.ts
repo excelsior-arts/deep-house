@@ -25,6 +25,7 @@
 // the seed draws inside them, each draw off a stream of its own (`<seed>::keys:*`), so
 // adding this part moves no other die.
 import { lean as leanBy } from './lean.ts';
+import { airAbout, airDraw, airLeaned, airOctaves } from './air-lean.ts';
 import PHRASE_FILE from '../recipes/keys/phrases.json' with { type: 'json' };
 import MOTIF_FILE from '../recipes/keys/motifs.json' with { type: 'json' };
 import DENSITY_FILE from '../recipes/keys/density.json' with { type: 'json' };
@@ -381,21 +382,46 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   const o = input.override ?? {};
   const D = byId(DRAWS, input.choice.draw, 'draw');
   // each choice off a stream of its own, by the row's weights leaned by the birds: a new choice moves no other
-  const lean = (c: ChoiceName, id: string, sounding = true) => {
+  // **Zephyr is air** (zephyr-air): where the place leans a choice by the voices' air (`air:<choice>` on a bird), the
+  // row's own lean of that bird on it holds at the place's centre, so the place draws what it drew there, and from
+  // there the air alone leans it (`airLeaned`, the tone's sound measured in `voice-air.json`), coupled to the draw at
+  // the centre (`airDraw`): a theme's keys only step airier as the bird rises, darker as it falls
+  const P0 = input.choice.leans;
+  const airPer = (c: ChoiceName, bird: string): number | null => {
+    const x = P0?.by[bird]?.[`air:${c}`];
+    return typeof x === 'number' && typeof P0!.centre[bird] === 'number' ? x : null;
+  };
+  const lean = (c: ChoiceName, id: string, sounding = true, at: Readonly<Record<string, number>> = input.spell) => {
     let m = 1;
     for (const [bird, leans] of Object.entries(D.birds ?? {})) {
-      const x = leans[c]?.[id], v = input.spell[bird];
+      const x = leans[c]?.[id], v = airPer(c, bird) != null ? P0!.centre[bird] : at[bird];
       m *= leanBy(x, v, D.strength, D.centre);
     }
-    const P = sounding ? input.choice.leans : undefined;
+    const P = sounding ? P0 : undefined;
     if (P) for (const [bird, leans] of Object.entries(P.by)) {
-      const x = leans[`${c}:${id}`], v = input.spell[bird], at = P.centre[bird];
-      if (typeof x === 'number' && typeof v === 'number' && typeof at === 'number' && v !== at) m *= Math.exp(x * (v - at));
+      const x = leans[`${c}:${id}`], v = at[bird], c0 = P.centre[bird];
+      if (typeof x === 'number' && typeof v === 'number' && typeof c0 === 'number' && v !== c0) m *= Math.exp(x * (v - c0));
     }
     return m;
   };
-  const draw = (c: Exclude<ChoiceName, 'phrase'>, sounding = true): string => o[c] ?? new Rng(`${seed}::keys:${c}`)
-    .weighted(Object.entries(D[c]).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v, sounding) })));
+  const weighsAt = (c: Exclude<ChoiceName, 'phrase'>, sounding: boolean, at: Readonly<Record<string, number>>) =>
+    Object.entries(D[c]).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v, sounding, at) }));
+  const toneAir = (id: string): number | null => {
+    for (const l of byId(TONES, id, 'tone').layers) { const a = airOctaves(l.sound, 'keys'); if (a != null) return a; }
+    return null;
+  };
+  const draw = (c: Exclude<ChoiceName, 'phrase'>, sounding = true): string => {
+    if (o[c]) return o[c]!;
+    const rng = new Rng(`${seed}::keys:${c}`);
+    const airs = sounding && c === 'tone' && P0 ? Object.keys(P0.by).filter((b) => airPer(c, b) != null && input.spell[b] !== P0.centre[b]) : [];
+    if (!airs.length) return rng.weighted(weighsAt(c, sounding, input.spell));
+    const centre = { ...input.spell, ...Object.fromEntries(airs.map((b) => [b, P0!.centre[b]])) };
+    const atCentre = weighsAt(c, sounding, centre);
+    let here = weighsAt(c, sounding, input.spell);
+    for (const b of airs) here = airLeaned(here, airPer(c, b)!, input.spell[b] - P0!.centre[b], toneAir);
+    const about = airAbout(atCentre, toneAir), rank = new Map(atCentre.map((e, i) => [e.v, about[i]]));
+    return airDraw(rng, atCentre, here, (v) => rank.get(v) ?? 0);
+  };
   const tone = byId(TONES, draw('tone'), 'tone');
   // the tone the row's own draw chose (the place's birds left out, off the same stream): what the cast counts
   const drawnTone = input.choice.leans ? byId(TONES, draw('tone', false), 'tone') : tone;

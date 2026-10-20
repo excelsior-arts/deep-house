@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bellTemple",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        12,
+        1
+      ],
+      [
+        0.5,
+        12,
+        0.4
+      ],
+      [
+        1.19,
+        6,
+        0.4
+      ],
+      [
+        1.5,
+        5,
+        0.3
+      ],
+      [
+        2,
+        4,
+        0.5
+      ],
+      [
+        2.52,
+        2.5,
+        0.22
+      ]
+    ],
+    "attack": 0.003,
+    "release": 1.2,
+    "ringLevel": 0.2,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 2400,
+    "malletLevel": 0.2,
+    "malletTime": 0.004,
+    "spread": 0.4,
+    "trim": 0.3,
+    "delay": 0.12,
+    "reverb": 0.45
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "edge": false,
+    "timbres": {
+      "bellTemple": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.6,
+        "brightnessHz": 3000,
+        "loudnessDb": -18.7
+      }
+    },
+    "dispatches": [],
+    "mood": [],
+    "controls": {
+      "hardness": {
+        "unit": "ratio",
+        "min": 0.5,
+        "max": 1.5,
+        "default": 1
+      }
+    }
+  },
+  "provenance": {
+    "round": "ambient-bells",
+    "module": "mallets.ts",
+    "note": "A temple bell (PLAN-AMBIENT Phase 1): a cast bell's partials as a bell founder names them, the prime (1), the hum an octave under it (0.5), the minor-third tierce (1.19), the quint (1.5), the nominal an octave over (2.0) and the upper partial at 2.52, each dying faster than the one under it. A hard striker: a band at 2.4 kHz for 4 ms. The prime rings 12 s and the hum as long, so the end is read off the prime.",
+    "notes": {
+      "tierce": "The tierce at 0.4 where the plan sketched 0.55: a bell's minor third is its colour, and over a pentatonic minor call it sits a minor third over every note, so it is kept under the nominal.",
+      "spread": "0.4 where the plan sketched 0.6: the topology pans the partials alternately and the hum is the second, so a wide spread put the bell's low octave to one side.",
+      "edge": "Not read by the harmonic bus's edge, as vibes.",
+      "partials": "Six where the plan sketched eight: when the topology still ran every partial to the prime's end (until the review of 10-17, since when each stops at its own), a call of three bell strikes was three times this many oscillators for 14 s, and with the bowl ground under it the plan's eight took the conversation over the phone's ceiling of 32 and silenced the answers. The two upper partials dropped (3.01 and 4.2, at 0.15 and 0.08, gone in 2 s) are the strike's top, which the striker's band at 2.4 kHz carries."
+    }
+  }
+}

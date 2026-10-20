@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "shakerSoft",
+  "revision": 1,
+  "topology": "shaken",
+  "dice": 163.9,
+  "parameters": {
+    "hp": 1000,
+    "peakHz": 2200,
+    "q": 0.5,
+    "gapSeconds": 0.035,
+    "second": 0.6,
+    "t10": 0.08,
+    "seconds": 0.4,
+    "variantCents": 30,
+    "attack": 0.012,
+    "trim": 0.6,
+    "variants": 3,
+    "rateSpread": 0.03,
+    "gainSpread": 0.1,
+    "decaySpread": 0.12,
+    "panSpread": 0.1,
+    "pan": 0,
+    "velBright": 0.1,
+    "velDecay": 0.1,
+    "room": 0.3
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "shakerSoft": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 2200,
+        "loudnessDb": -22.9
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-bells",
+    "module": "perc.ts",
+    "note": "A soft shaker, a swish and not a tick (his ear, 10-17: the record's shaker is the hat ladder's noise over 3.2 kHz, and in a sparse bell space it read as a hat): the cabasa's builder with its band well under the record's shaker (a highpass at 1 kHz and a wide band at 2.2 kHz), its two bursts 35 ms apart (the beads going and coming back, not a flam), a twelve-millisecond attack and an 80 ms fall, and a third of it to the room. Rendered alone in a conversation: its energy's mean frequency 3.0 kHz and 55 % of it over 2 kHz, where the record's shaker was 4.6 kHz and 85 %."
+  },
+  "measured": {
+    "clickStep": 0.006
+  }
+}

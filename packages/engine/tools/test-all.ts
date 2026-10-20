@@ -37,7 +37,7 @@ const SERIAL = Number(at >= 0 ? passed[at + 1] : process.env.DEEP_HOUSE_JOBS) ==
 
 const CHECKS = ['check-piano', 'check-envelopes', 'check-membranes', 'check-duck', 'check-automation',
   'check-render-cache', 'check-ramp', 'check-sounds', 'check-lifecycle', 'check-clock-worker', 'check-stage',
-  'check-output-envelope', 'check-reese-motion', 'check-reese-body', 'check-contour-time'].map((n) => path.join(HERE, `${n}.ts`));
+  'check-output-envelope', 'check-reese-motion', 'check-reese-body', 'check-contour-time', 'check-drone-voices'].map((n) => path.join(HERE, `${n}.ts`));
 const suites: Array<{ name: string; args: string[]; browser: boolean }> = [
   { name: 'the node checks', args: ['--test', ...CHECKS], browser: false },
   { name: 'tools/test.ts', args: [path.join(HERE, 'test.ts'), ...passed], browser: true },

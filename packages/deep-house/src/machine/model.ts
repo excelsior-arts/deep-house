@@ -19,6 +19,8 @@ import { BY_NAME, VOICE_KNOBS, returnsOf, rowOfTimbre, timbreOfNote } from '@dee
 import { clockSource } from '@deep-house/engine/clock';
 import { dropInfo } from '@deep-house/engine/deck';
 import { lateInfo } from '@deep-house/engine/dsp';
+import { loadNow } from './load.ts';
+import type { LoadReading } from './load.ts';
 import { pianoCacheStats } from '@deep-house/engine/voices';
 import { describeDeck, describeGraph, describeMaster, joinParts } from '@deep-house/engine/describe';
 import { settingsOf } from '@deep-house/engine/settings';
@@ -165,6 +167,8 @@ export interface MachineSnapshot {
   part: MachinePart;
   meters: MeterFrame | null;
   counters: Counters;
+  /** what playing costs this machine, the last whole second of it (`load.ts`); null until there is one */
+  load: LoadReading | null;
   output: Output;
   ledger: Entry[];
   /**
@@ -720,6 +724,7 @@ export function describeMachine(
       dropped: dropInfo(),
       piano: pianoCacheStats(),
     },
+    load: loadNow(),
     output: {
       route: control.out,
       clock: clockSource(),

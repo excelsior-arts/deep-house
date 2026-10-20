@@ -1,0 +1,322 @@
+{
+ "note": "Written by tools/zones.ts --freeze (PLAN-ZONES §3.1): for every lane a zone does not write, the entry that lane read at the zone's centre before the zone, whole and by value (its place too, which its own leans read), or null for the house's own. Held to that read by node tools/zones.ts and tools/check-zones.ts: a source that moves fails until the zone's own round adopts it (--freeze) or keeps it (--keep zone/lane, listed under kept with the kept row's digest, so a hand edit still fails).",
+ "zones": {
+  "struck-in-conversation": {
+   "treatments": {
+    "id": "shimmer-and-space",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "weights": {
+     "fx:shimmer": 4,
+     "fx:reverb": 3,
+     "fx:tapeDelay": 2,
+     "fx:chorus": 2
+    }
+   },
+   "bassSound": {
+    "id": "own-bass-floating",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "sound": "own"
+   },
+   "laneSound": {
+    "id": "shimmer-bed",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "lane": "pad",
+    "sound": "shimmer"
+   },
+   "bassDrive": {
+    "id": "clean-bass-7",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "blend": 0
+   },
+   "drumGrain": {
+    "id": "floating-keeps-its-kit",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   },
+   "drums": {
+    "id": "room-drums-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "backbeatDb": 0,
+    "kickDecay": 1
+   },
+   "breaks": {
+    "id": "the-style-s-own-figures-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "masks": []
+   },
+   "subSections": {
+    "id": "no-small-things-1",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "rates": {
+     "switchUp": 0,
+     "switchBars": [],
+     "turnaround": 0,
+     "fill": 0,
+     "dropOut": 0,
+     "crash": false
+    }
+   },
+   "sections": {
+    "id": "own-sections-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "prefers": {}
+   },
+   "glueSound": {
+    "id": "own-stroke-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "slot": "impact",
+    "sound": "own"
+   },
+   "walk": {
+    "id": "root-on-the-chord-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "rate": 0
+   },
+   "glide": {
+    "id": "the-lane-s-own-line-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   },
+   "riff": null,
+   "roles": {
+    "id": "roles-as-drawn-9",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   },
+   "keys": {
+    "id": "no-keys-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   },
+   "development": {
+    "id": "phrases-as-drawn-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    },
+    "row": null
+   },
+   "time": {
+    "id": "the-ring-s-own-time-7",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   }
+  }
+ }
+}

@@ -7,7 +7,7 @@
 // The distance is the library's (`src/library-draw.ts`): Euclidean over the
 // eight birds, and the tempo outside the window at one bird step of 0.15 per
 // ten BPM. No radius and no dead zone: some entry is always nearest.
-import { BIRDS, HOUSE, type Bird, type Spell } from './spell.ts';
+import { BIRDS, HOUSE, PLACE_TEMPO_WEIGHT, derive, placeDistanceOf, type Bird, type Spell } from './spell.ts';
 import { EQ_BANDS, type EqProfile } from '@deep-house/engine/master';
 import type { Settings } from '@deep-house/engine/settings';
 import { BY_ID, defaultsOf, type EffectKnob } from '@deep-house/engine/effects';
@@ -18,19 +18,26 @@ import type { ComposerKnob } from './mined-phrase.ts';
 import type { TimeEntry } from './musical-time.ts';
 import type { KeysEdge, StringsBreath, PianoGrain, HarmonicEdge, MalletStrike } from '@deep-house/engine/style';
 import { BY_NAME } from '@deep-house/engine/voices';
-import { GLIDE_LIBRARY, FORM_LIBRARY, SECTION_LIBRARY } from './recipes.ts';
+import { GLIDE_LIBRARY, FORM_LIBRARY, SECTION_LIBRARY, LIBRARY, PATTERN_LIBRARY, TRACK_LIBRARY } from './recipes.ts';
 import { KIT_IDS, kitOf, answersOf, statesOf } from './kit.ts';
 import { KEYS_ROWS } from './keys-phrase.ts';
+import { conversationRowOf, conversationRowsFaults } from './slow-conversation.ts';
+import { surfRowOf, surfRowsFaults } from './surf.ts';
+import { journeyRowOf, journeyRowsFaults } from './journey.ts';
+import { SCALES } from './theory.ts';
 import { DEVELOPMENT_IDS, FAMILIES, developmentOf, developmentFaults, auxOf, auxFaults, surfaceOf, surfaceFaults, bassAnswersOf, type Family } from './phrase-development.ts';
 
 /**
  * **What a grammar needs of the theme** (PLAN-UNIFY §0b), beside the inputs it cannot run without (the keys' harmony,
  * a held part, a first drop): a place's row says what else it is written over, so a grammar is admitted by its own
  * needs and never by another grammar's admission. `kit`: the place's own kit plays (`DrumsEntry.kit`), the drums
- * whose phrases the row's conversation, passage and arrangement were written against.
+ * whose phrases the row's conversation, passage and arrangement were written against. `no-kit`: no drums play (the
+ * spell derives none, so every percussion gate is held off), the silence a row was written over: the sea's (the
+ * ambient-waves review, 10-18: from Ember 0.20 to 0.40 WAVES stays nearest while the kit comes on, and a four-floor
+ * kit played under the sea with the pad, the bass and the keys held off).
  */
-export type GrammarNeed = 'kit';
-export const GRAMMAR_NEEDS: readonly GrammarNeed[] = Object.freeze(['kit']);
+export type GrammarNeed = 'kit' | 'no-kit';
+export const GRAMMAR_NEEDS: readonly GrammarNeed[] = Object.freeze(['kit', 'no-kit']);
 
 /** Where an entry plays. */
 export interface Place { birds: Partial<Spell>; tempo: readonly [number, number] }
@@ -53,6 +60,12 @@ export interface BirdLeans {
    * middle (the tile's Root at 0.75) still moves as far each way
    */
   ends?: Readonly<Record<string, number | readonly [number, number]>>;
+  /**
+   * an address bird's band in the zone the leans play in (PLAN-ZONES §3.3, `zoneBands`): a shift with `ends` on that
+   * bird reaches them at the band's edges and not at nought and one, so the knob's whole travel is heard inside the zone
+   * (the bird held to the band); a bird with no band reads its ends at nought and one, as before
+   */
+  bands?: Readonly<Partial<Record<Bird, readonly [number, number]>>>;
 }
 /** A knob's factor under an entry's leans: the product of every bird's one lean on it (×1 where none names it). */
 export function leanFactor(L: BirdLeans | null | undefined, knob: string, spell: Spell): number {
@@ -71,11 +84,13 @@ export function leanShift(L: BirdLeans | null | undefined, knob: string, spell: 
   for (const [bird, leans] of Object.entries(L.by) as Array<[Bird, Readonly<Record<string, number>>]>) {
     const k = leans[knob], c = L.centre[bird];
     if (typeof k !== 'number' || typeof c !== 'number') continue;
-    const end = L.ends?.[knob], d = spell[bird] - c;
+    const end = L.ends?.[knob], B = end === undefined ? undefined : L.bands?.[bird];
+    // inside a zone an address bird's ends are its band's edges (`bands`); elsewhere nought and one, as before
+    const d = B ? Math.max(B[0], Math.min(B[1], spell[bird])) - c : spell[bird] - c, lo = B ? c - B[0] : c, hi = B ? B[1] - c : 1 - c;
     // a pair of ends is the shift at the bird's nought and at its one (U2b: Root's low shelf, -4 dB down and +1.5 up
     // about the tile's own Root), each reached linearly from the centre
-    x += Array.isArray(end) ? (d > 0 ? end[1] * d / Math.max(1e-9, 1 - c) : end[0] * -d / Math.max(1e-9, c))
-      : typeof end === 'number' ? Math.sign(k) * end * (d > 0 ? d / Math.max(1e-9, 1 - c) : d / Math.max(1e-9, c)) : k * d;
+    x += Array.isArray(end) ? (d > 0 ? end[1] * d / Math.max(1e-9, hi) : end[0] * -d / Math.max(1e-9, lo))
+      : typeof end === 'number' ? Math.sign(k) * end * (d > 0 ? d / Math.max(1e-9, hi) : d / Math.max(1e-9, lo)) : k * d;
   }
   const most = L.most?.[knob];
   return typeof most === 'number' ? Math.max(-most, Math.min(most, x)) : x;
@@ -83,8 +98,8 @@ export function leanShift(L: BirdLeans | null | undefined, knob: string, spell: 
 /** An entry of a place table: its place and anything the table's reader wants. */
 export interface PlaceEntry { id: string; place: Place }
 
-/** Ten BPM is one bird step of 0.15. */
-export const PLACE_TEMPO_WEIGHT = 0.15 / 10;
+/** Ten BPM is one bird step of 0.15 (`spell.ts`, beside the distance). */
+export { PLACE_TEMPO_WEIGHT };
 /**
  * **The house's own place**: every bird at home, **at any tempo** — the
  * composer's own harmony and form are what it plays wherever the birds are the
@@ -96,10 +111,7 @@ export const HOUSE_PLACE: Place = Object.freeze({ birds: Object.freeze({}), temp
 
 /** How far a spell at a tempo stands from a place. */
 export function placeDistance(place: Place, spell: Spell, bpm: number): number {
-  let d2 = 0;
-  for (const b of BIRDS) d2 += (spell[b] - (place.birds[b] ?? HOUSE[b])) ** 2;
-  const out = bpm < place.tempo[0] ? place.tempo[0] - bpm : bpm > place.tempo[1] ? bpm - place.tempo[1] : 0;
-  return Math.sqrt(d2 + (PLACE_TEMPO_WEIGHT * out) ** 2);
+  return placeDistanceOf(place.birds, place.tempo, spell, bpm);
 }
 
 /**
@@ -125,9 +137,19 @@ export function rowOf(e: PlaceEntry | null | undefined): string {
   return JSON.stringify(row);
 }
 
-/** One chord cycle: scale degrees from the tonic, a chord every `every` bars, the loop's length. */
-export interface Cycle { degrees: number[]; every: number; loop: number; voicing?: string; w: number }
-export interface HarmonyEntry extends PlaceEntry { pedal?: boolean; cycles?: Cycle[] }
+/**
+ * One chord cycle: scale degrees from the tonic, a chord every `every` bars, the loop's length. `scales`: the modes it
+ * is drawn in (ambient-psy), where a place draws its own (`HarmonyEntry.scales`) and a cycle's colour chord is the
+ * mode's own; absent, any.
+ */
+export interface Cycle { degrees: number[]; every: number; loop: number; voicing?: string; w: number; scales?: readonly string[] }
+/**
+ * `scales` (PLAN-AMBIENT Phase 6, ambient-psy): the place draws its own mode by these weights (names of `SCALES`), off
+ * a stream of its own after the key die, and the theme plays the same seven notes the key die and the set's walk gave
+ * it, from that mode's tonic (`rootOnWheel`), so a set's keys hand over as they did. `leans`: the birds on the weights,
+ * a bird's lean on the knob `scale:<name>` (Gleam on the mode's brightness). Absent, the key die's mode.
+ */
+export interface HarmonyEntry extends PlaceEntry { pedal?: boolean; cycles?: Cycle[]; scales?: Readonly<Record<string, number>>; leans?: BirdLeans }
 export interface FormEntry extends PlaceEntry {
   /** the place's section orders; none is the corpus's own (the record's mined DJ orders) */
   orders: string[][];
@@ -803,6 +825,61 @@ export interface AmbientVoicesEntry extends PlaceEntry {
    * neither plays the planners' track.
    */
   ambient?: Readonly<{ soloist: string; fillers: string; weather: string; admission: string; passage?: string; producer?: string; needs?: readonly GrammarNeed[] }>;
+  /**
+   * **The weather alone, admitted by its own needs** (PLAN-AMBIENT Phase 4, ambient-waves, 10-18; PLAN-UNIFY §0b's cut,
+   * for the weather alone): a weather row a place lays where it lays no ambient voices (no `ambient`), by the row named
+   * here (`recipes/ambient/surf.json`, `src/surf.ts`). Its needs are its own (`needs`; at WAVES `no-kit`: it reads the
+   * form, the seconds, the key and the progression's chords, never a kit and never the keys' harmony, and it is written
+   * over no drums), so a slow place can lay it.
+   * The fast places' weather stays the ambient voices' (its thunder takes the featured slot the motif shares, a need of
+   * that row). `holdOff`: the lanes it replaces, by role, as the conversation's; `level`: where a theme that lays it
+   * measures itself (`ConversationEntry`'s). The composer's own themes only.
+   */
+  weather?: Readonly<{ row: string; needs?: readonly GrammarNeed[]; holdOff?: readonly string[]; level?: Readonly<{ targetLufs: number; measuredLufs: number }> }>;
+}
+
+/**
+ * **Struck voices in conversation by place** (PLAN-AMBIENT Phase 1, ambient-bells, 10-17; `src/slow-conversation.ts`):
+ * where the composer lays a conversation of struck voices over a struck ground, by the row named here
+ * (`recipes/ambient/conversation.json`), and the lanes it replaces there, held off by role as the support's are. An
+ * entry with no `conversation` is the place saying it lays none (every place but the conversation's own, listed so a
+ * place left out does not take a neighbour's).
+ */
+export interface ConversationEntry extends PlaceEntry {
+  /**
+   * `level`: where a theme the conversation plays measures itself, as a drums row's level does (`DrumsEntry.targetLufs`
+   * and `measuredLufs`, read by the trim's model): the drumless family's model was fitted on pads and a sub and never
+   * heard struck voices alone. Only a theme that lays the conversation reads it, so a library turn at the place is
+   * trimmed as it always was.
+   */
+  conversation?: Readonly<{ row: string; holdOff?: readonly string[]; level?: Readonly<{ targetLufs: number; measuredLufs: number }> }>;
+  /**
+   * the birds the row's leans are centred on, where they are not the entry's own place (bells-birds: none ships one;
+   * a lab pins a place by moving an entry and naming its tile here, so a lean is heard past today's nearest edge)
+   */
+  centre?: Partial<Spell>;
+}
+
+/**
+ * **A long journey by place** (PLAN-AMBIENT Phase 6, ambient-psy, 10-18; `src/journey.ts`): where the composer lays one
+ * filter journey over minutes on the macro line, a rise into the push's colour and back, the held voices' tape drift,
+ * the stage's slow swirl, the echoes' shared return and a soft broken pulse, by the row named here
+ * (`recipes/ambient/journey.json`). An entry with no `journey` is the place saying it lays none (every place but the
+ * journey's own, listed so a place left out does not take a neighbour's).
+ */
+export interface JourneyEntry extends PlaceEntry {
+  /**
+   * `form`: the journey's own section orders and windows, played in place of the nearest `FORM` row wherever the
+   * journey plays; `treatments`: its multipliers on the stage's rota, in place of the nearest `TREATMENTS` row. On the
+   * entry and not in those tables, so they reach exactly where the journey does (the tables list fewer places).
+   */
+  journey?: Readonly<{ row: string; form?: Readonly<Pick<FormEntry, 'orders' | 'sectionBars'>>; treatments?: Readonly<Record<string, number>>;
+    /**
+     * the level a theme the journey plays is trimmed to (`DrumsEntry.targetLufs`), and where it measures itself at a trim of
+     * nought (`measuredLufs`, the conversation's way); with no measure the style's own model reads each theme's window;
+     * `trimMostDb`, the most the set's trim may lift it (`DrumsEntry.trimMostDb`)
+     */
+    level?: Readonly<{ targetLufs: number; measuredLufs?: number; trimMostDb?: number }> }>;
 }
 
 /** **The small things by place** (round DNB-1, `src/subsections.ts`). */
@@ -876,6 +953,18 @@ export interface StylePlaces {
   ambientVoices?: readonly AmbientVoicesEntry[];
   /** time by place (PLAN-UNIFY §2.2, `src/musical-time.ts`): the felt pulse a place's kit makes and the phrase it pins; the house reads none (the ring's own rule) */
   time?: readonly TimeEntry[];
+  /** struck voices in conversation by place (PLAN-AMBIENT Phase 1, `src/slow-conversation.ts`): the row and the lanes it holds off; the house reads none */
+  conversation?: readonly ConversationEntry[];
+  /** the zones (PLAN-ZONES §3): a few birds take a theme into one, every lane then plays the zone's, and the rest steer inside it */
+  zones?: readonly Zone[];
+  /** one long journey by place (PLAN-AMBIENT Phase 6, `src/journey.ts`): the filter line, the drift, the swirl, the echoes, the pulse; the house reads none */
+  journey?: readonly JourneyEntry[];
+  /**
+   * **Zephyr's centre by place** (zephyr-air, `src/air-lean.ts`): the places the timbre draws were tuned at, each its
+   * Zephyr the centre the voices' air leans the lists about; a spell takes the place whose other seven birds stand
+   * nearest. A style without the table leans its lists as its layer table says (house-v1).
+   */
+  air?: readonly PlaceEntry[];
 }
 
 /** The loop lengths a chord cycle may take, in bars: the phrase's own (`makeProgression` needs two chords' room). */
@@ -940,7 +1029,30 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
     for (const f of e.withhold ?? []) if (!vocab.families.includes(f)) bad.push(`${e.id}: withholds ${f}, no family`);
     for (const r of e.holdOff ?? []) if (!vocab.roles.includes(r)) bad.push(`${e.id}: holds off ${r}, no lane's role`);
   }
-  for (const e of p.harmony ?? []) bad.push(...cycleFaults(e));
+  for (const e of p.harmony ?? []) {
+    bad.push(...cycleFaults(e));
+    // a place's own modes are scales the theory knows, weighed above nought, and a cycle's modes are among them
+    const modes = Object.keys(e.scales ?? {});
+    for (const [m, w] of Object.entries(e.scales ?? {})) {
+      if (!SCALES[m]) bad.push(`${e.id}: draws ${m}, which is not a scale`);
+      if (!(Number.isFinite(w) && w > 0)) bad.push(`${e.id}: ${m} weighs ${w}`);
+    }
+    for (const [i, c] of (e.cycles ?? []).entries()) for (const m of c.scales ?? [])
+      if (!modes.includes(m)) bad.push(`${e.id} cycle ${i}: drawn in ${m}, which the place does not draw`);
+    if (modes.length) for (const m of modes) if (!(e.cycles ?? []).some((c) => !c.scales || c.scales.includes(m))) bad.push(`${e.id}: no cycle is drawn in ${m}`);
+  }
+  for (const e of p.journey ?? []) {
+    if (!e.journey) continue;
+    if (!journeyRowOf(e.journey.row)) bad.push(`${e.id}: ${e.journey.row} is not a journey row`);
+    for (const [name, w] of Object.entries(e.journey.treatments ?? {})) {
+      if (!vocab.treatments.includes(name)) bad.push(`${e.id}: ${name} is not a treatment the rota draws`);
+      if (!(Number.isFinite(w) && w >= 0)) bad.push(`${e.id}: ${name} at ${w}`);
+    }
+    if (e.journey.form && (!e.journey.form.orders.length || e.journey.form.orders.some((o) => !o.length))) bad.push(`${e.id}: the journey's form names no order`);
+    const L = e.journey.level;
+    if (L && !([L.targetLufs, ...(L.measuredLufs === undefined ? [] : [L.measuredLufs])].every((x) => Number.isFinite(x) && x < -6 && x > -30))) bad.push(`${e.id}: a level from -30 to -6 LUFS`);
+  }
+  bad.push(...journeyRowsFaults((v) => !!BY_NAME[v]));
   for (const e of p.keys ?? []) {
     if (!e.keys) continue;
     const k = e.keys;
@@ -971,11 +1083,34 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
     if (e.surfaceDb !== undefined && !(Number.isFinite(e.surfaceDb) && e.surfaceDb <= 6 && e.surfaceDb >= -24)) bad.push(`${e.id}: surfaceDb from -24 to 6`);
   }
   for (const e of p.support ?? []) for (const a of e.admits ?? []) if (a !== 'auxiliary') bad.push(`${e.id}: admits ${a}, which is not auxiliary`);
-  for (const e of [...(p.development ?? []), ...(p.ambientVoices ?? [])]) for (const n of e.ambient?.needs ?? [])
+  // the conversation: its row exists and is sound, the lanes it holds off are lanes' roles
+  for (const e of p.conversation ?? []) {
+    if (!e.conversation) continue;
+    const row = conversationRowOf(e.conversation.row);
+    if (!row) { bad.push(`${e.id}: ${e.conversation.row} is not a conversation row`); continue; }
+    for (const r of e.conversation.holdOff ?? []) if (!vocab.roles.includes(r)) bad.push(`${e.id}: holds off ${r}, no lane's role`);
+    const L = e.conversation.level;
+    if (L && !([L.targetLufs, L.measuredLufs].every((x) => Number.isFinite(x) && x < -6 && x > -30))) bad.push(`${e.id}: a level from -30 to -6 LUFS`);
+  }
+  bad.push(...conversationRowsFaults((v) => !!BY_NAME[v]));
+  for (const e of [...(p.development ?? []), ...(p.ambientVoices ?? [])]) for (const n of [...(e.ambient?.needs ?? []), ...((e as AmbientVoicesEntry).weather?.needs ?? [])])
     if (!GRAMMAR_NEEDS.includes(n)) bad.push(`${e.id}: needs ${n}, which is not a grammar's need (${GRAMMAR_NEEDS.join(', ')})`);
+  // the weather alone: its row exists and is sound, the lanes it holds off are lanes' roles; never beside the ambient voices
+  for (const e of p.ambientVoices ?? []) {
+    if (!e.weather) continue;
+    if (e.ambient) bad.push(`${e.id}: a weather alone beside the ambient voices, whose own weather plays there`);
+    if (!surfRowOf(e.weather.row)) bad.push(`${e.id}: ${e.weather.row} is not a surf row`);
+    for (const r of e.weather.holdOff ?? []) if (!vocab.roles.includes(r)) bad.push(`${e.id}: holds off ${r}, no lane's role`);
+    const L = e.weather.level;
+    if (L && !([L.targetLufs, L.measuredLufs].every((x) => Number.isFinite(x) && x < -6 && x > -30))) bad.push(`${e.id}: a level from -30 to -6 LUFS`);
+  }
+  bad.push(...surfRowsFaults((v) => !!BY_NAME[v]));
   // time: a pinned phrase is a whole number of felt bars, a power of two of them; its Loom lean a centre in the bird's range
   for (const e of p.time ?? []) {
     if (e.felt !== undefined && e.felt !== 'whole' && e.felt !== 'half') bad.push(`${e.id}: felt ${e.felt}`);
+    // the second clock (PLAN-AMBIENT §4): a free place's themes plan at the nominal 60 and read their tables at the
+    // tempo drawn (`placeBpm`), so its window is its address and need not hold 60
+    if (e.clock !== undefined && e.clock !== 'free') bad.push(`${e.id}: clock ${String(e.clock)}`);
     const P = e.phrase;
     if (!P) continue;
     const felt = P.bars / (e.felt === 'half' ? 2 : 1);
@@ -985,15 +1120,17 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
   // a form row's states are states the kit plays (a full passage's) or the exposed ones the planner knows
   for (const r of FORM_LIBRARY) for (const st of ((r as { form?: { states?: unknown[] } }).form?.states ?? []).flat(2))
     if (typeof st === 'string' && !['bed', 'hints', 'pulse', 'half-time', 'developed'].includes(st)) bad.push(`${r.id}: form.states names ${st}`);
+  bad.push(...zonesFaults(p, vocab.roles));
   return bad;
 }
 
 /**
  * **A technique is one line of a place's entry**: the ambient plan (a development entry's `ambient`), the written
- * passage and the producer's arrangement around it (an ambient-voices entry's `passage` and `producer`). A place turns
- * one on by naming its row; nothing else switches it.
+ * passage and the producer's arrangement around it (an ambient-voices entry's `passage` and `producer`), and the
+ * struck voices' conversation (a conversation entry's row), the sea (an ambient-voices entry's weather alone) and the
+ * journey (a journey entry's row). A place turns one on by naming its row; nothing else switches it.
  */
-export type PlaceTechnique = 'ambient' | 'passage' | 'producer';
+export type PlaceTechnique = 'ambient' | 'passage' | 'producer' | 'conversation' | 'sea' | 'journey';
 
 /**
  * The style with techniques taken out of every place's entry, as if no place named them: what a check plans when it
@@ -1014,7 +1151,228 @@ export function withoutTechniques<S extends { places?: StylePlaces }>(style: S, 
       ...P,
       ...(P.development && off.includes('ambient') ? { development: P.development.map((e) => drop(e, ['ambient'])!) } : {}),
       // the producer keeps the passage its row names, so a passage taken out takes the producer with it
-      ...(P.ambientVoices ? { ambientVoices: P.ambientVoices.map((e) => ({ ...e, ambient: drop(e.ambient, [...off.filter((k) => k !== 'ambient'), ...(off.includes('passage') ? ['producer'] : [])]) })) } : {}),
+      ...(P.ambientVoices ? { ambientVoices: P.ambientVoices.map((e) => ({ ...e, ambient: drop(e.ambient, [...off.filter((k) => k !== 'ambient' && k !== 'conversation' && k !== 'sea' && k !== 'journey'), ...(off.includes('passage') ? ['producer'] : [])]),
+        // the sea taken out: the place lays no weather, so the lanes it held off play as drawn
+        ...(off.includes('sea') ? { weather: undefined } : {}) })) } : {}),
+      // the conversation taken out: every place lays none, so the lanes it held off play as drawn
+      ...(P.conversation && off.includes('conversation') ? { conversation: P.conversation.map(({ conversation: _c, ...e }) => e) } : {}),
+      // the journey taken out: every place lays none, so the macro line, the stage and the held notes are the composer's
+      ...(P.journey && off.includes('journey') ? { journey: P.journey.map(({ journey: _j, ...e }) => e) } : {}),
     },
   };
+}
+
+// --- zones (PLAN-ZONES §3, the BELLS pilot §5) ----------------------------------------------------------------------
+//
+// **A few birds take a theme into a zone; the rest steer the music inside it and never pull it out** (his direction,
+// 10-18). A zone is a box over its address birds — the family's terms (Ember's band, the kit's Spark edge, a tempo band
+// read on the spell's centre) and its own (Spark, then Veil: the time birds) — and inside the box every lane plays the
+// zone: its own entries, or the row the lane read at the zone's centre before the zone, written out by value
+// (`borrow`). Outside every box a lane reads today's nearest entry over its table less every zone's entries, so a
+// zone's rows are never read outside it and no other place's rows reach into it. One read for every lane
+// (`readPlace`), so a theme is never half in a zone. A control (a sound bird, or an address bird inside its band) moves
+// only what the zone's own rows lean; `zoneOf` reads only addresses, so no control moves a theme between zones.
+
+/**
+ * **A bird's band in an address**: `from` and `to` closed ends, `above` and `below` open ones (the app's own idiom:
+ * `DRUMS_ON_ABOVE`, the kit's `BREAKS_ABOVE`); an end left out is the bird's own nought or one.
+ */
+export interface Band { from?: number; above?: number; to?: number; below?: number }
+/** Is a value inside a band. */
+export function inBand(v: number, b: Band): boolean {
+  return (b.from === undefined || v >= b.from) && (b.above === undefined || v > b.above) && (b.to === undefined || v <= b.to) && (b.below === undefined || v < b.below);
+}
+/** A band's two ends as numbers (an open end at its own number): where an address bird's lean reaches its `ends`. */
+export function bandEnds(b: Band): readonly [number, number] {
+  return [b.from ?? b.above ?? 0, b.to ?? b.below ?? 1];
+}
+/** Do two bands share a value: the higher of the low ends under the lower of the high ends, an open end its own. */
+export function bandsMeet(a: Band, b: Band): boolean {
+  const lo = (x: Band) => (x.from !== undefined ? { v: x.from, open: false } : x.above !== undefined ? { v: x.above, open: true } : { v: -Infinity, open: false });
+  const hi = (x: Band) => (x.to !== undefined ? { v: x.to, open: false } : x.below !== undefined ? { v: x.below, open: true } : { v: Infinity, open: false });
+  const L = [lo(a), lo(b)].sort((p, q) => q.v - p.v || +q.open - +p.open)[0], H = [hi(a), hi(b)].sort((p, q) => p.v - q.v || +q.open - +p.open)[0];
+  return L.v < H.v || (L.v === H.v && !L.open && !H.open);
+}
+
+/** The place tables a zone answers for, every one a lane of the composer (the library is the twenty-seventh: `Zone.library`). */
+export const PLACE_LANES = Object.freeze(['harmony', 'form', 'treatments', 'bassSound', 'laneSound', 'eq', 'bassDrive', 'bed', 'grain', 'drumGrain', 'drums',
+  'breaks', 'subSections', 'sections', 'glueSound', 'walk', 'glide', 'riff', 'roles', 'support', 'keys', 'development', 'ambientVoices', 'time', 'conversation', 'journey'] as const);
+export type PlaceLane = (typeof PLACE_LANES)[number];
+/** A lane's entry type. */
+export type LaneEntry<K extends PlaceLane> = NonNullable<StylePlaces[K]>[number];
+
+/** **A zone** (PLAN-ZONES §3.1): one row of a style's places, as rows; the check (`tools/check-zones.ts`) holds its box. */
+export interface Zone {
+  /** a musical name, never a genre's */
+  id: string;
+  /** a band per address bird; a bird it leaves out is a control over its whole travel */
+  address: Readonly<Partial<Record<Bird, Band>>>;
+  /** the family's tempo band where it has one, read on the spell's tempo centre (`derive().tempoCentre`), never on a seed's draw */
+  tempo?: Band;
+  /** where the zone's tile stands, every bird named: the zone's own leans are about it */
+  centre: Readonly<Spell>;
+  /** the zone's own entries, by lane: an entry's id in that lane's table (out of the legacy read everywhere) */
+  rows: Readonly<Partial<Record<PlaceLane, string>>>;
+  /**
+   * every other lane's row by value (`tools/zones.ts --freeze`): what the lane read at the centre before the zone, the
+   * entry whole (its place too, which its own leans read) or null for the house's; no live coupling to the place it came from
+   */
+  borrow: Readonly<Partial<Record<PlaceLane, PlaceEntry | null>>>;
+  /** birds held at the centre for everything the composer reads (§3.4): a drag inside the box plays the centre's program; none by default */
+  inert?: readonly Bird[];
+  /**
+   * the roles the zone fills, in the lanes' own words (the style's `lanes[].role`, checked at load): Z7's role rule for
+   * reach above nought (PLAN-ZONES §2.3) reads it, a leaked row playing only in a role its host leaves free. No composer
+   * reads it before Z7 lands
+   */
+  roles: readonly string[];
+  /** the library rows a turn inside the zone may draw, by id: empty, every theme inside it is the zone's own composer's */
+  library: readonly string[];
+}
+
+/** Is a spell inside a zone's box: every address bird in its band, and the tempo centre in the family's. */
+export function inZone(z: Zone, spell: Spell): boolean {
+  for (const [b, band] of Object.entries(z.address) as Array<[Bird, Band]>) if (!inBand(spell[b], band)) return false;
+  return !z.tempo || inBand(derive(spell).tempoCentre, z.tempo);
+}
+/** **The zone a spell is in**, or null: read once per theme, beside `derive()`; the boxes are disjoint, so at most one answers. */
+export function zoneOf(P: StylePlaces | null | undefined, spell: Spell): Zone | null {
+  for (const z of P?.zones ?? []) if (inZone(z, spell)) return z;
+  return null;
+}
+/** A zone's address birds' bands as the leans read them (`BirdLeans.bands`). */
+export function zoneBands(z: Zone): Partial<Record<Bird, readonly [number, number]>> {
+  return Object.fromEntries((Object.entries(z.address) as Array<[Bird, Band]>).map(([b, band]) => [b, bandEnds(band)]));
+}
+/** A spell with a zone's inert birds held at its centre (§3.4); the spell itself where it names none. */
+export function heldSpell<S extends Partial<Spell>>(z: Zone | null, spell: S): S {
+  if (!z?.inert?.length) return spell;
+  return { ...spell, ...Object.fromEntries(z.inert.map((b) => [b, z.centre[b]])) };
+}
+
+/** How a lane read its row: the zone's own entry, the zone's borrowed row, or today's nearest over the legacy table. */
+export type PlaceReadHow = 'zone' | 'borrowed' | 'legacy';
+/** One lane's read, for the plan's trace (`placeReadsOf`, outside the hashed program). */
+export interface PlaceRead { lane: PlaceLane; how: PlaceReadHow; id: string | null; zone: string | null }
+
+const LEGACY = new WeakMap<StylePlaces, Map<PlaceLane, readonly PlaceEntry[]>>();
+/** A lane's table less every zone's own entries (the table itself where no zone names one). */
+function legacyTable(P: StylePlaces, lane: PlaceLane): readonly PlaceEntry[] | undefined {
+  const table = P[lane] as readonly PlaceEntry[] | undefined;
+  if (!table || !P.zones?.length) return table;
+  let m = LEGACY.get(P);
+  if (!m) LEGACY.set(P, (m = new Map()));
+  let t = m.get(lane);
+  if (!t) {
+    const own = new Set(P.zones.map((z) => z.rows[lane]).filter((id): id is string => !!id));
+    m.set(lane, (t = own.size ? table.filter((e) => !own.has(e.id)) : table));
+  }
+  return t;
+}
+
+/**
+ * **The one read every lane makes** (PLAN-ZONES §3.2): inside a zone its own entry or its borrowed row; outside every
+ * zone today's nearest entry (`nearestEntry`) over the lane's table less every zone's entries. A reader keeps its own
+ * conditions (`!recipe`, the kit's, a held harmony's) and replaces only its read. `zone` is the theme's, read once at
+ * the plan (`zoneOf`); `trace` gathers what each lane read and how.
+ */
+export function readPlace<K extends PlaceLane>(P: StylePlaces, lane: K, spell: Spell, bpm: number, zone: Zone | null = zoneOf(P, spell), trace?: PlaceRead[]): LaneEntry<K> | null {
+  let got: PlaceEntry | null, how: PlaceReadHow;
+  if (zone) {
+    const id = zone.rows[lane];
+    if (id !== undefined) { got = (P[lane] as readonly PlaceEntry[] | undefined)?.find((e) => e.id === id) ?? null; how = 'zone'; }
+    else { got = zone.borrow[lane] ?? null; how = 'borrowed'; }
+  } else { got = nearestEntry(legacyTable(P, lane), spell, bpm); how = 'legacy'; }
+  // a lane read twice in a theme (the conversation's row and its entry, the drums' kit and their sounds) is one line of the trace
+  if (trace && !trace.some((r) => r.lane === lane && r.how === how && r.id === (got?.id ?? null))) trace.push({ lane, how, id: got?.id ?? null, zone: zone?.id ?? null });
+  return got as LaneEntry<K> | null;
+}
+
+/** The library rows a turn may draw (`DRAWABLE` in `library-draw.ts`, the same three lists), by id: what a zone's `library` may name. */
+const DRAWABLE_IDS = new Set([...LIBRARY, ...PATTERN_LIBRARY, ...TRACK_LIBRARY].map((r) => r.id));
+/**
+ * **Everything wrong with a style's zones, as sentences** (read at load with `placesFaults`): rows, borrows, boxes,
+ * centres, the library and the roles (`roles`: the style's lanes' words; left out, the roles go unchecked).
+ */
+export function zonesFaults(P: StylePlaces, roles?: readonly string[]): string[] {
+  const bad: string[] = [];
+  const zones = P.zones ?? [];
+  const ids = new Set<string>();
+  for (const z of zones) {
+    if (ids.has(z.id)) bad.push(`zone ${z.id}: twice`);
+    ids.add(z.id);
+    for (const lane of PLACE_LANES) {
+      const own = z.rows[lane] !== undefined, borrowed = Object.hasOwn(z.borrow, lane);
+      if (own === borrowed) bad.push(`zone ${z.id}: ${lane} is ${own ? 'both its own and borrowed' : 'neither its own nor borrowed'}`);
+      if (own && !(P[lane] as readonly PlaceEntry[] | undefined)?.some((e) => e.id === z.rows[lane])) bad.push(`zone ${z.id}: ${lane} names ${z.rows[lane]}, no entry of the table`);
+    }
+    for (const k of Object.keys(z.rows)) if (!(PLACE_LANES as readonly string[]).includes(k)) bad.push(`zone ${z.id}: rows names ${k}, no lane`);
+    for (const k of Object.keys(z.borrow)) if (!(PLACE_LANES as readonly string[]).includes(k)) bad.push(`zone ${z.id}: borrow names ${k}, no lane`);
+    for (const [b, band] of Object.entries(z.address) as Array<[string, Band]>) {
+      if (!(BIRDS as readonly string[]).includes(b)) bad.push(`zone ${z.id}: an address on ${b}, no bird`);
+      const [lo, hi] = bandEnds(band);
+      if (!(lo >= 0 && hi <= 1 && lo < hi)) bad.push(`zone ${z.id}: ${b}'s band ${lo} to ${hi}`);
+    }
+    if (Object.hasOwn(z.address, 'zephyr')) bad.push(`zone ${z.id}: Zephyr is never an address (his word, 10-18: the timbre in every zone)`);
+    if (!BIRDS.every((b) => Number.isFinite(z.centre[b]))) bad.push(`zone ${z.id}: its centre names every bird`);
+    else if (!inZone(z, z.centre)) bad.push(`zone ${z.id}: its centre is outside its own box`);
+    for (const b of z.inert ?? []) if (Object.hasOwn(z.address, b)) bad.push(`zone ${z.id}: ${b} is an address and inert`);
+  }
+  // the borrowed rows and the zone's own, against every zone's: an own entry stands at its zone's centre (an entry of
+  // another place named as the zone's would leave that place's table everywhere, PLAN-ZONES §3.1), and a borrowed row
+  // is an entry of its own lane's table and never a zone's own
+  for (const z of zones) {
+    for (const lane of PLACE_LANES) {
+      const id = z.rows[lane];
+      if (id !== undefined) {
+        const e = (P[lane] as readonly PlaceEntry[] | undefined)?.find((x) => x.id === id);
+        if (e && !BIRDS.every((b) => (e.place.birds[b] ?? HOUSE[b]) === z.centre[b])) bad.push(`zone ${z.id}: ${lane}'s ${id} stands at another place than the zone's centre`);
+      }
+      if (!Object.hasOwn(z.borrow, lane)) continue;
+      const row = z.borrow[lane];
+      if (row === null || row === undefined) continue;
+      if (zones.some((y) => y.rows[lane] === row.id)) bad.push(`zone ${z.id}: ${lane} borrows ${row.id}, a zone's own entry`);
+      else if (!(P[lane] as readonly PlaceEntry[] | undefined)?.some((x) => x.id === row.id)) bad.push(`zone ${z.id}: ${lane} borrows ${row.id}, no entry of that lane's table`);
+    }
+    if (z.tempo) {
+      const lo = z.tempo.from ?? z.tempo.above ?? 0, hi = z.tempo.to ?? z.tempo.below ?? Infinity;
+      if (!(lo >= 0 && lo < hi)) bad.push(`zone ${z.id}: its tempo band ${lo} to ${hi}`);
+    }
+    for (const id of z.library) if (!DRAWABLE_IDS.has(id)) bad.push(`zone ${z.id}: library names ${id}, no drawable row`);
+    if (roles) for (const r of z.roles) if (!roles.includes(r)) bad.push(`zone ${z.id}: roles names ${r}, no lane's role (${roles.join(', ')})`);
+  }
+  // the boxes never overlap: two boxes meet where every bird's bands meet (a bird an address leaves out is its whole travel) and the tempo bands do
+  for (let i = 0; i < zones.length; i++) for (let j = i + 1; j < zones.length; j++) {
+    const a = zones[i], b = zones[j];
+    const meet = BIRDS.every((k) => bandsMeet(a.address[k] ?? {}, b.address[k] ?? {})) && bandsMeet(a.tempo ?? {}, b.tempo ?? {});
+    if (meet) bad.push(`zones ${a.id} and ${b.id}: their boxes overlap`);
+    if (inZone(b, a.centre) || inZone(a, b.centre)) bad.push(`zones ${a.id} and ${b.id}: a centre in the other's box`);
+  }
+  return bad;
+}
+
+/**
+ * The style with its zones taken out, every lane reading today's nearest entry over its whole table, the zones' own
+ * entries among them: the check's reference for the legacy space (`tools/check-zones.ts`). The app never plans this.
+ */
+export function withoutZones<S extends { places?: StylePlaces }>(style: S): S {
+  const { zones: _z, ...P } = style.places ?? {};
+  return { ...style, places: P };
+}
+
+/** How far past an address bird's edge a drag goes before the ring lets the theme leave its zone (PLAN-ZONES §3.5). */
+export const ZONE_DETENT = 0.03;
+/**
+ * **The edge as a detent** (PLAN-ZONES §3.5): the value the ring writes for an address bird under a drag. Inside a
+ * zone, dragged past its band's edge, the bird holds at the band's last value inside until the hand is `ZONE_DETENT`
+ * past the edge, and then follows the hand; going in, the edge is where it enters. A hovering finger does not re-plan
+ * the theme in and out, and a link still carries the one value the ring wrote (the edge itself is hard). `spell` is
+ * the ring as it stands, the bird at the value it has now; `want` the hand's; `step` the ring's hundredth.
+ */
+export function zoneDetent(P: StylePlaces | null | undefined, spell: Spell, bird: Bird, want: number, step = 0.01): number {
+  const z = zoneOf(P, spell), band = z?.address[bird];
+  if (!z || !band || inBand(want, band)) return want;
+  const [lo, hi] = bandEnds(band);
+  const edge = want > hi ? (band.to ?? +((band.below ?? 1) - step).toFixed(2)) : want < lo ? (band.from ?? +((band.above ?? 0) + step).toFixed(2)) : want;
+  return Math.abs(want - edge) <= ZONE_DETENT + 1e-9 ? edge : want;
 }

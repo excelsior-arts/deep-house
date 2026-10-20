@@ -19,7 +19,7 @@ import { makeV1Graph } from './graph.ts';
 import { fireEvent, prepareReturns, scheduleAutomation } from './scheduler.ts';
 import { BY_NAME } from './voices/index.ts';
 import { contourElapsed, contoursOnGrid } from './voices/contour-time.ts';
-import { schedule, firstEvent, inGap, visitOrder, sameVisitOrder } from './schedule.ts';
+import { schedule, firstEvent, holedBy, visitOrder, sameVisitOrder } from './schedule.ts';
 import { line, writePoints } from './ramp.ts';
 import type { Line, Rampable } from './ramp.ts';
 import type { Grid, Gap } from './schedule.ts';
@@ -44,7 +44,17 @@ export interface DeckTime {
   clock: SetClock;
   /** the beat of the set this theme's first bar sits on */
   startBeat: number;
-  program: { beat: number };
+  /** its beat, and its clock: `'free'` is a theme whose seconds are the music (`Program.clock`) */
+  program: { beat: number; clock?: 'free' };
+  /**
+   * **A free deck's offset** (PLAN-AMBIENT §4.2, C2): the instant on the
+   * context's clock its theme second nought falls on, written by `startDeck`.
+   * A free deck is not counted on the grid at all: its seconds land on the
+   * context one to one from here, so nothing the grid does — a pin, the glide
+   * after a blend, the ride before a far one, a jump — moves a note of it.
+   * Unread on a metered deck.
+   */
+  zeroAt?: number;
   /**
    * how many of this theme's beats one beat of the set's grid carries: 1, but
    * 2 for a theme brought in at double time over the grid and ½ at half time
@@ -61,6 +71,9 @@ export interface DeckTime {
 export function gridBeat(deck: DeckTime): number {
   return deck.program.beat * (deck.perBeat ?? 1);
 }
+
+/** **Whether a deck's seconds are its own** (`Program.clock`): a free deck is mapped by offset and never by the grid. */
+export const freeDeck = (deck: { program: { clock?: 'free' } }): boolean => deck.program.clock === 'free';
 
 /** One theme on a set's grid, with everything it owns. */
 export interface Deck extends DeckTime {
@@ -136,11 +149,19 @@ export interface Deck extends DeckTime {
 // a plan, and `null % 7` is 0 where `undefined % 7` is **NaN** — so the width
 // LFO of a theme played outside a set had a NaN phase. Every theme in a set has
 // an index, which is why no digest and no scene moves.
+//
+// **A free deck is an offset** (PLAN-AMBIENT §4, C2): its seconds fall on the
+// context one to one from `zeroAt`, as an offline render of one theme always
+// put them (`offsetGrid`), so a seam's grid is never a reason for one of them
+// to move. Its tempo is the nominal one it was planned at, and nothing rides
+// or glides it.
 export function deckContextTime(deck: DeckTime, themeTime: number): number {
+  if (freeDeck(deck)) return (deck.zeroAt ?? 0) + themeTime;
   return deck.clock.timeAt(deck.startBeat + themeTime / gridBeat(deck));
 }
 
 export function deckThemeTime(deck: DeckTime, contextTime: number): number {
+  if (freeDeck(deck)) return contextTime - (deck.zeroAt ?? 0);
   return (deck.clock.beatAt(contextTime) - deck.startBeat) * gridBeat(deck);
 }
 
@@ -184,7 +205,7 @@ export function deckGraph(ctx: BaseAudioContext, program: Program, master: V1Mas
   // afterwards moves the grid by a fifth of a percent, which is a third of a
   // millisecond on a dotted eighth: below what a delay line can show.
   const when = atTime == null ? ctx.currentTime : atTime;
-  const bpm = clock ? (60 / clock.spbAt(clock.beatAt(when))) * perBeat : program.bpm;
+  const bpm = deckBpm(program, clock, when, perBeat);
   const settings = graphSettings ?? program.settings;
   const graph = makeV1Graph(ctx, settings, {
     bpm, widthPhase: ((program.index ?? 0) % 7) * 0.9, master, trimDb: program.trimDb, at: when,
@@ -194,6 +215,9 @@ export function deckGraph(ctx: BaseAudioContext, program: Program, master: V1Mas
   prepareReturns(graph, program);
   return { graph, program, settings, master, bpm, when };
 }
+/** The tempo a deck's graph is built on: the grid's where it is counted on one, its own where it is free or alone. */
+const deckBpm = (program: Program, clock: SetClock | null, when: number, perBeat: number): number =>
+  clock && !freeDeck({ program }) ? (60 / clock.spbAt(clock.beatAt(when))) * perBeat : program.bpm;
 // the same plan, room and master by identity; the grid's tempo and the first bar line to a nanosecond's rounding
 const fits = (built: DeckGraph, program: Program, settings: Settings, master: V1Master, bpm: number, when: number): boolean =>
   built.program === program && built.settings === settings && built.master === master
@@ -209,7 +233,7 @@ export function makeDeck(ctx: BaseAudioContext, track: any, program: Program, mi
   const settings = program.settings;
   // A graph built ahead is this deck's only if it is the graph the deck would build now (`deckGraph`).
   const when = atTime == null ? ctx.currentTime : atTime;
-  const bpm = clock ? (60 / clock.spbAt(clock.beatAt(when))) * perBeat : program.bpm;
+  const bpm = deckBpm(program, clock, when, perBeat);
   const ahead = !!built && fits(built, program, graphSettings ?? settings, master, bpm, when);
   if (built && !ahead) built.graph.dispose();
   const graph = ahead ? built!.graph : deckGraph(ctx, program, master, clock, when, perBeat, graphSettings).graph;
@@ -383,10 +407,10 @@ function sounding(ctx: BaseAudioContext, deck: Deck): void {
   const from = deck.spanFrom;
   deck.spanFrom = null;
   if (from == null) return;
-  const gaps = deck.grid.gaps;
+  const holed = holedBy(deck.grid.gaps);
   let n = 0;
   for (const pe of spanning(deck.program, from)) {
-    if (pe.gap && gaps && inGap(gaps[pe.gap], pe.t)) continue;
+    if (holed && holed(pe)) continue;
     try {
       fireDeckEvent(ctx, deck, pe, deck.grid.at(pe.onset));
       n++;
@@ -403,6 +427,8 @@ export function startDeck(ctx: BaseAudioContext, deck: Deck, when: number, fromT
   // Where this theme's first bar sits on the set's grid. Everything of this
   // deck — its events, its curves, its gaps — is read off that.
   deck.startBeat = deck.clock.beatAt(when) - fromTime / gridBeat(deck);
+  // ...and where a free one's second nought falls, which is all it is counted by
+  if (freeDeck(deck)) deck.zeroAt = when - fromTime;
   deck.index = firstEvent(deck.program, fromTime);
   // A start inside the theme sounds what is sounding there (D1b), on the
   // first fill: a seek is a start at a point, and so is a play at the needle.
@@ -446,7 +472,8 @@ export function holdCurves(deck: Deck): HeldCurves {
  */
 export function relayDeck(ctx: BaseAudioContext, held: HeldCurves, from: number, until: number): void {
   const deck = held.deck;
-  if (deck.laidFrom == null) return;
+  // A free deck's curves are on its own seconds: a grid that moved moved none of them, nor its echoes.
+  if (deck.laidFrom == null || freeDeck(deck)) return;
   const lines = deck.program.automation;
   for (let i = 0; i < lines.length; i++) {
     const after = lines[i].points.map((p) => deckContextTime(deck, p.t));

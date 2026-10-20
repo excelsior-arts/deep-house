@@ -1,6 +1,6 @@
 {
  "note": "Written by tools/headroom-front.ts --report --names: the grid's house mains (seeds 1-12, theme 0) the trim leaves more than 2 LU under their target, each with its window measured at nought: how far its own headroom (15 % of the blocks, the loudest 8 dB over; a window with a sum clip, the depth its clip could give at its cap) would take it, and why it stays (depth: its loudest block, the clap's hit as a rule, past what the clip may take; share: the kick and the bed; either one when the measured headroom leaves it within 0.5 LU of the line or past it; clamp; margin: the model's margin for its own error, its measured headroom would give it back). tools/check.ts fails on a theme past the line that is not named here, and on a name that is no longer past it.",
- "measuredAt": "2026-10-17",
+ "measuredAt": "2026-10-19",
  "shortLu": 2,
  "themes": [
   {
@@ -36,7 +36,7 @@
    "trimDb": 2.97,
    "heldBy": "depth",
    "measured": {
-    "shareDb": 4.22,
+    "shareDb": 4.14,
     "depthDb": 3.35,
     "shortAtItLu": 2.35
    },
@@ -149,11 +149,11 @@
   {
    "link": "seed=7&v=2&spell=em:0.35,ti:0.70,ro:0.55",
    "place": "tile Downtempo",
-   "shortLu": 4.6,
-   "trimDb": -1.798,
+   "shortLu": 4.58,
+   "trimDb": -1.753,
    "heldBy": "base",
    "measured": {
-    "shareDb": 3.82,
+    "shareDb": 3.76,
     "depthDb": -1.38,
     "shortAtItLu": 4.39
    },
@@ -173,54 +173,41 @@
    "why": "depth"
   },
   {
-   "link": "seed=1&v=2&spell=ze:0.95",
-   "place": "ring zephyr",
-   "shortLu": 2.11,
-   "trimDb": 1.123,
+   "link": "seed=6&v=2&spell=em:0.95",
+   "place": "ring ember",
+   "shortLu": 2.81,
+   "trimDb": -1.564,
    "heldBy": "share",
    "measured": {
-    "shareDb": 3.15,
-    "depthDb": 9.86,
-    "shortAtItLu": 0.77
+    "shareDb": 2.04,
+    "depthDb": 2.24,
+    "shortAtItLu": 0.67
    },
    "why": "margin"
   },
   {
-   "link": "seed=3&v=2&spell=ze:0.95",
+   "link": "seed=1&v=2&spell=ze:0.95",
    "place": "ring zephyr",
-   "shortLu": 3.77,
-   "trimDb": -0.563,
-   "heldBy": "base",
+   "shortLu": 2.03,
+   "trimDb": 0.868,
+   "heldBy": "share",
    "measured": {
-    "shareDb": 4.84,
-    "depthDb": 0.3,
-    "shortAtItLu": 3.29
+    "shareDb": 3.5,
+    "depthDb": 10.9,
+    "shortAtItLu": 0.28
    },
-   "why": "depth"
+   "why": "margin"
   },
   {
    "link": "seed=7&v=2&spell=ze:0.95",
    "place": "ring zephyr",
-   "shortLu": 2.12,
-   "trimDb": -0.931,
+   "shortLu": 2.11,
+   "trimDb": -0.904,
    "heldBy": "base",
    "measured": {
     "shareDb": 2.58,
     "depthDb": 3.03,
     "shortAtItLu": 0
-   },
-   "why": "margin"
-  },
-  {
-   "link": "seed=10&v=2&spell=ze:0.95",
-   "place": "ring zephyr",
-   "shortLu": 2.01,
-   "trimDb": 0.556,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 2.72,
-    "depthDb": 5.77,
-    "shortAtItLu": 0.57
    },
    "why": "margin"
   },
@@ -267,7 +254,7 @@
    "link": "seed=7&v=2&spell=ro:0.95",
    "place": "ring root",
    "shortLu": 2.86,
-   "trimDb": -2.079,
+   "trimDb": -2.066,
    "heldBy": "base",
    "measured": {
     "shareDb": 1.9,
@@ -329,19 +316,6 @@
    "why": "depth"
   },
   {
-   "link": "seed=4&v=2&spell=em:0.80,sp:0.80",
-   "place": "ring ember+spark",
-   "shortLu": 2.14,
-   "trimDb": -0.022,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 2.65,
-    "depthDb": 3.4,
-    "shortAtItLu": 0.37
-   },
-   "why": "margin"
-  },
-  {
    "link": "seed=5&v=2&spell=em:0.80,sp:0.80",
    "place": "ring ember+spark",
    "shortLu": 2.45,
@@ -353,6 +327,19 @@
     "shortAtItLu": 2.08
    },
    "why": "share"
+  },
+  {
+   "link": "seed=8&v=2&spell=em:0.80,sp:0.80",
+   "place": "ring ember+spark",
+   "shortLu": 2.04,
+   "trimDb": -0.193,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 0.9,
+    "depthDb": 0.34,
+    "shortAtItLu": 1.72
+   },
+   "why": "depth"
   },
   {
    "link": "seed=10&v=2&spell=em:0.80,sp:0.80",
@@ -368,6 +355,45 @@
    "why": "share"
   },
   {
+   "link": "seed=12&v=2&spell=em:0.80,sp:0.80",
+   "place": "ring ember+spark",
+   "shortLu": 2.06,
+   "trimDb": -0.014,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 2.8,
+    "depthDb": 4.41,
+    "shortAtItLu": 0.19
+   },
+   "why": "margin"
+  },
+  {
+   "link": "seed=10&v=2&spell=ze:0.80,sp:0.80",
+   "place": "ring spark+zephyr",
+   "shortLu": 2.99,
+   "trimDb": -2.469,
+   "heldBy": "base",
+   "measured": {
+    "shareDb": 1.11,
+    "depthDb": -5.02,
+    "shortAtItLu": 4.26
+   },
+   "why": "depth"
+  },
+  {
+   "link": "seed=12&v=2&spell=ze:0.80,sp:0.80",
+   "place": "ring spark+zephyr",
+   "shortLu": 2.37,
+   "trimDb": 0.433,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 3.07,
+    "depthDb": 0.56,
+    "shortAtItLu": 2.29
+   },
+   "why": "depth"
+  },
+  {
    "link": "seed=3&v=2&spell=ze:0.80,gl:0.80",
    "place": "ring zephyr+gleam",
    "shortLu": 3.53,
@@ -379,6 +405,19 @@
     "shortAtItLu": 3.07
    },
    "why": "depth"
+  },
+  {
+   "link": "seed=8&v=2&spell=ze:0.80,gl:0.80",
+   "place": "ring zephyr+gleam",
+   "shortLu": 2.15,
+   "trimDb": 1.163,
+   "heldBy": "depth",
+   "measured": {
+    "shareDb": 1.69,
+    "depthDb": 3.53,
+    "shortAtItLu": 1.8
+   },
+   "why": "share"
   },
   {
    "link": "seed=3&v=2&spell=ro:0.80,gl:0.80",
@@ -483,32 +522,6 @@
     "shortAtItLu": 0.34
    },
    "why": "margin"
-  },
-  {
-   "link": "seed=7&v=2&spell=ti:0.90,ze:0.90",
-   "place": "ring zephyrxtide",
-   "shortLu": 2.45,
-   "trimDb": -2.325,
-   "heldBy": "base",
-   "measured": {
-    "shareDb": 0.12,
-    "depthDb": -0.28,
-    "shortAtItLu": 1.42
-   },
-   "why": "margin"
-  },
-  {
-   "link": "seed=9&v=2&spell=ti:0.90,ze:0.90",
-   "place": "ring zephyrxtide",
-   "shortLu": 2.48,
-   "trimDb": -1.176,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": -0.24,
-    "depthDb": 11.19,
-    "shortAtItLu": 2.01
-   },
-   "why": "share"
   },
   {
    "link": "seed=3&v=2&spell=gl:0.90,ve:0.90",

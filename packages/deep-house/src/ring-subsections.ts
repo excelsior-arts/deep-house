@@ -10,6 +10,7 @@
 //   the low track     the bass out before a drop or a return, and across a cooldown
 //   a stroke          the drums answering an arrival, across both tracks at the arrival's bar (a turn: the phrase track's
 //                     alone; a chord the keys strike: the low track's alone)
+//   a pair            a bar emptied, its two lines across the phrase track; a call and its answer, theirs across the low
 //
 // Since U2e every moment the theme already wrote down is marked (`track.moments`, `src/moments.ts`, read by `marksOf`):
 // the phrasing's marks above, the house's own small things (a switch-up a short dash, a turnaround a stroke across the
@@ -24,7 +25,9 @@ export type SubMarkKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-ou
   // leading into a line, a crest (the pad arc's, the producer's spotlight and closing moment), a groove's other state
   | 'switch-up' | 'turn' | 'lead-in' | 'crest' | 'groove'
   // dnb-marks (`src/moments.ts`): a chord the keys strike (the producer's touches, suspensions, colours, shells)
-  | 'keys';
+  | 'keys'
+  // ambient-waves-3 (`src/moments.ts`): a call and its answer, the conversation's exchange
+  | 'exchange';
 
 /** One mark: its kind, its bars (`to` exclusive; an answer is the line at `from`, `to` the same bar) and its line. */
 export interface SubMark { kind: SubMarkKind; from: number; to: number; label: string }
@@ -73,6 +76,9 @@ export const SUB_STYLE: Readonly<Record<SubMarkKind, SubStyle>> = Object.freeze(
   // dnb-marks: a chord the keys strike (a touch, a suspension, a colour, the dominant's shells): a stroke across the low
   // track alone, the harmony's own beside the bass's dots
   keys: { track: 'low', shape: 'tick', w: 1.2, dash: null, op: 0.5 },
+  // ambient-waves-3: the conversation's exchange, the call's stroke and its answer's across the low track, nothing
+  // between: the breath between them is the gap
+  exchange: { track: 'low', shape: 'pair', w: 1.2, dash: null, op: 0.55 },
 });
 
 /** The phrasing as the track carries it (a structural read: the plan may come off a worker as plain data). */

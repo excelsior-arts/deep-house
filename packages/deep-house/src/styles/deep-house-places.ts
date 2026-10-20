@@ -8,8 +8,11 @@
 // where the pattern rows were audited (the analysis side's spells, as numbers);
 // the entries are named for what they are musically.
 import { HOUSE_PLACE, drumsKnobFaults } from '../places.ts';
+import type { Zone, PlaceEntry, PlaceLane } from '../places.ts';
+import { HOUSE, DRUMS_ON_ABOVE, BREAKS_ABOVE, type Spell } from '../spell.ts';
+import BORROWED from './zones-borrowed.json' with { type: 'json' };
 import type { BirdLeans, Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
-  DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry, AmbientVoicesEntry } from '../places.ts';
+  DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry, AmbientVoicesEntry, ConversationEntry, JourneyEntry } from '../places.ts';
 import type { WalkEntry } from '../walk.ts';
 import type { TimeEntry } from '../musical-time.ts';
 import { riffTableFaults, type GlideEntry, type RiffEntry } from '../glide.ts';
@@ -48,6 +51,62 @@ const BRIGHT_FOUR = place({ ember: 0.70, spark: 0.40, zephyr: 0.60, root: 0.60, 
 const HIGH_FOUR = place({ ember: 0.88, root: 0.60, zephyr: 0.50, veil: 0.60 }, [134, 146]);
 /** A free pulse, airy, wet and long. */
 const FLOATING = place({ ember: 0.10, tide: 0.85, zephyr: 0.90, root: 0.50, veil: 0.30, loom: 0.80, spark: 0 }, [40, 70]);
+/**
+ * Bright, light, no floor, a little broken, long: struck voices in conversation (PLAN-AMBIENT Phase 1, ambient-bells).
+ * It stands 0.88 from the Ambient tile and 1.1-1.2 from the two goldens' spells, past every protected spell's reach.
+ */
+const BELLS = place({ ember: 0.05, tide: 0.65, zephyr: 0.65, root: 0.10, gleam: 0.80, veil: 0.30, spark: 0.55, loom: 0.90 }, [40, 70]);
+/**
+ * BELLS's level (ambient-bells, measured on the branch's site, offline and silent), the conversation's own and not the
+ * place's drums' (`DrumsEntry.targetLufs` would trim a library turn there, a theme of pads, by the conversation's
+ * number): its trim windows measure -17.77 LUFS at a trim of nought (the median of the 24 own themes of seeds 1-12,
+ * themes 1-3; -21.1 to -15.6), with the deepest limiting 3.2 dB. Remeasured 10-19 (zones-pilot-3) after the bowl's level
+ * by register: the -16.96 of 10-17 (after the review's mix) had gone 0.4 LU stale as the row moved, and the register's
+ * cut took another 0.4. The target is about the place's measured level, not the drumless family's -13 (WAVES's
+ * reasoning): every decibel of trim over the place's level is a decibel of limiter on the strikes' attacks. Set by the
+ * deepest limiting, whole themes with the trim in: from -17.1 (a trim of +1.0 dB) in 0.2 dB steps until the hottest of
+ * the tile's 24 own themes, Root 0.97 seeds 1 and 3 and the turns stood within about 3.3 dB (at -17.1 a call struck a
+ * breath after a fresh bowl, the tile's seed 11 theme 3, went 4.2 dB deep, seed 7 theme 3 4.1, the turns s6t1 and
+ * s12t1 3.7): -17.7, a trim of +0.1 dB, 0.6 dB under the 0.69 the place had played at.
+ */
+const BELLS_TARGET_LUFS = -17.7;
+/**
+ * Restless, broken, wet: one long filter journey, the held voices on tape, slow swirls and long echoes, in a mode of
+ * the place's own (PLAN-AMBIENT Phase 6, ambient-psy). It stands 0.98 from 27191's golden spell and 1.0 from seed 6's,
+ * 0.87 from the Ambient tile and 0.96 from BELLS, past every protected spell's reach (PLAN-AMBIENT §2.4).
+ */
+const PSY = place({ ember: 0.08, tide: 0.90, zephyr: 0.65, root: 0.60, gleam: 0.35, veil: 0.90, spark: 0.55, loom: 0.70 }, [40, 70]);
+/**
+ * **The birds at PSY** (the zones direction: the address birds take you there, the others steer inside it), each the one
+ * lean about the place's own value: Gleam the mode's brightness here (`scale:<mode>`, phrygian down, mixolydian and
+ * lydian up, dorian the pivot); Veil, Tide, Root and Spark lean the journey's row (`recipes/ambient/journey.json`).
+ */
+const PSY_MODE_LEANS: BirdLeans = Object.freeze({
+  centre: Object.freeze({ gleam: 0.35 }),
+  by: Object.freeze({ gleam: Object.freeze({ 'scale:phrygian': -4, 'scale:mixolydian': 3, 'scale:lydian': 5 }) }),
+});
+const BELLS_MEASURED_LUFS = -17.77;
+/**
+ * The tile with motion: airy, wet and long like the floating pulse, a little more restless, the sea under it (PLAN-AMBIENT
+ * Phase 4, ambient-waves). It stands 0.41 from the Ambient tile (FLOATING, listed in every table it is, so the tile keeps
+ * its own rows) and 0.77-0.78 from the two goldens' spells, past every protected spell's reach. It is named in one
+ * table only, the ambient voices' (the sea; the harmony that moves with its sets is its row's own, and no family of the
+ * style's parts is drawn where it plays, so no whistle), so nothing of it is read where the sea does not play, and the
+ * zones' address of it is this one line.
+ */
+const WAVES = place({ ember: 0.05, tide: 0.85, zephyr: 0.75, root: 0.55, gleam: 0.50, veil: 0.60, spark: 0.10, loom: 0.95 }, [40, 70]);
+/**
+ * WAVES's level (ambient-waves, measured on the branch's site, offline and silent): the sea's own, as BELLS's is the
+ * conversation's, read only by a theme that lays the sea (a library turn there is trimmed as it always was). Its trim
+ * windows measure -17.6 LUFS at a trim of nought on the irregular sea (ambient-waves-2, 10-18: the median of the 24 own
+ * themes of seeds 1-12, themes 1-3; -22.5 to -15.1; the limiter 0.7 dB deep at the most), within 0.15 dB of the
+ * scripted sea's -17.75. The target is -17.1, a trim of +0.75 dB (the trim climbs half again as fast as the gap, the
+ * model's own slope): 0.3 dB under the scripted sea's +1.05, since the irregular sea's larger waves and longer blooms
+ * put Tide 1.00 at 3.0 dB of limiting at +1.05; whole themes stay inside the ambient neighbours' spread (-13 to -19
+ * LUFS). The measured numbers are in `notes/rounds/ambient-waves.md`.
+ */
+const WAVES_TARGET_LUFS = -17.1;
+const WAVES_MEASURED_LUFS = -17.6;
 /** The Liquid key's own spell (the Drum & Bass tile's liquid centre), read by the riff, form and development tables. */
 const LIQUID_KEY = { ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.60, spark: 0.85, loom: 0.85 };
 /** The liquid centre as a place (liquid-space, 10-11). */
@@ -80,11 +139,15 @@ const FAST_LEANS: BirdLeans = Object.freeze({
   by: Object.freeze({
     root: Object.freeze({ subDb: 1, 'row:dnb/form-roller': 2, lowShelfDb: 1 }),
     veil: Object.freeze({ throws: 1.5, fill: 1, effect: 1, deadline: -0.6 }),
-    // PLAN-UNIFY U3: Zephyr is which keys and how bright the air — the keys' tone toward the electric pianos (the FM and
-    // the glass ones) up and the dark grands down, over the draw row's own modest lean (×0.30 for an EP at 0.2, ×2.5 at
-    // 0.9); the blooms' width and air and the weather's upper air are the producer's and the weather's rows
-    zephyr: Object.freeze({ 'tone:fm-ep': 3, 'tone:glass-ep': 3, 'tone:suitcase-ep': 1.5, 'tone:dark-tine': 1,
-      'tone:far-grand': -3, 'tone:felt-grand': -2.5, 'tone:close-grand': -1.5,
+    // PLAN-UNIFY U3: Zephyr is which keys and how bright the air. Since zephyr-air (his word 10-18, "Zephyr is air") the
+    // keys' tone leans by its voice's measured air (`air:tone`, `src/air-lean.ts`; the row's own Zephyr tone lean held
+    // at the tile's 0.6): up toward the dark tine and the suitcase (629, 600 Hz) and the felt and close grands (539,
+    // 519), down toward the soft FM electric piano (341), the glass one (426) and the far grand (462). It had leaned by
+    // names the other way, the FM pianos up, and the grands are this engine's brighter keys, so the tile's travel fell
+    // 499 -> 422 Hz. Its strength 10.8 a unit of Zephyr an octave of air is the reach the typed lean had (the spread of its
+    // slopes, the row's and the place's: 3.07, over the tones' air: 0.28 octave). The blooms' width and air and the
+    // weather's upper air are the producer's and the weather's rows
+    zephyr: Object.freeze({ 'air:tone': 10.8,
       // ...and how bright the air, whatever voice: the keys' own low-pass (`keysLp`, a factor on the voice's filter, ×0.56
       // at 0.2 and ×0.42 at nought; above the tile held to ×1.15), measured on the grands; the FM electric pianos take it
       // through the stage's tone filter, on the tine's top only (their click stays: measured, no floor)
@@ -138,6 +201,23 @@ export const HARMONY: readonly HarmonyEntry[] = Object.freeze([
     { degrees: [0, 6], every: 4, loop: 8, w: 1 },                  // no cadence: two chords a step apart
     { degrees: [0, 3], every: 4, loop: 8, w: 1 },
   ] },
+  // ambient-bells (PLAN-AMBIENT Phase 1): under the struck voices a chord every eight bars (about 41 s), so a call
+  // and its answer share one chord and the next exchange may find another
+  { id: 'slow-drift-under-bells', place: BELLS, cycles: [
+    { degrees: [0, 5], every: 8, loop: 16, w: 2 },                 // i-VI
+    { degrees: [0, 3], every: 8, loop: 16, w: 1 },                 // i-iv
+  ] },
+  // ambient-psy (PLAN-AMBIENT Phase 6): the place's own mode, drawn by these weights and Gleam (`PSY_MODE_LEANS`: at the
+  // place's own Gleam phrygian and dorian 3 to 1 over the brighter two; at nought phrygian 78 %, at one lydian 72 %), and
+  // two chords a long way apart (every eight bars, some 38 s), voiced in sevenths (no ninths' and
+  // elevenths' clusters under the drift and the echoes), each pair the mode's own colour: phrygian's flat second,
+  // dorian's major fourth, mixolydian's flat seventh, lydian's major second; the tonic and a step under it everywhere
+  { id: 'modal-journey', place: PSY, scales: { phrygian: 3, dorian: 3, mixolydian: 1, lydian: 1 }, leans: PSY_MODE_LEANS, cycles: [
+    { degrees: [0, 1], every: 8, loop: 16, voicing: 'sevenths', w: 3, scales: ['phrygian', 'lydian'] },    // i-bII / I-II
+    { degrees: [0, 3], every: 8, loop: 16, voicing: 'sevenths', w: 3, scales: ['dorian'] },                // i-IV
+    { degrees: [0, 6], every: 8, loop: 16, voicing: 'sevenths', w: 3, scales: ['mixolydian'] },            // I-bVII
+    { degrees: [0, 6], every: 8, loop: 16, voicing: 'sevenths', w: 1 },                                    // i-bvii, i-VII, I-vii
+  ] },
 ] as HarmonyEntry[]);
 
 /**
@@ -187,6 +267,8 @@ export const FORM: readonly FormEntry[] = Object.freeze([
   { id: 'flat-mains', place: DRIVING_FOUR, orders: [['intro', 'groove', 'groove', 'breakdown', 'groove', 'groove', 'outro']] },
   { id: 'long-build', place: HIGH_FOUR, orders: [['intro', 'groove', 'breakdown', 'build', 'drop', 'groove', 'breakdown', 'build', 'drop', 'outro']] },
   { id: 'no-sections', place: FLOATING, orders: [['groove', 'groove']] },
+  // ambient-bells: the conversation's chapters, the ground alone in, exchanges, the answerer alone, exchanges, the ground out
+  { id: 'bells-chapters', place: BELLS, orders: [['intro', 'groove', 'breakdown', 'groove', 'outro']] },
   // **The bright four plays the record's own form** (the deep review of
   // 10-08, B9): GA6 named it no form, so the nearest row decided, and that was
   // the driving four's flat mains at 118-130. No orders is the corpus's mined
@@ -368,6 +450,9 @@ export const EQ: readonly EqEntry[] = Object.freeze([
   eqRow('base-tone-high-four', HIGH_FOUR),
   eqRow('floating-keeps-its-floor', FLOATING, { lowShelfDb: EQ_V1.lowShelfDb }),
   eqRow('held-drone-keeps-its-floor', HELD_DRONE, { lowShelfDb: EQ_V1.lowShelfDb }),
+  // ambient-bells (his ear, 10-17, at Spark 0.85): BELLS keeps the floor it plays at its own birds (the floating
+  // pulse's), so a lean of Spark no longer hands it a grid place's tone
+  eqRow('bells-keep-their-floor', BELLS, { lowShelfDb: EQ_V1.lowShelfDb }),
 ]);
 
 /**
@@ -532,6 +617,11 @@ export const BED: readonly BedEntry[] = Object.freeze([
     .map((place, i) => Object.freeze({ id: `a-fuller-bed-${i + 3}`, place, ...BED_HOUSE_ROW })),
   Object.freeze({ id: 'floating-keeps-its-floor', place: FLOATING, stringsHz: DARK_STRINGS_HZ }),
   Object.freeze({ id: 'held-drone-keeps-its-floor', place: HELD_DRONE, stringsHz: DARK_STRINGS_HZ }),
+  // ambient-bells (his ear, 10-17, at Spark 0.85): BELLS keeps the bed it plays at its own birds (the floating pulse's).
+  // Without it, from Spark 0.7 or so the nearest row was a grid place's fuller bed: the keys' floor 2.5 dB up (the
+  // bells are on the keys layer, so every strike went 2.5 dB further into the limiter), a presence bell at 1.1 kHz
+  // and the melodic duck.
+  Object.freeze({ id: 'bells-keep-their-floor', place: BELLS, stringsHz: DARK_STRINGS_HZ }),
 ] as BedEntry[]);
 /** The house's own row (round EQ-2): what plays where no row above stands nearer than the house's own place. */
 export const BED_HOUSE: BedEntry = Object.freeze({ id: 'a-fuller-bed', place: HOUSE_PLACE, ...BED_HOUSE_ROW });
@@ -588,6 +678,11 @@ export const GRAIN: readonly GrainEntry[] = Object.freeze([
   Object.freeze({ id: 'fast-broken-deep-has-its-top', place: FAST_BROKEN_DEEP }),
   Object.freeze({ id: 'floating-keeps-its-grain', place: FLOATING }),
   Object.freeze({ id: 'held-drone-keeps-its-grain', place: HELD_DRONE }),
+  // ambient-bells (his ear, 10-17: "some clap like ... maybe just hi hat ... this particular timbre with super sparse
+  // bell space was a bit unexpected", at Spark 0.85): BELLS took the nearest grain row's, and from Spark 0.6 or so it
+  // wrote the harmonic bus's edge and the mallet strike's top, a 3.5 kHz click 40 ms long on every bowl, bell and vibes
+  // strike. An acoustic place takes none: the struck voices' own attacks are the strike.
+  Object.freeze({ id: 'bells-take-no-grain', place: BELLS }),
 ] as GrainEntry[]);
 /** The house's own row (round SPARK-1): what plays where no row above stands nearer than the house's own place. */
 export const GRAIN_HOUSE: GrainEntry = Object.freeze({ id: 'grain-from-the-voices', place: HOUSE_PLACE, ...GRAIN_HOUSE_ROW });
@@ -1043,6 +1138,10 @@ export const SUPPORT: readonly SupportEntry[] = Object.freeze([
   { id: 'light-support-deep', place: FAST_BROKEN_DEEP, ...LIQUID_SUPPORT },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
     .map((place, i) => ({ id: `all-the-support-${i + 1}`, place })),
+  // ambient-bells: no whistle — the conversation is the upper light (the lanes it replaces are its own entry's, `CONVERSATION`)
+  { id: 'bells-alone', place: BELLS, withhold: ['pulse'] },
+  // ambient-psy: no whistle — one pitch for the whole theme is the opposite of a modal line drifting
+  { id: 'journey-without-the-whistle', place: PSY, withhold: ['pulse'] },
 ] as SupportEntry[]);
 
 /**
@@ -1122,6 +1221,13 @@ export const AMBIENT_VOICES: readonly AmbientVoicesEntry[] = Object.freeze([
   { id: 'details-and-weather-broken', place: LIQUID_BROKEN, ambient: LIQUID_AMBIENT },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
     .map((place, i) => ({ id: `no-details-or-weather-${i + 1}`, place })),
+  // ambient-waves (PLAN-AMBIENT Phase 4): the sea, a weather alone (`src/surf.ts`, `recipes/ambient/surf.json`): the
+  // pad's chord blooming on its crests, a bell on its breaks and the bass on its undertows, in place of the held pad,
+  // the sub and the keys' figure, and the chords moving with its sets; BELLS lays none, and says so (it stands nearer
+  // WAVES than FLOATING does)
+  { id: 'the-sea-at-waves', place: WAVES, weather: Object.freeze({ row: 'waves-surf', needs: Object.freeze(['no-kit'] as const), holdOff: Object.freeze(['sustained', 'bassline', 'figure']),
+    level: Object.freeze({ targetLufs: WAVES_TARGET_LUFS, measuredLufs: WAVES_MEASURED_LUFS }) }) },
+  { id: 'no-details-or-weather-at-bells', place: BELLS },
 ] as AmbientVoicesEntry[]);
 
 /**
@@ -1145,6 +1251,130 @@ export const TIME: readonly TimeEntry[] = Object.freeze([
     .map((place, i) => ({ id: `the-ring-s-own-time-${i + 1}`, place })),
 ] as TimeEntry[]);
 
+/**
+ * **Struck voices in conversation by place** (PLAN-AMBIENT Phase 1, ambient-bells, 10-17; `ConversationEntry` in
+ * places.ts, `src/slow-conversation.ts`; his words: *"something acoustical like bells slow conversation with hint of
+ * percussion"*): at BELLS the composer's own themes are a ground of a struck singing bowl, a caller (a temple bell,
+ * the FM bell or the vibes) and an answerer (the marimba or the soft mallets) and a hand now and then
+ * (`recipes/ambient/conversation.json`), and the lanes they replace are held off — the held pad, the sub and the keys'
+ * figure: acoustic, so no sub and no synth pad (the whistle is the support's `bells-alone`). Every other place lays
+ * none, and says so: a table is read by its nearest row, so a place left out would take BELLS's.
+ */
+export const CONVERSATION: readonly ConversationEntry[] = Object.freeze([
+  { id: 'bells-in-conversation', place: BELLS,
+    conversation: Object.freeze({ row: 'bells-in-conversation', holdOff: Object.freeze(['sustained', 'bassline', 'figure']),
+      level: Object.freeze({ targetLufs: BELLS_TARGET_LUFS, measuredLufs: BELLS_MEASURED_LUFS }) }) },
+  ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE,
+    LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
+    .map((place, i) => ({ id: `no-conversation-${i + 1}`, place })),
+  { id: 'no-conversation-on-the-journey', place: PSY },
+] as ConversationEntry[]);
+
+/**
+ * **One long journey by place** (PLAN-AMBIENT Phase 6, ambient-psy; `JourneyEntry` in places.ts, `src/journey.ts`): at
+ * PSY the composer's themes travel one filter line over minutes, the held voices on tape, the stage's swirl slowed,
+ * the keys and the bed thrown into two long ping-pong echoes and, where Spark allows, a soft broken pulse far back
+ * (`recipes/ambient/journey.json`). Every other place lays none, and says so: a table is read by its nearest row, so a
+ * place left out would take PSY's.
+ */
+// The journey's own form and treatments ride on its entry and not in `FORM` and `TREATMENTS`: those two tables list
+// fewer places than this one (no BELLS, no SLOW_WET in the form's), so PSY would be nearest there over 22.8 % and
+// 26.6 % of the drumless ring where it is nearest here over 21.2 %: a form or a palette of the place's heard in 311 and
+// 1084 of 20000 drumless spells its journey never reaches, BELLS's neighbourhood the most of them (measured,
+// ambient-psy). On the entry they play exactly where the journey does. The zones round may move them back into the
+// tables in one step once a place's tables are read by one address.
+const JOURNEY_ARC = Object.freeze({
+  // the journey's arc, out of the dark (a short intro), two long grooves rising into the light, a breakdown for the
+  // descent and an outro of some sixteen bars held at the line's start, where the set hands over (a 4-8 bar outro left
+  // seams on its last lines with blends of 2-6 bars): no build, no drop (the line is the build, and it is minutes long)
+  orders: [['intro', 'groove', 'groove', 'breakdown', 'outro']],
+  sectionBars: Object.freeze({ intro: { p25: 6, p75: 10, median: 8 }, groove: { p25: 20, p75: 28, median: 24 }, breakdown: { p25: 20, p75: 28, median: 24 }, outro: { p25: 14, p75: 18, median: 16 } }),
+});
+// the bed phased, breathing and swirling, at the journey's slow rates (the row's `swirl`), as `TREATMENTS`' multipliers.
+// Weighed on the rota's live entries: the plan's `fx:phaser`, `fx:tapeDelay` and `fx:shimmer` stand at nought on the
+// rota (the cast ceiling's rule 4 took them), so a multiplier on them is nothing, and the stage's own phaser gesture is
+// the phaser here; the echoes are the journey's own return. `fx:lfoParam` at nought: drawn onto a note it is a
+// modulation source that is never built (TODO R33), a segment of the bed with no treatment at all; the hole, the
+// crusher and the tremolo's pulse are not this place's; the drive a little more, for the colour at the peak.
+const JOURNEY_TREATMENTS = Object.freeze({ phaser: 4, breath: 3, 'fx:autoPan': 4, throw: 2, 'fx:width': 2, 'fx:formant': 1.5, 'fx:overdrive': 1.5,
+  hpRise: 0.5, hole: 0, 'fx:lfoParam': 0, 'fx:crush': 0, 'fx:tremolo': 0, 'fx:ringMod': 0, 'fx:fuzz': 0, 'fx:distortion': 0 });
+// the journey's level (ambient-psy, measured on the round's site, offline and silent): the target only, so the style's
+// own model reads each theme's window, since the place's themes stand 5 dB apart at the journey's peak at a trim of
+// nought (seeds 2 and 5 -10.3 LUFS, 3 -13.0, 7 -15.1: the growl room's held strings the loudest; `local` at the spell
+// and seconds -10.0) and one measure for them all trims the quiet ones to -20; the model ranks them as the renders do.
+// The target is under the drumless family's -13, the neighbours' middle: every decibel over it is a decibel of limiter
+// on the bed's peaks. Never lifted: where the model misreads a theme as quiet (seed 3 at +2 dB, its peak at -13.0 at
+// nought, 4.9 dB into the limiter there) a lift is a decibel more of limiter, and the quietest peak measured is -15.1.
+const JOURNEY_LEVEL = Object.freeze({ targetLufs: -15, trimMostDb: 0 });
+export const JOURNEY: readonly JourneyEntry[] = Object.freeze([
+  { id: 'long-filter-journey', place: PSY, journey: Object.freeze({ row: 'long-filter-journey', form: JOURNEY_ARC, treatments: JOURNEY_TREATMENTS, level: JOURNEY_LEVEL }) },
+  ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE, BELLS,
+    LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
+    .map((place, i) => ({ id: `no-journey-${i + 1}`, place })),
+  // ambient-waves (the review of 10-19): WAVES lays the sea and no journey, and says so; without it the journey's table
+  // read PSY nearest from Veil 0.79 up at WAVES, and the one foreground gave the sea's rough end to the journey
+  { id: 'no-journey-at-waves', place: WAVES },
+] as JourneyEntry[]);
+
+/**
+ * **Zephyr's centre by place** (zephyr-air; his word 10-18, *"Zephyr is air"*): the places the timbre draws were tuned
+ * at, each its own Zephyr the centre the voices' measured air leans the lead, pad and stab lists about
+ * (`src/air-lean.ts`, `spell.ts` `drawTimbre`). A spell's centre is the nearest place's Zephyr, blended with any other
+ * place standing within a tenth of a bird as near (`airBlend`), so a bird other than Zephyr slides the centre and never
+ * steps it; the distance is every place table's (the birds, and the tempo outside the place's range at Ember's curve)
+ * with Zephyr left out, so Zephyr's own travel stays at one centre, and at that place's own Zephyr every list draws what
+ * it drew.
+ * The tiles' own birds, BELLS, 27191's drone and the drumless deep still (seed 6's golden, PLAN-AMBIENT §2.4) are
+ * listed, and the house's own place competes as in every table, so each plays at its own birds as it did;
+ * `tools/check-air.ts` holds every tuned place to a centre at its Zephyr.
+ */
+export const AIR: readonly PlaceEntry[] = Object.freeze([
+  { id: 'liquid-centre', place: LIQUID_CENTRE },
+  { id: 'deep-half', place: DEEP_HALF },
+  { id: 'deep-still-drumless', place: place({ ember: 0, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }, [40, 70]) },
+  { id: 'high-four-open', place: place({ ember: 0.88, root: 0.60, zephyr: 0.60, veil: 0.60, tide: 0.70 }, [134, 146]) },
+  { id: 'driving-four', place: DRIVING_FOUR },
+  { id: 'broken-driving', place: BROKEN_DRIVING },
+  { id: 'slow-wet', place: SLOW_WET },
+  { id: 'slow-broken-dark', place: place({ ember: 0.27, spark: 0.60, tide: 0.55, zephyr: 0.30, root: 0.80, veil: 0.25, gleam: 0.20 }, [75, 95]) },
+  { id: 'floating', place: FLOATING },
+  { id: 'bells', place: BELLS },
+  { id: 'held-drone', place: HELD_DRONE },
+  { id: 'psy', place: PSY },
+  { id: 'waves', place: WAVES },
+].map((e) => Object.freeze(e)));
+
+/**
+ * **The zones** (PLAN-ZONES §3; the pilot, §5, 10-18): a few birds take a theme into one, every lane then plays the
+ * zone's, and the rest steer inside it without pulling it out. The time birds address (Ember the family, Spark the
+ * kind of movement, Veil the rate of change); the sound birds steer (Root weight, Gleam light, Zephyr timbre, Tide
+ * space, Loom form), and Zephyr is never an address (his word, 10-18).
+ *
+ * **Struck voices in conversation** (BELLS): drumless (Ember to the kit's threshold), moving (Spark from the kit's own
+ * edge, where a four turns broken: one Spark edge on the whole ring) and not restless (Veil to 0.60; over it is the
+ * restless side's). Its eight entries are its own rows (the journey's among them: none at BELLS); the other eighteen lanes are borrowed by value as they read at
+ * the tile before the zone (`zones-borrowed.json`, written by `tools/zones.ts --freeze`: seventeen of the floating
+ * pulse's rows and the house's riff), so the tile's own themes play as they did. Its controls are the conversation
+ * row's leans (`recipes/ambient/conversation.json`, bells-birds): every bird wired, none inert, Spark and Veil and
+ * Ember steering inside their bands. No library row is drawn inside it: every theme there is the conversation.
+ */
+export const ZONES: readonly Zone[] = Object.freeze([
+  Object.freeze({
+    id: 'struck-in-conversation',
+    address: Object.freeze({ ember: Object.freeze({ to: DRUMS_ON_ABOVE }), spark: Object.freeze({ from: BREAKS_ABOVE }), veil: Object.freeze({ to: 0.60 }) }),
+    centre: Object.freeze({ ...HOUSE, ...BELLS.birds }) as Spell,
+    rows: Object.freeze({ harmony: 'slow-drift-under-bells', form: 'bells-chapters', eq: 'bells-keep-their-floor', bed: 'bells-keep-their-floor',
+      grain: 'bells-take-no-grain', support: 'bells-alone', conversation: 'bells-in-conversation', journey: 'no-journey-12',
+      ambientVoices: 'no-details-or-weather-at-bells' }),
+    borrow: BORROWED.zones['struck-in-conversation'] as unknown as Partial<Record<PlaceLane, PlaceEntry | null>>,
+    // in the lanes' words: the calls and the answers the figure, the bowl the held ground and the low end (the three the
+    // conversation holds off), its floor the texture; the kit's four left free (Z7 reads it)
+    roles: Object.freeze(['figure', 'sustained', 'bassline', 'texture']),
+    library: Object.freeze([]),
+  }),
+]);
+
 export const places: StylePlaces = Object.freeze({ harmony: HARMONY, form: FORM, treatments: TREATMENTS, bassSound: BASS_SOUND, laneSound: LANE_SOUND, sounds: SOUNDS, eq: EQ, bassDrive: BASS_DRIVE, bassDriveHouse: BASS_DRIVE_HOUSE, bed: BED, bedHouse: BED_HOUSE, grain: GRAIN, grainHouse: GRAIN_HOUSE, drumGrain: DRUM_GRAIN, drumGrainHouse: DRUM_GRAIN_HOUSE,
   drums: DRUMS, breaks: BREAKS, subSections: SUBSECTIONS, subSectionsHouse: THE_HOUSE_SUBSECTIONS, sections: SECTIONS, glueSound: GLUE_SOUND, walk: WALK, roles: ROLES, glide: GLIDE,
-  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES, time: TIME });
+  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES, time: TIME, conversation: CONVERSATION,
+  journey: JOURNEY, air: AIR, zones: ZONES });

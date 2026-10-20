@@ -1,0 +1,388 @@
+{
+ "schema": 1,
+ "kind": "ambient-surf",
+ "round": "ambient-waves",
+ "revision": 3,
+ "note": "The sea as a weather (PLAN-AMBIENT Phase 4): one wave at a time, made of the weather's own noises. A swell rises over 3-7.5 s (the wind's band, from under its level and dark, opening as it comes), crests (the upper air: a high band opens and breaks), and falls into the undertow over 4-9 s (the dark air closing, a low rumble under it). The sea is irregular, as a real one is: its surface is a sum, a narrow band of swell about a peak period drawn once a theme (8-14 s), sometimes a cross swell from another storm, and a local wind chop; each wave's period, rise, fall and height are the sum's, the sets and the lulls are its interference, a chop's crest breaks a wave early now and then, and where the crests line up a great wave comes. No wave is on the beat. The sea's size follows the theme: a calm, a swell, a calm. The music enters on the wave: the pad's chord blooms with each crest (from as far under its level as the wave is large) and falls with the undertow; a bell sounds on the break of a set's peak and of a great wave; the bass moves on the undertow and is let go in the next swell's rise, so the low end breathes with the sea, and on a set's last wave it slides to the next set's root, so the harmony moves with the sets, not the bars. The sea is a surface under the music and never a riser: every wave ends, and the trough between two is nearly still. Levels are row numbers, his to move; the birds lean the row about the place's own (the one lean).",
+ "rows": [
+  {
+   "id": "waves-surf",
+   "sounds": {"of": "liquid-weather", "swell": "wind", "surf": "upper", "backwash": "dark", "undertow": "rumble"},
+   "period": {"s": [8, 14]},
+   "state": {
+    "says": "the sea's surface as oceanographers read it: a narrow band of swell about the peak period (partials spread a share of its frequency), sometimes a second swell from another storm (its period a ratio off the first's, weaker), and a local wind chop (short, broad, weak); their sum's zero up-crossings are the waves, each wave's period and height the sum's, its crest where the whole surface (the chop too) peaks; the sum's envelope gives the sets, a set's line at a lull, the envelope's low between two groups",
+    "dt": 0.05,
+    "main": {"partials": 9, "spread": 0.11, "spreadMost": 0.22},
+    "cross": {"share": 0.45, "partials": 5, "spread": 0.05, "ratio": [0.74, 0.88], "longer": 0.5, "amp": [0.35, 0.65]},
+    "chop": {"partials": 7, "spread": 0.18, "periodS": [3.5, 5.5], "amp": 0.28, "ampMost": 0.6}
+   },
+   "shape": {"riseS": [3, 7.5], "crestS": [0.6, 1.2], "fallStretch": 1.25, "fallS": [4, 9], "leastS": 5},
+   "firstS": [0.5, 2],
+   "endS": 2,
+   "heights": {"significant": 1.35, "early": 1},
+   "set": {"lull": 0.7, "leastS": 28, "mostS": 95},
+   "great": {"over": 1.3},
+   "offBeatS": 0.05,
+   "harmony": {
+    "says": "the chords in the order the sets play them, one a set: a degree the mode cannot voice is the tonic, and a chord next to itself is one chord",
+    "cycles": [
+     {"degrees": [0, 5, 2, 6], "every": 4, "loop": 16, "w": 2},
+     {"degrees": [0, 6, 5, 6], "every": 4, "loop": 16, "w": 1},
+     {"degrees": [0, 3, 5, 3], "every": 4, "loop": 16, "w": 1}
+    ]
+   },
+   "arc": [[0, 0.3], [0.12, 0.4], [0.42, 0.95], [0.6, 1], [0.86, 0.45], [1, 0.25]],
+   "sizeMost": 1.5,
+   "sea": {"sizeDb": 8, "levelDb": 10},
+   "swell": {"db": -6, "vel": 0.7, "midi": 40, "reverb": 0.35, "fromDb": [-8, -18], "oct": 1.3},
+   "surf": {"db": -6, "vel": 0.7, "midi": 84, "reverb": 0.3, "leadS": 0.9, "durS": [0.8, 1.8], "lpMul": [1, 0.45], "least": 0.35, "earlyLonger": 1.4},
+   "backwash": {"db": -9, "vel": 0.7, "midi": 60, "reverb": 0.35, "lpMul": [0.6, 0.17], "releaseS": 2.5},
+   "undertow": {"db": -6, "vel": 0.8, "midi": 40, "reverb": 0.4, "afterS": 0.6, "durS": [1.4, 3], "lpMul": [0.4, 0.15], "releaseS": 3.6},
+   "bloom": {
+    "voices": [{"v": "shimmerPad", "w": 3}, {"v": "wavePad", "w": 2, "holdShare": 0.5, "releaseShare": 1.2}],
+    "notesMost": 4,
+    "gain": 0.355,
+    "vel": 0.74,
+    "velStep": 0.04,
+    "fromDb": [-4, -14],
+    "greatDb": -18,
+    "oct": 1.5,
+    "attack": 1.2,
+    "spread": 1,
+    "reverb": 0.4,
+    "delay": 0.14,
+    "topMost": 84,
+    "levelDb": 0
+   },
+   "bell": {
+    "voices": [{"v": "fmBell", "w": 3}, {"v": "vibes", "w": 2}],
+    "scale": [0, 2, 3, 4, 6],
+    "register": [72, 86],
+    "afterS": [0.15, 0.6],
+    "pairS": [0.45, 0.8],
+    "vel": [0.3, 0.42],
+    "durS": 1.6,
+    "restartW": 0.25,
+    "levelDb": -5,
+    "indexMul": 0.6,
+    "lpMul": [0.9, 0.45],
+    "reverb": 0.55,
+    "delay": 0.22
+   },
+   "bass": {"voice": "sub", "register": [28, 40], "afterS": 0.8, "vel": [0.6, 0.8], "slideS": 1.4, "gapS": 0.05, "levelDb": -4, "fall": {"holdInto": 0.35, "goneInto": 0.8}},
+   "chapters": {
+    "intro": {"bloom": true, "bell": "none", "bass": false},
+    "main": {"bloom": true, "bell": "peaks", "bass": true},
+    "groove": {"bloom": true, "bell": "peaks", "bass": true},
+    "breakdown": {"bloom": false, "bell": "peaks", "bass": true},
+    "outro": {"bloom": true, "bell": "none", "bass": false}
+   },
+   "birds": {
+    "says": "about the place's own birds: Tide the sea's size and distance (larger and farther, the sends up and the spray's top duller; smaller, nearer and drier down, and the bloom, nearer, a little louder: a calm sea is quieter in motion and never inaudible); Root the undertow's weight (the rumble louder and longer; the bass a little down, since Root's own seasoning makes the sub's body heavier, so the weight is the body's and not the level's); Veil the sea state (rougher up: the period shorter, the swell's band broader so the periods scatter more, the chop stronger, a cross swell more often; calmer down: a long clean groundswell); Zephyr the surf's brightness (the spray louder and its top more open); and what Tide and Veil take from the sea, measured (`measuredDb`: where the theme's trim windows measure at nought against the place's own, dB a unit of the bird, fitted on the paired windows of the 24 own themes at six pulls, the bloom's nearness in: Tide 2.1, Veil 2.3, each pull within 0.2 dB), so the trim follows them and a calm sea is quieter in motion, never inaudible",
+    "by": {
+     "tide": {"size": 0.8, "seaDb": 6, "send": 0.4, "surfBright": -0.8, "bloomDb": -5, "measuredDb": 2.1},
+     "root": {"undertowDb": 10, "undertowLong": 0.6, "bassDb": -4},
+     "veil": {"period": -0.6, "spread": 1.2, "chop": 1.6, "cross": 1.5, "measuredDb": 2.3},
+     "zephyr": {"surfDb": 8, "surfBright": 1}
+    },
+    "most": {"seaDb": 4, "undertowDb": 3, "bassDb": 1.5, "surfDb": 5, "bloomDb": 1.5}
+   },
+   "labels": {
+    "note": "What each control's cell says where a theme lays the sea (ambient-waves-3, his rule that a control's words say what it steers where it plays), in the conversation's labels' shape (src/bird-labels.ts, `TechniqueLabel`): `big.reads` is a reading of the sea's own leans about the place's birds (`chop` the wind chop's share of the swell's height, `size` the waves' size factor, `shine` the shimmer's climb as the style seasons it, `spray` the spray's level), `air` the bloom's voice whose measured air the subtitle and the locked reading say (Zephyr: at the sea Zephyr biases the spray, its level and its top, and the big word is the spray's; the bloom's air is not Zephyr's there, measured as the sea plays it: the wave pad 1255-1266 Hz and the shimmer pad 2196-2287 Hz from Zephyr 0.06 to 1 with the spray in, and the spray itself, noise, 2735-3390 Hz, over the air scale's top cut, so no word of the six moves with Zephyr at the sea; ambient-waves-4). A cut is never a number typed here: `mid` is halfway in the reading from the place's own value to the wall, and a wall is where the sea still plays along that control from the tile. `sub` and `lockedSays` are the locked reading, filled from the record (`{period}`, `{periodSays}`, `{bloom}`, `{bloomWord}`); `without` says what a line or the block says where a fact of the program is false (`shimmer`: the bloom is the wave pad, which Gleam does not reach). Read only where the theme's program lays the sea: a library turn at WAVES reads the general words. Tide has two bands at the sea (ambient-waves-4): above the place the waves grow only to 1.13 of its size at Tide 1, so a third band there (Tide 0.93-1.00, sizes 1.06-1.13) said 'big' where nothing a listener could tell apart from the 'full' band changed; 'full' runs to the wall, its high lean from the place up ('full and far').",
+    "veil": {
+     "big": {
+      "reads": "chop"
+     },
+     "sub": "{period} · swell",
+     "lockedSays": "the swell's peak period is {periodSays}",
+     "bands": [
+      {
+       "word": "glassy",
+       "upTo": {
+        "mid": "low",
+        "of": "chop"
+       },
+       "says": "The sea is a long, clean groundswell, its sets far apart.",
+       "short": "Long, clean groundswell",
+       "lean": {
+        "low": {
+         "short": "Glassy, long groundswell",
+         "says": "The sea is glassy, a long groundswell with clear lulls."
+        },
+        "high": {
+         "short": "Clean swell, nearly rolling",
+         "says": "The sea is a clean groundswell, nearly rolling."
+        }
+       }
+      },
+      {
+       "word": "rolling",
+       "upTo": {
+        "mid": "high",
+        "of": "chop"
+       },
+       "says": "The swell rolls with a little chop, its sets coming and going.",
+       "short": "Swell with a little chop",
+       "lean": {
+        "low": {
+         "short": "Rolling, nearly glassy",
+         "says": "The swell rolls with a little chop, nearly glassy."
+        },
+        "high": {
+         "short": "Rolling, nearly choppy",
+         "says": "The swell rolls, nearly choppy, a second swell crossing now and then."
+        }
+       }
+      },
+      {
+       "word": "choppy",
+       "upTo": null,
+       "says": "The sea is young and choppy, its waves short and crossing.",
+       "short": "Choppy, crossing waves",
+       "lean": {
+        "low": {
+         "short": "Choppy, nearly rolling",
+         "says": "The sea is choppy, nearly rolling."
+        },
+        "high": {
+         "short": "Choppy, confused sea",
+         "says": "The sea is choppy and confused, its lulls filled."
+        }
+       }
+      }
+     ]
+    },
+    "tide": {
+     "big": {
+      "reads": "size"
+     },
+     "bands": [
+      {
+       "word": "small",
+       "upTo": {
+        "mid": "low",
+        "of": "size"
+       },
+       "says": "The waves are small and near, the sea quiet.",
+       "short": "Small, near waves",
+       "lean": {
+        "low": {
+         "short": "Very small, near waves",
+         "says": "The waves are very small and near."
+        },
+        "high": {
+         "short": "Small, nearly full",
+         "says": "The waves are small, nearly full."
+        }
+       }
+      },
+      {
+       "word": "full",
+       "upTo": null,
+       "says": "The waves are full and the sea is open.",
+       "short": "Full waves, open sea",
+       "lean": {
+        "low": {
+         "short": "Full, nearly small",
+         "says": "The waves are full, nearly small."
+        },
+        "high": {
+         "short": "Full, far waves",
+         "says": "The waves are full and far, breaking wide."
+        }
+       }
+      }
+     ]
+    },
+    "gleam": {
+     "big": {
+      "reads": "shine"
+     },
+     "without": {
+      "shimmer": {
+       "word": "by sets"
+      }
+     },
+     "bands": [
+      {
+       "word": "halo",
+       "upTo": {
+        "mid": "low",
+        "of": "shine"
+       },
+       "says": "The bloom's shimmer circles at its own pitch, a soft halo.",
+       "short": "A soft halo",
+       "without": {
+        "shimmer": {
+         "short": "A chord a set",
+         "says": "The wave pad blooms on the sea's own chords, a chord a set."
+        }
+       },
+       "lean": {
+        "low": {
+         "short": "A still, soft halo",
+         "says": "The bloom's shimmer circles at its own pitch, very soft.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        },
+        "high": {
+         "short": "Halo, nearly climbing",
+         "says": "The bloom's shimmer circles, nearly climbing.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        }
+       }
+      },
+      {
+       "word": "climbing",
+       "upTo": {
+        "mid": "high",
+        "of": "shine"
+       },
+       "says": "The bloom's shimmer climbs an octave now and then.",
+       "short": "The shimmer climbs",
+       "without": {
+        "shimmer": {
+         "short": "A chord a set",
+         "says": "The wave pad blooms on the sea's own chords, a chord a set."
+        }
+       },
+       "lean": {
+        "low": {
+         "short": "Climbing, nearly a halo",
+         "says": "The bloom's shimmer climbs now and then, nearly a halo.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        },
+        "high": {
+         "short": "Climbing, nearly soaring",
+         "says": "The bloom's shimmer climbs often, nearly soaring.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        }
+       }
+      },
+      {
+       "word": "soaring",
+       "upTo": null,
+       "says": "The bloom's shimmer soars, each echo an octave up.",
+       "short": "The shimmer soars",
+       "without": {
+        "shimmer": {
+         "short": "A chord a set",
+         "says": "The wave pad blooms on the sea's own chords, a chord a set."
+        }
+       },
+       "lean": {
+        "low": {
+         "short": "Soaring, nearly climbing",
+         "says": "The bloom's shimmer soars, nearly climbing.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        },
+        "high": {
+         "short": "Soaring to the top",
+         "says": "The bloom's shimmer soars to the top, each echo an octave up.",
+         "without": {
+          "shimmer": {
+           "short": "A chord a set",
+           "says": "The wave pad blooms on the sea's own chords, a chord a set."
+          }
+         }
+        }
+       }
+      }
+     ]
+    },
+    "zephyr": {
+     "big": {
+      "reads": "spray"
+     },
+     "air": {
+      "voice": "bloomVoice",
+      "role": "held"
+     },
+     "sub": "{air} {bloomWord} · bloom",
+     "lockedSays": "the waves bloom on {bloom}, its tone {air}",
+     "bands": [
+      {
+       "word": "soft",
+       "upTo": {
+        "mid": "low",
+        "of": "spray"
+       },
+       "says": "The spray is soft and dark.",
+       "short": "Soft, dark spray",
+       "lean": {
+        "low": {
+         "short": "Faint, dark spray",
+         "says": "The spray is faint and dark."
+        },
+        "high": {
+         "short": "Soft spray, nearly bright",
+         "says": "The spray is soft, nearly bright."
+        }
+       }
+      },
+      {
+       "word": "bright",
+       "upTo": {
+        "mid": "high",
+        "of": "spray"
+       },
+       "says": "The spray is bright.",
+       "short": "Bright spray",
+       "lean": {
+        "low": {
+         "short": "Bright, nearly soft",
+         "says": "The spray is bright, nearly soft."
+        },
+        "high": {
+         "short": "Bright, nearly hissing",
+         "says": "The spray is bright, nearly hissing."
+        }
+       }
+      },
+      {
+       "word": "hissing",
+       "upTo": null,
+       "says": "The spray is hissing and open.",
+       "short": "Hissing, open spray",
+       "lean": {
+        "low": {
+         "short": "Hissing, nearly bright",
+         "says": "The spray is hissing, nearly bright."
+        },
+        "high": {
+         "short": "Hissing, wide open spray",
+         "says": "The spray is hissing, wide open."
+        }
+       }
+      }
+     ]
+    }
+   },
+   "budget": {"fallbacks": ["backwash", "surf", "bell"]}
+  }
+ ]
+}

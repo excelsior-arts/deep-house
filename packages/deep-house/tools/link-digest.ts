@@ -238,7 +238,7 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  * (`shipped rows moved since the cut: N`), and the round note names them.
  *
  * The window is the cut's and no other's: it opens only while the last cut is
- * `cut` (master a65a4f8, the v2.2.2 cut; the v2.2.1 cut's window, 10-15, the v2.2.0 cut's, 10-12 to 10-15, the v2.1.0 cut's, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
+ * `cut` (master 3a1ce49, the v2.2.3 cut; the v2.2.2 cut's window, 10-16, the v2.2.1 cut's, 10-15, the v2.2.0 cut's, 10-12 to 10-15, the v2.1.0 cut's, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
  * itself; this statement is then removed. A shipped row dropped from the grid
  * is refused inside the window as outside.
  *
@@ -251,9 +251,9 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  */
 export interface FreezeWindow { cut: string; since: string; reason: string }
 export const WINDOW: FreezeWindow = Object.freeze({
-  cut: 'a65a4f8307f4bb26a4e357cca8b2f7edbddb6efb',
-  since: '2026-10-16',
-  reason: 'Eugene, 10-16, after the v2.2.2 cut: "what\'s up with conga pans? we can work on it" and "would be good to mark DnB moments" (each sound-moving round heard as A/B pairs before it merges); 10-13, on the rounds after the v2.2.1 cut: "it should go to next release with addition of more breaks" (U2d/U2e, the fast places\' drops, the front voice\'s level, the hand drums, each with its A/B pairs heard before it merges); and 10-12: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes"; 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". A link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
+  cut: '3a1ce4989248e99ef5582f71d378d17c88a6690e',
+  since: '2026-10-17',
+  reason: 'Eugene, 10-17, after the v2.2.3 cut: "basically goal it to keep existing cool mixes while adding more variety and approaches to ambient domain" and "fine to work on hats too" (each sound-moving round heard as A/B pairs before it merges); 10-16, after the v2.2.2 cut: "what\'s up with conga pans? we can work on it" and "would be good to mark DnB moments" (each sound-moving round heard as A/B pairs before it merges); 10-13, on the rounds after the v2.2.1 cut: "it should go to next release with addition of more breaks" (U2d/U2e, the fast places\' drops, the front voice\'s level, the hand drums, each with its A/B pairs heard before it merges); and 10-12: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes"; 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". A link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
 });
 /** The window, where the last cut is the one it was stated for; null outside it. */
 export function openWindow(ref = 'refs/heads/master'): FreezeWindow | null {

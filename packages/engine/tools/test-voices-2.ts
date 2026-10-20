@@ -65,11 +65,11 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(HERE, '..', 'src');
 // `/sounds/` is the rows the registry imports (rounds R1 and R2).
 const ROOTS: Record<string, string> = { '/src/': SRC, '/tools/': HERE, '/sounds/': path.join(HERE, '..', 'sounds') };
-// Beside the voices' 7045, the effects' 7046 and the ear's 7024, and never
-// 6975, the dev server.
-const PORT = 7048;
-
 const arg = (k: string, d: string | null = null): string | null => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
+// Beside the voices' 7045, the effects' 7046 and the ear's 7024, and never
+// 6975, the dev server; `--port` names another (a worktree's own range, so two
+// checkouts can run the suite at once).
+const PORT = Number(arg('port', '7048'));
 const ONLY = arg('only');
 const BLESS = process.argv.includes('--bless');
 const VERBOSE = process.argv.includes('--verbose');
@@ -367,7 +367,7 @@ if (pw) {
     }
 
     // The two that hold, against the contract.
-    for (const id of WANT.filter((v) => ['grainPad', 'wavePad'].includes(v))) {
+    for (const id of WANT.filter((v) => ['grainPad', 'wavePad', 'bowlRim'].includes(v))) {
       const r = await run({ kind: 'held', id, rate: 48000 });
       const back = Math.abs(r.resumed - r.holding);
       must(

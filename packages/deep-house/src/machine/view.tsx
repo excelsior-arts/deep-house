@@ -38,6 +38,7 @@ import { BIRDS, HOUSE, SPELL_SAME, asSpell, derive } from '../spell.ts';
 import { clockOf, minutesOf } from '../length.ts';
 import type { Control } from '../control.ts';
 import type { MachineStore } from './store.ts';
+import { loadCells } from './load.ts';
 import { GROUPS } from './model.ts';
 import { BandControl, BusControls, InsertControl, ResetAll, STAGE_KEYS, STRIP_CONTROLS_W, SourceControls, StageControl } from './source-controls.tsx';
 import { BAND_OF } from './desk.ts';
@@ -960,6 +961,22 @@ function Facts({ snap }: { snap: MachineSnapshot }) {
       {snap.reads ? (
         <Fact wide k="reads" v={Object.entries(snap.reads).map(([k, v]) => `${k.slice(0, 2)} ${(+v).toFixed(2)}`).join(' ')} />
       ) : null}
+      {/* **What playing costs this machine** (round apple-1, Eugene 10-19):
+          the page's own load over the last second, and in the Apple app the
+          device's figures after it (`load.ts`), one row of cells drawn as the
+          spell's are, a name over its value. The cells are fixed for the
+          place, so the row keeps its height while figures come and go. */}
+      <div className="fact wide load" data-fact="load">
+        <span className="k">load</span>
+        <div className="load-grid">
+          {loadCells(snap.load).map((c) => (
+            <div key={c.k} className="cell" data-load={c.k} title={`${c.k} ${c.v}`}>
+              <span className="k">{c.k}</span>
+              <span className={`v${c.tone ? ` ${c.tone}` : ''}`}>{c.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
       {/* **The spell, a cell a control** (M6, Eugene: *"a two-row layout where
           the label on top is the name and the always-visible number below"*):
           each control's short name over its **raw value**, 0.00 to 1.00 — what

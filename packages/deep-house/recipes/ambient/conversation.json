@@ -1,0 +1,185 @@
+{
+ "schema": 1,
+ "kind": "ambient-conversation",
+ "round": "rc-ambient",
+ "revision": 7,
+ "note": "Struck voices in slow conversation (PLAN-AMBIENT Phase 1, his words of 10-17: \"something acoustical like bells slow conversation with hint of percussion\"). A ground that is struck and rings, never held: a singing bowl on the tonic or the fifth, struck every 10-24 s (closer by `pace` in the chapters where nobody talks) and ringing some 52 s, so the room is never silent and never a pad. Over it a caller strikes one to three notes, leaning off the pitch the last call started on (`restartW`), softer the higher it goes (`velFrom`, `velByOctave`); a breath; and an answerer in another voice answers, softer than the call: the call's contour echoed from a tone of the chord over or under where the call began, mirrored from where it stopped, or completed to the tonic or the fifth (down after a call that rose, up after one that fell, home to the tonic where a section closes); and now and then the question is left open and only the ground answers. An answer the last `memory` exchanges already said is said another way, and the theme's first answer may come back as its last word (`recall`). Then a long rest. The ground is laid after the talk and gives way to it: a strike that would fall inside an exchange moves a breath (`yieldS`) before its call or after its answer. A hand marks a phrase now and then, between the call and the answer or after it, never on a strike: a hint and never a strike, a round low woodblock, a frame drum under a muted hand or a soft shaker, some 12 dB under the answer (his ear, 10-17: the record's shaker read as a hat and the hand as a clap in a space this sparse). Pitches are the key's pentatonic, so any two strikes agree. The chapters follow the section kinds: the intro and the outro the ground alone, the grooves the exchanges, the breakdown the answerer alone now and then and sometimes a long silence over the ground. Seconds are seconds, placed on the theme's sixteenths with a little lateness. Every weight and range is a listening hypothesis, his to trim. Voices: `voices` by weight, a voice's own `db` beside its weight where it sits louder or softer alone (set by rendering each part alone), and its own `hardGain` where the row's would leave Zephyr's hardest strike peakier than the voice's own (set by rendering the strike alone at the place and at Zephyr's top: the temple bell's and the soft mallet's lifted partials, held to 1.5 dB over their own peak); the ground's `dbFrom`, `dbByOctave` and `dbTo` its level by register, MIDI numbers (zones-pilot-2 and -3, measured alone on the keys' floor: the struck bowl reads 4.8 LU louder at F#3 than at G2, so a key that put it at the top of its register stood 2 LU over the place and 3-4 dB into the limiter; over F#3 it reads no louder, level to A3 and a decibel under from B3 to C#4; so from B2, MIDI 47, it is struck 4 dB an octave softer up to F#3, MIDI 54, 2.3 dB there, and held at that over it; the small bells' ground, a fifth up at 50-61, is only 0.5 dB under the place's own, since the register's cut already takes 1.0-2.3 dB off each of its strikes); a role's `levelDb` is on the keys layer's footing (the composer moves a voice on another layer by the room's difference), and `mixDb` lifts the whole conversation to where its windows measure at nought (the place's own level); `keysDb` is the keys layer's room level those were measured on, so in a room the die draws at a pull whose keys stand elsewhere the whole conversation moves by the difference and the place's level is its own in any room. `oscillatorsMost`: the most oscillators its strikes run at once, each oscillator counted for its own seconds (a bar's partials stop at their own ends), the phone's ceiling the plan named; a strike over it is not laid (a call or an answer ends where it is, an exchange or the ground waits). Birds: the one lean about the place's own birds, so the place's tile plays these numbers exactly: `factor` knobs multiply (exp(x · (bird − centre))), `shift` knobs add (x · (bird − centre), held to `most`, or reaching `ends` at the bird's own ends; inside a zone an address bird's ends are reached at its band's edges, so Veil's count is busiest at 0.60, Spark's still end at 0.45 and Ember's heartbeat at 0.18; an end past the knob's own hold is a plateau: `still` is held to 0..1, so its end of 2 makes the still end whole from the band's edge to half-way to the tile, Spark 0.45 to 0.50, and gone at the tile, 0.55, as before: a range a finger finds on the ring, where an end of 1 was whole only at the edge itself and the hand was back at 0.46). Each bird is the thing its name promises, by struck instruments' conventions (his ask, 10-18): Root the bells' `size` (-1 a composition of small bells, +1 great bells, each pole's numbers in `size`, reached as |size| to the pole's `curve`, its `voice` taking the call and the answer over on a die of its own: a bigger bell is lower, rings longer and is struck less often), Veil the `count` (how many strikes and how far apart, `count`'s factors) and the change of hands across sections, Ember the `pulse` (free time under the place, the grid and a heartbeat over it, `pulse`: since the zones pilot its `ends` are reached at the zone's band, so the heartbeat is full at 0.18, where the kit takes over, and the free side keeps its depth of 7.7 a unit), Tide the space (the sends, the `width` between the caller and the answerer, the hall's `tail`), Zephyr the timbre (the voices by their measured air, `air:caller` and `air:answerer`, up airier and down darker, and the strike's `hardness`), Gleam the light (the targets, and how often the ground `leave`s the tonic), Spark the movement (the hand, three-note calls, the answer's `lively` rhythm), Loom the form (the rests, the `memory`, the `recall`, the breakdown's `silence`). A voice of weight nought plays only where a lean adds to it; `oct` is the octaves a voice sounds its role's pitches at.",
+ "rows": [
+  {
+   "id": "bells-in-conversation",
+   "scale": [0, 2, 3, 4, 6],
+   "degrees": { "0": "tonic", "1": "third", "2": "fourth", "3": "fifth", "4": "seventh" },
+   "lateMs": [0, 60],
+   "mixDb": 17,
+   "keysDb": -14.5,
+   "oscillatorsMost": 32,
+   "clearS": 0.5,
+   "ground": {
+    "voices": [{ "v": "bowlStruck", "w": 1 }],
+    "degrees": [[0, 3], [3, 1]],
+    "register": [43, 54],
+    "everyS": [10, 24],
+    "ringShare": 0.85,
+    "ringsMost": 5,
+    "pace": { "ground": 0.8, "answerer": 0.85, "exchanges": 1 },
+    "yieldS": [1, 2.5],
+    "touch": 0.5,
+    "firstS": [0, 2],
+    "apartS": 10,
+    "lastS": 8,
+    "vel": [0.3, 0.44],
+    "levelDb": -2.5,
+    "dbFrom": 47,
+    "dbByOctave": -4,
+    "dbTo": 54,
+    "reverb": 0.55,
+    "delay": 0.04,
+    "pan": [-0.1, 0.1],
+    "leave": { "tonic": -0.8, "others": 0.8, "add": [[1, 0.8]] }
+   },
+   "caller": {
+    "voices": [
+     { "v": "bellTemple", "w": 2, "db": 0, "hardGain": 2.3 },
+     { "v": "fmBell", "w": 2, "db": -6.5 },
+     { "v": "vibes", "w": 1 },
+     { "v": "bellGreat", "w": 0, "db": -4, "oct": -2 },
+     { "v": "bellSmall", "w": 0, "db": 1.5 }
+    ],
+    "register": [69, 84],
+    "notes": [[1, 2], [2, 3], [3, 1]],
+    "contours": {
+     "2": [[[0, -1], 2], [[0, 1], 2], [[0, -2], 2], [[0, 2], 1], [[0, 3], 1], [[0, -3], 1]],
+     "3": [[[0, -1, -2], 2], [[0, 1, 2], 1], [[0, 1, 0], 2], [[0, -1, 0], 1], [[0, 2, 1], 2], [[0, -2, -1], 1], [[0, 1, -1], 1]]
+    },
+    "targets": { "0": 3, "1": 2, "2": 1, "3": 3, "4": 1 },
+    "restartW": 0.25,
+    "gapS": [0.7, 1.6],
+    "vel": [0.34, 0.5],
+    "velFrom": 72,
+    "velByOctave": -0.4,
+    "fade": 0.08,
+    "dur": [2.5, 4],
+    "levelDb": -3,
+    "reverb": 0.45,
+    "delay": 0.12,
+    "pan": [-0.35, -0.15]
+   },
+   "answerer": {
+    "voices": [{ "v": "marimba", "w": 2, "db": -2.5 }, { "v": "malletSoft", "w": 2, "db": 0.5, "hardGain": 2.6 }, { "v": "vibes", "w": 0 }, { "v": "bellTemple", "w": 0, "hardGain": 2.3 }],
+    "register": [62, 79],
+    "kinds": [["echo", 2], ["invert", 1], ["complete", 2], ["open", 1]],
+    "memory": 4,
+    "recall": true,
+    "afterS": [3, 8],
+    "gapMul": 1.15,
+    "velMul": 0.82,
+    "levelDb": -5,
+    "dur": [1.5, 3],
+    "reverb": 0.5,
+    "delay": 0.1,
+    "pan": [0.15, 0.35],
+    "lively": { "quicker": 0.4, "slower": 0.35, "lilt": 0.5 }
+   },
+   "exchange": { "entryS": [3, 8], "restS": [10, 32], "endS": 4 },
+   "punctuation": {
+    "voices": [{ "v": "woodblockSoft", "w": 2, "db": -4.5 }, { "v": "frameDrum", "w": 2, "db": -10 }, { "v": "shakerSoft", "w": 1, "db": -4.5 }],
+    "chance": 0.3,
+    "where": [["between", 2], ["after", 1]],
+    "afterS": [1, 3],
+    "vel": [0.18, 0.32],
+    "levelDb": -2,
+    "reverb": 0.2,
+    "delay": 0,
+    "pan": [-0.4, 0.4]
+   },
+   "breakdown": { "everyS": [20, 40], "firstS": [4, 10], "steps": [[-1, 2], [1, 2], [-2, 1], [2, 1]], "velMul": 0.85, "silence": { "chance": 0.2, "s": [30, 50] } },
+   "chapters": { "intro": "ground", "outro": "ground", "breakdown": "answerer", "main": "exchanges", "build": "exchanges", "drop": "exchanges" },
+   "pulse": { "freeLate": 1.5, "grid": [[0.5, 2], [0.85, 4]], "from": 0.6, "voices": ["frameDrum", "woodblockSoft"], "vel": [0.14, 0.24], "levelDb": 0 },
+   "size": {
+    "small": {
+     "caller": 7,
+     "answerer": 5,
+     "ground": 7,
+     "groundDb": -0.5,
+     "rest": -0.45,
+     "every": 0.2,
+     "gaps": -0.3,
+     "after": -0.3,
+     "notes": { "1": -0.5, "3": 0.6 },
+     "voice": { "caller": "bellSmall", "answerer": "vibes" }
+    },
+    "large": {
+     "caller": -5,
+     "answerer": -5,
+     "ground": -7,
+     "groundDb": 1.5,
+     "rest": 0.65,
+     "every": 0.45,
+     "gaps": 0.3,
+     "after": 0.25,
+     "notes": { "1": 1.5, "3": -1.5 },
+     "voice": { "caller": "bellGreat", "answerer": "bellTemple" },
+     "curve": 2,
+     "ringsMost": -2
+    }
+   },
+   "count": { "rest": -1, "ground": -0.4, "db": -1.5, "floor": 0.35, "groundFloor": 0.6 },
+   "still": { "rest": 0.8, "ground": -0.35, "groundDb": 0.5, "hand": -1 },
+   "widthMost": 0.45,
+   "hardGain": 1.3,
+   "birds": {
+    "by": {
+     "veil": { "count": 1, "handover": 1.1 },
+     "loom": { "rest": 0.9, "groundEvery": 0.4, "silence": 2, "memory": 4.5, "recall": 1.2 },
+     "spark": { "punctuation": 1.5, "notes:3": 2, "notes:1": -1, "lively": 1.2, "still": 1 },
+     "tide": { "send": 0.4, "width": 1.5, "tail": 1 },
+     "zephyr": { "air:caller": 6, "air:answerer": 6, "hardness": 1 },
+     "gleam": { "target:1": 2, "target:4": 2, "target:0": -1, "leave": 1 },
+     "root": { "size": 1 },
+     "ember": { "pulse": 1 }
+    },
+    "most": { "send": 0.3, "size": 1, "pulse": 1, "handover": 0.8, "lively": 0.6, "count": 0.9 },
+    "ends": { "size": [-1, 1], "leave": [-1, 1], "tail": [-0.69, 0.41], "count": [-0.55, 0.9], "still": [2, 0], "pulse": [-0.385, 1] }
+   },
+   "labels": {
+    "note": "What each control's cell says where a theme plays this conversation (the bird-labels round, 10-18, his words: \"label more specific to the immediate role of the position\"), in the ring's own table's shape (src/bird-labels.json): `big.reads` is the reading of `conversationLeans` its bands cut and its leans read (`pole` the share of casts a pole's voice takes, -1 every cast the small bells', +1 the great bell's; `count`, `lively`, `leave`, `hard`, `pulse`, `rests` the knobs of `birds`), `big.plan` the tempo where the big word is the plan's, and `big.air` the voice of the record whose air is the big word (Zephyr: the caller's, measured in voice-air.json and cut on the general table's air scale, `{air}` in a line). A cut is never a number typed here: `mid` is halfway in the reading from the place's own value to the bird's wall, `at` where it reaches a number of this row, `turns` where it first leaves its value at the bird's nought. A lean's `highFrom` is a cut of the same kinds where its high lean starts, in place of the band's upper third. A lean's `lowTo` is a cut of the same kinds where its low lean ends, in place of the band's lower third (Spark's still band: the still end is whole from the band's edge to where `still` turns, one program for most seeds, so the cell holds the low lean's line over all of it). `drums: false` holds only while the drums are off. `sub` and `lockedSays` are the locked reading, filled from the record (`{hand}`, `{handWord}`, `{caller}`, `{answerer}`); `without` names what a line, a lean or the block says where a fact of the program is false (`hand`: the hand the record names never strikes, as at Spark's still end). Tide keeps the general words (the sound close, open or wide is what it does here too). Read only where the theme's program carries the conversation: a library turn at BELLS reads the general words.",
+    "root": { "big": {"reads": "pole"}, "sub": "{callerWord} · calls", "lockedSays": "the calls are on {caller}, the answers on {answerer}", "bands": [
+     {"word": "small", "upTo": {"mid": "low", "of": "pole"}, "says": "The bells are small, high and quick.", "short": "Small, high bells", "lean": {"low": {"short": "All small, high bells", "says": "The bells are all small, high and bright."}, "high": {"short": "Small, nearly low and high", "says": "The bells are small, nearly low and high."}}},
+     {"word": "low & high", "upTo": {"mid": "high", "of": "pole"}, "says": "Low and high bells talk.", "short": "Low and high bells", "lean": {"low": {"short": "Low and high, leaning small", "says": "Low and high bells talk, leaning small."}, "high": {"short": "Low and high, leaning great", "says": "Low and high bells talk, leaning toward the great bell."}}},
+     {"word": "great", "upTo": null, "says": "The bells are great, deep and slow.", "short": "Great, deep bells", "lean": {"low": {"short": "Great, nearly low and high", "says": "The bells are great, nearly low and high."}, "high": {"short": "Great, very deep bells", "says": "The bells are great and very deep, struck rarely."}}}
+    ] },
+    "veil": { "big": {"reads": "count"}, "bands": [
+     {"word": "rare", "upTo": {"mid": "low", "of": "count"}, "says": "The bells talk rarely, with long rests between.", "short": "Rare talk, long rests", "lean": {"low": {"short": "Very rare talk", "says": "The bells talk very rarely, the bowl alone between."}, "high": {"short": "Rare, nearly now and then", "says": "The bells talk rarely, nearly now and then."}}},
+     {"word": "calm", "upTo": {"mid": "high", "of": "count"}, "says": "The bells talk now and then.", "short": "Talk now and then", "lean": {"low": {"short": "Unhurried talk", "says": "The bells talk now and then, unhurried."}, "high": {"short": "Now and then, nearly often", "says": "The bells talk now and then, edging toward often."}}},
+     {"word": "busy", "upTo": null, "says": "The bells talk often, each strike soft.", "short": "Talk often, soft strikes", "lean": {"low": {"short": "Often, nearly now and then", "says": "The bells talk often, nearly now and then."}, "high": {"short": "Talk often, voices changing", "says": "The bells talk often, other voices taking over the call and the answer."}, "highFrom": {"at": "birds.most.count", "of": "count"}}}
+    ] },
+    "spark": { "big": {"reads": "lively"}, "drums": false, "sub": "{handWord} · hand", "lockedSays": "the hand is {hand}", "without": {"hand": {"sub": "no hand", "lockedSays": "the hand is silent"}}, "bands": [
+     {"word": "still", "upTo": {"mid": "low", "of": "lively"}, "says": "The talk is still and even, the bowl carrying the time.", "short": "Still, even talk", "lean": {"low": {"short": "Still talk, the hand rare", "says": "The talk is still, the hand rare and the bowl carrying the time.", "without": {"hand": {"short": "Still talk, no hand", "says": "The talk is still, the bowl alone carrying the time."}}}, "high": {"short": "Still, nearly moving", "says": "The talk is still, nearly moving."}, "lowTo": {"turns": "still"}}},
+     {"word": "moving", "upTo": {"mid": "high", "of": "lively"}, "says": "The talk moves, the hand now and then.", "short": "The talk moves gently", "without": {"hand": {"short": "The talk moves gently", "says": "The talk moves gently, the bowl keeping the time."}}, "lean": {"low": {"short": "Moving, nearly still", "says": "The talk moves, nearly still."}, "high": {"short": "Moving, nearly lilting", "says": "The talk moves, nearly lilting."}}},
+     {"word": "lilting", "upTo": null, "says": "The talk lilts, the answers quick and the hand often.", "short": "Lilting, quick answers", "without": {"hand": {"short": "Lilting, quick answers", "says": "The talk lilts, the answers quick."}}, "lean": {"low": {"short": "Lilting gently", "says": "The talk lilts gently."}, "high": {"short": "Lilting, the hand often", "says": "The talk lilts, the answers very quick and the hand often.", "without": {"hand": {"short": "Lilting, very quick answers", "says": "The talk lilts, the answers very quick."}}}}}
+    ] },
+    "gleam": { "big": {"reads": "leave"}, "bands": [
+     {"word": "dark", "upTo": {"mid": "low", "of": "leave"}, "says": "The bells are dark, the bowl holding the tonic and the calls coming home.", "short": "Dark, bowl on the tonic", "lean": {"low": {"short": "Very dark, tonic held", "says": "The bells are very dark, the bowl on the tonic."}, "high": {"short": "Dark, nearly warm", "says": "The bells are dark, nearly warm."}}},
+     {"word": "warm", "upTo": {"mid": "high", "of": "leave"}, "says": "The bells are warm, the bowl moving between the tonic and the fifth.", "short": "Warm, tonic and fifth", "lean": {"low": {"short": "Warm, nearly dark", "says": "The bells are warm, nearly dark."}, "high": {"short": "Warm, nearly lifted", "says": "The bells are warm, nearly lifted."}}},
+     {"word": "lifted", "upTo": null, "says": "The bells are lifted, the bowl leaving the tonic and the calls on the third and the seventh.", "short": "Lifted, the bowl wanders", "lean": {"low": {"short": "Lightly lifted", "says": "The bells are lightly lifted, the bowl starting to wander."}, "high": {"short": "Well lifted, bowl wandering", "says": "The bells are well lifted, the bowl far from the tonic."}}}
+    ] },
+    "zephyr": { "big": {"reads": "hard", "air": {"voice": "callerVoice", "role": "call"}}, "sub": "{callerWord} · call", "bands": [
+     {"word": "soft", "upTo": {"mid": "low", "of": "hard"}, "says": "The air is {air}, the calls on {caller}, struck soft and round.", "short": "Struck soft and round", "lean": {"low": {"short": "Struck very softly", "says": "The air is {air}, the calls on {caller}, struck very softly."}, "high": {"short": "Soft, nearly firm", "says": "The air is {air}, the calls on {caller}, struck soft, nearly firm."}}},
+     {"word": "firm", "upTo": {"mid": "high", "of": "hard"}, "says": "The air is {air}, the calls on {caller}, struck firm.", "short": "Struck firm", "lean": {"low": {"short": "Firm, nearly soft", "says": "The air is {air}, the calls on {caller}, struck firm, nearly soft."}, "high": {"short": "Firm, nearly hard", "says": "The air is {air}, the calls on {caller}, struck firm, nearly hard."}}},
+     {"word": "hard", "upTo": null, "says": "The air is {air}, the calls on {caller}, struck hard.", "short": "Struck hard", "lean": {"low": {"short": "Hard, nearly firm", "says": "The air is {air}, the calls on {caller}, struck hard, nearly firm."}, "high": {"short": "Struck hard, metallic", "says": "The air is {air}, the calls on {caller}, struck hard and metallic."}}}
+    ] },
+    "ember": { "big": {"reads": "pulse", "plan": "tempo"}, "drums": false, "bands": [
+     {"word": "free", "upTo": {"at": "pulse.grid.0.0", "of": "pulse"}, "says": "The strikes fall free at {bpm} beats a minute, with no kick.", "short": "Free time at {bpm}", "lean": {"low": {"short": "Loose, free time at {bpm}", "says": "The strikes fall free and loose at {bpm} beats a minute, with no kick."}, "high": {"short": "Free, nearly on the grid", "says": "The strikes fall free, nearly on the grid, at {bpm} beats a minute."}}},
+     {"word": "eighths", "upTo": {"at": "pulse.from", "of": "pulse"}, "says": "The strikes settle on the eighths at {bpm} beats a minute.", "short": "On the eighths at {bpm}"},
+     {"word": "heartbeat", "upTo": null, "says": "A soft heartbeat marks each bar at {bpm} beats a minute, the strikes on the grid.", "short": "Heartbeat at {bpm}"}
+    ] },
+    "loom": { "big": {"reads": "rests"}, "bands": [
+     {"word": "loop", "upTo": {"turns": "memory"}, "says": "The talk is a loop, the rests close and its answers free to repeat.", "short": "A loop, close rests", "lean": {"low": {"short": "A tight loop", "says": "The talk is a tight loop, the rests close."}, "high": {"short": "A loop, nearly phrases", "says": "The talk is a loop, nearly phrases."}}},
+     {"word": "phrases", "upTo": {"turns": "recall"}, "says": "The talk turns phrase by phrase, each answer its own.", "short": "Phrase by phrase", "lean": {"low": {"short": "Phrases, close to a loop", "says": "The talk turns phrase by phrase, close to a loop."}, "high": {"short": "Phrases, nearly long form", "says": "The talk turns phrase by phrase, nearly a long form."}}},
+     {"word": "long", "upTo": null, "says": "The form is long, the talk remembering its answers and resting wide.", "short": "Long form, answers remembered", "lean": {"low": {"short": "Long, nearly phrase by phrase", "says": "The form is long, nearly phrase by phrase."}, "high": {"short": "Very long form", "says": "The form is very long, the rests wide."}}}
+    ] }
+   },
+   "budget": { "fallbacks": ["answerer takes the caller's voice", "the punctuation goes"] }
+  }
+ ]
+}

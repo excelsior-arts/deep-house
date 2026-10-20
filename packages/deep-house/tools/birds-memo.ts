@@ -15,7 +15,7 @@
 import { planTheme } from '../src/mix.ts';
 import { HOUSE, BIRDS, derive, musicalControls, type Bird, type Spell } from '../src/spell.ts';
 import { percentShown } from '../src/bird-percent.ts';
-import { cellReading, bandsOf, LABEL_TABLE, type LabelTheme } from '../src/bird-labels.ts';
+import { cellReading, bandsOf, LABEL_TABLE, airPlayOf, type LabelTheme } from '../src/bird-labels.ts';
 import fs from 'node:fs';
 import { levelAt as glyphLevelAt } from '../src/bird-glyph.ts';
 import { style as v2 } from '../src/styles/deep-house-v2.ts';
@@ -41,6 +41,8 @@ const NAME: Record<Bird, string> = { ember: 'Ember', spark: 'Spark', zephyr: 'Ze
 const themeOf = (t: any, spell: Spell): LabelTheme => ({
   spell, bpm: t.bpm, key: t.key.name, presetName: t.presetLabel, preset: 'auto',
   dice: t.dice, bars: t.bars, plan: t.arrangement.sections,
+  // the front voices as played, which Zephyr's air word reads (bird-labels round 3)
+  air: airPlayOf(t.events, t.knobs, t.dice.keysPreset),
 });
 /** What the bird's cell prints (word / sub [/ sub2]), upper-cased as the ring does. */
 function reading(b: Bird, t: any, spell: Spell): string {

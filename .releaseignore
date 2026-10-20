@@ -15,3 +15,6 @@ mining/
 # The keys lab (round LIQUID-KEYS, 10-10): his listening page for picking keys
 # tones, spaces and progressions; it reads the unapproved rows in notes/.
 packages/deep-house/lab/keys/
+# The Apple app (round apple-0, 10-19): the shell for iPhone, iPad and Mac
+# that bundles the release site. Private tier until it ships through the store.
+apple/

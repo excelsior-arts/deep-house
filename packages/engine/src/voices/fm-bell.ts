@@ -40,7 +40,7 @@
 import { midiToHz, adsrEnv, route, panner, startTime } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import { withControls } from './descriptor.ts';
+import { strikeTilt, withControls } from './descriptor.ts';
 import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
@@ -98,7 +98,9 @@ function fmBell(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: numbe
     // The index, in Hz of deviation: the carrier's own frequency times how far
     // this note is throwing it. Exponential down to a floor rather than to
     // nought, because an exponential ramp may not end on zero.
-    const indexMul = p.indexMul ?? 1;
+    // a strike's hardness (zephyr-air, `hardness`; absent the row's own): a harder strike throws the carrier further
+    const tilt = strikeTilt(p, row.descriptor.controls, 1);
+    const indexMul = (p.indexMul ?? 1) * (tilt ? Math.exp(TILT_INDEX * tilt) : 1);
     idx.gain.setValueAtTime(hz * (S.index[0] + S.index[1] * vel) * indexMul, time);
     idx.gain.exponentialRampToValueAtTime(hz * S.indexFloor * indexMul, time + S.indexDecay);
     mod.connect(idx);
@@ -123,6 +125,9 @@ function fmBell(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: numbe
     ...(p.immersed !== undefined ? { immersed: p.immersed } : {}) });
   return end;
 }
+
+/** How far a strike's hardness throws the index (zephyr-air): e^(`TILT_INDEX` x the tilt), set by measure at BELLS. */
+const TILT_INDEX = 2;
 
 /** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
 const PARAMETERS = contract({

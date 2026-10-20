@@ -312,6 +312,21 @@ export function withControls(p: NoteParams, controls: Controls): NoteParams {
   return out ?? p;
 }
 
+/**
+ * **A strike's hardness** (zephyr-air, 10-18: a harder strike must sound brighter): a struck voice that declares the note
+ * control `hardness` (a ratio; one, or absent, is the row's own sound, to the sample) reads it as a tilt of its top,
+ * never as level: a hard mallet excites the higher modes. The tilt is the ratio's log, a softer strike keeping `soft` of
+ * it (a mallet's partials, 0.6; the FM bell's index, all of it). Nought where the note states none or states one, and
+ * where the row does not declare the control (a struck row that never asked for it plays its own sound whatever a note
+ * carries); the ratio is taken into the declared range first (`noteControl`).
+ */
+export function strikeTilt(p: NoteParams | undefined, controls: Controls | undefined, soft = 0.6): number {
+  const hardness = controls ? noteControl(p, controls, 'hardness') : undefined;
+  if (hardness === undefined || hardness === 1 || !(hardness > 0)) return 0;
+  const l = Math.log(hardness);
+  return l > 0 ? l : l * soft;
+}
+
 /** The sends a note may set, one range for every voice: a gain, at most 6 dB over unity. */
 export const SEND_CONTROL: ControlSpec = { unit: 'send', min: 0, max: 2, default: null };
 

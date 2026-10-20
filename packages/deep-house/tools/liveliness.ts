@@ -32,7 +32,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { marksOf } from '../src/ring-subsections.ts';
+import { marksOf, SUB_STYLE } from '../src/ring-subsections.ts';
 import { lanesOf } from '../src/control.ts';
 import { lean } from '../src/lean.ts';
 
@@ -57,7 +57,7 @@ export function livelinessOf(plan: RingTheme): Liveliness {
   // what covers the rim: a span over its bars, a line or a stroke at its bar line (a pair at both its lines)
   const covers: Array<[number, number]> = [...lines.map((b): [number, number] => [b, b]), [bars, bars]];
   for (const m of subs) {
-    if (m.to > m.from && m.kind !== 'drop-out') covers.push([m.from, m.to]);
+    if (m.to > m.from && SUB_STYLE[m.kind]?.shape !== 'pair') covers.push([m.from, m.to]);
     else { covers.push([m.from, m.from]); if (m.to > m.from) covers.push([m.to, m.to]); }
   }
   covers.sort((a, b) => a[0] - b[0] || a[1] - b[1]);

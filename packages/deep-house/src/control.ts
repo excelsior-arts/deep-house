@@ -28,9 +28,13 @@ import { planOffThread, startPlanner, plannerState } from './plan-off-thread.ts'
 import type { OffThreadHow } from './plan-off-thread.ts';
 import type { JournalEntry, JournalPlace } from './journal.ts';
 import { note, report, addressFlood, aBug } from './ledger.ts';
-import { hatsOfProgram, programFactsOf, keysOfProgram } from './bird-labels.ts';
+import { hatsOfProgram, programFactsOf, keysOfProgram, heldOfProgram, airPlayOf, type AirPlay } from './bird-labels.ts';
 import type { HatsReading, ProgramFacts } from './bird-labels.ts';
 import { cleanSourceMix } from '@deep-house/engine/source-mix';
+import { ON_WAVE } from './surf.ts';
+import { exchangesOf } from './moments.ts';
+/** The conversation's parts that ink their lanes (`lanesOf`): its calls, its answers and its hand's marks; the ground's bowl rings under them all. */
+const CONVERSATION_STRIKES: ReadonlySet<string> = new Set(['conversation-call', 'conversation-answer', 'conversation-punctuation']);
 import type { SourceMix } from '@deep-house/engine/source-mix';
 
 /** A set playing, as `createMix` hands one back. */
@@ -116,11 +120,69 @@ export function lanesOf(track: LanedTrack | null): Lanes | null {
   }
   const of: Record<string, string> = {};
   for (const L of LANES) for (const e of L.events) of[e] = L.id;
+  // **The sea's lanes** (PLAN-AMBIENT Phase 4, `src/surf.ts`): where a place lays a sea it holds off the lanes whose
+  // parts it lays itself (the pad, the bass, the keys), so their sections' layers are off, and the parts that enter on
+  // its waves — the bloom, the bass on the undertow, the bell on the break — open their own lane over the bars they
+  // sound; every lane the sea lays, its noises' too, is as deep in a bar as the sea is high there (its largest wave's
+  // size): faint in a calm or a lull, full under a set's large waves. A theme with no sea draws what it always did.
+  //
+  // **The conversation's lanes** (PLAN-AMBIENT Phase 1; ambient-waves-3, the same rule): where a place lays a
+  // conversation it holds off the lanes whose parts it strikes itself, so their sections' layers are off too, and its
+  // calls, its answers and its hand's marks open their own lane over the bars they sound, each as deep as it was struck
+  // (its velocity against the theme's own strikes, in thirds), the bars it rings on a step fainter than its strike; the
+  // ground's bowl, which rings under everything, inks nothing. A theme with no conversation draws what it always did.
+  const sea = (track as Track & { sea?: { waveList: ReadonlyArray<readonly [number, number, number, number, ...unknown[]]> } }).sea;
+  const talk = !!(track as Track & { conversation?: unknown }).conversation;
+  const laid: Record<string, Uint8Array> = {};
+  const struck: Record<string, Uint8Array> = {};
+  for (const L of LANES) { laid[L.id] = new Uint8Array(bars); struck[L.id] = new Uint8Array(bars); }
+  const partOf = (ev: { part?: unknown }) => (typeof ev.part === 'string' ? ev.part : '');
+  const strikes = talk ? track.events.filter((ev) => CONVERSATION_STRIKES.has(partOf(ev as { part?: unknown })) && of[ev.layer]).map((ev) => Number(ev.p?.vel ?? 0)) : [];
+  const velLo = strikes.length ? Math.min(...strikes) : 0, velHi = strikes.length ? Math.max(...strikes) : 0;
+  const tierOf = (vel: number) => { const u = velHi > velLo ? (vel - velLo) / (velHi - velLo) : 1; return u < 1 / 3 ? 1 : u < 2 / 3 ? 2 : 3; };
+  // **One depth an exchange** (ambient-waves-4, the review of 10-19: the keys lane stepped bar to bar inside one, the
+  // call at its tier, its ring a step fainter, the answer at its own): an exchange's calls and answers (the ring's own
+  // grouping, `exchangesOf`) ink their lanes at the exchange's depth, its strongest strike's, from its first strike's
+  // bar to its last's; only the bars it rings on past its last strike are a step fainter.
+  const exchangeTier = new Map<object, number>();
+  const exchangeSpans: Array<{ lane: string; from: number; to: number; tier: number }> = [];
+  if (talk && !sea) {
+    const conv = (track as Track & { conversation?: { breathS?: number } }).conversation;
+    const S = track.events.filter((ev) => (partOf(ev as { part?: unknown }) === 'conversation-call' || partOf(ev as { part?: unknown }) === 'conversation-answer') && of[ev.layer])
+      .map((ev) => ({ t: ev.t, part: partOf(ev as { part?: unknown }), voice: ev.voice, ev })).sort((a, b) => a.t - b.t);
+    for (const x of exchangesOf(S, conv?.breathS ?? 8, track.barSeconds)) {
+      const all = [...x.calls, ...x.answers] as typeof S;
+      const tier = Math.max(...all.map((y) => tierOf(Number(y.ev.p?.vel ?? 0))));
+      for (const y of all) exchangeTier.set(y.ev, tier);
+      const lanes = new Set(all.map((y) => of[y.ev.layer]));
+      const barOf = (y: (typeof S)[number]) => (y.ev.bar == null ? Math.floor(y.t / track.barSeconds) : y.ev.bar);
+      for (const lane of lanes) {
+        const mine = all.filter((y) => of[y.ev.layer] === lane);
+        exchangeSpans.push({ lane, from: Math.min(...mine.map(barOf)), to: Math.max(...mine.map(barOf)), tier });
+      }
+    }
+  }
   for (const ev of track.events) {
     const id = of[ev.layer];
     if (!id) continue;
     const b = ev.bar == null ? Math.floor(ev.t / track.barSeconds) : ev.bar;
-    if (b >= 0 && b < bars) counts[id][b] += 1;
+    if (b >= 0 && b < bars) {
+      counts[id][b] += 1;
+      const part = partOf(ev as { part?: unknown });
+      if ((sea && ON_WAVE.has(part)) || (talk && CONVERSATION_STRIKES.has(part))) {
+        const z = Math.min(bars, Math.ceil((ev.t + Math.max(0, Number(ev.p?.dur ?? 0))) / track.barSeconds - 1e-6));
+        for (let k = b; k < Math.max(b + 1, z); k++) laid[id][k] = 1;
+        if (talk && !sea) {
+          const tier = exchangeTier.get(ev) ?? tierOf(Number(ev.p?.vel ?? 0));
+          for (let k = b; k < Math.max(b + 1, z); k++) struck[id][k] = Math.max(struck[id][k], k === b ? tier : Math.max(1, tier - 1));
+        }
+      }
+    }
+  }
+  for (const x of exchangeSpans) for (let k = Math.max(0, x.from); k <= Math.min(bars - 1, x.to); k++) { laid[x.lane][k] = 1; struck[x.lane][k] = Math.max(struck[x.lane][k], x.tier); }
+  const seaHigh = sea ? new Float32Array(bars) : null;
+  if (seaHigh) for (const [t0, , until, size] of sea!.waveList) {
+    for (let b = Math.max(0, Math.floor(t0 / track.barSeconds)); b < Math.min(bars, Math.ceil(until / track.barSeconds)); b++) seaHigh[b] = Math.max(seaHigh[b], size);
   }
   for (const L of LANES) {
     let max = 0;
@@ -128,11 +190,15 @@ export function lanesOf(track: LanedTrack | null): Lanes | null {
     for (let b = 0; b < bars; b++) {
       const row = track.timeline[b];
       const allowed = L.layers.length
-        ? L.layers.some((k) => row && row.layers.includes(k))
+        ? L.layers.some((k) => row && row.layers.includes(k)) || laid[L.id][b] === 1
         : counts[L.id][b] > 0;
       if (!allowed) continue;
       const d = max ? counts[L.id][b] / max : 0;
-      level[L.id][b] = counts[L.id][b] === 0 ? 1 : d < 0.34 ? 1 : d < 0.72 ? 2 : 3;
+      // the sea's lanes: the sea's height in the bar, a calm, a swell, a large wave
+      const h = seaHigh && (!L.layers.length || laid[L.id][b] === 1) ? seaHigh[b] : null;
+      // the conversation's: its strikes' depth in the bar
+      const c = struck[L.id][b];
+      level[L.id][b] = h != null ? (h < 0.45 ? 1 : h < 0.9 ? 2 : 3) : c > 0 ? c : counts[L.id][b] === 0 ? 1 : d < 0.34 ? 1 : d < 0.72 ? 2 : 3;
     }
   }
   track._lanes = { order: LANES.map((l) => l.id), level, bars };
@@ -521,6 +587,10 @@ export interface Readout {
   facts: ProgramFacts | null;
   /** the keys that play (K30) */
   keys: string | null;
+  /** and the held voice that plays most, which Zephyr names where no keys play (the bird-labels round) */
+  held: string | null;
+  /** and how bright the front voices play (the strike, the keys' low-pass, the knob), which Zephyr's air word reads (bird-labels round 3) */
+  air: AirPlay | null;
   spell: ReturnType<typeof spellFor>;
   /**
    * **The recipe this set was cast under, by the name its row carries** — a
@@ -1664,6 +1734,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // and what else the program plays that a line may state, and its keys (K30)
       facts: programFactsOf(t.events, t.dice as { composition?: string }),
       keys: keysOfProgram(t.events, (t.dice as { keysPreset?: string }).keysPreset) ?? null,
+      held: heldOfProgram(t.events) ?? null,
+      air: airPlayOf(t.events, t.knobs, (t.dice as { keysPreset?: string }).keysPreset),
       spell: spellOf(),
       recipe: recipeName(),
       change: state.change,
@@ -1715,26 +1787,30 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     if (!state.userStarted) return;
     const ms = typeof navigator !== 'undefined' && navigator.mediaSession;
     if (!ms) return;
-    // The chord is in the line, so the lock screen says what is sounding and
-    // not only which theme it is. It changes at most once a bar — two and a bit
-    // seconds at this tempo. A new metadata with its artwork is published once a
-    // theme (or when the cover is redrawn); a chord only retitles the one that is
-    // up, since iOS decodes the artwork again for every new metadata it is handed
-    // (the performance review of 10-06: up to 1200-pixel pictures every bar).
+    // **The line is the theme, and changes only with it** (Eugene, 10-19: over
+    // Bluetooth in his car and on his TV the progress "resets to zero and back
+    // … a quick flip in a split second, but noticeable"). The line used to carry
+    // the chord as well, retitled once a bar; a receiver — a car's Bluetooth
+    // (AVRCP), AirPlay, a bridge to a cast speaker — takes any change of the
+    // line for a new track and shows nought until a position comes. So the line
+    // is the theme alone, and a new metadata with its artwork goes up once a
+    // theme or when the cover is redrawn (iOS decodes the artwork again for
+    // each: the performance review of 10-06), with the position told at once
+    // after it, never up to a second later.
     const key = `${r.mix.themeNumber}|${r.seed}`;
-    const title = r.chord ? `Theme ${roman(r.mix.themeNumber)} · ${r.chord}` : `Theme ${roman(r.mix.themeNumber)}`;
+    const title = `Theme ${roman(r.mix.themeNumber)}`;
+    let fresh = false;
     if ((key !== mediaFor || !ms.metadata) && window.MediaMetadata) {
       mediaFor = key;
       try {
         ms.metadata = new window.MediaMetadata({ title, artist: 'Deep House', album: `seed ${r.seed}`, artwork: cover ?? artwork() });
+        fresh = true;
       } catch (e) { /* older shapes */ }
-    } else if (ms.metadata && ms.metadata.title !== title) {
-      try { ms.metadata.title = title; } catch (e) { /* older shapes */ }
     }
     const playback = r.playing ? 'playing' : 'paused';
     if (playback !== playbackSaid || ms.playbackState !== playback) { playbackSaid = playback; ms.playbackState = playback; }
     const now = Date.now();
-    if (now - posAt > 1000 && ms.setPositionState) {
+    if ((fresh || now - posAt > 1000) && ms.setPositionState) {
       posAt = now;
       try {
         ms.setPositionState({
@@ -1758,8 +1834,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // idempotent to the system.
   let handlersOn = false;
 
-  // How far the lock screen's two seek arrows move, when the system offers
-  // them. It asks for its own `seekOffset` where it has one.
+  // The lock screen's two seek arrows, off: iOS shows them in place of the
+  // previous and next track buttons. How far they would move, if switched on;
+  // the system asks for its own `seekOffset` where it has one.
+  const SEEK_ARROWS = false;
   const SEEK_STEP = 10;
 
   function mediaHandlers(again = false) {
@@ -1767,7 +1845,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     const ms = typeof navigator !== 'undefined' && navigator.mediaSession;
     if (!ms || !ms.setActionHandler) return;
     handlersOn = true;
-    const set = (name: MediaSessionAction, fn: MediaSessionActionHandler) => { try { ms.setActionHandler(name, fn); } catch (e) { /* unsupported */ } };
+    const set = (name: MediaSessionAction, fn: MediaSessionActionHandler | null) => { try { ms.setActionHandler(name, fn); } catch (e) { /* unsupported */ } };
     set('play', () => start());
     set('pause', () => stop());
     set('stop', () => stop());
@@ -1781,15 +1859,20 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // buttons dead for the length of a cast's blend.
     set('nexttrack', () => control.skip());
     set('previoustrack', () => control.back());
-    // Relative seeks, which the transport already does cheaply: the position is
-    // a number and `seekTo` hands it to the mix.
+    // **No ten-second arrows** (Eugene, 10-19, on the iPhone's lock screen:
+    // "I'd rather do normal next track button"). Where a page handles
+    // `seekbackward`/`seekforward`, iOS draws the two buttons beside play as
+    // ±10 s and drops previous and next; with them unset it draws the track
+    // buttons, which are the ring's own back and skip. The scrubber still seeks.
+    // The relative seeks stay written behind `SEEK_ARROWS` ("keep the code
+    // though, maybe we will use it later").
     const by = (delta: number) => {
       const span = playable();
       if (!span) return;
       control.seekTo(clamp(state.position + delta, 0, span) / span, true);
     };
-    set('seekbackward', (d) => by(-((d && d.seekOffset) || SEEK_STEP)));
-    set('seekforward', (d) => by((d && d.seekOffset) || SEEK_STEP));
+    set('seekbackward', SEEK_ARROWS ? (d) => by(-((d && d.seekOffset) || SEEK_STEP)) : null);
+    set('seekforward', SEEK_ARROWS ? (d) => by((d && d.seekOffset) || SEEK_STEP) : null);
     set('seekto', (d) => { if (d && d.seekTime != null && playable()) control.seekTo(d.seekTime / playable(), true); });
   }
 

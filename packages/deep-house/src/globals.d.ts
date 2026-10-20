@@ -28,4 +28,14 @@ interface Window {
   deepHouse: any;
   /** The ring's own handle, for the headless checks. */
   ring: any;
+  /**
+   * Set by the Apple app's shell before the page runs, and nowhere else
+   * (src/instrument.ts): which platform, and the device's readings it posts
+   * about once a second (src/machine/load.ts). Whether the page is in a small
+   * window, the Mac's mini player among them, is the page's own to read off
+   * its size (src/motion.ts, `smallWindow`), and never the shell's to say.
+   * `ink` hands the shell the tab icon's ink, for the Mac's Dock icon
+   * (src/tab-icon.ts).
+   */
+  deepHouseShell?: { platform: string; ink?: (hex: string) => void };
 }

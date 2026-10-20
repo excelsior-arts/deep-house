@@ -135,7 +135,15 @@ let leadNext = 0;
 // one resolution is the one that counts; `startTime` adds the lead statistic,
 // which is per call and belongs to whoever asked for the sound.
 export function resolveStart(ctx: LatencyContext, time: number): number {
-  const floor = renderHead(ctx) + LATE_LEAD;
+  const head = renderHead(ctx);
+  // the headroom: how far ahead of the render head the closest onset was asked
+  // for since the last reading (`headroomSince`); a live context only
+  if (live(ctx)) {
+    const margin = time - head;
+    if (margin < marginLow) marginLow = margin;
+    marginNotes += 1;
+  }
+  const floor = head + LATE_LEAD;
   if (!(time < floor)) return time;
   lateStarts += 1;
   lateLast = floor - time;
@@ -158,6 +166,25 @@ export function startTime(ctx: LatencyContext, time: number): number {
   leadNext = (leadNext + 1) % LEADS;
   if (leadsHeld < LEADS) leadsHeld += 1;
   return resolveStart(ctx, time);
+}
+/**
+ * **The headroom** (the machine view's load line, round apple-1): of every
+ * onset the scheduler resolved on a live context since the last call, the one
+ * asked for closest to the render head — its distance ahead of the head, in
+ * seconds (negative: it was late) — and how many there were. Reading it starts
+ * the next window. It counts and compares and changes no onset.
+ */
+let marginLow = Infinity;
+let marginNotes = 0;
+const live = (ctx: BaseAudioContext): boolean => {
+  const Off = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
+  return !(Off && ctx instanceof Off);
+};
+export function headroomSince(): { notes: number; low: number | null } {
+  const r = { notes: marginNotes, low: marginNotes ? marginLow : null };
+  marginLow = Infinity;
+  marginNotes = 0;
+  return r;
 }
 /** What `lateInfo` hands back. */
 export interface LateInfo {

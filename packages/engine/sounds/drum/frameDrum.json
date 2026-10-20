@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "frameDrum",
+  "revision": 1,
+  "topology": "membrane",
+  "dice": 147.3,
+  "parameters": {
+    "highHz": 140,
+    "lowHz": 108,
+    "mode": 1.59,
+    "modeLevel": 0.15,
+    "modeDecay": 0.1,
+    "drop": 1.08,
+    "dropTime": 0.05,
+    "bodyLevel": 0.7,
+    "bodyLp": 650,
+    "slapHz": 800,
+    "slapHzHard": 1100,
+    "slapQ": 0.8,
+    "slapDecay": 0.01,
+    "slapOpen": 0.06,
+    "slapHard": 0.2,
+    "slapBody": 0.8,
+    "t10Open": 0.2,
+    "t10Slap": 0.08,
+    "lowRing": 1.2,
+    "seconds": 1.2,
+    "variantCents": 12,
+    "attack": 0.008,
+    "trim": 0.9,
+    "variants": 3,
+    "rateSpread": 0.03,
+    "gainSpread": 0.07,
+    "decaySpread": 0.09,
+    "panSpread": 0.07,
+    "pan": 0,
+    "velBright": 0.05,
+    "velDecay": 0.1,
+    "room": 0.3
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "frameDrum": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 650,
+        "loudnessDb": -14.6
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-bells",
+    "module": "congas.ts",
+    "note": "A frame drum under a muted hand, the slow conversation's other hand (his ear, 10-17): the conga's builder with a wide low head (140 Hz, the conga's 258) that falls only 8 % as the skin lets go, its body under a 650 Hz lowpass, and almost no hand on it (the hand's band at 800 Hz and a twentieth of the conga's level): a thump with a short ring, never a slap. An eight-millisecond attack takes the edge off the landing, and a third of it goes to the room. Rendered alone in a conversation: its energy's mean frequency 140 Hz and none of it over 2 kHz."
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

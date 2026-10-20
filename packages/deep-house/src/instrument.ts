@@ -17,6 +17,12 @@ import * as Sentry from '@sentry/browser';
 
 const host = typeof location === 'undefined' ? '' : location.hostname;
 const local = host === 'localhost' || host === '127.0.0.1' || host === '' || host.endsWith('.local');
+// **Never inside the Apple app** (Eugene, 10-19: the app's privacy label says
+// "Data Not Collected"). The app's shell sets `window.deepHouseShell` before
+// any script of the page runs; where it is set no client is started, neither
+// here nor by the About's switch. A browser never has it, so on the web
+// nothing moves.
+const inShell = typeof window !== 'undefined' && !!window.deepHouseShell;
 const environment = host === 'deephouse.audio' ? 'production' : host.endsWith('.github.io') ? 'preview' : import.meta.env.MODE;
 
 // **As little as the SDK can send and still place an error** (Eugene, 09-24:
@@ -56,7 +62,7 @@ export function reportsRunning(): boolean {
 /** The switch: stored, and honoured now. */
 export function setReports(on: boolean): void {
   try { localStorage.setItem(REPORTS_KEY, on ? 'on' : 'off'); } catch (e) { /* storage blocked: honoured for this page only */ }
-  if (on) { if (!reportsRunning()) start(); return; }
+  if (on) { if (!reportsRunning() && !inShell) start(); return; }
   const c = Sentry.getClient();
   if (c) { c.getOptions().enabled = false; void Sentry.close(); }
 }
@@ -94,6 +100,6 @@ const start = () => Sentry.init({
   },
 });
 
-if (reportsWanted()) start();
+if (reportsWanted() && !inShell) start();
 
 export { Sentry };

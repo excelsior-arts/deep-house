@@ -17,7 +17,7 @@
 
 import { resolveSettings } from '../src/settings.ts';
 import { dbToGain } from '../src/dsp.ts';
-import { VOICE_BUS, VOICE_LEVEL, BY_NAME, holdGrainPad, holdWavePad } from '../src/voices/index.ts';
+import { VOICE_BUS, VOICE_LEVEL, BY_NAME, holdGrainPad, holdWavePad, holdBowlRim } from '../src/voices/index.ts';
 import { table } from './fixture.ts';
 import {
   PATTERNS, CHORD, PROGRESSION, event, program, clampVel,
@@ -112,6 +112,21 @@ export const SCENES_2: VoiceScene[] = [
   { id: 'weatherUpperAir', voice: 'weatherUpperAir', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
   { id: 'weatherRain', voice: 'weatherRain', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
   { id: 'weatherRumble', voice: 'weatherRumble', pattern: 'gesture', root: 0, dur: 6, role: 'texture' },
+  // ...and the bowl and the temple bell (ambient-bells, 10-17): rows of the mallet topology struck at a bowl's pace,
+  // one stroke every four bars as the gestures are (their rings are 38 and 12 s, so a figure would pile them up), the
+  // bowl where the conversation's ground sits (A2) and the bell where its caller does (A4).
+  { id: 'bowlStruck', voice: 'bowlStruck', pattern: 'gesture', root: 45, dur: 8, role: 'figure' },
+  { id: 'bellTemple', voice: 'bellTemple', pattern: 'gesture', root: 69, dur: 8, role: 'figure' },
+  // ...and the bells' size (bells-birds, 10-18): the great bell where its hum sits at full Root (E2) and the small bells where they call at thin Root (E5)
+  { id: 'bellGreat', voice: 'bellGreat', pattern: 'gesture', root: 40, dur: 8, role: 'figure' },
+  { id: 'bellSmall', voice: 'bellSmall', pattern: 'gesture', root: 76, dur: 8, role: 'figure' },
+  // ...and ambient-voices' three (10-18): the rimmed bowl a stroke every four bars where the struck bowl's ground sits
+  // (A2), the stick on six seconds; the tanpura on the melody's line from B2, each string ringing on under the next
+  // (on one pitch struck every beat, its rings summed a decibel apart between the two rates, which is the strings
+  // meeting each other and not the voice); the chant one syllable every four bars on the same B2.
+  { id: 'bowlRim', voice: 'bowlRim', pattern: 'gesture', root: 45, dur: 6, role: 'figure' },
+  { id: 'tanpura', voice: 'tanpura', pattern: 'melody', root: 47, dur: 2.5, role: 'melody' },
+  { id: 'chantOm', voice: 'chantOm', pattern: 'gesture', root: 47, dur: 7.5, role: 'sustained' },
 ];
 
 /** This table's rows: the sixteen round K4 added, then the later rows above, in order. */
@@ -183,6 +198,7 @@ export function voiceAudition2(
 export const HOLDS_2: Record<string, HoldRenderer> = {
   grainPad: holdGrainPad,
   wavePad: holdWavePad,
+  bowlRim: holdBowlRim,
 };
 
 /**
@@ -208,6 +224,13 @@ export function heldVoiceAudition2(
   // instead, because unlike a vowel that walks for twenty-two seconds a morph
   // is a hand that arrives somewhere and stays.
   if (id === 'wavePad') controls.push({ name: 'morph', value: 0.9, at: 1.6, over: 0.5 });
+  // The rimmed bowl beats, and its pair's beat is the sound: a window that holds a beat and a half reads a decibel
+  // off one that holds two whatever the hold did. So it is held where its lower pair beats 0.5 Hz and its upper one
+  // 1.5 Hz (238.1 Hz, between A#3 and B3), and each four-second window holds whole beats of both; its own third
+  // control, the stick's pressure, is moved early as the morph is.
+  const rimHz = 0.5 / 0.0021;
+  const midi = id === 'bowlRim' ? 69 + 12 * Math.log2(rimHz / 440) : 57;
+  if (id === 'bowlRim') controls.push({ name: 'rub', value: 0.7, at: 1.6, over: 0.5 });
   return {
     name: `held-${id}`,
     program: program({ bpm, bars: 0, duration: seconds, settings, events: [] }),
@@ -218,7 +241,7 @@ export function heldVoiceAudition2(
       pause,
       resume,
       p: {
-        midi: 57,
+        midi,
         vel: 0.6,
         gain: dbToGain(levelDb(settings, level)),
         attack: 1.2,

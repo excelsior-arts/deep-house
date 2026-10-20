@@ -179,6 +179,45 @@
       #panel { border-radius: 50%; }
       #birdPanel input[type=range] { border-radius: 10px; }
       :root[data-quiet-focus] :focus-visible { outline: none !important; }
+      /* **A small window is the ring alone** (round apple-mini-2, Eugene
+         10-19: "control that UI via CSS based on viewport size so it works in
+         any circumstance and in other containers similarly"). A viewport no
+         more than 600 px either way and near square (`SMALL_WINDOW`, motion.ts) — the Mac
+         app's mini player at any of its sides, before and after a reload, or
+         a browser window or a frame made as small — draws the ring and
+         nothing round it: no name, no About's key, no machine view's key
+         (ring.ts, `smallChanged`). No phone is one, in either orientation (a
+         phone's long side is over 600, and its browser cut short by its bars
+         is still tall and thin), nor a tablet, nor a desktop window. */
+      @media (max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #name, #mark, #panel, #birdPanel, #about { display: none !important; }
+      }
+      /* And as its square shrinks, the words it is too small to carry go, a
+         step at a time (round apple-mini; ring.ts says why each goes where it
+         does). The steps are on the ring's square, which in a small window is
+         0.94 of its shorter side (--ring): a square under S px is a window
+         under S / 0.94 px one way and no more than 600 the other. Hidden and
+         not taken away, so nothing is laid out again and no motion moves. */
+      /* a square under 400: the birds' sub-lines and the seed */
+      @media (max-width: 425.5px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4), (max-width: 600px) and (max-height: 425.5px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #starWords text.subLine, #core text.seedLine { visibility: hidden !important; }
+      }
+      /* under 320: the birds' names and words, the tell, the transport's words */
+      @media (max-width: 340.4px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4), (max-width: 600px) and (max-height: 340.4px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #starWords text, text.tell, #actionLabels text { visibility: hidden !important; }
+      }
+      /* under 290: the band's letters, bar numbers and minutes, the coming theme */
+      @media (max-width: 308.5px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4), (max-width: 600px) and (max-height: 308.5px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #timeline text, #outerLive text { visibility: hidden !important; }
+      }
+      /* under 250: the live time and the hub's three small lines */
+      @media (max-width: 265.9px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4), (max-width: 600px) and (max-height: 265.9px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #live text, #core text.hubLine { visibility: hidden !important; }
+      }
+      /* under 160: the chord, the last word */
+      @media (max-width: 170.2px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4), (max-width: 600px) and (max-height: 170.2px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
+        #core text { visibility: hidden !important; }
+      }
       #field {
         position: fixed;
         inset: -10vh -0 -10vh 0;
@@ -695,7 +734,7 @@
       <p class="aboutWhat" id="aboutWhat">
         <span>A helpful music companion. No distracting vocals. No agenda. Just vibes.</span>
         <span>The default sound is tuned to deep house. Other genres are being built and coming soon…</span>
-        <span>Right now the player is at its best on its default lightweight deep house themes and on slow-beat ambient soundscapes (turn Ember down).</span>
+        <span>Right now the player is at its best on three sounds: its default lightweight deep house themes, liquid drum &amp; bass (turn Ember up), and slow-beat ambient soundscapes (turn Ember down).</span>
         <span>The link is always the track that plays. Share it, and it plays the same anywhere.</span>
       </p>
       <hr />

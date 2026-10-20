@@ -1189,3 +1189,492 @@ test('live play is the locked program through a swap and a seek on five link row
   }
   assert.equal(left, 0, `notes left the locked program: ${seen.join('; ')}`);
 });
+
+// --- the second clock (PLAN-AMBIENT §4, P5: C1-C3) --------------------------------
+//
+// No shipped place says `clock: 'free'` in this round, so the lab place does (`tools/second-clock-fixture.ts`: the
+// Ambient tile's place, free, ahead of house-v2's time table). A free theme plans at the nominal 60 BPM and its deck
+// maps its seconds onto the context by offset (`deck.ts` `zeroAt`); a seam with a free side neither rides nor glides
+// (`seamTempo`'s `free`): into a free theme the grid is pinned and holds, out of one it jumps to the arriving metered
+// theme's own tempo where the blend begins. Between two metered themes nothing of it is read.
+
+/** One sample at 48 kHz: how close a free onset must land to its own second. */
+const SAMPLE_S = 1 / 48000;
+
+test('the second clock, laid out: free → house → free on the lab place rides and glides nothing, the house keeps its own grid from its first downbeat, every free onset lands on its own second, and metered seams still change tempo by 0.00 BPM (PLAN-AMBIENT §4, C1-C3)', async () => {
+  const { freeStyle, freeHouseFree } = await import('./second-clock-fixture.ts');
+  const { setLayout } = await import('../src/set-plan.ts');
+  const { startDeck, freeDeck, deckThemeTime } = await import('@deep-house/engine/deck');
+  const style = freeStyle();
+  const plans = freeHouseFree('1', style);
+  // C1: the word, and the nominal tempo
+  assert.deepEqual(plans.map((p) => p.clock ?? 'bars'), ['free', 'bars', 'free']);
+  assert.deepEqual([plans[0].bpm, plans[2].bpm, plans[0].beat, plans[0].barSeconds], [60, 60, 1, 4]);
+  assert.ok(plans[1].bpm > 115 && plans[1].bpm < 125, `the house theme is at ${plans[1].bpm} BPM, not near 120`);
+  assert.equal(programOf(plans[0]).clock, 'free', 'the free plan\'s program does not say so');
+  assert.ok(!('clock' in programOf(plans[1])), 'a metered program carries the clock\'s word');
+  // the free theme's blend is its tail in seconds, Loom's presence and Tide's ring (the tile, Loom 0.80 and Tide 0.85:
+  // 26.1 + 7.6 = 33.75 s, nine four-second bars rounded up, the seconds beside them)
+  assert.equal(plans[0].blendBars, 9);
+  assert.ok(Math.abs(plans[0].blendSeconds! - 33.75) < 0.01 && Math.abs(plans[0].ringSeconds! - 7.63) < 0.01, `the tile's tail is ${plans[0].blendSeconds} s with a ${plans[0].ringSeconds} s ring`);
+  const L = layOut(plans as any, { ...setOptions(style, {}), style });
+  // C2: the grid rides and glides nothing; the house's tempo is its own from its first downbeat to its last bar
+  for (const g of L.clock.segments) assert.ok(Math.abs(g.spb1 - g.spb0) < 1e-12, `the grid leans from ${(60 / g.spb0).toFixed(2)} to ${(60 / g.spb1).toFixed(2)} BPM at ${g.t0.toFixed(1)} s`);
+  const houseEnd = L.startBeats[1] + (plans[1].bars * 4);
+  for (let b = L.startBeats[1]; b <= houseEnd; b += 1) assert.equal(L.clock.spbAt(b), plans[1].beat, `beat ${b.toFixed(0)} of the house is off its own tempo`);
+  assert.deepEqual(L.perBeats, [1, 1, 1]);
+  // C3: out of the free theme its 33.75 s on the house's bars; into the second, the house's own blend on its own grid
+  const [out, into] = L.seams;
+  assert.ok(Math.abs(out.end - out.at - plans[0].blendSeconds!) < plans[1].barSeconds / 2 + 1e-9, `the blend out of the free theme is ${(out.end - out.at).toFixed(1)} s, not its 33.75 s`);
+  assert.equal(out.barSeconds, plans[1].barSeconds);
+  assert.equal(into.barSeconds, plans[1].barSeconds);
+  // every onset of a free deck on its own second through both seams, and its tempo never moving: the decks a render
+  // makes, built again on a grid that leans and jumps wherever it can (a deck that read the grid anywhere would move
+  // with it), spaced as their program spaces them, the first free theme's first second at the set's nought and the
+  // second's where the blend into it begins (the layout's seam, not the deck's own start)
+  const ctx: any = liveStandin();
+  const master = makeV1Master(ctx, programOf(plans[0]).settings);
+  const decks = plans.map((t, i) => { const d = makeDeck(ctx, t, programOf(t), master.input, master, L.clock, L.starts[i], L.perBeats[i]); startDeck(ctx, d, L.starts[i], 0); return d; });
+  const wild = makeSetClock(plans[1].beat, 0);
+  wild.glide(8, 0.31, 40); wild.jump(120, 0.83); wild.glide(400, 0.4, 64); wild.jump(900, 1.7); wild.glide(1400, 0.55, 30);
+  const elsewhere = [0, 2].map((i) => { const d = makeDeck(ctx, plans[i], programOf(plans[i]), master.input, master, wild, L.starts[i], L.perBeats[i]); startDeck(ctx, d, L.starts[i], 0); return d; });
+  assert.ok(Math.abs(deckContextTime(decks[0], 0)) < 1e-12 && Math.abs(deckContextTime(decks[2], 0) - into.at) < 1e-9, `the free themes begin at ${deckContextTime(decks[0], 0)} s and ${deckContextTime(decks[2], 0).toFixed(3)} s, not 0 and the blend into the second at ${into.at.toFixed(3)} s`);
+  let worst = 0, n = 0, inBlends = 0;
+  for (const [k, i] of [[0, 0], [1, 2]]) {
+    const d = decks[i];
+    assert.ok(freeDeck(d), `deck ${i} is not free`);
+    assert.ok(Math.abs(d.graph.beat - 1) < 1e-12, `the free deck's graph is built on a beat of ${d.graph.beat} s`);
+    const own = schedule(d.program, d.grid, 0, Infinity).events;
+    const moved = schedule(elsewhere[k].program, elsewhere[k].grid, 0, Infinity).events;
+    assert.equal(moved.length, own.length);
+    for (let j = 0; j < own.length; j++) {
+      const s = own[j];
+      // the same instant whatever the grid does, and the time from the theme's first onset its own
+      worst = Math.max(worst, Math.abs(moved[j].at - s.at), Math.abs((s.at - own[0].at) - (s.pe.onset - own[0].pe.onset)));
+      n++;
+      if (L.seams.some((m) => s.at >= m.at && s.at < m.end)) inBlends++;
+    }
+    for (let x = 0; x < d.program.bars * 4; x += 7) {
+      assert.ok(Math.abs(deckContextTime(d, x + 1) - deckContextTime(d, x) - 1) < 1e-9, `a second of the free theme at ${x} s is not a second of the context`);
+      assert.ok(Math.abs(deckThemeTime(d, deckContextTime(d, x)) - x) < 1e-9);
+    }
+  }
+  assert.ok(n > 200 && inBlends > 5, `only ${n} free onsets, ${inBlends} of them in the blends`);
+  assert.ok(worst < SAMPLE_S, `a free onset lands ${(worst * 1e6).toFixed(2)} µs off its own second`);
+  // the house deck is on the grid at its own tempo, its first bar where the blend begins
+  assert.ok(Math.abs(deckContextTime(decks[1], 0) - out.at) < 1e-9);
+  // between two metered themes: every blend on a pinned grid, 0.00 BPM across it, and the lab place moves nothing it does not reach
+  const dump = (S: any) => JSON.stringify({ s: S.starts, b: S.startBeats, p: S.perBeats, m: S.seams.map((x: any) => [x.at, x.swapAt, x.end, x.bars, x.barSeconds]), g: S.clock.segments });
+  const v2 = STRATEGIES['house-v2'].style;
+  let seams = 0;
+  for (let seed = 1; seed <= 6; seed++) {
+    const S = quiet(() => setLayout(String(seed), 4, { style: v2 }));
+    for (const m of S.seams) {
+      const spb = S.clock.spbAt(S.clock.beatAt(m.at));
+      for (let k = 0; k <= 16; k++) assert.equal(S.clock.spbAt(S.clock.beatAt(m.at + (k / 16) * (m.end - m.at) - (k === 16 ? 1e-6 : 0))), spb, `seed ${seed}: the tempo moves inside the blend at ${m.at.toFixed(1)} s`);
+      seams++;
+    }
+    assert.equal(dump(quiet(() => setLayout(String(seed), 4, { style }))), dump(S), `seed ${seed} at the house: the lab place moved its set`);
+  }
+  assert.equal(seams, 18);
+});
+
+test('the seam\'s tempo rule with a free side is free whatever the ratio, and between two metered themes it is the four bands to the bit (PLAN-AMBIENT §4.3)', () => {
+  for (let r = 0.3; r < 3.5; r += 0.01) {
+    for (const sides of [{ from: true }, { to: true }, { from: true, to: true }]) {
+      assert.deepEqual(seamTempo(100, 100 * r, {}, sides), { kind: 'free', ratio: (100 * r) / 100, perBeat: 1, ride: 0, glide: 0 });
+    }
+    assert.deepEqual(seamTempo(100, 100 * r, { tempoGlideBars: 16 }, { from: false, to: false }), seamTempo(100, 100 * r, { tempoGlideBars: 16 }));
+  }
+});
+
+test('the second clock, played: the lab place free → free by its own seam, free → house and house → free by two pulls; every free note lands on its own second, a free record\'s beat never moves, and the house is never ridden toward 60 and sounds at its own tempo from its first note (PLAN-AMBIENT §4, C2-C3)', async () => {
+  const { freeStyle, TILE, HOUSE_120 } = await import('./second-clock-fixture.ts');
+  const { freeDeck } = await import('@deep-house/engine/deck');
+  const { seamPlan, blendAsked } = await import('../src/performance.ts');
+  const style = freeStyle();
+  // every note fired, by its parameters, so a free deck's own event is found again
+  const fired: { time: number; p: unknown }[] = [];
+  const real: Record<string, any> = {};
+  for (const name of Object.keys(VOICES)) {
+    real[name] = (VOICES as any)[name];
+    (VOICES as any)[name] = (c: any, out: any, time: number, p: any, st: any, at?: number) => {
+      fired.push({ time, p });
+      return real[name](c, out, time, p, st, at);
+    };
+  }
+  // a pull back into a theme already planned plays the same program on a fresh deck: a note is either deck's
+  const own = new Map<unknown, { decks: any[]; onset: number }>();
+  const decks = new Set<any>();
+  const ctx = liveStandin();
+  const mix = quiet(() => createMix(ctx, { masterSeed: '1', strategy: 'house-v2', style, spell: TILE, destination: ctx.destination as any, bypass: null } as any));
+  const beats: number[] = [];
+  const watch = () => {
+    for (const d of [mix.record, mix.arriving] as any[]) {
+      if (!d || !freeDeck(d) || decks.has(d)) continue;
+      decks.add(d);
+      for (const e of d.program.events) { const had = own.get(e.p); if (had) had.decks.push(d); else own.set(e.p, { decks: [d], onset: e.onset }); }
+    }
+  };
+  const step = async (ok: () => boolean, seconds: number, free: boolean) => {
+    const end = ctx.currentTime + seconds;
+    while (ctx.currentTime < end && !ok()) {
+      await play(ctx, 0.5);
+      watch();
+      if (free && mix.record && freeDeck(mix.record as any)) beats.push(mix.state.beatSeconds);
+    }
+    return ok();
+  };
+  try {
+    const first = quiet(() => planTheme('1', 0, { style, spell: TILE } as any));
+    assert.equal(first.clock, 'free');
+    const seam = seamPlan(first, blendAsked(first), { boundaryBars: 16 });
+    const log = console.log; console.log = () => {};
+    try { await mix.start(0, seam.at - 3); } finally { console.log = log; }
+    watch();
+    const t0 = mix.record as any;
+    // free → free, the record's own seam: two free decks, the grid nobody's
+    assert.ok(await step(() => mix.state.themeIndex === 1 && !mix.playingOut, 200, true), 'the free theme never handed over to the next by its own seam');
+    const t1 = mix.record as any;
+    assert.ok(freeDeck(t1), 'the second theme of the lab set is not free');
+    // the theme the record's own seam brought begins where that seam's blend began, in the first theme's own seconds
+    assert.ok(Math.abs(t1.zeroAt - (t0.zeroAt + seam.at)) < SAMPLE_S, `the second free theme's first second falls ${((t1.zeroAt - t0.zeroAt - seam.at) * 1e3).toFixed(3)} ms off the blend's beginning`);
+    // free → house, a pull: the grid jumps to the house's own tempo where the blend begins
+    await play(ctx, 20);
+    const p = await mix.setSpell(HOUSE_120);
+    assert.ok(p && p.at, 'the pull to the house armed no hand-over');
+    assert.ok(await step(() => mix.record !== t1 && !mix.playingOut, 300, true), 'the pull never landed the house');
+    const house = mix.record as any;
+    assert.ok(!freeDeck(house) && house.program.bpm > 115, `the record is ${house.program.bpm} BPM, ${house.program.clock ?? 'metered'}`);
+    const clock = house.clock;
+    const heard = (t: number) => (60 / clock.spbAt(clock.beatAt(t))) * (house.perBeat ?? 1);
+    assert.ok(Math.abs(heard(p!.at + 1e-3) - house.program.bpm) < 1e-6, `the house's first note sounds at ${heard(p!.at + 1e-3).toFixed(2)} BPM, not its own ${house.program.bpm}`);
+    assert.equal(house.perBeat ?? 1, 1);
+    // house → free, a pull: the house is never ridden toward 60, the grid pinned through the blend
+    await play(ctx, 30);
+    const from = ctx.currentTime;
+    const p2 = await mix.setSpell(TILE);
+    assert.ok(p2 && p2.at, 'the pull back to the tile armed no hand-over');
+    for (let k = 0; k <= 32; k++) {
+      const t = from + (k / 32) * (p2!.end - from);
+      assert.ok(Math.abs(heard(t) - house.program.bpm) < 1e-9, `the house is heard at ${heard(t).toFixed(3)} BPM at ${(t - from).toFixed(1)} s, ridden toward the free theme`);
+    }
+    assert.ok(await step(() => mix.record !== house && !mix.playingOut, 300, true), 'the pull back never landed the free theme');
+    assert.ok(freeDeck(mix.record as any), 'the record after the pull back is not free');
+    await step(() => false, 10, true);
+  } finally {
+    for (const name of Object.keys(real)) (VOICES as any)[name] = real[name];
+    mix.stop();
+  }
+  // every note a free deck fired, on its own second: the instant handed to the voice less the note's onset is the
+  // instant its theme's second nought fell on, one instant for every note of a deck through every seam, so the notes
+  // fall into as many such instants as there were decks of their theme (a note a seam re-timed, a deck the grid
+  // moved, a second nought that slid, would each make one of its own); and each is where its deck was put
+  let n = 0, worst = 0;
+  const noughts = new Map<unknown, number[]>();
+  for (const f of fired) {
+    const e = own.get(f.p);
+    if (!e) continue;
+    n++;
+    const key = e.decks[0].track;
+    const at = f.time - e.onset;
+    const had = noughts.get(key) ?? [];
+    const near = had.find((x) => Math.abs(x - at) < 0.5);
+    if (near == null) had.push(at); else worst = Math.max(worst, Math.abs(near - at));
+    noughts.set(key, had);
+  }
+  assert.ok(n > 100 && decks.size >= 3, `only ${n} free notes heard, from ${decks.size} free decks`);
+  assert.ok(worst < SAMPLE_S, `a free note sounded ${(worst * 1e6).toFixed(2)} µs off the second nought of its deck`);
+  for (const [track, at] of noughts) {
+    const of = [...decks].filter((d) => d.track === track);
+    assert.ok(at.length <= of.length, `the notes of one free theme fell on ${at.length} second noughts, from ${of.length} decks`);
+    for (const x of at) assert.ok(of.some((d) => Math.abs(d.zeroAt - x) < SAMPLE_S), `a free deck's notes fall on a second nought at ${x.toFixed(4)} s, where no deck of theirs was put`);
+  }
+  // and the beat a free record reports is its own second, through every seam
+  assert.ok(beats.length > 50 && beats.every((b) => b === 1), `a free record reported a beat of ${beats.find((b) => b !== 1)} s`);
+});
+
+// --- the second clock's edges (the review of 10-18) ---------------------------
+//
+// The review played the lab place's edges on this stand-in and found two
+// faults: a pull out of a free record jumped the grid under the metered tail
+// still playing out under it (S1), and a bird moved inside a free record's
+// blend toward a metered plan cut the record in 80 ms (S5). Each test below
+// failed on the code before the fix (the round note says by how much).
+
+/** A set under the lab place, every note fired kept with its parameters. */
+async function freeScene(spell: Record<string, number>, style?: any) {
+  const { freeStyle } = await import('./second-clock-fixture.ts');
+  const fired: { time: number; p: unknown }[] = [];
+  const real: Record<string, any> = {};
+  for (const name of Object.keys(VOICES)) {
+    real[name] = (VOICES as any)[name];
+    (VOICES as any)[name] = (c: any, out: any, time: number, p: any, st: any, at?: number) => { fired.push({ time, p }); return real[name](c, out, time, p, st, at); };
+  }
+  const ctx = liveStandin();
+  const mix: any = quiet(() => createMix(ctx, { masterSeed: '1', strategy: 'house-v2', style: style ?? freeStyle(), spell, destination: ctx.destination as any, bypass: null } as any));
+  const done = () => { for (const name of Object.keys(real)) (VOICES as any)[name] = real[name]; mix.stop(); };
+  return { ctx, mix, fired, done };
+}
+const muted = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const keep = [console.log, console.info, console.warn];
+  console.log = console.info = console.warn = () => {};
+  try { return await fn(); } finally { [console.log, console.info, console.warn] = keep; }
+};
+/** The tempo a metered deck is heard at, at a context instant. */
+const heardOn = (d: any) => (t: number) => (60 / d.clock.spbAt(d.clock.beatAt(t))) * (d.perBeat ?? 1);
+/**
+ * A deck's notes fired from `since` on, in time order, against its program: how many, and the worst slip, the time
+ * between two notes against the time between their onsets (a metered deck at its own tempo and a free one alike
+ * play a program's seconds as they are written).
+ */
+function slipOf(fired: { time: number; p: unknown }[], d: any, since = -Infinity) {
+  const onset = new Map<unknown, number>();
+  for (const e of d.program.events) if (!onset.has(e.p)) onset.set(e.p, e.onset);
+  const run = fired.filter((f) => f.time >= since && onset.has(f.p)).map((f) => [f.time, onset.get(f.p)!] as const).sort((a, b) => a[0] - b[0]);
+  let worst = 0;
+  for (let i = 1; i < run.length; i++) worst = Math.max(worst, Math.abs((run[i][0] - run[0][0]) - (run[i][1] - run[0][1])));
+  return { n: run.length, worst, last: run.length ? run[run.length - 1][0] : -Infinity };
+}
+
+test('a pull out of a free record while the metered theme it replaced still plays out its tail waits for the tail, which is never re-gridded (the review of 10-18, S1)', async () => {
+  const { TILE, HOUSE_120 } = await import('./second-clock-fixture.ts');
+  const { freeDeck } = await import('@deep-house/engine/deck');
+  const s = await freeScene(HOUSE_120);
+  try {
+    await muted(() => s.mix.start(0, 0));
+    await play(s.ctx, 30);
+    const house = s.mix.record;
+    assert.ok(!freeDeck(house) && house.program.bpm > 115);
+    const p1 = await muted(() => s.mix.setSpell(TILE));
+    assert.ok(await until(s.ctx, () => s.ctx.currentTime > p1.swapAt + 0.5, 300));
+    assert.ok(s.mix.playingOut === house, 'the house is not playing out its tail after the swap');
+    assert.ok(freeDeck(s.mix.record), 'the record after the swap is not free');
+    const asked = s.ctx.currentTime;
+    const p2 = await muted(() => s.mix.setSpell({ ember: 1 }));
+    assert.ok(p2 && p2.at >= p1.end - 1e-6, `the hand-over out of the free record begins at ${p2?.at.toFixed(2)} s, under the house's tail (to ${p1.end.toFixed(2)} s)`);
+    const heard = heardOn(house);
+    let worst = 0;
+    await until(s.ctx, () => {
+      if (s.mix.playingOut === house) worst = Math.max(worst, Math.abs(heard(s.ctx.currentTime) - house.program.bpm));
+      return s.mix.playingOut !== house && s.ctx.currentTime > p2!.at + 1;
+    }, 300);
+    assert.ok(worst < 1e-9, `the grid under the house's tail moved by ${worst.toFixed(2)} BPM`);
+    const tail = slipOf(s.fired, house, asked);
+    assert.ok(tail.n > 10, `only ${tail.n} notes of the tail after the second pull`);
+    assert.ok(tail.worst < 1e-6, `the tail's notes slipped ${(tail.worst * 1e3).toFixed(1)} ms off their program`);
+    // and the theme the second pull brought is heard at its own tempo from its first note
+    assert.ok(await until(s.ctx, () => !!s.mix.record && !freeDeck(s.mix.record), 120), 'the second pull never landed');
+    const fast = s.mix.record, h = heardOn(fast);
+    assert.ok(fast.program.bpm > house.program.bpm + 20, `the second pull landed at ${fast.program.bpm} BPM`);
+    for (let k = 0; k <= 16; k++) assert.ok(Math.abs(h(p2!.at + 1e-3 + (k / 16) * (p2!.end - p2!.at)) - fast.program.bpm) < 1e-9);
+  } finally { s.done(); }
+});
+
+/** A free record's blend toward the house, and something asked 3 s into it (`ask`): what the set does then. */
+async function askInsideFreeBlend(ask: (mix: any) => Promise<any>, seek = false) {
+  const { TILE, HOUSE_120 } = await import('./second-clock-fixture.ts');
+  const { freeDeck, deckThemeTime } = await import('@deep-house/engine/deck');
+  const s = await freeScene(TILE);
+  try {
+    await muted(() => s.mix.start(0, 0));
+    await play(s.ctx, 20);
+    let free0 = s.mix.record;
+    assert.ok(freeDeck(free0));
+    let p = await muted(() => s.mix.setSpell(HOUSE_120));
+    assert.ok(p && p.at, 'the pull to the house armed no hand-over');
+    if (seek) {
+      // a seek inside the blend: it lands on the free record, on its own second, and lays the pull again from there
+      assert.ok(await until(s.ctx, () => s.ctx.currentTime > p.at + 3, 120));
+      const at = s.ctx.currentTime;
+      const landed = await muted(() => s.mix.seek(300));
+      assert.equal(landed, 300);
+      free0 = s.mix.record;
+      assert.ok(freeDeck(free0), 'the seek did not land on the free record');
+      const landing = free0.zeroAt + 300;
+      assert.ok(landing >= at && landing <= at + 0.5, `the sought free record's second 300 falls ${(landing - at).toFixed(3)} s after the seek`);
+      assert.ok(await until(s.ctx, () => !!s.mix.arriving && !freeDeck(s.mix.arriving) && s.mix.state.transition > 0.02, 120), 'the pull laid again by the seek never began its blend');
+      // where that blend begins and ends, off the transport's own progress through it, and where it swaps
+      const t1 = s.ctx.currentTime, f1 = s.mix.state.transition;
+      await play(s.ctx, 1);
+      const t2 = s.ctx.currentTime, f2 = s.mix.state.transition;
+      const span = (t2 - t1) / (f2 - f1), begun = t1 - f1 * span;
+      p = { at: begun, end: begun + span, swapAt: s.mix.state.wait.swapAt } as any;
+      const since = slipOf(s.fired, free0, landing + 0.5);
+      assert.ok(since.n > 3 && since.worst < SAMPLE_S, `the sought free record's ${since.n} notes slipped ${(since.worst * 1e6).toFixed(2)} µs`);
+    }
+    assert.ok(await until(s.ctx, () => s.ctx.currentTime > (p as any).at + 3, 120));
+    const was = s.mix.arriving;
+    assert.ok(was && !freeDeck(was), 'nothing metered is arriving inside the blend');
+    const asked = s.ctx.currentTime;
+    const p2 = await muted(() => ask(s.mix));
+    assert.ok(p2, 'the second ask armed nothing');
+    assert.ok(s.mix.record === free0, 'the free record was cut for the second ask (the arriving theme promoted at once)');
+    const near = seek ? 1e-3 : 1e-6;
+    assert.ok(Math.abs(p2.swapAt - (p as any).swapAt) < near && Math.abs(p2.end - (p as any).end) < near, `the second ask moved the hand-over: swap ${(p as any).swapAt.toFixed(2)} → ${p2.swapAt.toFixed(2)}, end ${(p as any).end.toFixed(2)} → ${p2.end.toFixed(2)}`);
+    const fresh = s.mix.arriving;
+    assert.ok(fresh && fresh !== was && !freeDeck(fresh), 'the second ask brought no fresh metered deck into the blend');
+    // the free record plays to the swap and out to the blend's laid end, on its own seconds
+    let held = true;
+    assert.ok(await until(s.ctx, () => { if (s.ctx.currentTime < p2.swapAt - 0.05 && s.mix.record !== free0) held = false; return s.ctx.currentTime >= p2.swapAt + 0.1; }, 200));
+    assert.ok(held, 'the free record was let go before the swap');
+    assert.ok(s.mix.playingOut === free0, 'the free record is not playing out its tail after the swap');
+    assert.ok(await until(s.ctx, () => s.ctx.currentTime >= p2.end + 0.5, 200));
+    const tail = slipOf(s.fired, free0, asked);
+    assert.ok(tail.n > 3 && tail.last > p2.swapAt, `the free record sounded ${tail.n} notes after the second ask, the last at ${(tail.last - p2.swapAt).toFixed(1)} s from the swap`);
+    assert.ok(tail.worst < SAMPLE_S, `the free record's notes slipped ${(tail.worst * 1e6).toFixed(2)} µs`);
+    // the deck the second ask brought is heard at its own tempo from where it came in, its bar lines the blend's
+    const h = heardOn(fresh);
+    for (let k = 0; k <= 16; k++) { const t = asked + 0.5 + (k / 16) * (p2.end - asked - 0.5); assert.ok(Math.abs(h(t) - fresh.program.bpm) < 1e-9, `the fresh deck heard at ${h(t).toFixed(2)} BPM ${(t - asked).toFixed(1)} s after the ask`); }
+    return { p: p as any, p2, fresh, was, deckThemeTime };
+  } finally { s.done(); }
+}
+
+test('a bird moved inside a free record\'s blend toward a metered plan joins it: the record plays to the blend\'s laid end, and the plan asked comes in at its own tempo under the same swap and end (the review of 10-18, S5)', async () => {
+  const r = await askInsideFreeBlend((mix) => mix.setSpell({ ember: 0.7 }));
+  assert.ok(r.fresh.program.bpm > r.was.program.bpm + 5, `the plan asked is at ${r.fresh.program.bpm} BPM`);
+});
+
+test('dice thrown inside a free record\'s blend toward the house join it: the cast\'s theme comes in at the second the blend is on, at its own tempo, and the record plays out (the review of 10-18, S5 by a cast)', async () => {
+  const r = await askInsideFreeBlend((mix) => mix.cast('7'));
+  // a theme from its first bar at the blend's beginning: its own time is the blend's seconds
+  const t = r.p2.at + 0.5 * (r.p2.end - r.p2.at);
+  assert.ok(Math.abs(r.deckThemeTime(r.fresh, t) - (t - r.p2.at)) < 1e-6, `the cast's theme is at ${r.deckThemeTime(r.fresh, t).toFixed(3)} s of its own at ${(t - r.p2.at).toFixed(3)} s into the blend`);
+});
+
+test('a seek inside a free record\'s blend lands on its own second and lays the pull again; a bird moved inside that blend joins it (the review of 10-18, a seek)', async () => {
+  await askInsideFreeBlend((mix) => mix.setSpell({ ember: 0.7 }), true);
+});
+
+test('a start inside a free record\'s blend reads the blend as it is laid, its seconds on the arriving theme\'s bars (the review of 10-18, fix 4)', async () => {
+  const { FREE_AT_THE_TILE, TILE } = await import('./second-clock-fixture.ts');
+  const { freeDeck } = await import('@deep-house/engine/deck');
+  // a lab place free at the tile's first theme (51.0 BPM drawn) and not at its second (51.3, metered), so the set's
+  // own seam is free → metered; at Loom 0.9 its tail is 28.0 + 7.6 = 35.6 s, nine bars at four seconds (36 s), laid as
+  // eight of the metered theme's 4.678 s bars, 37.4 s
+  const base: any = STRATEGIES['house-v2'].style;
+  const style = { ...base, places: { ...base.places, time: [{ ...FREE_AT_THE_TILE, id: 'lab-free-windowed', place: { birds: TILE, tempo: [40, 51.05] } }, ...base.places.time] } };
+  const spell = { ...TILE, loom: 0.9 };
+  const plans = [0, 1].map((i) => quiet(() => planTheme('1', i, { style, spell } as any)));
+  assert.deepEqual(plans.map((p: any) => p.clock ?? 'bars'), ['free', 'bars']);
+  const L = layOut(plans as any, { ...setOptions(style, {}), style });
+  const seam = L.seams[0];
+  const laid = seam.end - seam.at;
+  const { seamPlan, blendAsked } = await import('../src/performance.ts');
+  const own = seamPlan(plans[0] as any, blendAsked(plans[0] as any), { boundaryBars: 16 }).bars * plans[0].barSeconds;
+  assert.ok(laid > own + 1, `the blend is laid as ${laid.toFixed(2)} s, not past its own ${own} s at four-second bars`);
+  const s = await freeScene(spell, style);
+  try {
+    // a second before the laid blend's end: past its own bars at four seconds, inside the blend as laid
+    const from = seam.at + laid - 1;
+    await muted(() => s.mix.start(0, from));
+    await play(s.ctx, 0.1);
+    assert.ok(s.mix.record && !freeDeck(s.mix.record), 'the metered theme is not the record past the swap');
+    const tail = s.mix.playingOut;
+    assert.ok(tail && freeDeck(tail), 'a start inside the laid blend lost the free record\'s tail: the blend was read as over');
+    // the blend rebuilt ends where it was laid: about 0.9 s from now (the start's lead aside), its progress read off the transport
+    const f = s.mix.state.transition;
+    assert.ok(f > 0.9 && f < 1, `the blend rebuilt is ${(f * 100).toFixed(1)} % through, not a second from its end`);
+    const h = heardOn(s.mix.record);
+    assert.ok(Math.abs(h(s.ctx.currentTime + 0.5) - s.mix.record.program.bpm) < 1e-9);
+  } finally { s.done(); }
+});
+
+// --- the free tail (his ear 10-18: the 77 s tail "too long ... use birds and we can reduce it in half at least") ---
+//
+// A free side's tail is Loom's presence and Tide's ring (`freeBlendSeconds`), laid on the arriving theme's bars, and
+// it leaves as a change (`FREE_TAIL_CURVES`): the top from the blend's start, the low end at the swap, then the level
+// falling in decibels and its voices leaving one by one, the drums at the swap, the calls halfway, every new note at
+// the ring. Nothing of it is written on a seam out of a metered theme.
+
+/** The lab place on the spell asked, so it is the nearest place wherever the spell goes; house-v2 everywhere else. */
+async function freeAtSpell(spell: Record<string, number>) {
+  const { FREE_AT_THE_TILE } = await import('./second-clock-fixture.ts');
+  const base: any = STRATEGIES['house-v2'].style;
+  return { ...base, places: { ...base.places, time: [{ ...FREE_AT_THE_TILE, id: 'lab-free-here', place: { birds: spell, tempo: [20, 220] } }, ...base.places.time] } };
+}
+
+test('the free tail: Loom the presence and Tide the ring, 18-39 s at every arrival tempo from 90 to 174 BPM, and it leaves as a change, never a hold or a cut (his ear 10-18)', async () => {
+  const { TILE } = await import('./second-clock-fixture.ts');
+  const { freeBlendSeconds, freePresenceSeconds, freeRingSeconds } = await import('../src/musical-time.ts');
+  const { FREE_TAIL_CURVES, swapAfterBars } = await import('../src/set-plan.ts');
+  // the law: each bird one part, the corners and the tile
+  assert.ok(Math.abs(freeBlendSeconds(0, 0) - 18) < 1e-9 && Math.abs(freeBlendSeconds(1, 1) - 39) < 1e-9, 'the corners are not 18 and 39 s');
+  assert.ok(Math.abs(freeBlendSeconds(TILE.loom, TILE.tide) - 33.75) < 0.01, `the tile's tail is ${freeBlendSeconds(TILE.loom, TILE.tide)} s`);
+  for (const v of [0, 0.3, 0.7, 1]) {
+    assert.ok(Math.abs(freeBlendSeconds(v, 0.2) - freeRingSeconds(0.2) - freePresenceSeconds(v)) < 1e-9, 'Tide reached the presence');
+    assert.ok(Math.abs(freeBlendSeconds(0.2, v) - freePresenceSeconds(0.2) - freeRingSeconds(v)) < 1e-9, 'Loom reached the ring');
+  }
+  const base: any = STRATEGIES['house-v2'].style;
+  const o: any = setOptions(base, {});
+  const db = (g: number) => 20 * Math.log10(g);
+  let laidSome = 0;
+  for (const birds of [TILE, { ...TILE, loom: 0, tide: 0 }, { ...TILE, loom: 1, tide: 1 }]) {
+    const style = await freeAtSpell(birds);
+    const free = quiet(() => planTheme('1', 0, { style, spell: birds, preset: 'auto' } as any));
+    assert.equal(free.clock, 'free');
+    for (const tempo of [90, 120, 140, 174]) {
+      const house = quiet(() => planTheme('1', 1, { style: base, spell: { ember: 0.6 }, preset: 'auto', tempo } as any));
+      assert.equal(house.bpm, tempo);
+      const L = layOut([free, house] as any, { ...o, style: base });
+      const s = L.seams[0];
+      const at = `Loom ${birds.loom} Tide ${birds.tide} into ${tempo} BPM`;
+      // the same seconds at every arrival tempo, within half the arriving bar
+      assert.ok(Math.abs(s.end - s.at - free.blendSeconds!) <= house.barSeconds / 2 + 1e-9, `${at}: the tail is ${(s.end - s.at).toFixed(2)} s, not its ${free.blendSeconds!.toFixed(2)} s`);
+      assert.equal(s.barSeconds, house.barSeconds);
+      assert.ok(Math.abs(s.swapAt - s.at - swapAfterBars(s.bars, o) * house.barSeconds) < 1e-9, `${at}: the swap is not the house's eighth bar or the blend's half`);
+      const m: any = { at: s.at, bars: s.bars, barSeconds: s.barSeconds, swapAt: s.swapAt, filterMove: 'close', outgoingBar: free.barSeconds, swapInFrom: s.swapAt - L.starts[0], swapInTo: s.swapAt - s.at, sumGain: 1 };
+      const plain = seamCurves(m, o);
+      const w = seamCurves({ ...m, freeTail: { ringS: free.ringSeconds! } }, o);
+      // the arriving side and the sum are what they always were: the tail is the free side's alone
+      const others = (x: any) => JSON.stringify([x.lines.filter((l: any) => l.deck !== 'from'), x.holes.filter((h: any) => h.deck !== 'from')]);
+      assert.equal(others(w), others(plain), `${at}: the free tail moved the arriving side`);
+      assert.ok(!plain.holes.some((h: any) => h.group === '*' || h.group.startsWith('bus:')), 'a metered seam holes a voice');
+      // the free side: one fader line and one top line, both only ever falling, the level -24 dB where its last note may
+      // start and gone at the end, never a step: the steepest fall before the ring under 6 dB a second
+      const fromLines = w.lines.filter((l: any) => l.deck === 'from');
+      const fader = fromLines.filter((l: any) => l.param === 'fader.gain'), top = fromLines.filter((l: any) => l.param === 'lp.frequency');
+      assert.equal(fader.length, 1); assert.equal(top.length, 1);
+      for (const l of [fader[0], top[0]]) for (let i = 1; i < l.points.length; i++) assert.ok(l.points[i].v <= l.points[i - 1].v && l.points[i].t >= l.points[i - 1].t, `${at}: ${l.param} rises`);
+      const ring = Math.min(free.ringSeconds!, (s.end - s.swapAt) / 2), last = s.end - ring;
+      const fp = fader[0].points;
+      assert.deepEqual(fp.map((p: any) => p.k), ['set', 'exp', 'exp', 'lin']);
+      assert.ok(fp[0].t === s.swapAt && fp[0].v === 1 && Math.abs(fp[1].t - last) < 1e-9 && Math.abs(db(fp[1].v) - FREE_TAIL_CURVES.lastDb) < 1e-9 && Math.abs(fp[2].t - s.end) < 1e-9, `${at}: the fader is not 1 at the swap, ${FREE_TAIL_CURVES.lastDb} dB at the last note and gone at the end`);
+      const slope = -FREE_TAIL_CURVES.lastDb / (last - s.swapAt);
+      assert.ok(slope < 6 && last - s.swapAt >= 5, `${at}: the fall is ${slope.toFixed(1)} dB a second over ${(last - s.swapAt).toFixed(1)} s, a cut`);
+      assert.ok(s.end - s.at >= 16, `${at}: the shortest tail is ${(s.end - s.at).toFixed(1)} s`);
+      // the voices leave one by one, in the free theme's own seconds: the drums at the swap, the calls halfway, every
+      // note at the ring
+      const own = (t: number) => t - L.starts[0];
+      const hole = (g: string) => w.holes.find((h: any) => h.deck === 'from' && h.group === g)!.gap;
+      assert.ok(Math.abs(hole('bus:drums')[0] - own(s.swapAt)) < 1e-9 && Math.abs(hole('bus:keys')[0] - own((s.swapAt + last) / 2)) < 1e-9 && Math.abs(hole('*')[0] - own(last)) < 1e-9, `${at}: the voices do not leave at the swap, halfway and the ring`);
+      laidSome++;
+    }
+  }
+  assert.equal(laidSome, 12);
+});
+
+test('the free tail, played: a pull out of the free tile into the house; its drums play no note past the swap, its calls none past halfway, nothing starts in the ring, and its calls play on until then (his ear 10-18)', async () => {
+  const { TILE, HOUSE_120 } = await import('./second-clock-fixture.ts');
+  const { freeDeck } = await import('@deep-house/engine/deck');
+  const s = await freeScene(TILE);
+  try {
+    await muted(() => s.mix.start(0, 40));
+    await play(s.ctx, 2);
+    const t0: any = s.mix.record;
+    assert.ok(freeDeck(t0), 'the tile is not free');
+    const p: any = await muted(() => s.mix.setSpell(HOUSE_120));
+    assert.ok(p && p.at && p.swapAt && p.end, 'the pull armed no hand-over');
+    while (s.ctx.currentTime < p.end + 3) await play(s.ctx, 0.5);
+    const ring = Math.min(t0.track.ringSeconds, (p.end - p.swapAt) / 2), last = p.end - ring, half = (p.swapAt + last) / 2;
+    const ev = new Map<unknown, any>();
+    for (const e of t0.program.events) ev.set(e.p, e);
+    const heard = s.fired.filter((f) => ev.has(f.p)).map((f) => { const e = ev.get(f.p); return { at: t0.zeroAt + e.t, bus: e.bus }; });
+    const late = (bus: string | null, from: number) => heard.filter((h) => (bus == null || h.bus === bus) && h.at >= from + 1e-6);
+    assert.equal(late('drums', p.swapAt).length, 0, 'the free side\'s drums played past the swap');
+    assert.equal(late('keys', half).length, 0, `the free side's calls played past halfway (${half.toFixed(1)} s)`);
+    assert.equal(late(null, last).length, 0, `a free note started in the ring (past ${last.toFixed(1)} s)`);
+    const calls = heard.filter((h) => h.bus === 'keys' && h.at >= p.at && h.at < half).length;
+    assert.ok(calls > 5, `only ${calls} calls between the blend's start and halfway: the tail did not keep the free side present`);
+  } finally { s.done(); }
+});

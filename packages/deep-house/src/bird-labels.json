@@ -1,7 +1,7 @@
 {
   "kind": "bird-labels",
   "schema": 1,
-  "note": "What each bird's cell says (round K13 of the ring). `big` is the quantity the bird itself biases, read off the spell the theme is planned under: a control of the style (`control`), a field of derive() (`derive`), or a reading of the plan the bird leans (`plan`). `bands` segment it, rising: each band holds up to the threshold its `upTo` names, and the last holds the rest. A threshold is never a number typed here: `window` is a family's own `when` on that control in the style's composition (family, variant or null, control, min|max), and `record` is the edge of what the fourteen golden themes reach on the bird (HOUSE -/+ HOUSE_OUTER, spell.ts). `sub` is the seed's locked reading, which the bird does not bias, said as a subtitle with its role. `reads` is what the cell's whole reading is computed from, by the name the spell layer biases it under: `derive.<field>` for a field of derive(), `control.<name>` for a control of the style, `list.<id>` for a candidate list: the ring's dotted lines come from it, and tools/check.ts holds it to the measured matrix (tools/birds-matrix.json). Two reads are a rule of the composer's and not a die of the cell's own (round K14): Gleam's chords read the tempo family, because the harmony pedal that holds the progression on its tonic requires the struck figure, and the figure opens only above 110 BPM; and Tide's section count reads whether the drums are on, because a theme under 96 bars gets its short outro only where it has a grid (R38). `says` is the long form (Eugene's copy to polish): one plain present-tense sentence of what the music is at that value, with the locked reading after it (`lockedSays`) — the explanation, the phone panel's line and the screen reader read nothing else, and tools/check.ts refuses a pole word in it. No genre is named anywhere in it (Eugene, 09-24: a genre word is not going to be accurate); a tempo family is said by what the kick does. `short` is the line the panel and the track show: the band's fact in five words at most, never the locked reading (that is the subtitle's) and never a genre; `says` stays the long form for the screen reader and a later info tip (Eugene, 09-24: \"more compact factual explanations that fit in 4-5 words\"). `lean` (round K15, Eugene: *\"we have at best 3–4 word variations per bird … could we fill in more text variants on bird movement\"*) is where in its band the value stands, off the same continuous quantity: the lower third says `lean.low`, the upper third `lean.high`, the middle the band's own — so a drag reads differently every sixth or so of the range while the word turns only at a threshold the composer has. `timbres` is each timbre id as it reads after \"The keys are …\" and on the short line (round K15: \"a vibes\" was an article by the first letter); tools/check.ts holds that every id the four keys lists can draw has one. Since K30 (the reviews of 09-26) a band's lines claim a part or a figure only where the program plays it: `{with}` in a line is filled from the band's `with` items whose `needs` fact the program shows (`programFacts`: the drum lanes' events, and the composition trace's selected parts and scene), joined by the band's `joiner`; a part the program does not play is left out, never said. Spark's `noDrums` is its word and lines with no drum event in the theme.",
+  "note": "What each bird's cell says (round K13 of the ring). `big` is the quantity the bird itself biases, read off the spell the theme is planned under: a control of the style (`control`), a field of derive() (`derive`), or a reading of the plan the bird leans (`plan`). `bands` segment it, rising: each band holds up to the threshold its `upTo` names, and the last holds the rest. A threshold is never a number typed here: `window` is a family's own `when` on that control in the style's composition (family, variant or null, control, min|max), and `record` is the edge of what the fourteen golden themes reach on the bird (HOUSE -/+ HOUSE_OUTER, spell.ts). `sub` is the seed's locked reading, which the bird does not bias, said as a subtitle with its role. `reads` is what the cell's whole reading is computed from, by the name the spell layer biases it under: `derive.<field>` for a field of derive(), `control.<name>` for a control of the style, `list.<id>` for a candidate list: the ring's dotted lines come from it, and tools/check.ts holds it to the measured matrix (tools/birds-matrix.json). Two reads are a rule of the composer's and not a die of the cell's own (round K14): Gleam's chords read the tempo family, because the harmony pedal that holds the progression on its tonic requires the struck figure, and the figure opens only above 110 BPM; and Tide's section count reads whether the drums are on, because a theme under 96 bars gets its short outro only where it has a grid (R38). `says` is the long form (Eugene's copy to polish): one plain present-tense sentence of what the music is at that value, with the locked reading after it (`lockedSays`) — the explanation, the phone panel's line and the screen reader read nothing else, and tools/check.ts refuses a pole word in it. No genre is named anywhere in it (Eugene, 09-24: a genre word is not going to be accurate); a tempo family is said by what the kick does. `short` is the line the panel and the track show: the band's fact in five words at most, never the locked reading (that is the subtitle's) and never a genre; `says` stays the long form for the screen reader and a later info tip (Eugene, 09-24: \"more compact factual explanations that fit in 4-5 words\"). `lean` (round K15, Eugene: *\"we have at best 3–4 word variations per bird … could we fill in more text variants on bird movement\"*) is where in its band the value stands, off the same continuous quantity: the lower third says `lean.low`, the upper third `lean.high`, the middle the band's own — so a drag reads differently every sixth or so of the range while the word turns only at a threshold the composer has. `timbres` is each timbre id as it reads after \"The keys are …\" and on the short line (round K15: \"a vibes\" was an article by the first letter); tools/check.ts holds that every id the four keys lists can draw has one. Since K30 (the reviews of 09-26) a band's lines claim a part or a figure only where the program plays it: `{with}` in a line is filled from the band's `with` items whose `needs` fact the program shows (`programFacts`: the drum lanes' events, and the composition trace's selected parts and scene), joined by the band's `joiner`; a part the program does not play is left out, never said. Spark's `noDrums` is its word and lines with no drum event in the theme. Zephyr's `air` (the bird-labels round, 10-18, his words: \"Zephyr is air … 'No keys' is a bit strange value\") is its big word: the brightness of the voice in front (the keys that play, else the held voice; the struck conversation's caller), measured from the sound (voice-air.json, tools/voice-air.ts: the spectral centroid at the onsets, each voice alone at its place's pitch) and cut on six plain words, each cut `between` two measured neighbours at the geometric middle of their centroids, never a number typed; the instrument and its role are the subtitle (SAW PAD · HELD), `on` the role as a sentence says it, and a lean the third of its band the voice's centroid stands in. `says` and `short` stay for a voice the table has not measured, which keeps its name as the word. A technique's recipe row may carry a `labels` block in this table's shape (`bird-labels.ts`, `techniqueOf`): where the theme's program carries that technique, a control says the technique's quantity in place of the general one.",
   "birds": {
     "ember": {
       "cell": "bpm",
@@ -148,7 +148,7 @@
     "zephyr": {
       "cell": "timbre",
       "big": {
-        "plan": "keysPreset"
+        "plan": "air"
       },
       "sub": "keys",
       "reads": [
@@ -158,8 +158,138 @@
         "list.padPartners",
         "list.densities"
       ],
-      "says": "The keys are {keys}.",
-      "short": "{keys}"
+      "says": "{front} carries the tone.",
+      "short": "{front}",
+      "air": {
+        "bands": [
+          {
+            "word": "dark",
+            "upTo": {
+              "between": [
+                "calls.bellGreat",
+                "held.rhodes"
+              ]
+            },
+            "says": "The air is dark, {on}.",
+            "short": "Dark air",
+            "lean": {
+              "low": {
+                "short": "Very dark air",
+                "says": "The air is very dark, {on}."
+              },
+              "high": {
+                "short": "Dark, nearly warm",
+                "says": "The air is dark, nearly warm, {on}."
+              }
+            }
+          },
+          {
+            "word": "warm",
+            "upTo": {
+              "between": [
+                "keys.pianoConcert",
+                "keys.glass"
+              ]
+            },
+            "says": "The air is warm, {on}.",
+            "short": "Warm air",
+            "lean": {
+              "low": {
+                "short": "Warm, nearly dark",
+                "says": "The air is warm, nearly dark, {on}."
+              },
+              "high": {
+                "short": "Warm, nearly mellow",
+                "says": "The air is warm, nearly mellow, {on}."
+              }
+            }
+          },
+          {
+            "word": "mellow",
+            "upTo": {
+              "between": [
+                "keys.fmBell",
+                "calls.vibes"
+              ]
+            },
+            "says": "The air is mellow, {on}.",
+            "short": "Mellow air",
+            "lean": {
+              "low": {
+                "short": "Mellow, nearly warm",
+                "says": "The air is mellow, nearly warm, {on}."
+              },
+              "high": {
+                "short": "Mellow, nearly clear",
+                "says": "The air is mellow, nearly clear, {on}."
+              }
+            }
+          },
+          {
+            "word": "clear",
+            "upTo": {
+              "between": [
+                "calls.fmBell",
+                "keys.pulseLead"
+              ]
+            },
+            "says": "The air is clear, {on}.",
+            "short": "Clear air",
+            "lean": {
+              "low": {
+                "short": "Clear, nearly mellow",
+                "says": "The air is clear, nearly mellow, {on}."
+              },
+              "high": {
+                "short": "Clear, nearly bright",
+                "says": "The air is clear, nearly bright, {on}."
+              }
+            }
+          },
+          {
+            "word": "bright",
+            "upTo": {
+              "between": [
+                "calls.bellSmall",
+                "held.wavePad"
+              ]
+            },
+            "says": "The air is bright, {on}.",
+            "short": "Bright air",
+            "lean": {
+              "low": {
+                "short": "Bright, nearly clear",
+                "says": "The air is bright, nearly clear, {on}."
+              },
+              "high": {
+                "short": "Bright, nearly airy",
+                "says": "The air is bright, nearly airy, {on}."
+              }
+            }
+          },
+          {
+            "word": "airy",
+            "upTo": null,
+            "says": "The air is light and open, {on}.",
+            "short": "Light, open air",
+            "lean": {
+              "low": {
+                "short": "Airy, nearly bright",
+                "says": "The air is light and open, nearly bright, {on}."
+              },
+              "high": {
+                "short": "Very light, open air",
+                "says": "The air is very light and open, {on}."
+              }
+            }
+          }
+        ],
+        "on": {
+          "keys": "on {voice}",
+          "held": "held on {voice}",
+          "call": "the calls on {voice}"
+        }
+      }
     },
     "gleam": {
       "cell": "key",
@@ -648,7 +778,13 @@
     }
   },
   "timbres": {
+    "bellGreat": "a great temple bell",
+    "bellSmall": "small bells",
+    "bellTemple": "a temple bell",
+    "bowlRim": "a rimmed singing bowl",
+    "bowlStruck": "a struck singing bowl",
     "brightPiano": "a bright piano",
+    "chantOm": "a wordless chant",
     "clavKey": "a clavinet",
     "ep": "an electric piano",
     "fmBell": "an FM bell",
@@ -658,11 +794,13 @@
     "fmGlass": "FM glass",
     "fmPluck": "an FM pluck",
     "formantPad": "a formant pad",
+    "frameDrum": "a frame drum",
     "glass": "glass",
     "grainPad": "a grain pad",
     "karplusPluck": "a plucked string",
     "keysSuitcase": "a suitcase electric piano",
     "keysTineDark": "a dark tine electric piano",
+    "malletSoft": "soft mallets",
     "marimba": "a marimba",
     "organ": "an organ",
     "organStab": "an organ stab",
@@ -676,22 +814,33 @@
     "rhodes": "a Rhodes",
     "sawLead": "a saw lead",
     "sawPad": "a saw pad",
+    "shakerSoft": "a soft shaker",
     "shimmerPad": "a shimmer pad",
     "strings": "strings",
     "supersawLead": "a supersaw lead",
     "supersawPad": "a supersaw pad",
     "swell": "a swell",
+    "tanpura": "a tanpura",
     "triLead": "a triangle lead",
     "vibes": "vibes",
-    "wavePad": "a wave pad"
+    "wavePad": "a wave pad",
+    "woodblockSoft": "a soft woodblock"
   },
   "cellWords": {
+    "bellGreat": "great bell",
+    "bellSmall": "small bells",
+    "bellTemple": "temple bell",
+    "bowlStruck": "bowl",
     "fmEpGlass": "glass ep",
     "fmEpSoft": "fm ep",
+    "karplusPluck": "pluck",
     "keysSuitcase": "suitcase",
     "keysTineDark": "dark tine",
+    "malletSoft": "soft mallets",
     "pianoClose": "close grand",
     "pianoConcert": "far grand",
-    "pianoFelt": "felt grand"
+    "pianoFelt": "felt grand",
+    "shakerSoft": "shaker",
+    "woodblockSoft": "woodblock"
   }
 }

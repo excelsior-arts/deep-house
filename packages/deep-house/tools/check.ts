@@ -51,7 +51,7 @@ import { EQ_BANDS } from '@deep-house/engine/master';
 import { styleDistance, FLOOR } from '../src/style-distance.ts';
 import { castPool, pickCast } from '../src/cast-pool.ts';
 import Rng from '../src/rng.ts';
-import { bandsOf, bandAt, leanAt, LABEL_TABLE, allSentences, allShorts, sentenceOf, shortOf, BANNED_WORDS, cellReading, timbrePhrase } from '../src/bird-labels.ts';
+import { bandsOf, bandAt, leanAt, LABEL_TABLE, allSentences, allShorts, sentenceOf, shortOf, BANNED_WORDS, cellReading, timbrePhrase, timbreWords, heldOfProgram, techniqueOf, techniqueBandsOf, TECHNIQUE_LIST, airOf, airBands, AIR_TABLE, airPlayOf, settingOf, airCurveAt } from '../src/bird-labels.ts';
 import { candidateLists } from '../src/catalogue.ts';
 import { GLYPH_ROWS, levelAt as glyphLevelAt } from '../src/bird-glyph.ts';
 import { edgesOf, linksOf, frameLine, biasesOf, COMPASS as INFLUENCE_COMPASS } from '../src/bird-influence.ts';
@@ -61,7 +61,7 @@ import {
   measuredWeights, measuredRanges, MIN_SIGNATURE, WEIGHT_FLOOR, WEIGHT_CEILING,
   parseSpell, sameSpell, spellQuery, spellFromQuery, recipeFromQuery,
   knobSetting, knobsFor, knobInRegion, KNOB_TASTE, HOUSE_REGION,
-  tempoBassLean, tempoBassSetting, TEMPO_BASS_KNOBS,
+  tempoBassLean, tempoBassSetting, TEMPO_BASS_KNOBS, DRUMS_ON_ABOVE,
 } from '../src/spell.ts';
 import {
   ringColour, restyle, typeInk, paleInk, PALE, contrastOnBlack, hexToLch, GOLD_STOPS, BASE, K,
@@ -87,7 +87,7 @@ import {
   STRATEGIES, STRATEGY_IDS, DEFAULT_STRATEGY, strategyById, strategyFromQuery,
 } from '../src/strategies/index.ts';
 import { MOMENTS, PALETTE_LANES, LANE_TRIMS } from '../src/styles/deep-house-v2.ts';
-import { DROPPED_FOR_COST, CEILING as CATALOGUE_CEILING, CAST_UNITS, TREATED_LANES, AWAITING_TREATMENTS, AWAITING, BY_PLACE } from '../src/catalogue-v2.ts';
+import { DROPPED_FOR_COST, CEILING as CATALOGUE_CEILING, CAST_UNITS, TREATED_LANES, AWAITING_TREATMENTS, AWAITING, BY_PLACE, FLAGGED } from '../src/catalogue-v2.ts';
 import { BY_ID as EFFECTS_BY_ID, REGISTRY as EFFECT_REGISTRY, costOf } from '@deep-house/engine/effects';
 import { costOfVoices } from '@deep-house/engine/voices';
 import * as VOICE_REGISTRY from '@deep-house/engine/voices';
@@ -1573,14 +1573,73 @@ check('every part a bird\'s sentence names plays in the theme, and with the drum
       for (const [re, holds, what] of claims) if (re.test(says)) { n++; must(holds(facts), `${seed}#${i} ${JSON.stringify(spell)}: ${b} says "${says}" and the theme plays no ${what}`); seen.set(what, (seen.get(what) || 0) + 1); }
       if (!facts.drums && b !== 'ember') must(!/\b(beat|backbeat|kick|four on the floor)\b/i.test(says) || /no beat/i.test(says), `${seed}#${i} ${JSON.stringify(spell)}: with no drum in the theme ${b} says "${says}"`);
     }
-    // the keys Zephyr names play in the keys layer, or it says none play
+    // Zephyr's sentence names keys that play in the keys layer; where none play, the voice that holds (the bird-labels
+    // round), read here off the held layer's events; and its word is that voice's measured air, never an absence
     const keys = new Set(t.events.filter((e) => e.layer === 'keys').map((e) => (e.p && typeof e.p.preset === 'string' ? e.p.preset : e.voice)));
     const z = cellReading('zephyr', theme, v2).word;
     const named = [...keys].some((k) => timbrePhrase(k) && sentenceOf('zephyr', theme, v2).includes(timbrePhrase(k)));
-    if (!(keys.size ? named : z === 'no keys')) keysWrong++;
-    must(keys.size ? named : z === 'no keys', `${seed}#${i} ${JSON.stringify(spell)}: Zephyr says "${sentenceOf('zephyr', theme, v2)}" where the keys layer plays ${[...keys].join(', ') || 'nothing'}`);
+    const heldTally = new Map();
+    for (const e of t.events) if (e.layer === 'pad') { const k = e.p && typeof e.p.timbre === 'string' ? e.p.timbre : e.voice; heldTally.set(k, (heldTally.get(k) || 0) + 1); }
+    const held = [...heldTally].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    must(held === (heldOfProgram(t.events) ?? null), `${seed}#${i}: the held voice counted ${held}, read ${heldOfProgram(t.events)}`);
+    // (the air as played, bird-labels round 3: the voice's curve at the strike, the low-pass and the knob the theme plays)
+    const play = airPlayOf(t.events, t.knobs, t.dice.keysPreset);
+    const keysAir = [...keys].map((k) => airOf(k, 'keys', settingOf(play, k, 'keys'))?.band.word);
+    // (inside the bells' zone, since zones-pilot, a drumless spell with Spark up plays the struck conversation: there the word is
+    // the caller's air at its strike, as the labels read BELLS)
+    const caller = t.conversation?.voices?.caller;
+    const zOk = caller ? z === airOf(caller, 'call', settingOf(play, caller, 'call'))?.band.word && sentenceOf('zephyr', theme, v2).includes(timbrePhrase(caller))
+      : keys.size ? named && keysAir.includes(z) : held ? z === airOf(held, 'held', settingOf(play, held, 'held'))?.band.word && sentenceOf('zephyr', theme, v2).includes(timbrePhrase(held)) : false;
+    if (!zOk) keysWrong++;
+    must(zOk, `${seed}#${i} ${JSON.stringify(spell)}: Zephyr says "${z}: ${sentenceOf('zephyr', theme, v2)}" where the keys layer plays ${[...keys].join(', ') || 'nothing'} and the held layer ${held || 'nothing'}`);
   }
-  return `${themes} themes under ${spells.length} spells (${drumless} with no drum at all): ${n} part claims, every one on a theme that plays it (${[...seen].map(([k, v]) => `${k} ${v}`).join(', ')}), no beat said where no drum plays, and Zephyr naming a keyboard that plays in every theme`;
+  return `${themes} themes under ${spells.length} spells (${drumless} with no drum at all): ${n} part claims, every one on a theme that plays it (${[...seen].map(([k, v]) => `${k} ${v}`).join(', ')}), no beat said where no drum plays, and Zephyr naming a keyboard that plays, or with none the voice that holds, and saying its measured air, in every theme`;
+});
+
+check('Zephyr says the air of the voice in front, measured (the bird-labels round, 10-18): every voice it can name is in voice-air.json, each cut falls between two neighbours, no texture earns a word', () => {
+  const v2 = strategyById('house-v2').style;
+  const tables = ['keys', 'held', 'calls'];
+  const measured = (id) => tables.some((t) => AIR_TABLE[t][id]);
+  const reserved = new Set(FLAGGED.filter((f) => f.kind === 'reserved').map((f) => f.id));
+  const lacking = [];
+  for (const l of candidateLists(v2.catalogue)) if (['leadTimbres', 'sustainedLeads', 'padPartners', 'stabPartners'].includes(l.id)) for (const v of l.list()) if (!measured(String(v)) && !reserved.has(String(v))) lacking.push(`${l.id} ${v}`);
+  // the liquid keys' tones, and every voice the struck conversation's cast may call on
+  const draw = JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'keys', 'draw.json'), 'utf8'));
+  const tonesFile = JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'keys', 'tones.json'), 'utf8'));
+  const drawn = new Set(JSON.stringify(draw).match(/"tone":\s*\{[^}]*\}/g).flatMap((m) => Object.keys(JSON.parse(m.replace(/^"tone":\s*/, '')))));
+  for (const t of (Array.isArray(tonesFile) ? tonesFile : tonesFile.rows).filter((r) => drawn.has(r.id))) if (!AIR_TABLE.keys[t.layers[0].sound]) lacking.push(`the keys tone ${t.layers[0].sound}`);
+  for (const r of JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'ambient', 'conversation.json'), 'utf8')).rows) {
+    for (const v of r.caller.voices) if (!AIR_TABLE.calls[v.v]) lacking.push(`the call ${v.v}`);
+    // the answerer's air leans its draw (the zephyr-air review): every voice it can answer in, measured as it answers
+    for (const v of [...r.answerer.voices.filter((x) => x.w > 0).map((x) => x.v), ...Object.values(r.size ?? {}).map((p) => p.voice?.answerer).filter(Boolean)]) if (!AIR_TABLE.answers?.[v]) lacking.push(`the answer ${v}`);
+  }
+  must(!lacking.length, `voices Zephyr can name with no measured air (node tools/voice-air.ts): ${lacking.join(', ')}`);
+  // each cut between two measured neighbours, nothing measured between them, the cuts rising
+  const all = tables.flatMap((t) => Object.entries(AIR_TABLE[t]).map(([id, e]) => ({ ref: `${t}.${id}`, ...e })));
+  const bands = airBands();
+  for (const [k, row] of LABEL_TABLE.birds.zephyr.air.bands.entries()) {
+    if (!row.upTo) { must(k === bands.length - 1, `the air's ${row.word} has no cut and is not the last band`); continue; }
+    const [a, b] = row.upTo.between.map((r) => all.find((x) => x.ref === r));
+    must(a && b && a.hz < b.hz, `the air's ${row.word} cut names ${row.upTo.between.join(' and ')}, measured ${a?.hz} and ${b?.hz} Hz`);
+    const inside = all.filter((x) => x.hz > a.hz && x.hz < b.hz);
+    must(!inside.length, `the air's ${row.word} cut between ${a.ref} and ${b.ref} has ${inside.map((x) => `${x.ref} (${x.hz} Hz)`).join(', ')} between them`);
+    must(k === 0 || bands[k].upTo > bands[k - 1].upTo, `the air's cuts do not rise at ${row.word}`);
+  }
+  must(bands.every((b) => all.some((x) => airOf(x.ref.split('.')[1], x.ref.startsWith('calls') ? 'call' : x.ref.startsWith('held') ? 'held' : 'keys')?.band.word === b.word)), 'a band of the air holds no measured voice');
+  // the curves (bird-labels round 3): five settings rising over the control's reach, each a measured centroid, the
+  // control one the program writes (the strike only on a call, the low-pass on keys, the knob on a voice that declares it)
+  const curved = all.filter((x) => x.curve);
+  for (const x of curved) {
+    const c = x.curve, P = c.points;
+    must(['vel', 'lpMul', 'knob'].includes(c.by) && (c.by === 'vel') === x.ref.startsWith('calls.') && (c.by !== 'lpMul' || x.ref.startsWith('keys.')), `${x.ref}: a curve by ${c.by}`);
+    must(P.length === 5 && P.every((p, i) => p[1] > 0 && (i === 0 || p[0] > P[i - 1][0])), `${x.ref}: the curve's points ${JSON.stringify(P)}`);
+    must(c.by !== 'knob' || (typeof c.voice === 'string' && typeof c.unset === 'number' && c.unset >= P[0][0] && c.unset <= P[4][0]), `${x.ref}: a knob curve names its voice and the setting where none is written`);
+    must(Math.abs(airCurveAt(c, P[2][0]) - P[2][1]) < 1e-6 && airCurveAt(c, P[0][0] / 2) === P[0][1] && airCurveAt(c, P[4][0] * 2) === P[4][1], `${x.ref}: the curve read at its own points and past its ends`);
+  }
+  // the texture index: no voice is rough or noisy enough for a second word
+  const flat = all.filter((x) => x.flat >= 0.12);
+  must(!flat.length, `voices with a texture index over 0.12, a second word to weigh: ${flat.map((x) => x.ref).join(', ')}`);
+  return `${all.length} voices measured, ${curved.length} with a curve (${['vel', 'lpMul', 'knob'].map((k) => `${curved.filter((x) => x.curve.by === k).length} by ${k}`).join(', ')}); the air ${bands.map((b) => b.word + (b.upTo != null ? ` < ${b.upTo} Hz` : '')).join(' · ')}`;
 });
 
 check('Spark\'s subtitle counts the hats that play in the main, not the hits of the rolled mask', () => {
@@ -1715,6 +1774,150 @@ check('every band of every bird says what the music is in one plain sentence and
     if (v === 1) said.push(line);
   }
   return `${all.length} sentences over ${BIRDS.length} birds, none with ${BANNED_WORDS.join(', ')}; at the rim on seed 1: ${said.join(' / ')}`;
+});
+
+// **The bird-labels round (10-18): where a technique owns the foreground, a control says the technique's
+// quantity** (his words: *"label more specific to the immediate role of the position"*). At BELLS the struck
+// conversation's row carries its own words (`recipes/ambient/conversation.json`, `labels`): Root the bells' size, Veil
+// how often they talk, Spark the talk's movement and the hand, Gleam the bowl leaving the tonic, Zephyr the call's voice
+// and its strike, Ember the strikes' time, Loom the talk's form. Held here: every band is solved from the planner's own
+// arithmetic (Root's cuts where a pole's voice takes half the casts, recomputed from the row's curve), the words turn
+// where the program's cast does, and a theme reads them only where its program lays the conversation.
+check('where the struck conversation plays, each control says its quantity there, cut where the conversation\'s own numbers turn, and nowhere else', () => {
+  const v2 = strategyById('house-v2').style;
+  const tech = TECHNIQUE_LIST.find((x) => x.field === 'conversation');
+  must(tech, 'the conversation is no technique with labels');
+  const row = 'bells-in-conversation';
+  const labels = tech.labelsOf(row);
+  const birds = Object.keys(labels).filter((k) => BIRDS.includes(k));
+  const solved = [];
+  for (const b of birds) {
+    const bands = techniqueBandsOf(tech, row, b, v2);
+    must(bands && bands.length >= 2, `${b}'s bands at BELLS do not solve`);
+    for (const [k, x] of bands.entries()) {
+      if (k < bands.length - 1) must(x.upTo > 0 && x.upTo < 1 && (k === 0 || x.upTo > bands[k - 1].upTo) && x.from, `${b}'s ${x.word} cut at ${x.upTo} from "${x.from}"`);
+      if (x.lean) must(new Set([x.short, x.lean.low.short, x.lean.high.short]).size === 3 && x.lean.low.says && x.lean.high.says, `${b}'s ${x.word} at BELLS leans to a line it already says`);
+    }
+    solved.push(`${b} ${bands.map((x) => x.word + (x.upTo != null ? ` <${x.upTo}` : '')).join(' ')}`);
+  }
+  // Root's cuts, recomputed from the row alone: the small pole's half (linear) and the great pole's (|size|^curve)
+  const R = JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'ambient', 'conversation.json'), 'utf8')).rows.find((r) => r.id === row);
+  const c = 0.10, root = techniqueBandsOf(tech, row, 'root', v2);
+  const small = c * (1 - Math.pow(0.5, 1 / (R.size.small.curve ?? 1))), great = c + (1 - c) * Math.pow(0.5, 1 / (R.size.large.curve ?? 1));
+  must(Math.abs(root[0].upTo - small) < 2e-3 && Math.abs(root[1].upTo - great) < 2e-3, `Root's cuts ${root[0].upTo} and ${root[1].upTo}, the row's halves ${small.toFixed(4)} and ${great.toFixed(4)}`);
+  // the words where the program plays the conversation, and the general ones on a library turn at the same spell
+  const BELLS = { ember: 0.05, tide: 0.65, zephyr: 0.65, root: 0.10, gleam: 0.80, veil: 0.30, spark: 0.55, loom: 0.90 };
+  const themeOf = (t, spell) => ({ spell, bpm: t.bpm, key: t.key.name, presetName: t.presetLabel, preset: t.preset, dice: t.dice, bars: t.bars, plan: t.arrangement.sections, events: t.events, timeline: t.timeline });
+  const want = { 0: 'small', 0.10: 'low & high', 0.5: 'low & high', 0.89: 'great' };
+  let own = 0, library = 0;
+  const callers = new Map();
+  for (const [at, word] of Object.entries(want)) for (const seed of ['1', '2', '3', '4', '5', '6']) for (const i of [0, 1, 2]) {
+    const spell = { ...HOUSE, ...BELLS, root: Number(at) };
+    const t = planTheme(seed, i, { strategy: 'house-v2', spell });
+    const T = themeOf(t, spell);
+    const plays = typeof t.dice.conversation === 'string';
+    must(!!techniqueOf(T) === plays, `${seed}#${i} at Root ${at}: the conversation ${plays ? 'plays' : 'does not play'} and the labels read ${techniqueOf(T) ? 'it' : 'none'}`);
+    const w = cellReading('root', T, v2).word;
+    if (plays) {
+      own++;
+      must(w === word, `${seed}#${i} at Root ${at}: Root says ${w}, the bells' size ${word}`);
+      const caller = t.dice.conversation.split(' · ')[2];
+      // Zephyr's word is the caller's air, the caller its subtitle (the bird-labels round, his words: "Zephyr is air")
+      const zc = cellReading('zephyr', T, v2);
+      // ...at the strike the calls play (bird-labels round 3)
+      const callAir = airOf(caller, 'call', settingOf(airPlayOf(t.events, t.knobs, t.dice.keysPreset), caller, 'call'))?.band.word;
+      must(zc.word === callAir && zc.sub === `${timbreWords(caller)} · call` && sentenceOf('zephyr', T, v2).includes(`the calls on ${timbrePhrase(caller)}`), `${seed}#${i}: Zephyr says ${zc.word} · ${zc.sub} where ${caller} calls (its air as struck ${callAir})`);
+      // Root's subtitle is the bell the cast drew (the review of 10-18: "SUB · ROOM" read as a sub bass under SMALL)
+      must(cellReading('root', T, v2).sub === `${timbreWords(caller)} · calls` && sentenceOf('root', T, v2).includes(`the calls are on ${timbrePhrase(caller)}`), `${seed}#${i} at Root ${at}: Root's subtitle ${cellReading('root', T, v2).sub} where ${caller} calls`);
+      if (Number(at) === 0.89) callers.set(caller, (callers.get(caller) || 0) + 1);
+      for (const b of BIRDS) {
+        const line = sentenceOf(b, T, v2) + ' ' + shortOf(b, T, v2);
+        must(!/\bbass\b|\bbeat\b|\{|undefined|null/.test(line), `${seed}#${i} at Root ${at}: ${b} says "${line}" over the bells`);
+      }
+    } else {
+      library++;
+      must(w === bandAt('root', spell, v2).word, `${seed}#${i} at Root ${at}, a library turn: Root says ${w}, the general ${bandAt('root', spell, v2).word}`);
+    }
+  }
+  // (inside a zone no library row is drawn: every theme there is the conversation, PLAN-ZONES §2.3)
+  const zoned = !!tech.frameOf(row, v2)?.bands;
+  must(own >= 36 && (zoned ? library === 0 : library >= 12), `${own} own themes and ${library} library turns${zoned ? ' inside the zone' : ''}`);
+  must((callers.get('bellGreat') || 0) * 2 > [...callers.values()].reduce((a, b) => a + b, 0), `at Root 0.89 the great bell calls in ${callers.get('bellGreat') || 0} of the own themes (${[...callers].map(([k, v]) => `${k} ${v}`).join(', ')}), not most`);
+  // with the drums on (Ember over their edge), Ember and Spark say the kit's words, the others the bells' still
+  const drums = planTheme('3', 0, { strategy: 'house-v2', spell: { ...HOUSE, ...BELLS, ember: 0.3 } });
+  if (typeof drums.dice.conversation === 'string') {
+    const T = themeOf(drums, { ...HOUSE, ...BELLS, ember: 0.3 });
+    must(!/strikes|heartbeat/.test(shortOf('ember', T, v2)) && !/talk/.test(shortOf('spark', T, v2)), `with the drums on Ember says "${shortOf('ember', T, v2)}" and Spark "${shortOf('spark', T, v2)}"`);
+  }
+  // **The hand is said only where it strikes** (the review of 10-18: at Spark 0 the record names a frame drum that
+  // strikes in none of 24 themes, and the cell read "STILL · FRAME DRUM · HAND, the hand rare"). Every line that names
+  // the hand says what it says where it never strikes (`without.hand`), and over Spark's still end the cell holds to
+  // the program's own facts.
+  const handLines = [];
+  for (const [b, label] of Object.entries(labels)) {
+    if (!BIRDS.includes(b)) continue;
+    for (const band of label.bands) for (const x of [band, band.lean?.low, band.lean?.high].filter(Boolean))
+      if (/\bhand\b/.test(`${x.says} ${x.short}`) && !x.without?.hand) handLines.push(`${b} ${band.word}: "${x.short}"`);
+  }
+  must(!handLines.length, `lines that name the hand with nothing for where it never strikes: ${handLines.join('; ')}`);
+  // (Spark's travel in the conversation's frame: nought to the place's own, or from a zone's edge)
+  const frame = tech.frameOf(row, v2), wallOf = (b) => frame.bands?.[b] ?? [0, 1];
+  const [s0] = wallOf('spark'), sparks = [0, 0.2, 0.4, 0.6].map((k) => +(s0 + (BELLS.spark - s0) * k).toFixed(3));
+  const handTally = {};
+  for (const sp of sparks) for (const seed of ['1', '2', '3', '4', '5', '6', '7', '8']) for (const i of [0, 1, 2]) {
+    const spell = { ...HOUSE, ...BELLS, spark: sp };
+    const t = planTheme(seed, i, { strategy: 'house-v2', spell });
+    if (typeof t.dice.conversation !== 'string') continue;
+    const T = themeOf(t, spell);
+    const strikes = t.events.filter((e) => e.part === 'conversation-punctuation').length;
+    const c = cellReading('spark', T, v2), line = `${shortOf('spark', T, v2)} ${sentenceOf('spark', T, v2)}`;
+    handTally[sp] ??= [0, 0];
+    handTally[sp][strikes ? 0 : 1]++;
+    if (strikes) must(c.sub !== 'no hand' && !/the hand is silent/.test(line), `${seed}#${i} at Spark ${sp}: the hand strikes ${strikes} times and Spark reads "${c.sub}", "${line}"`);
+    else must(c.sub === 'no hand' && /the hand is silent/.test(line) && !/hand (rare|now|often)|frame drum|woodblock|shaker/.test(line), `${seed}#${i} at Spark ${sp}: the hand never strikes and Spark reads "${c.word} · ${c.sub}", "${line}"`);
+  }
+  must(handTally[s0] && handTally[s0][0] === 0 && handTally[s0][1] >= 16, `at Spark ${s0} the hand strikes in ${handTally[s0]?.[0]} themes and in none in ${handTally[s0]?.[1]}`);
+  // **Spark's still end reads still over all of it** (the review of 10-19: seeds 1, 2, 3 and 5 play one program over
+  // 0.45-0.50 while the lean walked "no hand" to "even" to "nearly moving"): the still band's low lean runs to where the
+  // planner's still turns, and over that range a seed's line is its line at the edge
+  const stillBand = techniqueBandsOf(tech, row, 'spark', v2)[0], stillAt = (v) => tech.readings(row, { ...HOUSE, ...BELLS, spark: v }, v2).still;
+  must(stillBand.lowOwn && stillBand.lowAt != null && stillAt(stillBand.lowAt) === stillAt(s0) && stillAt(stillBand.lowAt + 2e-3) < stillAt(s0),
+    `Spark's still low lean to ${stillBand.lowAt}, the planner's still ${stillAt(s0)} at ${s0}, ${stillBand.lowAt != null ? stillAt(stillBand.lowAt) : '-'} there`);
+  const stillLines = [];
+  for (const seed of ['1', '2', '3']) {
+    const lineAt = (sp) => { const spell = { ...HOUSE, ...BELLS, spark: sp }; return shortOf('spark', themeOf(planTheme(seed, 0, { strategy: 'house-v2', spell }), spell), v2); };
+    const edge = lineAt(s0);
+    for (let sp = s0; sp <= stillBand.lowAt + 1e-9; sp = +(sp + 0.01).toFixed(2)) if (lineAt(sp) !== edge) stillLines.push(`seed ${seed} at ${sp}: "${lineAt(sp)}", "${edge}" at ${s0}`);
+  }
+  must(!stillLines.length, `over Spark's still end the line walks: ${stillLines.join('; ')}`);
+  // **Ember's last cut is under the drums' edge**, and the planner's heartbeat starts at it (the zones merge: without the
+  // zone's bands the pulse reaches the heartbeat over the kit's edge, where these words are never read)
+  const ember = techniqueBandsOf(tech, row, 'ember', v2), lastCut = ember[ember.length - 2].upTo;
+  must(lastCut < DRUMS_ON_ABOVE, `Ember's heartbeat cut at ${lastCut}, over the drums' edge ${DRUMS_ON_ABOVE}`);
+  const plannedAt = (bird, v) => {
+    for (const seed of ['1', '2', '3', '4', '5', '6']) {
+      const t = planTheme(seed, 0, { strategy: 'house-v2', spell: { ...HOUSE, ...BELLS, [bird]: v } });
+      if (t.conversation) return t.conversation;
+    }
+    return null;
+  };
+  const beatUnder = plannedAt('ember', +(lastCut - 0.002).toFixed(4)), beatAt = plannedAt('ember', lastCut);
+  must(beatUnder && beatAt && beatUnder.pulse === 0 && beatAt.pulse > 0, `the planner's heartbeat at Ember ${lastCut}: ${beatUnder?.pulse} strokes just under the cut, ${beatAt?.pulse} at it`);
+  // **Veil's busy cut is where the planner's count crosses** (the planner's own record, `summary.count`), and its high
+  // lean starts where the count stops at its ceiling and only the voices change (the review: "BUSY, close together"
+  // over 0.6-1.0 while the handovers went 0.67 to 1.42 a theme)
+  const veil = techniqueBandsOf(tech, row, 'veil', v2), busy = veil[veil.length - 1], busyCut = veil[veil.length - 2].upTo;
+  const countUnder = plannedAt('veil', +(busyCut - 0.002).toFixed(4)), countAt = plannedAt('veil', busyCut);
+  must(countUnder && countAt && countUnder.count < busy.from0 && countAt.count >= busy.from0 - 1e-4,
+    `Veil's busy cut at ${busyCut} (count ${busy.from0.toFixed(4)}), the planner's count ${countUnder?.count} just under it and ${countAt?.count} at it`);
+  const reads = (v) => tech.readings(row, { ...HOUSE, ...BELLS, veil: v }, v2), [, v1] = wallOf('veil');
+  // (inside a zone the count reaches its ceiling at the band's edge, and the high lean is that edge alone)
+  must(busy.highAt != null && Math.abs(reads(busy.highAt).count - reads(v1).count) < 1e-9 && (busy.highAt >= v1 - 1e-9 || reads(v1).handover > reads(busy.highAt).handover + 0.3),
+    `Veil's busy high lean from ${busy.highAt}: the count ${reads(busy.highAt ?? v1).count} there and ${reads(v1).count} at ${v1}, the handover ${reads(busy.highAt ?? v1).handover} to ${reads(v1).handover}`);
+  // a big word of the record is a word the record gives
+  const words = tech.words('bells-in-conversation · bowlStruck · fmBell · marimba · frameDrum', null);
+  for (const [b, label] of Object.entries(labels)) if (BIRDS.includes(b) && label.big.word) must(typeof words[label.big.word] === 'string', `${b}'s big word ${label.big.word} is no word of the record`);
+  return `${solved.join('; ')}; Root's cuts the row's own halves (${small.toFixed(3)}, ${great.toFixed(3)}); over ${own} own themes the cells say the bells (the great bell calling ${callers.get('bellGreat') || 0} of ${[...callers.values()].reduce((a, b) => a + b, 0)} at Root 0.89) and ${library} library turns the general words; no hand said where none strikes (${Object.entries(handTally).map(([k, [on, off]]) => `Spark ${k} ${off} of ${on + off} silent`).join(', ')}); Ember's heartbeat cut ${lastCut} under the kit's ${DRUMS_ON_ABOVE} and the planner's heartbeat from it; Veil's busy cut ${busyCut} the planner's count crossing, its voices changing from ${busy.highAt}`;
 });
 
 check('the influence lines are the model\'s, held to the measured matrix both ways', () => {
@@ -2211,6 +2414,38 @@ check('the star sways inside the compass bound, and every bird stays in its doma
     + `a pointer further than ${hit}° from a bird's home never picking it, and the star never turning faster than ${speed}° a second (${worstFrame.toFixed(2)}° a frame at worst)`;
 });
 
+check('a small window is decided by its size, and no phone, tablet or desktop window is one', () => {
+  // Round apple-mini-2 (Eugene, 10-19: after a Reload in the Mac app's mini
+  // player drew the name and the gear again, "control that UI via CSS based
+  // on viewport size so it works in any circumstance and in other containers
+  // similarly"). The page reads it off its own window and never off the
+  // shell: the query is motion.ts's, index.html says the same one, and every
+  // rule that takes something away from the ring is bounded to 600 px both
+  // ways, so no phone in either orientation (a long side over 600), no tablet
+  // and no desktop window at its usual size is touched.
+  const MOTION = fs.readFileSync(path.join(ROOT, 'src', 'motion.ts'), 'utf8');
+  const q = /export const SMALL_WINDOW = '([^']+)';/.exec(MOTION);
+  must(q, 'src/motion.ts no longer states SMALL_WINDOW');
+  must(q[1] === '(max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)', `the small window is ${q[1]}`);
+  must(PAGE.includes(`@media ${q[1]} {`), 'index.html does not hide the chrome round the ring under motion.ts\'s small window');
+  must(!/deepHouseShell\.mini|data-mini|dataset\.mini/.test(RING + PAGE), 'something still hangs off the shell\'s mini flag');
+  const rules = [...PAGE.matchAll(/@media ([^{]+)\{\s*([^}]*)\}/g)].filter((m) => /visibility: hidden|#name/.test(m[2]));
+  must(rules.length === 6, `${rules.length} rules take something away from the ring, where there are 6`);
+  const steps = [];
+  for (const [, query] of rules) {
+    for (const alt of query.split(',')) {
+      const w = /max-width: ([\d.]+)px/.exec(alt), h = /max-height: ([\d.]+)px/.exec(alt);
+      must(w && h && +w[1] <= 600 && +h[1] <= 600, `"${alt.trim()}" is not bounded to 600 px both ways`);
+      steps.push(Math.min(+w[1], +h[1]));
+    }
+  }
+  // the ring's square in a small window is 0.94 of its shorter side; the steps
+  // are the squares ring.ts names: 400, 320, 290, 250 and 160
+  const squares = [...new Set(steps.filter((v) => v < 600).map((v) => Math.round(v * 0.94)))];
+  must(JSON.stringify(squares) === '[400,320,290,250,160]', `the steps fall at squares of ${squares.join(', ')}`);
+  return `the small window is ${q[1]}, the same query in motion.ts and index.html; its 6 rules are bounded to 600 px both ways, the words going at squares of ${squares.join(', ')} px`;
+});
+
 check('every control is one size, read off the ring\'s square', () => {
   // Eugene, round K3: *"increase the bird circles to match the size of the play
   // controls; moreover increase all button circles on mobile by about 30 %. The
@@ -2224,7 +2459,11 @@ check('every control is one size, read off the ring\'s square', () => {
   must(Math.abs(k - 1.3) < 1e-9, `the small ring's controls are ${k} times as big, where Eugene asked for about 30 %`);
   // a control 2 x CTRL_R units across is 44 CSS pixels at this side, and not above it
   must(Math.round((44 / (2 * r)) * 1000) === side, `the threshold is ${side} px where a ${2 * r}-unit control reaches 44 px at ${Math.round((44 / (2 * r)) * 1000)}`);
-  must(/const next = CTRL_R \* \(side < CTRL_SMALL_SIDE \? CTRL_SMALL_K : 1\);/.test(RING), 'the control size is not read off the ring\'s square');
+  // (and in a small window only, `MINI_BIG_K` again on its smallest squares,
+  // rounds apple-mini and apple-mini-2: everywhere else the factor is 1)
+  must(/const next = CTRL_R \* \(side < CTRL_SMALL_SIDE \? CTRL_SMALL_K : 1\) \* big;/.test(RING), 'the control size is not read off the ring\'s square');
+  must(/const big = smallWindow\.on && side < MINI_BIG_SIDE \? MINI_BIG_K : 1;/.test(RING),
+    'the bigger controls of a small window are not a small window\'s alone');
   must(/new ResizeObserver\(\(\) => sizeControls\(true\)\)\.observe\(tiltEl\)/.test(RING), 'the control size does not follow the square when it changes');
   // round K4: on the small square the birds stand further in, so a bird at its
   // largest clears the lane band by BIRD_BAND_CLEAR — the same arithmetic as

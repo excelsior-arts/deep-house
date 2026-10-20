@@ -1,0 +1,62 @@
+{
+ "schema": 1,
+ "kind": "arrangement-hat-figure",
+ "round": "hat-figure",
+ "revision": 2,
+ "note": "The hat figure across a phrase (his word 10-17 on hat-seams: 'hats in the figure sound like a good improvement, we could explore it too'; standing, 10-16: 'voices give it a main gravity that hats can work of on segments'; 'tracks alive: the small things, fills, breaks, variations every few bars'). The theme's own groove, played the way a drummer plays one: the same figure, varied bar to bar across the phrase, so a phrase has a shape. The bar after the line settles on the plain figure; the bar half-way through says a small thing; the bar into the line turns round into it. Which bars speak is a rule, not a coin: a bar speaks where the phrase position's `from` is reached by the bar's speech, the row's `base` moved by the scene (busy voices calm the hats, a resting or held figure lets them speak) and by the birds (Spark and Loom lean it up, Veil down). What a bar says is the scene's too: over busy voices an accent only (no hit added), over a resting figure a ghost in the gap, over a held one the open hat lifting the last offbeat; the theme's kinds turn over phrase by phrase, never one twice in a phrase. Every hit is a copy of one the theme's own hats play, at the theme's swing, level and place in the mix, on a step no kick, no figure or bass strike and no hand stroke stands. Never on a bar a hat move, an answer, a gesture, a stop, a landing, a span, the house's own small things or a hat variation hold, and never on a bar the scene's fill already filled. src/hat-figure.ts reads this row. Every number is a starting point for listening.",
+ "units": {
+  "says": "`shape`: per phrase length in bars, each bar's place in the phrase: `settle` the plain figure, else a place of `places` (a length the row names none of repeats its `4` in groups of four, the phrase's last bar its `turn`). `places.*.from`: the speech at which a bar of that place varies, `alt` more on every other phrase of the theme (a small thing every few bars, not every phrase, where the scene asks no more of it); `level`: what its ghosts are scaled by (the phrase's direction: softer early, fuller into the line). `speech`: a bar's speech, `base` plus the bar's state (`busy`, `rest`, `hold`; nought where it is none of them) plus each bird's `lean` times its distance from the row's `centre`. A bar `rest`s where its figure strikes nothing while the phrase's figure strikes elsewhere (src/hat-scene.ts), `busy` at the scene's load, and `hold`s where its figure strikes `hold.strikes` steps or fewer and a note of it sounds to the bar's `hold.to`th sixteenth or past. `kinds`: by place and state, the kinds a bar may say, turned over phrase by phrase (the theme's own first turn off its own stream, `turn`). A kind: `ghosts`, closed-hat ghosts at `level` of the bar's loudest closed hit on the first free of `steps` (`all`: on each that is free, one at least); `open`, the closed hat on `step` taken out and the theme's own open hat there (only where it rings `open.ring` seconds to -10 dB, it is another voice than the closed hats', it sounds in the phrase and the bar has none of its own); `accent`, the first of `steps` the closed hats strike and the figure and the bass leave free raised to `db` over the bar's loudest closed hit, the bar's other closed hits by `rest` (an accent only: nothing laid). A velocity is held to 1, a lift past it carried by the hit's gain",
+  "shape.*": "places",
+  "places.*.from": "share",
+  "places.*.alt": "share",
+  "places.*.level": "ratio",
+  "speech.base": "share",
+  "speech.busy": "share",
+  "speech.rest": "share",
+  "speech.hold": "share",
+  "speech.lean.*": "lean",
+  "hold.strikes": "steps",
+  "hold.to": "sixteenths",
+  "kinds.*.*": "kinds",
+  "turn": "kinds",
+  "open.ring": "seconds",
+  "figures.*.ghosts.steps": "sixteenths",
+  "figures.*.ghosts.level": "share",
+  "figures.*.open.step": "sixteenths",
+  "figures.*.accent.steps": "sixteenths",
+  "figures.*.accent.db": "dB",
+  "figures.*.accent.rest": "dB"
+ },
+ "centre": {
+  "says": "the house's own birds (src/spell.ts HOUSE): every lean below is nought there",
+  "spark": 0.275, "loom": 0.578, "veil": 0.473
+ },
+ "shape": {
+  "4": ["settle", "breath", "lead", "turn"],
+  "8": ["settle", "breath", "settle", "half", "settle", "breath", "lead", "turn"]
+ },
+ "places": {
+  "breath": {"says": "a bar early in a half-phrase: a word only where the hats are let speak most", "from": 0.85, "level": 0.85},
+  "lead": {"says": "the bar before the turnaround: a word where the voices rest or hold, or Spark leans it", "from": 0.65, "level": 0.9},
+  "half": {"says": "the half-phrase's last bar: the figure's small thing every few bars (on every other phrase only where the voices rest or hold)", "from": 0.4, "alt": 0.2, "level": 1},
+  "turn": {"says": "the bar into the line: the turnaround", "from": 0.1, "level": 1.15}
+ },
+ "speech": {"base": 0.5, "busy": -0.1, "rest": 0.25, "hold": 0.15, "lean": {"spark": 0.6, "loom": 0.3, "veil": -1}},
+ "hold": {"strikes": 2, "to": 14},
+ "open": {"ring": 0.1},
+ "turn": 6,
+ "kinds": {
+  "breath": {"normal": ["skip", "ghost"], "rest": ["skip", "ghost"], "hold": ["skip", "ghost"]},
+  "lead": {"normal": ["ghost", "skip"], "rest": ["ghost", "skip"], "hold": ["ghost", "skip"]},
+  "half": {"busy": ["shift"], "normal": ["ghost", "shift", "lift"], "rest": ["ghost", "lift", "skip"], "hold": ["lift", "skip", "ghost"]},
+  "turn": {"busy": ["accent"], "normal": ["and-a", "accent", "lift"], "rest": ["and-a", "accent", "lift"], "hold": ["lift", "and-a", "accent"]}
+ },
+ "figures": {
+  "ghost": {"says": "one closed-hat ghost in the figure's gap: the a before the next bar, or before a beat", "ghosts": {"steps": [15, 11, 7], "level": 0.35}},
+  "skip": {"says": "one closed-hat ghost on the a of two (or of three, or of one): a skip inside the bar, the groove's offbeat and its echo", "ghosts": {"steps": [7, 11, 3], "level": 0.35}},
+  "and-a": {"says": "the last beat's e and a around its offbeat: the hats turning round into the line", "ghosts": {"steps": [13, 15], "level": 0.35, "all": true}},
+  "lift": {"says": "the last offbeat opened: the house's lift, the open hat ringing into the next bar", "open": {"step": 14}},
+  "accent": {"says": "the last offbeat the figure leaves free struck harder, the others back: the turnaround over busy voices, nothing added", "accent": {"steps": [14, 10, 6], "db": 3, "rest": -1.5}},
+  "shift": {"says": "the accent displaced to the and of three (or two), the others back: a small thing over busy voices, nothing added", "accent": {"steps": [10, 6, 2], "db": 3, "rest": -1.5}}
+ }
+}

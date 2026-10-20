@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bowlStruck",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        52,
+        1
+      ],
+      [
+        1.0021,
+        47,
+        0.7
+      ],
+      [
+        2.71,
+        22,
+        0.42
+      ],
+      [
+        2.7165,
+        20,
+        0.3
+      ],
+      [
+        5.13,
+        10,
+        0.16
+      ]
+    ],
+    "attack": 0.004,
+    "release": 1.5,
+    "ringLevel": 0.3,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 420,
+    "malletLevel": 0.12,
+    "malletTime": 0.012,
+    "spread": 0.7,
+    "trim": 0.35,
+    "delay": 0.05,
+    "reverb": 0.5
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "edge": false,
+    "timbres": {
+      "bowlStruck": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.9,
+        "brightnessHz": 1500,
+        "loudnessDb": -14.6
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-bells",
+    "module": "mallets.ts",
+    "note": "A struck singing bowl (PLAN-AMBIENT Phase 1): a bowl's modes sit at about 1, 2.71 and 5.13 of its fundamental, and the lower two are each two modes a hair apart, because a bowl is never perfectly round; the pairs beat slowly, and the beat is the sound. So the first two modes are two partials each (1 and 1.0021, 2.71 and 2.7165), panned apart by the topology's alternation so each pair beats across the stereo field, and the third is one (5.13). A felt mallet: the head a low band at 420 Hz, soft and 12 ms long. The fundamental rings 52 s; the end of the note is read off it.",
+    "notes": {
+      "beating": "The pairs are under 1.5 Hz apart over the ground's register (MIDI 43-54, 98-185 Hz): 0.2-0.4 Hz on the fundamental, 0.6-1.2 Hz on the second mode. Struck higher, as the answer (MIDI 62-79), they beat faster, as a small bowl's do.",
+      "edge": "Not read by the harmonic bus's edge, as vibes: sines leave nothing of their own over 4 kHz for a copy to ride.",
+      "partials": "Five where the plan sketched seven: when the topology still ran every partial to the fundamental's end (until the review of 10-17, since when each stops at its own), a ground of bowls kept three strikes' oscillators alive at once, and under a ringing bell call the plan's seven took the conversation over the phone's ceiling of 32 (`oscillatorsMost` in the conversation row) and silenced the answers. The third mode's pair partner (5.142) and the fourth mode (8.3, at 0.06 and 4.5 s) are the ones dropped: the third mode's beating was the fastest (2 Hz at 185 Hz, a warble) and the mallet's band covers the fourth's moment. 52 s on the fundamental (and 47 on its beating partner) where the plan sketched 38: struck every 10-24 s since the review of 10-17 (the ground breathing, where every 10-18 s under three rings had made it a 15 s clock), a 40 s ring fell some 35 dB in the longest gaps and the rests read near silence, as a 30 s ring had at 10-18 s; at 52 s the longest gaps fall some 25 dB."
+    }
+  }
+}

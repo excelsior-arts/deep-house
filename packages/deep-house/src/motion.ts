@@ -1,6 +1,6 @@
-// Two facts about the person at the page, read from the browser and kept
-// current: whether they have asked for less motion, and whether they point with
-// a finger. The ring and the machine view both ask, and both used to read the
+// Facts about the person at the page, read from the browser and kept current:
+// whether they have asked for less motion, whether they point with a finger,
+// and whether the window is a small one. The ring and the machine view both ask, and both used to read the
 // media query once at load and never again — so a listener who turned reduced
 // motion on in the system settings with the page open went on watching the
 // star sway, the pulse swell and the cast turn (the reconciled review, R53).
@@ -48,3 +48,18 @@ function fact(query: string): MediaFact {
 export const reducedMotion: MediaFact = fact('(prefers-reduced-motion: reduce)');
 /** `pointer: coarse` — a finger, rather than a pointer that can rest on a thing. */
 export const coarsePointer: MediaFact = fact('(pointer: coarse)');
+/**
+ * **The small window** (round apple-mini-2): a viewport no more than 600 CSS px
+ * either way and near square (4:5 to 5:4) — the Mac app's mini player (a
+ * square of 160 to 600 points), or a browser window or a frame made as small —
+ * where the ring stands alone and its words go as its square shrinks
+ * (index.html says the same query; ring.ts, the bigger keys and the sheets that
+ * do not open). No phone is one: a phone's screen is over 600 the long way,
+ * and a phone's browser that its bars cut under 600 (390 x 600, an SE's
+ * 375 x 548) is still tall and thin, which is why the square is part of it
+ * (the v2.3.0 cut, 10-19: the panel's row at 390 x 600 lost its sheet).
+ * Neither is a tablet, a desktop window or the machine view's corner, which is
+ * small in a big window.
+ */
+export const SMALL_WINDOW = '(max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)';
+export const smallWindow: MediaFact = fact(SMALL_WINDOW);

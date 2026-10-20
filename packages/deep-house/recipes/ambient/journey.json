@@ -1,0 +1,63 @@
+{
+ "schema": 1,
+ "kind": "ambient-journey",
+ "round": "ambient-psy",
+ "revision": 1,
+ "note": "One long journey (PLAN-AMBIENT Phase 6, his words of 10-17: \"looking for waves, psychodelical vibes\"). The whole theme is one trip through the macro filter: it starts a quarter of the way up from the dark end, opens to air over three to five minutes (at most 45 % of the theme), holds at most 45 s (a longer hold starts the descent at the peak, so the top breathes), and closes over three to five more back to where it began by the theme's hand-over floor, held there through any blend the set lays, and on to the dark end only in the theme's last two bars, behind every blend: so a seam never lands in the dark, and the next theme's own start is the same corner; eased in and out in octaves, a knot every six seconds. The low end's parallel saturation comes in with the light and leaves with it. The held layer drifts on one tape: a slow sine of 10-20 cents at 0.03-0.07 Hz and a shallow wobble of 2-4 cents at 0.4-0.9 Hz, every held note of the theme where the tape stands at its onset. The stage's treatments turn at 0.03-0.08 Hz. The keys and the bed are sent into a shared return of two ping-pong tape echoes, a dotted eighth and a dotted quarter, fed back long and darkened each pass. The bed stands 4 dB and the keys 5.5 dB under the room's own levels at the place: the growl room's held strings stood their peaks 9-11 dB over the limiter's ceiling at a trim of nought, and a struck four-note keys chord thrown into the echoes 10 dB. Where the theme's lead is the struck keys, each chord it strikes is voiced as a lead plays one, its top two notes touched as one strike: a four-note seventh struck on a bright lead stood its peaks 5-6 dB into the limiter and its level 2 dB over the bed. Where Spark allows (from 0.3), a soft broken pulse far back in the grooves: a frame drum under a muted hand, or now and then a round woodblock, on a swung, broken figure drawn every four bars, fuller as the filter opens. The birds lean it about the place's own values: Veil the swirl's rate, Tide the echoes' feedback (±0.15 at most) and their sends, Root the depth of the dark end (lower as Root rises), Spark the pulse. Numbers are listening hypotheses; the levels were measured offline and silent on the round's site.",
+ "rows": [
+  {
+   "id": "long-filter-journey",
+   "filter": { "darkHz": 400, "airHz": 15000, "fromShare": 0.25, "riseMinutes": [3, 5], "fallMinutes": [3, 5], "riseMost": 0.45, "holdMostS": 45, "stepS": 6 },
+   "push": { "peak": 0.3 },
+   "drift": { "layers": ["pad"], "cents": [10, 20], "hz": [0.03, 0.07], "wobbleCents": [2, 4], "wobbleHz": [0.4, 0.9] },
+   "bed": { "layers": ["pad"], "db": -4, "keysDb": -5.5 },
+   "leadChord": { "top": 2 },
+   "swirl": { "hz": [0.03, 0.08] },
+   "echo": {
+    "id": "journey",
+    "feedback": 0.55,
+    "sends": { "keys": { "echo": 0.35, "dub": 0.2 }, "pad": { "echo": 0.12, "dub": 0.18 }, "pulse": { "echo": 0.3 } },
+    "space": {
+     "schema": 1,
+     "kind": "space",
+     "id": "journeyEchoes",
+     "revision": 1,
+     "name": "Two ping-pong tape echoes, fed back long",
+     "says": "A ping-pong tape echo at a dotted eighth, filtered 400 Hz to 2.6 kHz in its feedback with the head wandering, and a slower one at a dotted quarter, darker (450 Hz to 2 kHz) and wandering more: a phrase thrown into both writes a phrase of its own crossing the field. Notes are sent straight into each (`journey.echo`, `journey.dub`); nothing passes dry.",
+     "dry": 0,
+     "trimDb": -6,
+     "inserts": [],
+     "sends": [
+      { "id": "echo", "level": 0, "effect": "tapeDelay", "params": { "timeBeats": 0.75, "feedback": 0.55, "highpassHz": 400, "lowpassHz": 2600, "wow": 0.3, "pingPong": 1, "mix": 1 } },
+      { "id": "dub", "level": 0, "effect": "tapeDelay", "params": { "timeBeats": 1.5, "feedback": 0.55, "highpassHz": 450, "lowpassHz": 2000, "wow": 0.4, "pingPong": 1, "mix": 1 } }
+     ]
+    }
+   },
+   "pulse": {
+    "voices": [{ "v": "frameDrum", "w": 3 }, { "v": "woodblockSoft", "w": 1 }],
+    "sections": ["main"],
+    "sparkFrom": 0.3,
+    "masks": [["x.....o...x.....", 3], ["x..o......x..o..", 2], ["x.....x...o.x...", 2], ["....x..o......x.", 1], ["x.......o.x....o", 1]],
+    "keep": 0.6,
+    "openShare": 0.6,
+    "swing": 0.62,
+    "vel": [0.32, 0.46],
+    "soft": 0.6,
+    "levelDb": -4,
+    "dur": 0.6,
+    "reverb": 0.55,
+    "echo": 0.3,
+    "lateMs": [0, 18]
+   },
+   "birds": {
+    "by": {
+     "veil": { "swirl": 1.5 },
+     "tide": { "feedback": 0.3, "wet": 1.5 },
+     "root": { "dark": -1.2 },
+     "spark": { "pulse": 2 }
+    },
+    "most": { "feedback": 0.15 }
+   }
+  }
+ ]
+}

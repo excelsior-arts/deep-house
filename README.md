@@ -7,9 +7,10 @@
 <p align="center"><a href="https://deephouse.audio/"><img src="media/play.png" alt="Play" width="146" /></a></p>
 
 The default sound is tuned to deep house; other genres are being built and
-coming soon. Right now the player is at its best on its default lightweight deep
-house themes and on slow-beat ambient soundscapes (turn Ember down). The link is
-always the track that plays: share it, and it plays the same anywhere.
+coming soon. Right now the player is at its best on three sounds: its default
+lightweight deep house themes, liquid drum & bass (turn Ember up), and slow-beat
+ambient soundscapes (turn Ember down). The link is always the track that plays:
+share it, and it plays the same anywhere.
 
 The interface was built with alchemy in mind. We try our luck by rolling the
 dice, and we cast spells by rearranging the sigils. We rarely know how it will

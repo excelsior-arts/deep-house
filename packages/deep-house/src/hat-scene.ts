@@ -13,7 +13,9 @@
 //     where it accents some and not all, a sixteenth the figure strikes too stepped back from (a ghost taken out where
 //     the bar is busy), and one ghost in a resting bar's gap
 //
-// — and at a transition the move's kind leans to the vector the voices make across the seam (`src/hat-moves.ts`). The
+// — and at a transition the move's kind leans to the vector the voices make across the seam (`src/hat-moves.ts`), read
+// inside the parts either side of it, a build as the rise it is (round hat-seams, `seamWindows`); a bar's call is the
+// figure's, or the bass's where the figure rests and the bass carries it (`callOf`). The
 // rows are `recipes/arrangement/hat-scene.json` and `hat-moves.json`; nothing here names a place, a genre or a seed.
 import SCENE_FILE from '../recipes/arrangement/hat-scene.json' with { type: 'json' };
 import { lean } from './lean.ts';
@@ -33,17 +35,21 @@ export interface HatSceneRow {
   level: { lock: number; stack: number; busy: number; rest: number; most: number };
   thin: { ghost: number };
   fill: { chance: number; level: number; lean: W; steps: number[] };
-  vector: { dead: number };
+  /** a bar whose figure rests is called by the bass where the bass strikes `bass` steps of it or more (round hat-seams) */
+  call: { bass: number };
+  vector: { dead: number; bars: number };
   moves: { busy: number };
 }
 export const HAT_SCENE: Readonly<HatSceneRow> = SCENE_FILE as unknown as HatSceneRow;
 
 /** One bar of the scene: per sixteenth, the loudest onset of each voice there (nought where it strikes none), where the
- * figure's note struck there stops sounding (in sixteenths from the bar's start; past 16 where it rings on), and the
- * kick's (never a voice of the load: where a hat answer may not fall). */
-export interface SceneBar { figure: number[]; bass: number[]; hands: number[]; pad: number[]; ends: number[]; kick: number[] }
+ * figure's note struck there stops sounding (in sixteenths from the bar's start; past 16 where it rings on), the same
+ * for the bass's (`bassEnds`, round hat-seams: the call where the bass carries the bar), and the kick's (never a voice
+ * of the load: where a hat answer may not fall). */
+export interface SceneBar { figure: number[]; bass: number[]; hands: number[]; pad: number[]; ends: number[]; bassEnds: number[]; kick: number[] }
 export type SceneVoice = 'figure' | 'bass' | 'hands' | 'pad';
-export const sceneBar = (): SceneBar => ({ figure: new Array(16).fill(0), bass: new Array(16).fill(0), hands: new Array(16).fill(0), pad: new Array(16).fill(0), ends: new Array(16).fill(0), kick: new Array(16).fill(0) });
+const zeros = () => new Array(16).fill(0);
+export const sceneBar = (): SceneBar => ({ figure: zeros(), bass: zeros(), hands: zeros(), pad: zeros(), ends: zeros(), bassEnds: zeros(), kick: zeros() });
 const VOICES: readonly SceneVoice[] = ['figure', 'bass', 'hands', 'pad'];
 
 /** A bar's load: each voice's onsets (a step once) by its weight. */
@@ -57,9 +63,20 @@ const silent = (b: SceneBar) => !b.figure.some((y) => y > 0);
 export const busyAt = (b: SceneBar, R: Readonly<HatSceneRow> = HAT_SCENE): boolean => loadOf(b, R) >= R.busy && (R.both === 'busy' || !silent(b));
 /** The bar rests: the keys, the stabs and the lead strike nothing in it (where its load is busy too, as `both` says). */
 export const restsAt = (b: SceneBar, R: Readonly<HatSceneRow> = HAT_SCENE): boolean => silent(b) && (R.both === 'rest' || loadOf(b, R) < R.busy);
-/** The figure's strikes in the bar, each with the sixteenth its note stops sounding (the call a hat answer answers). */
-export const callAt = (b: SceneBar): Array<{ step: number; end: number }> =>
-  struckAt(b, ['figure']).map((q) => ({ step: q, end: Math.max(q + 1, b.ends[q]) }));
+/** A voice's strikes in the bar, each with the sixteenth its note stops sounding (the call a hat answer answers). */
+export const callAt = (b: SceneBar, voice: 'figure' | 'bass' = 'figure'): Array<{ step: number; end: number }> =>
+  struckAt(b, [voice]).map((q) => ({ step: q, end: Math.max(q + 1, (voice === 'bass' ? b.bassEnds : b.ends)[q]) }));
+/**
+ * **The bar's call** (round hat-seams, his word 10-16: the voices give the scene its gravity): the figure's strikes where
+ * it plays in the bar; where it rests and the bass carries the bar (it strikes the row's `call.bass` steps or more),
+ * the bass's line. Empty where neither calls.
+ */
+export function callOf(b: SceneBar, R: Readonly<HatSceneRow> = HAT_SCENE): { voice: 'figure' | 'bass'; strikes: Array<{ step: number; end: number }> } {
+  const fig = callAt(b, 'figure');
+  if (fig.length) return { voice: 'figure', strikes: fig };
+  const bass = callAt(b, 'bass');
+  return { voice: 'bass', strikes: bass.length >= R.call.bass ? bass : [] };
+}
 /** The steps the bar's figure and bass strike (the call a move answers, the sixteenths a hat steps back from). */
 export const struckAt = (b: SceneBar, voices: readonly SceneVoice[] = ['figure', 'bass']): number[] =>
   Array.from({ length: 16 }, (_, q) => q).filter((q) => voices.some((v) => b[v][q] > 0));
@@ -193,6 +210,19 @@ export function fillChance(spell: Readonly<Record<string, number>>, R: Readonly<
 export type Vector = 'up' | 'down' | 'level';
 /** The vector the voices make across a seam: their energy's change against the row's dead band. */
 export const vectorOf = (delta: number, R: Readonly<HatSceneRow> = HAT_SCENE): Vector => (delta >= R.vector.dead ? 'up' : delta <= -R.vector.dead ? 'down' : 'level');
+/**
+ * **The bars a seam's vector reads** (round hat-seams): up to the row's `vector.bars` before the move's bar, never back
+ * across the line the part it sits in begins on (the move's own bar where it is that part's first), against up to as
+ * many from the line, never past the next line (a one-bar drop-out reads its own bar, not the groove back after it).
+ * `lines`: the bars the arrangement's parts begin on, sorted.
+ */
+export function seamWindows(bar: number, line: number, lines: readonly number[], R: Readonly<HatSceneRow> = HAT_SCENE): { before: number[]; after: number[] } {
+  const n = R.vector.bars;
+  const prev = Math.max(0, ...lines.filter((l) => l <= bar));
+  const next = Math.min(line + n, ...lines.filter((l) => l > line));
+  const before = Array.from({ length: n }, (_, i) => bar - n + i).filter((b) => b >= prev && b >= 0);
+  return { before: before.length ? before : [bar], after: Array.from({ length: Math.max(1, next - line) }, (_, i) => line + i) };
+}
 
 /** The row's faults: every share a share, the levels in decibels inside `most`, the steps sixteenths. */
 export function hatSceneFaults(R: Readonly<HatSceneRow>): string[] {
@@ -209,6 +239,8 @@ export function hatSceneFaults(R: Readonly<HatSceneRow>): string[] {
   for (const q of R.fill.steps) if (!(Number.isInteger(q) && q >= 0 && q < 16)) bad.push(`fill.steps: ${q}`);
   for (const k of Object.keys(R.fill.lean)) if (typeof R.centre[k] !== 'number') bad.push(`fill.lean: ${k} with no centre`);
   if (!(R.moves.busy >= 0)) bad.push('moves.busy: a ratio');
+  if (!(Number.isInteger(R.vector.bars) && R.vector.bars >= 1)) bad.push('vector.bars: a count of bars');
+  if (!(Number.isInteger(R.call.bass) && R.call.bass >= 1)) bad.push('call.bass: a count of steps');
   return bad;
 }
 {

@@ -16,6 +16,14 @@ import type Rng from './rng.ts';
 export const SCALES: Record<string, number[]> = {
   minor: [0, 2, 3, 5, 7, 8, 10],
   dorian: [0, 2, 3, 5, 7, 9, 10],
+  // **Three more modes a place may draw** (PLAN-AMBIENT Phase 6, ambient-psy; with dorian, PSY draws four): read only
+  // where a place's harmony entry names them (`HarmonyEntry.scales`); the key die and the set's key walk still say minor
+  // or dorian, so a theme anywhere else is in the scale it always was. Darkest to brightest with the two above: phrygian (the flat second), minor,
+  // dorian (the raised sixth), mixolydian (a major third under a flat seventh), lydian (a major third over a raised
+  // fourth).
+  phrygian: [0, 1, 3, 5, 7, 8, 10],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
 };
 
 export const NOTE_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -402,7 +410,11 @@ export function makeProgression(
   if (opts.pedal) {
     degrees = [0];
   } else if (opts.degrees && opts.degrees.length) {
-    degrees = Array.from({ length: slots }, (_, i) => opts.degrees![i % opts.degrees!.length]).map((d) => (usable.includes(d) ? d : 0));
+    // A place's cycle names its degrees on purpose, so any degree with a fifth on it is its to name, the second among
+    // them (a mode's colour chord: phrygian's flat second, lydian's major second), where the walk's pool has five
+    // (ambient-psy; every cycle before it names only the pool's, which read as they did).
+    const voiced = (d: number) => { const t = buildChord(root, scale, d, 3); return (t[2] - t[0]) % 12 === 7; };
+    degrees = Array.from({ length: slots }, (_, i) => opts.degrees![i % opts.degrees!.length]).map((d) => (usable.includes(d) || voiced(d) ? d : 0));
   } else if (opts.degreeBias) {
     const pool = opts.degreeBias.filter((o) => usable.includes(o.v));
     degrees = [0];
@@ -531,10 +543,17 @@ export function keysShared(a: { root: number; scale: number[] }, b: { root: numb
  * notes; the same place is the same seven.
  */
 export function wheelRoot(root: number, scaleName: string): number {
-  return (((root + (scaleName === 'dorian' ? 7 : 0)) % 12) + 12) % 12;
+  return (((root + (MODE_WHEEL[scaleName] ?? 0)) % 12) + 12) % 12;
 }
 
 /** The root a key on the wheel takes in a given mode: `wheelRoot`'s inverse. */
 export function rootOnWheel(wheel: number, scaleName: string): number {
-  return (((wheel - (scaleName === 'dorian' ? 7 : 0)) % 12) + 12) % 12;
+  return (((wheel - (MODE_WHEEL[scaleName] ?? 0)) % 12) + 12) % 12;
 }
+
+/**
+ * **How far up a mode's tonic sits from the minor key that sounds its notes**, in semitones: D dorian is A minor's
+ * notes (+7), E phrygian (+5), F lydian (+4), G mixolydian (+2). Minor and dorian are the two numbers `wheelRoot`
+ * always used.
+ */
+export const MODE_WHEEL: Readonly<Record<string, number>> = Object.freeze({ minor: 0, dorian: 7, phrygian: 5, lydian: 4, mixolydian: 2 });

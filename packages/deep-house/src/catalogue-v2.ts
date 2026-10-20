@@ -232,6 +232,11 @@ export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'pianoElectric', since: '2026-10-10', for: 'an electric grand with a pickup zing' },
   { id: 'keysReedAmp', since: '2026-10-10', for: 'a mellow reed electric piano for a small amplifier' },
   { id: 'fmSineLayer', since: '2026-10-10', for: 'a near-pure sine to double a piano' },
+  // ambient-voices (10-18, PLAN-AMBIENT P2b and P3): the voices the shavasana bowls and the Om places will play,
+  // registered before their places land; a place's round admits them (`BY_PLACE`), and until then no list does.
+  { id: 'bowlRim', since: '2026-10-18', for: 'a singing bowl sustained by a stick on its rim: the struck bowl\'s modes, rising over seconds and falling back' },
+  { id: 'tanpura', since: '2026-10-18', for: 'a tanpura string over a jawari bridge, its buzz blooming after each pluck' },
+  { id: 'chantOm', since: '2026-10-18', for: 'a wordless sung drone opening on a, rounding to o and closing to a hum, with an overtone mode' },
 ].map((e) => Object.freeze(e)));
 
 /**
@@ -277,6 +282,16 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'weatherUpperAir', since: '2026-10-11', for: 'the soft upper air the fast places lay in short windows inside a weather span (liquid-ambient)' },
   { id: 'weatherRain', since: '2026-10-11', for: 'the fine rain surface the fast places lay in one or two passages (liquid-ambient)' },
   { id: 'weatherRumble', since: '2026-10-11', for: 'the distant thunder the fast places lay at most twice a track under a dark cloud (liquid-ambient)' },
+  // ambient-bells (10-17, PLAN-AMBIENT Phase 1): the conversation's two struck voices of their own (`recipes/ambient/conversation.json`)
+  { id: 'bowlStruck', since: '2026-10-17', for: 'the ground of the slow conversation where struck voices talk: a struck singing bowl, rung under the call and the answer (ambient-bells)' },
+  { id: 'bellTemple', since: '2026-10-17', for: 'a call of the slow conversation where struck voices talk: a temple bell, beside the FM bell and the vibes (ambient-bells)' },
+  // bells-birds (10-18, his ask: Root as the bells' size): the two struck voices the conversation's Root lean opens
+  { id: 'bellGreat', since: '2026-10-18', for: 'a call of the slow conversation at full Root: a great temple bell with its slow beating, struck two octaves under the call (bells-birds)' },
+  { id: 'bellSmall', since: '2026-10-18', for: 'a call of the slow conversation at thin Root: small bells, high and short (bells-birds)' },
+  // ambient-bells (10-17, his ear: "some softer woodblock maybe better"): the conversation's hand, a hint and never a strike
+  { id: 'woodblockSoft', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a round, low woodblock with no click (ambient-bells)' },
+  { id: 'frameDrum', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a frame drum under a muted hand (ambient-bells)' },
+  { id: 'shakerSoft', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a soft swish of a shaker, not the record\'s hat-bright one (ambient-bells)' },
 ].map((e) => Object.freeze(e)));
 
 const AWAITING_IDS = new Set<string>(AWAITING.map((a) => a.id));

@@ -13944,7 +13944,7 @@ SCENARIOS.push({
 // already we don't downgrade it"*. Seed 15576, stopped, so the promise is about
 // the theme the cursor is on: Veil pulled in changes Zephyr's keys, Gleam's
 // voicing and Root's room there, the three through dotted lines.
-const K13_ROLE = { ember: /^BPM$/, spark: / · \d+ HITS?$/, zephyr: /^KEYS$/, gleam: / · /, root: / · ROOM$/, loom: / · DENSITY$/, tide: / SECTIONS$/, veil: / · FX$/ };
+const K13_ROLE = { ember: /^BPM$/, spark: / · \d+ HITS?$/, zephyr: / · (KEYS|HELD|CALL)$/, gleam: / · /, root: / · ROOM$/, loom: / · DENSITY$/, tide: / SECTIONS$/, veil: / · FX$/ };
 
 SCENARIOS.push({
   name: 'every bird\'s big word changes when its own bird is dragged to either wall, and the subtitle carries the locked reading and its role',
@@ -14895,8 +14895,9 @@ SCENARIOS.push({
     const bad = [];
     if (/\ba vibes\b|\ba [aeiou]/i.test(r.aria)) bad.push(`Zephyr is said as "${r.aria}"`);
     // seed 8 rolls vibes and plays an electric piano (the composition's own
-    // part takes the stab's place): since K30 the words are what plays
-    if (!/the keys are an electric piano/i.test(r.aria)) bad.push(`Zephyr on seed 8 says "${r.aria}"`);
+    // part takes the stab's place): since K30 the words are what plays, and
+    // since the bird-labels round the sentence is its air, on that voice
+    if (!/the air is \w+(, nearly \w+)?, on an electric piano/i.test(r.aria)) bad.push(`Zephyr on seed 8 says "${r.aria}"`);
     return { ok: !bad.length, why: bad[0], note: `${r.ids.length} keyboards over seeds 1–40 (${r.ids.join(', ')}); Zephyr says "${r.aria}"` };
   },
 });
@@ -15890,11 +15891,11 @@ const ABOUT_READ = `
     key: document.querySelector('#actions g[data-action="play"]').getAttribute('aria-label') };
 `;
 const aboutRead = (page) => page.evaluate(new Function(ABOUT_READ));
-// K35: Eugene's four lines, one span each, as he wrote them
+// K35: Eugene's four lines, one span each, as he wrote them (the third names liquid drum & bass since his word 10-19)
 const ABOUT_LINES = [
   'A helpful music companion. No distracting vocals. No agenda. Just vibes.',
   'The default sound is tuned to deep house. Other genres are being built and coming soon…',
-  'Right now the player is at its best on its default lightweight deep house themes and on slow-beat ambient soundscapes (turn Ember down).',
+  'Right now the player is at its best on three sounds: its default lightweight deep house themes, liquid drum & bass (turn Ember up), and slow-beat ambient soundscapes (turn Ember down).',
   'The link is always the track that plays. Share it, and it plays the same anywhere.',
 ];
 const ABOUT_LINKS = [
@@ -16374,10 +16375,12 @@ SCENARIOS.push({
       if (/rolling hands/i.test(all) && x.selected.percussion !== 'rolling') bad.push(`${k}: a cell says rolling hands and no rolling part plays`);
       if (/on a pedal|(?<!no )\ba pedal/i.test(all) && !(x.selected.harmony === 'pedal' || /pedal/.test(x.selected.bass || ''))) bad.push(`${k}: a cell says a pedal and none plays`);
       if (/drone up front/i.test(all) && x.scene !== 'drone-forward') bad.push(`${k}: a cell says the drone up front and the scene is ${x.scene}`);
-      const zw = String(x.cells.zephyr.word).toLowerCase();
-      if (x.keys.length && !x.keys.some((v) => zw && zw.replace(/\s+/g, '') === String(v).toLowerCase())) bad.push(`${k}: Zephyr reads ${x.cells.zephyr.word} where the keys play ${x.keys.join(', ')} (the roll was ${x.rolled})`);
+      // Zephyr's word is the air of the voice in front, its subtitle that voice and its role (the bird-labels round, 10-18)
+      const zi = String(x.cells.zephyr.sub).split(' · ')[0].toLowerCase();
+      if (!/^(dark|warm|mellow|clear|bright|airy)$/i.test(String(x.cells.zephyr.word))) bad.push(`${k}: Zephyr's word ${x.cells.zephyr.word} is not the air`);
+      if (x.keys.length && !x.keys.some((v) => zi && zi.replace(/\s+/g, '') === String(v).toLowerCase())) bad.push(`${k}: Zephyr's subtitle ${x.cells.zephyr.sub} where the keys play ${x.keys.join(', ')} (the roll was ${x.rolled})`);
     }
-    return { ok: !bad.length, why: bad[0], note: Object.entries(r).map(([k, x]) => `${k}: Spark ${x.cells.spark.word}, Zephyr ${x.cells.zephyr.word} over ${x.keys.join('+') || 'no keys'}${x.drums ? '' : ', no drums'}`).join('; ') };
+    return { ok: !bad.length, why: bad[0], note: Object.entries(r).map(([k, x]) => `${k}: Spark ${x.cells.spark.word}, Zephyr ${x.cells.zephyr.word} · ${x.cells.zephyr.sub} over ${x.keys.join('+') || 'no keys'}${x.drums ? '' : ', no drums'}`).join('; ') };
   },
 });
 
@@ -17148,6 +17151,148 @@ SCENARIOS.push({
     why: JSON.stringify(r),
     note: `the Mute key, drawn ${r.drawn.join(' × ')}, is found by a press over ${r.mute.join(' × ')} px, and past it the press finds Solo; the strip's popover is modal and Tab went round its ${r.keys} keys both ways; the readings are a region named "${r.facts}"`,
   }),
+});
+
+// **The bird-labels round (10-18): at BELLS a cell says the bells' quantity where the conversation plays** (his
+// words, after hearing the bells: *"update strings in the UI to actually refer to bells … label more specific to the
+// immediate role of the position"*). The page's own cells, read as they draw: seed 3 at BELLS with Root at nought
+// (small bells), and its third theme, a library turn at the same spell that lays no conversation and reads the
+// general words. The words come from the conversation row's `labels`, only where the program's record carries it.
+const BELLS_AT = (root) => `em:0.05,ti:0.65,ze:0.65,ro:${root},gl:0.80,ve:0.30,sp:0.55,lo:0.90`;
+const READ_CELLS = `
+  await started();
+  await waitFor(() => window.ring.cells().every((c) => c.word), 20000);
+  await sleep(400);
+  const r = ctl.readout();
+  const cells = Object.fromEntries(window.ring.cells().map((c) => [c.bird, (c.word + ' · ' + c.sub).toLowerCase()]));
+  const out = { cells, conversation: (r.dice && r.dice.conversation) || null, theme: r.mix && r.mix.themeNumber };
+  ctl.stop();
+  return out;
+`;
+SCENARIOS.push({
+  name: 'at BELLS the cells say the bells where the conversation plays: Root the bells\' size, Veil the talk\'s count, Spark the hand',
+  area: 'words',
+  deadline: 90000,
+  query: `v=2&seed=3&spell=${BELLS_AT('0.00')}`,
+  page: body(READ_CELLS),
+  judge: (r) => {
+    const c = r.cells || {};
+    const want = { root: /^small · small bells · calls$/, veil: /^calm · /, spark: /^moving · .* · hand$/, zephyr: /^bright · small bells · call$/, gleam: /^warm · /, loom: /^long · / };
+    const off = Object.entries(want).filter(([b, re]) => !re.test(c[b] || '')).map(([b]) => `${b} reads "${c[b]}"`);
+    return {
+      ok: !!r.conversation && !off.length,
+      why: !r.conversation ? `seed 3 at BELLS laid no conversation (${JSON.stringify(r)})` : off.join('; '),
+      note: `the conversation "${r.conversation}" plays and the cells say ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
+});
+// **Zephyr is air** (the bird-labels round, 10-18, his words on the Ambient tile's "No keys": *"Zephyr is air and you
+// tend to name musical instruments in it … "No keys" is a bit strange value"*): the big word is the air of the voice
+// in front, measured (voice-air.json), and the instrument with its role is the subtitle. Seed 5 at the Ambient tile
+// plays no keys; the shimmer pad holds, the airiest voice the table measures.
+SCENARIOS.push({
+  name: 'Zephyr says the air of the voice in front and names the voice under it: the Ambient tile with no keys reads airy over the shimmer pad',
+  area: 'words',
+  deadline: 90000,
+  query: 'v=2&seed=5&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80',
+  page: body(READ_CELLS),
+  judge: (r) => {
+    const z = (r.cells || {}).zephyr || '';
+    return {
+      ok: z === 'airy · shimmer pad · held',
+      why: `Zephyr reads "${z}"`,
+      note: `Zephyr reads "${z}" where it read "no keys · keys"`,
+    };
+  },
+});
+// zones-pilot (his ear 10-19, approved): inside the bells' zone a library turn is re-addressed to the zone's
+// conversation, so theme 3 at Root 0 now lays it, and its cells say the bells' words, not the general ones.
+SCENARIOS.push({
+  name: 'a library turn inside the bells\' zone plays the conversation and its cells say the bells\' words',
+  area: 'words',
+  deadline: 90000,
+  query: `v=2&seed=3&theme=3&spell=${BELLS_AT('0.00')}`,
+  page: body(READ_CELLS),
+  judge: (r) => {
+    const c = r.cells || {};
+    const ok = /^bells-in-conversation/.test(r.conversation || '') && /^small · /.test(c.root || '') && / · frame drum · /.test(c.spark || '') && / · small bells · /.test(c.zephyr || '');
+    return {
+      ok,
+      why: `theme ${r.theme}: conversation ${r.conversation}; ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+      note: `theme ${r.theme} plays the zone's conversation and the cells say the bells' words: ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
+});
+
+// **ambient-waves-3: at WAVES a cell says the sea where the sea plays** (his rule, 10-18: a control's words say what it
+// steers where it plays; the round's note: Veil read "steady" and Gleam the house's progression there). The page's own
+// cells, read as they draw: seed 3 at WAVES (a shimmer pad blooming) with Veil at 0.40 (a calm sea), and seed 1 (a wave
+// pad, which Gleam does not reach): Veil the sea state, Tide the waves' size, Gleam the shimmer's climb, Zephyr the
+// bloom's air. The words come from the surf row's `labels`, only where the program's record carries the sea.
+const WAVES_AT = (veil, zephyr = '0.75') => `em:0.05,ti:0.85,ze:${zephyr},ro:0.55,gl:0.50,ve:${veil},sp:0.10,lo:0.95`;
+const READ_SEA = `
+  await started();
+  await waitFor(() => window.ring.cells().every((c) => c.word), 20000);
+  await sleep(400);
+  const r = ctl.readout();
+  const cells = Object.fromEntries(window.ring.cells().map((c) => [c.bird, (c.word + ' · ' + c.sub).toLowerCase()]));
+  const out = { cells, sea: (r.dice && r.dice.sea) || null, theme: r.mix && r.mix.themeNumber };
+  ctl.stop();
+  return out;
+`;
+SCENARIOS.push({
+  name: 'at WAVES the cells say the sea where it plays: Veil the sea state, Tide the waves, Gleam the shimmer\'s climb, Zephyr the spray over the bloom\'s air',
+  area: 'words',
+  deadline: 90000,
+  query: `v=2&seed=3&spell=${WAVES_AT('0.40')}`,
+  page: body(READ_SEA),
+  judge: (r) => {
+    const c = r.cells || {};
+    const want = { veil: /^glassy · [\d.]+ s · swell$/, tide: /^full · \d+ sections$/, gleam: /^(halo|climbing|soaring) · /, zephyr: /^bright · \w+ shimmer pad · bloom$/ };
+    const off = Object.entries(want).filter(([b, re]) => !re.test(c[b] || '')).map(([b]) => `${b} reads "${c[b]}"`);
+    return {
+      ok: !!r.sea && !off.length,
+      why: !r.sea ? `seed 3 at WAVES laid no sea (${JSON.stringify(r)})` : off.join('; '),
+      note: `the sea "${r.sea}" plays and the cells say ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
+});
+SCENARIOS.push({
+  name: 'at WAVES on a wave pad Gleam says the sea\'s chords move by sets, and Veil at the place reads rolling',
+  area: 'words',
+  deadline: 90000,
+  query: `v=2&seed=1&spell=${WAVES_AT('0.60')}`,
+  page: body(READ_SEA),
+  judge: (r) => {
+    const c = r.cells || {};
+    const want = { veil: /^rolling · [\d.]+ s · swell$/, gleam: /^by sets · /, zephyr: /^bright · \w+ wave pad · bloom$/ };
+    const off = Object.entries(want).filter(([b, re]) => !re.test(c[b] || '')).map(([b]) => `${b} reads "${c[b]}"`);
+    return {
+      ok: !!r.sea && !off.length,
+      why: !r.sea ? `seed 1 at WAVES laid no sea (${JSON.stringify(r)})` : off.join('; '),
+      note: `the sea "${r.sea}" plays and the cells say ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
+});
+// **ambient-waves-4: the sea's rough end is the sea's, and Zephyr's word moves with the spray** (the review of 10-19):
+// seed 1 at Veil 0.90 and Zephyr 1.00 from WAVES lays the sea (it had been PSY's journey from Veil 0.79), Veil reads the
+// choppy sea and Zephyr the hissing spray
+SCENARIOS.push({
+  name: 'at WAVES the sea\'s rough end is the sea: Veil 0.90 reads choppy, and Zephyr 1.00 the hissing spray',
+  area: 'words',
+  deadline: 90000,
+  query: `v=2&seed=1&spell=${WAVES_AT('0.90', '1.00')}`,
+  page: body(READ_SEA),
+  judge: (r) => {
+    const c = r.cells || {};
+    const want = { veil: /^choppy · [\d.]+ s · swell$/, zephyr: /^hissing · \w+ wave pad · bloom$/ };
+    const off = Object.entries(want).filter(([b, re]) => !re.test(c[b] || '')).map(([b]) => `${b} reads "${c[b]}"`);
+    return {
+      ok: !!r.sea && !off.length,
+      why: !r.sea ? `seed 1 at Veil 0.90 from WAVES laid no sea (${JSON.stringify(r)})` : off.join('; '),
+      note: `the sea "${r.sea}" plays and the cells say ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
 });
 
 export default SCENARIOS;

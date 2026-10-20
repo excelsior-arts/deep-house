@@ -37,13 +37,16 @@
 //   effects        nothing dramatic: the flux peak is 1.7x the median
 
 import { linkRaw } from './link-table.ts';
-import { generate, resolveRoom, leadTimbreOfTheme, rollTempo } from './generator.ts';
+import { generate, resolveRoom, leadTimbreOfTheme, rollTempo, heldByZone } from './generator.ts';
 import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
 import { loudnessTrimDb, loudnessPlanOf } from './loudness.ts';
 import { classicRoles } from './roles.ts';
-import { seamPlan, blendAsked, seamTempo, glideBarsFor } from './performance.ts';
+import { seamPlan, blendAsked, seamTempo, glideBarsFor, freeSides, freeSeamBars, isFree } from './performance.ts';
+import { HOLE_ALL, holeOfBus } from '@deep-house/engine/schedule';
+import { clockAt, freeBlendSeconds, freeRingSeconds, FREE_BPM } from './musical-time.ts';
+import type { StylePlaces } from './places.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import type { SetClock } from '@deep-house/engine/set-clock';
 import type { SeamPlan } from '@deep-house/engine/program';
@@ -89,7 +92,10 @@ export const ENGINE_DEFAULTS = { lookahead: LOOKAHEAD };
 export { switchOn };
 
 export function setOptions(style: Style, opts: Partial<MixOptions> = {}): MixOptions {
-  return { ...ENGINE_DEFAULTS, ...style.set, ...opts, style } as MixOptions;
+  const o = { ...ENGINE_DEFAULTS, ...style.set, ...opts, style } as MixOptions;
+  // a zone's inert birds held at its centre for the set's own reads too (PLAN-ZONES §3.4): its length, its tempo, its turn
+  const held = heldByZone(style, o.spell);
+  return held === o.spell ? o : { ...o, spell: held };
 }
 
 /**
@@ -501,6 +507,13 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
   const drift = medianThemeMinutes * (o.driftBpmPerMinute ?? 0.1);
   bpm = Math.round((bpm + (o.driftMost != null ? Math.min(drift, o.driftMost * bpm) : drift)) * 10) / 10;
   if (opts.tempo && opts.tempo > 0) bpm = opts.tempo;
+  // **The second clock** (PLAN-AMBIENT §4, C1): a place whose time says `free` plans its theme at the nominal 60 BPM,
+  // asked here at the tempo the set drew (the place's address), so the minutes below become bars at 60 and
+  // `generate` is told (`clock`) rather than asking again at 60. No shipped place says it.
+  // Its place tables and its library are still read at the tempo drawn (`placeBpm`), as its metered self reads them.
+  const free = switchOn(style, 'placeTables') && clockAt((style as Style & { places?: StylePlaces }).places, bias.spell, bpm) === 'free';
+  const placeBpm = bpm;
+  if (free) bpm = FREE_BPM;
 
   // **The minutes become bars at the tempo played** (L1): the band is the
   // derived state's (`minutesBand`, `src/length.ts`), the seed's place on the
@@ -539,6 +552,7 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     seed: themeSeed(masterSeed, n),
     preset: opts.preset || 'auto',
     bpm,
+    ...(free ? { clock: 'free' as const, placeBpm } : {}),
     root,
     scaleName,
     bars,
@@ -597,6 +611,16 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
       : r.weighted(o.longBlendBars)) * RANGE.blendBars
   );
   track.filterMove = r.chance(o.filterMoveChance) ? (r.chance(0.5) ? 'close' : 'open') : null;
+  // **A free theme's blend is its tail, in seconds** (PLAN-AMBIENT §4.3, C3; `freeBlendSeconds`): Loom's presence and
+  // Tide's ring, in its own four-second bars rounded up, where the seam out of it is planned (`seamPlan`), with the
+  // seconds beside them, which is what the seam out of it lays (`freeSeamBars`) and the ring `seamCurves` closes. The
+  // draw above is still taken, so every later draw of the stream is where it was.
+  if (isFree(track)) {
+    const birds = biasFor(o.spell, style).spell;
+    track.blendSeconds = freeBlendSeconds(birds.loom, birds.tide);
+    track.ringSeconds = freeRingSeconds(birds.tide);
+    track.blendBars = Math.max(2, Math.ceil(track.blendSeconds / track.barSeconds - 1e-9));
+  }
   // How far this theme is from the record's target loudness, worked out from
   // the plan and nothing else — no render, no meter, no audio. It is a number
   // *beside* the plan and not in it: the events, the sections and the dice are
@@ -750,6 +774,8 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
   const starts = [0];
   const perBeats = [1];
   const seams: SetSeam[] = [];
+  // where a free theme's second nought falls (`Deck.zeroAt`): it is counted by offset, never by the grid
+  const zeros: number[] = [-(opts.entries?.[0] ?? 0)];
   let free = 0;
   for (let i = 0; i < plans.length - 1; i++) {
     const t = plans[i];
@@ -757,8 +783,9 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
     const m = perBeats[i];
     // a beat of the grid, in this theme's seconds (`gridBeat` of a deck)
     const g = t.beat * m;
-    const themeTimeAt = (time: number) => (clock.beatAt(time) - b0) * g;
-    const contextTimeAt = (themeTime: number) => clock.timeAt(b0 + themeTime / g);
+    const own = isFree(t), z = zeros[i];
+    const themeTimeAt = own ? (time: number) => time - z : (time: number) => (clock.beatAt(time) - b0) * g;
+    const contextTimeAt = own ? (themeTime: number) => z + themeTime : (themeTime: number) => clock.timeAt(b0 + themeTime / g);
     // A stated seam — a hand's move rendered for an ear, `renderMix`'s
     // `seams` — or the one the plan puts there.
     const told = opts.seams?.[i];
@@ -771,8 +798,8 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
       });
     // The tempo the outgoing theme is heard at as the seam is reached, and
     // what the rule does with the arriving one's.
-    const heard = (60 / clock.spbAt(clock.beatAt(contextTimeAt(p.at)))) * m;
-    const rule = seamTempo(heard, plans[i + 1].bpm, o);
+    const heard = own ? t.bpm : (60 / clock.spbAt(clock.beatAt(contextTimeAt(p.at)))) * m;
+    const rule = seamTempo(heard, plans[i + 1].bpm, o, freeSides(t, plans[i + 1]));
     // A far jump rides first: the bars before the line, from no earlier than
     // the blend before it ended, onto the arriving theme's own tempo.
     if (rule.ride > 0) {
@@ -781,8 +808,16 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
       if (beats > 0) clock.glide(clock.beatAt(contextTimeAt(from)), plans[i + 1].beat * m, beats);
     }
     const at = contextTimeAt(p.at);
-    const barSeconds = (clock.pin(clock.beatAt(at)) * 4) / m;
-    const end = at + p.bars * barSeconds;
+    // A seam with a free side (`seamTempo`'s `free`): into a free theme the grid is pinned and holds; out of one it
+    // jumps to the arriving theme's own tempo where the blend begins, and the blend is the free theme's seconds on
+    // the bar it is counted in (`freeSeamBars`).
+    const freeSeam = rule.kind === 'free'
+      ? freeSeamBars(t, plans[i + 1], p.bars, (clock.spbAt(clock.beatAt(at)) * 4) / m) : null;
+    if (freeSeam?.jump) clock.jump(clock.beatAt(at), plans[i + 1].beat);
+    const barSeconds = freeSeam && freeSeam.jump ? freeSeam.barSeconds : (clock.pin(clock.beatAt(at)) * 4) / m;
+    const bars = freeSeam ? freeSeam.bars : p.bars;
+    const seamBar = freeSeam ? freeSeam.barSeconds : barSeconds;
+    const end = at + bars * seamBar;
     seams.push({
       from: i,
       to: i + 1,
@@ -790,20 +825,24 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
       pct: p.bar / t.bars,
       boundary: p.boundary,
       onLine: p.bar % p.boundary === 0,
-      bars: p.bars,
-      barSeconds,
+      bars,
+      barSeconds: seamBar,
       at,
-      swapAt: at + swapAfterBars(p.bars, o) * barSeconds,
+      swapAt: at + swapAfterBars(bars, o) * seamBar,
       end,
       natural: seamPlan(t, blendAsked(t), { boundaryBars: o.boundaryBars, style: o.style }),
     });
-    const mIn = m * rule.perBeat;
+    const mIn = rule.kind === 'free' ? 1 : m * rule.perBeat;
     // and where the arriving theme enters: its first bar, or a stated second
     // of it (`renderMix`'s `entries`: a move in place)
     startBeats.push(clock.beatAt(at) - (opts.entries?.[i + 1] ?? 0) / (plans[i + 1].beat * mIn));
     starts.push(at);
+    zeros.push(at - (opts.entries?.[i + 1] ?? 0));
     perBeats.push(mIn);
     free = end;
+    // A free side glides nothing after the blend: the grid holds where the metered theme left it, or already runs at
+    // the arriving one's own tempo.
+    if (rule.kind === 'free') continue;
     // What is left after the blend, over its own length: sixteen bars for a
     // drift, a bar a percent for a near move, nothing for a far one.
     const target = plans[i + 1].beat * mIn;
@@ -870,7 +909,33 @@ export interface SeamMoment {
    */
   fromKey?: { root: number; scale: number[] };
   toKey?: { root: number; scale: number[] };
+  /**
+   * **The outgoing theme is free** (PLAN-AMBIENT §4.3, the second clock): its tail thins (`FREE_TAIL_CURVES`), and
+   * `ringS` is its ring, Tide's (`ringSeconds` on the plan). Absent on every seam out of a metered theme, which writes
+   * what it always wrote.
+   */
+  freeTail?: { ringS: number };
 }
+
+/**
+ * **A free side's tail, as a change and not a hold** (his ear 10-18: the 77 s tail "too long ... use general wisdom
+ * on humans perception of change patience, not strictly follow machine settings"). What a listener hears as a long
+ * overlap is how long it stays the same, so from the moment the arriving theme enters the free side keeps leaving,
+ * the way a DJ takes an ambient outro down under a beat: the top first, as the arriving hats take it; the low end at
+ * the swap, as every seam does; then its level, linear in decibels so every second is the same audible step, and its
+ * voices one at a time, so something changes every few seconds:
+ *
+ *   at .. swap     the top closes from open to `swapHz`; the level holds (the sum's trim makes the room)
+ *   swap           the low end changes hands; the free side's percussion (`drums`) plays no new note
+ *   swap .. last   the level falls to `lastDb` and the top to `lastHz`; halfway, at -12 dB, the calls (`keys`) leave
+ *   last           no new note at all (`end` less the ring): the pad's notes and the rooms ring on
+ *   last .. end    the ring, Tide's: what rings closes to nothing and the top to `goneHz`
+ *
+ * Every hole drops a note's onset and never cuts one, so each voice leaves on its own last envelope. Numbers of the
+ * mix, not of the music, as the seam's other numbers are: a free side's alone, which no seam out of a metered theme
+ * reads. The tail's seconds are the birds' (`freeBlendSeconds`); these say only how it leaves inside them.
+ */
+export const FREE_TAIL_CURVES = Object.freeze({ swapHz: 6000, lastHz: 1200, goneHz: 500, lastDb: -24 });
 
 function pointLine() {
   const pts: CurveStep[] = [];
@@ -958,7 +1023,7 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
 
   // MEASURED: a filter moves in about half of all mixes, direction a coin
   // flip, and nothing at the seam is dramatic.
-  if (m.filterMove === 'close') {
+  if (m.filterMove === 'close' && !m.freeTail) {
     line('from', 'lp.frequency', pointLine()
       .set(20000, at)
       .exp(o.outgoingLpHz, end).pts);
@@ -968,28 +1033,52 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
       .exp(18, at + Math.max(2, bars / 2) * barSeconds).pts);
   }
 
+  if (m.freeTail) {
+    // **A free side leaves as a change** (`FREE_TAIL_CURVES`): top, low end, level and voices, then its ring.
+    const F = FREE_TAIL_CURVES;
+    const ring = Math.max(0, Math.min(m.freeTail.ringS, (end - swapAt) / 2));
+    const last = end - ring;
+    // a free deck's seconds are the context's one to one, so its own seconds are the swap's plus the distance
+    const own = (t: number) => m.swapInFrom + (t - swapAt);
+    line('from', 'lp.frequency', pointLine()
+      .set(20000, at)
+      .exp(F.swapHz, swapAt)
+      .exp(F.lastHz, last)
+      .exp(F.goneHz, end).pts);
+    line('from', 'fader.gain', pointLine()
+      .set(1, swapAt)
+      .exp(Math.pow(10, F.lastDb / 20), last)
+      .exp(0.0002, end)
+      .lin(0, end + 0.02).pts);
+    holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(swapAt), Infinity] });
+    holes.push({ deck: 'from', group: holeOfBus('keys'), gap: [own((swapAt + last) / 2), Infinity] });
+    holes.push({ deck: 'from', group: HOLE_ALL, gap: [own(last), Infinity] });
+  }
+
   // Once the bottom has changed hands the outgoing theme is a harmonic layer
   // over someone else's groove, so it eases away rather than standing at full
   // level until the last bar.
-  const tailFrom = Math.max(at, end - 2 * barSeconds);
-  const fromFader = pointLine();
-  if (swapAt < tailFrom) fromFader.set(1, swapAt).lin(0.55, tailFrom);
-  // The outgoing theme's last two bars close down to the same place. When the
-  // seam itself is a closing filter, the ramp above is already on its way
-  // there and there is nothing to add: what used to be added was the
-  // parameter's *current* value written in as an event two bars from the end —
-  // `.value` is where the filter is now, not where it will be — which flattened
-  // the whole close into those two bars.
-  if (m.filterMove !== 'close') {
-    line('from', 'lp.frequency', pointLine()
-      .set(20000, tailFrom)
-      .exp(o.outgoingLpHz, end).pts);
+  if (!m.freeTail) {
+    const tailFrom = Math.max(at, end - 2 * barSeconds);
+    const fromFader = pointLine();
+    if (swapAt < tailFrom) fromFader.set(1, swapAt).lin(0.55, tailFrom);
+    // The outgoing theme's last two bars close down to the same place. When the
+    // seam itself is a closing filter, the ramp above is already on its way
+    // there and there is nothing to add: what used to be added was the
+    // parameter's *current* value written in as an event two bars from the end —
+    // `.value` is where the filter is now, not where it will be — which flattened
+    // the whole close into those two bars.
+    if (m.filterMove !== 'close') {
+      line('from', 'lp.frequency', pointLine()
+        .set(20000, tailFrom)
+        .exp(o.outgoingLpHz, end).pts);
+    }
+    fromFader
+      .set(swapAt < tailFrom ? 0.55 : 1, tailFrom)
+      .exp(0.0002, end)
+      .lin(0, end + 0.02);
+    line('from', 'fader.gain', fromFader.pts);
   }
-  fromFader
-    .set(swapAt < tailFrom ? 0.55 : 1, tailFrom)
-    .exp(0.0002, end)
-    .lin(0, end + 0.02);
-  line('from', 'fader.gain', fromFader.pts);
 
   // **The harmonic cross is short, the rhythmic cross is long** (round MIX-X2;
   // Eugene, 10-02: *"for a significant time — 4–6 s — users may experience

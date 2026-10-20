@@ -274,6 +274,8 @@ export interface PlannedTheme {
   knobs?: Record<string, Record<string, number>>;
   /** a row's lean on the stage's palette, one weight a row of it (S18); absent at the house */
   treatmentWeights?: number[];
+  /** the treatments' rate where a place's journey slows them (PLAN-AMBIENT Phase 6), Hz; absent everywhere else */
+  stageRates?: [number, number];
 }
 
 // Every number the stage applies is the **style's**, since round F of
@@ -843,6 +845,12 @@ export function stage(track: PlannedTheme, style: Style = track.style): StageRow
     pad: rota(`${seed}::treat:pad`, bars, 'pad', placement, R, momentAt),
     keys: rota(`${seed}::treat:keys`, bars, 'keys', placement, R, momentAt),
   };
+  // **The rate a journey asks** (PLAN-AMBIENT Phase 6, `track.stageRates`): each segment's rolled rate mapped from the
+  // rota's range into the place's, where it stood in the one standing in the other, so the rolls are the rolls they were
+  // and a phaser or an auto-pan turns as slowly as the place wants. Absent, the rolls stand.
+  const SR = track.stageRates;
+  if (SR) for (const l of Object.keys(rotas)) rotas[l] = rotas[l].map((g) => ({ ...g,
+    rate: +(SR[0] + (SR[1] - SR[0]) * (g.rate - R.rate[0]) / Math.max(1e-9, R.rate[1] - R.rate[0])).toFixed(5) }));
 
   // The target level of each layer, bar by bar, before smoothing.
   const target: Record<string, number[]> = { pad: [], keys: [], bass: [] };
@@ -1416,6 +1424,17 @@ export function blendBarsFor(track: PlannedTheme, bars: number): number {
  *           theme's own tempo, beat-matched, with nothing left to glide. The
  *           incoming theme never plays at a tempo that is not its own.
  *
+ *   free    **either side free** (PLAN-AMBIENT §4.3, the second clock, C2-C3):
+ *           nothing is ridden and nothing glides. A free theme is counted in
+ *           its own seconds by offset and never by the grid, so into one the
+ *           grid is pinned where the metered theme stands and holds (its
+ *           tempo is never ridden toward 60), and out of one the grid jumps to
+ *           the arriving metered theme's own tempo at the blend's first
+ *           instant, which only the free deck is up to hear and it does not
+ *           listen. The arriving theme is counted one to one (`perBeat` 1).
+ *           Asked by `sides`, the two themes' clocks (`freeSides`); a seam
+ *           between two metered themes is the four bands above, unchanged.
+ *
  * `perBeat` is how many of the arriving theme's beats one of the outgoing
  * theme's takes on the grid (1, or 2 and ½ at double and half time); `ride` is
  * the far case's glide before the blend, in the outgoing theme's bars; `glide`
@@ -1430,7 +1449,7 @@ export const RIDE_BARS_PER_OCTAVE = 8;
 export const RIDE_BARS_LEAST = 4;
 
 export interface SeamTempo {
-  kind: 'drift' | 'near' | 'double' | 'half' | 'far';
+  kind: 'drift' | 'near' | 'double' | 'half' | 'far' | 'free';
   /** the arriving theme's tempo over the outgoing one's, as heard */
   ratio: number;
   /** the arriving theme's beats to one of the outgoing theme's on the grid */
@@ -1453,8 +1472,15 @@ export function glideBarsFor(ratio: number, o: { tempoGlideBars?: number } = {})
   return Math.max(1, Math.min(most, Math.ceil(off * 100 * GLIDE_BARS_PER_PERCENT - 1e-9)));
 }
 
-export function seamTempo(fromBpm: number, toBpm: number, o: { tempoGlideBars?: number } = {}): SeamTempo {
+/** Which sides of a seam are free (`Track.clock`), for `seamTempo`. */
+export interface SeamSides { from?: boolean; to?: boolean }
+export const isFree = (t: { clock?: string } | null | undefined): boolean => !!t && t.clock === 'free';
+export const freeSides = (from: { clock?: string } | null | undefined, to: { clock?: string } | null | undefined): SeamSides =>
+  ({ from: isFree(from), to: isFree(to) });
+
+export function seamTempo(fromBpm: number, toBpm: number, o: { tempoGlideBars?: number } = {}, sides: SeamSides | null = null): SeamTempo {
   const ratio = toBpm / fromBpm;
+  if (sides && (sides.from || sides.to)) return { kind: 'free', ratio, perBeat: 1, ride: 0, glide: 0 };
   const most = Math.max(1, o.tempoGlideBars ?? 16);
   const off = Math.max(ratio, 1 / ratio) - 1;
   if (!(off >= TEMPO_DRIFT)) return { kind: 'drift', ratio, perBeat: 1, ride: 0, glide: most };
@@ -1467,6 +1493,32 @@ export function seamTempo(fromBpm: number, toBpm: number, o: { tempoGlideBars?: 
   }
   const ride = Math.max(RIDE_BARS_LEAST, Math.min(most, Math.ceil(RIDE_BARS_PER_OCTAVE * Math.abs(Math.log2(ratio)) - 1e-9)));
   return { kind: 'far', ratio, perBeat: 1, ride, glide: 0 };
+}
+
+/**
+ * **A seam with a free side, on the grid it is laid on** (PLAN-AMBIENT §4.3,
+ * the second clock, C3). The blend a caller hands over is counted in the
+ * outgoing theme's own bars, where its line was planned. Out of a metered
+ * theme into a free one that is the metered theme's own blend on its own
+ * pinned grid, as ever: its line was planned with that much room, and the
+ * free theme enters on it. Out of a free theme the blend is its seconds —
+ * the free theme's own tail, Loom's presence and Tide's ring
+ * (`freeBlendSeconds`, written as its blend by `planTheme`: its four-second
+ * bars rounded up, and the seconds beside them, `blendSeconds`, which are what
+ * is laid wherever the bars asked are not fewer) — on the bar the curves are
+ * counted in: the arriving metered theme's own, the grid having jumped to it
+ * (`jump`), or the nominal four seconds between two free themes. Nothing here
+ * reads a clock.
+ *
+ * @param bars the blend, in the outgoing theme's own bars
+ * @param gridBar a bar of the grid as it stands at the line, which the curves are counted in when nothing jumps
+ */
+export function freeSeamBars(from: { clock?: string; barSeconds: number; blendSeconds?: number }, to: { clock?: string; barSeconds: number }, bars: number, gridBar: number):
+  { bars: number; barSeconds: number; jump: boolean } {
+  if (!isFree(from)) return { bars, barSeconds: gridBar, jump: false };
+  const barSeconds = isFree(to) ? from.barSeconds : to.barSeconds;
+  const seconds = Math.min(bars * from.barSeconds, from.blendSeconds ?? Infinity);
+  return { bars: Math.max(2, Math.round(seconds / barSeconds)), barSeconds, jump: !isFree(to) };
 }
 
 /**
@@ -1907,6 +1959,8 @@ export function compilePerformance(
     index: plan.index ?? null,
     preset: plan.preset,
     bpm: plan.bpm,
+    // the second clock (PLAN-AMBIENT §4): only where the plan is free, so no metered program moves a byte
+    ...((plan as { clock?: 'free' }).clock === 'free' ? { clock: 'free' as const } : {}),
     beat: plan.beat,
     barSeconds: plan.barSeconds,
     bars: plan.bars,

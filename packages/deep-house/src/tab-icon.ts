@@ -25,6 +25,14 @@
 // **Safari** only rereads an icon whose `<link>` is new, so the element is
 // replaced (a clone with the new href, in the same place in the head) rather
 // than having its href changed; Chrome and Firefox take either.
+//
+// **The Mac app's Dock icon follows it too** (round apple-icon, Eugene 10-19:
+// *"for mac app we could show the ring color in the app how we do it in the
+// browser icon"*). Where the app's shell has set `window.deepHouseShell`, the
+// same ink is handed to it (`deepHouseShell.ink`) whenever the tab's ink is
+// written or settles, and the shell draws the Dock's icon in it
+// (apple/Sources/Mac/DockIcon.swift); the gold hands back the app's own icon.
+// In a browser there is no shell and nothing more happens.
 
 import { applyRel, relTo, type RingColour } from './ring-colour.ts';
 
@@ -57,6 +65,16 @@ let written = ICON_GOLD;              // what the tab carries: the page's own go
 let wanted = ICON_GOLD;               // what was last asked for
 let wroteAt = -Infinity;
 let timer: ReturnType<typeof setTimeout> | 0 = 0;
+let told = '';                        // what the app's shell was last handed: none yet
+
+/** The app's shell, if there is one, wears the ink too (never in a browser). */
+function tellShell(ink: string) {
+  if (ink === told) return;
+  const shell = window.deepHouseShell;
+  if (!shell || typeof shell.ink !== 'function') return;
+  told = ink;
+  shell.ink(ink);
+}
 
 function write() {
   timer = 0;
@@ -68,13 +86,14 @@ function write() {
   old.replaceWith(next);
   written = wanted;
   wroteAt = performance.now();
+  tellShell(written);
 }
 
 /** The ring has put on a colour: the tab follows, if its ink moved. */
 export function wearIcon(colour: RingColour): void {
   wanted = iconInk(colour);
   if (timer) return;                  // the write already waiting will take it
-  if (wanted === written) return;
+  if (wanted === written) { tellShell(written); return; }
   const wait = wroteAt + ICON_EVERY - performance.now();
   if (wait <= 0) write();
   else timer = setTimeout(write, wait);

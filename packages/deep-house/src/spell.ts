@@ -43,6 +43,8 @@
 // or a substitute for the measured die-to-reading calibration.
 
 import { linkRaw, linkValue } from './link-table.ts';
+import { airAbout, airBlend, airDraw, airOctaves, voiceAir, type AirCentre, type AirRole } from './air-lean.ts';
+import type Rng from './rng.ts';
 import type { BirdResponse } from './composition-policy.ts';
 import type { Style } from '@deep-house/engine/style';
 import type { KnobSpec, Knobs } from '@deep-house/engine/voices/descriptor';
@@ -234,7 +236,7 @@ const LABELS: ReadonlyArray<{ below: number; family: TempoFamily; band: TempoBan
 
 /** Drums are on above this much transient energy; the kit breaks above this much fracture. */
 export const DRUMS_ON_ABOVE = 0.18;
-const BREAKS_ABOVE = 0.45;
+export const BREAKS_ABOVE = 0.45;
 
 /**
  * **The pulse, and the one number of this file that moved in derive-lite.**
@@ -326,6 +328,20 @@ export function emberNotchValue(ember: number, spark: number): number {
   const raw = emberTempo(ember, spark, true);
   if (raw < NOTCHED_FROM) return ember;
   return emberAtNotch(tempoNotch(raw), spark) ?? ember;
+}
+
+/** Ten BPM is one bird step of 0.15: the place tables' weight on a tempo outside a place's range (`places.ts`). */
+export const PLACE_TEMPO_WEIGHT = 0.15 / 10;
+/**
+ * **How far a spell at a tempo stands from a place** (its birds, the house's where it names none, and its tempo range):
+ * the eight birds' differences and the tempo outside the range, one Euclidean distance. `places.ts` `placeDistance`
+ * reads it, and so does Zephyr's centre (`airAtOf`).
+ */
+export function placeDistanceOf(birds: Readonly<Partial<Record<Bird, number>>>, tempo: readonly [number, number], spell: Spell, bpm: number): number {
+  let d2 = 0;
+  for (const b of BIRDS) d2 += (spell[b] - (birds[b] ?? HOUSE[b])) ** 2;
+  const out = bpm < tempo[0] ? tempo[0] - bpm : bpm > tempo[1] ? bpm - tempo[1] : 0;
+  return Math.sqrt(d2 + (PLACE_TEMPO_WEIGHT * out) ** 2);
 }
 
 // The glyph's turn (the comment over `pulseAtCentre` says what it is). Since
@@ -790,6 +806,11 @@ export interface Bias {
   derived: Derived;
   /** true when this is the identity: every weight 1, every range 1 */
   house: boolean;
+  /**
+   * where the spell stands off its place's own Zephyr (zephyr-air): that Zephyr, and the lists' weights there (with
+   * every other bird the spell's), which the coupled timbre draw starts from; absent at the place's own Zephyr
+   */
+  airCentre?: { zephyr: number; weights: Record<string, number[]> };
 }
 
 const IDENTITY_RANGES: Readonly<Ranges> = Object.freeze({
@@ -939,7 +960,7 @@ function exponentOf(s: Spell, list: ListSignature, key: string, width: Spell): n
  * candidate the die reaches twice does not move the list's own average, and a
  * candidate the sweep has too little of draws at that average, which is 1.
  */
-function listWeights(s: Spell, list: ListSignature, entries: string[], width: Spell): number[] {
+function listWeights(s: Spell, list: ListSignature, entries: string[], width: Spell, tilt?: readonly number[]): number[] {
   const exponents = entries.map((k) => exponentOf(s, list, k, width));
   let mass = 0;
   let centre = 0;
@@ -949,9 +970,14 @@ function listWeights(s: Spell, list: ListSignature, entries: string[], width: Sp
     mass += n;
     centre += n * (exponents[i] as number);
   });
-  if (!mass) return entries.map(() => 1);
-  centre /= mass;
-  return exponents.map((e) => (e === null ? 1 : clamp(Math.exp((e as number) - centre), WEIGHT_FLOOR, WEIGHT_CEILING)));
+  const table = !mass ? entries.map(() => 1) : exponents.map((e) => (e === null ? 1 : clamp(Math.exp((e as number) - centre / mass), WEIGHT_FLOOR, WEIGHT_CEILING)));
+  if (!tilt) return table;
+  // `tilt`: **the air's lean** (zephyr-air) on each entry, applied after the table's own clamp and about the entries' mean
+  // tilt (so the list's average is left where the table put it): a pure exponential on the air, which is what keeps the
+  // coupled draw from ever stepping darker (`airDraw`). A clamp after the tilt pinned the airiest voice at the ceiling
+  // while the next one down kept rising, and handed it share: the review of 10-18.
+  const mean = tilt.reduce((a, x) => a + x, 0) / (tilt.length || 1);
+  return table.map((w, i) => w * Math.exp(tilt[i] - mean));
 }
 
 // --- the per-layer table, and why a timbre list needs one --------------------
@@ -1091,7 +1117,7 @@ function layerSignature(table: LayerTable, row: { id: string; die: string; list:
  */
 const LEANS_ON_LAYERS = new Set(['timbre', 'voice']);
 
-export function measuredWeights(spell: Spell, style: Style): Record<string, number[]> {
+export function measuredWeights(spell: Spell, style: Style, air?: AirAt): Record<string, number[]> {
   const weights = identityWeights(style);
   const sig: Signatures | undefined = (style as any).signatures;
   const layers: LayerTable | undefined = (style as any).layers;
@@ -1100,7 +1126,11 @@ export function measuredWeights(spell: Spell, style: Style): Record<string, numb
     if (layers && LEANS_ON_LAYERS.has(row.of)) {
       const built = layerSignature(layers, row);
       if (built) {
-        weights[row.id] = listWeights(spell, built, row.list().map(String), layers.spread);
+        const entries = row.list().map(String);
+        // **Zephyr is air** (zephyr-air): a timbre list's Zephyr is read at the place's own Zephyr, where it draws what
+        // it drew, and from there the air leans it (`airTiltOf`); every other bird as it was
+        const tilt = air && row.of === 'timbre' ? airTiltOf(style, layers, built, row.id, entries, air) : null;
+        weights[row.id] = tilt ? listWeights({ ...spell, zephyr: air!.centre }, built, entries, layers.spread, tilt) : listWeights(spell, built, entries, layers.spread);
         continue;
       }
     }
@@ -1109,6 +1139,82 @@ export function measuredWeights(spell: Spell, style: Style): Record<string, numb
     weights[row.id] = listWeights(spell, list, row.list().map(String), sig!.spread);
   }
   return weights;
+}
+
+/**
+ * **Where a spell's Zephyr stands from its place's own** (zephyr-air): the place's centre (`StylePlaces.air`, the
+ * places a timbre draw was tuned at, the house's own among them, blended by how near each stands: `airBlend`) and the
+ * spell's distance from it. A place's distance is the place tables' own (`placeDistanceOf`: the birds, and the tempo
+ * outside its range at Ember's curve, unnotched so it never steps) with Zephyr left out. Null where the style names no
+ * centres, carries no layer table, or the spell stands at its place's own Zephyr: there every timbre list draws exactly
+ * what it drew.
+ */
+export interface AirAt { centre: number; off: number }
+const HOUSE_AIR: AirCentre['place'] = Object.freeze({ birds: Object.freeze({}), tempo: Object.freeze([0, Infinity] as const) });
+export function airAtOf(spell: Spell, style: Style): AirAt | null {
+  const centres = (style as { places?: { air?: readonly AirCentre[] } }).places?.air;
+  if (!centres?.length || !(style as { layers?: unknown }).layers) return null;
+  const bpm = emberTempo(spell.ember, spell.spark, true);
+  const centre = airBlend([HOUSE_AIR, ...centres.map((c) => c.place)].map((p) => {
+    const zephyr = p.birds.zephyr ?? HOUSE.zephyr;
+    return { d: placeDistanceOf(p.birds, p.tempo, { ...spell, zephyr }, bpm), zephyr };
+  }));
+  return centre === spell.zephyr ? null : { centre, off: spell.zephyr - centre };
+}
+
+/** The role a timbre list's voice is heard in, for its air: the pads held, the stabs struck, a lead as its kind. */
+export function timbreRoleOf(style: Style, id: string): (v: string) => AirRole {
+  if (id === 'padPartners' || id === 'sustainedLeads') return () => 'held';
+  if (id === 'stabPartners') return () => 'keys';
+  const held = new Set<string>((style.catalogue as { sustainedLeads?: readonly string[] }).sustainedLeads ?? []);
+  return (v) => (held.has(v) ? 'held' : 'keys');
+}
+
+const AIR_PER = new WeakMap<object, Map<string, number>>();
+/**
+ * A timbre list's air lean at a spell: each entry's air about the list's middle (`airAbout`, octaves) times the lean's
+ * strength and the spell's distance from its place's Zephyr. **The strength is the reach the layer table's own Zephyr
+ * lean had on the list** (the spread of its candidates' Zephyr centres over the kernel's width squared: that lean's
+ * log-weight per unit of Zephyr) over the spread of their air: the same reach, its direction the air's. Null where
+ * Zephyr does not drive the list.
+ */
+function airTiltOf(style: Style, layers: LayerTable, built: ListSignature, id: string, entries: string[], air: AirAt): number[] | null {
+  if (!built.drives.includes('zephyr') || !air.off) return null;
+  const role = timbreRoleOf(style, id);
+  const a = airAbout(entries.map((v) => ({ v, w: 1 })), voiceAir(role));
+  let byList = AIR_PER.get(layers);
+  if (!byList) { byList = new Map(); AIR_PER.set(layers, byList); }
+  let per = byList.get(id);
+  if (per === undefined) {
+    const h2 = layers.spread.zephyr ** 2;
+    const sd = (xs: number[]) => { const m = xs.reduce((x, y) => x + y, 0) / xs.length; return Math.sqrt(xs.reduce((x, y) => x + (y - m) ** 2, 0) / xs.length); };
+    const mus = entries.filter((v) => layers.rows[v]).map((v) => layers.rows[v].mean.zephyr / h2);
+    const airs = entries.map((v) => airOctaves(v, role(v))).filter((x): x is number => x != null);
+    per = mus.length > 1 && airs.length > 1 && sd(airs) > 0 ? sd(mus) / sd(airs) : 0;
+    byList.set(id, per);
+  }
+  return per ? a.map((x) => per! * air.off * x) : null;
+}
+
+/**
+ * **A timbre list's draw** (zephyr-air): the list as the bias weighs it, through `chain` (the hold lean, the scene's
+ * admission, the far-apart rule), on one die. Where the spell stands off its place's Zephyr the draw is coupled to the
+ * place's own (`airDraw`): the same die, the same voice at the centre, and off it a voice only ever airier as Zephyr
+ * rises. Elsewhere it is `Rng.weighted`, to the bit.
+ */
+export function drawTimbre(rng: Rng, style: Style, list: ReadonlyArray<{ v: string; w: number }>, bias: Bias, id: string,
+  chain: <T extends { v: string; w: number }>(list: T[]) => T[] = (l) => l): string {
+  const here = chain(scaleWeighted(list as Array<{ v: string; w: number }>, bias, id));
+  const C = bias.airCentre?.weights[id];
+  if (!C || C.length !== list.length) return rng.weighted(here);
+  const centre = chain(list.map((e, i) => (C[i] === 1 ? e : { ...e, w: e.w * C[i] })));
+  const role = timbreRoleOf(style, id);
+  // the air's order, about the same middle the lean is taken about (the whole list's, `airTiltOf`)
+  const a = airAbout(list.map((e) => ({ v: e.v, w: 1 })), voiceAir(role));
+  const at = new Map(list.map((e, i) => [e.v, a[i]]));
+  // a lead list's held and struck voices each keep their share: Zephyr moves the air of the voice in front, not whether
+  // the lead holds the chord or strikes the figure (the front is the keys that play, and a held lead hands it to the stab)
+  return airDraw(rng, centre, here, (v) => at.get(v) ?? 0, id === 'leadTimbres' ? role : undefined);
 }
 
 /**
@@ -1228,8 +1334,11 @@ export function biasFor(spell: Partial<Spell> | null | undefined, style: Style):
 
   const s = asSpell(spell);
   const controls = musicalControls(s, style);
+  const air = airAtOf(s, style);
   return {
-    weights: measuredWeights(s, style),
+    weights: measuredWeights(s, style, air ?? undefined),
+    // the timbre lists as the place's own Zephyr weighs them, for the coupled draw (`drawTimbre`)
+    ...(air ? { airCentre: { zephyr: air.centre, weights: measuredWeights({ ...s, zephyr: air.centre }, style) } } : {}),
     ranges: measuredRanges(s, style),
     spell: s,
     derived: derive(s),

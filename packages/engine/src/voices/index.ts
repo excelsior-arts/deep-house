@@ -149,6 +149,21 @@ import weatherWindRow from '../../sounds/noise/weatherWind.json' with { type: 'j
 import weatherUpperAirRow from '../../sounds/noise/weatherUpperAir.json' with { type: 'json' };
 import weatherRainRow from '../../sounds/noise/weatherRain.json' with { type: 'json' };
 import weatherRumbleRow from '../../sounds/noise/weatherRumble.json' with { type: 'json' };
+// ambient-bells (10-17, PLAN-AMBIENT Phase 1): a struck singing bowl and a temple bell, two rows of the mallet topology.
+import bowlStruckRow from '../../sounds/keyboard/bowlStruck.json' with { type: 'json' };
+import bellTempleRow from '../../sounds/keyboard/bellTemple.json' with { type: 'json' };
+// bells-birds (10-18): the bells' size by Root, a great temple bell with its slow beating and small bells, two more rows of it.
+import bellGreatRow from '../../sounds/keyboard/bellGreat.json' with { type: 'json' };
+import bellSmallRow from '../../sounds/keyboard/bellSmall.json' with { type: 'json' };
+// ambient-bells (10-17, his ear on the hand): a soft woodblock, a frame drum under a muted hand and a soft shaker.
+import woodblockSoftRow from '../../sounds/drum/woodblockSoft.json' with { type: 'json' };
+import frameDrumRow from '../../sounds/drum/frameDrum.json' with { type: 'json' };
+import shakerSoftRow from '../../sounds/noise/shakerSoft.json' with { type: 'json' };
+// ambient-voices (10-18, PLAN-AMBIENT P2b/P3): a rimmed singing bowl, a tanpura's jawari string and a wordless chant.
+import bowlRimRow from '../../sounds/keyboard/bowlRim.json' with { type: 'json' };
+import tanpuraRow from '../../sounds/keyboard/tanpura.json' with { type: 'json' };
+import chantOmRow from '../../sounds/vocal/chantOm.json' with { type: 'json' };
+import { holdRim } from './rim-bowl.ts';
 
 export { FAMILIES, ROLES, BUSES, FIELDS, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from './descriptor.ts';
 export { KNOB_UNITS, KNOB_BIRDS, knobFaults, knobScale, knobsOf } from './descriptor.ts';
@@ -156,6 +171,7 @@ export { CONTROL_UNITS, SEND_CONTROL, controlFaults, noteControl, withControls }
 export { asSound, soundDescriptor, soundFaults, soundLine, patchOf, rowBase, admittedOf } from './sound.ts';
 export type { SoundRow, SoundDescriptor, Topology } from './sound.ts';
 export { TOPOLOGIES } from './topologies.ts';
+export { malletLives } from './mallets.ts';
 
 /**
  * A sound row as a registry entry: read off its JSON, held to its topology,
@@ -415,6 +431,22 @@ export const REGISTRY: Descriptor[] = [
   sound(weatherUpperAirRow),
   sound(weatherRainRow),
   sound(weatherRumbleRow),
+  // ambient-bells (10-17): the bowl and the temple bell, named by no lane (`plays: null`), written by the composer's
+  // conversation pass (`src/slow-conversation.ts` in the app) where a place lays one.
+  sound(bowlStruckRow),
+  sound(bellTempleRow),
+  // bells-birds (10-18): the great bell and the small bells, which only the conversation's Root lean opens
+  sound(bellGreatRow),
+  sound(bellSmallRow),
+  // ...and the conversation's hand (10-17, his ear: the record's shaker read as a hat and its hand as a clap there)
+  sound(woodblockSoftRow),
+  sound(frameDrumRow),
+  sound(shakerSoftRow),
+  // ambient-voices (10-18): the rimmed bowl, the tanpura and the chant, named by no lane (`plays: null`) and admitted by
+  // no part yet: the places that will play them (shavasana's bowls, Om) wait for their own rounds.
+  sound(bowlRimRow),
+  sound(tanpuraRow),
+  sound(chantOmRow),
 ];
 
 /**
@@ -772,6 +804,9 @@ export { holdFormantPad, holdSupersawPad };
 // because where a note sits between two spectra is exactly the kind of thing a
 // hand on a drone reaches for.
 export { holdGrainPad, holdWavePad };
+// ...and ambient-voices' rimmed bowl (10-18): the stick on the rim for as long as the hold lasts, its pressure (`rub`),
+// its lid and its level the controls; the row's own numbers, as the note's are.
+export const holdBowlRim = holdRim(asSound(bowlRimRow));
 // What a context is holding for the audition instrument, for the test that
 // counts what a start and a stop leave behind.
 export { pickCacheSize, stringCacheSize };

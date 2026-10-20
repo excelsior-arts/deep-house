@@ -15,6 +15,12 @@
 // roll, a triplet into more; a thinning, a choke, a gap, a roll that thins into less; on a level seam a small answer to
 // the figure (`answer`: the closed hats stepping off the figure's strikes and answering each in its gap). Where the
 // bar's voices are busy the busy rows are kept out, as they are out of the hand player's room.
+//
+// **The seams** (round hat-seams, the same word): a span's way out that a build holds is led into by the hats from the
+// bar before the build (`src/phrasing.ts`), the upward vector the build is; where the figure rests and the bass carries
+// the bar the answer answers the bass's line; and an answer under a call still sounding (legato keys ringing into each
+// other, a held bass) takes the row's `ring` — the open hat, choked, where the theme's own rings, else the closed hat at
+// the groove's own level with a ghost after it — so the response reads through the sustain without stepping on it.
 import HAT_FILE from '../recipes/arrangement/hat-moves.json' with { type: 'json' };
 import { Rng } from './rng.ts';
 import { lean } from './lean.ts';
@@ -41,13 +47,18 @@ export interface HatMoveRow {
   /** the row's weight by the vector of change across the seam (a row names the ones it leans; 1 where it names none; a
    * row with a nought is drawn only where the transition's vector is read) */
   vectors?: Partial<Record<Vector, number>>;
-  /** the row's weight by the vector where the figure keeps playing across the seam (it strikes in the move's bar and in
+  /** the row's weight by the vector where the call (the figure, or the bass where it rests) keeps playing across the seam (it strikes in the move's bar and in
    * the line's): in place of `vectors` there */
   keeps?: Partial<Record<Vector, number>>;
   /** call and response (round hat-scene): over the window the closed hats keep their offbeats at `time` but where the
    * figure strikes, and answer each of the figure's strikes at `hit` once its note has stopped sounding (or, where it
    * rings on, on the next offbeat the figure leaves free), never on a kick's beat */
-  answer?: { hit: string; time: string; clear: number };
+  answer?: { hit: string; time: string; clear: number;
+    /** where the call still sounds at the answer (legato keys ringing into each other, a held bass: round hat-seams), the
+     * answer on the open hat at `open` where the theme's own rings and the span keeps its tops, else on the closed hats at
+     * `hit` with a ghost at `after` on the sixteenth after it (the and-a: an answer the groove's own offbeat would not
+     * be), and the window's other offbeats at `time`: the response read through the sustain, never under the strike */
+    ring?: { hit: string; time: string; open?: string; after?: string } };
   needs?: Array<'open' | 'talk' | 'call'>;
   letters?: Record<string, Letter>;
   lanes: Partial<Record<HatLane, { clear?: 'window'; pattern?: string | Record<string, string> }>>;
@@ -99,7 +110,9 @@ export interface HatInput {
   hatSteps?: (bar: number) => HatSteps;
   /** the scene at a bar (round hat-scene): whether its voices are busy, and the figure's strikes with the sixteenth each
    * note stops sounding (the call) */
-  scene?: { busy: (bar: number) => boolean; call: (bar: number) => ReadonlyArray<{ step: number; end: number }>; kicks: (bar: number) => number[] };
+  scene?: { busy: (bar: number) => boolean; call: (bar: number) => ReadonlyArray<{ step: number; end: number }>; kicks: (bar: number) => number[];
+    /** the steps the bar's figure and bass strike (round hat-seams: an answer's ghost never stacks on them) */
+    struck?: (bar: number) => number[] };
 }
 
 const DIGITS: Readonly<Record<string, Letter>> = Object.freeze(Object.fromEntries(Array.from({ length: 9 }, (_, i) => [String(i + 1), { level: (i + 1) / 10 }])));
@@ -133,29 +146,42 @@ function densified(pat: string, share: number): string {
 
 /**
  * **A hat answer's figure** over a window of `beats` (round hat-scene): the closed hats on their offbeats at `time`
- * except where the figure strikes, and an answer to each of its strikes at `hit`, in its gap before the next — a
- * response, never a flam under the called note: on the first sixteenth after it where no note of the figure sounds (every
- * one stopped `clear` of a sixteenth before it at least: a strum's late voices, the hats' own swing and humanising), or,
- * where the figure rings on, on the next offbeat half a beat after it at least; each on a step the figure, the hand part
- * and the other answers leave free, never on a kick (nor on a beat: the hats move only in a four-floor kit). Empty where
- * nothing in the window answers.
+ * except where the call strikes (the figure's, or the bass's where it carries the bar: round hat-seams), and an answer to
+ * each of its strikes at `hit`, in its gap before the next — a response, never a flam under the called note: on the first
+ * sixteenth after it where no note of the call sounds (every one stopped `clear` of a sixteenth before it at least: a
+ * strum's late voices, the hats' own swing and humanising), or, where the call rings on, on the next offbeat half a beat
+ * after it at least; each on a step the call, the hand part and the other answers leave free, never on a kick (nor on a
+ * beat: the hats move only in a four-floor kit). An answer under a call still sounding takes the row's `ring` (round
+ * hat-seams: the closed hat at the groove's own level, or the open hat, choked, where `open` admits it), and the window's
+ * other offbeats step back to its `time`. The closed hats' figure and the open hat's (empty where none rings); the
+ * closed empty where nothing in the window answers.
  */
 export function answerPattern(a: NonNullable<HatMoveRow['answer']>, beats: number, call: ReadonlyArray<{ step: number; end: number }>,
-  hands: readonly number[], kicks: readonly number[] = []): string {
-  const from = 16 - beats * 4, out = new Array(16).fill('.'), struck = call.map((c) => c.step);
-  const free = (q: number) => q % 4 !== 0 && !kicks.includes(q) && out[q] === '.' && !struck.includes(q) && !hands.includes(q);
+  hands: readonly number[], kicks: readonly number[] = [], open = false, voices: readonly number[] = [], openHave: readonly number[] = []): { closed: string; open: string } {
+  const from = 16 - beats * 4, out = new Array(16).fill('.'), opn = new Array(16).fill('.'), struck = call.map((c) => c.step);
+  const free = (q: number) => q % 4 !== 0 && !kicks.includes(q) && out[q] === '.' && opn[q] === '.' && !struck.includes(q) && !hands.includes(q);
   const sounding = (q: number) => call.some((c) => c.step < q && q < c.end + a.clear);
-  let answers = 0;
+  let answers = 0, rings = 0;
   for (const c of call) {
     const gap = Math.min(16, ...struck.filter((q) => q > c.step));
     let r = -1;
     for (let q = c.step + 1; q < gap && r < 0; q++) if (free(q) && !sounding(q)) r = q;
     for (let q = c.step + 2; q < gap && r < 0; q++) if (q % 4 === 2 && free(q)) r = q;
-    if (r >= from) { out[r] = a.hit; answers++; }
+    if (r < from) continue;
+    // (an open answer where the bar's own open hat already stands is laid nowhere, add-if-absent: no answer, so a move
+    // made of it alone is no move — the review of 10-17 found one labelled and silent)
+    if (a.ring && sounding(r) && open && a.ring.open && openHave.includes(r)) continue;
+    answers++;
+    if (a.ring && sounding(r)) {
+      rings++;
+      if (open && a.ring.open) opn[r] = a.ring.open;
+      else { out[r] = a.ring.hit; if (a.ring.after && r + 1 < 16 && r + 1 < gap && free(r + 1) && !voices.includes(r + 1)) out[r + 1] = a.ring.after; }
+    } else out[r] = a.hit;
   }
-  if (!answers) return '';
-  for (let q = from; q < 16; q++) if (q % 4 === 2 && out[q] === '.' && !struck.includes(q) && !hands.includes(q)) out[q] = a.time;
-  return out.join('');
+  if (!answers) return { closed: '', open: '' };
+  const time = rings && a.ring ? a.ring.time : a.time;
+  for (let q = from; q < 16; q++) if (q % 4 === 2 && out[q] === '.' && opn[q] === '.' && !struck.includes(q) && !hands.includes(q)) out[q] = time;
+  return { closed: out.join(''), open: opn.some((c) => c !== '.') ? opn.join('') : '' };
 }
 
 /**
@@ -219,16 +245,19 @@ export function planHatMoves(I: HatInput, F: Readonly<HatFile> = HAT_MOVES): { s
     // (the scene, round hat-scene: the figure's strikes a hat answer answers, and whether the bar's voices are busy)
     const call = I.scene?.call(t.bar) ?? [];
     const sceneBusy = !!I.scene?.busy(t.bar);
-    // (the figure keeps playing across the seam: it strikes in the move's bar and in the line's)
+    // (the call keeps playing across the seam: it strikes in the move's bar and in the line's — the figure, or the bass where it rests)
     const keeps = call.length > 0 && (I.scene?.call(t.line).length ?? 0) > 0;
     const vectorW = (r: HatMoveRow, v: Vector) => (keeps ? r.keeps?.[v] : undefined) ?? r.vectors?.[v] ?? 1;
     const kicks = I.scene?.kicks(t.bar) ?? [];
-    const answerOf = (r: HatMoveRow, beats: number) => (r.answer ? answerPattern(r.answer, beats, call, hands, kicks) : '');
+    // (an answer on the open hat where the theme's own rings and the span keeps its tops)
+    const openRings = I.open && (I.openRing ?? Infinity) >= F.open.ring && !t.closedOnly;
+    const voices = I.scene?.struck?.(t.bar) ?? [];
+    const answerOf = (r: HatMoveRow, beats: number) => (r.answer ? answerPattern(r.answer, beats, call, hands, kicks, openRings, voices, st?.open ?? []) : { closed: '', open: '' });
     // the row's windows: its lengths, the longer leaned by Loom per doubling; a gap's only where its talk falls inside it,
     // and only where the row changes the hats there (a move that adds nothing never spends the transition)
     const windows = (r: HatMoveRow) => Object.entries(r.beats).map(([b, x]) => ({ v: Number(b), w: x * leanOf(F, F.length, I.spell, Math.log2(Number(b) / 2)) }))
-      .filter((x) => x.w > 0 && (!(r.needs ?? []).includes('talk') || talkFrom(x.v)) && (!r.answer || answerOf(r, x.v) !== '')
-        && (!st || changes(r, x.v, st, answerOf(r, x.v))));
+      .filter((x) => x.w > 0 && (!(r.needs ?? []).includes('talk') || talkFrom(x.v)) && (!r.answer || answerOf(r, x.v).closed !== '')
+        && (!st || changes(r, x.v, st, answerOf(r, x.v).closed)));
     const admits = (r: HatMoveRow) => (r.needs ?? []).every((n) => (n === 'open' ? I.open && (I.openRing ?? Infinity) >= F.open.ring : n === 'talk' ? talkFrom(2) : n === 'call' ? call.length > 0 : false))
       && !(t.closedOnly && r.lanes.open) && !(r.busy && hands.length && F.hands.busy === 0) && !(r.busy && sceneBusy && HAT_SCENE.moves.busy === 0)
       // (a row that must never go one way, a building roll into less, is drawn only where the way is read)
@@ -249,13 +278,16 @@ export function planHatMoves(I: HatInput, F: Readonly<HatFile> = HAT_MOVES): { s
     for (const [lane, spec] of Object.entries(row.lanes) as Array<[HatLane, NonNullable<HatMoveRow['lanes'][HatLane]>]>) {
       const e: LaneEdit = {};
       if (spec.clear === 'window') e.clear = from;
-      const pat = row.answer && lane === 'closed' ? answerOf(row, beats) : spec.pattern ? patternOf(spec.pattern, beats) : '';
+      const pat = row.answer && lane === 'closed' ? answerOf(row, beats).closed : spec.pattern ? patternOf(spec.pattern, beats) : '';
       if (pat) {
         const m = row.dense ? densified(pat, dense) : pat;
         if (/[^.]/.test(m)) { e.mask = [m]; if (spec.clear !== 'window') e.insert = 'add-if-absent'; }
       }
       if (Object.keys(e).length) lanes[lane] = e;
     }
+    // (an answer on the open hat, round hat-seams: laid where the open lane is silent, the closed hats out there by the window's clear)
+    const openAnswer = row.answer ? answerOf(row, beats).open : '';
+    if (openAnswer) lanes.open = { mask: [openAnswer], insert: 'add-if-absent' };
     const figure = { lanes, letters: { ...DIGITS, ...(row.letters ?? {}) } };
     const r0 = { schema: 1, kind: 'recipe', id: `phrasing/hats/${row.id}`, revision: 1, name: row.name, scope: 'treatment', applies: 'fill', birds: {}, figure, forbids: [], weight: 0 } as unknown as Recipe;
     const label = `${row.name} into ${t.line}${t.swap ? ' (the drums in place of a noise sweep)' : ''}`;
@@ -282,9 +314,11 @@ export function hatMoveFaults(F: Readonly<HatFile>): string[] {
     // (a move stays under the groove, 0.7 of its lane's loudest hit at most, digits and letters alike; an accent into
     // the line, `full`, may reach the lane's own level on its last or main hit)
     const cap = r.full ? 1 : 0.7;
+    // (an answer under a ringing call reaches the lane's own level, round hat-seams: the response read through the sustain)
+    const ringing = new Set([r.answer?.ring?.hit, r.answer?.ring?.open].filter((x): x is string => !!x));
     if (r.take !== undefined && !(r.take >= 1)) bad.push(`${at}: take is a count of hits`);
     for (const [k, l] of Object.entries(r.letters ?? {})) {
-      if (!(l.level > 0 && l.level <= cap)) bad.push(`${at}: letter ${k}'s level ${l.level} over ${cap}`);
+      if (!(l.level > 0 && l.level <= (ringing.has(k) ? 1 : cap))) bad.push(`${at}: letter ${k}'s level ${l.level} over ${ringing.has(k) ? 1 : cap}`);
       if (l.shift !== undefined && !(Math.abs(l.shift) <= 0.75)) bad.push(`${at}: letter ${k}'s shift`);
       if (l.chokeAfter !== undefined && !(l.chokeAfter > 0 && l.chokeAfter <= 4)) bad.push(`${at}: letter ${k}'s choke`);
     }
@@ -303,7 +337,9 @@ export function hatMoveFaults(F: Readonly<HatFile>): string[] {
     if (r.keeps && !(r.needs ?? []).includes('call')) bad.push(`${at}: keeps reads the figure: it needs a call`);
     if (r.answer) {
       if (!(r.answer.clear >= 0 && r.answer.clear < 1)) bad.push(`${at}: answer.clear is a share of a sixteenth`);
-      for (const c of [r.answer.hit, r.answer.time]) if (!letters[c] || (letters[c].level ?? 0) > cap) bad.push(`${at}: answer letter ${c}`);
+      for (const c of [r.answer.hit, r.answer.time, r.answer.ring?.time, r.answer.ring?.after].filter((x): x is string => !!x)) if (!letters[c] || (letters[c].level ?? 0) > cap) bad.push(`${at}: answer letter ${c}`);
+      for (const c of ringing) if (!letters[c] || !((letters[c].level ?? 0) <= 1)) bad.push(`${at}: answer ring letter ${c}`);
+      if (r.answer.ring && !((letters[r.answer.ring.time]?.level ?? 1) < (letters[r.answer.ring.hit]?.level ?? 0))) bad.push(`${at}: a ringing answer over its time`);
       if (!(r.needs ?? []).includes('call')) bad.push(`${at}: an answer needs a call`);
       if (!r.lanes.closed) bad.push(`${at}: an answer plays on the closed hats`);
     }

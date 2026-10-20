@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "woodblockSoft",
+  "revision": 1,
+  "topology": "membrane",
+  "dice": 131.7,
+  "parameters": {
+    "highHz": 560,
+    "lowHz": 470,
+    "mode": 1.58,
+    "modeLevel": 0.3,
+    "modeDecay": 0.03,
+    "drop": 1.03,
+    "dropTime": 0.01,
+    "bodyLevel": 0.8,
+    "bodyLp": 2000,
+    "slapHz": 1200,
+    "slapHzHard": 1500,
+    "slapQ": 0.8,
+    "slapDecay": 0.006,
+    "slapOpen": 0.05,
+    "slapHard": 0.15,
+    "slapBody": 0.8,
+    "t10Open": 0.045,
+    "t10Slap": 0.03,
+    "lowRing": 1.1,
+    "seconds": 0.4,
+    "variants": 3,
+    "variantCents": 14,
+    "attack": 0.006,
+    "trim": 0.9,
+    "rateSpread": 0.03,
+    "gainSpread": 0.07,
+    "decaySpread": 0.09,
+    "panSpread": 0.07,
+    "velBright": 0.05,
+    "velDecay": 0.1,
+    "pan": 0,
+    "room": 0.3
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "woodblockSoft": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 560,
+        "loudnessDb": -19.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-bells",
+    "module": "congas.ts",
+    "note": "A soft woodblock, the hand of the slow conversation (his ear, 10-17: the hand read as a clap, too stiff and striking for a sparse bell space; \"some softer woodblock maybe better\"). Built as a tuned wooden tok rather than a burst through a resonator: the membrane builder's head at 560 Hz (the record's woodblock rings 1400 and 2360) with a mode at 1.58 dying in 30 ms and a fall of 10 dB in 45 ms, a body under a 2 kHz lowpass and almost no hand on it, so it is round and has no click; a six-millisecond attack, so the strike has no edge, and a third of it to the room. (A noise burst through a resonator narrow enough to be round rang a different level at each sample rate and on each variant: the burst's few cycles in band are a die.)"
+  },
+  "measured": {
+    "clickStep": 0
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "tanpura",
+  "revision": 2,
+  "topology": "jawari",
+  "parameters": {
+    "burst": 0.008,
+    "softHz": 240,
+    "damp": 0.93,
+    "decay": 12,
+    "maxSeconds": 7,
+    "buzz": 0.9,
+    "bloom": 0.25,
+    "swing": 0.05,
+    "dcHz": 1,
+    "topLossDb": 3.1,
+    "ringLevel": 0.3,
+    "peakCeiling": 3.2,
+    "detuneCents": 1.2,
+    "spread": 0.5,
+    "attack": 0.002,
+    "release": 0.6,
+    "cutoff": 7000,
+    "veloOpen": 0.3,
+    "hpHz": 40,
+    "cacheLimit": 12,
+    "trim": 1,
+    "delay": 0.1,
+    "reverb": 0.4
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "edge": false,
+    "controls": {
+      "buzz": {
+        "unit": "ratio",
+        "min": 0,
+        "max": 0.95,
+        "default": 0.9
+      }
+    },
+    "timbres": {
+      "tanpura": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.8,
+        "brightnessHz": 3000,
+        "loudnessDb": -12.5
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-voices",
+    "module": "jawari.ts",
+    "note": "A tanpura's string (PLAN-AMBIENT §3.3, phase 3b): the clean Karplus string's loop with a jawari bridge in it, a one-sided barrier at 0.9 of the way into the string's own swing, coming in over the quarter-second after a soft finger's pluck. The buzz blooms over the first second and lasts the note; the low strings are as buzzy as the high ones because the barrier is a share of the swing. Tuned to the Pa-Sa-Sa-Sa cycle at 46-50 BPM: a string rings some twelve seconds to -60 dB, so each of the four is still sounding when it is plucked again five seconds later.",
+    "notes": {
+      "buzz": "The bridge's depth, and a note's control (0 is the clean string through the same loop: the A/B's clean side; at most 0.95, since at 1 the barrier sits at the string's rest and the string is dead). Strings are kept by buzz to a twentieth (0.92 plays as 0.9), so a lean that moves it note by note computes at most twenty strings a pitch. At 0.9 the weight of the spectrum moves up an octave or two over the first second (400-1600 Hz 1.3-4.8 dB over the clean string's two seconds in), and the string's loss in its top (topLossDb) keeps the bridge's top from turning harsh.",
+      "softHz": "The finger: the pluck's noise through a lowpass this high, so the first moment is round and the brightness is the bridge's.",
+      "damp": "Lower than the clean string's reach (0.93): the allpass fraction loses nothing per round trip, so the loop's damping is the only top the string loses.",
+      "topLossDb": "The string's loss in its top, dB a round trip at 8 kHz: three passes of a five-tap linear-phase FIR in the loop, flat under 2 kHz and steep over 6, the same at 44.1 and 48 kHz. At buzz 0.9 the bridge lays most of each period on itself and squeezes the free swing into one narrow pulse a period, and that pulse is the harsh top; this widens it. At 3.1 the share over 6 kHz is 11-15 dB under the hard top's at 0.5 s and 9-14 under it at 2 s (48 kHz), 400-1600 Hz within 1 dB, the bloom, the ring and the tuning unmoved. Nought is the loop before it, sample for sample.",
+      "dcHz": "The DC blocker that keeps the string meeting the bridge; at 3 Hz the low strings wandered 5-9 cents over a note, at 1 Hz under 2.",
+      "decay": "Seconds for the fundamental to fall 60 dB, one gain per round trip; the buffer is the shorter of it and maxSeconds.",
+      "roles": "figure and melody, as the struck bowl's and the clean string's: the keys layer is the rim's S lane, which reads the roles that land there, and a voice on that layer playing the pad's role would put the layer in two lanes.",
+      "register": "Made for MIDI 30-60 (46-262 Hz): the tanpura's strings, from a low Sa to the Pa an octave over the middle. Over it the period is short enough that the bridge's share of a swing is a few samples; under it the 7 s buffer is under a dozen periods of decay.",
+      "maxSeconds": "Seven seconds of buffer, the last half second faded, so a note held past it ends on silence and not a cut. The jawari string rings within 1.5 dB of the clean one to 3 s and 2-4 dB under it at 5-6 s: the bridge's give-back keeps the first seconds and not all of the tail.",
+      "pitch": "Read back over three windows (0.1-0.35, 0.35-0.7 and 0.7-2.2 s), each placed at its middle, and the playback rate run through them: the low Sa reads 20-24 cents flat just after the pluck and under 4 later, and is played in tune through both."
+    }
+  }
+}

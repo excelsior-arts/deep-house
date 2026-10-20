@@ -41,7 +41,7 @@ export interface Grid {
   at(themeTime: number): number;
   /** this context's clock back onto theme seconds */
   time(contextTime: number): number;
-  /** the holes, by the hand-over group the program's `gap` names */
+  /** the holes, by the hand-over group the program's `gap` names, or by a bus or every event (`holedBy`) */
   readonly gaps: Record<string, Gap[]> | null;
 }
 
@@ -69,6 +69,24 @@ export const inGap = (gaps: Gap[] | undefined, t: number) => {
   for (const g of gaps) if (t >= g[0] && t < g[1]) return true;
   return false;
 };
+
+/**
+ * **A hole by bus, or under every event** (the second clock's free tail, PLAN-AMBIENT §4.3). A hand-over group names
+ * the low end (`ProgramEvent.gap`); a free theme's tail also thins its voices one by one as it leaves, so a hole may
+ * name a bus (`bus:<name>`, `holeOfBus`) or every event of the deck (`HOLE_ALL`). Only a free tail writes either, so a
+ * deck with none is read exactly as before: by its `gap` alone.
+ */
+export const HOLE_ALL = '*';
+export const holeOfBus = (bus: string): string => `bus:${bus}`;
+/** Whether an event of a deck is inside a hole, read off the holes as they stand (null where there are none). */
+export function holedBy(gaps: Record<string, Gap[]> | null): ((pe: ProgramEvent) => boolean) | null {
+  if (!gaps) return null;
+  let voices = false;
+  for (const k in gaps) if (k === HOLE_ALL || k.startsWith('bus:')) { voices = true; break; }
+  return voices
+    ? (pe) => (!!pe.gap && inGap(gaps[pe.gap], pe.t)) || inGap(gaps[HOLE_ALL], pe.t) || inGap(gaps[holeOfBus(pe.bus)], pe.t)
+    : (pe) => !!pe.gap && inGap(gaps[pe.gap], pe.t);
+}
 
 // --- the order a theme is visited in ------------------------------------------
 //
@@ -165,14 +183,14 @@ export function schedule(program: Program, grid: Grid, from = 0, to = Infinity):
   // `Infinity` is "all of it", and it stays that even on a grid that bends:
   // mapping an infinite instant back through a tempo glide is not a horizon.
   const horizon = to === Infinity ? Infinity : grid.time(to);
-  const gaps = grid.gaps;
+  const holed = holedBy(grid.gaps);
   const order = visitOrder(program);
   const out: Scheduled[] = [];
   let k = Math.max(0, from);
   for (; k < events.length; k++) {
     const pe = events[order ? order[k] : k];
     if (pe.onset > horizon) break;
-    if (pe.gap && gaps && inGap(gaps[pe.gap], pe.t)) continue;
+    if (holed && holed(pe)) continue;
     out.push({ pe, at: grid.at(pe.onset) });
   }
   return { events: out, next: k };

@@ -31,7 +31,7 @@
 
 import { MIN_RELEASE, GAIN_FLOOR } from '../dsp.ts';
 import { line } from '../ramp.ts';
-import type { Line } from '../ramp.ts';
+import type { Line, WrittenPoint } from '../ramp.ts';
 import type { HeldState, HeldVoice } from './voice-contract.ts';
 import { admittedOf } from './sound.ts';
 import { dropLive, liveNote } from './live.ts';
@@ -99,6 +99,19 @@ export interface HeldVoiceSpec {
    * it. Each path turns the row's number into the controls and values it means.
    */
   live?: { voice: string; settings: Settings; paths: Record<string, (v: number) => Array<[string, number]>> };
+  /**
+   * **The release's shape** (ambient-voices, 10-18): `linear`, a straight line down to the floor over the tail, which
+   * every held voice before this field had and has; or `exponential`, a free ring, the same decibels every second,
+   * for a voice whose release is a resonance letting go (a bowl when the stick lifts) and on which a straight line
+   * reads as a fade with a corner at its end. Absent, linear: nothing written for any voice that names none moves.
+   */
+  shape?: 'linear' | 'exponential';
+  /**
+   * An attack the voice writes itself, through the gain's line, in place of the ramp the caller wrote by hand
+   * (`attack`, then the start of the line): points from `attack.t0`, so a control during the attack starts from
+   * where the curve had got to. Absent, the caller's own ramp, as before.
+   */
+  attackPoints?: readonly WrittenPoint[];
 }
 
 /**
@@ -106,7 +119,7 @@ export interface HeldVoiceSpec {
  */
 export function heldVoice(
   ctx: BaseAudioContext,
-  { gain, tail, level, attack, parked = [], controls, sources = [], nodes = [], live }: HeldVoiceSpec,
+  { gain, tail, level, attack, parked = [], controls, sources = [], nodes = [], live, shape = 'linear', attackPoints }: HeldVoiceSpec,
 ): HeldVoice {
   let state: HeldState = 'holding';
   let held = level;
@@ -124,6 +137,7 @@ export function heldVoice(
   // parameter will really have (`../ramp.ts`).
   const lines = new Map<AudioParam, Line>();
   lines.set(gain.gain, line(ctx, gain.gain, { from: attack.from, to: attack.to, start: attack.t0, end: attack.t1 }));
+  if (attackPoints) lines.get(gain.gain)!.write(attackPoints, attack.t0);
   for (const { param, value } of parked) lines.set(param, line(ctx, param, value));
   const lineOf = (param: AudioParam): Line => {
     let l = lines.get(param);
@@ -136,7 +150,11 @@ export function heldVoice(
     lineOf(param).to(value, when(atTime), over);
   // The stated tail, and then the floor every gain in this engine ends on.
   const writeRelease = (t: number): number => {
-    rampTo(gain.gain, GAIN_FLOOR, t, tail);
+    if (shape === 'exponential') {
+      // a free ring: from wherever the line stands at `t`, the same decibels every second down to the floor
+      const l = lineOf(gain.gain);
+      l.write([{ v: Math.max(GAIN_FLOOR, l.at(t)), t, k: 'set' }, { v: GAIN_FLOOR, t: t + Math.max(MIN_RELEASE, tail), k: 'exp' }], t);
+    } else rampTo(gain.gain, GAIN_FLOOR, t, tail);
     const silent = t + tail + MIN_RELEASE;
     lineOf(gain.gain).then(0, silent);
     return silent;

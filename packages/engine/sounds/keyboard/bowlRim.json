@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bowlRim",
+  "revision": 1,
+  "topology": "rim-bowl",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        1
+      ],
+      [
+        1.0021,
+        0.5
+      ],
+      [
+        2.71,
+        0.07
+      ],
+      [
+        2.7165,
+        0.035
+      ],
+      [
+        5.13,
+        0.015
+      ]
+    ],
+    "pairWithin": 0.01,
+    "beatMostHz": 1.5,
+    "attack": 6,
+    "sustain": 0.6,
+    "fall": 8,
+    "ring": 14,
+    "rubAt": 2.71,
+    "rubLevel": 0.06,
+    "rubQ": 18,
+    "rubSettle": 2.5,
+    "rubRest": 0.35,
+    "lpHz": 5000,
+    "spread": 0.2,
+    "trim": 0.35,
+    "delay": 0.05,
+    "reverb": 0.5
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "edge": false,
+    "timbres": {
+      "bowlRim": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 0.6,
+        "brightnessHz": 600,
+        "loudnessDb": -17.3
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "ambient-voices",
+    "module": "rim-bowl.ts",
+    "note": "The rimmed singing bowl (PLAN-AMBIENT §3.2, phase 2b): the struck bowl's own modes (bowlStruck's ratios, 1 and 1.0021, 2.71 and 2.7165, 5.13), fed by a stick drawn round the rim. The stick feeds one mode, so the rubbed pair carries the sound and the modes over it stand 23-36 dB under; it rises over its six-second attack, eased at both ends, falls back to 0.6 of the crest over eight seconds while the stick stays on, and rings free for fourteen when it lifts. Under the tone, a narrow band of noise on the bowl's second mode (Q 18, -24 dB under the crest): the stick's grain, what is heard first while the tone has hardly begun, and then at a third of that.",
+    "notes": {
+      "partials": "[ratio, level], the rubbed mode first. The ratios are bowlStruck's, number for number, so a rim and a strike of one pitch are one bowl; a check in tools/check-drone-voices.ts holds them to the struck row's. The partner of each pair at half its mode's level, where the struck row has 0.7.",
+      "beatMostHz": "Two partials within 1 % of each other are one mode's pair, and the upper is held at most 1.5 Hz over the lower: at the ground's register (MIDI 43-54) the pairs beat 0.2-0.4 Hz and 0.6-1.2 Hz as the struck bowl's do, and only above about MIDI 57 is the upper pair held back.",
+      "attack": "The plan's 4-8 s, at its middle; a note's own attack moves it, and never under half a second (the contract refuses a rim that is a strike).",
+      "rubLevel": "An amplitude under the crest (0.06 is about -24 dB), whatever the band's width: the gain is worked out from what a band of this Q passes of the noise bed. At its rest, a third of that (-34 dB).",
+      "rubAt": "The grain on the bowl's second mode (2.71), where a stick's chatter sits, a band of Q 18: it is what is heard first, while the tone has hardly begun, and then a grain under the tone.",
+      "roles": "figure and melody, as the struck bowl's and the clean string's: the keys layer is the rim's S lane, which reads the roles that land there, and a voice on that layer playing the pad's role would put the layer in two lanes.",
+      "spread": "Each pair mirrored about the middle at half the spread (±0.1), the louder member left in the first pair and right in the next. Measured on an 18 s hold through the fixture's graph: the beat 10.7 dB deep in mono, 9.8 left and 11.8 right (nine tenths of the time), where the mallet's alternation (the fundamental in the middle, its partner out at 0.7) beat 22.5 mono, 19 and 21. Wider mirrors deepen the ear the partner leans to: at ±0.35 that ear beat 19 dB dry.",
+      "bus": "The melodic bus, not the keys': the keys' shared chorus (two delay lines swept ±3.5 ms at 0.18 and 0.23 Hz) combs a held low sine, and under it the rim's beat measured 22-24 dB deep whatever its pan; a struck bowl hides it in its decay. Its level and layer stay the keys', the struck bowl's."
+    }
+  }
+}

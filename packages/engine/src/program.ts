@@ -136,6 +136,15 @@ export interface Program {
   barSeconds: number;
   bars: number;
   duration: number;
+  /**
+   * **The theme's clock** (PLAN-AMBIENT §4, the second clock): absent, the theme
+   * is counted in beats on the set's grid, as every theme always was; `'free'`,
+   * its seconds are the music, it was planned at a nominal 60 BPM (a beat is a
+   * second, a bar four), and a deck maps them onto the context one to one, by
+   * offset, whatever the grid does (`deck.ts`). Written only where it is free,
+   * so no metered program carries a byte of it.
+   */
+  clock?: 'free';
   /** The room it was compiled under; every voice of it is played in this one. */
   settings: Settings;
   /** The per-theme loudness trim, and the gain the theme's output is set to. */
@@ -294,7 +303,7 @@ export interface SeamLine {
   points: CurveStep[];
 }
 
-/** One hole in a deck's event list: a hand-over group, and the stretch cut out. */
+/** One hole in a deck's event list: a hand-over group (or a bus, `bus:<name>`, or every event, `*`: `holedBy`), and the stretch cut out. */
 export interface SeamHole {
   deck: 'from' | 'to';
   group: string;

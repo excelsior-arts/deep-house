@@ -33,8 +33,8 @@ import type { MusicalTime } from './musical-time.ts';
 import type { PhraseMap } from './phrase-map.ts';
 import type { Spell } from './spell.ts';
 import { planHatMoves, type HatMove, type HatSteps, type HatTransition } from './hat-moves.ts';
-import { SEAMS, readSeam, type BarBed, type BarEnergy, type Direction, type SeamReading } from './seams.ts';
-import { busyAt, callAt, vectorOf, type SceneBar } from './hat-scene.ts';
+import { SEAMS, energyOf, readSeam, type BarBed, type BarEnergy, type Direction, type SeamReading } from './seams.ts';
+import { busyAt, callOf, seamWindows, struckAt, vectorOf, type SceneBar } from './hat-scene.ts';
 
 type W = Record<string, number>;
 export type SegmentKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-out' | 'fill';
@@ -284,7 +284,10 @@ export interface Phrasing { segments: Segment[]; answers: Answer[]; outs: Out[];
   seams?: Seam[];
   /** what the scene did to the hats (round hat-scene, `src/hat-scene.ts`): the variations given another row's hats and
    * why, the hats' own hits it moved or took out, and the resting bars it filled */
-  scene?: { varied: Array<{ bar: number; bars: number; from: string; to: string; why: string }>; shaped: number; out: number; filled: number[] } }
+  scene?: { varied: Array<{ bar: number; bars: number; from: string; to: string; why: string }>; shaped: number; out: number; filled: number[];
+    /** the hat figure's words across the phrases (round hat-figure, `src/hat-figure.ts`): each bar that varied its figure,
+     * the kind, its place in the phrase and the scene's state there */
+    figure?: Array<{ bar: number; kind: string; place: string; state: string }> } }
 /** A noise transition read at its seam: the gesture or the glue row, its bar and line, the reading, and what played. */
 export interface Seam { bar: number; line: number; what: string; dir: Direction; reading: SeamReading; verdict: 'kept' | 'drums' | 'space'; instead?: string }
 
@@ -415,7 +418,7 @@ function leanOf(row: PhrasingRow, leans: W, spell: Readonly<Spell>): number {
   return x;
 }
 
-export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubSection[]; moves: Moves; notes: Note[]; refusedGlue: string[]; hatBars: ReadonlySet<number> } {
+export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubSection[]; moves: Moves; notes: Note[]; refusedGlue: string[]; hatBars: ReadonlySet<number>; hatSeams: ReadonlySet<number> } {
   const R = I.row, T = I.time, L = I.map.time.phraseBars, bs = T.barS, beat = I.beatS ?? bs / 4;
   const segments: Segment[] = [], answers: Answer[] = [], outs: Out[] = [], cooldowns: Phrasing['cooldowns'] = [];
   const subs: SubSection[] = [];
@@ -509,7 +512,9 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const energyAt = (b: number, dipped?: (b: number) => boolean, voicesOnly = false): BarEnergy | null => {
     if (b < 0 || b >= I.bars) return null;
     const k = I.kit(b);
-    const e: BarEnergy = { kick: +k.kick, backbeat: +k.backbeat, hats: voicesOnly ? 0 : +k.offbeat, tops: voicesOnly ? +!!k.sixteenths : +!!k.tops, bass: +k.bass, harmony: k.cover.harmony, voices: k.voices ?? 0, onsets: k.onsets ?? 0 };
+    // (round hat-seams: the scene's onsets without the hats' own, as its hats lane is)
+    const e: BarEnergy = { kick: +k.kick, backbeat: +k.backbeat, hats: voicesOnly ? 0 : +k.offbeat, tops: voicesOnly ? +!!k.sixteenths : +!!k.tops, bass: +k.bass, harmony: k.cover.harmony, voices: k.voices ?? 0,
+      onsets: voicesOnly ? Math.max(0, (k.onsets ?? 0) - (k.hatSteps?.length ?? 0)) : k.onsets ?? 0 };
     for (const x of [...I.drawn, ...subs]) {
       if (b < x.startBar || b >= x.startBar + x.bars) continue;
       // (a variation the scene gave another row's hats is read as drawn: round hat-scene moves nothing but the hats)
@@ -1166,6 +1171,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   // the bars the hats are a gesture's, a stop's, a landing's, the house's own small things', a move's (round hat-scene:
   // the scene's shaping of the hats' own hits leaves them as those lay them)
   const hatBars = new Set<number>();
+  // the bars a hat move may sit on, laid or not (round hat-figure: the seams are the moves', the figure works between them)
+  const hatSeams = new Set<number>();
   {
     // the draws first, nothing laid (`dry`), then the builds laid: a noise gesture its seam refuses is swapped for the
     // drums there alone, every other build drawing as it did; the chain reads the kinds drawn
@@ -1239,8 +1246,20 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     const toppedOut = (b: number) => subs.some((x) => (x.row === TOPS_THIN || x.row === BREAKDOWN_LITE) && b >= x.startBar && b < x.startBar + x.bars);
     const T: HatTransition[] = [...swaps];
     const built = new Set(builds.map((b) => b.line));
+    // (the bars a build's gesture holds before its line)
+    const buildBars = (b: Build) => Math.max(1, Math.ceil(b.beats / 4));
+    const HAT_LANES = ['offbeat', 'closed', 'open'];
     for (const g of segments) {
       if (g.kind !== 'fill') T.push({ bar: g.from - 1, line: g.from, where: `into the ${g.kind}` });
+      // **into its build** (round hat-seams): a span's way out a build holds is the build's gesture, never a move on its
+      // bars; where the span leaves a bar of its own between its way in and the build, the hats lead into the build from
+      // the bar before it — the seam's upward vector, the hats' accent into the rise. Never where the build's gesture is
+      // the hats' own (a hat roll is the hats' rise already: a move before it would double it)
+      const b = I.scene && !g.houseEnd ? builds.find((x) => x.line === g.to) : undefined;
+      if (b && !GESTURES.rows.find((r) => r.id === b.kind)?.lead?.lanes.some((l) => HAT_LANES.includes(l))) {
+        const w = buildBars(b), bar = g.to - w - 1;
+        if (bar > g.from) T.push({ bar, line: g.to - w, where: `out of the ${g.kind}, into its build` });
+      }
       // (the way out that already has a gesture, a build's or the house's own small thing's, is the gesture's alone: a
       // move on the bar before it would double it)
       if (g.kind === 'drop-out' || g.kind === 'fill' || built.has(g.to) || g.houseEnd !== undefined) continue;
@@ -1252,9 +1271,16 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       T.push({ bar: v.startBar + v.bars - 1, line: v.startBar + v.bars, where: `out of the ${v.label}` });
     }
     for (const t of T) if (toppedOut(t.bar)) t.closedOnly = true;
-    // (round hat-scene: the vector the voices make across each seam, their energy two bars before the move's bar against
-    // two from the line, the hats and their figures left out)
-    if (I.scene) for (const t of T) t.vector = vectorOf(readSeam(t.bar, t.line, 'any', (b) => energyAt(b, undefined, true), bedAt).delta);
+    // (round hat-scene: the vector the voices make across each seam, their energy before the move's bar against from the
+    // line, the hats and their figures left out; round hat-seams: each window inside its own part, a build's bars read
+    // at the energy of the line it leads into — a build is a rise, however its stop thins the bar)
+    if (I.scene) {
+      const lines = [...new Set([...I.sections.map((x) => x.startBar), ...segments.flatMap((g) => [g.from, g.to]),
+        ...I.drawn.filter((x) => x.kind === 'variation').flatMap((x) => [x.startBar, x.startBar + x.bars]), ...builds.flatMap((b) => [b.line - buildBars(b), b.line])])].sort((x, y) => x - y);
+      const scene = (b: number) => { const x = builds.find((y) => b >= y.line - buildBars(y) && b < y.line); return energyAt(x ? x.line : b, undefined, true); };
+      const mean = (bars: number[]) => { const xs = bars.map(scene).filter((x): x is BarEnergy => !!x).map((x) => energyOf(x)); return xs.length ? xs.reduce((p, q) => p + q, 0) / xs.length : 0; };
+      for (const t of T) { const w = seamWindows(t.bar, t.line, lines); t.vector = vectorOf(mean(w.after) - mean(w.before)); }
+    }
     const sceneAt = I.scene;
     const steps = (xs: number[] | undefined) => xs ?? [];
     const hm = planHatMoves({ seed: I.seed, spell: spellOf, four: I.four, transitions: T, busy: busyHats, openRing: I.openRing ?? Infinity,
@@ -1295,12 +1321,14 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
         }
         return st;
       },
-      ...(sceneAt ? { scene: { busy: (b: number) => { const x = sceneAt(b); return !!x && busyAt(x); }, call: (b: number) => { const x = sceneAt(b); return x ? callAt(x) : []; },
-        kicks: (b: number) => { const x = sceneAt(b); return x ? x.kick.flatMap((y, q) => (y > 0 ? [q] : [])) : []; } } } : {}) });
+      ...(sceneAt ? { scene: { busy: (b: number) => { const x = sceneAt(b); return !!x && busyAt(x); }, call: (b: number) => { const x = sceneAt(b); return x ? callOf(x).strikes : []; },
+        kicks: (b: number) => { const x = sceneAt(b); return x ? x.kick.flatMap((y, q) => (y > 0 ? [q] : [])) : []; },
+        struck: (b: number) => { const x = sceneAt(b); return x ? struckAt(x) : []; } } } : {}) });
     subs.push(...hm.subs);
     hatMoves.push(...hm.moves);
     for (const b of busyHats) hatBars.add(b);
     for (const m of hm.moves) hatBars.add(m.bar);
+    for (const t of T) hatSeams.add(t.bar);
     // a refused glue row whose bar took no move is space
     for (const sw of seams) if (sw.verdict === 'space' && !SEAMS.noise.gestures[sw.what] && hm.moves.some((m) => m.swap && m.bar === sw.bar)) { sw.verdict = 'drums'; sw.instead = hm.moves.find((m) => m.bar === sw.bar)!.kind; }
   }
@@ -1313,7 +1341,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     if (!cur.hold && next.a >= cur.b && next.a - cur.d < bs / 2) { cur.reopen = { c: cur.c, d: cur.d }; cur.into = next; cur.hold = true; cur.c = cur.d = next.a; }
   }
   return { phrasing: summarised({ segments, answers, outs, cooldowns, builds, ...(hatMoves.length ? { hats: hatMoves } : {}), ...(seams.length ? { seams } : {}) }),
-    subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes, refusedGlue, hatBars };
+    subs: subs.sort((a, b) => a.startBar - b.startBar || b.bars - a.bars), moves, notes, refusedGlue, hatBars, hatSeams };
 }
 
 /** The pass's one line, for the readout. */

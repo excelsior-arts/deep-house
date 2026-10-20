@@ -385,7 +385,8 @@ test('GA6: the place tables — harmony, form, effects, the bass\'s sound — pl
   const { nearestEntry, HOUSE_PLACE, placeDistance } = await import('../src/places.ts');
   const P = (style as any).places;
   for (const [name, table] of Object.entries(P) as Array<[string, any]>) {
-    if (!Array.isArray(table)) continue;
+    // a place table's entries stand at places (the zones, PLAN-ZONES, are boxes and are `tools/check-zones.ts`'s)
+    if (!Array.isArray(table) || !table[0]?.place) continue;
     const ids = new Set<string>();
     for (const e of table) {
       assert.ok(!ids.has(e.id), `${name}: ${e.id} twice`); ids.add(e.id);

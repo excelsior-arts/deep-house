@@ -32,6 +32,7 @@ import { note, watch } from '../ledger.ts';
 import type { Control, Readout } from '../control.ts';
 import { spellQuery } from '../spell.ts';
 import { reducedMotion, coarsePointer } from '../motion.ts';
+import { startLoad, stopLoad } from './load.ts';
 
 /** How often the meters are read, by what the screen and the hand are. */
 export const FRAME_MS = 1000 / 12;
@@ -227,6 +228,8 @@ export function makeStore(control: Control): MachineStore {
       return snapshot;
     },
     open() {
+      // the load line's own measuring runs while the view is up, and only then
+      startLoad();
       // A readout and a written line both mean something has changed, and
       // under reduced motion they are the *only* things that redraw the view.
       unsubscribe = control.subscribe((r) => {
@@ -250,6 +253,7 @@ export function makeStore(control: Control): MachineStore {
       });
     },
     close() {
+      stopLoad();
       if (frame) window.clearTimeout(frame);
       if (pending) window.clearTimeout(pending);
       frame = 0;

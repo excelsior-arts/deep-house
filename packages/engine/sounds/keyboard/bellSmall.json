@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bellSmall",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        5,
+        1
+      ],
+      [
+        1.0025,
+        4.5,
+        0.5
+      ],
+      [
+        2,
+        2.4,
+        0.3
+      ],
+      [
+        2.92,
+        1.4,
+        0.18
+      ],
+      [
+        4.16,
+        0.7,
+        0.1
+      ]
+    ],
+    "attack": 0.002,
+    "release": 0.8,
+    "ringLevel": 0.15,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 5000,
+    "malletLevel": 0.08,
+    "malletTime": 0.002,
+    "spread": 0.35,
+    "trim": 0.3,
+    "delay": 0.14,
+    "reverb": 0.45
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "edge": false,
+    "timbres": {
+      "bellSmall": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.4,
+        "brightnessHz": 4500,
+        "loudnessDb": -21.05
+      }
+    },
+    "dispatches": [],
+    "mood": [],
+    "controls": {
+      "hardness": {
+        "unit": "ratio",
+        "min": 0.5,
+        "max": 1.5,
+        "default": 1
+      }
+    }
+  },
+  "provenance": {
+    "round": "bells-birds",
+    "module": "mallets.ts",
+    "note": "Small bells, as crotales and hand bells are (bells-birds, his ask of 10-18: 'if i want more lighter bells composition i would thin root'): a small bell is high and rings short, so its fundamental rings 5 s where the temple bell's prime rings 12. The fundamental and its pair a hair apart, the octave (2), and two short upper partials (2.92, 4.16) that are the sparkle of a small cast bell. A brass striker: a band at 5 kHz for 2 ms.",
+    "notes": {
+      "beating": "The fundamental's pair at 1.0025 shimmers 1.6-3.9 Hz over the small bells' register (MIDI 76-91): a small bell's quick tremble, where a great bell's beat is slow.",
+      "partials": "Five, all short: a strike holds its oscillators five seconds at most, so a call of small bells costs the ceiling little.",
+      "edge": "Not read by the harmonic bus's edge, as vibes."
+    }
+  }
+}

@@ -36,6 +36,7 @@
 import { midiToHz, route, panner, startTime, noiseSource, MIN_RELEASE } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
+import { strikeTilt, withControls } from './descriptor.ts';
 import type { NoteParams, VoiceRenderer } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
@@ -72,6 +73,19 @@ const PARAMETERS = contract({
   ...(decay > 0 && decay <= 60 ? [] : [`partials[${i}]'s decay ${decay} is not a length of time`]),
 ]));
 
+/**
+ * How long after a partial's envelope reaches zero its oscillator is stopped: a little over one render quantum (128
+ * frames at 44.1 kHz is 2.9 ms), so no rounding of the stop time to the quantum can cut a sample that sounds.
+ */
+const PARTIAL_GUARD = 0.01;
+
+/**
+ * How far a strike's hardness tilts the bar (zephyr-air): each upper partial by its ratio to `TILT_PARTIALS` times the
+ * tilt, the head's band by `TILT_HEAD` octaves a unit and its level by e^(`TILT_NOISE` x tilt). Set by measure at BELLS
+ * (`tools/voice-air.ts --curves`): Zephyr 0 to 1 walks the calls' air about mellow to bright.
+ */
+const TILT_PARTIALS = 4.5, TILT_HEAD = 1.5, TILT_NOISE = 3;
+
 /** What a row of this topology carries, as its contract types it. */
 export type MalletPatch = PatchOf<typeof PARAMETERS.fields>;
 
@@ -85,9 +99,14 @@ function bar(
   settings: Settings,
 ): number {
   time = startTime(ctx, time);
+  if (row.descriptor.controls) p = withControls(p, row.descriptor.controls);
   const S = patchOf(settings, row, PARAMETERS);
   const hz = midiToHz(p.midi);
   const vel = p.vel ?? 1;
+  // **The strike's hardness** (zephyr-air, `hardness`, a ratio; absent is the row's own sound): a harder mallet excites
+  // the higher modes, so each partial is lifted by its ratio to the tilt's power, and the head's noise is louder and
+  // higher; a softer one the other way, less far (`strikeTilt`; none where the row does not declare the control)
+  const tilt = strikeTilt(p, row.descriptor.controls);
   const peak = vel * (p.gain ?? 1) * S.trim;
   // Velocity shortens nothing and brightens everything: a bar hit harder rings
   // the same length and puts more into its upper partials, which is the
@@ -112,6 +131,10 @@ function bar(
   dry.connect(g);
 
   const spread = (p.spread ?? S.spread) * (p.spreadMul ?? 1);
+  // a partial over the fundamental by its ratio to the tilt's power; one under it (the temple bell's hum) only ever
+  // falls: at a hard strike as the tilt says, at a soft one held where it is (a softer strike never lifts the hum)
+  const lifts = S.partials.map(([ratio]: number[], i: number) => { const l = tilt && i > 0 ? Math.min(ratio, 4) ** (TILT_PARTIALS * tilt) : 1; return ratio < 1 ? Math.min(1, l) : l; });
+  let fundamentalEnd = end;
   S.partials.forEach(([ratio, decay, level]: number[], i: number) => {
     const o = ctx.createOscillator();
     o.type = 'sine';
@@ -120,7 +143,7 @@ function bar(
     // Linear from true zero for two milliseconds — `dsp.ts`'s own note about
     // why an exponential attack from a ten-thousandth is a click — then an
     // exponential fall, which is what a struck thing does.
-    const amp = peak * level * (i === 0 ? 1 : 0.4 + 0.6 * vel);
+    const amp = peak * level * (i === 0 ? 1 : 0.4 + 0.6 * vel) * lifts[i];
     env.gain.setValueAtTime(0, time);
     env.gain.linearRampToValueAtTime(amp, time + S.attack);
     env.gain.exponentialRampToValueAtTime(Math.max(1e-5, amp * 0.001), time + S.attack + decay);
@@ -134,7 +157,12 @@ function bar(
     pan.connect(i === 0 ? ring : dry);
     if (i === 0) pan.connect(dry);
     o.start(time);
-    o.stop(end);
+    // **Each partial stops at its own end** (ambient-bells, 10-17): its envelope is at true zero from
+    // `attack + decay + MIN_RELEASE` on, so an oscillator running past it to the fundamental's end sounds nothing
+    // and only costs; stopped a render quantum after it (never later than the note's end), the bar sounds the same
+    // sample for sample, and a long-ringing bar's upper partials free their oscillators while the fundamental rings.
+    o.stop(Math.min(end, time + S.attack + decay + MIN_RELEASE + PARTIAL_GUARD));
+    if (i === 0) fundamentalEnd = Math.min(end, time + S.attack + decay + MIN_RELEASE + PARTIAL_GUARD);
   });
 
   // The mallet: a short band of noise where the head lands. A hard head is high
@@ -142,11 +170,11 @@ function bar(
   const noise = noiseSource(ctx, time, S.malletTime + 0.01);
   const bp = ctx.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.frequency.value = S.malletHz;
+  bp.frequency.value = tilt ? Math.min(16000, S.malletHz * 2 ** (TILT_HEAD * tilt)) : S.malletHz;
   bp.Q.value = 1.2;
   const ng = ctx.createGain();
   ng.gain.setValueAtTime(0, time);
-  ng.gain.linearRampToValueAtTime(peak * S.malletLevel * vel, time + 0.0008);
+  ng.gain.linearRampToValueAtTime(peak * S.malletLevel * vel * (tilt ? Math.exp(TILT_NOISE * tilt) : 1), time + 0.0008);
   ng.gain.exponentialRampToValueAtTime(0.0001, time + S.malletTime);
   ng.gain.linearRampToValueAtTime(0, time + S.malletTime + MIN_RELEASE);
   noise.connect(bp);
@@ -173,7 +201,7 @@ function bar(
     const lo1 = band('highpass', strike.hz * Math.SQRT1_2), lo2 = band('highpass', strike.hz * Math.SQRT1_2);
     const hi1 = band('lowpass', strike.hz * Math.SQRT2), hi2 = band('lowpass', strike.hz * Math.SQRT2);
     const cg = ctx.createGain();
-    const top = peak * strike.level * vel;
+    const top = peak * strike.level * vel * (tilt ? Math.exp(TILT_NOISE * tilt) : 1);
     cg.gain.setValueAtTime(0, time);
     cg.gain.linearRampToValueAtTime(top, time + 0.0005);
     cg.gain.exponentialRampToValueAtTime(Math.max(1e-6, top * 0.001), time + strike.decay);
@@ -196,12 +224,24 @@ function bar(
     lfo.connect(depth);
     depth.connect(ring.gain);
     lfo.start(time);
-    lfo.stop(end);
+    // the discs pulse the tube, which holds the fundamental only: they stop where it does
+    lfo.stop(fundamentalEnd);
   }
 
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: 1, delay: p.delay ?? S.delay, reverb: p.reverb ?? S.reverb });
   return end;
+}
+
+/**
+ * **How long each oscillator of one strike runs** (seconds from the strike), as `bar` stops them: each partial to its
+ * own envelope's end, never past the note's, and the discs' LFO, where the row has one, with the fundamental. What a
+ * planner counts when it keeps long rings under a ceiling of oscillators (the app's slow conversation).
+ */
+export function malletLives(P: { partials: readonly (readonly number[])[]; attack: number; release: number; tremoloDepth: number }, vel: number): number[] {
+  const end = P.partials[0][1] * (1 + 0.2 * vel) + P.release;
+  const lives = P.partials.map(([, decay]) => Math.min(end, P.attack + decay + MIN_RELEASE + PARTIAL_GUARD));
+  return P.tremoloDepth > 0 ? [...lives, lives[0]] : lives;
 }
 
 export const MALLET: Topology = {

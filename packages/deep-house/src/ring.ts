@@ -36,7 +36,7 @@ import { styleDistance, FLOOR, WEIGHTS } from './style-distance.ts';
 // The eight birds' glyphs: one drawing each, drawn once and never again.
 import { drawBirdGlyph, glyphAt, levelAt } from './bird-glyph.ts';
 // What a bird's cell says: the quantity it biases, and the seed's locked reading under it (round K13).
-import { cellReading, sentenceOf, shortOf, hatsOfProgram, programFactsOf, keysOfProgram } from './bird-labels.ts';
+import { cellReading, sentenceOf, shortOf, hatsOfProgram, programFactsOf, keysOfProgram, heldOfProgram, airPlayOf } from './bird-labels.ts';
 import type { CellValue, LabelTheme } from './bird-labels.ts';
 // Which bird reaches which cell: the ring's dotted lines, from the model (round K13).
 import { linksOf, frameLine, COMPASS } from './bird-influence.ts';
@@ -48,6 +48,7 @@ import type { RingColour } from './ring-colour.ts';
 // radius a cell stands at *is* its bird's value, so the ring reads the same
 // vector the composer does rather than a second copy of it.
 import { HOUSE, BIRDS, SPELL_SAME, spellQuery, emberTempo, emberAtNotch, emberNotchValue, NOTCHED_FROM, TEMPO_NOTCH } from './spell.ts';
+import { zoneDetent, type StylePlaces } from './places.ts';
 import type { Bird, Spell } from './spell.ts';
 // What a hand reads off a bird: a percent of the house. Presentation only — the
 // value a cell holds and the link writes is the 0..1 number above.
@@ -61,7 +62,7 @@ import { startScribe } from './machine/scribe.ts';
 // What the arrangement's phrases did inside the theme, as marks on the rim (10-13).
 import { marksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
 import type { Candidate } from './cast-pool.ts';
-import { reducedMotion, coarsePointer } from './motion.ts';
+import { reducedMotion, coarsePointer, smallWindow } from './motion.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
 
 // ==========================================================================
@@ -1729,8 +1730,8 @@ function drawSubMarks(r: Readout) {
     // (a turn at a line: across the phrase track alone)
     // (a chord the keys strike: across the low track alone)
     if (st.shape === 'tick') { if (st.track === 'phrase') stroke(f0, R_SUB - 3, R_SUB + 3); else if (st.track === 'low') stroke(f0, R_SUB_LOW - 3, R_SUB_LOW + 3); else stroke(f0, R_SUB - 4, R_SUB_LOW + 3); continue; }
-    // a bar emptied: its two lines across the phrase track, nothing between
-    if (st.shape === 'pair') { stroke(f0, R_SUB - 3, R_SUB + 3); stroke(m.to / r.bars, R_SUB - 3, R_SUB + 3); continue; }
+    // a bar emptied: its two lines across the phrase track, nothing between (a call and its answer: across the low track)
+    if (st.shape === 'pair') { const c = st.track === 'low' ? R_SUB_LOW : R_SUB; stroke(f0, c - 3, c + 3); stroke(m.to / r.bars, c - 3, c + 3); continue; }
     const rr = st.track === 'low' ? R_SUB_LOW : R_SUB;
     // a hair short of the next mark's first bar, as the section arcs stop short of theirs
     const f1 = Math.min(m.to / r.bars - 0.0015, 0.9999);
@@ -1776,7 +1777,7 @@ function paintNext(r: Readout | null) {
   // the coming lanes, in the layer that is repainted anyway
   const fade = t > 0.02 ? 1 - t * 0.75 : 1;
   put(shadeAll, 'fill-opacity', ((1 - fade) * SHADE_SEAM).toFixed(3));
-  const label = `${String(info.key).replace('minor', 'min').replace('dorian', 'dor')} · ${info.bpm} · ${info.durationLabel}`;
+  const label = `${String(info.key).replace('minor', 'min').replace('dorian', 'dor').replace('mixolydian', 'mix').replace('lydian', 'lyd').replace('phrygian', 'phr')} · ${info.bpm} · ${info.durationLabel}`;
   if (nextInfoText!.textContent !== label.toUpperCase()) nextInfoText!.textContent = label.toUpperCase();
   put(nextInfoText!, 'opacity', (0.25 + 0.5 * t).toFixed(3));
 }
@@ -3147,8 +3148,8 @@ function buildCells(r: Readout) {
     // quieter subtitle. Its size stays: at 11 and 12 units WebKit's face on
     // the phone's square left Root or Loom no clear side at the house.
     const small = unitPx * 1000 < CTRL_SMALL_SIDE;
-    const sub = txt(lines, v.sub, 0, 22, small ? SUB_SMALL_SIZE : 10, { op: small ? SUB_SMALL_OP : 0.45, ls: 0.22 });
-    const sub2 = txt(lines, v.sub2 || '', 0, 36, 10, { op: 0.35, ls: 0.22 });
+    const sub = txt(lines, v.sub, 0, 22, small ? SUB_SMALL_SIZE : 10, { op: small ? SUB_SMALL_OP : 0.45, ls: 0.22, class: 'subLine' });
+    const sub2 = txt(lines, v.sub2 || '', 0, 36, 10, { op: 0.35, ls: 0.22, class: 'subLine' });
     const bb = gt.getBBox();
     title.textContent = '';
     // its light, built with it so it wanders with it
@@ -4028,6 +4029,9 @@ function plannedReadout(t: any, r: Readout, spell: Partial<Spell> | null): Reado
     hats: hatsOfProgram(t.events, t.timeline),
     facts: programFactsOf(t.events, t.dice),
     keys: keysOfProgram(t.events, t.dice && t.dice.keysPreset) ?? null,
+    held: heldOfProgram(t.events) ?? null,
+    // and how bright they play: the strike, the keys' low-pass and the knob, which Zephyr's air word reads (bird-labels round 3)
+    air: airPlayOf(t.events, t.knobs, t.dice && t.dice.keysPreset),
     durationLabel: r.durationLabel,
     plan: t.arrangement.sections.map((s: any) => ({
       label: s.label, kind: s.kind, startBar: s.startBar, bars: s.bars, index: s.index,
@@ -4687,13 +4691,14 @@ function buildCore(r: Readout) {
   // then on it stays through a pause.
   coreTextG = el('g', { opacity: reading(r) ? 1 : 0 }, coreScale);
   // which theme of the mix this is, and how long it runs
-  themeText = txt(coreTextG, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`, C, C - 46, 14, { op: 0.6, ls: 0.28 });
+  themeText = txt(coreTextG, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`, C, C - 46, 14, { op: 0.6, ls: 0.28, class: 'hubLine' });
   // the part of the theme playing now
-  sectionText = txt(coreTextG, sectionName(r), C, C - 22, 12, { op: 0.5, ls: 0.32 });
+  sectionText = txt(coreTextG, sectionName(r), C, C - 22, SECTION_SIZE, { op: 0.5, ls: SECTION_LS, class: 'hubLine' });
+  sectionFit = '';
   // the chord sounding now
   chordText = txt(coreTextG, r.chord || '', C, C + 26, 30, { op: 0.95, ls: 0.16 });
   // the notes in it
-  notesText = txt(coreTextG, (r.chordNotes || []).join(' '), C, C + 54, 12, { op: 0.5, ls: 0.38 });
+  notesText = txt(coreTextG, (r.chordNotes || []).join(' '), C, C + 54, 12, { op: 0.5, ls: 0.38, class: 'hubLine' });
   // The seed the whole set was grown from, engraved under the die that rolls a
   // new one and close enough to it to belong to it. It used to sit further out
   // at a size the rest of the reading is written in, where five digits were
@@ -4702,7 +4707,7 @@ function buildCore(r: Readout) {
   // a size rather than asking the star for room. Checked against the widest
   // seed there is at every ninety-sixth of a turn: the nearest a cell's word
   // comes is fourteen units.
-  seedText = txt(coreScale, `seed ${r.seed}`, C, C + R_ACT + ctrlR + 11, 9, { op: 0.55, ls: 0.26 });
+  seedText = txt(coreScale, `seed ${r.seed}`, C, C + R_ACT + ctrlR + 11, 9, { op: 0.55, ls: 0.26, class: 'seedLine' });
 }
 
 // ==========================================================================
@@ -4814,6 +4819,44 @@ function sectionName(r: { section?: string; sub?: string }): string {
   return r.sub ? `${r.section || ''} · ${r.sub}` : r.section || '';
 }
 
+/**
+ * **The section's line fits between the chevrons in a small window** (round
+ * apple-mini; round apple-1 saw "…AIN GROOVE · OPEN AN…" in the Mac app's
+ * mini player). The line runs at the height of the two step keys, whose
+ * black grounds cut a long one at both ends: a section and its sub-section
+ * ("MAIN GROOVE · OPEN AND DRIVING") is wider than the room between them
+ * once the keys grow. There it is set smaller, all of it, by as much as it
+ * needs to clear both keys by `SECTION_CLEAR`; a short one keeps its size.
+ * Measured only when the line or the controls' size changes. Anywhere but a
+ * small window (`smallWindow`, motion.ts) the line is as it was.
+ */
+const SECTION_SIZE = 12;
+const SECTION_LS = 0.32;
+const SECTION_BASE = 22;        // how far above the centre the line stands
+const SECTION_CLEAR = 6;
+let sectionFit = '';
+function fitSection(): void {
+  if (!sectionText || (!sectionFit && !smallWindow.on)) return;
+  const want = smallWindow.on ? `${ctrlR}|${sectionText.textContent}` : '';
+  if (want === sectionFit) return;
+  sectionFit = want;
+  let size = SECTION_SIZE;
+  if (want) {
+    // where a step key's circle crosses the line's baseline, the nearer edge
+    const room = 2 * (R_ACT - Math.sqrt(Math.max(0, ctrlR * ctrlR - SECTION_BASE * SECTION_BASE)) - SECTION_CLEAR);
+    const drawn = Number(sectionText.getAttribute('font-size')) || SECTION_SIZE;
+    let wide = 0;
+    // the box and not `getComputedTextLength`, which in WebKit leaves the
+    // tracking out (208 of a 319-unit line)
+    try { wide = sectionText.getBBox().width * (SECTION_SIZE / drawn); } catch (err) { wide = 0; }
+    if (wide > room) size = +(SECTION_SIZE * room / wide).toFixed(2);
+  }
+  const ls = SECTION_LS * size;
+  put(sectionText, 'font-size', size);
+  put(sectionText, 'letter-spacing', ls.toFixed(2));
+  put(sectionText, 'dx', (-ls / 2).toFixed(2));
+}
+
 function setText(node: Element, v: string | number) {
   const s = String(v).toUpperCase();
   if (node.textContent !== s) node.textContent = s;
@@ -4828,6 +4871,7 @@ function repaintCore(r: Readout) {
   setText(sectionText, sectionName(r));
   setText(chordText, r.chord || '');
   setText(notesText, (r.chordNotes || []).join(' '));
+  fitSection();
 }
 
 // ==========================================================================
@@ -5672,6 +5716,7 @@ function markSays(open: boolean) {
 }
 
 function openMachine(): Promise<MachineView | null> {
+  if (smallWindow.on) return Promise.resolve(null);   // a small window is the ring alone
   machineWanted = true;
   if (machine) return Promise.resolve(machine);
   if (machineLoading) return machineLoading;
@@ -5772,7 +5817,7 @@ const aboutVersion = (v: string = __APP_VERSION__): string => {
   return `v${a}.${b}${c !== '0' ? `.${c}` : ''}`;
 };
 function openAbout(opener: Element | null): void {
-  if (!aboutSheet || aboutSheet.open) return;
+  if (!aboutSheet || aboutSheet.open || smallWindow.on) return;
   aboutOpener = opener;
   aboutOpenerName = openerName(opener);
   const ver = document.getElementById('aboutVer');
@@ -5819,6 +5864,37 @@ function paintReports() {
 }
 paintReports();
 if (reportsKey) reportsKey.addEventListener('click', () => { setReports(!reportsWanted()); paintReports(); });
+// **Not in the Apple app** (Eugene, 10-19: "we can hide Send errors for now for
+// App builds"): the app sends nothing (instrument.ts), so a switch there would
+// promise a choice that does nothing. A browser never has the shell's flag.
+if (window.deepHouseShell) document.querySelector<HTMLElement>('.aboutReports')?.remove();
+
+// **A small window is the ring alone** (Eugene, 10-19, the Mac app's mini
+// player: like the Music app's MiniPlayer, "a small square window with the
+// ring only"; "the ring UI, not the bare drawing", so it can be played from
+// there; and then, after a Reload in it drew the name and the gear again,
+// "control that UI via CSS based on viewport size so it works in any
+// circumstance and in other containers similarly"). Where the viewport is no
+// more than 600 CSS px either way (`smallWindow`, motion.ts) — the mini player
+// at any of its sides, before and after any reload, and a browser window or a
+// frame made as small — the page keeps the ring whole, its birds, its
+// transport, its words, and index.html takes away what stands round it: the
+// name, the About's key, the machine view's key. The machine view, the About
+// and the bird's panel do not open there; one that is open when the window
+// becomes small is closed. Nothing is redrawn and no motion is restarted: it
+// is the same page in a smaller window. No phone, tablet or desktop window at
+// its usual size is a small window.
+function smallChanged(on: boolean): void {
+  if (on) {
+    closeMachine();
+    closeAbout();
+    if (panelCell) closePanel();
+  }
+  // the controls' size at once, where the square itself did not change
+  sizeControls(true);
+  fitSection();
+}
+smallWindow.watch(smallChanged);
 
 /**
  * **The view is on the address while it is open** (round K21: *"the machine
@@ -6081,6 +6157,14 @@ function followHand(d: PullDrag) {
   let v = p === 100 ? home : pulled(valueOfPercent(c.bird, clamp(p, 0, RIM_PERCENT)));
   // Ember's notches are detents of their own (K40): held at one near it, under the hand between
   if (c.bird === 'ember' && p !== 100) { const d = emberDetent(v); if (d !== v) { v = d; R = radiusFor(c.bird, d); } }
+  // a zone's edge is a detent too (PLAN-ZONES §3.5): an address bird dragged out of the zone the ring stands in holds at
+  // its band's last value inside until the hand is a few hundredths past it, so a hovering finger does not re-plan the theme
+  if (p !== 100 && last) {
+    const places = (labelStyle(last) as { places?: StylePlaces } | null)?.places;
+    const ring = { ...HOUSE, ...Object.fromEntries(cellNodes.map((n) => [n.bird, n.value])) } as Spell;
+    const z = places?.zones?.length ? zoneDetent(places, ring, c.bird, v) : v;
+    if (z !== v) { v = z; R = radiusFor(c.bird, z); }
+  }
   cellR[i] = cellTo[i] = R;
   const was = c.value;
   c.pulling = true;
@@ -6236,6 +6320,8 @@ const SEED_HIT_W = 132;
 const SEED_HIT_H = 56;
 function seedBoxHit(pt: Pt2) {
   if (!seedText) return false;
+  // not where a small window's square is too small to carry it (index.html)
+  if (smallWindow.on && getComputedStyle(seedText).visibility === 'hidden') return false;
   // measured once per caption and not on every pointer move (R122)
   const said = seedText.textContent || '';
   let b: DOMRect;
@@ -6671,8 +6757,8 @@ const panelPct = document.getElementById('birdPanelPct');
 let panelCell: CellNode | null = null;
 
 function openPanel(c: CellNode) {
-  // the record's birds are readings: no panel (K15d)
-  if (!controls) return;
+  // the record's birds are readings: no panel (K15d); nor in a small window
+  if (!controls || smallWindow.on) return;
   const opening = !panelCell || panelHiding;
   const wasHidden = !panelEl || panelEl.hidden;
   panelCell = c;
@@ -8017,19 +8103,26 @@ function frame(now: number) {
  * the machine view taking the ring into its corner and giving it back — draws
  * the ring again at the new size, and the few marks the live layer keeps at a
  * control's size are resized in place.
+ *
+ * In a small window (`smallWindow`, motion.ts) its smallest squares make every
+ * control `MINI_BIG_K` bigger again (below).
  */
 function sizeControls(redraw = true) {
   // the square as laid out, and not its rect, which the lean tilts (R123)
   const side = tiltEl.offsetWidth || tiltEl.getBoundingClientRect().width || 1000;
   square = null;
   unitPx = side / 1000;
-  const next = CTRL_R * (side < CTRL_SMALL_SIDE ? CTRL_SMALL_K : 1);
+  const big = smallWindow.on && side < MINI_BIG_SIDE ? MINI_BIG_K : 1;
+  const next = CTRL_R * (side < CTRL_SMALL_SIDE ? CTRL_SMALL_K : 1) * big;
   if (next === ctrlR && redraw) return;
   ctrlR = next;
   birdR = side < CTRL_SMALL_SIDE ? +(ctrlR * BIRD_SMALL_OF_CTRL).toFixed(3) : BIRD_R;
   starK = side < CTRL_SMALL_SIDE ? STAR_SMALL_K : 1;
   if (side < CTRL_SMALL_SIDE) {
-    const zero = R_STAR * PULL_IN;
+    // a bird at 0 % stands where it just touches the transport, as the
+    // phone's does (227.5 is exactly that there); a small window's bigger
+    // controls and birds move it out by as much as they grew
+    const zero = big > 1 ? R_ACT + ctrlR + SIZE_CORE * birdR : R_STAR * PULL_IN;
     const rim = R_BAND_IN - BIRD_BAND_CLEAR - birdR * SIZE_RIM;
     starR = zero + (rim - zero) / (RIM_PERCENT / 100);
     pullIn = zero / starR;
@@ -8046,6 +8139,42 @@ function sizeControls(redraw = true) {
   if (redraw && last) redrawAll(last);
 }
 if (typeof ResizeObserver === 'function') new ResizeObserver(() => sizeControls(true)).observe(tiltEl);
+
+/**
+ * **A small window, small** (Eugene, 10-19: *"it's fine to make it even
+ * smaller even if text is not readable, we can do even more, hide text after
+ * certain size, via css, etc, as we do on mobile custom layout already
+ * (bigger birds)"*). The Mac app's mini player goes down to a 160-point
+ * square, and every element on the ring has a function: a line of type too
+ * small to read has none, so as the ring's square shrinks the words go, each
+ * at the square where its own type falls to about 4 CSS pixels (a 9-unit seed
+ * at 444, a 30-unit chord at 133). The steps are index.html's, media queries
+ * on the window (a small window's square is 0.94 of its shorter side), with
+ * `visibility`, so nothing is measured or laid out again and no motion is
+ * touched; the order is what a glance at a small player wants last:
+ *
+ * - a square under 400 px: the birds' sub-lines and the seed under the die;
+ * - under 320: the birds' names and words, the tell along the rim and the
+ *   transport's own words;
+ * - under 290: the band's section letters, bar numbers and minutes, and what
+ *   the coming theme is;
+ * - under 250: the live time at the needle and the hub's three small lines
+ *   (the theme and its length, the section, the chord's notes);
+ * - under 160: the chord, the last word on the ring.
+ *
+ * The lanes, the needle, the birds as glyphs and the transport stay at every
+ * size. **Under `MINI_BIG_SIDE` every control and bird is `MINI_BIG_K` bigger
+ * again**, as the phone's are bigger than a desktop's (`CTRL_SMALL_K`): on the
+ * 160-point window the transport is 18 points across and a bird 16, where
+ * they would be 14 and 12. The 0 % radius moves out by as much as they grew,
+ * so a bird at 0 % still just touches the transport and one at the rim still
+ * stands `BIRD_BAND_CLEAR` inside the band; the house is where the percent
+ * puts it between the two. That step redraws the ring as a phone turning does
+ * (`redrawAll`), which keeps every motion's phase. Only a small window has it:
+ * the machine view's corner ring is small in a big window, and keeps its keys.
+ */
+const MINI_BIG_SIDE = 220;
+const MINI_BIG_K = 1.3;
 
 /**
  * **The viewport the ring is seen in** (round K14: *"the ring on mobile is

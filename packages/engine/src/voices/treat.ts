@@ -4,7 +4,8 @@
 //
 // Everything here is audio: a voice takes the same notes it always took and
 // sounds different because the desk is doing something to it. Nothing in this
-// file can change a pitch, a time or a length.
+// file can change a note's pitch, time or length: the tape drift below moves a
+// held chord's pitch a few cents about where it stands, the way a tape does.
 //
 // The contract a voice opts into, all optional and all no-ops when absent:
 //
@@ -33,6 +34,14 @@
 //               everywhere; this takes it down in the one octave it is in the
 //               way, which is the only move that buys separation without
 //               buying a hole in the middle of the record
+//   p.drift     { cents, hz, phase, wobbleCents, wobbleHz, wobblePhase } — the
+//               tape's speed never quite still (PLAN-AMBIENT Phase 6): the note
+//               read off a short line whose time a slow sine moves, so its pitch
+//               drifts up to `cents` either way at `hz`, and a faster, shallower
+//               `wobble` rides on it; the phases are where each sine stands at the
+//               note's start, so a composer that writes them off the theme's own
+//               clock has every held note drift together, as one tape does. The one
+//               entry here that moves a pitch, by a few cents and never a note
 //   p.band      { hz, db, q } — the same bell, for the timbre's own band and
 //               not the tune's: written by the composer where a timbre is
 //               denser in a band than the record's other voices of its kind
@@ -118,6 +127,51 @@ export function swellInsert(ctx: BaseAudioContext, p: NoteParams, time: number):
   f.frequency.exponentialRampToValueAtTime(20000, time + over);
   g.connect(f);
   return { in: g, out: f };
+}
+
+/** A note's tape drift (`p.drift`): the slow sine's depth in cents and its rate, the wobble's, and each one's phase in turns at the note's start. */
+export interface DriftSpec {
+  cents?: number;
+  hz?: number;
+  phase?: number;
+  wobbleCents?: number;
+  wobbleHz?: number;
+  wobblePhase?: number;
+}
+
+/** The ranges a drift is held to: a few cents and never a note, slow and never a vibrato. */
+export const DRIFT_RANGE = Object.freeze({ cents: [0, 30], hz: [0.01, 0.5], wobbleCents: [0, 8], wobbleHz: [0.2, 3] } as const);
+
+/**
+ * **The drift's line** (`p.drift`): the note through a delay whose time a sine moves. A delay time moving at
+ * d(τ)/dt plays the note at (1 − dτ/dt) of its speed, and a sine of depth D at f Hz moves it at most 2πfD a second,
+ * so the depth that peaks at `cents` is (1 − 2^(−cents/1200)) / 2πf: 46 ms for 20 cents at 0.04 Hz. The line sits
+ * at the two depths' sum and a little more, so it never reads ahead of the note; the note is that much later, a few
+ * tens of milliseconds on a held chord. Null where nothing drifts.
+ */
+export function driftInsert(ctx: BaseAudioContext, spec: DriftSpec | undefined, time: number, end: number): { in: AudioNode; out: AudioNode } | null {
+  if (!spec) return null;
+  const R = DRIFT_RANGE;
+  const held = (v: number | undefined, [lo, hi]: readonly [number, number], d: number) => Math.max(lo, Math.min(hi, Number.isFinite(v) ? v! : d));
+  const legs = [
+    { cents: held(spec.cents, R.cents, 0), hz: held(spec.hz, R.hz, 0.05), phase: Number.isFinite(spec.phase) ? spec.phase! : 0 },
+    { cents: held(spec.wobbleCents, R.wobbleCents, 0), hz: held(spec.wobbleHz, R.wobbleHz, 0.6), phase: Number.isFinite(spec.wobblePhase) ? spec.wobblePhase! : 0 },
+  ].filter((l) => l.cents >= 0.05);
+  if (!legs.length) return null;
+  const depths = legs.map((l) => (1 - Math.pow(2, -l.cents / 1200)) / (2 * Math.PI * l.hz));
+  const head = depths.reduce((a, d) => a + d, 0) + 0.002;
+  const line = ctx.createDelay(Math.min(1, 2 * head + 0.01));
+  line.delayTime.value = head;
+  legs.forEach((l, i) => {
+    const lfo = phasedLfo(ctx, l.hz, l.phase * Math.PI * 2);
+    const amt = ctx.createGain();
+    amt.gain.value = depths[i];
+    lfo.connect(amt);
+    amt.connect(line.delayTime);
+    lfo.start(time);
+    lfo.stop(end + 2 * head + 0.1);
+  });
+  return { in: line, out: line };
 }
 
 /** One kitchen instance the rota put on this lane: the registered id, and its knobs. */
@@ -312,6 +366,10 @@ export function insert(
 ): AudioNode {
   if (!p) return tail;
   let node: AudioNode = own.stage ? tail : stageTone(ctx, p, tail, time, end);
+  if (p.drift) {
+    const d = driftInsert(ctx, p.drift, time, end);
+    if (d) { node.connect(d.in); node = d.out; }
+  }
   if (p.dip && (p.dip.db ?? 0) < -0.05) {
     const d = dipInsert(ctx, p.dip);
     node.connect(d);

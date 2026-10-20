@@ -53,6 +53,10 @@ import { KEYS } from './keys.ts';
 import { DISPATCH } from './dispatch.ts';
 import { PIANO } from './piano.ts';
 import { WORDLESS_VOCAL } from './wordless-vocal.ts';
+// ambient-voices (10-18, PLAN-AMBIENT P2b/P3): the rimmed bowl, the jawari string and the chant
+import { RIM_BOWL } from './rim-bowl.ts';
+import { JAWARI } from './jawari.ts';
+import { CHANT } from './chant.ts';
 
 export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [KICK.id]: KICK,
@@ -103,4 +107,7 @@ export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [DISPATCH.id]: DISPATCH,
   [PIANO.id]: PIANO,
   [WORDLESS_VOCAL.id]: WORDLESS_VOCAL,
+  [RIM_BOWL.id]: RIM_BOWL,
+  [JAWARI.id]: JAWARI,
+  [CHANT.id]: CHANT,
 });

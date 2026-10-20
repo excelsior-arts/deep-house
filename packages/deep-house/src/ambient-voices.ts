@@ -31,6 +31,7 @@ import { Rng } from './rng.ts';
 import type { Section } from './arrangement.ts';
 import type { KeysPlan, KeysChord } from './keys-phrase.ts';
 import { chordIndexAt } from './keys-phrase.ts';
+import { arcAt } from './knots.ts';
 
 // --- the rows ---------------------------------------------------------------------
 
@@ -871,15 +872,6 @@ export interface AmbientEvent {
   ownLevel?: boolean;
 }
 
-/** A knot curve over nought to one, read at `u`. */
-const arcAt = (knots: ReadonlyArray<readonly [number, number]>, u: number): number => {
-  if (u <= knots[0][0]) return knots[0][1];
-  for (let i = 1; i < knots.length; i++) if (u <= knots[i][0]) {
-    const [a, x] = knots[i - 1], [b, y] = knots[i];
-    return x + ((u - a) / (b - a)) * (y - x);
-  }
-  return knots[knots.length - 1][1];
-};
 
 /**
  * **The plan, as events**: the motif's notes on its owner's voice (the soloist's per-note controls, the keys' tone

@@ -755,15 +755,8 @@ export function stateAt(plan: DevelopmentPlan, bar: number): string | null {
   return p ? p.state : null;
 }
 
-/** A knot curve over nought to one, read at `u` (straight between knots, held outside them). */
-export function arcAt(knots: ReadonlyArray<readonly [number, number]>, u: number): number {
-  if (u <= knots[0][0]) return knots[0][1];
-  for (let i = 1; i < knots.length; i++) if (u <= knots[i][0]) {
-    const [a, x] = knots[i - 1], [b, y] = knots[i];
-    return x + ((u - a) / (b - a)) * (y - x);
-  }
-  return knots[knots.length - 1][1];
-}
+/** A knot curve over nought to one, read at `u` (`src/knots.ts`, the one reader the contours share). */
+export { arcAt } from './knots.ts';
 
 /**
  * A run with a glide added to its residual (the bass's answer across a gap the drums left): straight from nought at
