@@ -626,10 +626,10 @@ test('(k) a link written with the birds\' full names or the first theme reads, w
   for (const b of BIRDS) assert.equal(BIRD_CODE[b], b.slice(0, 2), `${b}'s code is not the machine view's two letters`);
   assert.equal(new Set(Object.values(BIRD_CODE)).size, BIRDS.length, 'two birds share a code');
   // the writers that are not the page's address follow the one writer: the
-  // record tools' .txt link, the view's genre keys and its spell tile's letters
+  // record tools' .txt link, the Genres sky's stars and the view's spell tile's letters
   const src = (f: string) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', f), 'utf8');
   assert.ok(/linkWrite\(/.test(src('machine/private/record.ts')) && !/`\$\{b\}:|`\$\{bird\}:/.test(src('machine/private/record.ts')), 'the record tools write a link of their own');
-  assert.ok(/spellQuery\(spell\)/.test(src('machine/genres.tsx')), 'the genre keys write a spell of their own');
+  assert.ok(/spellQuery\(spell\)/.test(src('genres-sky.ts')), 'the Genres sky writes a spell of its own');
   // Since round K40 Ember's tile reads its notch, `em 105`, and every other
   // bird its two letters (restated in the merge round, Reconcile 1); since
   // 10-05 the notch rides in its own span, hidden on a phone's one-line cell.
@@ -645,7 +645,7 @@ test('(i) every written link in the grid plays the program it was blessed with',
   // both ways, every mode under each accompaniment, the draw and every shipped row.
   const groups = new Map<string, number>();
   for (const r of file.rows) groups.set(r.group, (groups.get(r.group) ?? 0) + 1);
-  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'masters', 'modes', 'pulls', 'recipes', 'riffs', 'sets']);
+  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'lists', 'masters', 'modes', 'pulls', 'recipes', 'riffs', 'sets']);
   assert.ok(rows >= 120, `the grid holds ${rows} links`);
   for (const bird of BIRDS) for (const v of ['0.10', '0.90']) for (const ver of ['1', '2'])
     assert.ok(file.rows.some((r) => r.group === 'pulls' && r.link === `seed=1&v=${ver}&spell=${BIRD_CODE[bird]}:${v}`), `no row pulls ${bird} to ${v} under v=${ver}`);
@@ -754,4 +754,17 @@ test('(n) I01: every theme a link can name plans — the key is walked up and no
   assert.deepEqual(read.problems, []);
   assert.equal(read.link.theme, 9998);
   assert.ok(planTheme('1', read.link.theme, { strategy: 'house-v2' }).events.length > 0);
+});
+
+test('(o) a playlist link (PLAN-LIBRARY phase 5): its rows are a class of their own, never a track\'s, and the digest pins its format', async () => {
+  const { LIST_ROWS } = await import('../src/playlist-link.ts');
+  const { normaliseLink } = await import('../src/playlists.ts');
+  assert.deepEqual(LINK_ROWS.filter((r) => r.class === 'list').map((r) => r.name), [...LIST_ROWS]);
+  // a track's link never keeps one, and none is a sound
+  const q = ['seed=6', 'v=2', ...LIST_ROWS.map((n) => `${n}=x`)].join('&');
+  assert.equal(normaliseLink(q).link, 'seed=6&v=2');
+  assert.ok(linkSameSound(q, 'seed=6&v=2'));
+  const lists = JSON.parse(fs.readFileSync(linkDigest.FILE, 'utf8')).rows.filter((r: { group: string }) => r.group === 'lists');
+  assert.equal(lists.length, linkDigest.listRows().length, 'the digest holds a playlist link the grid does not, or the other way');
+  assert.ok(lists.some((r: { link: string }) => /@\d/.test(r.link)) && lists.some((r: { link: string }) => /%[CD][0-9A-F]%/.test(r.link)), 'no playlist row with a track on another engine, or none with a label past ASCII');
 });

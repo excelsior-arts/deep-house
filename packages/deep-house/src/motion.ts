@@ -63,3 +63,11 @@ export const coarsePointer: MediaFact = fact('(pointer: coarse)');
  */
 export const SMALL_WINDOW = '(max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)';
 export const smallWindow: MediaFact = fact(SMALL_WINDOW);
+/**
+ * **A phone-size touch screen** (his word 10-21): a finger, and a viewport the panel lays out compact (narrower than
+ * 700 or lower than 500, `shellLayout`), so a phone either way round and the app on an iPhone; never a desktop, and
+ * never the mini player (`smallWindow`, which callers exclude). The throne is larger there and the menus are a
+ * thumb's (index.html says the same query).
+ */
+export const PHONE_SIZE = '(pointer: coarse) and (max-width: 699px), (pointer: coarse) and (max-height: 499px)';
+export const phoneSize: MediaFact = fact(PHONE_SIZE);

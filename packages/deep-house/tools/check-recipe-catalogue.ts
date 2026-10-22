@@ -15,7 +15,7 @@ import { drawable } from '../src/mix.ts';
 import { parseSpell } from '../src/spell.ts';
 import { linkRead } from '../src/link.ts';
 import { auditPoints } from './genre-recipes.ts';
-import GENRES from '../src/machine/genres.json' with { type: 'json' };
+import GENRES from '../src/genres/genres.json' with { type: 'json' };
 import { partFromRecipe } from '../src/recipe-part.ts';
 import { validate, vocabularyOf } from '../src/recipe.ts';
 import { composeParts } from '../src/composition.ts';

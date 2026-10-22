@@ -27,8 +27,11 @@ import type { Development } from './development.ts';
  *             (`__PRIVATE_TOOLS__`), so a release build plays a link carrying
  *             it as though it were not there; kept as given, never written by
  *             the page's own writer, and never a sound row of a shared link.
+ *   `list`    a playlist shared as a link (PLAN-LIBRARY §3, `src/playlist-link.ts`): its name, its tracks, their
+ *             labels and its id, beside the `v` its tracks share. Read once as the page opens, the playlist saved,
+ *             and taken off the address, which then holds the first track's link; never on a track's link.
  */
-export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private';
+export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private' | 'list';
 
 /** One parameter the page reads. */
 export interface LinkRow {
@@ -63,6 +66,11 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   // DNB-CLEAN: a listening link's desk, the machine view's solo and mute by layer or instrument (`control.ts`)
   { name: 'solo', class: 'private', absent: 'nothing soloed', written: 'never; kept as given, read once as the page opens (the private tier only)' },
   { name: 'mute', class: 'private', absent: 'nothing muted', written: 'never; kept as given, read once as the page opens (the private tier only)' },
+  // PLAN-LIBRARY phase 5: a playlist link (`src/playlist-link.ts`), in the order its writer writes it, `id` last
+  { name: 'list', class: 'list', absent: 'the name "Shared list" where `play` is given; else no playlist link', written: 'only by Share on a playlist, first' },
+  { name: 'play', class: 'list', absent: 'no playlist link', written: 'only by Share on a playlist: the tracks, `~` between, each `seed-theme-birds;row:value@v`' },
+  { name: 'names', class: 'list', absent: 'no labels', written: 'only by Share on a playlist, always: the labels, `~` between, empty for none' },
+  { name: 'id', class: 'list', absent: 'a new playlist (its name with " 2" where taken)', written: 'only by Share on a playlist, last: the UUID without its dashes' },
   { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
 ]);
 

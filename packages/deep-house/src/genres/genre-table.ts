@@ -1,5 +1,6 @@
-// The genre table (GA8): the families, their keys and the nine tiles, read off `genres.json`; what the keys
-// under the ring (`genres.tsx`) draw and press, and what a node tool plays at each tile. No React here.
+// The genre table (GA8): the families, their keys and the nine tiles, read off `genres.json`; what the Genres
+// sky (`sky.ts`, `genres-sky.ts`) draws and presses, and what a node tool plays at each tile. No React here.
+// Moved out of the machine view with its keys (PLAN-LIBRARY phase 4, his word 10-20).
 
 import { BIRDS, HOUSE, SPELL_SAME, asSpell } from '../spell.ts';
 import type { Spell } from '../spell.ts';

@@ -21,7 +21,7 @@ import { HOUSE, airAtOf, biasFor, drawTimbre, parseSpell, timbreRoleOf, type Spe
 import { airAbout, airDraw, airLeaned, airOctaves } from '../src/air-lean.ts';
 import { style as v2 } from '../src/styles/deep-house-v2.ts';
 import { AIR, KEYS } from '../src/styles/deep-house-places.ts';
-import { TILES, DEEP_HOUSE, presetSpell } from '../src/machine/genre-table.ts';
+import { TILES, DEEP_HOUSE, presetSpell } from '../src/genres/genre-table.ts';
 import { conversationRowOf } from '../src/slow-conversation.ts';
 import { keysOfProgram } from '../src/bird-labels.ts';
 import Rng from '../src/rng.ts';

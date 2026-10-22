@@ -36,6 +36,8 @@ import { exchangesOf } from './moments.ts';
 /** The conversation's parts that ink their lanes (`lanesOf`): its calls, its answers and its hand's marks; the ground's bowl rings under them all. */
 const CONVERSATION_STRIKES: ReadonlySet<string> = new Set(['conversation-call', 'conversation-answer', 'conversation-punctuation']);
 import type { SourceMix } from '@deep-house/engine/source-mix';
+import { sayHello } from './console-hello.ts';
+import { pageBase } from './page-base.ts';
 
 /** A set playing, as `createMix` hands one back. */
 export type Mix = ReturnType<typeof createMix>;
@@ -240,8 +242,12 @@ interface SavedPlace {
   preset: string;
   strategy?: string;
   link?: string;
+  /** **Where the page is in a playlist** (PLAN-LIBRARY §1): this device's state, never the library's */
+  playlist?: PlaylistPlace;
   at: string;
 }
+/** A playlist by its name (`null`, Saved) and the track's place in it, zero-based. */
+export interface PlaylistPlace { name: string | null; index: number }
 
 /** A seed off the die: the throw's plain roll, the same space a cast lands in. */
 const rollSeed = (): string => String(Math.floor(Math.random() * 100000));
@@ -660,6 +666,36 @@ export interface CastPoint {
   seconds: number;
 }
 
+/**
+ * **A playlist steering the transport** (PLAN-LIBRARY §2, *Playing a playlist*):
+ * next and back step through it (true: taken), the dice leave it, and `place`
+ * is what the store keeps.
+ */
+export interface PlaylistSteer {
+  next(): boolean;
+  back(): boolean;
+  leave(): void;
+  place(): PlaylistPlace | null;
+}
+
+/**
+ * **The link of a place as it sounds** (PLAN-LIBRARY §2: a saved track is a record of what you heard): the seed,
+ * the theme, the engine, the recipe and the two modes, and the spell the theme is played under, written only where
+ * the link would not roll it again (under a recipe, a spell equal to the seed's roll is left to the roll), as
+ * `writePlaceSpell` writes the address. Pure, so a check can hold the throne's save to it.
+ */
+export function linkOfPlace(p: { seed: string; theme: number; strategy: string; spell: Partial<Spell> | null; recipe: string | null; accompaniment: LinkState['accompaniment']; development: LinkState['development'] }): string {
+  const place = { seed: p.seed, theme: p.theme, strategy: p.strategy, recipe: p.recipe, accompaniment: p.accompaniment, development: p.development };
+  let spell = p.spell;
+  if (p.recipe !== null) {
+    try {
+      const rolled = recipesFor({ masterSeed: p.seed, strategy: p.strategy, search: `?${linkWrite({ ...place, spell: null })}` }).spell;
+      if (sameSpell(spell, rolled)) spell = null;
+    } catch (e) { /* written as it stands */ }
+  }
+  return linkWrite({ ...place, spell });
+}
+
 /** What a transport may be told when it is made. */
 export interface ControlOptions {
   seed?: string | number;
@@ -677,6 +713,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   // with any sound row on it is somebody's and wins over the store, as it
   // always has. A store written before 09-23 has no link and is restored by
   // its seed alone (`restore`).
+  // the playlist place a reload carries on in, read before anything writes the store again
+  const resumedPlaylist: PlaylistPlace | null = (() => {
+    const p = typeof location === 'undefined' ? null : readStore()?.playlist;
+    return p && typeof p === 'object' && (p.name === null || typeof p.name === 'string') && Number.isInteger(p.index) && p.index >= 0 ? { name: p.name, index: p.index } : null;
+  })();
+  /** **The playlist's hand on next, back and the dice** (PLAN-LIBRARY §2): set by the Playlists tab while a playlist plays. */
+  let steer: PlaylistSteer | null = null;
   const fromStore = typeof location !== 'undefined' && adoptStoredLink();
   // A bad link is read and repaired before anything reads the address.
   const link = typeof location === 'undefined' ? { search: '', problems: [] as LinkProblem[] }
@@ -806,8 +849,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // ...and the whole place as its link, the address's sound rows under the
       // engine the seconds belong to: what a bare address comes back to.
       link: linkNowSafe(),
+      ...(playlistNow() ? { playlist: playlistNow()! } : {}),
       at: new Date().toISOString(),
     });
+  }
+  /** The playlist place the store keeps: the steer's, once there is one; until then the one this page opened on. */
+  function playlistNow(): PlaylistPlace | null {
+    return steer ? steer.place() : resumedPlaylist;
   }
 
   function linkNowSafe(): string | undefined {
@@ -1019,6 +1067,17 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       to: entry.seed, theme: entry.theme + 1, engine: entry.strategy,
       entry: index + 1, of: journal.entries.length,
     });
+    goTo(entry, recipeOfEntry(entry), kind);
+  }
+
+  /**
+   * **A hand-over into a stated place** (the journal's walk, and since
+   * PLAN-LIBRARY phase 3 a playlist's track, `playPlace`): playing, `mix.cast`
+   * with the seed, the theme, the engine, the spell and the recipe named, so
+   * the seam is the set's own; stopped, the plan alone, and the pointer settles
+   * at once. `startAt` is a stopped place's second (a link's `t`).
+   */
+  function goTo(entry: JournalPlace, recipe: Recipe | null, kind: Cut['kind'], startAt: number | null = null): void {
     if (state.mix) {
       const here = entry.seed === state.seed;
       state.castTo = here ? null : entry.seed;
@@ -1027,8 +1086,12 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       state.strategyTo = entry.strategy === state.strategy ? null : entry.strategy;
       armCut(state.mix.cast(entry.seed, {
         spell: entry.spell, themeIndex: entry.theme, strategy: entry.strategy,
-        recipe: recipeOfEntry(entry),
+        recipe,
       }), kind);
+      // **The birds go with it** (his question 10-20: only the die showed the wait): the spell the place is heard
+      // under is the ask from here, so it is in the address at once, as a pull's is, and the ring stands its birds
+      // at it and fills their wait to the swap (`followOutsideAsk`, ring.ts). The sound is the cast's, as before.
+      writePlaceSpell(entry);
       replan(null);
       remember();
       emit();
@@ -1046,6 +1109,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     writePlaceSpell(entry);
     writeStrategyUrl(entry.strategy);
     replan('seed');
+    if (startAt !== null && state.track) state.position = linkTimeStart(startAt, state.track.barSeconds, playable());
     arrived();
     remember();
     emit();
@@ -1205,7 +1269,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
         // 'play' listener: we are the ones who call play() on the element, and
         // its event would land before the mix exists and start a second one.
         // The lock screen's play arrives through the media session instead.
-        keep.addEventListener('pause', () => { if (state.playing && !state.starting) stop(); });
+        keep.addEventListener('pause', () => { if (state.playing && !state.starting) stop('system'); });
       }
       if (d && keep.srcObject !== d.stream) keep.srcObject = d.stream;
       keep.play().catch(() => {});
@@ -2083,7 +2147,14 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     }, REST_AFTER_MS);
   }
 
-  function stop() {
+  /**
+   * **Whose stop it was** (the review of 10-21, F5): `system` where the element was paused under the set (WebKit, for
+   * a call or a lost output) or the app asked (its shell's `act`), a hand's otherwise. The Apple app reads it: an
+   * interruption never resumes a hand's pause.
+   */
+  let stoppedBy: 'hand' | 'system' = 'hand';
+  function stop(by?: unknown) {
+    stoppedBy = by === 'system' ? 'system' : 'hand';
     cancelStartup();
     // Where the set had actually reached, before the mix that knows it is let
     // go: this is the position that is remembered and resumed from.
@@ -2410,7 +2481,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
         const place: LinkState = { seed: state.seed, theme: state.themeIndex, strategy: state.strategyTo ?? state.strategy,
           spell: here.spell, recipe: here.recipe, accompaniment: here.accompaniment, development: here.development };
         const search = linkWithTime(place, seconds ?? (r ? r.seconds : state.position));
-        return `${location.origin}${location.pathname}?${search}`;
+        return `${pageBase()}?${search}`;
       },
     },
     /** `?lock=engine`: the link names its engine and the machine view's selector holds it. */
@@ -2496,6 +2567,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // A set still starting is one the face already draws as playing (K42), so
     // a second press on the key that says pause is a pause, not a restart.
     toggle() { return state.mix || state.starting ? stop() : start(); },
+    /** Whose the last stop was: `system` (the element paused under the set, or the app's shell) or `hand`. */
+    get stoppedBy(): 'hand' | 'system' { return stoppedBy; },
 
     // A seed asked for by name. Where its set begins is part of the ask and
     // defaults to the beginning of it — theme one, bar one — so a seed written
@@ -2504,12 +2577,15 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     setSeed(seed: string | number, { themeIndex = 0, seconds = 0 }: Partial<CastPoint> = {}): void {
       const next = String(seed).trim() || '1';
       if (next === state.seed && themeIndex === state.themeIndex) return;
+      steer?.leave();
       if (castLive(next, { themeIndex, seconds })) return;
       state.seed = next;
       recast('seed', { themeIndex, seconds });
     },
 
     newSeed(): string {
+      // **The dice leave the playlist** (PLAN-LIBRARY §2): a new seed plays outside it
+      steer?.leave();
       const next = rollSeed();
       if (castLive(next, { themeIndex: 0, seconds: 0 })) return next;
       state.seed = next;
@@ -2538,6 +2614,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // Against what the set has been *asked* for, which while a hand-over runs
       // is the spell arriving rather than the one still sounding.
       if (sameSpell(spell, state.mix ? state.mix.spellAsked : spellOf())) return;
+      // **A playlist stays current only while what plays is its track** (his word 10-20): a spell the hand asks for
+      // (a genre star, a bird let go) moves the sound off it, so the playlist is left, as the dice leave it. A
+      // playlist's own step comes through `playPlace`, never here; the same spell asked again returned above.
+      steer?.leave();
       writeSpellUrl(spell);
       if (state.mix) {
         armCut(state.mix.setSpell(spell), 'spell');
@@ -2582,6 +2662,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // taken the ask on, and a second click in that moment must plan nothing.
       const asked = state.strategyTo ?? (state.mix ? state.mix.strategyAsked : state.strategy);
       if (next === asked) return;
+      // another engine is another sound: the playlist is left (its track names its engine)
+      steer?.leave();
       writeStrategyUrl(next);
       if (state.mix) {
         const mix = state.mix;
@@ -2731,6 +2813,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // eight, so the theme index only turns over at the end of it. The cut is
     // remembered here so a face can say that the tap was taken.
     skip(): number {
+      // **A playing playlist steps through itself** (PLAN-LIBRARY §2), on the ring and the lock screen
+      if (steer && steer.next()) return state.themeIndex + 1;
       // **Forward walks the journal while there is an entry ahead**
       // (`notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md` §3b). Past its end this is the set's next theme, which
       // is what next has always been, so a page with no journal behind it
@@ -2773,6 +2857,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
 
     back(): boolean {
+      if (steer && steer.back()) return true;
       // **Back walks the journal across casts** (`notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md` §3b): the seed
       // you were on three tracks ago, as a hand-over like every other
       // manipulation of the ring. Before its first entry it is this set's
@@ -2814,6 +2899,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // is written down goes on saying where the record actually is until the new
     // set has it.
     resetToStart(): string {
+      steer?.leave();
       clearStore();
       // Back to the beginning means the beginning: the evening's walk goes with
       // the place that was saved, so the ring after a reset is the ring a
@@ -2827,6 +2913,70 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
 
     remember,
+
+    // --- playlists (PLAN-LIBRARY phase 3) ---------------------------------
+    /**
+     * **Play a saved link** (PLAN-LIBRARY §2, *Press a row to play it*):
+     * playing, it mixes in by the same `mix.cast` path a journal walk takes,
+     * so the seam is the set's own; stopped, it starts there (at the link's
+     * `t` where it carries one). The recipe and the two modes are fixed when a
+     * page opens, so a link naming others than this page plays is opened as a
+     * page, stopped, as that link would be. False: not a link the page plays.
+     */
+    playPlace(link: string, kind: Cut['kind'] = 'cast'): boolean {
+      const search = `?${String(link).replace(/^\?/, '')}`;
+      let L: ReturnType<typeof linkHere>;
+      try { L = linkHere(search, { pageDefault: PAGE_DEFAULT }); } catch (e) { return false; }
+      if (!L.seed) return false;
+      const here = linkHere(location.search, { pageDefault: PAGE_DEFAULT });
+      if ((L.recipe ?? null) !== (here.recipe ?? null) || L.accompaniment !== here.accompaniment || L.development !== here.development) {
+        const q = new URLSearchParams(search);
+        for (const name of ['view', 'out', 'latency']) { const v = linkRaw(name, location.search); if (v !== null && !q.has(name)) q.set(name, v); }
+        store();
+        location.assign(`${location.pathname}?${q.toString()}${location.hash}`);
+        return true;
+      }
+      let cast: ReturnType<typeof recipesFor>;
+      try { cast = recipesFor({ masterSeed: L.seed, strategy: L.strategy, search }); } catch (e) { report('link', 'a playlist link could not be read', e, {}, aBug); return false; }
+      note('transport', 'a playlist track was asked for', { seed: L.seed, theme: L.theme + 1, engine: L.strategy });
+      const place: JournalPlace = { seed: L.seed, theme: L.theme, strategy: L.strategy, spell: cast.spell,
+        ...(cast.track ? { recipe: cast.track.id } : {}), accompaniment: here.accompaniment, development: here.development };
+      const wasStopped = !state.mix && !state.starting;
+      // the dice's wait is for a new seed: a track on the seed that plays moves only the birds (and the theme),
+      // so it waits as a pull does, the ring drawing nothing of its own (his word 10-20)
+      const cut: Cut['kind'] = kind === 'cast' && L.seed === state.seed ? 'spell' : kind;
+      goTo(place, cast.track ?? null, cut, wasStopped ? L.t : null);
+      if (wasStopped) start();
+      return true;
+    },
+    /** Hand the transport a playlist's steer, or take it back (`null`). */
+    steer(s: PlaylistSteer | null): void { steer = s; },
+    /** The playlist place this page opened on, from the store: a reload carries on in it. */
+    resumedPlaylist,
+    /** The second the playing theme hands over at on its own: where a playlist mixes its next track in. */
+    get seamAt(): number { return seamSeconds(); },
+    /**
+     * **The place heard, as one string**, for a playlist's seam (`playlists-ui.ts`): the seed, the theme, the
+     * engine and the spell, all four from the one snapshot the transport takes of a swap (`syncFromMix`), so a
+     * hand-over is never read half arrived. Two saved tracks that differ only by their birds differ here. The
+     * recipe and the two modes are the page's: a track naming others opens as a page.
+     */
+    get placeHeard(): string {
+      const spell = state.mix && playedTrack ? playedSpell : spellOf();
+      return `${state.seed}|${state.themeIndex}|${state.strategy}|${spellQuery(spell) ?? ''}`;
+    },
+    /** The link of what plays, as the address writes it: the save's link. */
+    linkNow(): string { return linkNow('', { strategy: state.strategy }); },
+    /**
+     * **The link of what sounds now**, for the throne's save: the playing theme's own spell (the set's, as the
+     * readout reads it), never one a hand has asked for and the music has not reached yet, which the address
+     * already names; the recipe and the modes are the page's.
+     */
+    linkPlaying(): string {
+      const here = linkHere(location.search, { pageDefault: PAGE_DEFAULT });
+      return linkOfPlace({ seed: state.seed, theme: state.themeIndex, strategy: state.strategy, spell: spellOf(),
+        recipe: here.recipe, accompaniment: here.accompaniment, development: here.development });
+    },
     /** The evening's walk, for a face that wants to draw it and for a gate. */
     journal,
     out: OUT,
@@ -2890,14 +3040,16 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
   };
 
-  console.info(OUT === 'silent'
-    ? 'deep-house: output silent — the set ends in a gain of zero into the destination, so ' +
-      'the clock, the scheduling and the capture tap are what they always are and nothing is heard.'
-    : OUT === 'direct'
-    ? 'deep-house: output direct — the mix goes straight to the context. No media element, ' +
-      'so no lock-screen card and no background play; use ?out=element to get them back.'
-    : 'deep-house: output through a media element — a lock-screen card and background play, ' +
-      'at the cost of a second buffer. Use ?out=direct to hear the graph itself.');
+  // the console's hello for everyone (console-hello.ts); the output path only where a link asked for one (his word 10-21)
+  let outAsked = false;
+  try { outAsked = linkHere().out != null; } catch (e) { outAsked = false; }
+  if (!outAsked) sayHello();
+  else if (OUT === 'silent') console.info('deep-house: output silent — the set ends in a gain of zero into the destination, so ' +
+    'the clock, the scheduling and the capture tap are what they always are and nothing is heard.');
+  else if (OUT === 'direct') console.info('deep-house: output direct — the mix goes straight to the context. No media element, ' +
+    'so no lock-screen card and no background play; use ?out=element to get them back.');
+  else console.info('deep-house: output through a media element — a lock-screen card and background play, ' +
+    'at the cost of a second buffer. Use ?out=direct to hear the graph itself.');
   // A restored session is always a stopped one: the seed, the theme and the
   // bar come back, the sound does not.
   const how = restore();

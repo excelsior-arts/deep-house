@@ -63,6 +63,12 @@ import { startScribe } from './machine/scribe.ts';
 import { marksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
 import type { Candidate } from './cast-pool.ts';
 import { reducedMotion, coarsePointer, smallWindow } from './motion.ts';
+import { startLibrary, openLibrary, closeLibrary, libraryOpen, keyboardHold, libraryAway } from './library-panel.ts';
+import { startPlaylists, pressThrone, closeMenu, openListLink } from './playlists-ui.ts';
+import { startGenres } from './genres-sky.ts';
+import { startShellTilt } from './shell-tilt.ts';
+import { throneParts, THRONE_WEIGHT, THRONE_SCALE, THRONE_SCALE_PHONE, THRONE_SCALE_MINI, THRONE_SHACKLE } from './throne-glyph.ts';
+import { phoneSize } from './motion.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
 
 // ==========================================================================
@@ -390,6 +396,8 @@ function wearColour(next: RingColour) {
   const root = document.documentElement.style;
   root.setProperty('--gold', typeInk(next));
   root.setProperty('--pale', paleInk(next));
+  // and the ring's own line colour, for what is drawn as an instrument beside it, the gyroscope (his word 10-21)
+  root.setProperty('--ring-ink', next.hex);
   // and the tab's icon, on the same step (`tab-icon.ts`: only a changed ink,
   // at most every 400 ms, the first at once so a deep link is never gold there)
   wearIcon(next);
@@ -1370,7 +1378,10 @@ const SECTION: Record<string, { short: string; dash: string | null; op: number }
 };
 
 // ==========================================================================
+// a playlist link is read, saved and taken off the address before the transport reads it (PLAN-LIBRARY §3)
+const listRefused = openListLink();
 const control = createControl();
+if (listRefused) control.linkProblems.push(listRefused);
 // the ledger's faults, reported where the listener's switch is on (K33)
 reportFaults(control);
 installDebug(control);
@@ -1453,8 +1464,10 @@ const gStarWords = $('starWords')!;
  * the logarithm of the tempo. A change of tempo glides onto the new curve over
  * `SWAY_EASE`, so a seam never steps it.
  */
-const SWAY_FAST = { bpm: 120, sway: 10, drift: 2.3, pace: 1 };
-const SWAY_SLOW = { bpm: 60, sway: 5, drift: 1, pace: 0.5 };
+// the wander's pace three fifths of what it was (his word 10-21: "a little slower movement of birds"), the sway itself
+// unmoved, since it is drawn by the theme's own progress
+const SWAY_FAST = { bpm: 120, sway: 10, drift: 2.3, pace: 0.6 };
+const SWAY_SLOW = { bpm: 60, sway: 5, drift: 1, pace: 0.3 };
 /**
  * **No bird ever stands further than `BIRD_DOMAIN` degrees from its own home
  * direction** — neighbours are forty-five apart — whatever moved it: the sway,
@@ -1906,7 +1919,17 @@ function inDomain(i: number, x: number, y: number): Pt {
 }
 
 /** The wander's own clock, in seconds — nought where there is no wander. */
-const flexT = () => (STAR_FLEX && !REDUCED ? performance.now() / 1000 : 0);
+/**
+ * **The birds hold still while the window is not the one in front** (his word 10-21): the wander's clock stops where
+ * it is (`holdBirds`) and runs on from there when the window comes back, so nothing jumps either way.
+ */
+let heldFrom = 0, heldFor = 0;
+function holdBirds(on: boolean): void {
+  const now = performance.now();
+  if (on && !heldFrom) heldFrom = now;
+  else if (!on && heldFrom) { heldFor += now - heldFrom; heldFrom = 0; }
+}
+const flexT = () => (STAR_FLEX && !REDUCED ? ((heldFrom || performance.now()) - heldFor) / 1000 : 0);
 
 /** The eight vertices as path text, where the birds stand at `t`. */
 function starVerts(t: number): string[] {
@@ -5649,10 +5672,13 @@ let squareFrame = -1;
 let frameNo = 0;
 let handAt = -Infinity;
 function readSquare(): Square {
+  // the stage's own scale, where the open panel moves and scales the ring as
+  // one piece (`library-panel.ts`): its box on the screen over its laid-out width
   const s = stage.getBoundingClientRect();
+  const k = stage.offsetWidth ? s.width / stage.offsetWidth : 1;
   return {
-    left: s.left + tiltEl.offsetLeft, top: s.top + tiltEl.offsetTop,
-    w: tiltEl.offsetWidth || 1, h: tiltEl.offsetHeight || 1,
+    left: s.left + tiltEl.offsetLeft * k, top: s.top + tiltEl.offsetTop * k,
+    w: (tiltEl.offsetWidth || 1) * k, h: (tiltEl.offsetHeight || 1) * k,
   };
 }
 function squareNow(): Square {
@@ -5665,16 +5691,39 @@ function aimTilt(e: PointerEvent) {
   const q = squareNow();
   const nx = clamp((e.clientX - (q.left + q.w / 2)) / (q.w / 2), -1, 1);
   const ny = clamp((e.clientY - (q.top + q.h / 2)) / (q.h / 2), -1, 1);
-  tiltTY = -nx * TILT_MAX;
-  tiltTX = ny * TILT_MAX;
+  // **only the ring itself leans it** (his word 10-21): a hand anywhere else on the page (the way to the gyroscope,
+  // the gaps round the ring) lets it settle flat
+  const off = Math.hypot(nx, ny) > 1;
+  tiltTY = off ? 0 : -nx * TILT_MAX;
+  tiltTX = off ? 0 : ny * TILT_MAX;
+}
+
+/**
+ * **The phone's lean, in the Apple app** (round phone-tilt; shell-tilt.ts): the target the device's tilt asks for, as
+ * fractions of `TILT_MAX`, taken into the same target the hover sets, so the frame's ease and every rule on it hold.
+ * **A hand wins:** while a pointer is down on the ring or drags (`dragging`), while the throne is held, and while a
+ * mouse or trackpad has hovered in the last moment (an iPad's), the hand's lean stands and the phone's waits. Reduce
+ * Motion takes it away, as it does the hover's. In a browser it is never called.
+ */
+let mouseAt = -Infinity;
+function leanByDevice(x: number, y: number): void {
+  if (REDUCED || dragging || throneHeld !== null || performance.now() - mouseAt < 1500) return;
+  tiltTX = clamp(x, -1, 1) * TILT_MAX;
+  tiltTY = clamp(y, -1, 1) * TILT_MAX;
 }
 
 stage.addEventListener('pointermove', (e: PointerEvent) => {
-  if (!(dragging && (dragging.kind === 'band' || dragging.kind === 'spin'))) aimTilt(e);
+  if (e.pointerType !== 'touch') mouseAt = performance.now();
+  // **the throne moves nothing but itself** (his note 10-20): over it, and while it is held, the ring's lean toward
+  // the hand holds where it was, so a press reads as the throne's alone
+  const hit = hitAt(e);
+  // the throne's tooltip (his word 10-21), the ring's layer carrying it only while the hand is over the throne
+  const tip = hit.kind === 'throne' ? 'Save to playlist' : '';
+  if (tiltEl.title !== tip) tiltEl.title = tip;
+  if (!(dragging && (dragging.kind === 'band' || dragging.kind === 'spin')) && hit.kind !== 'throne' && throneHeld === null) aimTilt(e);
   if (dragging) return;
   // The whole viewport reports here, so the arrow goes back to normal when the
   // pointer leaves the sigil as well as when it lands on something.
-  const hit = hitAt(e);
   hoverAction(hit.kind === 'action' ? hit.action.id : null);
   // and the cell under the hand, whose glyph turns from its sigil to its
   // musical icon while it is there — or the phone's active bird, which keeps
@@ -5682,12 +5731,12 @@ stage.addEventListener('pointermove', (e: PointerEvent) => {
   if (e.pointerType !== 'touch') pointCell(hit.kind === 'cell' ? hit.cell : panelCell);
   tiltEl.style.cursor = cursorFor(hit);
 });
-stage.addEventListener('pointerleave', () => { tiltTX = 0; tiltTY = 0; });
+stage.addEventListener('pointerleave', () => { tiltTX = 0; tiltTY = 0; mouseAt = -Infinity; });
 
 // ==========================================================================
 // the flip
 //
-// The panel mark in the corner, and `?view=machine`. The machine view is a chunk of its own and is
+// The machine-view key in the panel's corner, and `?view=machine`. The machine view is a chunk of its own and is
 // fetched the first time it is asked for, so the ring's page carries nothing of
 // it — no React, no stylesheet, no box — until a hand asks (`PLAN-MACHINE-VIEW`
 // §4b). **Nothing here touches the transport**: the set goes on playing across
@@ -5695,8 +5744,9 @@ stage.addEventListener('pointerleave', () => { tiltTX = 0; tiltTY = 0; });
 // ends up in the view's top-left panel is this very element, still live and
 // still subscribed.
 //
-// **Its mark is the panel mark in the corner, off the ring** (`#panel`,
-// below), and `?view=machine`; no key reaches it. Nothing is drawn on the ring
+// **Its key is in the panel's corner, off the ring** (`#machineKey`, since
+// PLAN-LIBRARY phase 2; the footer's gear until then), and `?view=machine`; no
+// keyboard shortcut reaches it. Nothing is drawn on the ring
 // for it, which is what keeps the untouched ring pixel for pixel what it was.
 type MachineView = Awaited<ReturnType<typeof import('./machine/index.tsx').openMachineView>>;
 let machine: MachineView | null = null;
@@ -5711,9 +5761,13 @@ let machineWanted = false;
 
 /** The mark says whether the view is up, whoever opened or closed it. */
 function markSays(open: boolean) {
-  const m = document.getElementById('panel');
+  const m = document.getElementById('machineKey');
   if (m) m.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // the view's ring sits in a corner square as the mini player's does, so its throne turns as there (his word 10-21)
+  machineUp = open;
+  placeThrone();
 }
+let machineUp = false;
 
 function openMachine(): Promise<MachineView | null> {
   if (smallWindow.on) return Promise.resolve(null);   // a small window is the ring alone
@@ -5787,72 +5841,21 @@ function focusBack(key: Element): void {
   try { (key as HTMLElement).focus({ preventScroll: true, focusVisible: !quiet } as FocusOptions); } catch (e) { /* nothing to focus */ }
 }
 
-// --- the About (round K25) -------------------------------------------------
-// Opened by the footer's name, and by the key at twelve before anything has
-// played (`playMode`). A native modal dialog (index.html): the page under it is
-// inert and does not scroll, the focus goes in — to the close key when a key
-// opened it, to the sheet itself (unmarked) when a pointer did — and comes back
-// to the key that opened it by `focusBack`'s rule. It closes by its own key, a
-// press on the dark outside it, and Escape, which is the dialog's own contract
-// and not a shortcut of the page's. It is a view and not a place: nothing of it
-// is written into the address, and it says nothing to the ledger.
-const aboutSheet = document.getElementById('about') as HTMLDialogElement | null;
-let aboutOpener: Element | null = null;
-/**
- * The opener by name as well (M14, the review of 09-26): the ring's action keys are drawn
- * afresh by a redraw — a theme, a resize, the machine view closing — so the
- * element kept at the open may be gone at the close, and the focus fell to the
- * page. Its name finds the key drawn in its place.
- */
-let aboutOpenerName: string | null = null;
-const openerName = (el: Element | null): string | null => {
-  if (!el) return null;
-  const action = el.getAttribute('data-action');
-  if (action) return `#actions [data-action="${action}"]`;
-  return el.id ? `#${el.id}` : null;
-};
+// --- the panel and the About (PLAN-LIBRARY phase 2; round K25) -------------
+// The About is a tab of the panel now (`library-panel.ts`): opened by the
+// gyroscope's panel on its tab, and by the key at twelve before anything has
+// played (`playMode`). The panel is not modal — the ring beside it stays live —
+// and it is a view and not a place: nothing of it is written into the address,
+// and it says nothing to the ledger.
 /** The version as the About says it: `v2.0`, and the patch only when there is one. */
 const aboutVersion = (v: string = __APP_VERSION__): string => {
   const [a, b = '0', c = '0'] = String(v).split('.');
   return `v${a}.${b}${c !== '0' ? `.${c}` : ''}`;
 };
-function openAbout(opener: Element | null): void {
-  if (!aboutSheet || aboutSheet.open || smallWindow.on) return;
-  aboutOpener = opener;
-  aboutOpenerName = openerName(opener);
+{
   const ver = document.getElementById('aboutVer');
   if (ver) ver.textContent = aboutVersion();
-  document.documentElement.classList.add('about-open');
-  try { aboutSheet.showModal(); } catch (e) { aboutSheet.setAttribute('open', ''); }
-  const byKey = lastInput === 'key';
-  const into = (byKey ? aboutSheet.querySelector('#aboutClose') : aboutSheet) as HTMLElement | null;
-  try { if (into) into.focus({ preventScroll: true, focusVisible: byKey } as FocusOptions); } catch (e) { /* nothing to focus */ }
 }
-function closeAbout(): void {
-  if (aboutSheet && aboutSheet.open) aboutSheet.close();
-}
-if (aboutSheet) {
-  aboutSheet.addEventListener('close', () => {
-    document.documentElement.classList.remove('about-open');
-    const kept = aboutOpener;
-    const name = aboutOpenerName;
-    aboutOpener = null;
-    aboutOpenerName = null;
-    const back = kept && kept.isConnected ? kept : name ? document.querySelector(name) : null;
-    if (back) focusBack(back);
-  });
-  const closeKey = document.getElementById('aboutClose');
-  if (closeKey) closeKey.addEventListener('click', () => closeAbout());
-  // a press on the dark outside the sheet: the dialog is the target of a press
-  // on its backdrop, so it is told from a press on the sheet by where it landed
-  aboutSheet.addEventListener('click', (e: MouseEvent) => {
-    if (e.target !== aboutSheet) return;
-    const b = aboutSheet.getBoundingClientRect();
-    if (e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) closeAbout();
-  });
-}
-const aboutMark = document.getElementById('mark');
-if (aboutMark) aboutMark.addEventListener('click', () => openAbout(aboutMark));
 // The error reports' switch (K25): what the key says is what this browser has
 // stored, and pressing it is honoured at once (`setReports`, instrument.ts).
 const reportsKey = document.getElementById('aboutReports');
@@ -5879,15 +5882,15 @@ if (window.deepHouseShell) document.querySelector<HTMLElement>('.aboutReports')?
 // at any of its sides, before and after any reload, and a browser window or a
 // frame made as small — the page keeps the ring whole, its birds, its
 // transport, its words, and index.html takes away what stands round it: the
-// name, the About's key, the machine view's key. The machine view, the About
-// and the bird's panel do not open there; one that is open when the window
-// becomes small is closed. Nothing is redrawn and no motion is restarted: it
+// name and the machine view's key; the gyroscope moves to the corner and the
+// panel, opened there, lies over the dimmed ring (`library-panel.ts`). The
+// machine view and the bird's panel do not open there; one that is open when
+// the window becomes small is closed. Nothing is redrawn and no motion is restarted: it
 // is the same page in a smaller window. No phone, tablet or desktop window at
 // its usual size is a small window.
 function smallChanged(on: boolean): void {
   if (on) {
     closeMachine();
-    closeAbout();
     if (panelCell) closePanel();
   }
   // the controls' size at once, where the square itself did not change
@@ -5918,20 +5921,20 @@ function toggleMachine(): Promise<MachineView | null> {
   return openMachine();
 }
 
-// **The panel mark, which is the way in and the way out.** It is fixed and over
-// the view, so the same element does both and a listener never has to find a
-// second control to get back. `aria-expanded` is the state it is in, which is
-// what a screen reader needs and is also a value anybody can read off the page.
-const panelMark = document.getElementById('panel') as HTMLButtonElement | null;
-if (panelMark) {
-  panelMark.addEventListener('click', () => {
+// **The machine view's key is in the panel's corner** (PLAN-LIBRARY phase 2:
+// the gear went with the footer). The panel closes and the view opens as the
+// gear opened it; the view's own ways out give the ring its focus back. The
+// key's `aria-expanded` says whether the view is up (`markSays`).
+startLibrary({
+  openMachine: () => {
     nudge(0.2);
-    // the mark says what was asked at once, and what came of it once it has
-    // (`openMachine` and `closeMachine` write it)
-    toggleMachine().catch((e) => console.error(e));
+    openMachine().catch((e) => console.error(e));
     if (machineWanted && !machine) markSays(true);
-  });
-}
+  },
+  focusBack,
+  byKey: () => lastInput === 'key',
+  beforeOpen: () => { if (panelCell) closePanel(); },
+});
 
 // **The page has one key, and it is the space bar** (Eugene, 09-19): no
 // keyboard shortcut for any tooling or behaviour. Six went with that rule —
@@ -5942,15 +5945,17 @@ if (panelMark) {
 //
 // Nothing that was reachable by a key is unreachable now: the four actions are
 // on the ring and are focusable, the reset is the long press on the die, the
-// start of the theme is the band, and the machine view is the panel mark in the
-// corner (`#panel`, below), which Tab reaches like any other control. A key
+// start of the theme is the band, and the machine view is the key in the
+// panel's corner (`#machineKey`), which Tab reaches like any other control. A key
 // that reaches a control because the control has focus is not a shortcut, so
 // the action nodes still answer Enter and Space for themselves and the seed
 // field still hears what is typed into it.
 window.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
   if (seedEditing) return;   // a number is being typed; the page hears none of it
-  if (aboutSheet && aboutSheet.open) return;   // the About is modal: its keys are its own (K25)
+  // **Esc closes the panel** (his word 10-20), and only while it is open: the
+  // one key besides Space, and the way out a sheet always has
+  if (e.key === 'Escape' && libraryOpen()) { e.preventDefault(); if (panelCell) closePanel(); else if (!closeMenu()) closeLibrary(); return; }
   const t = e.target as HTMLElement | null;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   // a focused control answers Enter and Space itself
@@ -6344,7 +6349,7 @@ const hitSeed = (pt: Pt2) => !seedEditing && seedBoxHit(pt);
 type Hit =
   | { kind: 'action'; action: ActionNode; f: number; inner: Pt2 }
   | { kind: 'cell'; cell: CellNode; f: number; inner: Pt2 }
-  | { kind: 'seed' | 'core' | 'band' | 'spin' | 'none'; f: number; inner: Pt2 };
+  | { kind: 'seed' | 'core' | 'band' | 'spin' | 'throne' | 'none'; f: number; inner: Pt2 };
 
 // One hit test, used by the pointer handlers and by the cursor, so what the
 // arrow promises is exactly what the finger gets.
@@ -6373,6 +6378,7 @@ function hitAt(e: PointerEvent): Hit {
     if (said) return { kind: 'cell', cell: said, f, inner };
   }
   if (hitSeed(inner)) return { kind: 'seed', f, inner };
+  if (hitThrone(pt)) return { kind: 'throne', f, inner };
   // **The centre answers out to the circle a hand sees** (round K22, Eugene:
   // *"in the machine view, play/stop by pressing the ring's centre pulse circle
   // is not working"*): the disc's rim is the pulse's own circle, lifted off it
@@ -6399,6 +6405,7 @@ function cursorFor(hit: { kind: string }) {
   switch (hit.kind) {
     case 'action':
     case 'core':
+    case 'throne':
       return 'pointer';
     case 'seed':
       return 'text';      // the one reading on the ring you can write back
@@ -6648,7 +6655,11 @@ const aboutMode = () => playMode(sounding(last)) === 'about';
 
 function pressAction(id: string) {
   if (id === 'play' && aboutMode()) {
-    openAbout(document.querySelector('#actions g[data-action="play"]'));
+    // inside the machine view the panel is not drawn (machine/look.ts): the view gives way to it, as the panel's
+    // machine key gives way to the view (the test round, 10-21: the About opened unseen there and the focus fell to
+    // the page, the panel showing up only once the view closed)
+    if (machine || machineWanted) closeMachine();
+    openLibrary('about', document.querySelector('#actions g[data-action="play"]'));
     return;
   }
   runAction(id);
@@ -6763,6 +6774,7 @@ function openPanel(c: CellNode) {
   const wasHidden = !panelEl || panelEl.hidden;
   panelCell = c;
   panelHiding = false;
+  libraryAway(true);   // one surface at a time: the library panel steps away while a bird's control is up
   if (panelEl) panelEl.hidden = false;
   paintPanel();
   layPanel();
@@ -6799,6 +6811,7 @@ function closePanel() {
   if (sliding) { sliding = false; slideCommit(); }
   panelCell = null;
   pointCell(null);
+  libraryAway(false);  // and comes back as it was
   if (!panelEl) return;
   // it slides down and out from wherever it stands, and is put away there
   const h = panelEl.offsetHeight + 24;
@@ -7155,8 +7168,8 @@ tiltEl.addEventListener('pointerdown', (e: PointerEvent) => {
     else closeSeedEditor(true);
     return;
   }
-  aimTilt(e);
   const hit = hitAt(e);
+  if (hit.kind !== 'throne') aimTilt(e);
   try { tiltEl.setPointerCapture(e.pointerId); } catch (err) { /* headless */ }
   if (hit.kind === 'action') {
     hoverAction(hit.action.id);
@@ -7164,6 +7177,7 @@ tiltEl.addEventListener('pointerdown', (e: PointerEvent) => {
     if (hit.action.id === 'cast') { hold.at = performance.now(); hold.fired = false; }
     else if (hit.action.id === 'play' && !aboutMode()) dragging.played = pressPlay(e, true);
   }
+  else if (hit.kind === 'throne') { dragging = { kind: 'none' }; throneDown(e.pointerId); }
   else if (hit.kind === 'seed') {
     // A cancelled press sends no mouse events after the touch, so the field
     // opens once and keeps the keyboard it was given.
@@ -7837,6 +7851,11 @@ function paintCorona(e: number, k: number, soft: number) {
  */
 const FRAME_MIN_MS = 1000 / 60 - 3;
 const FRAME_REST_MS = 1000 / 30 - 3;
+/** the frame gap while the window is not the one in front: four a second, the play head alone */
+const FRAME_AWAY_MS = 250;
+/** and the mini player's, which stays in sight beside other work: the ring's own 30 a second at rest, the play head and
+ * the beat, so the pulse reads as it does in front (10-21) */
+const FRAME_MINI_AWAY_MS = FRAME_REST_MS;
 /** the screen's own frame gap, eased (a 120 Hz screen's is 8.3 ms) */
 let rawAt = 0, rawGap = 1000 / 60;
 function atRest(now: number): boolean {
@@ -7844,6 +7863,73 @@ function atRest(now: number): boolean {
     && cast.t0 < 0 && castFreeze == null && wobA <= 0.001 && !cellNodes.some((c) => c.glyphOut || c.linesOut)
     // and no bird still travelling to where its value puts it, with its words following
     && !cellR.some((r, i) => Math.abs(r - cellTo[i]) > 0.05);
+}
+
+/** The play head and what follows it: the next mark, the needle, the played part of the band, the engraving. */
+function paintPlayhead(last: Readout): void {
+  paintNext(last);
+  // While a scrub is running the cursor belongs to the hand, not to the
+  // playhead, which would otherwise pull it back between two moves.
+  const f = dragFrac == null ? last.progress : dragFrac;
+  put(cursorG, 'transform', `rotate(${deg(f).toFixed(2)} ${C} ${C})`);
+  if (Math.abs(f - lastShadeF) > 0.0009) {
+    lastShadeF = f;
+    setPlayedSplit(f);
+    // the time gives way to the throne at twelve (`engraveAt`); the needle still passes under it
+    const fe = engraveAt(f);
+    const top = Math.sin(ang(fe)) < 0.02;
+    const rr = top ? R_ENGRAVE : R_ENGRAVE + 18;
+    const w = 0.075;
+    engravePath.setAttribute('d', top ? arcPath(rr, fe - w, fe + w, 1) : arcPath(rr, fe + w, fe - w, 0));
+  }
+  paintEngrave(last);
+}
+
+/** The beat on the ring as it plays: the centre's pulse, its breath while it waits, the beat's dots. */
+function paintPulseNow(now: number, last: Readout): void {
+  if (waiting(last)) {
+    // **Asked, and not yet heard** (K42): the needle at full light where the
+    // music will begin, the core's pulse at rest — there is no beat to show
+    // yet — and the point on the needle ticking on the planned beat.
+    restPulse();
+    if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
+    breathePoint(now, last);
+  } else if (last.playing) {
+    restPoint();
+    pulseResting = false;
+    // How far the pulse reaches is a curve of the tempo (`pulseTrace`): the
+    // pulse the ring has always had at a house tempo and above, and a wide,
+    // slow swell under sixty — rising and falling on a logarithm and fading
+    // at its edges there (`pulseEnvelope`, `PULSE_LAYERS`).
+    const bpm = pulseBpmAsked ?? tempoNow(last);
+    const soft = pulseSoft(bpm);
+    const every = pulseEvery(bpm);
+    const e = pulseEnvelope(last.beatPhase, last.barPhase, soft, every, (last.bar * 4 + last.beatInBar) % every);
+    // the beat's own hard envelope, on the pulse's rate, for the ring's first beat
+    const hard = pulseEnvelope(last.beatPhase, last.barPhase, 0, every, (last.bar * 4 + last.beatInBar) % every);
+    const k = pulseTrace(bpm) / PULSE_FAST.trace;
+    // **Under reduced motion the pulse rests** at the floor of its own swell:
+    // the rings stand at the core's edge with their resting light and the
+    // breath holds still, written once a tempo and not once a frame; the
+    // beat is still told by the dot, which steps and does not move.
+    const restKey = REDUCED ? `${k.toFixed(4)}:${soft.toFixed(4)}` : '';
+    if (!restKey || restKey !== pulseRestKey) {
+      pulseRestKey = restKey;
+      paintPulse(REDUCED ? 0 : e, k, soft, every, hard);
+    }
+    if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
+    if (last.beatInBar !== lastBeatDrawn) {
+      lastBeatDrawn = last.beatInBar;
+      for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === last.beatInBar ? 0.95 : 0.2);
+    }
+  } else {
+    restPoint();
+    if (cursorFaded !== 0.6) {
+      cursorFaded = 0.6;
+      restPulse();
+      cursorG.setAttribute('opacity', 0.6);
+    }
+  }
 }
 
 function frame(now: number) {
@@ -7864,10 +7950,34 @@ function frame(now: number) {
   const handDriven = !!dragging || !!spinEase;
   const gap = COARSE
     ? (atRest(now) ? FRAME_REST_MS : !pulling && !fast ? FRAME_REST_MS : pulling ? 0 : FRAME_MIN_MS)
-    : handDriven ? 0 : atRest(now) ? FRAME_REST_MS : FRAME_MIN_MS;
-  if (lastFrame && now - lastFrame < gap) { requestAnimationFrame(frame); return; }
+    // a desktop draws 30 a second while it plays and no hand is on it, as at rest (his word 10-21: the GPU), the birds'
+    // slow wander and the beat's marks reading the same at half the frames; a hand still gets the screen's own rate
+    : handDriven ? 0 : now - handAt < 800 ? FRAME_MIN_MS : FRAME_REST_MS;
+  // **A window in the background draws at a walk** (his word 10-21: the GPU): seen but not the one in front (another
+  // app over it, the mini player while the hand works elsewhere), the ring is drawn `FRAME_AWAY_MS` apart while it
+  // plays, enough for the time and the play head
+  // the birds hold still meanwhile (`holdBirds`), and with nothing playing nothing is drawn at all
+  // (a desktop's question only: a phone's web view can say it has no focus while its app is in front, and iOS stops
+  // drawing a background app itself; there it held the birds and the tilt still, his iPhone 10-21)
+  const away = !COARSE && !handDriven && !document.hasFocus();
+  holdBirds(away);
+  if (away && lastFrame && !(last && sounding(last))) { requestAnimationFrame(frame); return; }
+  if (lastFrame && now - lastFrame < (away ? (smallWindow.on ? FRAME_MINI_AWAY_MS : FRAME_AWAY_MS) : gap)) { requestAnimationFrame(frame); return; }
   if (lastFrame) { deltas[dIdx % deltas.length] = now - lastFrame; dIdx++; dCount = Math.min(dCount + 1, deltas.length); }
   lastFrame = now;
+  // out of the front only the play head moves (and on the mini player the beat): no bird, halo or word (his word 10-21)
+  if (away) {
+    // the large play mark still leaves (or comes back) at once: a set started from a media key or the mini player
+    // with the window out of the front left it over the chord (his Mac, 10-21)
+    if (bigPlay) {
+      const want = reading(last) ? 0 : 1;
+      if (bigPlayOp !== want) { bigPlayOp = want; put(bigPlay, 'opacity', String(want)); }
+      bigPlayPrev = now;
+    }
+    if (last && cast.t0 < 0) { paintPlayhead(last); if (smallWindow.on) paintPulseNow(now, last); }
+    requestAnimationFrame(frame);
+    return;
+  }
   // the square, while a hand is about, before this frame writes anything
   frameNo += 1;
   if (now - handAt < 250) { square = readSquare(); squareFrame = frameNo; }
@@ -7951,64 +8061,9 @@ function frame(now: number) {
   runCross(now);
 
   if (!casting && last) {
-    paintNext(last);
-    // While a scrub is running the cursor belongs to the hand, not to the
-    // playhead, which would otherwise pull it back between two moves.
-    const f = dragFrac == null ? last.progress : dragFrac;
-    put(cursorG, 'transform', `rotate(${deg(f).toFixed(2)} ${C} ${C})`);
-    if (Math.abs(f - lastShadeF) > 0.0009) {
-      lastShadeF = f;
-      setPlayedSplit(f);
-      const top = Math.sin(ang(f)) < 0.02;
-      const rr = top ? R_ENGRAVE : R_ENGRAVE + 18;
-      const w = 0.075;
-      engravePath.setAttribute('d', top ? arcPath(rr, f - w, f + w, 1) : arcPath(rr, f + w, f - w, 0));
-    }
-    paintEngrave(last);
+    paintPlayhead(last);
 
-    if (waiting(last)) {
-      // **Asked, and not yet heard** (K42): the needle at full light where the
-      // music will begin, the core's pulse at rest — there is no beat to show
-      // yet — and the point on the needle ticking on the planned beat.
-      restPulse();
-      if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
-      breathePoint(now, last);
-    } else if (last.playing) {
-      restPoint();
-      pulseResting = false;
-      // How far the pulse reaches is a curve of the tempo (`pulseTrace`): the
-      // pulse the ring has always had at a house tempo and above, and a wide,
-      // slow swell under sixty — rising and falling on a logarithm and fading
-      // at its edges there (`pulseEnvelope`, `PULSE_LAYERS`).
-      const bpm = pulseBpmAsked ?? tempoNow(last);
-      const soft = pulseSoft(bpm);
-      const every = pulseEvery(bpm);
-      const e = pulseEnvelope(last.beatPhase, last.barPhase, soft, every, (last.bar * 4 + last.beatInBar) % every);
-      // the beat's own hard envelope, on the pulse's rate, for the ring's first beat
-      const hard = pulseEnvelope(last.beatPhase, last.barPhase, 0, every, (last.bar * 4 + last.beatInBar) % every);
-      const k = pulseTrace(bpm) / PULSE_FAST.trace;
-      // **Under reduced motion the pulse rests** at the floor of its own swell:
-      // the rings stand at the core's edge with their resting light and the
-      // breath holds still, written once a tempo and not once a frame; the
-      // beat is still told by the dot, which steps and does not move.
-      const restKey = REDUCED ? `${k.toFixed(4)}:${soft.toFixed(4)}` : '';
-      if (!restKey || restKey !== pulseRestKey) {
-        pulseRestKey = restKey;
-        paintPulse(REDUCED ? 0 : e, k, soft, every, hard);
-      }
-      if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
-      if (last.beatInBar !== lastBeatDrawn) {
-        lastBeatDrawn = last.beatInBar;
-        for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === last.beatInBar ? 0.95 : 0.2);
-      }
-    } else {
-      restPoint();
-      if (cursorFaded !== 0.6) {
-        cursorFaded = 0.6;
-        restPulse();
-        cursorG.setAttribute('opacity', 0.6);
-      }
-    }
+    paintPulseNow(now, last);
 
     for (let i = 0; i < haloOn.length; i++) {
       const want = last.active[CELLS[i].layer] ? 0.5 : 0;
@@ -8028,7 +8083,7 @@ function frame(now: number) {
   // Inside the bloomed star: written only when the star has actually turned.
   // The star turns with the theme. It is a transform on its own sheet, so
   // WebKit composites it and nothing inside the bloom is ever written.
-  if (!REDUCED) {
+  if (!REDUCED && !heldFrom) {
     // a sway about north across the theme, with a slow drift over it so it
     // never reads as a mechanism: two sines, seven and thirteen seconds, a
     // degree and a half and four fifths of one
@@ -8187,6 +8242,8 @@ const MINI_BIG_K = 1.3;
  * lays its own box over these (`machine/look.ts`).
  */
 function fitViewport() {
+  // a field typed in the panel holds the ring where it is while the keyboard is up (`keyboardHold`)
+  if (keyboardHold()) return;
   const vv = window.visualViewport;
   const root = document.documentElement.style;
   if (vv && Math.abs(vv.scale - 1) > 0.01) return;
@@ -8252,7 +8309,9 @@ function coverSvg(): string {
   };
   // the page's face is set on its body, which a drawing on its own has not got
   const face = getComputedStyle(document.body);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000"><style>:root{${vars}}${css}svg{font-family:${face.fontFamily};font-weight:${face.fontWeight}}</style>`
+  // the sheet in CDATA: the page's styles are no XML (since menu-fit, 10-21, a container query's `<=`), and a cover that
+  // doesn't parse fell back to the static artwork on the lock screen (the test round, 10-21)
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000"><style><![CDATA[:root{${vars}}${css.replace(/]]>/g, ']]]]><![CDATA[>')}svg{font-family:${face.fontFamily};font-weight:${face.fontWeight}}]]></style>`
     + `<rect width="1000" height="1000" fill="#000"/>`
     + sheet('outer', ['#outerLive'])
     + `<g transform="rotate(${starDeg.toFixed(2)} ${C} ${C})">${sheet('star', ['#starLive', '.lit', '.trace'])}</g>`
@@ -8317,6 +8376,196 @@ if (window.visualViewport) {
 if (panelEl && typeof ResizeObserver === 'function') new ResizeObserver(() => layPanel()).observe(panelEl);
 
 // ==========================================================================
+// **The throne: save what plays** (PLAN-LIBRARY §2, phase 3). The astrolabe's
+// ornament at twelve o'clock, standing on the band's outer line as the
+// wireframe draws it (its ring of 96 is the band's edge here): an outline in
+// the ring's colour, line work, no glow, with one state. A press, or Enter on
+// it, saves what plays (`playlists-ui.ts`); it never opens the panel. It sits
+// outside the bloom, so its flash and its newcomer's pulse re-blur nothing.
+const THRONE_K = R_BAND_OUT / 96;
+const throneG = el('g', { id: 'throne', role: 'button', tabindex: '0', 'aria-label': 'Save what plays' }, outerSvg);
+// **behind the ring's text and marks** (his note 10-20): the first thing drawn on the outer sheet, under the bloomed
+// rim, the timeline and its words, the live lanes and the needle; its press is the ring's own hit test (`hitThrone`)
+outerSvg.insertBefore(throneG, outerSvg.querySelector('#outerGlow'));
+// **B5 · Four steps** (`throne-glyph.ts`): four arcs over the rim and the shackle with the save in it. Each part is a
+// tooth of the press by how far it closes toward the rim (`tp0` the base, still; `tp1` 0.9; `tp2` 1.4; `tp3` 1.8, the
+// top arc and the shackle with it), and `--u` is the wireframe's unit in the ring's, for index.html's keyframes.
+// **Larger on a phone, for the thumb** (his word 10-21): `THRONE_SCALE_PHONE` on a phone-size touch screen
+// (`phoneSize`, never the mini player), and there a finger's target of at least 44 px each way (`throneReach`).
+let throneZ = THRONE_SCALE;
+let thronePlus: SVGGElement | null = null;
+let throneHit: SVGRectElement | null = null;
+const thronePlusAt = { x: C, y: C };
+function drawThrone(): void {
+  throneZ = smallWindow.on ? THRONE_SCALE_MINI : phoneSize.on ? THRONE_SCALE_PHONE : THRONE_SCALE;
+  throneG.replaceChildren();
+  thronePlus = throneHit = null;
+  (throneG as unknown as HTMLElement).style.setProperty('--u', `${(THRONE_K * throneZ).toFixed(3)}px`);
+  for (const p of throneParts(THRONE_K, C, C, THRONE_WEIGHT, throneZ)) {
+    const tooth = p.press >= 1.8 ? 3 : p.press >= 1.4 ? 2 : p.press > 0 ? 1 : 0;
+    if (p.plus) {
+      // the plus stays upright wherever the throne stands (turned, an × would read as a close): its tooth moves it
+      // radially, and inside that a counter-turn about the shackle's centre
+      const tooth3 = el('g', { class: `tp tp${tooth}` }, throneG);
+      thronePlus = el('g', {}, tooth3) as unknown as SVGGElement;
+      Object.assign(thronePlusAt, p.plus);
+      el('path', { class: 'ln', d: p.d, 'stroke-width': p.w.toFixed(2) }, thronePlus);
+      continue;
+    }
+    el('path', { class: `ln tp tp${tooth}${p.dot ? ' throneDot' : ''}`, d: p.d, 'stroke-width': p.w.toFixed(2) }, throneG);
+  }
+  // the finger's target may reach past the ring's square, where the ring's sheet catches nothing: an unpainted
+  // square there brings the press to the ring's own hit test
+  if (throneZ !== THRONE_SCALE) throneHit = el('rect', { fill: 'none', 'pointer-events': 'all' }, throneG) as unknown as SVGRectElement;
+  sizeThroneHit();
+  // **its focus mark** (sync-fixes, 10-21): the round keys' dashed circle (`focusRing`), one ornament gap outside its
+  // round node, the shackle that holds the save, in the throne's group so it turns with it (twelve, or 45° on the mini
+  // player). A circle round the whole glyph ran past the window's top and through the band's lanes and the time.
+  const S = THRONE_SHACKLE, RIM = 96;
+  throneFocus = focusRing(throneG, C, C + (-RIM + (S.y + RIM) * throneZ) * THRONE_K, S.r * throneZ * THRONE_K + ORN_GAP + ornW() / 2);
+  throneFocus.setAttribute('pointer-events', 'none');
+  if (document.activeElement === throneG) markFocus(throneG, throneFocus, true);
+}
+let throneFocus: Mark<SVGCircleElement> | null = null;
+/** The throne's square in the ring's units: its half width and how far out from the centre, a finger's 44 px at least on a phone. */
+function throneReach(): { half: number; out: number } {
+  const z = throneZ / THRONE_SCALE;
+  let half = 16.5 * THRONE_K * z, out = 96 * THRONE_K + 19 * THRONE_K * z;
+  if (throneZ !== THRONE_SCALE) {
+    const u = 1000 / Math.max(1, tiltEl.offsetWidth);
+    half = Math.max(half, 23 * u);
+    out = Math.max(out, R_SEC + 12 + 46 * u);
+  }
+  return { half, out };
+}
+function sizeThroneHit(): void {
+  if (!throneHit) return;
+  const { half, out } = throneReach();
+  for (const [k, v] of Object.entries({ x: C - half, y: C - out, width: 2 * half, height: out - R_SEC - 12 })) throneHit.setAttribute(k, v.toFixed(1));
+}
+drawThrone();
+phoneSize.watch(() => { drawThrone(); placeThrone(); });
+window.addEventListener('resize', sizeThroneHit);
+/**
+ * **Where the throne stands**, a fraction of a turn from twelve: at twelve, and on the mini player (`smallWindow`) and
+ * in the machine view's corner square (`machineUp`, 10-21) at 45° clockwise (his word 10-20), the whole glyph turned about the ring's centre so its arcs stay concentric with the
+ * rim and its press stays radial. The hit test, the time's way round it and the save menu's anchor all follow.
+ */
+let throneTurn = 0;
+function placeThrone(): void {
+  throneTurn = smallWindow.on || machineUp ? THRONE_MINI_TURN : 0;
+  if (throneTurn) throneG.setAttribute('transform', `rotate(${(throneTurn * 360).toFixed(1)} ${C} ${C})`);
+  else throneG.removeAttribute('transform');
+  if (thronePlus) {
+    if (throneTurn) thronePlus.setAttribute('transform', `rotate(${(-throneTurn * 360).toFixed(1)} ${thronePlusAt.x.toFixed(2)} ${thronePlusAt.y.toFixed(2)})`);
+    else thronePlus.removeAttribute('transform');
+  }
+}
+const THRONE_MINI_TURN = 0.125;
+placeThrone();
+smallWindow.watch(() => { drawThrone(); placeThrone(); });
+// **Pressed like a stopwatch's crown** (his note 10-20): in toward the
+// centre a few units and a little squeezed while held, back with a short
+// overshoot on release, and the save starts on the release. Only the throne
+// moves; under reduced motion it does not travel.
+let throneHeld: number | null = null;
+/**
+ * **A mechanism, not a spring** (his note 10-20): the press runs its whole travel (240 ms, the teeth stopping in turn)
+ * and holds at the bottom 120 ms before any release lifts it (330 ms, innermost first, no overshoot); a quick click
+ * waits for both, so the motion is never cut. The save runs on the release, as before.
+ */
+const THRONE_PRESS_MS = 240, THRONE_HOLD_MS = 120;
+let throneDownAt = 0, throneLiftTimer = 0;
+function throneDown(id: number): void {
+  throneHeld = id;
+  if (REDUCED) return;
+  clearTimeout(throneLiftTimer);
+  throneG.classList.remove('spring');
+  throneG.classList.add('held');
+  throneDownAt = performance.now();
+}
+/**
+ * **Held until a playlist is chosen** (his word 10-21): where the press opens the menu of playlists, the throne stays
+ * down while it is open and lifts as it closes (a playlist chosen, Esc, a press outside); otherwise it lifts at once.
+ */
+function throneUp(save: boolean): void {
+  throneHeld = null;
+  if (save) pressThrone(throneLift);
+  else throneLift();
+}
+function throneLift(): void {
+  if (!throneG.classList.contains('held')) return;
+  clearTimeout(throneLiftTimer);
+  const wait = Math.max(0, THRONE_PRESS_MS + THRONE_HOLD_MS - (performance.now() - throneDownAt));
+  throneLiftTimer = window.setTimeout(() => {
+    throneG.classList.remove('held');
+    throneG.classList.add('spring');
+  }, wait);
+}
+window.addEventListener('pointerup', (e: PointerEvent) => { if (throneHeld === e.pointerId) throneUp(true); });
+window.addEventListener('pointercancel', (e: PointerEvent) => { if (throneHeld === e.pointerId) throneUp(false); });
+throneG.addEventListener('focus', () => { if (throneFocus) markFocus(throneG, throneFocus, true); });
+throneG.addEventListener('blur', () => { if (throneFocus) markFocus(throneG, throneFocus, false); });
+throneG.addEventListener('keydown', (ev: KeyboardEvent) => {
+  if (ev.key !== 'Enter') return;   // Space stays the page's play
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (ev.repeat) return;
+  throneDown(-1);
+  setTimeout(() => throneUp(true), 90);
+});
+throneG.addEventListener('animationend', (e: AnimationEvent) => { if (e.animationName === 'thLift3') throneG.classList.remove('spring'); else if (e.animationName === 'thronePulse') throneG.classList.remove('pulse'); });
+/**
+ * **The live time gives way to the throne** (10-20): while the needle is
+ * within `THRONE_CLEAR` of twelve, its time slides along its arc to the side
+ * of the throne it is on — the clockwise side as a theme begins — and back to
+ * the needle by `2 × THRONE_CLEAR`, linearly, so it never jumps; the needle
+ * itself passes under the throne. Fractions of a turn, twelve at nought.
+ */
+const THRONE_CLEAR = 0.04;
+function engraveAt(f: number): number {
+  // about where the throne stands (twelve, or the mini player's half past one)
+  const g = (((f - throneTurn) % 1) + 1) % 1;
+  const d = g > 0.5 ? g - 1 : g;
+  const at = (x: number) => (((x + throneTurn) % 1) + 1) % 1;
+  // the larger throne on a phone keeps the same air
+  const clear = (THRONE_CLEAR * throneZ) / THRONE_SCALE;
+  if (d >= 0 && d < 2 * clear) return at(clear + d / 2);
+  if (d < 0 && d > -2 * clear) return at(1 - clear + d / 2);
+  return f;
+}
+/** The throne's square on the rim: above the band's own reach (`hitAt`) out to the ring's edge, as wide as the glyph and a little air. */
+function hitThrone(pt: Pt2): boolean {
+  // in the throne's own frame: turned back by where it stands
+  const a = -throneTurn * 2 * Math.PI, x0 = pt.x - C, y0 = pt.y - C;
+  const dx = x0 * Math.cos(a) - y0 * Math.sin(a), dy = -(x0 * Math.sin(a) + y0 * Math.cos(a));
+  const { half, out } = throneReach();
+  return Math.abs(dx) <= half && dy > R_SEC + 12 && dy <= out;
+}
+startPlaylists({
+  control,
+  throne: throneG,
+  imprint: () => {
+    // one clone of the star sheet, pruned to line work: the birds in their nodes, the lines joining them, and the core ring
+    const svg = starSvg.cloneNode(true) as SVGSVGElement;
+    for (const sel of ['#corona', '#starWords', '#starLive', 'text']) svg.querySelectorAll(sel).forEach((e) => e.remove());
+    // no glow: the bloom's filter off, and the wide translucent halo strokes gone
+    svg.querySelectorAll('[filter]').forEach((e) => e.removeAttribute('filter'));
+    svg.querySelectorAll('[stroke-width]').forEach((e) => { if (Number(e.getAttribute('stroke-width')) >= 4) e.remove(); });
+    for (const e of [svg, ...svg.querySelectorAll('*')]) for (const a of ['id', 'tabindex', 'role', 'aria-label', 'aria-valuetext', 'aria-valuenow', 'aria-valuemin', 'aria-valuemax']) e.removeAttribute(a);
+    // the sheet's own turn, without its depth
+    const turn = /rotate\([^)]*\)/.exec(starSvg.getAttribute('style') ?? '');
+    svg.setAttribute('style', turn ? `transform: ${turn[0]}` : '');
+    svg.setAttribute('aria-hidden', 'true');
+    const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    for (const [k, v] of Object.entries({ class: 'ln thin', cx: C, cy: C, r: R_CORE, fill: 'none' })) core.setAttribute(k, String(v));
+    svg.prepend(core);
+    return { svg, box: tiltEl.getBoundingClientRect() };
+  },
+});
+startGenres(control);
+startShellTilt(leanByDevice);
+
 buildRim();
 buildLive();
 sizeControls(false);

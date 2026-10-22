@@ -67,6 +67,8 @@ import { linkRead, linkWrite, type LinkState } from '../src/link.ts';
 import { BIRDS, HOUSE, type Spell } from '../src/spell.ts';
 import { LIBRARY } from '../src/recipes.ts';
 import { exact, seamProgram } from './program.ts';
+import { writePlaylistLink, readPlaylistLink } from '../src/playlist-link.ts';
+import type { ListLink } from '../src/playlist-link.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const FILE = path.join(HERE, 'link-digest.json');
@@ -78,6 +80,36 @@ export const BENCHMARK_THEMES = 5;
 
 /** One row of the grid: a written link, and whether it is a theme or a set of `themes`. */
 export interface GridRow { group: string; link: string; themes?: number }
+
+/**
+ * **Playlist links** (PLAN-LIBRARY phase 5, group `lists`): each key is Share's writer's output
+ * (`writePlaylistLink`); its line is what the reader makes of it (the name, the id, the labels, every track's link)
+ * and one hash over the tracks' own theme hashes, so the format is pinned as a track link's is. Not in `grid()`,
+ * whose rows are track links the checks plan one by one; `rowsAll()` is both.
+ */
+const LISTS: ListLink[] = [
+  { name: 'Ambient journey', id: '3f9c2a71-e8b4-4d0c-9a1e-5b7d2c6f8a90', tracks: [
+    { link: linkWrite({ seed: BENCHMARK_SEED, theme: 2, strategy: 'house-v2', spell: BENCHMARK_SPELL }), label: 'cool bells dialog' },
+    { link: linkWrite({ seed: '6', theme: 0, strategy: 'house-v2' }) },
+    { link: linkWrite({ seed: '812', theme: 1, strategy: 'house-v2', spell: { zephyr: 0.2, veil: 0.8 } }) },
+  ] },
+  // a track on the record's engine (its own `@1`), a mode, and labels past ASCII
+  { name: 'Nuit · ночь', id: null, tracks: [
+    { link: linkWrite({ seed: '1', theme: 0, strategy: 'house-v1', spell: { ember: 0.205 } }), label: 'café ~ 🌙' },
+    { link: linkWrite({ seed: '4', theme: 0, strategy: 'house-v2', development: 'shaped' }), label: 'шаг' },
+  ] },
+  // `play` alone, with a recipe's row
+  { name: 'Shared list', id: null, tracks: [{ link: linkWrite({ seed: '3', theme: 0, strategy: 'house-v2', recipe: 'auto' }) }] },
+];
+export function listRows(): GridRow[] {
+  return LISTS.map((l, i) => {
+    const q = writePlaylistLink(l);
+    // the third is `play` alone, as a hand might type it
+    return { group: 'lists', link: i === 2 ? q.replace(/^list=[^&]*&/, '').replace(/&names=$/, '') : q };
+  });
+}
+/** Every row the digest holds: the grid's track links, then the playlist links. */
+export const rowsAll = (): GridRow[] => [...grid(), ...listRows()];
 
 const V = { '1': 'house-v1', '2': 'house-v2' } as const;
 const GOLDEN_THEMES: Record<string, number> = { 1: 6, 92970: 4, 21323: 4 };
@@ -159,8 +191,21 @@ export function played(link: string, themeOverride?: number) {
   return { read, seed, request, plan };
 }
 
+/** A playlist link's line: what its reader makes of it, and one hash over what each track plays. */
+function listLine(row: GridRow) {
+  const r = readPlaylistLink(row.link);
+  if (!r.list) throw new Error(`link digest: ${row.link} does not read as a playlist link: ${r.error}`);
+  const tracks = r.list.tracks.map((t) => t.link);
+  const hashes = tracks.map((link) => themeHash(played(link).plan));
+  return { group: row.group, link: row.link, name: r.list.name, id: r.list.id, labels: r.list.tracks.map((t) => t.label ?? ''), tracks, hash: sha(hashes.join(',')) };
+}
+
 /** One row's line: what it plays, and the hash of it. */
 export function lineOf(row: GridRow) {
+  if (row.group === 'lists') return listLine(row) as unknown as ReturnType<typeof trackLine>;
+  return trackLine(row);
+}
+function trackLine(row: GridRow) {
   const { read, seed, request, plan } = played(row.link);
   const refused = read.problems.map((p) => p.param);
   const head = { group: row.group, link: row.link, ...(refused.length ? { refused } : {}) };
@@ -185,14 +230,14 @@ export function blessedLine(link: string, themes = 0): Line {
   return row;
 }
 
-export type Line = ReturnType<typeof lineOf>;
+export type Line = ReturnType<typeof trackLine>;
 export interface Saved { note: string; blessings: string[]; rows: Line[] }
 
 export const saved = (): Saved => JSON.parse(fs.readFileSync(FILE, 'utf8'));
 
 /** Every row recomputed against the file: the rows that moved, in words, and what was held. */
 export function verify(file: Saved = saved()): { moved: string[]; rows: number } {
-  const fresh = grid().map(lineOf);
+  const fresh = rowsAll().map(lineOf);
   const moved: string[] = [];
   const at = new Map(file.rows.map((r) => [`${r.link}|${'themes' in r ? r.themes : 0}`, r]));
   for (const f of fresh) {
@@ -314,7 +359,7 @@ export function sinceCut(cut: Saved | null, now: Saved, window: FreezeWindow | n
  * lock as it was): the shipped rows a bless would move outside a stated
  * window, in words, or null where it may go ahead.
  */
-export function blessRefusal(rows: Line[] = grid().map(lineOf)): string | null {
+export function blessRefusal(rows: Line[] = rowsAll().map(lineOf)): string | null {
   const window = openWindow();
   const cut = lastCut();
   const fixed = new Map((window ? [] : (cut?.rows ?? [])).map((r) => [keyOf(r), r.hash]));
@@ -365,7 +410,7 @@ function main(): void {
   const reason = at < 0 ? '' : (argv[at + 1] || '').trim();
   if (!reason) { console.error('a bless states its reason: --reason "<why the rows move>"'); process.exit(2); }
   const was: Saved | null = fs.existsSync(FILE) ? saved() : null;
-  const rows = grid().map(lineOf);
+  const rows = rowsAll().map(lineOf);
   // A row the last cut shipped is a link a listener was given: a bless that
   // would move one stops — outside the stated window. Inside it a shipped row
   // of either strategy may move, and the blessing says how many shipped rows

@@ -57,7 +57,7 @@ import { planTheme, programOf, recipesFor } from '../src/mix.ts';
 import { linkRead, linkWrite } from '../src/link.ts';
 import { HOUSE, type Spell, type Bird } from '../src/spell.ts';
 import { COMPASS } from '../src/bird-influence.ts';
-import { CELLS, presetSpell } from '../src/machine/genre-table.ts';
+import { CELLS, presetSpell } from '../src/genres/genre-table.ts';
 import { lineUnder } from '../src/mined-phrase.ts';
 import { musicalTime, clampS, type MusicalTime } from '../src/musical-time.ts';
 import { lean } from '../src/lean.ts';

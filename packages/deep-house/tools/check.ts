@@ -136,6 +136,7 @@ import { DRUMS as PLACED_DRUMS } from '../src/styles/deep-house-places.ts';
 import { ENTRIES as MANUAL, KEY_PAGES, manualKey, said } from '../src/machine/manual.ts';
 import { METER_FLOOR, SCALE, meterAt } from '../src/machine/look.ts';
 import { note, forget, lines, keepPlace, sentence } from '../src/ledger.ts';
+import { playlistChecks } from './check-playlists.ts';
 import {
   AUDITION_FIELDS, decide, isReviewed, keyOfItem, migrateState, provenanceKey, sampleSession, validateSession, writeSession,
 } from './review/session.ts';
@@ -2429,7 +2430,7 @@ check('a small window is decided by its size, and no phone, tablet or desktop wi
   must(q[1] === '(max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)', `the small window is ${q[1]}`);
   must(PAGE.includes(`@media ${q[1]} {`), 'index.html does not hide the chrome round the ring under motion.ts\'s small window');
   must(!/deepHouseShell\.mini|data-mini|dataset\.mini/.test(RING + PAGE), 'something still hangs off the shell\'s mini flag');
-  const rules = [...PAGE.matchAll(/@media ([^{]+)\{\s*([^}]*)\}/g)].filter((m) => /visibility: hidden|#name/.test(m[2]));
+  const rules = [...PAGE.matchAll(/@media ([^{]+)\{\s*([^}]*)\}/g)].filter((m) => /visibility: hidden|display: none !important/.test(m[2]));
   must(rules.length === 6, `${rules.length} rules take something away from the ring, where there are 6`);
   const steps = [];
   for (const [, query] of rules) {
@@ -2539,6 +2540,7 @@ const REPORT_SITES = [
   ['control.ts', 'try { fn(r); } catch (err) {', 'page', 1],
   ['control.ts', '{ strategy: state.strategy }); } catch (e) {', 'link', 1],
   ['control.ts', 'recipe: here.recipe, accompaniment: here.accompaniment, development: here.development })}` }).spell;', 'link', 1],
+  ['control.ts', 'try { cast = recipesFor({ masterSeed: L.seed, strategy: L.strategy, search }); } catch (e) {', 'link', 1],
   ['control.ts', '} catch (e) { /* a page with no history to write on */', 'address', 3],
   ['ring.ts', '// A plan that cannot be drawn says nothing rather than taking the ring', 'plan', 1],
   ['ring.ts', 'try { take(plannedReadout(control.planned(about, r.seed, strategy, spell), r, spell)); } catch (e) {', 'plan', 1],
@@ -8569,7 +8571,7 @@ const MANUAL_BANNED = ['bird'];
 // names only the ring's eight controls, with values in 0..1; and no word of a
 // genre is anything the link can carry, since a key is a spell and nothing else.
 check('the genre table is two tiers of spells, a family and its sub-genres', () => {
-  const t = JSON.parse(fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'src', 'machine', 'genres.json'), 'utf8'));
+  const t = JSON.parse(fs.readFileSync(path.join(REPO, 'packages', 'deep-house', 'src', 'genres', 'genres.json'), 'utf8'));
   must(t.schema === 2 && Array.isArray(t.families) && t.families.length >= 2, 'genres.json is not the two-tier table');
   must(t.families.some((f) => f.label === t.home), `the home family ${t.home} is not in the table`);
   // (M8) the families tier is eight round Deep House, and no key's word is twice on one tier
@@ -8609,7 +8611,8 @@ check('the genre table is two tiers of spells, a family and its sub-genres', () 
   let subs = 0, tuned = 0;
   for (const f of t.families) {
     must(spellOk(f.spell) && typeof f.about === 'string' && f.about, `${f.label}: a family is a spell and a tooltip`);
-    must(f.subs.length <= 8, `${f.label} has ${f.subs.length} sub-genres, more than eight round a centre`);
+    // eight round a centre was the machine view's tier; since the Genres sky (10-20) a family holds its places, up to twelve
+    must(f.subs.length <= 12, `${f.label} has ${f.subs.length} sub-genres, more than twelve`);
     for (const s of f.subs) {
       subs++;
       if (s.tuned) { tuned++; must(spellOk(s.spell), `${f.label} / ${s.label}: tuned, and no spell`); }
@@ -8849,6 +8852,9 @@ check('every program the locks hold is finite: no NaN or infinity a digest would
   }
   return `${programs} programs (both strategies' golden themes and the Drum & Bass tile's three riffs), ${numbers} numbers, every one finite`;
 });
+
+// The playlists' record and the sky (PLAN-LIBRARY phase 1), in their own file.
+playlistChecks(check, must);
 
 if (failed) {
   console.log(`\n${failed} failed`);

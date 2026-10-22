@@ -30,7 +30,6 @@ import type { Fit, Layout, Place } from './layout.ts';
 import { INK, LAMP, METER_FLOOR, REST, REST_BOX, SCALE, SPACE, TOOL_KEY_H, density, meterAt } from './look.ts';
 import type { Lamp } from './look.ts';
 import { KEEP_SECONDS, note, sentence } from '../ledger.ts';
-import { linkView } from '../link.ts';
 import type { Entry } from '../ledger.ts';
 import { STAGE_ABOUT } from '@deep-house/engine/describe';
 import { STRATEGIES, STRATEGY_IDS } from '../strategies/index.ts';
@@ -43,7 +42,6 @@ import { GROUPS } from './model.ts';
 import { BandControl, BusControls, InsertControl, ResetAll, STAGE_KEYS, STRIP_CONTROLS_W, SourceControls, StageControl } from './source-controls.tsx';
 import { BAND_OF } from './desk.ts';
 import { Help, manualKey, said, showingOf, useHelp } from './help.tsx';
-import { GenreKeys } from './genres.tsx';
 import { Scenes } from './scenes.tsx';
 import type { Showing } from './help.tsx';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -1218,101 +1216,16 @@ function darkPress(exit: () => void) {
 }
 
 /**
- * **The ring's toolbar** (M13, Eugene: *"introduce another toolbar right under
- * the ring; move the Back button into it and call it Close; move Show Ledger to
- * the left of it and turn it into Hide Ledger when open; add another button to
- * the left, Copy Link … when I open the app from the iOS home screen I have no
- * Share button"*): three desk keys, right-aligned, one row of a fixed height.
+ * **The view's back key** (his word 10-21: the toolbar under the ring went, its copy keys to the panel's share circle;
+ * a × beside the ring read as closing the ring, so a ‹ in a circle at the top-left, "back", as iOS leaves a screen). It
+ * closes the view, as CLOSE did. No key (his word: no Esc).
  */
-function RingTools({ exit, control, seconds }: { exit?: () => void; control: Control; seconds: number }) {
-  const [copied, setCopied] = useState<'link' | 'at' | null>(null);
-  const timer = useRef(0);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  const done = (which: 'link' | 'at') => {
-    setCopied(which);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(null), COPIED_MS);
-  };
-  const copy = () => {
-    void copyText(ringLink()).then((ok) => {
-      if (!ok) return;
-      note('transport', 'link copied', { link: ringLink() });
-      done('link');
-    });
-  };
-  // **COPY AT m:ss** (M16, Eugene: *"another button Copy Link with time"*): the
-  // ring's link with `t`, the transport's own second at the press (K32's
-  // `withTime`); the address keeps no `t`
-  const copyAt = () => {
-    const link = control.link.withTime();
-    const t = Number(new URL(link).searchParams.get('t') ?? Math.floor(seconds));
-    void copyText(link).then((ok) => {
-      if (!ok) return;
-      note('transport', `link copied at ${clock(t)}`, { link, t });
-      done('at');
-    });
-  };
+function RingClose({ exit }: { exit: () => void }) {
   return (
-    // a plain group of three ordinary tab stops (M14, the review of 09-26): a toolbar
-    // promises arrow keys, and the page's one key is Space
-    <div className="ring-tools" role="group" aria-label="the view's tools">
-      <button type="button" className="pane-key" data-tool="copy-at" aria-label={`Copy the link at ${clock(Math.floor(seconds))}`}
-        title="Copy the link to what is playing, starting where it is now — the ring's link with the time" onClick={copyAt}>
-        {copied === 'at' ? 'copied' : `copy at ${clock(Math.floor(seconds))}`}
-      </button>
-      <button type="button" className="pane-key" data-tool="copy" aria-label="Copy the link" title="Copy the link to what is playing — the ring's own link, without the view" onClick={copy}>
-        {copied === 'link' ? 'copied' : 'copy link'}
-      </button>
-      {exit ? (
-        <button type="button" className="pane-key" data-tool="close" data-exit="view" aria-label="Back to the ring" title="Back to the ring — closes the machine view" onClick={exit}>close</button>
-      ) : null}
-    </div>
+    <button type="button" className="ring-close" data-tool="close" data-exit="view" aria-label="Back to the ring" title="Back to the ring — closes the machine view" onClick={exit}>
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.6 2.6 L4.2 7 L8.6 11.4" fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </button>
   );
-}
-/** How long COPY LINK reads COPIED. */
-const COPIED_MS = 1000;
-
-/**
- * **The link to copy is the ring's, not the panel's** (M13): the address as it
- * stands — `v=2` and every sound row the control wrote — with `view=machine`
- * taken off, since the link is the track and the view is how it is looked at.
- */
-export function ringLink(): string {
-  const search = linkView(location.search, false);
-  return `${location.origin}${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
-}
-
-/**
- * Into the clipboard: the async clipboard where the page has it and it answers,
- * and else a selected hidden field and `execCommand('copy')` — which is what an
- * iOS home-screen web app, and a page inside another's frame, still honour
- * inside the press.
- */
-/** A time into the theme as a clock says it: 4:12. */
-export const clock = (s: number): string => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
-
-async function copyText(text: string): Promise<boolean> {
-  const fallback = () => {
-    // the key keeps the focus (M14, both reviews: the field took it and left it on the page)
-    const had = document.activeElement as HTMLElement | null;
-    const f = document.createElement('textarea');
-    f.value = text;
-    f.setAttribute('readonly', '');
-    f.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
-    document.body.appendChild(f);
-    f.focus({ preventScroll: true });
-    f.select();
-    f.setSelectionRange(0, text.length);
-    let ok = false;
-    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-    f.remove();
-    try { if (had && had.isConnected) had.focus({ preventScroll: true }); } catch (e) { /* nothing to focus */ }
-    return ok;
-  };
-  // the fallback first where the async clipboard is known not to be there, so
-  // it runs inside the press itself
-  if (!navigator.clipboard || !window.isSecureContext) return fallback();
-  try { await navigator.clipboard.writeText(text); return true; } catch (e) { return fallback(); }
 }
 
 /** The log mark (M20): four short lines, the ledger's key's whole face. */
@@ -1355,13 +1268,13 @@ export function Machine({ store, control, ringHost, exit }: {
   const fit: Fit = { width: Math.max(0, pane.width - clear), height: rack ? pane.height : 0, space, type };
   // the panes, the popovers and the manual step their type with the drawing
   useLayoutEffect(() => { document.getElementById('machine')?.style.setProperty('--t', String(type)); }, [type]);
-  // Three columns (Eugene's sketch, 09-19): down the left the ring, the genre
-  // keys, every reading as tiles, and the engine toggle last (M8); the graph
+  // Three columns (Eugene's sketch, 09-19): down the left the ring, every
+  // reading as tiles (the genres left for the panel's sky, 10-20), and the engine toggle last (M8); the graph
   // edge to edge in the middle with nothing drawn over it; the ledger down the
   // right, newest first.
   //
   // Below the break the same three stack into one long page in that order —
-  // the ring, the genres, the readings, the engine, then the graph, then the
+  // the ring, the readings, the engine, then the graph, then the
   // ledger at the end — which is the order they are in the document, so nothing is reordered
   // by CSS and a screen reader, a tab and a check all read what the page
   // says.
@@ -1377,9 +1290,8 @@ export function Machine({ store, control, ringHost, exit }: {
                   SVG scaled and nothing redrawn. */}
               <div ref={ringHost} style={RING_BOX} />
             </div>
-            <RingTools exit={exit} control={control} seconds={snap.seconds} />
+            {exit ? <RingClose exit={exit} /> : null}
           </div>
-          <GenreKeys store={store} control={control} />
           {/* a region with its name (10-08): it scrolls, so a key can reach it, and says what it is */}
           <div className="facts" role="region" aria-label="readings">
             <h2>readings</h2>

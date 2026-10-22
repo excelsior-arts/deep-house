@@ -41,6 +41,10 @@ import { planTheme } from '../src/mix.ts';
 // page decided the colour was.
 import { ringColour, mixHex, typeInk } from '../src/ring-colour.ts';
 import { HOUSE, BIRD_CODE } from '../src/spell.ts';
+// the Map tab's places, for the sky's rows (genres-sky, 10-20)
+import { SKY_PLACES } from '../src/sky.ts';
+// a library written before the page opens, for the seam rows (the review of 10-21)
+import { emptyLibrary, saveTrack, addToPlaylist } from '../src/playlists.ts';
 import { ICON_GOLD, ICON_EVERY, iconInk, iconHref } from '../src/tab-icon.ts';
 // The glyphs as the page draws them, for a scenario that must tell two levels of
 // one bird apart by their drawing and not only by their count of marks.
@@ -261,6 +265,7 @@ export const AREAS = {
   panel: "the phone panel: a finger's Less and More, and the keys' percents",
   view: 'the machine view: its lanes, the ledger, the mixer, the flip, the export, the focus',
   recipe: 'a recipe: what it rolls, and what a held bird and the die plan under it',
+  library: 'the panel: the gyroscope, the playlists, the Map tab\'s sky, the About, files and links',
 };
 
 // Each scenario: a name, the area it belongs to, the source of an async
@@ -2020,7 +2025,7 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'the page has one key, the top of it is the name, and the way into the view is a mark in the corner',
+    name: 'the page has one key, the top of it is the name, and the way into the view is the gyroscope\'s panel and its corner key',
     area: 'ring',
     // seed 1 by name: since K16 a bare page throws the die
     query: 'seed=1',
@@ -2033,7 +2038,10 @@ export const SCENARIOS = [
     deadline: 300000,
     page: body(`
       const fire = (key, extra) => window.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key, bubbles: true, cancelable: true }, extra || {})));
-      const mark = document.getElementById('panel');
+      // (PLAN-LIBRARY phase 2: the gear went with the footer; the gyroscope opens the panel and the
+      // panel's corner key, #machineKey, is the way into the view)
+      const mark = document.getElementById('gyro');
+      const viewKey = document.getElementById('machineKey');
       const out = {};
       await started();
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1.5, 15000);
@@ -2106,16 +2114,20 @@ export const SCENARIOS = [
         out.name.clearsRing = Math.round(Math.hypot(dx, dy) - rr);
         const m = mark.getBoundingClientRect();
         out.name.clearsMark = !(nr.right > m.left && nr.left < m.right && nr.bottom > m.top && nr.top < m.bottom);
+        // the gyroscope stands past the ring (3/5 of the way across the gap, his review 10-20), never on it
+        out.mark.clearsRing = Math.round(Math.hypot(Math.max(m.left - cx, 0, cx - m.right), Math.max(m.top - cy, 0, cy - m.bottom)) - rr);
         out.name.ofScreen = +(nr.width / innerWidth).toFixed(3);
       }
       out.toggle = !!document.getElementById('engines');
       mark.click();
+      out.panel = await waitFor(() => document.getElementById('library').open, 5000);
+      viewKey.click();
       out.opened = await waitFor(() => window.ring.machine.on, 25000);
       await sleep(400);
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       const nv = document.getElementById('name');
       // (M8) the mark is the way in and is not seen in the view; the way out is the RING key
-      out.inView = { onTop: !!(hit && hit.closest && hit.closest('#panel')), hidden: mark.getBoundingClientRect().width === 0, expanded: mark.getAttribute('aria-expanded'),
+      out.inView = { onTop: !!(hit && hit.closest && hit.closest('#gyro, #library')), hidden: mark.getBoundingClientRect().width === 0 && !document.getElementById('library').open, expanded: viewKey.getAttribute('aria-expanded'),
         ink: getComputedStyle(mark).color, playing: ctl.playing,
         // the name follows the credit's own rule and stands aside for the
         // engineer's face, which lays out its own stack from the very top
@@ -2123,7 +2135,7 @@ export const SCENARIOS = [
       document.querySelector('#machine [data-exit="view"]').click();
       out.closed = await waitFor(() => !window.ring.machine.on, 15000);
       await sleep(300);
-      out.after = { expanded: mark.getAttribute('aria-expanded'), playing: ctl.playing, late: window.deepHouse.late.count };
+      out.after = { expanded: viewKey.getAttribute('aria-expanded'), playing: ctl.playing, late: window.deepHouse.late.count };
       out.nameBack = (() => { const n = document.getElementById('name'); const b = n && n.getBoundingClientRect(); return !!b && b.height > 0; })();
       ctl.stop();
       await sleep(300);
@@ -2134,9 +2146,9 @@ export const SCENARIOS = [
       const deaf = k.now.seed === k.was.seed && k.now.theme === k.was.theme
         && k.now.playing === k.was.playing && k.now.view === k.was.view;
       const space = r.space.paused && r.space.played;
-      // (since K28 the mark is a 44 px touch target round a 21.6 px gear)
-      const corner = r.mark.fromRight <= 24 && r.mark.fromBottom <= 60 && r.mark.w <= 48 && r.mark.h <= 48;
-      const drawn = r.mark.marks.length === 2 && r.mark.filled === 0;
+      // (the gyroscope is at least a 44 px touch target past the ring (62 on a desktop, 1.4× its glyph, 10-20); line work, its axle's two knobs the one filled layer)
+      const corner = r.mark.clearsRing > 0 && r.mark.w >= 44 && r.mark.h >= 44 && r.mark.w <= 72 && r.mark.h <= 72;
+      const drawn = r.mark.marks.length >= 4 && r.mark.filled <= 1;
       const reachable = r.mark.tag === 'BUTTON' && r.mark.tab === 0 && !!r.mark.label && r.mark.focusable;
       const both = r.opened && !r.inView.onTop && r.inView.hidden && r.inView.expanded === 'true' && r.closed && r.after.expanded === 'false';
       const n = r.name;
@@ -2159,19 +2171,19 @@ export const SCENARIOS = [
         why: !deaf ? `fourteen keys moved the set from ${JSON.stringify(k.was)} to ${JSON.stringify(k.now)}`
           : !space ? `the space bar paused ${r.space.paused} and played ${r.space.played}`
           : !named ? `the name reads ${JSON.stringify(n)}${r.toggle ? ', and the v1 | v2 toggle is still on the page' : ''}${r.inView.name ? ', and it stands over the machine view' : ''}${r.nameBack ? '' : ', and it did not come back with the ring'}`
-          : !corner ? `the mark sits ${r.mark.fromRight} from the right and ${r.mark.fromBottom} from the bottom at ${r.mark.w}x${r.mark.h}`
+          : !corner ? `the gyroscope sits ${r.mark.clearsRing} px clear of the ring at ${r.mark.w}x${r.mark.h}`
           : !drawn ? `the mark is ${r.mark.marks.join('+')} with ${r.mark.filled} filled`
           : !reachable ? `the mark is a ${r.mark.tag} at tabindex ${r.mark.tab} labelled ${r.mark.label}`
-          : !both ? `opened ${r.opened}, seen over the view ${r.inView.onTop} (hidden ${r.inView.hidden}), closed ${r.closed}, expanded ${r.inView.expanded} then ${r.after.expanded}`
+          : !both ? `the panel opened ${r.panel}, the view opened ${r.opened}, the gyroscope seen over the view ${r.inView.onTop} (hidden ${r.inView.hidden}), closed ${r.closed}, expanded ${r.inView.expanded} then ${r.after.expanded}`
           : !r.after.playing ? 'the set stopped across the flip'
           : `${r.after.late} notes reached late`,
         note: `fourteen keys — both arrows, n, m, Home, End, r, Escape, Enter and Shift+R — move nothing at all, and the space bar pauses and plays; `
           + `the top of the page is the app's own name as a title — the page's one <h1>, drawn at ${n.size} in ${n.ink} at weight ${n.weight}, one line `
           + `${(n.ofScreen * 100).toFixed(0)} % of the screen wide, ${n.fromTop} px down, clearing the ring by ${n.clearsRing} px and the corner mark entirely, `
           + `the wordmark its one child with no border and no ground behind it; no engine toggle anywhere on the page, and it stands aside for the engineer's face and comes back with the ring; `
-          + `the way in is a ${r.mark.w}x${r.mark.h} button ${r.mark.fromRight} px from the right and ${r.mark.fromBottom} from the bottom, `
-          + `drawn as ${r.mark.marks.join(' and a ')} with nothing filled, in ${r.mark.ink} over the page's black, labelled and at tabindex 0; `
-          + `it opens the view and is not seen over it (M8: the RING key is the way back, and closed it), with the set playing throughout`,
+          + `the way in is the gyroscope, a ${r.mark.w}x${r.mark.h} button ${r.mark.clearsRing} px clear of the ring, `
+          + `${r.mark.marks.length} line-work layers (${r.mark.filled} filled), in ${r.mark.ink} over the page's black, labelled and at tabindex 0; `
+          + `it opens the panel, whose corner key opens the view; neither is seen over it, and the view's close shut it, with the set playing throughout`,
       };
     },
   },
@@ -4135,7 +4147,8 @@ export const SCENARIOS = [
         // the star's own turn is left off: it moves where a pixel is, not its colour
         return '<g>' + n.innerHTML + '</g>';
       }).join('');
-      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000"><style>' + css + tokens + '</style><rect width="1000" height="1000" fill="#000"/>' + inner + '</svg>';
+      // (the sheet in CDATA: since menu-fit, 10-21, it holds a container query's \`<=\`, which is no XML)
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000"><style><![CDATA[' + css + tokens + ']]></style><rect width="1000" height="1000" fill="#000"/>' + inner + '</svg>';
       window.ring.still(false);
       const img = new Image();
       const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -4914,9 +4927,10 @@ export const SCENARIOS = [
       const unsaid = s.part.nodes.filter((n) => !words.includes(n.kind === 'bus' ? n.label.replace(/^BUS /, '') : n.label)).map((n) => n.label);
       // The order of the long page, top to bottom.
       const at = (sel) => { const e = document.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top + window.scrollY) : null; };
-      // (M8: the genres under the ring, then the readings, the engine last)
-      const order = { ring: at('#machine .ringbox'), genres: at('#machine .genre-block'), readings: at('#machine .list'), engine: at('#machine .engine'), graph: at('#machine .pane.graph'), ledger: at('#machine .pane.ledger') };
-      const stacked = order.ring <= order.genres && order.genres <= order.readings && order.readings <= order.engine
+      // (M8: the readings under the ring, the engine last; the genre keys that stood between them went to the
+      // panel's Map tab with genres-sky, 10-20)
+      const order = { ring: at('#machine .ringbox'), readings: at('#machine .list'), engine: at('#machine .engine'), graph: at('#machine .pane.graph'), ledger: at('#machine .pane.ledger') };
+      const stacked = order.ring != null && order.ring <= order.readings && order.readings <= order.engine
         && order.engine <= order.graph && order.graph <= order.ledger;
       const doc = document.documentElement;
       const across = doc.scrollWidth - doc.clientWidth;
@@ -4948,7 +4962,7 @@ export const SCENARIOS = [
         : r.missing.length ? `${r.missing.length} boxes are not on the page: ${r.missing.slice(0, 5).join(', ')}`
         : r.drawn !== r.boxes ? `${r.drawn} boxes drawn for ${r.boxes} described`
         : r.unsaid.length ? `${r.unsaid.length} boxes are drawn without their own name on them: ${r.unsaid.join(", ")}`
-        : !r.stacked ? `the page is not in the order ring, genres, readings, engine, graph, ledger: ${JSON.stringify(r.order)}`
+        : !r.stacked ? `the page is not in the order ring, readings, engine, graph, ledger: ${JSON.stringify(r.order)}`
         : r.across > 1 ? `the page scrolls ${r.across} px across, and it must never`
         : r.pinned !== 'sticky' ? `the ring is ${r.pinned} where it should be pinned at the top`
         : !(r.sideways > 0) ? 'the graph is not wider than the phone, so nothing was proved about its scroller'
@@ -4957,7 +4971,7 @@ export const SCENARIOS = [
         : r.facts < 15 ? `only ${r.facts} readings are listed`
         : 'the ledger has no lines',
       note: `at ${r.viewport.w}x${r.viewport.h} the page is one stack in the order the sketch asks for — `
-        + `the ring pinned at the top, the genre keys under it, ${r.facts} readings under those, the engine's ${r.rows} segments last under a header of their own, `
+        + `the ring pinned at the top, ${r.facts} readings under it, the engine's ${r.rows} segments last under a header of their own, `
         + `then the graph and the ledger's ${r.ledger} lines at the end. All ${r.boxes} boxes are drawn with their own `
         + `names and readings on them; the graph is ${r.sideways} px wider than the screen and scrolls across on its own `
         + `(it went to ${r.got}), and the page itself does not scroll across at all`,
@@ -9776,8 +9790,9 @@ SCENARIOS.push({
       const pinned = await p.evaluate(() => { const r = document.querySelector('#machine .ringbox').getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width) }; });
       // the ring's corners, where no ring is drawn: what is there must be the ground
       const corners = [];
-      // (M10: the bottom-right one is sampled over BACK, which stands in that corner)
-      for (const [x, y] of [[4, pinned.top + 4], [pinned.w - 28, pinned.top + 4], [4, pinned.bottom - 28], [pinned.w - 28, pinned.bottom - 64]]) corners.push(await SQUARE(p, x, y));
+      // (since 10-21 the view's back key stands in the top-left corner, 22 px down and 16 in: that corner is sampled
+      // under it, still outside the ring's circle)
+      for (const [x, y] of [[4, pinned.top + 60], [pinned.w - 28, pinned.top + 4], [4, pinned.bottom - 28], [pinned.w - 28, pinned.bottom - 28]]) corners.push(await SQUARE(p, x, y));
       await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
       return { ...geo, pinned, corners };
     } finally { await own.close(); }
@@ -10089,19 +10104,34 @@ SCENARIOS.push({
   }),
 });
 
-// **COPY LINK and the ledger's key** (M13, Eugene: *"add another button …
+// **Copy link and the ledger's key** (M13, Eugene: *"add another button …
 // Copy Link, that stores the current browser URL into the clipboard. When I
-// open the app from the iOS home screen I have no Share button"*): the copied
-// link is the page's own with `view=machine` taken off — the ring's link, the
-// track and not the panel — the key reads COPIED for a moment, the ledger says
-// "link copied", and the address does not move. Twice per engine: the async
-// clipboard where the browser grants it (Chromium, read back), and the
-// home-screen case — `navigator.standalone` set and no async clipboard — where
-// the hidden field and `execCommand('copy')` carry it, read back off the copy
-// the page itself fired. And SHOW LEDGER turns into HIDE LEDGER and back.
+// open the app from the iOS home screen I have no Share button"*). **Since
+// 10-21 (menu-fit) Copy link is in the panel's share circle** (`#panelShare`,
+// beside the machine key on every tab), its link `cleanLink`'s: the track's own
+// rows, with `out`, the view and the locks left behind. The menu item reads
+// Copied for a moment and the menu closes, the ledger says "link copied", and
+// the address does not move. Twice per engine: the async clipboard where the
+// browser grants it (Chromium, read back), and the home-screen case —
+// `navigator.standalone` set and no async clipboard — where the hidden field
+// and `execCommand('copy')` carry it, read back off the copy the page itself
+// fired. And SHOW LEDGER turns into HIDE LEDGER and back, in the view.
+const SHARE_OPEN = async (p) => {
+  if (!(await p.evaluate(() => document.getElementById('library').open))) { await p.click('#gyro'); await p.waitForTimeout(250); }
+  await p.click('#panelShare');
+  await p.waitForTimeout(250);
+};
+const SHARE_READ = () => {
+  const m = document.querySelector('.shareMenu');
+  const a = document.activeElement;
+  return { open: !!m, items: m ? [...m.querySelectorAll('[data-share]')].map((b) => b.textContent.trim()) : [],
+    focus: a ? (a.id || a.getAttribute('data-share') || a.tagName) : null, url: location.href };
+};
+// a link's sound rows, for comparing a copied link with the address it was copied from
+const soundRows = (u) => { const q = new URL(u).searchParams; return ['seed', 'v', 'theme', 'spell'].map((k) => `${k}=${q.get(k) || ''}`).join('&'); };
 SCENARIOS.push({
-  name: 'COPY LINK copies the ring\'s link without the view, by the clipboard or the home-screen fallback, says COPIED and writes a ledger line; the ledger key reads what it will do',
-  area: 'view',
+  name: 'the share circle\'s Copy link copies the track\'s own link without out or the view, by the clipboard or the home-screen fallback, says Copied and writes a ledger line; the ledger key reads what it will do',
+  area: ['library', 'view'],
   query: 'v=2&seed=1',
   deadline: 120000,
   drive: async (page) => {
@@ -10111,7 +10141,6 @@ SCENARIOS.push({
       const own = await ownPage(page, { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, ...(browser === 'chromium' ? { permissions: ['clipboard-read', 'clipboard-write'] } : {}) });
       const p = own.page;
       try {
-        await p.evaluate(body(OPEN_VIEW + 'return 1;'));
         if (mode === 'standalone') {
           await p.evaluate(() => {
             Object.defineProperty(navigator, 'standalone', { value: true, configurable: true });
@@ -10119,19 +10148,22 @@ SCENARIOS.push({
           });
         }
         await p.evaluate(() => { window.__copied = null; document.addEventListener('copy', () => { window.__copied = String(window.getSelection()) || (document.activeElement && document.activeElement.value) || ''; }, true); window.scrollTo(0, 0); });
-        const before = await p.evaluate(() => ({ url: location.href, lines: window.ring.machine.snapshot().ledger.filter((e) => e.what === 'link copied').length }));
-        const c = await p.evaluate(() => { const r = document.querySelector('#machine [data-tool="copy"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-        await p.touchscreen.tap(c.x, c.y);
+        const before = await p.evaluate(() => location.href);
+        await SHARE_OPEN(p);
+        const menu = await p.evaluate(SHARE_READ);
+        await p.click('.shareMenu [data-share="link"]');
         await p.waitForTimeout(250);
         const after = await p.evaluate(async () => {
           let clip = null;
           try { if (navigator.clipboard && navigator.clipboard.readText) clip = await navigator.clipboard.readText(); } catch (e) { clip = null; }
-          return { url: location.href, label: document.querySelector('#machine [data-tool="copy"]').textContent.trim(), clip, fired: window.__copied,
-            lines: window.ring.machine.snapshot().ledger.filter((e) => e.what === 'link copied').length };
+          const b = document.querySelector('.shareMenu [data-share="link"]');
+          return { url: location.href, label: b ? b.textContent.trim() : null, clip, fired: window.__copied };
         });
         await p.waitForTimeout(1200);
-        const later = await p.evaluate(() => document.querySelector('#machine [data-tool="copy"]').textContent.trim());
-        // the ledger's key, both ways
+        const later = await p.evaluate(SHARE_READ);
+        // the ledger's line, and the ledger's key both ways, in the view
+        await p.evaluate(body(OPEN_VIEW + 'return 1;'));
+        const lines = await p.evaluate(() => window.ring.machine.snapshot().ledger.filter((e) => e.what === 'link copied').length);
         // (M19) the ledger's key is the ledger's: HIDE in its header when shown, SHOW LEDGER in the rail when not
         const lk = () => p.evaluate(() => { const b = document.querySelector('#machine [data-tool="ledger"]'); return { text: b.textContent.trim(), pressed: b.closest('.ring-tools') ? 'toolbar' : 'beside', pane: !!document.querySelector('#machine .pane.ledger') }; });
         const l0 = await lk();
@@ -10140,28 +10172,28 @@ SCENARIOS.push({
         await p.evaluate(() => document.querySelector('#machine [data-tool="ledger"]').click()); await p.waitForTimeout(150);
         const l2 = await lk();
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[mode] = { before, after, later, ledger: [l0, l1, l2] };
+        out[mode] = { before, menu, after, later, lines, ledger: [l0, l1, l2] };
       } finally { await own.close(); }
     }
     return out;
   },
   judge: (r) => {
     const bad = [];
-    const ringLink = (u) => u.replace(/([?&])view=machine(&|$)/, (m, a, b) => (b ? a : '')).replace(/[?&]$/, '');
     for (const mode of ['clipboard', 'standalone']) {
       const x = r[mode];
-      const want = ringLink(x.before.url);
       const got = mode === 'clipboard' && r.browser === 'chromium' ? x.after.clip : x.after.fired;
-      if (x.after.url !== x.before.url) bad.push(`${mode}: the address moved from ${x.before.url} to ${x.after.url}`);
-      if (/view=machine/.test(want) || !/[?&]v=2/.test(want)) bad.push(`${mode}: the ring's link is ${want}`);
+      if (x.after.url !== x.before) bad.push(`${mode}: the address moved from ${x.before} to ${x.after.url}`);
+      if (!x.menu.open || x.menu.items[0] !== 'Copy link' || !/^Copy at \d+:\d\d$/.test(x.menu.items[1] || '')) bad.push(`${mode}: the share menu reads ${JSON.stringify(x.menu.items)}`);
       if (mode === 'standalone' || r.browser === 'chromium') {
-        // (M13, Eugene: *"a link to the song, not to the machine view we are in when copying"*)
-        if (got !== want || /[?&]view=/.test(got || '')) bad.push(`${mode}: copied "${got}" where the ring's link, with no view row, is "${want}"`);
-        if (x.after.label !== 'copied' || x.later !== 'copy link') bad.push(`${mode}: the key read "${x.after.label}", then "${x.later}"`);
-        if (x.after.lines !== x.before.lines + 1) bad.push(`${mode}: ${x.after.lines - x.before.lines} "link copied" lines`);
+        // (M13, Eugene: *"a link to the song, not to the machine view we are in when copying"*; menu-fit: no out either)
+        let ok = false;
+        try { ok = soundRows(got) === soundRows(x.before) && !/[?&](view|out|lock)=/.test(got) && new URL(got).pathname === new URL(x.before).pathname; } catch (e) { ok = false; }
+        if (!ok) bad.push(`${mode}: copied "${got}" where the track's own link of ${x.before} is wanted`);
+        if (x.after.label !== 'Copied' || x.later.open || x.later.focus !== 'panelShare') bad.push(`${mode}: the item read "${x.after.label}", then the menu ${x.later.open ? 'stayed open' : 'closed'} with the focus on ${x.later.focus}`);
+        if (x.lines !== 1) bad.push(`${mode}: ${x.lines} "link copied" lines`);
       }
       const [a, b, c] = x.ledger;
-      // (M20) the ledger's key is the log mark, no word: shown or hidden it is beside the ledger, never in the toolbar
+      // (M20) the ledger's key is the log mark, no word: shown or hidden it is beside the ledger
       const says = (l) => l.text === '' && l.pressed === 'beside';
       if (!says(a) || !says(b) || !says(c) || b.pane === a.pane || c.pane !== a.pane) bad.push(`${mode}: the ledger's key read ${JSON.stringify(x.ledger)}`);
     }
@@ -10169,7 +10201,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `${r.browser}: COPY LINK put "${ringLink(w.before.url)}" — the page's link without view=machine — ${r.browser === 'chromium' ? 'into the clipboard (read back)' : '(the async clipboard is not read back here)'}, and with navigator.standalone set and no async clipboard the hidden field and execCommand copied the same link; the key read COPIED then COPY LINK, one "link copied" line each time, the address unmoved; the ledger's key read ${w.ledger.map((l) => l.text.toUpperCase()).join(' → ')}`,
+      note: `${r.browser}: the share circle's menu read ${w.menu.items.join(' · ')}; Copy link put ${r.browser === 'chromium' ? `"${w.after.clip}" into the clipboard (read back)` : 'the link (the async clipboard is not read back here)'} — the track's own rows, no out and no view — and with navigator.standalone set and no async clipboard the hidden field and execCommand copied the same; the item read Copied, the menu closed with the focus on the circle, one "link copied" line each time, the address unmoved; the ledger's key is the log mark both ways`,
     };
   },
 });
@@ -10229,102 +10261,20 @@ SCENARIOS.push({
   },
 });
 
-// **The selected style carries the one dot** (M17, rewritten for GA8's one
-// level in the merge round, Reconcile 1; Eugene: *"tiles change position. Fix
-// all tiles in place, add a green dot to the selected one. Simple UX."*): the
-// nine stand where they stand, Deep House in the centre; a fresh view dots the
-// centre, lit; Techno pressed takes the dot, lit while its spell plays, kept by
-// this browser through a reload, dark when a bird moves, and Deep House pressed
-// takes it back. No key moves, and every name is in proper case.
-SCENARIOS.push({
-  name: 'the nine genre tiles stand fixed and the selected style carries the one dot: Techno pressed takes it lit, a reload keeps it, a bird move darkens it, and Deep House takes it back',
-  area: 'view',
-  query: 'v=2&seed=1',
-  deadline: 180000,
-  drive: async (page) => {
-    const out = {};
-    for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
-      const own = await ownPage(page, opts);
-      const p = own.page;
-      try {
-        const read = () => p.evaluate(() => {
-          const keys = [...document.querySelectorAll('#machine .genres button')];
-          const dotted = keys.filter((k) => k.querySelector('[data-lamp]'));
-          const d = dotted[0];
-          return { labels: keys.map((k) => k.dataset.genre), upper: keys.filter((k) => getComputedStyle(k).textTransform === 'uppercase').length,
-            dots: dotted.length, dot: d ? d.dataset.genre : null, dotLit: d ? d.getAttribute('aria-pressed') : null,
-            dotFill: d ? d.querySelector('[data-lamp] circle').getAttribute('fill') : null,
-            pressed: keys.filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre),
-            boxes: keys.map((k) => { const b = k.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)].join(':'); }).join(' '),
-            back: !!document.querySelector('#machine [aria-label="Back to the genre families"]') };
-        });
-        const press = async (genre) => { await p.evaluate((g) => [...document.querySelectorAll('#machine .genres button')].find((k) => k.dataset.genre === g).click(), genre); await p.waitForTimeout(250); };
-        await p.evaluate(() => { try { localStorage.removeItem('deep-house.machine.genre'); } catch (e) {} });
-        await p.evaluate(body(OPEN_VIEW + 'return 1;'));
-        const fresh = await read();
-        await press('Techno');
-        const asked = await read();
-        // the move lands at the next phrase line
-        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')].find((x) => x.dataset.genre === 'Techno'); return k && k.getAttribute('aria-pressed') === 'true'; }, null, { timeout: 100000 });
-        const chosen = await read();
-        // a reload: the link carries the spell, this browser the choice
-        await p.evaluate(() => window.ring.machine.close());
-        await p.reload({ waitUntil: 'networkidle' });
-        await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
-        await p.evaluate(async () => { await window.ring.machine.open(); });
-        await p.waitForTimeout(800);
-        const reloaded = await read();
-        // a bird moved off the style: the dot stays on Techno, dark
-        await p.evaluate(() => { const c = window.ring.control; const now = c.readout().spell || {}; c.setSpell({ ...now, loom: 0.12 }); });
-        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')].find((x) => x.dataset.genre === 'Techno'); return k && k.getAttribute('aria-pressed') === 'false'; }, null, { timeout: 100000 });
-        const moved = await read();
-        await press('Deep House');
-        await p.waitForFunction(() => { const k = [...document.querySelectorAll('#machine .genres button')][4]; return k && k.getAttribute('aria-pressed') === 'true'; }, null, { timeout: 100000 });
-        const home = await read();
-        await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { fresh, asked, chosen, reloaded, moved, home };
-      } finally { await own.close(); }
-    }
-    return out;
-  },
-  judge: (r) => {
-    const bad = [];
-    // (G4) the cells in tempo order: fast above, slow below, Trip Hop on Disco's tile
-    const NINE = 'Drum & Bass,Dubstep,Trance,Techno,Deep House,Breaks,Downtempo,Trip Hop,Ambient';
-    for (const [k, x] of Object.entries(r)) {
-      const states = [['fresh', x.fresh], ['asked', x.asked], ['chosen', x.chosen], ['moved', x.moved], ['home', x.home]];
-      for (const [when, y] of states) {
-        if (y.labels.join() !== NINE || y.upper) bad.push(`${k}, ${when}: the tiles read ${y.labels.join(', ')} (${y.upper} in upper case)`);
-        if (y.boxes !== x.fresh.boxes) bad.push(`${k}, ${when}: a tile moved (${x.fresh.boxes} -> ${y.boxes})`);
-        if (y.dots !== 1) bad.push(`${k}, ${when}: ${y.dots} dots`);
-        if (y.back) bad.push(`${k}, ${when}: a way back is on the grid`);
-      }
-      if (x.reloaded.labels.join() !== NINE || x.reloaded.dots !== 1) bad.push(`${k}: after a reload the tiles read ${x.reloaded.labels.join(', ')} with ${x.reloaded.dots} dots`);
-      if (x.fresh.dot !== 'Deep House' || x.fresh.dotLit !== 'true') bad.push(`${k}: a fresh grid dots ${x.fresh.dot}, lit ${x.fresh.dotLit}`);
-      // pressed, the spell lands at the next phrase line; until then the dot is the playing style's
-      if (x.asked.dot !== 'Deep House') bad.push(`${k}: Techno pressed moved the dot to ${x.asked.dot} before its spell played`);
-      if (x.chosen.dot !== 'Techno' || x.chosen.dotLit !== 'true' || x.chosen.pressed.join() !== 'Techno') bad.push(`${k}: with Techno playing the dot is on ${x.chosen.dot}, lit ${x.chosen.dotLit}, pressed ${x.chosen.pressed.join(', ')}`);
-      if (x.reloaded.dot !== 'Techno' || x.reloaded.dotLit !== 'true') bad.push(`${k}: after a reload the dot is on ${x.reloaded.dot}, lit ${x.reloaded.dotLit}`);
-      if (x.moved.dot !== 'Techno' || x.moved.dotLit !== 'false' || x.moved.pressed.length || x.moved.dotFill === x.chosen.dotFill) bad.push(`${k}: with a bird moved the dot is on ${x.moved.dot}, lit ${x.moved.dotLit}, ${x.moved.dotFill} (was ${x.chosen.dotFill}), pressed ${x.moved.pressed.join(', ')}`);
-      if (x.home.dot !== 'Deep House' || x.home.dotLit !== 'true') bad.push(`${k}: Deep House pressed left the dot on ${x.home.dot}, lit ${x.home.dotLit}`);
-    }
-    return {
-      ok: !bad.length,
-      why: bad[0],
-      note: `at 1440 and on a phone the nine read ${r['1440'].fresh.labels.join(' · ')} in proper case and never moved; one dot, the centre's, lit on a fresh grid; Techno pressed took it, lit once its spell played, a reload kept it, Loom moved off it darkened it (${r['1440'].chosen.dotFill} to ${r['1440'].moved.dotFill}), and Deep House pressed took it back`,
-    };
-  },
-});
+// (The nine genre tiles and the selected style's dot (M17, GA8) are retired with genres-sky, 10-20:
+// the genres are the panel's Map tab now. The rules moved with them to the sky's rows at the end of this
+// file: a star asks its spell, carries the pressed mark until a bird leaves it, and Deep House asks for the house.)
 
-// **COPY AT m:ss** (M16, Eugene: *"add another button Copy Link with time"*):
-// a key left of COPY LINK whose label is the theme's time, live; pressed, it
-// copies the ring's link with `t` (K32's `withTime`) — the same sound rows as
-// the address, `t` within a second of the readout — the address never carries
-// `t`, the key reads COPIED, the ledger says "link copied at m:ss" and the
-// focus stays on the key. At 390, 1440 and 2560, the four keys on one row.
+// **Copy at m:ss** (M16, Eugene: *"add another button Copy Link with time"*;
+// since 10-21 the share circle's second item, menu-fit): its label is the
+// theme's time, live; pressed by a key, it copies the track's link with `t`
+// (K32's `withTime`) — the same sound rows as the address, `t` within a second
+// of the readout — the address never carries `t`, the item reads Copied, the
+// ledger says "link copied at m:ss", and the menu closes with the focus on the
+// circle. At 390, 1440 and 2560.
 SCENARIOS.push({
-  name: 'COPY AT m:ss reads the theme\'s time live and copies the ring\'s link with t within a second of it, the address never carrying t',
-  area: 'view',
+  name: 'the share circle\'s Copy at m:ss reads the theme\'s time live and copies the track\'s link with t within a second of it, the address never carrying t',
+  area: ['library', 'view'],
   query: 'v=2&seed=1',
   deadline: 180000,
   drive: async (page) => {
@@ -10334,27 +10284,31 @@ SCENARIOS.push({
       const own = await ownPage(page, { ...opts, ...(browser === 'chromium' ? { permissions: ['clipboard-read', 'clipboard-write'] } : {}) });
       const p = own.page;
       try {
-        await p.evaluate(body(OPEN_VIEW + 'await sleep(1500); return 1;'));
-        const label = () => p.evaluate(() => document.querySelector('#machine [data-tool="copy-at"]').textContent.trim());
+        await p.evaluate(body('await started(); await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 15000); await sleep(1500); return 1;'));
+        await SHARE_OPEN(p);
+        const label = () => p.evaluate(() => { const b = document.querySelector('.shareMenu [data-share="at"]'); return b ? b.textContent.trim() : null; });
         const l0 = await label();
         await p.waitForTimeout(2200);
         const l1 = await label();
-        const row = await p.evaluate(() => { const ks = [...document.querySelectorAll('#machine .ring-tools button')]; const r = ks.map((k) => k.getBoundingClientRect()); return { order: ks.map((k) => k.dataset.tool), oneRow: r.every((x) => Math.abs(x.top - r[0].top) < 1), inside: r.every((x) => x.left >= 0 && x.right <= innerWidth) }; });
         // WebKit's async clipboard is not read back headless: the fallback, read off the copy the page fires
         if (browser !== 'chromium') await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }));
-        await p.evaluate(() => { window.__copied = null; document.addEventListener('copy', () => { window.__copied = String(window.getSelection()) || (document.activeElement && document.activeElement.value) || ''; }, true); window.scrollTo(0, 0); document.querySelector('#machine [data-tool="copy-at"]').focus(); });
-        const before = await p.evaluate(() => ({ url: location.href, lines: window.ring.machine.snapshot().ledger.length }));
+        await p.evaluate(() => { window.__copied = null; document.addEventListener('copy', () => { window.__copied = String(window.getSelection()) || (document.activeElement && document.activeElement.value) || ''; }, true); document.querySelector('.shareMenu [data-share="at"]').focus(); });
+        const before = await p.evaluate(() => location.href);
         await p.keyboard.press('Enter');
         await p.waitForTimeout(250);
         const after = await p.evaluate(async () => {
           let clip = null;
           try { if (navigator.clipboard && navigator.clipboard.readText) clip = await navigator.clipboard.readText(); } catch (e) { clip = null; }
           const r = window.ring.control.readout();
-          return { url: location.href, clip: clip || window.__copied, seconds: r ? r.seconds : null, label: document.querySelector('#machine [data-tool="copy-at"]').textContent.trim(),
-            focus: document.activeElement ? document.activeElement.getAttribute('data-tool') : null, lines: window.ring.machine.snapshot().ledger.slice(-3).map((e) => e.what) };
+          const b = document.querySelector('.shareMenu [data-share="at"]');
+          return { url: location.href, clip: clip || window.__copied, seconds: r ? r.seconds : null, label: b ? b.textContent.trim() : null };
         });
+        await p.waitForTimeout(1200);
+        const later = await p.evaluate(SHARE_READ);
+        await p.evaluate(body(OPEN_VIEW + 'return 1;'));
+        const lines = await p.evaluate(() => window.ring.machine.snapshot().ledger.slice(-4).map((e) => e.what));
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { l0, l1, row, before, after };
+        out[name] = { l0, l1, before, after, later, lines };
       } finally { await own.close(); }
     }
     return out;
@@ -10363,24 +10317,22 @@ SCENARIOS.push({
     const bad = [];
     for (const [k, x] of Object.entries(r)) {
       if (k === 'browser') continue;
-      if (!/^copy at \d+:\d\d$/.test(x.l0) || x.l0 === x.l1) bad.push(`${k}: the key read "${x.l0}" then "${x.l1}"`);
-      // (M19) the ledger's key left the toolbar
-      if (x.row.order.join() !== 'copy-at,copy,close' || !x.row.oneRow || !x.row.inside) bad.push(`${k}: the toolbar is ${x.row.order.join(', ')}, one row ${x.row.oneRow}, inside ${x.row.inside}`);
+      if (!/^Copy at \d+:\d\d$/.test(x.l0 || '') || x.l0 === x.l1) bad.push(`${k}: the item read "${x.l0}" then "${x.l1}"`);
       const got = x.after.clip ? new URL(x.after.clip) : null;
-      const here = new URL(x.before.url);
+      const here = new URL(x.before);
       if (!got) { bad.push(`${k}: nothing was copied`); continue; }
       const t = Number(got.searchParams.get('t'));
       if (!got.searchParams.has('t') || Math.abs(t - x.after.seconds) > 1) bad.push(`${k}: t=${got.searchParams.get('t')} against the readout's ${x.after.seconds}`);
       for (const row of ['seed', 'v', 'theme', 'spell']) if ((got.searchParams.get(row) || '') !== (here.searchParams.get(row) || '')) bad.push(`${k}: the copied ${row} is "${got.searchParams.get(row)}", the address's "${here.searchParams.get(row)}"`);
-      if (got.searchParams.has('view')) bad.push(`${k}: the copied link carries the view`);
-      if (/[?&]t=/.test(x.after.url) || x.after.url !== x.before.url) bad.push(`${k}: the address became ${x.after.url}`);
-      if (x.after.label !== 'copied' || x.after.focus !== 'copy-at') bad.push(`${k}: the key read "${x.after.label}", the focus on ${x.after.focus}`);
-      if (!x.after.lines.some((w) => new RegExp('^link copied at ' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') + '$').test(w))) bad.push(`${k}: the ledger said ${x.after.lines.join(' / ')}`);
+      if (got.searchParams.has('view') || got.searchParams.has('out')) bad.push(`${k}: the copied link carries the view or out`);
+      if (/[?&]t=/.test(x.after.url) || x.after.url !== x.before) bad.push(`${k}: the address became ${x.after.url}`);
+      if (x.after.label !== 'Copied' || x.later.open || x.later.focus !== 'panelShare') bad.push(`${k}: the item read "${x.after.label}", then the menu ${x.later.open ? 'stayed open' : 'closed'} with the focus on ${x.later.focus}`);
+      if (!x.lines.some((w) => new RegExp('^link copied at ' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0') + '$').test(w))) bad.push(`${k}: the ledger said ${x.lines.join(' / ')}`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `${r.browser}: at 1440, 2560 and on a phone the toolbar reads COPY AT · COPY LINK · CLOSE on one row, the first key's time running ("${r['1440'].l0}" → "${r['1440'].l1}"); pressed by a key it copied the ring's link with t within a second of the readout (${r['1440'].after.clip}), the same seed, engine, theme and spell as the address, no view and no t in the address, read COPIED with the focus kept, and wrote "link copied at m:ss"`,
+      note: `${r.browser}: at 1440, 2560 and on a phone the share circle's second item runs with the time ("${r['1440'].l0}" → "${r['1440'].l1}"); pressed by a key it copied the track's link with t within a second of the readout (${r['1440'].after.clip}), the same seed, engine, theme and spell as the address, no view, no out and no t in the address, read Copied, closed with the focus on the circle, and wrote "link copied at m:ss"`,
     };
   },
 });
@@ -10393,7 +10345,7 @@ SCENARIOS.push({
 // pressed, at the top-right of the ledger's header, where the icon stood (M19's
 // taller toolbar keys and 11 px readings held here too).
 SCENARIOS.push({
-  name: 'the ledger\'s key is the log mark floating at the canvas\'s corner with no panel reserved, and HIDE the same mark where it stood; the toolbar\'s keys are 24 px and the readings 11 px',
+  name: 'the ledger\'s key is the log mark floating at the canvas\'s corner with no panel reserved, and HIDE the same mark where it stood; the readings are 11 px (the toolbar under the ring went 10-21)',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 150000,
@@ -10500,7 +10452,7 @@ SCENARIOS.push({
 // through the whole view by the keyboard, each stop inside #machine reads
 // differently focused than not.
 SCENARIOS.push({
-  name: 'every key in the view marks its keyboard focus: the strips, the buses, the band rows, RESET, the genres, the toolbar and the engine',
+  name: 'every key in the view marks its keyboard focus: the strips, the buses, the band rows, RESET, the back key and the engine',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 150000,
@@ -10515,11 +10467,11 @@ SCENARIOS.push({
       await p.waitForTimeout(150);
       await p.evaluate(() => { const up = [...document.querySelectorAll('.desk-pop button')].find((b) => /up a step/.test(b.getAttribute('aria-label') || '')); up.click(); document.querySelector('.desk-pop').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
       await p.waitForTimeout(150);
-      // (M22) the walk starts from a stated key, the first of the toolbar: after a
+      // (M22) the walk starts from a stated key, the view's back key (the toolbar under the ring went 10-21): after a
       // blur Firefox keeps the sequential focus navigation starting point where
       // the last focus was (the band's popover), and a walk from there ran off
       // the page's end into the browser's own chrome before it could wrap to RESET
-      await p.evaluate(() => { window.scrollTo(0, 0); document.querySelector('#machine .ring-tools button').focus({ preventScroll: true }); });
+      await p.evaluate(() => { window.scrollTo(0, 0); document.querySelector('#machine [data-exit="view"]').focus({ preventScroll: true }); });
       const seen = new Map();
       for (let i = 0; i < 160; i++) {
         await p.keyboard.press(tab);
@@ -10548,7 +10500,7 @@ SCENARIOS.push({
     const has = (re) => r.some((x) => re.test(x.name));
     const bad = [];
     if (unmarked.length) bad.push(`${unmarked.length} keys draw no focus mark: ${unmarked.slice(0, 6).join(', ')}`);
-    for (const [re, what] of [[/^Band /, 'a band row'], [/^Reset the desk/, 'RESET'], [/^Strip /, 'a strip'], [/^Bus /, 'a bus'], [/Copy the link/, 'COPY LINK'], [/^house-v2/, 'an engine key']]) if (!has(re)) bad.push(`Tab never reached ${what}`);
+    for (const [re, what] of [[/^Band /, 'a band row'], [/^Reset the desk/, 'RESET'], [/^Strip /, 'a strip'], [/^Bus /, 'a bus'], [/^Back to the ring/, 'the back key'], [/^house-v2/, 'an engine key']]) if (!has(re)) bad.push(`Tab never reached ${what}`);
     return { ok: !bad.length, why: bad[0], note: `${r.length} keys reached by the keyboard, ${r.filter((x) => x.svg).length} of them drawn in SVG — the band rows and RESET among them — and every one marks its focus` };
   },
 });
@@ -10658,12 +10610,13 @@ SCENARIOS.push({
   }),
 });
 
-// (6) **The About inside the view holds the page still and gives the focus back**
-// (the review: the sheet's body rule let the page scroll under it, and the
-// opener rebuilt by the view's close left the focus on the page).
+// (6) **The About from inside the view** (the review: the sheet's body rule let the page scroll under it, and the
+// opener rebuilt by the view's close left the focus on the page). Since PLAN-LIBRARY phase 2 the About is the panel's
+// tab, and the panel is not drawn in the view: the question at twelve pressed there closes the view and opens the
+// panel on About (the test round, 10-21: it had opened unseen), and Escape gives play its focus.
 SCENARIOS.push({
-  name: 'the About opened from the ring inside the view: the page does not scroll under it, and closed after the view it gives play its focus',
-  area: 'view',
+  name: 'the About opened from the ring inside the view closes the view and shows the panel on About, and Escape gives play its focus',
+  area: ['view', 'library'],
   query: 'v=2&seed=1',
   drive: async (page) => {
     const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
@@ -10673,43 +10626,48 @@ SCENARIOS.push({
       await p.waitForTimeout(500);
       await p.evaluate(() => { const g = document.querySelector('#actions g[data-action="play"]'); g.focus(); });
       await p.keyboard.press('Enter');
-      await p.waitForTimeout(300);
-      const open = await p.evaluate(() => ({ open: document.getElementById('about').open, overflow: getComputedStyle(document.body).overflow }));
-      const scroll = await p.evaluate(async () => { const y0 = scrollY; window.scrollBy(0, 600); document.scrollingElement.scrollTop += 600; await new Promise((r) => setTimeout(r, 100)); return [y0, scrollY]; });
-      await p.evaluate(() => window.ring.machine.close());
-      await p.waitForTimeout(300);
+      await p.waitForTimeout(400);
+      const open = await p.evaluate(() => { const l = document.getElementById('library'); const b = l.getBoundingClientRect(); return { view: window.ring.machine.on, address: /view=machine/.test(location.search), open: l.open, seen: b.width > 0 && b.height > 0, about: !document.getElementById('libAbout').hidden, scroll: scrollY }; });
       await p.keyboard.press('Escape');
       await p.waitForTimeout(300);
-      const back = await p.evaluate(() => { const a = document.activeElement; return { open: document.getElementById('about').open, active: a ? a.getAttribute('data-action') || a.id || a.tagName : null }; });
-      return { open, scroll, back };
+      const back = await p.evaluate(() => { const a = document.activeElement; return { open: document.getElementById('library').open, active: a ? a.getAttribute('data-action') || a.id || a.tagName : null, playing: window.ring.control.playing }; });
+      return { open, back };
     } finally { await own.close(); }
   },
   judge: (r) => ({
-    ok: r.open.open && r.open.overflow === 'hidden' && r.scroll[0] === r.scroll[1] && !r.back.open && r.back.active === 'play',
+    ok: !r.open.view && !r.open.address && r.open.open && r.open.seen && r.open.about && r.open.scroll === 0 && !r.back.open && r.back.active === 'play' && !r.back.playing,
     why: JSON.stringify(r),
-    note: `opened from play inside the view the About held the page (body overflow ${r.open.overflow}, the scroll ${r.scroll.join(' → ')}); the view closed under it and Escape gave the focus to ${r.back.active}`,
+    note: `the question pressed inside the view closed it (view=machine off the address) and the panel stood open on About, the page at ${r.open.scroll}; Escape closed it with the focus on ${r.back.active} and the set not started`,
   }),
 });
 
-// (7) **COPY LINK keeps the focus on the fallback path** (both reviews).
+// (7) **Copy link keeps the focus on the fallback path** (both reviews; since 10-21 the share circle's item, whose
+// menu closes after "Copied" with the focus on the circle)
 SCENARIOS.push({
-  name: 'COPY LINK pressed by a key with no async clipboard keeps the focus on the key',
-  area: 'view',
+  name: 'the share circle\'s Copy link pressed by a key with no async clipboard copies and gives the focus back to the circle',
+  area: 'library',
   query: 'v=2&seed=1',
   drive: async (page) => {
     const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
     const p = own.page;
     try {
-      await p.evaluate(body(OPEN_VIEW + 'return 1;'));
-      await p.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }); window.scrollTo(0, 0); document.querySelector('#machine [data-tool="copy"]').focus(); });
+      await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }));
+      await p.focus('#gyro');
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(250);
+      await p.focus('#panelShare');
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(250);
+      const first = await p.evaluate(SHARE_READ);
       await p.keyboard.press('Enter');
       await p.waitForTimeout(200);
-      const r = await p.evaluate(() => ({ label: document.querySelector('#machine [data-tool="copy"]').textContent.trim(), active: document.activeElement ? document.activeElement.getAttribute('data-tool') || document.activeElement.tagName : null }));
-      await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-      return r;
+      const label = await p.evaluate(() => { const b = document.querySelector('.shareMenu [data-share="link"]'); return b ? b.textContent.trim() : null; });
+      await p.waitForTimeout(1200);
+      const later = await p.evaluate(SHARE_READ);
+      return { first, label, later };
     } finally { await own.close(); }
   },
-  judge: (r) => ({ ok: r.label === 'copied' && r.active === 'copy', why: JSON.stringify(r), note: `the fallback copied (the key read "${r.label}") and the focus stayed on the ${r.active} key` }),
+  judge: (r) => ({ ok: r.first.focus === 'link' && r.label === 'Copied' && !r.later.open && r.later.focus === 'panelShare', why: JSON.stringify(r), note: `the menu opened with the focus on ${r.first.focus}; Enter copied by the fallback (the item read "${r.label}"), and the menu closed with the focus on ${r.later.focus}` }),
 });
 
 // (8) **No stale manual page on the next open** (the review: its state lived
@@ -10763,7 +10721,7 @@ SCENARIOS.push({
 // (11) **One tolerance for the same spell** (the review: Ember held at 0.38 —
 // 96 % — still lit Deep House and House, within the lamps' old 0.015).
 SCENARIOS.push({
-  name: 'a spell a hundredth off the house lights neither Deep House nor House, and the SPELL tile marks that cell off the house',
+  name: 'a spell a hundredth off the house: the SPELL tile marks that cell off the house',
   area: 'view',
   query: 'v=2&seed=1&spell=ember:0.38',
   drive: async (page) => {
@@ -10773,28 +10731,26 @@ SCENARIOS.push({
       await p.evaluate(body(OPEN_VIEW + 'return 1;'));
       const r = await p.evaluate(() => ({
         spell: JSON.stringify(window.ring.machine.snapshot().spell),
-        lit: [...document.querySelectorAll('#machine .genres button')].filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre),
+        // (the genre keys' lamps went with genres-sky, 10-20: the sky lights no star by the playing spell)
         ember: document.querySelector('#machine .spell-grid .cell[data-bird="ember"]').className,
       }));
       await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
       return r;
     } finally { await own.close(); }
   },
-  judge: (r) => ({ ok: !r.lit.length && /off/.test(r.ember), why: JSON.stringify(r), note: `under ${r.spell} no genre key is lit and the tile's Ember cell reads off the house` }),
+  judge: (r) => ({ ok: /off/.test(r.ember), why: JSON.stringify(r), note: `under ${r.spell} the tile's Ember cell reads off the house` }),
 });
 
 // **Nothing moves when a header's key comes or goes** (M10, Eugene: *"both
 // BACK on genres and the LEDGER buttons, when present, stretch the header
 // vertically, and the page wiggles on pressing them"*): each header is one
-// height with its key and without it, and pressing a genre tile, LEDGER and
-// HIDE moves none of the ring box, the genre grid or the readings by a pixel,
-// at 390 and 1440 — read in the page's own coordinates, and the ring box,
-// pinned on a phone, where it stands in the window. Since GA8 the genres are
-// one level and have no BACK (rewritten in the merge round, Reconcile 1): the
-// GENRES header carries no key and is the READINGS header's height without its
-// LEDGER, and a tile pressed moves nothing.
+// height with its key and without it, and pressing LEDGER and HIDE moves
+// none of the ring box or the readings by a pixel, at 390 and 1440 — read in
+// the page's own coordinates, and the ring box, pinned on a phone, where it
+// stands in the window. (The GENRES header and its tiles went with genres-sky,
+// 10-20: the genres are the panel's Map tab.)
 SCENARIOS.push({
-  name: 'a header is one height with its key or without, and pressing a genre tile, LEDGER or HIDE moves nothing above or beside it',
+  name: 'a header is one height with its key or without, and pressing LEDGER or HIDE moves nothing above or beside it',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 120000,
@@ -10810,8 +10766,8 @@ SCENARIOS.push({
           const at = (sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + window.scrollX, r.top + window.scrollY, r.width, r.height].map((v) => Math.round(v * 10) / 10); };
           // the ring box is pinned on a phone: it is read where it stands in the window
           const pin = (sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * 10) / 10); };
-          return { ring: pin('#machine .ringbox'), grid: at('#machine .genres'), list: at('#machine .list'), gHead: at('#machine .genre-block h2'), rHead: at('#machine .facts h2'),
-            lHead: at('#machine .pane.ledger h2'), back: !!document.querySelector('#machine [aria-label="Back to the genre families"]'), key: !!document.querySelector('#machine [aria-label="Show the ledger"]'),
+          return { ring: pin('#machine .ringbox'), list: at('#machine .list'), rHead: at('#machine .facts h2'),
+            lHead: at('#machine .pane.ledger h2'), key: !!document.querySelector('#machine [aria-label="Show the ledger"]'),
             scroll: Math.round(window.scrollY), height: document.documentElement.scrollHeight };
         });
         // the key brought into view first, and the page read there, so what a press moves is the press's
@@ -10824,14 +10780,12 @@ SCENARIOS.push({
           return pre;
         };
         const families = await read();
-        const preBack = await press('#machine .genres button[data-genre="Techno"]');
-        const backed = await read();
         const preShow = await press('#machine [aria-label="Show the ledger"]');
         const shown = await read();
         const preHide = await press('#machine [aria-label="Hide the ledger"]');
         const hidden = await read();
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { families, preBack, backed, preShow, shown, preHide, hidden };
+        out[name] = { families, preShow, shown, preHide, hidden };
       } finally { await own.close(); }
     }
     return out;
@@ -10840,16 +10794,14 @@ SCENARIOS.push({
     const bad = [];
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     for (const [k, x] of Object.entries(r)) {
-      if (x.families.back || x.backed.back) bad.push(`${k}: a BACK key is on the genres`);
-      if (x.backed.gHead[3] !== x.families.gHead[3] || x.families.gHead[3] !== x.shown.rHead[3]) bad.push(`${k}: the GENRES header is ${x.families.gHead[3]} px, ${x.backed.gHead[3]} after a tile, and the READINGS header without its key ${x.shown.rHead[3]}`);
       if (!x.families.key || x.shown.key) bad.push(`${k}: LEDGER stood over the readings ${x.families.key}, after it was pressed ${x.shown.key}`);
       if (x.shown.rHead[3] !== x.families.rHead[3]) bad.push(`${k}: the READINGS header is ${x.families.rHead[3]} px with LEDGER and ${x.shown.rHead[3]} without it`);
-      for (const [a, b, what] of [[x.preBack, x.backed, 'a genre tile'], [x.preShow, x.shown, 'LEDGER'], [x.preHide, x.hidden, 'HIDE']]) {
+      for (const [a, b, what] of [[x.preShow, x.shown, 'LEDGER'], [x.preHide, x.hidden, 'HIDE']]) {
         // on a phone the ledger is the page's end: put away, the page is shorter by it and the browser takes the
         // scroll back by as much, which is the page ending and not a wiggle — the pinned ring rides that scroll
         const clamp = k === '390' && what === 'HIDE' ? a.scroll - b.scroll : 0;
         if (clamp && Math.abs(clamp - Math.min(a.height - b.height, a.scroll)) > 2) bad.push(`${k}: HIDE took the scroll back by ${clamp} px where the page shortened by ${a.height - b.height}`);
-        for (const el of ['ring', 'grid', 'list']) {
+        for (const el of ['ring', 'list']) {
           if (el === 'ring' && clamp) continue;
           if (!same(a[el], b[el])) bad.push(`${k}: pressing ${what} moved the ${el} from ${a[el]} to ${b[el]}`);
         }
@@ -10858,103 +10810,28 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and on a phone the GENRES header is ${r['1440'].families.gHead[3]} and ${r['390'].families.gHead[3]} px with no key, the READINGS header ${r['1440'].families.rHead[3]} and ${r['390'].families.rHead[3]} px with LEDGER or without, and pressing Techno, LEDGER and HIDE moved the ring box, the genre grid and the readings by nothing; on a phone HIDE, the page's last block, shortens the page by ${r['390'].preHide.height - r['390'].hidden.height} px and the browser takes the scroll back by ${r['390'].preHide.scroll - r['390'].hidden.scroll}, which is the page ending`,
+      note: `at 1440 and on a phone the READINGS header is ${r['1440'].families.rHead[3]} and ${r['390'].families.rHead[3]} px with LEDGER or without, and pressing LEDGER and HIDE moved the ring box and the readings by nothing; on a phone HIDE, the page's last block, shortens the page by ${r['390'].preHide.height - r['390'].hidden.height} px and the browser takes the scroll back by ${r['390'].preHide.scroll - r['390'].hidden.scroll}, which is the page ending`,
     };
   },
 });
 
-// **An untuned genre key presses nothing** (M10, Eugene: *"the tiles we do not
-// support completely need to be disabled and not clickable"*). Since GA8 the
-// grid is nine fixed tiles and none is untuned today (rewritten in the merge
-// round, Reconcile 1): at 390 and 1440 every tile presses, none is marked
-// untuned; a tile that plays by its rows (Dubstep), pressed by a hand, writes
-// its ledger line and its spell into the address and lights on arrival, its
-// tooltip saying so with no bird in it; Drum & Bass, tuned since ad8fe232 on
-// Liquid's measured spell (the place groomed on 10-06), pressed writes its line
-// and its whole spell, its tooltip Liquid's own sentence and no longer one the
-// ring cannot reach (d20ea4ee).
-//
-// The line is counted right after the press: the ledger keeps half a minute
-// (KEEP_SECONDS), and a hand-over now takes about that long to arrive — a far
-// tempo is ridden before the blend (a5c1b9ca) — so a count taken on arrival
-// read nought once the line had aged out. The lamp is waited on for a minute.
-SCENARIOS.push({
-  name: 'no genre tile is untuned today: every one of the nine presses, a tile with rows plays them and lights on arrival, and a tuned one plays its spell',
-  area: 'view',
-  query: 'v=2&seed=1',
-  deadline: 180000,
-  drive: async (page) => {
-    const out = {};
-    for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
-      const own = await ownPage(page, opts);
-      const p = own.page;
-      try {
-        await p.evaluate(body(OPEN_VIEW + 'return 1;'));
-        const state = () => p.evaluate(() => ({ asked: window.ring.control.mix && window.ring.control.mix.spellAsked ? JSON.stringify(window.ring.control.mix.spellAsked) : null, url: location.search,
-          lines: window.ring.machine.snapshot().ledger.filter((e) => /genre preset/.test(e.what)).length,
-          lamps: [...document.querySelectorAll('#machine .genres button')].filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre).join(',') }));
-        const press = async (genre) => {
-          const c = await p.evaluate((g) => { const e = document.querySelector('#machine .genres button[data-genre="' + g + '"]'); e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, genre);
-          await p.waitForTimeout(150);
-          if (name === '390') await p.touchscreen.tap(c.x, c.y); else await p.mouse.click(c.x, c.y);
-          await p.waitForTimeout(400);
-        };
-        const about = (g) => p.evaluate((g) => document.querySelector('#machine .genres button[data-genre="' + g + '"]').title, g);
-        const keys = await p.evaluate(() => [...document.querySelectorAll('#machine .genres button')].map((k) => [k.dataset.genre, k.getAttribute('aria-disabled'), k.hasAttribute('data-untuned'), k.disabled]));
-        const before = await state();
-        await press('Dubstep');
-        const pressed = await state();
-        // its key lights when the spell arrives, a hand-over later
-        const t0 = Date.now();
-        await p.waitForFunction(() => document.querySelector('#machine .genres button[data-genre="Dubstep"]').getAttribute('aria-pressed') === 'true', null, { timeout: 60000 }).catch(() => {});
-        const rows = { ...pressed, lamps: (await state()).lamps, after: Math.round((Date.now() - t0) / 1000), about: await about('Dubstep') };
-        const linesBefore = (await state()).lines;
-        await press('Drum & Bass');
-        const tuned = { ...(await state()), linesBefore, about: await about('Drum & Bass') };
-        await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { keys, before, rows, tuned };
-      } finally { await own.close(); }
-    }
-    return out;
-  },
-  judge: (r) => {
-    const bad = [];
-    const DNB = { em: 0.95, ti: 0.45, ze: 0.6, ro: 0.75, ve: 0.6, sp: 0.85, lo: 0.85 };
-    const spellIn = (url) => { const m = /[?&]spell=([^&]*)/.exec(url); return m ? Object.fromEntries(decodeURIComponent(m[1]).split(',').map((kv) => kv.split(':')).map(([k, v]) => [k, +v])) : null; };
-    for (const [k, x] of Object.entries(r)) {
-      const off = x.keys.filter(([, d, u, dis]) => d === 'true' || u || dis).map(([g]) => g);
-      if (x.keys.length !== 9 || off.length) bad.push(`${k}: of ${x.keys.length} tiles ${off.join(', ')} are disabled`);
-      if (x.rows.lines !== x.before.lines + 1 || x.rows.url === x.before.url || x.rows.lamps !== 'Dubstep' || !/plays its recipes on a turn/.test(x.rows.about) || /bird/i.test(x.rows.about)) bad.push(`${k}: Dubstep pressed read ${JSON.stringify(x.rows)}`);
-      const got = spellIn(x.tuned.url);
-      const whole = got && Object.entries(DNB).every(([b, v]) => Math.abs((got[b] ?? NaN) - v) < 0.006);
-      if (x.tuned.lines !== x.tuned.linesBefore + 1 || x.tuned.url === x.rows.url || !whole) bad.push(`${k}: Drum & Bass pressed wrote ${x.tuned.lines - x.tuned.linesBefore} lines and the address ${x.tuned.url}`);
-      if (!/^Liquid: .*The Drum & Bass tile opens here\.$/.test(x.tuned.about) || /Not reached by the ring/.test(x.tuned.about)) bad.push(`${k}: the Drum & Bass tooltip reads "${x.tuned.about}"`);
-    }
-    return {
-      ok: !bad.length,
-      why: bad[0],
-      note: `at 1440 and on a phone the nine tiles all press and none is marked untuned; Dubstep pressed played by its rows ("${r['1440'].rows.about}") and lit ${r['1440'].rows.lamps} on arrival, ${r['1440'].rows.after} and ${r['390'].rows.after} s after the press; Drum & Bass pressed wrote its line and Liquid's whole spell into the address (${r['1440'].tuned.url}), its tooltip Liquid's own`,
-    };
-  },
-});
+// ("No genre tile is untuned" (M10, GA8) is retired with genres-sky, 10-20: the sky draws a sub-genre
+// tuned only by its rows as an open ring that presses nothing, and every lit star presses: the sky's house-v1 row
+// at the end of this file holds both.)
 
 // **The ways out of the view** (M8, Eugene: *"the bottom-right icon going to
 // the machine view should be hidden in the machine view itself, and the exit
 // should be a few more obvious things: clicking on the dark space at the edge
-// of the ring, and a Close button on the right of the GENRES header"*), and the
-// GENRES header's WORK IN PROGRESS (*"to outline that this is wishful thinking
-// here"*): the mark unseen in the view, the tag centred between the title and
-// the keys, a still press on the dark round the ring closing it and a drag
-// there not, each close taking `view=machine` off the address and leaving the
-// focus on the ring. **Since M9 the way back is BACK in the ring box's
-// top-right corner** (Eugene: *"the RING button on Genres doesn't read — put it
-// into the top-right corner of the ring box itself, and just name it Back"*),
-// **and since M10 its bottom-right** (*"to mirror the original cog button which
-// is always there on the main view"*): there at 390, 1440 and 2560, a spacing
-// step clear of the box's bottom edge, clear of the ring's circle and of
-// everything the ring draws, and no RING key anywhere.
+// of the ring …"*): the way in unseen in the view, a still press on the dark
+// round the ring closing it and a drag there not, each close taking
+// `view=machine` off the address and leaving the focus on the ring. **Since
+// 10-21 (menu-fit) the way back is a ‹ in a circle at the ring box's top-left**
+// (his word: the toolbar under the ring went, its copy keys to the panel's
+// share circle; a × beside the ring read as closing the ring): 30 px, 22 px
+// down and 16 px in, at 390, 1440 and 2560. GENRES and its WORK IN PROGRESS
+// went with the genre keys (genres-sky: the Map tab is the genres now).
 SCENARIOS.push({
-  name: 'in the view the mark is unseen, GENRES says WORK IN PROGRESS on its title\'s line, the toolbar under the ring reads COPY AT · COPY LINK · CLOSE, and CLOSE or a still press on the dark round the ring closes it',
+  name: 'in the view the gyroscope and the panel are unseen, the back key stands in the ring box\'s top-left corner, and it or a still press on the dark round the ring closes the view',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 150000,
@@ -10969,40 +10846,27 @@ SCENARIOS.push({
           focus: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#actions')) }));
         await open();
         const inView = await p.evaluate(() => {
-          const mark = document.getElementById('panel').getBoundingClientRect();
-          const h = document.querySelector('#machine .genre-block h2').getBoundingClientRect();
-          const title = document.querySelector('#machine .genre-block h2 .title').getBoundingClientRect();
-          const tag = document.querySelector('#machine .genre-block [data-wip]');
-          const t = tag.getBoundingClientRect();
-          // (M13) the way back: CLOSE, the last key of the toolbar under the ring
-          const key = document.querySelector('#machine .ring-tools [data-exit="view"]');
+          const seen = (id) => { const e = document.getElementById(id); const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+          const key = document.querySelector('#machine [data-exit="view"]');
           const k = key.getBoundingClientRect();
-          const bar = document.querySelector('#machine .ring-tools').getBoundingClientRect();
           const box = document.querySelector('#machine .ringbox').getBoundingClientRect();
-          const keys = [...document.querySelectorAll('#machine .ring-tools button')];
-          const rects = keys.map((b) => b.getBoundingClientRect());
-          const rings = [...document.querySelectorAll('#machine button, #machine [role="button"]')].filter((b) => /^(ring|back)$/i.test(b.textContent.trim()) && !b.closest('.genre-block')).length;
-          const hk = [...document.querySelectorAll('#machine .genre-block h2 .keys button')].map((b) => b.getBoundingClientRect());
-          return { markSeen: mark.width > 0 && mark.height > 0, view: /(^|[?&])view=machine/.test(location.search),
-            tag: tag.textContent, tagTitle: tag.title,
-            // (M13) WORK IN PROGRESS on the title's own line, whole, clear of the title and of any key
-            oneLine: Math.abs((t.top + t.bottom) / 2 - (title.top + title.bottom) / 2) < 3, whole: tag.scrollWidth <= tag.clientWidth + 1,
-            between: t.left >= title.right && hk.every((b) => t.right <= b.left), headH: +h.height.toFixed(1),
-            order: keys.map((b) => b.textContent.trim()), inRow: rects.every((r) => Math.abs(r.top - rects[0].top) < 1) && rects.every((r, i) => !i || r.left > rects[i - 1].right),
-            underRing: Math.abs(bar.top - box.bottom) < 1.5, right: +(bar.right - k.right).toFixed(1),
-            key: key.textContent, keyTitle: key.title, rings, role: document.querySelector('#machine .ring-tools').getAttribute('role') };
+          const rings = [...document.querySelectorAll('#machine button, #machine [role="button"]')].filter((b) => /^(ring|back|close)$/i.test(b.textContent.trim())).length;
+          return { gyroSeen: seen('gyro'), panelSeen: seen('library'), view: /(^|[?&])view=machine/.test(location.search),
+            toolbar: document.querySelectorAll('#machine .ring-tools').length, genres: document.querySelectorAll('#machine .genre-block, #machine .genres').length,
+            size: [+k.width.toFixed(1), +k.height.toFixed(1)], down: +(k.top - box.top).toFixed(1), inset: +(k.left - box.left).toFixed(1),
+            label: key.getAttribute('aria-label'), keyTitle: key.title, tool: key.dataset.tool, rings };
         });
-        // CLOSE, pressed as a hand does
+        // the back key, pressed as a hand does
         const k = await p.evaluate(() => { const r = document.querySelector('#machine [data-exit="view"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
         if (name === '390') await p.touchscreen.tap(k.x, k.y); else await p.mouse.click(k.x, k.y);
         await p.waitForTimeout(300);
         const byKey = await state();
-        // the dark round the ring: a corner of its box, outside its circle
+        // the dark round the ring: a corner of its box, outside its circle and away from the back key
         await open();
         const dark = await p.evaluate(() => {
           const b = document.querySelector('#machine .ringbox').getBoundingClientRect(); const t = document.getElementById('tilt').getBoundingClientRect();
           const rr = Math.min(t.width, t.height) / 2; const cx = t.left + t.width / 2, cy = t.top + t.height / 2;
-          for (const [x, y] of [[b.left + 6, b.top + 6], [b.right - 6, b.top + 6], [b.left + 6, b.bottom - 6], [b.right - 6, b.bottom - 6]]) if (Math.hypot(x - cx, y - cy) > rr + 4) return { x, y };
+          for (const [x, y] of [[b.right - 6, b.top + 6], [b.left + 6, b.bottom - 6], [b.right - 6, b.bottom - 6]]) if (Math.hypot(x - cx, y - cy) > rr + 4) return { x, y };
           return null;
         });
         let dragged = null; let byPress = null;
@@ -11023,17 +10887,15 @@ SCENARIOS.push({
   judge: (r) => {
     const bad = [];
     for (const [k, x] of Object.entries(r)) {
-      if (x.inView.markSeen) bad.push(`${k}: the panel mark is seen over the view`);
+      if (x.inView.gyroSeen || x.inView.panelSeen) bad.push(`${k}: the ${x.inView.gyroSeen ? 'gyroscope' : 'panel'} is seen over the view`);
       if (!x.inView.view) bad.push(`${k}: the open view is not on the address`);
-      if (!/work in progress/i.test(x.inView.tag) || !x.inView.oneLine || !x.inView.whole || !x.inView.between) bad.push(`${k}: the tag "${x.inView.tag}" on the title's line ${x.inView.oneLine}, whole ${x.inView.whole}, between the title and the keys ${x.inView.between}`);
-      if (!/^copy at \d+:\d\d,copy link,close$/.test(x.inView.order.join()) || !x.inView.inRow || !x.inView.underRing || x.inView.right < 7.5 || x.inView.right > 16) bad.push(`${k}: the toolbar reads ${x.inView.order.join(' · ')}, in one row ${x.inView.inRow}, under the ring ${x.inView.underRing}, ${x.inView.right} px from its right`);
-      // since GA8 the tooltip counts the tiles, not a tier's sub-genres (rewritten in the merge round, Reconcile 1)
-      if (!/^Work in progress: \d+ of the \d+ genres play/.test(x.inView.tagTitle)) bad.push(`${k}: the tag's tooltip says "${x.inView.tagTitle}"`);
-      if (!/^close$/i.test(x.inView.key) || !/closes the machine view/.test(x.inView.keyTitle)) bad.push(`${k}: the key reads "${x.inView.key}" ("${x.inView.keyTitle}")`);
-      if (x.inView.rings) bad.push(`${k}: ${x.inView.rings} RING or BACK keys outside the genres are still on the page`);
-      // (M14) a plain group of tab stops: a toolbar role promises arrow keys, and the page's one key is Space
-      if (x.inView.role !== 'group') bad.push(`${k}: the toolbar's role is ${x.inView.role}`);
-      if (x.byKey.on || x.byKey.view || !x.byKey.focus) bad.push(`${k}: CLOSE left ${JSON.stringify(x.byKey)}`);
+      if (x.inView.toolbar || x.inView.genres) bad.push(`${k}: the view still has ${x.inView.toolbar} toolbars and ${x.inView.genres} genre blocks`);
+      // (the view's type and keys grow by a quarter at 2560, as the ledger's key does)
+      const t = k === '2560' ? 1.25 : 1;
+      if (Math.abs(x.inView.size[0] - 30 * t) > 1 || Math.abs(x.inView.size[1] - 30 * t) > 1 || Math.abs(x.inView.down - 22 * t) > 1.5 || Math.abs(x.inView.inset - 16 * t) > 1.5) bad.push(`${k}: the back key is ${x.inView.size.join('x')} px, ${x.inView.down} down and ${x.inView.inset} in from the ring box's corner, where it is ${30 * t}, ${22 * t} and ${16 * t}`);
+      if (x.inView.tool !== 'close' || !/back to the ring/i.test(x.inView.label || '') || !/closes the machine view/.test(x.inView.keyTitle)) bad.push(`${k}: the key is "${x.inView.label}" ("${x.inView.keyTitle}", tool ${x.inView.tool})`);
+      if (x.inView.rings) bad.push(`${k}: ${x.inView.rings} RING, BACK or CLOSE keys in words are still on the page`);
+      if (x.byKey.on || x.byKey.view || !x.byKey.focus) bad.push(`${k}: the back key left ${JSON.stringify(x.byKey)}`);
       if (!x.dark) { bad.push(`${k}: no dark round the ring inside its box`); continue; }
       if (!x.dragged.on || !x.dragged.view) bad.push(`${k}: a drag on the dark closed the view (${JSON.stringify(x.dragged)})`);
       if (x.byPress.on || x.byPress.view || !x.byPress.focus) bad.push(`${k}: a still press on the dark left ${JSON.stringify(x.byPress)}`);
@@ -11041,9 +10903,8 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440, 2560 and on a phone the mark is not seen in the view; the GENRES header's "${r['1440'].inView.tag}" stands whole on the title's line between it and the keys (the header ${r['390'].inView.headH}, ${r['1440'].inView.headH} and ${r['2560'].inView.headH} px), its tooltip "${r['1440'].inView.tagTitle}"; `
-        + `the toolbar under the ring reads ${r['1440'].inView.order.join(' · ')} in one row, right-aligned ${r['390'].inView.right}, ${r['1440'].inView.right} and ${r['2560'].inView.right} px in, and no RING or BACK key is left outside the genres; `
-        + `CLOSE closed the view, a drag on the dark round the ring did not, a still press there did, and each close took view=machine off the address and left the focus on the ring`,
+      note: `at 1440, 2560 and on a phone neither the gyroscope nor the panel is seen in the view, no toolbar and no genre block; the back key ("${r['1440'].inView.label}") is ${r['1440'].inView.size.join('x')} px, ${r['1440'].inView.down} down and ${r['1440'].inView.inset} in from the ring box's corner; `
+        + `it closed the view, a drag on the dark round the ring did not, a still press there did, and each close took view=machine off the address and left the focus on the ring`,
     };
   },
 });
@@ -11880,126 +11741,31 @@ SCENARIOS.push({
 });
 
 SCENARIOS.push({
-  name: 'the genre keys have a header of their own, one lamp — the centre\'s — and no italics',
+  name: 'the engine keys stand last in the view\'s column, under a header of their own',
   area: 'view',
   query: 'v=2&seed=1',
   page: body(OPEN_VIEW + `
-    const block = document.querySelector('#machine .genre-block');
-    const head = block && block.querySelector('h2');
-    const keys = [...document.querySelectorAll('#machine .genres button')];
-    // (M17) one lamp, the centre's: the style that plays
-    const lamped = keys.filter((k) => k.querySelector('[data-lamp]'));
-    const insets = lamped.map((k) => +(k.querySelector('[data-lamp]').getBoundingClientRect().left - k.getBoundingClientRect().left).toFixed(1));
-    const lampOnCentre = lamped.length === 1 && lamped[0] === keys[4];
-    const italic = keys.filter((k) => getComputedStyle(k).fontStyle === 'italic').length;
-    // (M8) the genres directly under the ring, and the engine at the foot of the column under a header of its own
-    // (M13) directly under the ring's block: the ring and its toolbar
-    const ring = document.querySelector('#machine .ring-block').getBoundingClientRect();
-    const gap = head ? head.getBoundingClientRect().top - ring.bottom : null;
+    // (the genre keys, their header and their one lamp went with genres-sky, 10-20: the genres are the panel's Map tab)
+    const genres = document.querySelectorAll('#machine .genre-block, #machine .genres').length;
+    // (M8) the engine at the foot of the column under a header of its own
     const eb = document.querySelector('#machine .engine-block');
     const engineHead = eb && eb.querySelector('h2') ? eb.querySelector('h2').textContent : null;
     const engineLast = !!eb && eb === eb.parentElement.lastElementChild && eb.getBoundingClientRect().top >= document.querySelector('#machine .list').getBoundingClientRect().bottom - 1;
     window.ring.machine.close(); ctl.stop();
-    return { head: head ? head.textContent : null, keys: keys.length, insets: [...new Set(insets)], lampOnCentre, italic, gap, engineHead, engineLast };
+    return { genres, engineHead, engineLast };
   `),
   judge: (r) => ({
-    ok: r.head && /genres/i.test(r.head) && r.keys >= 8 && r.insets.length === 1 && r.lampOnCentre && !r.italic && r.gap >= 0 && r.gap <= 1 && /engine/i.test(r.engineHead || '') && r.engineLast,
+    ok: !r.genres && /engine/i.test(r.engineHead || '') && r.engineLast,
     why: JSON.stringify(r),
-    note: `the ${r.keys} keys stand under their own header ("${r.head}") directly under the ring, the engine row last in the column under "${r.engineHead}", one lamp, on the centre, ${r.insets[0]} px in from its left edge, none in italics`,
+    note: `the engine row stands last in the column under "${r.engineHead}", and no genre block is left in the view`,
   }),
 });
 
-SCENARIOS.push({
-  name: 'under house-v1 only the centre genre key stands, lit, and the other eight do nothing; under house-v2 they steer',
-  area: 'view',
-  query: 'v=1&seed=1',
-  drive: async (page) => {
-    const out = {};
-    for (const q of ['v=1&seed=1', 'v=2&seed=1']) {
-      const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
-      const p = own.page;
-      try {
-        await p.goto(p.url().replace(/\?.*$/, '') + '?' + q + '&out=silent', { waitUntil: 'networkidle' });
-        await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
-        out[q] = await p.evaluate(body(OPEN_VIEW + `
-          const keys = [...document.querySelectorAll('#machine .genres button')];
-          const lines = () => window.ring.machine.snapshot().ledger.filter((e) => /genre preset/.test(e.what)).length;
-          const before = lines();
-          const outer = keys[0];
-          outer.click();
-          await sleep(300);
-          const caption = document.querySelector('#machine .genre-block .caption');
-          const r = { disabled: keys.filter((k) => k.disabled).map((k) => k.dataset.genre), centreLit: keys[4].getAttribute('aria-pressed'), centre: keys[4].dataset.genre,
-            outer: outer.dataset.genre, labels: [...document.querySelectorAll('#machine .genres button')].map((k) => k.dataset.genre).join(),
-            lines: lines() - before, asked: ctl.mix && ctl.mix.spellAsked ? Object.keys(ctl.mix.spellAsked).length : 0,
-            caption: caption ? caption.textContent : null };
-          window.ring.machine.close(); ctl.stop();
-          return r;
-        `));
-      } finally { await own.close(); }
-    }
-    return out;
-  },
-  judge: (r) => {
-    const v1 = r['v=1&seed=1']; const v2 = r['v=2&seed=1'];
-    return {
-      // (since GA8 the grid is one level, nine fixed tiles round Deep House: under
-      // house-v2 an outer tile pressed plays its spell, and no tier opens;
-      // rewritten in the merge round, Reconcile 1)
-      ok: v1.disabled.length === 8 && v1.centre === 'Deep House' && v1.centreLit === 'true' && v1.lines === 0 && /house-v2 only/.test(v1.caption || '')
-        && v2.disabled.length === 0 && v2.lines === 1 && v2.asked > 0 && v2.labels === v1.labels && v2.caption === null,
-      why: JSON.stringify(r),
-      note: `under house-v1 the outer keys are disabled ("${v1.caption}"), the centre is lit, and a press on one wrote nothing and asked no spell; under house-v2 the same press on ${v2.outer} wrote its line and asked its spell, and the nine stayed where they stand`,
-    };
-  },
-});
+// (The house-v1 genre-key row is retired with genres-sky, 10-20, and follows the genres to the sky: under house-v1
+// only the Deep House star presses — the sky's second row at the end of this file.)
 
-// **The genres are one level** (GA8, Eugene: *"focus only on a few genres for
-// now, the most abstract; remove sub-views and have only 9 top-level tiles"*;
-// this row was M8's two tiers, rewritten in the merge round, Reconcile 1): the
-// nine stand round Deep House, the centre and the house lit with the dot; the
-// centre pressed plays the house and nothing moves; Dubstep pressed plays its
-// rows' place, writes its line, and the address carries no genre word.
-SCENARIOS.push({
-  name: 'the genres are one level of nine tiles round Deep House: the centre plays the house, a tile plays its spell or its rows, no tier opens and no genre word reaches the address',
-  area: 'view',
-  query: 'v=2&seed=1',
-  page: body(OPEN_VIEW + `
-    const keys = () => [...document.querySelectorAll('#machine .genres button')];
-    const grid = () => ({ caption: document.querySelector('#machine .genre-block .caption'), centre: keys()[4] && keys()[4].dataset.genre, labels: keys().map((k) => k.dataset.genre),
-      back: !!document.querySelector('#machine [aria-label="Back to the genre families"]'), opens: document.querySelectorAll('#machine .genres [data-opens]').length });
-    const t1 = grid();
-    t1.caption = !!t1.caption;
-    t1.lit = keys().filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    const houseLines = window.ring.machine.snapshot().ledger.filter((e) => /genre preset: Deep House/.test(e.what)).length;
-    keys()[4].click();
-    await sleep(200);
-    const t2 = grid();
-    t2.caption = !!t2.caption;
-    t2.line = window.ring.machine.snapshot().ledger.filter((e) => /genre preset: Deep House/.test(e.what)).length - houseLines;
-    const lines = () => window.ring.machine.snapshot().ledger.filter((e) => /genre preset/.test(e.what)).map((e) => e.what);
-    keys().find((k) => k.dataset.genre === 'Dubstep').click();
-    await waitFor(() => ctl.mix && ctl.mix.spellAsked, 3000);
-    await sleep(300);
-    const t3 = grid();
-    t3.caption = !!t3.caption;
-    const played = { asked: ctl.mix && ctl.mix.spellAsked ? JSON.stringify(ctl.mix.spellAsked) : null, line: lines().pop() || '', url: location.search };
-    window.ring.machine.close(); ctl.stop();
-    return { t1, t2, t3, played };
-  `),
-  judge: (r) => {
-    // (G4) the cells in tempo order: fast above, slow below, Trip Hop on Disco's tile
-    const NINE = 'Drum & Bass,Dubstep,Trance,Techno,Deep House,Breaks,Downtempo,Trip Hop,Ambient';
-    const same = [r.t1, r.t2, r.t3].every((t) => t.labels.join() === NINE && t.centre === 'Deep House' && !t.back && !t.opens && !t.caption);
-    const ok = same && r.t1.lit.join() === 'Deep House' && r.t2.line === 1
-      && r.played.asked && /genre preset: Dubstep/.test(r.played.line) && !/dub|step|genre/i.test(decodeURIComponent(r.played.url));
-    return {
-      ok,
-      why: JSON.stringify(r),
-      note: `the grid is ${r.t1.labels.join(' · ')} round ${r.t1.centre}, ${r.t1.lit.join(' and ')} lit at the house, no tier caption and no way back; the centre pressed played the house and moved nothing; Dubstep pressed asked ${r.played.asked} ("${r.played.line}") with no genre word in the address, and the nine stood where they stood`,
-    };
-  },
-});
+// ("The genres are one level" (GA8) is retired with genres-sky, 10-20: the tiles are gone. Its rules — the house
+// asked as a bare spell, no genre word in the address — are the sky's first row at the end of this file.)
 
 SCENARIOS.push({
   name: 'a bus meter explains its three colours and its held peak, from its M S D row and not its LEDs',
@@ -12269,33 +12035,34 @@ SCENARIOS.push({
   },
 });
 
-// **The panel mark follows the hand through the chunk's load, and an open that
+// **The view's key follows the view through the chunk's load, and an open that
 // fails leaves nothing behind** (R117, R130). A second press while the view's
 // chunk was in flight got `null` back and set the mark to closed while the view
 // opened anyway; and an open that threw half way left the sheet, `data-view`
-// and the ring moved into a panel that was never drawn.
+// and the ring moved into a panel that was never drawn. Since PLAN-LIBRARY
+// phase 2 the way in is the panel's machine key (`#machineKey`), which only
+// opens (the view's back key closes it): presses inside the load end open, the
+// key saying so.
 SCENARIOS.push({
-  name: 'the panel mark follows the hand while the view loads, and a failed open leaves the page as it was',
+  name: 'the machine key says the view is up once it loads, however often it was pressed, and a failed open leaves the page as it was',
   area: 'view',
   query: 'v=2&seed=3',
   page: body(`
-    const mark = el('panel');
+    const mark = el('machineKey');
     const home = el('stage').parentNode;
     const state = () => ({ on: window.ring.machine.on, aria: mark.getAttribute('aria-expanded'),
       view: document.documentElement.getAttribute('data-view'), host: !!el('machine'), sheet: !!el('machineSheet'),
-      home: el('stage').parentNode === home });
-    // two presses inside the load: open, then close
+      home: el('stage').parentNode === home, panel: el('library').open });
+    // the panel open, its key pressed twice inside the load: the panel shuts and the view opens
+    el('gyro').click();
+    await sleep(200);
     mark.click(); mark.click();
-    const early = state();
-    await waitFor(() => false, 1500);
-    const twice = state();
-    // three: open, close, open
-    mark.click(); mark.click(); mark.click();
     await waitFor(() => window.ring.machine.on, 3000);
     await sleep(200);
-    const thrice = state();
-    mark.click();
+    const twice = state();
+    window.ring.machine.close();
     await sleep(200);
+    const shut = state();
     // an open that throws half way: the store cannot subscribe
     const sub = ctl.subscribe;
     ctl.subscribe = () => { throw new Error('scenario: the store cannot subscribe'); };
@@ -12310,19 +12077,19 @@ SCENARIOS.push({
     const again = state();
     window.ring.machine.close();
     await sleep(100);
-    return { early, twice, thrice, failed, again, threw };
+    return { twice, shut, failed, again, threw };
   `),
   judge: (r) => {
     const closed = (x) => !x.on && x.aria === 'false' && !x.view && !x.host && !x.sheet && x.home;
     const open = (x) => x.on && x.aria === 'true' && x.view === 'machine' && x.host && x.sheet && !x.home;
-    const bad = !closed(r.twice) ? `two presses in the load left ${JSON.stringify(r.twice)}`
-      : !open(r.thrice) ? `three presses in the load left ${JSON.stringify(r.thrice)}`
+    const bad = !open(r.twice) || r.twice.panel ? `two presses in the load left ${JSON.stringify(r.twice)}`
+      : !closed(r.shut) ? `the view closed left ${JSON.stringify(r.shut)}`
       : !closed(r.failed) ? `an open that threw left ${JSON.stringify(r.failed)}`
       : !open(r.again) ? `the page did not open the view after a failed open: ${JSON.stringify(r.again)}` : null;
     return {
       ok: !bad,
       why: bad,
-      note: 'two presses inside the load end closed and the mark says so, three end open; an open whose store could not subscribe took the sheet, the attribute and its host away and put the ring home, and the next open worked',
+      note: 'two presses of the panel\'s machine key inside the load shut the panel and ended with the view up and the key saying so; closed, the key says closed; an open whose store could not subscribe took the sheet, the attribute and its host away and put the ring home, and the next open worked',
     };
   },
 });
@@ -14771,7 +14538,7 @@ SCENARIOS.push({
 // view's mark are inside the visual viewport the sheet is what stands at them;
 // the ring is where it was before the sheet opened.
 SCENARIOS.push({
-  name: 'the panel is a bottom sheet whole inside the visual viewport, over the footer and the machine mark, however the browser\'s bars shorten it',
+  name: 'the panel is a bottom sheet whole inside the visual viewport, over the gyroscope, however the browser\'s bars shorten it',
   area: 'panel',
   deadline: 120000,
   query: 'v=2&seed=15576',
@@ -14792,9 +14559,10 @@ SCENARIOS.push({
       const r = (id) => { const b = document.getElementById(id).getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; };
       const vv = window.visualViewport;
       const sheet = document.getElementById('birdPanel');
-      // what stands at the footer's name and the machine mark, where they are inside the visual viewport
-      const covered = ['mark', 'panel'].map((id) => { const b = document.getElementById(id).getBoundingClientRect(); const x = b.x + b.width / 2, y = b.y + b.height / 2;
-        if (y < vv.offsetTop || y > vv.offsetTop + vv.height) return { id, seen: false };
+      // what stands at the gyroscope (the footer's name and the machine mark went with panel-shell, 10-20), where it is
+      // inside the visual viewport and drawn at all
+      const covered = ['gyro'].map((id) => { const b = document.getElementById(id).getBoundingClientRect(); const x = b.x + b.width / 2, y = b.y + b.height / 2;
+        if (!b.width || getComputedStyle(document.getElementById(id)).visibility === 'hidden' || y < vv.offsetTop || y > vv.offsetTop + vv.height) return { id, seen: false };
         const top = document.elementFromPoint(x, y); return { id, seen: true, sheet: !!top && sheet.contains(top) }; });
       const rb = document.getElementById('tilt').getBoundingClientRect();
       return { name, open: !sheet.hidden, vvTop: vv.offsetTop, vvBottom: vv.offsetTop + vv.height, covered,
@@ -14827,7 +14595,7 @@ SCENARIOS.push({
       if (!x.open) { bad.push(`${x.name}: the panel is not open`); continue; }
       for (const [row, b] of Object.entries(x.rows)) if (b.top < x.vvTop - 0.5 || b.bottom > x.vvBottom + 0.5) bad.push(`${x.name}: the ${row} runs ${b.top.toFixed(1)}–${b.bottom.toFixed(1)}, the visual viewport ${x.vvTop}–${x.vvBottom}`);
       if (Math.abs(x.sheetBottom - x.vvBottom) > 1) bad.push(`${x.name}: the sheet ends at ${x.sheetBottom.toFixed(1)}, the visual viewport at ${x.vvBottom}`);
-      for (const c of x.covered) if (c.seen && !c.sheet) bad.push(`${x.name}: the ${c.id === 'mark' ? 'footer\'s name' : 'machine mark'} shows past the sheet`);
+      for (const c of x.covered) if (c.seen && !c.sheet) bad.push(`${x.name}: the gyroscope shows past the sheet`);
     }
     // (within half a pixel: a finger's lean on the ring eases back, and is ornament)
     if (r[0].ringAt.some((v, k) => Math.abs(v - res.ringBefore[k]) > 0.5)) bad.push(`the ring moved when the sheet opened: ${res.ringBefore} → ${r[0].ringAt}`);
@@ -15142,6 +14910,10 @@ SCENARIOS.push({
 SCENARIOS.push({
   name: 'the fast beat is the ring\'s first — the rim lifted on each beat and settling — lighter at 75, none at 54, and the inner ring breathes in every band',
   area: 'ring',
+  // **Alone, after the rest** (the test round, 10-21): it reads the rim frame by frame inside each beat, and with the
+  // lock screen's cover drawn again in every page (its raster had failed since menu-fit, 10-21) three other browsers'
+  // covers left its first frames of a beat late one run in two in the batch, while it passed alone
+  serial: true,
   deadline: 150000,
   query: 'v=2&seed=7&spell=ember:0.72', // (GA5: Ember 0.72 plays 120-130 on the curve)
   page: body(HAND + `
@@ -15159,6 +14931,11 @@ SCENARIOS.push({
     };
     await started();
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 15000);
+    // the lock screen's cover is drawn once after the start (1.5 s, then an idle slot): its raster is let pass before
+    // the frames are read, so a beat is read off the ring and not off the one-off cover (the test round, 10-21: with
+    // the cover drawn again after menu-fit's CSS broke it, its slot fell in the window one run in three)
+    if (navigator.mediaSession) await waitFor(() => window.ring.motion().cover.renders >= 1 || window.ring.motion().cover.failed >= 1, 10000);
+    await sleep(300);
     const bpm = ctl.readout().gridBpm || ctl.readout().bpm;
     // (since K30 the ring draws at 60 a second at most, so a browser frame may
     // be one the ring did not draw: after a change of tempo the reading starts
@@ -15319,68 +15096,9 @@ SCENARIOS.push({
   },
 });
 
-// **The genre keys** (PLAN-GENRES): nine presets under the ring. A key is a
-// spell and nothing else — pressed, it asks the control for its spell the way
-// a hand on the ring does, so the address carries the spell as usual and no
-// genre word; the ledger says which key; and the move arrives at the next
-// phrase line and lights the key. The centre asks for the house again, which
-// is a bare spell.
-SCENARIOS.push({
-  name: 'a genre key asks for its spell, the ledger names it, it lights on arrival, and Deep House returns to the house',
-  area: 'view',
-  query: 'v=2&seed=1',
-  deadline: 150000,
-  page: body(`
-    await started();
-    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
-    await bounded(window.ring.machine.open(), 12000);
-    await sleep(300);
-    // (GA8: one level, rewritten in the merge round, Reconcile 1) the nine
-    // tiles round Deep House, the house itself, and none opens a tier
-    const first = [...document.querySelectorAll('#machine .genres button.genre')].map((k) => k.dataset.genre);
-    const litFirst = [...document.querySelectorAll('#machine .genres button.genre')].filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    const keys = [...document.querySelectorAll('#machine .genres button.genre')];
-    const labels = keys.map((k) => k.dataset.genre);
-    const centre = keys.find((k) => k.dataset.genre === 'Deep House');
-    const litAtHouse = keys.filter((k) => k.getAttribute('aria-pressed') === 'true').map((k) => k.dataset.genre);
-    // a tuned tile that is not the house
-    const key = keys.find((k) => k.dataset.genre === 'Techno') || keys[0];
-    const genre = key.dataset.genre;
-    key.click();
-    await sleep(200);
-    const url = location.search;
-    const asked = ctl.mix.spellAsked;
-    const lines = () => window.ring.machine.snapshot().ledger.filter((e) => e.what.startsWith('genre preset:')).map((e) => e.what);
-    const line = lines().find((w) => w.startsWith('genre preset: ' + genre + ' '));
-    // the move lands at the next phrase line
-    const arrived = await waitFor(() => key.getAttribute('aria-pressed') === 'true', 100000);
-    const spellThen = ctl.readout().spell;
-    centre.click();
-    await sleep(200);
-    const urlHome = location.search;
-    const lineHome = lines().find((w) => w.startsWith('genre preset: ' + centre.dataset.genre + ' '));
-    const askedHome = ctl.mix.spellAsked;
-    window.ring.machine.close();
-    ctl.stop();
-    return { first, litFirst, labels, litAtHouse, genre, url, asked, line, arrived, spellThen, urlHome, lineHome, askedHome };
-  `),
-  judge: (r) => {
-    const bad = [];
-    if (r.first.length !== 9 || r.first[4] !== 'Deep House' || r.litFirst.join() !== 'Deep House') bad.push(`the grid ${r.first.join(', ')} with ${r.litFirst.join(', ') || 'nothing'} lit`);
-    if (r.litAtHouse.join() !== 'Deep House') bad.push(`at the house the lit keys were ${r.litAtHouse.join(', ') || 'none'}`);
-    if (!/[?&]spell=/.test(r.url)) bad.push(`the key wrote no spell into the address: ${r.url}`);
-    if (/genre|Dub|Techno|House|Ambient|Trance|Garage|Bass|Downtempo|Breaks|Disco|Misc/i.test(decodeURIComponent(r.url).replace(/v=\d/, ''))) bad.push(`a genre word reached the address: ${r.url}`);
-    if (!r.line) bad.push('the ledger has no "genre preset:" line for the key');
-    if (!r.arrived) bad.push(`the key never lit: the playing spell was ${JSON.stringify(r.spellThen)}`);
-    if (/[?&]spell=/.test(r.urlHome)) bad.push(`Deep House left a spell in the address: ${r.urlHome}`);
-    if (!r.lineHome) bad.push('the ledger has no line for Deep House');
-    return {
-      ok: !bad.length,
-      why: bad[0],
-      note: `the nine round Deep House, Deep House lit at the house; ${r.genre} wrote "${r.url}", the ledger said "${r.line}", and the key lit when the spell arrived; Deep House asked for the house again ("${r.urlHome}") with "${r.lineHome}"`,
-    };
-  },
-});
+// ("A genre key asks for its spell" (PLAN-GENRES) is retired with genres-sky, 10-20, and follows the genres to
+// the sky's first row at the end of this file: a star asks its spell as a hand would, no genre word in the address,
+// and Deep House asks for the house.)
 
 // **Round K21: no ray is seen on its own** (Eugene, on the benchmark's slow
 // tempo: *"the lines on the corona are still too prominent — need to blend them
@@ -15681,78 +15399,9 @@ SCENARIOS.push({
   },
 });
 
-// The gear: on the footer's line at its right end, level with the name, in
-// the ring's worn colour at half strength — on a desktop and on a phone, where
-// the name is centred and the gear still ends the line — and the name in
-// title case, Jost 500. Its contrast on the black is read off the phone's
-// picture: noticeable, and under the ring's own lines.
-SCENARIOS.push({
-  name: 'the machine mark is a gear at the right end of the footer line, level with the title-case name, in the worn colour at half strength',
-  area: 'ring',
-  query: 'v=2&seed=1',
-  drive: async (page) => {
-    const out = {};
-    for (const [name, opts] of [['desktop', { viewport: { width: 1440, height: 900 } }], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true }]]) {
-      const own = await ownPage(page, opts);
-      try {
-        out[name] = await own.page.evaluate(() => {
-          const m = document.getElementById('mark');
-          const b = document.getElementById('panel');
-          const svg = b.querySelector('svg');
-          const rng = document.createRange(); rng.selectNodeContents(m);
-          const t = rng.getBoundingClientRect();
-          const mb = m.getBoundingClientRect();
-          const g = svg.getBoundingClientRect();
-          const ms = getComputedStyle(m);
-          const bs = getComputedStyle(b);
-          const gold = getComputedStyle(document.documentElement).getPropertyValue('--gold').trim();
-          const probe = document.createElement('span'); probe.style.color = gold; document.body.appendChild(probe);
-          const goldRgb = getComputedStyle(probe).color; probe.remove();
-          return {
-            vw: innerWidth, vh: innerHeight,
-            text: m.textContent.trim(), transform: ms.textTransform, weight: ms.fontWeight, family: ms.fontFamily.split(',')[0].replace(/['"]/g, ''),
-            nameMid: (mb.top + mb.bottom) / 2, nameLeft: t.left, nameRight: t.right, nameCentre: (t.left + t.right) / 2,
-            gearMid: (g.top + g.bottom) / 2, gearLeft: g.left, gearRight: g.right, gearCx: (g.left + g.right) / 2, gearCy: (g.top + g.bottom) / 2,
-            parts: [...svg.children].map((n) => n.tagName).join('+'),
-            teeth: ((svg.querySelector('path') || { getAttribute: () => '' }).getAttribute('d').match(/Q/g) || []).length / 4,
-            colour: bs.color, goldRgb, opacity: bs.opacity,
-            // K28: a fifth larger — the gear drawn 21.6 px in a 44 px target, the name 12.24 px — and on a
-            // phone the name clears the ring's outermost circle (the section ring, 0.862 of its box)
-            gearPx: g.width, target: [b.getBoundingClientRect().width, b.getBoundingClientRect().height], nameSize: ms.fontSize,
-            clearsRing: (() => { const tb = document.getElementById('tilt').getBoundingClientRect(); const rr = Math.min(tb.width, tb.height) / 2 * 0.862; const cx = tb.x + tb.width / 2, cy = tb.y + tb.height / 2;
-              const dx = Math.max(t.left - cx, 0, cx - t.right), dy = Math.max(t.top - cy, 0, cy - t.bottom); return Math.round(Math.hypot(dx, dy) - rr); })(),
-          };
-        });
-        if (name === 'phone') out[name].px = await pixelAt(own.page, out[name].gearCx, out[name].gearCy, 11);
-      } finally { await own.close(); }
-    }
-    return out;
-  },
-  judge: (r) => {
-    const bad = [];
-    for (const [k, x] of Object.entries(r)) {
-      if (x.text !== 'Excelsior Arts' || x.transform !== 'none') bad.push(`${k}: the name reads ${x.text} under text-transform ${x.transform}`);
-      if (+x.weight !== 500 || x.family !== 'Jost') bad.push(`${k}: the name is ${x.family} ${x.weight}`);
-      if (x.parts !== 'path+circle' || x.teeth !== 8) bad.push(`${k}: the mark is ${x.parts} with ${x.teeth} teeth`);
-      if (Math.abs(x.gearMid - x.nameMid) > 1) bad.push(`${k}: the gear's middle is ${(x.gearMid - x.nameMid).toFixed(1)} px off the name's line`);
-      if (x.vw - x.gearRight > 24) bad.push(`${k}: the gear ends ${(x.vw - x.gearRight).toFixed(0)} px short of the right edge`);
-      if (x.gearLeft < x.nameRight + 6) bad.push(`${k}: the gear is ${(x.gearLeft - x.nameRight).toFixed(1)} px from the name`);
-      if (x.colour !== x.goldRgb || +x.opacity !== 0.5) bad.push(`${k}: the gear is ${x.colour} at ${x.opacity}, where the worn colour is ${x.goldRgb} at 0.5`);
-      if (Math.abs(x.gearPx - 21.6) > 0.5 || parseFloat(x.nameSize) < 12 || x.target[0] < 44 || x.target[1] < 44) bad.push(`${k}: the gear is ${x.gearPx} px in a ${x.target.join('x')} target and the name ${x.nameSize}, where they are 21.6 in 44 and 12.24`);
-      if (x.clearsRing <= 0) bad.push(`${k}: the name overlaps the ring's outer circle by ${-x.clearsRing} px`);
-    }
-    if (Math.abs(r.phone.nameCentre - r.phone.vw / 2) > 1.5) bad.push(`phone: the name is ${(r.phone.nameCentre - r.phone.vw / 2).toFixed(1)} px off the centre`);
-    const ratio = r.phone.px ? r.phone.px.ratio : 0;
-    if (!(ratio >= 2.5 && ratio <= 5)) bad.push(`phone: the gear's contrast on the black is ${ratio}:1, outside 2.5–5`);
-    return {
-      ok: !bad.length,
-      why: bad[0],
-      note: `the name reads "Excelsior Arts" in Jost 500 as written; the mark is an eight-tooth gear (a path and its hole) ending the footer's line ${(r.desktop.vw - r.desktop.gearRight).toFixed(0)} px from the right, `
-        + `its middle ${(r.desktop.gearMid - r.desktop.nameMid).toFixed(1)} px off the name's on a desktop and ${(r.phone.gearMid - r.phone.nameMid).toFixed(1)} on a phone, where the name is centred; `
-        + `in the worn colour ${r.desktop.goldRgb} at 0.5, ${ratio}:1 on the black at phone size; since K28 the gear ${r.phone.gearPx} px in a ${r.phone.target.join('x')} target and the name ${r.phone.nameSize}, clearing the ring by ${r.phone.clearsRing} px at 390 and ${r.desktop.clearsRing} at 1440`,
-    };
-  },
-});
+// (The footer's gear and the maker's name beside it (K28) are retired with panel-shell, 10-20: the footer went,
+// the maker's name is the About's foot, and the way to the machine view is the panel's corner key. The gyroscope's
+// place past the ring is held by "the page has one key" and by the sideways row below.)
 
 // **Round K24: focus is drawn, and only for a key.** Eugene on the preview:
 // *"when coming back from the machine view to the ring view, the play button
@@ -15769,7 +15418,7 @@ const FOCUS_READ = `
   const cs = getComputedStyle(a);
   const rings = [...document.querySelectorAll('.focusRing')].filter((c) => +c.getAttribute('opacity') > 0);
   return { id: a.id || a.getAttribute('data-action') || a.getAttribute('data-id') || a.tagName, svg: a instanceof SVGElement,
-    outline: cs.outlineStyle, rings: rings.length, dashed: rings.every((c) => !!c.getAttribute('stroke-dasharray')) };
+    outline: cs.outlineStyle, rings: rings.length, dashed: rings.every((c) => !!c.getAttribute('stroke-dasharray')), opacity: +cs.opacity };
 `;
 const focusRead = (page) => page.evaluate(new Function(FOCUS_READ));
 const tabKey = (page) => (page.context().browser().browserType().name() === 'webkit' ? 'Alt+Tab' : 'Tab');
@@ -15831,16 +15480,16 @@ SCENARIOS.push({
       if (!d) continue;
       if (seen.has(d.id)) break;
       seen.add(d.id);
-      if (!d.svg) d.html = await page.evaluate(() => { const cs = getComputedStyle(document.activeElement); return { style: cs.outlineStyle, radius: cs.borderTopLeftRadius }; });
+      if (!d.svg) d.html = await page.evaluate(() => { const cs = getComputedStyle(document.activeElement); return { style: cs.outlineStyle, radius: cs.borderTopLeftRadius, ring: cs.borderTopStyle !== 'none' && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.borderTopColor) }; });
       stops.push(d);
     }
-    // a click on each round key and on the two corner marks: focus without a mark
+    // a click on each round key and on the gyroscope: focus without a mark
     await page.mouse.click(4, 4);
     const clicks = [];
-    const keys = await page.evaluate(() => [...document.querySelectorAll('#starCells g.cell, #actions g[tabindex], #panel, #mark')]
+    const keys = await page.evaluate(() => [...document.querySelectorAll('#starCells g.cell, #actions g[tabindex], #gyro')]
       .map((e) => { const b = e.getBoundingClientRect(); return { id: e.id || e.getAttribute('data-action') || e.getAttribute('data-id'), x: b.x + b.width / 2, y: b.y + b.height / 2 }; }));
     for (const k of keys) {
-      if (k.id === 'mark' || k.id === 'panel') await page.evaluate((id) => document.getElementById(id).addEventListener('click', (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, { once: true, capture: true }), k.id);
+      if (k.id === 'gyro') await page.evaluate((id) => document.getElementById(id).addEventListener('click', (e) => { e.preventDefault(); e.stopImmediatePropagation(); }, { once: true, capture: true }), k.id);
       if (k.id === 'play') continue;   // a press on play starts the set; its focus is the close's row above
       await page.mouse.click(k.x, k.y);
       await page.waitForTimeout(150);
@@ -15854,8 +15503,11 @@ SCENARIOS.push({
     const bad = [];
     if (r.stops.length < 14) bad.push(`the keyboard reached ${r.stops.length} stops (${r.stops.map((s) => s.id).join(', ')}), where the page has 14`);
     for (const s of r.stops) {
+      // (the throne comes up to full strength, as under the hand, and wears the round keys' dashed ring round its glyph, sync-fixes 10-21)
+      if (s.id === 'throne') { if (s.outline !== 'none' || s.rings !== 1 || !s.dashed || s.opacity < 0.9) bad.push(`throne: the ${s.outline} outline, ${s.rings} dashed rings and opacity ${s.opacity}, where it is full strength with one ring`); continue; }
       if (s.svg && (s.outline !== 'none' || s.rings !== 1 || !s.dashed)) bad.push(`${s.id}: the ${s.outline} outline and ${s.rings} dashed rings, where it is no outline and one ring`);
-      if (!s.svg && (!s.html || s.html.style !== 'dashed')) bad.push(`${s.id}: a ${s.html ? s.html.style : '?'} outline, where it is dashed on its own corner`);
+      // (the gyroscope's focus is a thin circle of its own, his note 10-20: the glyph is the key, framed only for the keyboard)
+      if (s.id === 'gyro' ? !(s.html && s.html.style === 'none' && s.html.ring) : !s.svg && (!s.html || s.html.style !== 'dashed')) bad.push(`${s.id}: a ${s.html ? s.html.style : '?'} outline${s.id === 'gyro' ? ` and ${s.html && s.html.ring ? 'a' : 'no'} circle` : ''}, where it is ${s.id === 'gyro' ? 'its thin circle' : 'dashed on its own corner'}`);
     }
     for (const c of r.clicks) if (c.outline !== 'none' || c.rings) bad.push(`a click on ${c.id} left ${c.focused} with the ${c.outline} outline and ${c.rings} rings`);
     return {
@@ -15871,42 +15523,52 @@ SCENARIOS.push({
 // page"*, and *"the central giant Play and the top player button both show
 // play on first open — reuse the top button as informational: a giant (?)
 // that opens the same About; once play has started, the top button is
-// Play/Pause"*. What is held: the sheet's title carries the build's version,
-// its four links go where they say in a new tab; it opens by a pointer and by
-// a key, from the name and from the question, and closes by its key, a press
-// outside and Escape, the focus back on the key that opened it (unmarked after
-// a pointer, marked after a key); the page behind it never scrolls and the
+// Play/Pause"*. **Since PLAN-LIBRARY phase 2 (10-20) the About is the panel's
+// third tab** (`#library`, a non-modal dialog the gyroscope opens), its
+// subtitle and lines the App Store listing's (his word 10-20). What is held:
+// the tab's title carries the build's version, its four links go where they
+// say in a new tab; it opens by a pointer and by a key from the gyroscope, and
+// from the question at twelve before the first play; it closes by its × and
+// by Escape, the focus back on the key that opened it (unmarked after a
+// pointer, marked after a key); the page behind it never scrolls and the
 // address never changes.
 const APP_VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const ABOUT_READ = `
-  const d = document.getElementById('about');
+  const d = document.getElementById('library');
+  const t = document.getElementById('libAbout');
   const a = document.activeElement;
-  return { open: d.open, title: document.getElementById('aboutTitle').textContent.replace(/\\s+/g, ' ').trim(),
-    sub: d.querySelector('.aboutSub').textContent.trim(), lines: [...d.querySelectorAll('.aboutWhat span')].map((x) => x.textContent.replace(/\\s+/g, ' ').trim()),
-    reportsLine: d.querySelector('.aboutReportsWhat').textContent.replace(/\\s+/g, ' ').trim(),
-    links: [...d.querySelectorAll('.aboutLinks a')].map((x) => ({ text: x.textContent.trim(), href: x.getAttribute('href'), target: x.target, rel: x.rel })),
+  return { open: d.open, about: d.open && !t.hidden, title: document.getElementById('aboutTitle').textContent.replace(/\\s+/g, ' ').trim(),
+    sub: t.querySelector('.aboutSub').textContent.trim(), lines: [...t.querySelectorAll('.aboutWhat span')].map((x) => x.textContent.replace(/\\s+/g, ' ').trim()),
+    reportsLine: t.querySelector('.aboutReportsWhat').textContent.replace(/\\s+/g, ' ').trim(),
+    links: [...t.querySelectorAll('.aboutLinks a')].map((x) => ({ text: x.textContent.trim(), href: x.getAttribute('href'), target: x.target, rel: x.rel })),
     active: a ? (a.id || a.getAttribute('data-action') || a.tagName) : null, marked: !!a && a !== document.body && a.matches(':focus-visible') && !document.documentElement.hasAttribute('data-quiet-focus'),
-    scroll: [scrollX, scrollY, document.scrollingElement.scrollTop], url: location.search, locked: document.documentElement.classList.contains('about-open'),
-    sheet: (() => { const b = d.getBoundingClientRect(); return { l: b.left, r: innerWidth - b.right, w: b.width, vw: innerWidth }; })(),
+    scroll: [scrollX, scrollY, document.scrollingElement.scrollTop], url: location.search,
+    sheet: (() => { const b = d.getBoundingClientRect(); return { l: b.left, r: innerWidth - b.right, t: b.top, b: innerHeight - b.bottom, w: b.width }; })(),
     key: document.querySelector('#actions g[data-action="play"]').getAttribute('aria-label') };
 `;
 const aboutRead = (page) => page.evaluate(new Function(ABOUT_READ));
-// K35: Eugene's four lines, one span each, as he wrote them (the third names liquid drum & bass since his word 10-19)
+// the About's lines since 10-20: the App Store listing's, one span each (panel-shell, "After merge")
 const ABOUT_LINES = [
-  'A helpful music companion. No distracting vocals. No agenda. Just vibes.',
-  'The default sound is tuned to deep house. Other genres are being built and coming soon…',
-  'Right now the player is at its best on three sounds: its default lightweight deep house themes, liquid drum & bass (turn Ember up), and slow-beat ambient soundscapes (turn Ember down).',
-  'The link is always the track that plays. Share it, and it plays the same anywhere.',
+  'A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.',
+  'At its best on three sounds: deep house, the default; liquid drum & bass (turn Ember up); ambient soundscapes (turn Ember down).',
+  'A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.',
+  'One link, one track: share it and it plays the same anywhere.',
+  'Fully offline. No account. No ads. No tracking.',
 ];
+const ABOUT_SUB = 'An astrolabe for music';
 const ABOUT_LINKS = [
   ['Follow on X for news', 'https://x.com/DeepHouseAudio'],
   ['Composer Eugene T · Follow', 'https://x.com/eugene_tea'],
   ['Source', 'https://github.com/excelsior-arts/deep-house'],
   ['License: PolyForm Noncommercial 1.0.0', 'https://github.com/excelsior-arts/deep-house/blob/master/LICENSE'],
 ];
+// the About's error reports switch, flipped through the panel: the gyroscope, the About tab, the switch, the ×
+const ABOUT_FLIP = async (p) => { await p.click('#gyro'); await p.waitForTimeout(200); await p.click('#tabAbout'); await p.waitForTimeout(150); await p.click('#aboutReports'); await p.waitForTimeout(300); await p.click('#panelClose'); await p.waitForTimeout(200); };
+// the About is up: the panel open on its About tab
+const ABOUT_UP = `(() => { const d = document.getElementById('library'); return !!d && d.open && !document.getElementById('libAbout').hidden; })()`;
 
 SCENARIOS.push({
-  name: 'the About opens from the name and from the question by a pointer and by a key, says the version and its four links, and closes three ways with the focus back',
+  name: 'the About opens from the gyroscope and from the question by a pointer and by a key, says the version and its four links, and closes by its × and by Escape with the focus back',
   area: 'ring',
   query: 'v=2&seed=1',
   deadline: 180000,
@@ -15918,32 +15580,40 @@ SCENARIOS.push({
       try {
         const r = { url0: await p.evaluate(() => location.search) };
         const tab = tabKey(p);
-        // the name, by a pointer; closed by its key
-        await p.click('#mark');
+        // the gyroscope, by a pointer, then the About tab; closed by its ×
+        await p.click('#gyro');
+        await p.waitForTimeout(250);
+        r.panelByPointer = await aboutRead(p);
+        await p.click('#tabAbout');
         await p.waitForTimeout(250);
         r.byPointer = await aboutRead(p);
-        await p.click('#aboutClose');
+        await p.click('#panelClose');
         await p.waitForTimeout(250);
-        r.closedByKeyPointer = await aboutRead(p);
-        // the name, by a key; closed by Escape
-        await p.focus('#mark');
+        r.closedByX = await aboutRead(p);
+        // the gyroscope, by a key; the About tab by a key; closed by Escape
+        await p.focus('#gyro');
+        await p.keyboard.press('Enter');
+        await p.waitForTimeout(250);
+        r.panelByKey = await aboutRead(p);
+        await p.focus('#tabAbout');
         await p.keyboard.press('Enter');
         await p.waitForTimeout(250);
         r.byKey = await aboutRead(p);
+        await p.focus('#aboutWhat ~ .aboutLinks a');
         await p.keyboard.press(tab);
         await p.waitForTimeout(120);
         r.tabbed = await aboutRead(p);
         await p.keyboard.press('Escape');
         await p.waitForTimeout(250);
         r.closedByEscape = await aboutRead(p);
-        // the question at twelve, by a pointer; closed by a press outside
+        // the question at twelve, by a pointer: the panel opens on About; closed by Escape, the focus back on it
         const q = await p.evaluate(() => { const b = document.querySelector('#actions g[data-action="play"]').getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; });
         await p.mouse.click(q.x, q.y);
         await p.waitForTimeout(250);
         r.byQuestion = await aboutRead(p);
-        await p.mouse.click(3, 3);
+        await p.keyboard.press('Escape');
         await p.waitForTimeout(250);
-        r.closedOutside = await aboutRead(p);
+        r.closedQuestion = await aboutRead(p);
         r.playing = await p.evaluate(() => window.ring.control.playing);
         out[name] = r;
       } finally { await own.close(); }
@@ -15954,34 +15624,33 @@ SCENARIOS.push({
     const want = `Deep House v${APP_VERSION.split('.').slice(0, 2).join('.')}${APP_VERSION.split('.')[2] !== '0' ? `.${APP_VERSION.split('.')[2]}` : ''}`;
     const bad = [];
     for (const [k, x] of Object.entries(r)) {
-      for (const [how, o] of [['the name by a pointer', x.byPointer], ['the name by a key', x.byKey], ['the question by a pointer', x.byQuestion]]) {
-        if (!o.open) { bad.push(`${k}: ${how} did not open the About`); continue; }
+      for (const [how, o] of [['the gyroscope by a pointer', x.byPointer], ['the gyroscope by a key', x.byKey], ['the question by a pointer', x.byQuestion]]) {
+        if (!o.about) { bad.push(`${k}: ${how} did not show the About (the panel ${o.open ? 'open' : 'shut'})`); continue; }
         if (o.title !== want) bad.push(`${k}: the title reads "${o.title}", not "${want}"`);
-        if (o.sub !== 'Offline Electronic Music Generator' || JSON.stringify(o.lines) !== JSON.stringify(ABOUT_LINES)) bad.push(`${k}: the subtitle "${o.sub}" and the lines ${JSON.stringify(o.lines)}`);
+        if (o.sub !== ABOUT_SUB || JSON.stringify(o.lines) !== JSON.stringify(ABOUT_LINES)) bad.push(`${k}: the subtitle "${o.sub}" and the lines ${JSON.stringify(o.lines)}`);
         // K27: the switch's line is one short plain line, and says nothing of the service behind it
         // (K33: two short clauses since a sound fault sends the track's link and where in it)
-        if (o.reportsLine.length > 140 || o.reportsLine.split(/[.;]/).filter((x) => x.trim()).length > 3 || /sentry|address|account|connection/i.test(o.reportsLine)) bad.push(`${k}: the switch's line reads "${o.reportsLine}"`);
+        if (o.reportsLine.length > 140 || o.reportsLine.split(/[.;]/).filter((y) => y.trim()).length > 3 || /sentry|address|account|connection/i.test(o.reportsLine)) bad.push(`${k}: the switch's line reads "${o.reportsLine}"`);
         const links = o.links.map((l) => [l.text, l.href]);
         if (JSON.stringify(links) !== JSON.stringify(ABOUT_LINKS)) bad.push(`${k}: the links are ${JSON.stringify(links)}`);
         if (o.links.some((l) => l.target !== '_blank' || !/noopener/.test(l.rel))) bad.push(`${k}: a link does not open in a new tab with noopener`);
-        if (o.scroll.some((v) => v !== 0) || !o.locked) bad.push(`${k}: the page behind it scrolled (${o.scroll}) or is not held (${o.locked})`);
+        if (o.scroll.some((v) => v !== 0)) bad.push(`${k}: the page behind it scrolled (${o.scroll})`);
         if (o.url !== x.url0) bad.push(`${k}: the address became ${o.url}`);
-        if (Math.abs(o.sheet.l - o.sheet.r) > 1.5 || (k === 'phone' && Math.abs(o.sheet.l - 16) > 1.5)) bad.push(`${k}: the sheet stands ${o.sheet.l.toFixed(1)} from the left and ${o.sheet.r.toFixed(1)} from the right`);
+        if (o.sheet.l < -0.5 || o.sheet.r < -0.5 || o.sheet.t < -0.5 || o.sheet.b < -0.5) bad.push(`${k}: the panel runs off the window (${JSON.stringify(o.sheet)})`);
       }
-      if (x.byKey.active !== 'aboutClose' || !x.byKey.marked) bad.push(`${k}: opened by a key, the focus is on ${x.byKey.active} (marked ${x.byKey.marked}), not the close key marked`);
-      if (x.byPointer.active !== 'about' || x.byPointer.marked) bad.push(`${k}: opened by a pointer, the focus is on ${x.byPointer.active} (marked ${x.byPointer.marked}), not the sheet unmarked`);
-      if (!x.tabbed.open || !/^A$/.test(x.tabbed.active)) bad.push(`${k}: a Tab in the sheet went to ${x.tabbed.active}`);
-      if (x.closedByKeyPointer.open || x.closedByKeyPointer.active !== 'mark' || x.closedByKeyPointer.marked) bad.push(`${k}: the close key left the sheet ${x.closedByKeyPointer.open ? 'open' : 'shut'} and the focus on ${x.closedByKeyPointer.active} (marked ${x.closedByKeyPointer.marked})`);
-      if (x.closedByEscape.open || x.closedByEscape.active !== 'mark' || !x.closedByEscape.marked) bad.push(`${k}: Escape left the sheet ${x.closedByEscape.open ? 'open' : 'shut'} and the focus on ${x.closedByEscape.active} (marked ${x.closedByEscape.marked})`);
-      if (x.closedOutside.open || x.closedOutside.active !== 'play' || x.closedOutside.marked) bad.push(`${k}: a press outside left the sheet ${x.closedOutside.open ? 'open' : 'shut'} and the focus on ${x.closedOutside.active} (marked ${x.closedOutside.marked})`);
-      if (x.closedOutside.locked) bad.push(`${k}: the page is still held after the close`);
+      if (!x.panelByPointer.open || x.panelByPointer.about || x.panelByPointer.active !== 'library' || x.panelByPointer.marked) bad.push(`${k}: the gyroscope by a pointer opened the panel ${x.panelByPointer.open} (About ${x.panelByPointer.about}) with the focus on ${x.panelByPointer.active} (marked ${x.panelByPointer.marked}), not Playlists and the sheet unmarked`);
+      if (!x.panelByKey.open || x.panelByKey.active !== 'panelClose' || !x.panelByKey.marked) bad.push(`${k}: opened by a key, the focus is on ${x.panelByKey.active} (marked ${x.panelByKey.marked}), not the × marked`);
+      if (!x.tabbed.about || x.tabbed.active !== 'A') bad.push(`${k}: a Tab in the About went to ${x.tabbed.active}`);
+      if (x.closedByX.open || x.closedByX.active !== 'gyro' || x.closedByX.marked) bad.push(`${k}: the × left the panel ${x.closedByX.open ? 'open' : 'shut'} and the focus on ${x.closedByX.active} (marked ${x.closedByX.marked})`);
+      if (x.closedByEscape.open || x.closedByEscape.active !== 'gyro' || !x.closedByEscape.marked) bad.push(`${k}: Escape left the panel ${x.closedByEscape.open ? 'open' : 'shut'} and the focus on ${x.closedByEscape.active} (marked ${x.closedByEscape.marked})`);
+      if (x.closedQuestion.open || x.closedQuestion.active !== 'play') bad.push(`${k}: Escape after the question left the panel ${x.closedQuestion.open ? 'open' : 'shut'} and the focus on ${x.closedQuestion.active}`);
       if (x.playing) bad.push(`${k}: the question started the set`);
     }
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `at 1440 and 390 the About opens from the name (pointer and Enter) and from the question at twelve, titled "${want}", his four lines, the four links to x.com/DeepHouseAudio, x.com/eugene_tea, the source and the licence in a new tab with noopener; `
-        + `the sheet centred (${r.phone.byPointer.sheet.l.toFixed(0)} px each side on the phone), the page behind it held at 0 and the address unchanged; closed by its key, Escape and a press outside, the focus back on the name or the question — unmarked after a pointer, marked after Escape — and the set not started`,
+      note: `at 1440 and 390 the About is the panel's tab, reached from the gyroscope (pointer and Enter) and from the question at twelve, titled "${want}", "${ABOUT_SUB}", the listing's five lines, the four links to x.com/DeepHouseAudio, x.com/eugene_tea, the source and the licence in a new tab with noopener; `
+        + `the page behind it at 0 and the address unchanged; closed by its × and by Escape, the focus back on the gyroscope or the question — unmarked after a pointer, marked after a key — and the set not started`,
     };
   },
 });
@@ -16020,7 +15689,7 @@ SCENARIOS.push({
       await page.evaluate(() => window.ring.control.stop());
       await page.waitForTimeout(700);
       r.stopped = await look();
-      r.aboutOpen = await page.evaluate(() => document.getElementById('about').open);
+      r.aboutOpen = await page.evaluate(ABOUT_UP);
       out[name] = r;
     }
     return out;
@@ -16075,7 +15744,7 @@ SCENARIOS.push({
       // (the SDK's global is read before `reports()`, which asks the SDK for its client and so sets it up)
       const state = () => p.evaluate(() => { const carrier = !!window.__SENTRY__; return { carrier, ...window.ring.reports(), key: document.getElementById('aboutReports').getAttribute('aria-checked') }; });
       const probe = async (ms) => { const n = hits.length; await p.evaluate(() => setTimeout(() => { throw new Error('k25 switch probe'); }, 0)); const t0 = Date.now(); while (Date.now() - t0 < ms && hits.length === n) await p.waitForTimeout(100); await p.waitForTimeout(300); return hits.length - n; };
-      const flip = async () => { await p.click('#mark'); await p.waitForTimeout(200); await p.click('#aboutReports'); await p.waitForTimeout(300); await p.click('#aboutClose'); await p.waitForTimeout(200); };
+      const flip = () => ABOUT_FLIP(p);
       const out = {};
       await load();
       out.fresh = { ...(await state()), sent: await probe(8000) };
@@ -16183,18 +15852,22 @@ SCENARIOS.push({
         await sleep(300);
         try { stored = JSON.parse(localStorage.getItem('deep-house.player') || 'null'); } catch (e) { /* none */ }
         out.stored = stored && stored.link ? stored.link : null;
-        // the view's Copy Link, and the ledger line it writes
-        await window.ring.machine.open();
-        for (let k = 0; k < 100 && !document.querySelector('[data-tool="copy"]'); k++) await sleep(100);
-        const key = document.querySelector('[data-tool="copy"]');
+        // the share circle's Copy link (the view's COPY LINK until 10-21), and the ledger line it writes
+        document.getElementById('gyro').click();
+        await sleep(250);
+        document.getElementById('panelShare').click();
+        await sleep(250);
+        const key = document.querySelector('.shareMenu [data-share="link"]');
         if (key) key.click();
         await sleep(600);
+        await window.ring.machine.open();
+        for (let k = 0; k < 100 && !window.ring.machine.snapshot(); k++) await sleep(100);
         const led = window.ring.machine.snapshot().ledger.filter((e) => e.what === 'link copied');
         out.copied = led.length ? String(led[led.length - 1].fields && led[led.length - 1].fields.link || '') : null;
         out.record = window.deepHouseRecord && window.deepHouseRecord.place ? window.deepHouseRecord.place().link : null;
         window.ring.machine.close();
         // the About's links name no set, and the lock screen's cover is a picture: neither carries a spell
-        out.about = [...document.querySelectorAll('#about a')].map((a) => a.getAttribute('href')).filter((h) => /spell=/.test(h));
+        out.about = [...document.querySelectorAll('#libAbout a')].map((a) => a.getAttribute('href')).filter((h) => /spell=/.test(h));
         out.spell = { ...(ctl.readout().spell || {}) };
         return out;
       });
@@ -16204,7 +15877,7 @@ SCENARIOS.push({
     const bad = [];
     const full = /\b(ember|tide|zephyr|root|gleam|veil|spark|loom)[:=]/;
     if (Math.abs(r.opened.ember - 0.62) > 1e-9 || Math.abs(r.opened.tide - 0.3) > 1e-9) bad.push(`the full-name link opened ${JSON.stringify(r.opened)}`);
-    for (const [where, link] of [['the address', r.address], ['the stored place', r.stored], ['Copy Link\'s ledger line', r.copied], ['the record tools\' link', r.record]]) {
+    for (const [where, link] of [['the address', r.address], ['the stored place', r.stored], ['Copy link\'s ledger line', r.copied], ['the record tools\' link', r.record]]) {
       if (link == null) { if (where === 'the record tools\' link') continue; bad.push(`${where} wrote nothing`); continue; }
       const q = decodeURIComponent(String(link));
       if (full.test(q)) bad.push(`${where} names a bird in full: ${q}`);
@@ -16214,7 +15887,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `opened on spell=ember:0.62,tide:0.30 it plays that spell; after a pull the address is ${r.address}, the stored place ${String(r.stored).replace(/^.*\?/, '')}, Copy Link's ledger line ${String(r.copied).replace(/^.*\?/, '')}${r.record ? `, the record tools' link ${String(r.record).replace(/^.*\?/, '')}` : ' (no record tools in this build)'} — every one by two letters`,
+      note: `opened on spell=ember:0.62,tide:0.30 it plays that spell; after a pull the address is ${r.address}, the stored place ${String(r.stored).replace(/^.*\?/, '')}, Copy link's ledger line ${String(r.copied).replace(/^.*\?/, '')}${r.record ? `, the record tools' link ${String(r.record).replace(/^.*\?/, '')}` : ' (no record tools in this build)'} — every one by two letters`,
     };
   },
 });
@@ -16223,9 +15896,10 @@ SCENARIOS.push({
 // **Round K30: the reviews of 09-26, the ring's findings.**
 // ============================================================================
 
-// (7) A phone held sideways: the name and the credit stand outside the ring.
+// (7) A phone held sideways: the name and the gyroscope stand outside the ring (the credit and the gear went with
+// the footer, panel-shell 10-20; the gyroscope is the panel's one key).
 SCENARIOS.push({
-  name: 'on a phone held sideways the name, the credit and the gear stand outside the ring, as they do upright and on a desktop',
+  name: 'on a phone held sideways the name and the gyroscope stand outside the ring, as they do upright and on a desktop',
   area: 'ring',
   query: 'v=2&seed=1',
   deadline: 120000,
@@ -16239,8 +15913,7 @@ SCENARIOS.push({
           const rr = (Math.min(t.width, t.height) / 2) * 0.862, cx = t.x + t.width / 2, cy = t.y + t.height / 2;
           const clear = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); if (!b.width) return null;
             const dx = Math.max(b.left - cx, 0, cx - b.right), dy = Math.max(b.top - cy, 0, cy - b.bottom); return Math.round(Math.hypot(dx, dy) - rr); };
-          const g = document.querySelector('#panel svg');
-          return { name: clear(document.getElementById('name')), mark: clear(document.getElementById('mark')), gear: clear(g), vw: innerWidth, vh: innerHeight };
+          return { name: clear(document.getElementById('name')), gyro: clear(document.getElementById('gyro')), vw: innerWidth, vh: innerHeight };
         });
       } finally { await own.close(); }
     }
@@ -16248,8 +15921,8 @@ SCENARIOS.push({
   },
   judge: (r) => {
     const bad = [];
-    for (const [k, x] of Object.entries(r)) for (const what of ['name', 'mark', 'gear']) if (x[what] != null && x[what] < 0) bad.push(`${k}: the ${what === 'mark' ? 'credit' : what} stands ${-x[what]} px inside the ring`);
-    return { ok: !bad.length, why: bad[0], note: Object.entries(r).map(([k, x]) => `${k} name ${x.name}, credit ${x.mark}, gear ${x.gear}`).join('; ') + ' px clear of the ring' };
+    for (const [k, x] of Object.entries(r)) for (const what of ['name', 'gyro']) if ((what === 'gyro' && x[what] == null) || x[what] < 0) bad.push(`${k}: the ${what === 'gyro' ? 'gyroscope' : what} stands ${x[what] == null ? 'unseen' : `${-x[what]} px inside the ring`}`);
+    return { ok: !bad.length, why: bad[0], note: Object.entries(r).map(([k, x]) => `${k} name ${x.name}, gyroscope ${x.gyro}`).join('; ') + ' px clear of the ring' };
   },
 });
 
@@ -16320,7 +15993,7 @@ SCENARIOS.push({
     const focused = await page.evaluate(() => { const a = document.activeElement; return a && (a.getAttribute('data-action') || a.id || a.tagName); });
     await page.keyboard.press(' ');
     const played = await page.waitForFunction(() => window.ring.control.playing, null, { timeout: 15000 }).then(() => true, () => false);
-    const about = await page.evaluate(() => document.getElementById('about').open);
+    const about = await page.evaluate(ABOUT_UP);
     await page.evaluate(() => window.ring.control.stop());
     // and Enter on the key before any play still opens the About (a fresh page)
     await page.reload({ waitUntil: 'networkidle' });
@@ -16329,7 +16002,7 @@ SCENARIOS.push({
     await page.focus('#actions g[data-action="play"]');
     await page.keyboard.press('Enter');
     await page.waitForTimeout(300);
-    const enter = await page.evaluate(() => ({ about: document.getElementById('about').open, playing: window.ring.control.playing }));
+    const enter = await page.evaluate(`({ about: ${ABOUT_UP}, playing: window.ring.control.playing })`);
     return { focused, played, about, enter };
   },
   judge: (r) => ({
@@ -16578,7 +16251,7 @@ SCENARIOS.push({
       const afterThree = faults();
       // the switch off, and the page opened again: nothing
       await p.evaluate(() => { window.ring.machine.close(); });
-      await p.click('#mark'); await p.waitForTimeout(200); await p.click('#aboutReports'); await p.waitForTimeout(300); await p.click('#aboutClose');
+      await ABOUT_FLIP(p);
       const line = await p.evaluate(() => document.getElementById('aboutReportsWhat').textContent.trim());
       const n = faults().length;
       await load();
@@ -16795,7 +16468,7 @@ SCENARIOS.push({
       }));
       // --- page four: the switch off, and three kinds forced again
       const before = events().length;
-      await a.click('#mark'); await a.waitForTimeout(200); await a.click('#aboutReports'); await a.waitForTimeout(300);
+      await ABOUT_FLIP(a);
       const line = await a.evaluate(() => document.getElementById('aboutReportsWhat').textContent.trim());
       const d = await open(refuseWorklet);
       await d.evaluate(async () => {
@@ -16867,7 +16540,7 @@ SCENARIOS.push({
     const s2 = { starting: ctl.state.starting, playing: ctl.state.playing, label: label() };
     space();
     await waitFor(() => ctl.playing, DEADLINE);
-    const s3 = { playing: ctl.state.playing, label: label(), about: !!el('about').open };
+    const s3 = { playing: ctl.state.playing, label: label(), about: !!el('library').open && !el('libAbout').hidden };
     ctl.stop();
     return { first, s1, s2, s3 };
   `),
@@ -17075,7 +16748,9 @@ SCENARIOS.push({
 });
 
 SCENARIOS.push({
-  name: 'a genre key arriving says so, the arriving deck is drawn beside the record, and the Drum & Bass key\'s words are the listener\'s',
+  // (the Drum & Bass key and its "arriving" words went with genres-sky, 10-20; the arriving deck the view draws is
+  // asked here by Liquid's spell, as the Map tab's star asks it)
+  name: 'a spell arriving draws the arriving deck beside the record',
   area: 'view',
   query: 'v=2&seed=1',
   deadline: 120000,
@@ -17084,26 +16759,21 @@ SCENARIOS.push({
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, DEADLINE);
     await window.ring.machine.open();
     await sleep(1000);
-    const tile = () => document.querySelector('#machine button.genre[data-genre="Drum & Bass"]');
-    const title0 = tile().getAttribute('title');
-    tile().click();
-    const arriving = await waitFor(() => tile().classList.contains('arriving') && !!ctl.mix.arriving, 30000);
+    ctl.setSpell(${JSON.stringify(SKY_PLACES.find((p) => p.lit && p.name === 'Liquid').spell)});
+    const arriving = await waitFor(() => !!ctl.mix.arriving, 30000);
     await sleep(600);
     const snap = window.ring.machine.snapshot();
     const rows = snap.part.nodes.filter((n) => n.id.startsWith('arriving:')).map((n) => n.label).join(',');
-    const title1 = (tile().querySelector('.vh') || { textContent: '' }).textContent;
-    const lamp = tile().querySelector('[data-arriving] circle');
-    const out = { title0, title1, arriving, rows, lamp: lamp ? lamp.getAttribute('fill') : null, asked: !!snap.asked };
+    const out = { arriving, rows, asked: !!snap.asked };
     window.ring.machine.close();
     ctl.stop();
     return out;
   `),
   judge: (r) => {
     const bad = [];
-    if (/his word|Eugene|not reached/i.test(r.title0)) bad.push(`the key's words: "${r.title0}"`);
-    if (!r.arriving || !/arriving/.test(r.title1 || '') || !r.lamp) bad.push(`the key arriving: ${r.arriving}, its words "${r.title1}", lamp ${r.lamp}`);
+    if (!r.arriving) bad.push('no deck arrived');
     if (r.rows !== 'IN HP,IN LP,IN FADER') bad.push(`the arriving deck's rows: ${r.rows}`);
-    return { ok: !bad.length, why: bad.join('; '), note: `"${r.title0}"; pressed, it told a reader "${r.title1.trim()}" with its lamp ${r.lamp}, and the rack drew ${r.rows}` };
+    return { ok: !bad.length, why: bad.join('; '), note: `Liquid's spell asked, a deck arrived and the rack drew ${r.rows}` };
   },
 });
 
@@ -17291,6 +16961,831 @@ SCENARIOS.push({
       ok: !!r.sea && !off.length,
       why: !r.sea ? `seed 1 at Veil 0.90 from WAVES laid no sea (${JSON.stringify(r)})` : off.join('; '),
       note: `the sea "${r.sea}" plays and the cells say ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
+    };
+  },
+});
+
+// ============================================================================
+// **The Map tab's sky** (PLAN-LIBRARY phase 4, genres-sky, sky-follow; the test
+// round of 10-21). The machine view's nine genre keys went with genres-sky: the
+// genres are the panel's Map tab, a sky of lit stars (a place with its own
+// spell) and open rings (a sub-genre tuned only by its rows). These rows took
+// over the genre keys' rules: a star asks its spell as a hand would (no genre
+// word in the address), the pressed mark stays until neither the asked nor the
+// playing spell is near it, Deep House asks for the house, house-v1 presses
+// only the house, an open ring presses nothing and says its name, and the sky's
+// own gestures stay in the canvas.
+// ============================================================================
+
+// In the page: the panel opened on Map by its own keys, and the sky's keys by name.
+const SKY = `
+  const skyOpen = async () => {
+    if (!document.getElementById('library').open) document.getElementById('gyro').click();
+    await sleep(150);
+    document.getElementById('tabGenres').click();
+    await waitFor(() => document.querySelectorAll('#libGenres .skyKey').length > 10, 8000);
+    await sleep(350);
+  };
+  const skyKey = (name) => [...document.querySelectorAll('#libGenres .skyKey')].find((k) => k.getAttribute('aria-label') === name);
+  const skyAt = (name) => { const r = skyKey(name).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  // a star out of the canvas's sight is brought in the way the keyboard brings it (its key focused), then let go
+  const skyShow = async (name) => {
+    const w = document.querySelector('#libGenres .skyWrap').getBoundingClientRect(), a = skyAt(name);
+    if (a.x < w.left + 30 || a.x > w.right - 30 || a.y < w.top + 30 || a.y > w.bottom - 30) { skyKey(name).focus(); await sleep(150); skyKey(name).blur(); await sleep(150); }
+    return skyAt(name);
+  };
+  const skyRead = () => ({ url: location.search, spell: { ...(ctl.link.read().spell || {}) }, playing: ctl.playing,
+    pressed: [...document.querySelectorAll('#libGenres .skyKey[data-pressed]')].map((k) => k.getAttribute('aria-label')),
+    here: (() => { const h = document.querySelector('#libGenres .skyHere'); return h ? [+h.getAttribute('cx'), +h.getAttribute('cy')] : null; })(),
+    tip: (() => { const t = document.querySelector('#libGenres .skyTip'); return t ? t.textContent : null; })() });
+`;
+const skyIn = (page) => page.evaluate(body(SKY + 'await skyOpen(); return 1;'));
+const skyNow = (page) => page.evaluate(body(SKY + 'return skyRead();'));
+const skyPoint = (page, name) => page.evaluate(body(SKY + `return await skyShow(${JSON.stringify(name)});`));
+// a place's spell against what the address asks: every bird the place names, within the link's two decimals
+const skySpellOf = (name) => (SKY_PLACES.find((p) => p.lit && p.name === name) || { spell: null }).spell;
+const skyMatches = (asked, name) => { const want = skySpellOf(name); return !!want && Object.entries(want).every(([b, v]) => Math.abs((asked[b] ?? HOUSE[b]) - v) < 0.006); };
+const GENRE_WORD = /genre|Dub|Techno|House|Ambient|Trance|Liquid|Bass|Downtempo|Breaks|Drone|Chillstep|Bells|Waves|Psy/i;
+
+SCENARIOS.push({
+  name: 'a lit star pressed asks its spell with no genre word, carries the pressed mark until a bird is pulled off it, a drag from a star pans and never tunes, and Deep House asks for the house',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  drive: async (page) => {
+    const out = {};
+    for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
+      const own = await ownPage(page, opts);
+      const p = own.page;
+      const tap = async (pt) => { if (name === '390') await p.touchscreen.tap(pt.x, pt.y); else await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(400); };
+      try {
+        await skyIn(p);
+        const r = { before: await skyNow(p) };
+        // stopped: Dub Techno by a hand on its dot
+        await tap(await skyPoint(p, 'Dub Techno'));
+        r.pressed = await skyNow(p);
+        // a drag that starts on Liquid's dot pans the sky and tunes nothing
+        const l = await skyPoint(p, 'Liquid');
+        if (name === '390') {
+          const cdp = await p.context().newCDPSession(p);
+          const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+          await touch('touchStart', l.x, l.y);
+          for (let k = 1; k <= 8; k++) { await touch('touchMove', l.x + k * 6, l.y + k * 3); await p.waitForTimeout(16); }
+          await touch('touchEnd', l.x + 48, l.y + 24);
+        } else {
+          await p.mouse.move(l.x, l.y); await p.mouse.down();
+          for (let k = 1; k <= 8; k++) { await p.mouse.move(l.x + k * 6, l.y + k * 3); await p.waitForTimeout(16); }
+          await p.mouse.up();
+        }
+        await p.waitForTimeout(400);
+        r.dragged = { ...(await skyNow(p)), liquidMoved: await p.evaluate(body(SKY + `const a = skyAt('Liquid'); return Math.round(Math.hypot(a.x - ${l.x}, a.y - ${l.y}));`)) };
+        // a bird pulled off the pressed star: the mark leaves
+        await p.evaluate(() => { const c = window.ring.control; const s = c.link.read().spell || {}; c.setSpell({ ...s, loom: Math.max(0, (s.loom ?? 0.5) - 0.3) }); });
+        await p.waitForTimeout(900);
+        r.pulled = await skyNow(p);
+        // Deep House asks for the house: a bare spell
+        await tap(await skyPoint(p, 'Deep House'));
+        r.home = await skyNow(p);
+        if (name === '1440') {
+          // playing: Liquid's star mixes in at the seam, the set plays on
+          await p.evaluate(() => Promise.race([window.ring.control.start(), new Promise((res) => setTimeout(res, 15000))]));
+          await p.waitForTimeout(1200);
+          await tap(await skyPoint(p, 'Liquid'));
+          r.live = { ...(await skyNow(p)), asked: await p.evaluate(() => !!(window.ring.control.mix && window.ring.control.mix.spellAsked)) };
+          await p.evaluate(() => window.ring.control.stop());
+        }
+        out[name] = r;
+      } finally { await own.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const bad = [];
+    for (const [k, x] of Object.entries(r)) {
+      if (!skyMatches(x.pressed.spell, 'Dub Techno') || GENRE_WORD.test(decodeURIComponent(x.pressed.url).replace(/v=\d/, ''))) bad.push(`${k}: Dub Techno pressed asked ${JSON.stringify(x.pressed.spell)} (${x.pressed.url})`);
+      if (x.pressed.pressed.join() !== 'Dub Techno') bad.push(`${k}: after the press the pressed mark is on ${x.pressed.pressed.join(', ') || 'nothing'}`);
+      if (x.dragged.url !== x.pressed.url || x.dragged.pressed.join() !== 'Dub Techno') bad.push(`${k}: a drag from Liquid's dot tuned (${x.dragged.url}, pressed ${x.dragged.pressed.join(', ')})`);
+      if (x.dragged.liquidMoved < 20) bad.push(`${k}: the drag from Liquid's dot moved the sky ${x.dragged.liquidMoved} px, where it pans`);
+      if (x.pulled.pressed.length) bad.push(`${k}: with Loom pulled off, the pressed mark stays on ${x.pulled.pressed.join(', ')}`);
+      if (/[?&]spell=/.test(x.home.url) || x.home.pressed.join() !== 'Deep House') bad.push(`${k}: Deep House left ${x.home.url}, pressed ${x.home.pressed.join(', ')}`);
+      if (x.before.playing || x.home.playing) bad.push(`${k}: a press started the set`);
+    }
+    const live = r['1440'].live;
+    if (!live || !live.playing || !live.asked || !skyMatches(live.spell, 'Liquid')) bad.push(`playing, Liquid pressed: ${JSON.stringify(live)}`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `at 1440 (a mouse) and 390 (a finger): Dub Techno's dot pressed while stopped wrote its spell (${r['1440'].pressed.url}) with no genre word and the pressed mark; a drag from Liquid's dot panned the sky ${r['1440'].dragged.liquidMoved} and ${r['390'].dragged.liquidMoved} px and tuned nothing; Loom pulled off took the mark away; Deep House asked for the house (${r['1440'].home.url}); playing, Liquid's star was asked for the seam with the set playing on`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'under house-v1 only the Deep House star presses; under house-v2 every lit star does, and an open ring presses nothing and says its name by hover, focus and tap',
+  area: 'library',
+  query: 'v=1&seed=1',
+  deadline: 120000,
+  drive: async (page) => {
+    const out = {};
+    for (const q of ['v=1&seed=1', 'v=2&seed=1']) {
+      const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+      const p = own.page;
+      try {
+        await p.goto(p.url().replace(/\?.*$/, '') + '?' + q + '&out=silent', { waitUntil: 'networkidle' });
+        await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+        await p.waitForTimeout(600);
+        await skyIn(p);
+        out[q] = await p.evaluate(body(SKY + `
+          const lit = [...document.querySelectorAll('#libGenres .skyKey:not(.open)')].map((k) => k.getAttribute('aria-label'));
+          const tuned = {};
+          for (const name of lit) {
+            const before = location.search;
+            skyKey(name).click();
+            await sleep(120);
+            tuned[name] = location.search !== before || name === 'Deep House';
+            // back to the house between stars, so each press is a move
+            skyKey('Deep House').click();
+            await sleep(80);
+          }
+          const open = [...document.querySelectorAll('#libGenres .skyKey.open')];
+          const ring = open[0];
+          const before = location.search;
+          ring.focus();
+          await sleep(200);
+          const byFocus = skyRead().tip;
+          ring.click();
+          await sleep(200);
+          const asked = location.search !== before;
+          ring.blur();
+          return { lit, tuned, open: open.length, disabled: open.filter((k) => k.getAttribute('aria-disabled') === 'true').length,
+            ringName: ring.getAttribute('aria-label'), byFocus, asked };
+        `));
+        if (q.startsWith('v=2')) {
+          // an open ring by a mouse's hover and by a finger's tap: its name, nothing asked
+          const pt = await p.evaluate(() => { const k = document.querySelector('#libGenres .skyKey.open'); const r = k.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, name: k.getAttribute('aria-label') }; });
+          await p.mouse.move(pt.x, pt.y);
+          await p.waitForTimeout(250);
+          out[q].byHover = (await skyNow(p)).tip;
+          out[q].hoverName = pt.name;
+          const url = await p.evaluate(() => location.search);
+          await p.mouse.click(pt.x, pt.y);
+          await p.waitForTimeout(300);
+          out[q].byTap = (await skyNow(p)).tip;
+          out[q].tapAsked = (await p.evaluate(() => location.search)) !== url;
+        }
+      } finally { await own.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const v1 = r['v=1&seed=1'], v2 = r['v=2&seed=1'];
+    const bad = [];
+    const v1Tuned = Object.entries(v1.tuned).filter(([n, t]) => t && n !== 'Deep House').map(([n]) => n);
+    if (v1Tuned.length) bad.push(`under house-v1 ${v1Tuned.join(', ')} pressed and moved the address`);
+    const v2Dead = Object.entries(v2.tuned).filter(([, t]) => !t).map(([n]) => n);
+    if (v2.lit.length < 12 || v2Dead.length) bad.push(`under house-v2 ${v2.lit.length} lit stars, and ${v2Dead.join(', ') || 'none'} pressed nothing`);
+    for (const [k, x] of [['v1', v1], ['v2', v2]]) {
+      if (!x.open || x.disabled !== x.open) bad.push(`${k}: ${x.disabled} of ${x.open} open rings are marked disabled`);
+      if (x.asked) bad.push(`${k}: an open ring pressed by its key moved the address`);
+    }
+    const nameOf = (label) => label.replace(/, not tuned$/, '').toUpperCase();
+    if (v2.byFocus !== nameOf(v2.ringName)) bad.push(`an open ring focused says "${v2.byFocus}", not ${nameOf(v2.ringName)}`);
+    if (v2.byHover !== nameOf(v2.hoverName) || v2.byTap !== nameOf(v2.hoverName) || v2.tapAsked) bad.push(`an open ring by hover says "${v2.byHover}", by a press "${v2.byTap}" (asked ${v2.tapAsked})`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `under house-v1 of ${v1.lit.length} lit stars only Deep House presses; under house-v2 all ${v2.lit.length} move the address; ${v2.open} open rings are disabled keys that ask nothing, and one says "${v2.byHover}" by hover, focus and a press`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'the sky pans by a wheel and a drag, zooms by ctrl and the wheel and a double tap, recentre puts it back, and Tab and Enter press a star',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 120000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await skyIn(p);
+      const span = () => p.evaluate(body(SKY + `const a = skyAt('Deep House'), b = skyAt('Ambient'); return { x: a.x, y: a.y, d: Math.hypot(a.x - b.x, a.y - b.y), home: !document.getElementById('skyHome').hasAttribute('data-off'), scroll: document.querySelector('#libGenres').scrollTop };`));
+      const wrapAt = await p.evaluate(() => { const r = document.querySelector('#libGenres .skyWrap').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      const r = { first: await span() };
+      await p.mouse.move(wrapAt.x, wrapAt.y);
+      await p.mouse.wheel(40, 30);
+      await p.waitForTimeout(300);
+      r.wheel = await span();
+      await p.keyboard.down('Control');
+      await p.mouse.wheel(0, -40);
+      await p.keyboard.up('Control');
+      await p.waitForTimeout(300);
+      r.zoomed = await span();
+      await p.mouse.dblclick(wrapAt.x, wrapAt.y);
+      await p.waitForTimeout(400);
+      r.doubled = await span();
+      await p.click('#skyHome');
+      await p.waitForTimeout(400);
+      r.home = await span();
+      r.url0 = await p.evaluate(() => location.search);
+      // Tab and Enter: a lit star's key focused by the keyboard and pressed
+      await p.evaluate(() => document.getElementById('tabGenres').focus());
+      const seen = [];
+      for (let k = 0; k < 40; k++) {
+        await p.keyboard.press('Tab');
+        const a = await p.evaluate(() => { const e = document.activeElement; return e && e.classList.contains('skyKey') ? { name: e.getAttribute('aria-label'), lit: !e.classList.contains('open') } : null; });
+        if (a) seen.push(a);
+        if (a && a.lit && a.name !== 'Deep House') break;
+      }
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(300);
+      r.keyed = { seen, url: await p.evaluate(() => location.search), pressed: (await skyNow(p)).pressed };
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const moved = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    if (moved(r.first, r.wheel) < 20 || Math.abs(r.wheel.d - r.first.d) > 0.5) bad.push(`a plain wheel moved the sky ${moved(r.first, r.wheel).toFixed(1)} px and changed its span ${r.first.d.toFixed(1)} → ${r.wheel.d.toFixed(1)}`);
+    if (!(r.zoomed.d > r.wheel.d * 1.3)) bad.push(`ctrl and the wheel zoomed ${r.wheel.d.toFixed(1)} → ${r.zoomed.d.toFixed(1)}`);
+    if (!(r.doubled.d > r.zoomed.d * 1.5)) bad.push(`a double press zoomed ${r.zoomed.d.toFixed(1)} → ${r.doubled.d.toFixed(1)}`);
+    if (r.first.home || !r.doubled.home) bad.push(`recentre was ${r.first.home ? 'shown on the first view' : 'hidden after a move'}`);
+    if (Math.abs(r.home.d - r.first.d) > 0.5 || moved(r.home, r.first) > 0.5 || r.home.home) bad.push(`recentre left the sky at ${r.home.d.toFixed(1)} (first ${r.first.d.toFixed(1)}), ${moved(r.home, r.first).toFixed(1)} px off`);
+    if ([r.wheel, r.zoomed, r.doubled].some((x) => x.scroll !== r.first.scroll)) bad.push('a gesture scrolled the panel');
+    const star = r.keyed.seen.find((s) => s.lit && s.name !== 'Deep House');
+    if (!star) bad.push(`Tab reached no lit star (${r.keyed.seen.map((s) => s.name).join(', ')})`);
+    else if (r.keyed.url === r.url0 || r.keyed.pressed.join() !== star.name) bad.push(`Enter on ${star.name} left ${r.keyed.url}, pressed ${r.keyed.pressed.join(', ')}`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `a wheel panned ${moved(r.first, r.wheel).toFixed(0)} px, ctrl and the wheel zoomed ${(r.zoomed.d / r.wheel.d).toFixed(2)}×, a double press ${(r.doubled.d / r.zoomed.d).toFixed(2)}×, recentre came back to the first view, the panel never scrolled; Tab reached ${star ? star.name : '?'} after ${r.keyed.seen.length} stops and Enter pressed it`,
+    };
+  },
+});
+
+// ============================================================================
+// **The library** (PLAN-LIBRARY phases 3 and 5, playlists-ui; the test round of
+// 10-21): saving by the throne, the record after a reload, a removal and its
+// Undo, and the .deephouse files in and out. Each row reads the record itself
+// (`deephouse.library` in this page's storage) as well as what the panel says.
+// ============================================================================
+
+const LIB = `
+  const lib = () => { try { return JSON.parse(localStorage.getItem('deephouse.library') || 'null'); } catch (e) { return null; } };
+  const live = (d) => (d ? d.playlists.filter((p) => p.removed === undefined && p.renamed === undefined) : []);
+  const tracks = (d, name) => { const p = live(d).find((x) => (x.name ?? 'Saved') === name); return p ? (p.tracks || []).filter((t) => t.removed === undefined).map((t) => t.link) : null; };
+  const said = () => (document.getElementById('say') || { textContent: '' }).textContent.trim();
+  const undoBar = () => { const u = document.querySelector('#library .plUndo'); return u ? u.textContent.replace(/\\s+/g, ' ').trim() : null; };
+  // the throne by its key; with two playlists or more its menu asks, and its first row (the most recent) is taken
+  const throne = async () => { const t = document.getElementById('throne'); t.focus(); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await sleep(400); const m = document.querySelector('#throneMenu [data-name]'); if (m) { m.click(); await sleep(400); } };
+  const panel = async () => { if (!document.getElementById('library').open) { document.getElementById('gyro').click(); await sleep(250); } document.getElementById('tabPlaylists').click(); await sleep(150); };
+  const pressAct = async (act, sel = '') => { const b = document.querySelector('#library [data-act="' + act + '"]' + sel); if (!b) return false; b.click(); await sleep(250); return true; };
+`;
+
+SCENARIOS.push({
+  name: 'the throne saves what plays with the panel closed and open, and under reduced motion; a reload keeps them in order and nothing doubles, and a sound already there says so',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  drive: async (page) => {
+    const out = {};
+    for (const [name, opts] of [['motion', { viewport: { width: 1440, height: 900 } }], ['reduced', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' }]]) {
+      const own = await ownPage(page, opts);
+      const p = own.page;
+      try {
+        const r = await p.evaluate(body(LIB + `
+          const r = { first: lib() };
+          await throne();
+          r.closed = { saved: tracks(lib(), 'Saved'), said: said(), open: document.getElementById('library').open };
+          ctl.setSeed(2);
+          await sleep(300);
+          await panel();
+          await throne();
+          r.opened = { saved: tracks(lib(), 'Saved'), rows: [...document.querySelectorAll('#library .plRow .plSub')].map((s) => s.textContent.replace(/\\s+/g, ' ').trim()) };
+          document.getElementById('panelClose').click();
+          await sleep(200);
+          ctl.setSeed(3);
+          await sleep(300);
+          await throne();
+          r.third = tracks(lib(), 'Saved');
+          return r;
+        `));
+        await p.reload({ waitUntil: 'networkidle' });
+        await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+        await p.waitForTimeout(600);
+        r.reloaded = await p.evaluate(body(LIB + `
+          const before = tracks(lib(), 'Saved');
+          // what the page plays after the reload: seed 3, already in Saved
+          await throne();
+          return { before, again: tracks(lib(), 'Saved'), said: said(), lists: live(lib()).length, seed: ctl.readout().seed };
+        `));
+        out[name] = r;
+      } finally { await own.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const bad = [];
+    const seeds = (l) => (l || []).map((x) => (/seed=(\d+)/.exec(x) || [])[1]).join(',');
+    for (const [k, x] of Object.entries(r)) {
+      if (x.first && live(x.first).length) bad.push(`${k}: the page began with a library`);
+      if (seeds(x.closed.saved) !== '1' || x.closed.open) bad.push(`${k}: the first save, the panel closed, left Saved ${seeds(x.closed.saved)} (the panel ${x.closed.open ? 'opened' : 'shut'})`);
+      if (seeds(x.opened.saved) !== '1,2' || !x.opened.rows.some((s) => /2 tracks/.test(s))) bad.push(`${k}: the save with the panel open left Saved ${seeds(x.opened.saved)}, the row reading ${JSON.stringify(x.opened.rows)}`);
+      if (seeds(x.third) !== '1,2,3') bad.push(`${k}: the third save left Saved ${seeds(x.third)}`);
+      if (seeds(x.reloaded.before) !== '1,2,3' || x.reloaded.lists !== 1) bad.push(`${k}: after a reload Saved holds ${seeds(x.reloaded.before)} in ${x.reloaded.lists} playlists`);
+      if (seeds(x.reloaded.again) !== '1,2,3' || !/already there/i.test(x.reloaded.said)) bad.push(`${k}: seed ${x.reloaded.seed} saved again left ${seeds(x.reloaded.again)}, the page saying "${x.reloaded.said}"`);
+    }
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `with motion at 1440 and under reduced motion at 390: three saves (the panel closed, open, closed again) made Saved ${seeds(r.motion.third)} in order, a reload kept it, and the playing seed ${r.motion.reloaded.seed} pressed again said "${r.motion.reloaded.said}" with nothing doubled`,
+    };
+    function live(d) { return d ? d.playlists.filter((p) => p.removed === undefined) : []; }
+  },
+});
+
+SCENARIOS.push({
+  name: 'a track and a playlist removed from their ⋯ come back exactly by Undo, dated after the removal, and a save after a removal ends the Undo instead of being wiped by it',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 120000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      return await p.evaluate(body(LIB + `
+        for (const s of [1, 2, 3]) { ctl.setSeed(s); await sleep(250); await throne(); }
+        const r = { start: localStorage.getItem('deephouse.library') };
+        // the record but its dates: Undo dates what comes back (sync-fixes, 10-21), so the next merge keeps it
+        const bare = (t) => JSON.stringify(JSON.parse(t), (k, v) => (k === 'edited' || k === 'nameEdited' ? undefined : v));
+        const saved = () => live(lib()).find((x) => x.name === 'Saved');
+        await panel();
+        await pressAct('list');
+        // a track's ⋯ → Remove, then Undo
+        await pressAct('trackMenu', '[data-link*="seed=2"]');
+        await pressAct('removeTrack');
+        r.trackGone = { saved: tracks(lib(), 'Saved'), bar: undoBar(), removed: saved()?.tracks.find((t) => /seed=2/.test(t.link))?.removed };
+        await pressAct('undo');
+        r.trackBack = { same: bare(localStorage.getItem('deephouse.library')) === bare(r.start), bar: undoBar(), saved: tracks(lib(), 'Saved'), dated: Date.parse(saved()?.tracks.find((t) => /seed=2/.test(t.link))?.edited) > Date.parse(r.trackGone.removed) };
+        // the playlist's ⋯ → Remove, then Undo
+        await pressAct('menu');
+        await pressAct('removeList');
+        r.listGone = { lists: live(lib()).length, bar: undoBar(), removed: lib().playlists.find((x) => x.removed !== undefined && x.name === 'Saved')?.removed };
+        await pressAct('undo');
+        r.listBack = { same: bare(localStorage.getItem('deephouse.library')) === bare(r.start), bar: undoBar(), dated: Date.parse(saved()?.edited) > Date.parse(r.listGone.removed) };
+        // a removal, then a save by the throne before Undo: the Undo ends, and the save stays
+        await pressAct('list');
+        await pressAct('trackMenu', '[data-link*="seed=1"]');
+        await pressAct('removeTrack');
+        const barThen = undoBar();
+        ctl.setSeed(9);
+        await sleep(250);
+        await throne();
+        r.later = { barThen, bar: undoBar(), saved: tracks(lib(), 'Saved') };
+        const u = document.querySelector('#library [data-act="undo"]');
+        if (u) { u.click(); await sleep(250); }
+        r.after = tracks(lib(), 'Saved');
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const seeds = (l) => (l || []).map((x) => (/seed=(\d+)/.exec(x) || [])[1]).join(',');
+    if (seeds(r.trackGone.saved) !== '1,3' || !/^Removed .*Undo$/.test(r.trackGone.bar || '')) bad.push(`a track removed left ${seeds(r.trackGone.saved)}, the bar "${r.trackGone.bar}"`);
+    if (!r.trackBack.dated || !r.listBack.dated) bad.push(`Undo left ${r.trackBack.dated ? 'the playlist' : 'the track'} with its old date, which the removal's tombstone beats in the next merge`);
+    if (!r.trackBack.same || r.trackBack.bar) bad.push(`Undo of the track left ${seeds(r.trackBack.saved)} (the record ${r.trackBack.same ? 'as it was' : 'changed'}), the bar "${r.trackBack.bar}"`);
+    if (r.listGone.lists !== 0 || !/^Removed Saved/.test(r.listGone.bar || '')) bad.push(`the playlist removed left ${r.listGone.lists} playlists, the bar "${r.listGone.bar}"`);
+    if (!r.listBack.same || r.listBack.bar) bad.push(`Undo of the playlist left the record ${r.listBack.same ? 'as it was' : 'changed'}, the bar "${r.listBack.bar}"`);
+    if (!r.later.barThen || r.later.bar) bad.push(`a save after a removal left the Undo standing ("${r.later.bar}")`);
+    if (seeds(r.later.saved) !== '2,3,9' || seeds(r.after) !== '2,3,9') bad.push(`after the removal and a save Saved is ${seeds(r.later.saved)}, then ${seeds(r.after)}`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `seed 2 removed from its ⋯ ("${r.trackGone.bar}") and Saved removed from its header's ⋯ ("${r.listGone.bar}") each came back by Undo with the record as it was but for its new dates; seed 1 removed and seed 9 saved by the throne before Undo ended the Undo, and Saved holds ${seeds(r.after)}`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a playlist downloaded as .deephouse opens by the picker and by a drop, asking Keep both or Replace; a backup opens asking Import, Cancel or Replace instead',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+    const p = own.page;
+    const fs2 = await import('node:fs');
+    try {
+      await p.evaluate(body(LIB + `for (const s of [1, 2]) { ctl.setSeed(s); await sleep(250); await throne(); } await panel(); await pressAct('list'); return 1;`));
+      const grab = async (act) => {
+        const [d] = await Promise.all([p.waitForEvent('download', { timeout: 10000 }), p.evaluate((a) => document.querySelector('#library [data-act="' + a + '"]').click(), act)]);
+        return { name: d.suggestedFilename(), text: fs2.readFileSync(await d.path(), 'utf8') };
+      };
+      const r = {};
+      const one = await grab('download');
+      r.file = { name: one.name, kind: JSON.parse(one.text).kind, tracks: JSON.parse(one.text).playlists[0].tracks.length };
+      // by the picker: the same id is here, so it asks; Keep both
+      const pick = async () => {
+        await p.evaluate(() => { const b = document.querySelector('#library [data-act="back"]'); if (b) b.click(); });
+        await p.waitForTimeout(250);
+        const [chooser] = await Promise.all([p.waitForEvent('filechooser', { timeout: 10000 }), p.evaluate(() => document.querySelector('#plFoot [data-act="open"]').click())]);
+        return chooser;
+      };
+      let chooser = await pick();
+      await chooser.setFiles({ name: one.name, mimeType: 'application/json', buffer: Buffer.from(one.text) });
+      await p.waitForTimeout(500);
+      r.asked = await p.evaluate(() => ({ text: (document.querySelector('#library .plAsk') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim(), keys: [...document.querySelectorAll('#library .plAsk [data-act]')].map((b) => b.dataset.act) }));
+      await p.evaluate(() => document.querySelector('#library [data-act="keepBoth"]').click());
+      await p.waitForTimeout(500);
+      r.keptBoth = await p.evaluate(body(LIB + `return live(lib()).map((x) => (x.name ?? 'Saved') + ':' + (x.tracks || []).filter((t) => t.removed === undefined).length);`));
+      await p.evaluate(() => window.ring.control.stop());
+      // by a drop: asks again; Replace keeps the one playlist of that id
+      await p.evaluate((text) => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([text], 'Saved.deephouse', { type: 'application/json' }));
+        window.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+      }, one.text);
+      await p.waitForTimeout(600);
+      r.dropAsked = await p.evaluate(() => [...document.querySelectorAll('#library .plAsk [data-act]')].map((b) => b.dataset.act));
+      await p.evaluate(() => document.querySelector('#library [data-act="replaceFile"]').click());
+      await p.waitForTimeout(500);
+      r.replaced = await p.evaluate(body(LIB + `return live(lib()).map((x) => (x.name ?? 'Saved') + ':' + (x.tracks || []).filter((t) => t.removed === undefined).length);`));
+      await p.evaluate(() => window.ring.control.stop());
+      // a backup: Back up everything, then opened by the picker: Cancel, then Replace instead
+      await p.evaluate(() => { const b = document.querySelector('#library [data-act="back"]'); if (b) b.click(); });
+      await p.waitForTimeout(250);
+      const all = await grab('backup');
+      r.backup = { name: all.name, kind: JSON.parse(all.text).kind, lists: JSON.parse(all.text).playlists.length };
+      // something only here, so a Replace instead would take it away
+      await p.evaluate(body(LIB + `ctl.setSeed(7); await sleep(250); await throne(); return 1;`));
+      const asked = async () => { chooser = await pick(); await chooser.setFiles({ name: all.name, mimeType: 'application/json', buffer: Buffer.from(all.text) }); await p.waitForTimeout(500); };
+      await asked();
+      r.backupAsked = await p.evaluate(() => ({ text: (document.querySelector('#library .plAsk p') || { textContent: '' }).textContent.trim(), keys: [...document.querySelectorAll('#library .plAsk [data-act]')].map((b) => b.dataset.act) }));
+      await p.evaluate(() => document.querySelector('#library [data-act="cancel"]').click());
+      await p.waitForTimeout(300);
+      r.cancelled = await p.evaluate(body(LIB + `return live(lib()).map((x) => (x.name ?? 'Saved') + ':' + (x.tracks || []).filter((t) => t.removed === undefined).length);`));
+      await asked();
+      await p.evaluate(() => document.querySelector('#library [data-act="replaceAll"]').click());
+      await p.waitForTimeout(400);
+      r.replacedAll = await p.evaluate(body(LIB + `return { lists: live(lib()).map((x) => (x.name ?? 'Saved') + ':' + (x.tracks || []).filter((t) => t.removed === undefined).length), bar: undoBar() };`));
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    if (!/\.deephouse$/.test(r.file.name) || r.file.kind !== 'playlist' || r.file.tracks !== 2) bad.push(`the download is ${JSON.stringify(r.file)}`);
+    if (!/already here/.test(r.asked.text) || r.asked.keys.join() !== 'keepBoth,replaceFile,cancel') bad.push(`the picker's file asked "${r.asked.text}" with ${r.asked.keys.join(', ')}`);
+    if (r.keptBoth.join() !== 'Saved:2,Saved 2:2') bad.push(`Keep both left ${r.keptBoth.join(', ')}`);
+    if (r.dropAsked.join() !== 'keepBoth,replaceFile,cancel') bad.push(`the dropped file asked ${r.dropAsked.join(', ')}`);
+    if (r.replaced.join() !== 'Saved:2,Saved 2:2') bad.push(`Replace left ${r.replaced.join(', ')}`);
+    if (!/\.deephouse$/.test(r.backup.name) || r.backup.kind !== 'library' || r.backup.lists !== 2) bad.push(`the backup is ${JSON.stringify(r.backup)}`);
+    if (r.backupAsked.keys.join() !== 'merge,cancel,replaceAll') bad.push(`the backup asked "${r.backupAsked.text}" with ${r.backupAsked.keys.join(', ')}`);
+    if (r.cancelled.join() !== 'Saved:2,Saved 2:3' && r.cancelled.join() !== 'Saved:3,Saved 2:2') bad.push(`Cancel left ${r.cancelled.join(', ')}`);
+    if (r.replacedAll.lists.join() !== 'Saved:2,Saved 2:2' || !/^Replaced/.test(r.replacedAll.bar || '')) bad.push(`Replace instead left ${r.replacedAll.lists.join(', ')}, the bar "${r.replacedAll.bar}"`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `${r.file.name} (2 tracks) opened by the picker asked "${r.asked.text}" and Keep both made ${r.keptBoth.join(', ')}; dropped, it asked again and Replace kept ${r.replaced.join(', ')}; ${r.backup.name} (${r.backup.lists} playlists) opened asked "${r.backupAsked.text}", Cancel left ${r.cancelled.join(', ')}, and Replace instead put back ${r.replacedAll.lists.join(', ')} with "${r.replacedAll.bar}"`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a playlist plays from a row pressed while stopped, the ring\'s next and back step it and repeat after the last, a reload keeps the place under the ring, and the dice leave it',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 240000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      const r = await p.evaluate(body(LIB + `
+        for (const s of [1, 2, 3]) { ctl.setSeed(s); await sleep(250); await throne(); }
+        ctl.setSeed(5);
+        await sleep(300);
+        await panel();
+        await pressAct('list');
+        const nowList = () => { const l = document.getElementById('nowList'); return l && !l.hidden ? l.textContent.replace(/\\s+/g, ' ').trim() : null; };
+        const seed = () => String(ctl.readout().seed);
+        const r = {};
+        // a row pressed while stopped starts there
+        await pressAct('play', '[data-i="1"]');
+        r.row = { started: await waitFor(() => ctl.playing && seed() === '2', 30000), label: nowList(), seed: seed() };
+        await sleep(1500);
+        ctl.skip();
+        r.next = { landed: await waitFor(() => seed() === '3', 60000), label: nowList() };
+        await sleep(1500);
+        ctl.skip();
+        r.repeat = { landed: await waitFor(() => seed() === '1', 60000), label: nowList() };
+        await sleep(1500);
+        ctl.back();
+        r.back = { landed: await waitFor(() => seed() === '3', 60000), label: nowList() };
+        await sleep(800);
+        ctl.stop();
+        await sleep(400);
+        return r;
+      `));
+      await p.reload({ waitUntil: 'networkidle' });
+      await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+      await p.waitForTimeout(1500);
+      r.reloaded = await p.evaluate(() => { const l = document.getElementById('nowList'); return { label: l && !l.hidden ? l.textContent.replace(/\s+/g, ' ').trim() : null, seed: String(window.ring.control.readout().seed) }; });
+      r.dice = await p.evaluate(body(`
+        await started();
+        await sleep(800);
+        ctl.newSeed();
+        await sleep(1500);
+        const l = document.getElementById('nowList');
+        const out = { label: l && !l.hidden ? l.textContent : null };
+        ctl.stop();
+        return out;
+      `));
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    if (!r.row.started || !/Saved\s*2 of 3/.test(r.row.label || '')) bad.push(`row 2 pressed while stopped: started ${r.row.started} on seed ${r.row.seed}, the label "${r.row.label}"`);
+    if (!r.next.landed || !/3 of 3/.test(r.next.label || '')) bad.push(`next: landed ${r.next.landed}, the label "${r.next.label}"`);
+    if (!r.repeat.landed || !/1 of 3/.test(r.repeat.label || '')) bad.push(`next after the last: landed ${r.repeat.landed} (repeat), the label "${r.repeat.label}"`);
+    if (!r.back.landed || !/3 of 3/.test(r.back.label || '')) bad.push(`back from the first: landed ${r.back.landed}, the label "${r.back.label}"`);
+    if (!/3 of 3/.test(r.reloaded.label || '') || r.reloaded.seed !== '3') bad.push(`after a reload the label is "${r.reloaded.label}" on seed ${r.reloaded.seed}`);
+    if (r.dice.label) bad.push(`the dice left the label "${r.dice.label}"`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `row 2 pressed while stopped started seed 2 ("${r.row.label}"); next took it to 3 of 3, next again repeated to 1 of 3, back to 3 of 3; a reload kept "${r.reloaded.label}"; the dice left the playlist and the label went`,
+    };
+  },
+});
+
+// **A playlist's next track at the record's own seam** (the review of 10-21, F1): the needle set eight seconds
+// before the seam, then the set's own clock runs the hand-over, no fake time. A library is written before the page
+// reads it, and the page opened again on it.
+const SEAM_PASS = `
+  const nowList = () => { const l = document.getElementById('nowList'); return l && !l.hidden ? l.textContent.replace(/\\s+/g, ' ').trim() : null; };
+  const place = () => ctl.placeHeard;
+  const heard = () => ({ seed: String(ctl.state.seed), theme: ctl.state.themeIndex, place: place(), label: nowList() });
+  // the record to its seam: arrived when another place is heard, or the needle is back at the start of this one
+  const pass = async () => {
+    const from = place();
+    ctl.seekTo(Math.max(0, ctl.seamAt - 8) / ctl.readout().duration, true);
+    await sleep(1200);
+    let top = ctl.state.position;
+    const arrived = await waitFor(() => { const at = ctl.state.position; if (place() !== from || at < top - 4) return true; top = Math.max(top, at); return false; }, 90000);
+    // the playlist's tick reads the arrival once a second
+    await sleep(2500);
+    return { arrived, ...heard() };
+  };
+  const playing = () => waitFor(() => ctl.playing && !ctl.state.starting, 30000);
+`;
+const withLibrary = async (p, links) => {
+  let doc = emptyLibrary();
+  links.forEach((l, i) => { doc = i ? addToPlaylist(doc, 'Saved', l, Date.now() + i) : saveTrack(doc, l); });
+  await p.evaluate((text) => localStorage.setItem('deephouse.library', text), JSON.stringify(doc));
+  await p.reload({ waitUntil: 'networkidle' });
+  await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+  await p.waitForTimeout(900);
+};
+
+SCENARIOS.push({
+  name: 'a playlist started while stopped and one started while playing each take their next track at the record\'s own seam',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 300000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await withLibrary(p, ['seed=1&v=2', 'seed=2&v=2']);
+      const r = {};
+      r.stopped = await p.evaluate(body(LIB + SEAM_PASS + `
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        const started = await playing();
+        const first = heard();
+        const seam = await pass();
+        ctl.stop();
+        await sleep(400);
+        return { started, first, seam };
+      `));
+      r.playing = await p.evaluate(body(LIB + SEAM_PASS + `
+        ctl.setSeed(9);
+        await sleep(300);
+        await started();
+        await playing();
+        await sleep(1500);
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        const cast = await waitFor(() => String(ctl.state.seed) === '1' && ctl.state.castTo === null, 90000);
+        await sleep(1500);
+        const first = heard();
+        const seam = await pass();
+        ctl.stop();
+        await sleep(400);
+        return { cast, first, seam };
+      `));
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const at = (x, seed, label) => x.arrived && x.seed === seed && x.theme === 0 && new RegExp(label).test(x.label || '');
+    if (!r.stopped.started || r.stopped.first.seed !== '1') bad.push(`started while stopped: ${JSON.stringify(r.stopped.first)}`);
+    else if (!at(r.stopped.seam, '2', 'Saved\\s*2 of 2')) bad.push(`started while stopped, the seam brought ${JSON.stringify(r.stopped.seam)}, not seed 2 at 2 of 2`);
+    if (!r.playing.cast || r.playing.first.seed !== '1') bad.push(`started while playing: the cast ${r.playing.cast}, ${JSON.stringify(r.playing.first)}`);
+    else if (!at(r.playing.seam, '2', 'Saved\\s*2 of 2')) bad.push(`started while playing, the seam brought ${JSON.stringify(r.playing.seam)}, not seed 2 at 2 of 2`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `started stopped on seed 1, the seam brought seed ${r.stopped.seam.seed} ("${r.stopped.seam.label}"); started while seed 9 played, the cast landed on seed 1 and its seam brought seed ${r.playing.seam.seed} ("${r.playing.seam.label}")`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a one-track playlist repeats at every seam, and two tracks differing only by their birds each take their seam',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 360000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      const r = {};
+      await withLibrary(p, ['seed=3&v=2']);
+      r.one = await p.evaluate(body(LIB + SEAM_PASS + `
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        await playing();
+        const first = heard();
+        // the transport never hands over into the place it is at: the set's own next theme comes, then the track again
+        const again = async () => {
+          const seam = await pass();
+          const back = await waitFor(() => String(ctl.state.seed) === '3' && ctl.state.themeIndex === 0, 90000);
+          await sleep(2500);
+          return { ...heard(), arrived: seam.arrived && back, via: seam.theme };
+        };
+        const a = await again();
+        const b = await again();
+        ctl.stop();
+        await sleep(400);
+        return { first, a, b };
+      `));
+      await withLibrary(p, ['seed=4&v=2&spell=em:0.80', 'seed=4&v=2&spell=em:0.20', 'seed=6&v=2']);
+      r.spells = await p.evaluate(body(LIB + SEAM_PASS + `
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        await playing();
+        const first = heard();
+        const a = await pass();
+        const b = await pass();
+        ctl.stop();
+        await sleep(400);
+        return { first, a, b };
+      `));
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const one = r.one;
+    for (const [k, x] of [['first', one.first], ['a', one.a], ['b', one.b]]) {
+      if ((k !== 'first' && !x.arrived) || x.seed !== '3' || x.theme !== 0 || !/Saved\s*1 of 1/.test(x.label || '')) bad.push(`the one-track playlist, ${k === 'first' ? 'started' : `seam ${k}`}: ${JSON.stringify(x)}`);
+    }
+    const sp = r.spells;
+    const em = (x) => (/em:([\d.]+)/.exec(x.place || '') || [])[1];
+    if (sp.first.seed !== '4' || em(sp.first) !== '0.80' || !/1 of 3/.test(sp.first.label || '')) bad.push(`the birds pair, started: ${JSON.stringify(sp.first)}`);
+    if (!sp.a.arrived || sp.a.seed !== '4' || sp.a.theme !== 0 || em(sp.a) !== '0.20' || !/2 of 3/.test(sp.a.label || '')) bad.push(`the birds pair, first seam: ${JSON.stringify(sp.a)}`);
+    if (!sp.b.arrived || sp.b.seed !== '6' || sp.b.theme !== 0 || !/3 of 3/.test(sp.b.label || '')) bad.push(`the birds pair, second seam: ${JSON.stringify(sp.b)}`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `one track: seed 3 theme 1 again after both seams, by theme ${one.a.via + 1} and ${one.b.via + 1} ("${one.b.label}"); the birds pair: em ${em(sp.first)} then em ${em(sp.a)} ("${sp.a.label}"), then seed ${sp.b.seed} ("${sp.b.label}")`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a playlist is reordered by a drag with a mouse and by Move up in a track\'s ⋯, and a drag never plays the row',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 120000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await p.evaluate(body(LIB + `for (const s of [1, 2, 3]) { ctl.setSeed(s); await sleep(250); await throne(); } await panel(); await pressAct('list'); return 1;`));
+      const order = () => p.evaluate(body(LIB + `return tracks(lib(), 'Saved').map((l) => (/seed=(\\d+)/.exec(l) || [])[1]).join(',');`));
+      const rows = await p.evaluate(() => [...document.querySelectorAll('#library .plTracks > li')].map((li) => { const b = li.getBoundingClientRect(); return { x: b.left + b.width * 0.4, y: b.top + b.height / 2, h: b.height }; }));
+      const r = { before: await order() };
+      // the first row dragged below the third
+      await p.mouse.move(rows[0].x, rows[0].y);
+      await p.mouse.down();
+      for (let k = 1; k <= 12; k++) { await p.mouse.move(rows[0].x, rows[0].y + ((rows[2].y + rows[2].h * 0.3 - rows[0].y) * k) / 12); await p.waitForTimeout(16); }
+      await p.mouse.up();
+      await p.waitForTimeout(400);
+      r.dragged = await order();
+      r.playing = await p.evaluate(() => window.ring.control.playing || window.ring.control.state.starting);
+      // the last row's ⋯ → Move up
+      await p.evaluate(body(LIB + `const last = [...document.querySelectorAll('#library .plTracks > li [data-act="trackMenu"]')].pop(); last.click(); await sleep(250); await pressAct('moveUp'); return 1;`));
+      r.movedUp = await order();
+      return r;
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    if (r.before !== '1,2,3') bad.push(`the playlist began ${r.before}`);
+    if (r.dragged !== '2,3,1') bad.push(`the first row dragged below the third left ${r.dragged}`);
+    if (r.playing) bad.push('the drag played the row');
+    if (r.movedUp !== '2,1,3') bad.push(`Move up on the last left ${r.movedUp}`);
+    return { ok: !bad.length, why: bad[0], note: `1,2,3 → a mouse drag of the first below the third: ${r.dragged}, nothing played → Move up on the last: ${r.movedUp}` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a full storage is said in the panel and the record is left as it was',
+  area: 'library',
+  query: 'v=2&seed=1',
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      return await p.evaluate(body(LIB + `
+        await throne();
+        const was = localStorage.getItem('deephouse.library');
+        const set = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (k, v) { if (k === 'deephouse.library') throw new DOMException('the quota', 'QuotaExceededError'); return set.call(this, k, v); };
+        try {
+          ctl.setSeed(2);
+          await sleep(250);
+          await throne();
+          await panel();
+          const notice = (document.querySelector('#library .plNotice') || { textContent: '' }).textContent.trim();
+          return { notice, said: said(), same: localStorage.getItem('deephouse.library') === was, open: document.getElementById('library').open };
+        } finally { Storage.prototype.setItem = set; }
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => ({
+    ok: /storage .* is full/i.test(r.notice) && r.same,
+    why: JSON.stringify(r),
+    note: `a save into a full storage said "${r.notice}" in the panel, and the record stayed as it was`,
+  }),
+});
+
+SCENARIOS.push({
+  name: 'the panel opens and closes beside the ring, under it and in the mini player: the gyroscope gives way to it, the ring moves aside and comes back',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 120000,
+  drive: async (page) => {
+    const out = {};
+    for (const [name, opts] of [['land', { viewport: { width: 1440, height: 900 } }], ['port', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }], ['mini', { viewport: { width: 400, height: 400 } }]]) {
+      const own = await ownPage(page, opts);
+      const p = own.page;
+      try {
+        out[name] = await p.evaluate(body(`
+          const rect = (id) => { const b = el(id).getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) }; };
+          const seen = (id) => { const e = el(id); const b = e.getBoundingClientRect(); const cs = getComputedStyle(e); return b.width > 0 && cs.visibility !== 'hidden' && +cs.opacity > 0.1; };
+          await started();
+          await sleep(800);
+          const before = { mode: document.documentElement.dataset.panelMode, tilt: rect('tilt'), gyro: seen('gyro') };
+          el('gyro').click();
+          await sleep(700);
+          const open = { panel: el('library').open && seen('library'), box: rect('library'), tilt: rect('tilt'), gyro: seen('gyro'), playing: ctl.playing };
+          // the ring and the panel share the window: their boxes do not cross (the mini player's panel covers it whole)
+          const a = open.tilt, b = open.box;
+          open.apart = a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1;
+          open.inside = b.x >= -1 && b.y >= -1 && b.x + b.w <= innerWidth + 1 && b.y + b.h <= innerHeight + 1;
+          el('panelClose').click();
+          await sleep(700);
+          const closed = { panel: el('library').open, tilt: rect('tilt'), gyro: seen('gyro'), playing: ctl.playing };
+          ctl.stop();
+          return { before, open, closed };
+        `));
+      } finally { await own.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const bad = [];
+    for (const [k, x] of Object.entries(r)) {
+      if (x.before.mode !== k) bad.push(`${k}: the page lays itself out as ${x.before.mode}`);
+      if (!x.before.gyro || x.open.gyro || !x.closed.gyro) bad.push(`${k}: the gyroscope seen ${x.before.gyro}, then ${x.open.gyro} with the panel open, then ${x.closed.gyro}`);
+      if (!x.open.panel || !x.open.inside) bad.push(`${k}: the panel open ${x.open.panel}, inside the window ${x.open.inside} (${JSON.stringify(x.open.box)})`);
+      if (k !== 'mini' && !x.open.apart) bad.push(`${k}: the ring ${JSON.stringify(x.open.tilt)} and the panel ${JSON.stringify(x.open.box)} cross`);
+      if (x.closed.panel || JSON.stringify(x.closed.tilt) !== JSON.stringify(x.before.tilt)) bad.push(`${k}: closed, the panel ${x.closed.panel ? 'open' : 'shut'} and the ring at ${JSON.stringify(x.closed.tilt)}, where it was ${JSON.stringify(x.before.tilt)}`);
+      if (!x.open.playing || !x.closed.playing) bad.push(`${k}: the set stopped across the panel`);
+    }
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: Object.entries(r).map(([k, x]) => `${k}: the panel ${x.open.box.w}x${x.open.box.h} at ${x.open.box.x},${x.open.box.y}, the ring ${x.open.tilt.w} px beside it, back to ${x.closed.tilt.w} px where it was`).join('; ') + '; the gyroscope hidden while the panel is open, the set playing throughout',
     };
   },
 });

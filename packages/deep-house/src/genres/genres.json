@@ -1,7 +1,7 @@
 {
  "kind": "genre-presets",
  "schema": 2,
- "note": "The genre keys under the ring in the machine view (PLAN-GENRES; notes/analysis/genres-2026-09-25.md). A key is a spell and nothing else: `spell` names the birds away from the house, `reachable` false means the birds cannot reach the genre and the spell is the nearest the search found, `about` is the key's tooltip. Measured, never typed by hand: re-run tools/genres.ts and tools/genres.py before changing a spell. Since M7 (schema 2): two tiers. `families` are the grid's first tier, each with its own measured `spell`, `reachable` and `about`, and up to eight `subs`, its second tier; a sub with `tuned: true` carries a measured spell of its own, and one with `tuned: false` has none yet and plays its family's. The tuning of the subs is for a genres session. Since M10 a family carries `tuned` too: whether its own spell is one to play — measured and reached by the ring's controls (false where `reachable` is false, and for Dub, which borrows Dub Techno's). A key whose spell is not tuned is drawn disabled and does nothing; a family on the first tier still opens its tier. Since M18 a family or a sub-genre may carry `recipes`: the ids of the recipe library's rows (`packages/deep-house/recipes/genres/`) that belong to it, the library's own ids and never renamed, so the grid can later show which styles have recipes. Since GA8 (Eugene, 2026-10-01: *\"only nine top-level tiles, no sub-views\"*) the view draws `grid` and nothing else: one level, its `centre` (the home family's style, Deep House) and the eight `around` it in reading order. A tile names its `label` and the `family` it stands for, and, where two tiles share one family, the `styles` of that family it gathers; it plays the family's own preset (its tuned spell, or the place its rows share) or, with `styles`, the first tuned of them or the place their rows share, and the family's first tuned style where the family has no preset of its own; a tile that reaches none of those is drawn disabled. Swapping a tile is one line here. Since G4 (Eugene, 10-02: *\"the nine tiles should roughly assume above are fast beats and below are slow beats\"*) `around` is in tempo order: the three fastest tiles on the top row, the mid-tempo pair beside Deep House, the three slowest on the bottom row, each by the tempo centre its spell plays (the round note's table); Disco is given up and Trip Hop has its tile. The `families` and their `subs` stay as the table of what is measured and claimed, and are not drawn.",
+ "note": "The genre table the Genres sky draws (its keys left the machine view on 10-20). A key is a spell and nothing else: `spell` names the birds away from the house, `reachable` false means the birds cannot reach the genre and the spell is the nearest the search found, `about` is the key's tooltip. Measured, never typed by hand: re-run tools/genres.ts and tools/genres.py before changing a spell. Since M7 (schema 2): two tiers. `families` are the grid's first tier, each with its own measured `spell`, `reachable` and `about`, and up to eight `subs`, its second tier; a sub with `tuned: true` carries a measured spell of its own, and one with `tuned: false` has none yet and plays its family's. The tuning of the subs is for a genres session. Since M10 a family carries `tuned` too: whether its own spell is one to play — measured and reached by the ring's controls (false where `reachable` is false, and for Dub, which borrows Dub Techno's). A key whose spell is not tuned is drawn disabled and does nothing; a family on the first tier still opens its tier. Since M18 a family or a sub-genre may carry `recipes`: the ids of the recipe library's rows (`packages/deep-house/recipes/genres/`) that belong to it, the library's own ids and never renamed, so the grid can later show which styles have recipes. Since GA8 (Eugene, 2026-10-01: *\"only nine top-level tiles, no sub-views\"*) the view draws `grid` and nothing else: one level, its `centre` (the home family's style, Deep House) and the eight `around` it in reading order. A tile names its `label` and the `family` it stands for, and, where two tiles share one family, the `styles` of that family it gathers; it plays the family's own preset (its tuned spell, or the place its rows share) or, with `styles`, the first tuned of them or the place their rows share, and the family's first tuned style where the family has no preset of its own; a tile that reaches none of those is drawn disabled. Swapping a tile is one line here. Since G4 (Eugene, 10-02: *\"the nine tiles should roughly assume above are fast beats and below are slow beats\"*) `around` is in tempo order: the three fastest tiles on the top row, the mid-tempo pair beside Deep House, the three slowest on the bottom row, each by the tempo centre its spell plays (the round note's table); Disco is given up and Trip Hop has its tile. The `families` and their `subs` stay as the table of what is measured and claimed, and are not drawn.",
  "home": "House",
  "grid": {
   "centre": {
@@ -17,7 +17,7 @@
      "Jungle",
      "Neurofunk",
      "Jump-up",
-     "Halftime"
+     "Chillstep"
     ]
    },
    {
@@ -288,13 +288,60 @@
     },
     {
      "label": "Drone",
-     "tuned": false,
-     "about": "Drone: not tuned yet — plays the family's spell."
+     "spell": {
+      "ember": 0.14,
+      "gleam": 0,
+      "veil": 0.34,
+      "spark": 0,
+      "loom": 0.81
+     },
+     "tuned": true,
+     "about": "Drone: Ember 0.14, Gleam 0, Veil 0.34, Spark 0, Loom 0.81, the rest at the house: the birds of the benchmark, seed 27191."
     },
     {
      "label": "Psybient",
-     "tuned": false,
-     "about": "Psybient: not tuned yet — plays the family's spell."
+     "spell": {
+      "ember": 0.08,
+      "tide": 0.9,
+      "zephyr": 0.65,
+      "root": 0.6,
+      "gleam": 0.35,
+      "veil": 0.9,
+      "spark": 0.55,
+      "loom": 0.7
+     },
+     "tuned": true,
+     "about": "Psybient: one long filter journey in a mode of its own, at the PSY place's birds (round ambient-psy, PLAN-AMBIENT Phase 6; src/styles/deep-house-places.ts)."
+    },
+    {
+     "label": "Bells",
+     "spell": {
+      "ember": 0.05,
+      "tide": 0.65,
+      "zephyr": 0.65,
+      "root": 0.1,
+      "gleam": 0.8,
+      "veil": 0.3,
+      "spark": 0.55,
+      "loom": 0.9
+     },
+     "tuned": true,
+     "about": "Bells: struck voices in slow conversation, at the BELLS zone's centre (rounds ambient-bells and zones-pilot, PLAN-AMBIENT Phase 1; src/styles/deep-house-places.ts)."
+    },
+    {
+     "label": "Waves",
+     "spell": {
+      "ember": 0.05,
+      "tide": 0.85,
+      "zephyr": 0.75,
+      "root": 0.55,
+      "gleam": 0.5,
+      "veil": 0.6,
+      "spark": 0.1,
+      "loom": 0.95
+     },
+     "tuned": true,
+     "about": "Waves: the sea, and the music on its waves, at the WAVES place's birds (round ambient-waves, PLAN-AMBIENT Phase 4; src/styles/deep-house-places.ts)."
     }
    ]
   },
@@ -416,9 +463,18 @@
      ]
     },
     {
-     "label": "Halftime",
-     "tuned": false,
-     "about": "Halftime: not tuned yet — plays the family's spell.",
+     "label": "Chillstep",
+     "spell": {
+      "ember": 0.92,
+      "tide": 0.9,
+      "zephyr": 0.25,
+      "root": 0.85,
+      "veil": 0.15,
+      "spark": 0.1,
+      "loom": 0.8
+     },
+     "tuned": true,
+     "about": "Chillstep: Ember 0.92, Tide 0.90, Zephyr 0.25, Root 0.85, Veil 0.15, Spark 0.10, Loom 0.80: the golden birds of seed 6.",
      "recipes": [
       "dnb/halftime",
       "dnb/half-time-roller",

@@ -14,7 +14,7 @@ import type { TimeEntry } from '../src/musical-time.ts';
 import type { StylePlaces } from '../src/places.ts';
 import type { Style } from '@deep-house/engine/style';
 
-/** The Ambient tile's spell (`src/machine/genres.json`), FLOATING's birds. */
+/** The Ambient tile's spell (`src/genres/genres.json`), FLOATING's birds. */
 export const TILE = Object.freeze({ ember: 0.10, tide: 0.85, zephyr: 0.90, root: 0.50, veil: 0.30, spark: 0, loom: 0.80 });
 /** A house theme near 120 BPM: seed 1 at Ember 0.60 is 119.1. */
 export const HOUSE_120 = Object.freeze({ ember: 0.6 });

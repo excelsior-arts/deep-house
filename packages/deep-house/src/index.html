@@ -10,11 +10,13 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Deep House</title>
-    <meta name="description" content="An endless deep house set, generated in your browser." />
+    <meta name="description" content="An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline." />
     <meta name="theme-color" content="#000000" />
+    <!-- Safari's own app banner on iPhone and iPad (his word 10-21); its app-argument follows the address (open-in-app.ts) -->
+    <meta name="apple-itunes-app" content="app-id=6824689539" />
 
     <meta property="og:title" content="Deep House" />
-    <meta property="og:description" content="An endless deep house set, generated in your browser." />
+    <meta property="og:description" content="An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://deephouse.audio/" />
     <meta property="og:image" content="https://deephouse.audio/card.png" />
@@ -23,7 +25,7 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Deep House" />
-    <meta name="twitter:description" content="An endless deep house set, generated in your browser." />
+    <meta name="twitter:description" content="An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline." />
     <meta name="twitter:image" content="https://deephouse.audio/card.png" />
 
     <!-- What a search engine is told: the page is one address, and it is a
@@ -35,7 +37,7 @@
       "@type": "WebApplication",
       "name": "Deep House",
       "url": "https://deephouse.audio/",
-      "description": "An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays.",
+      "description": "An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline. Nothing is recorded or streamed.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Any",
       "browserRequirements": "Requires a browser with Web Audio",
@@ -162,7 +164,7 @@
          click activities"). The browser's outline is off on every key of the
          page, in every state. A round SVG key wears a dashed circle of its own
          (`focusRing` in ring.ts); an HTML key a dashed outline that follows its
-         own corner — a circle on the round ones (the gear, the panel's − and
+         own corner — a circle on the round ones (the gyroscope, the panel's − and
          +), a soft rectangle on the name and the slider — in the worn gold at
          the ring's dash strength, only under `:focus-visible`, and not while
          the page holds a focus it put back after a pointer (`data-quiet-focus`,
@@ -170,13 +172,12 @@
       #actions g[tabindex], #starCells g.cell,
       #actions g[tabindex]:focus, #starCells g.cell:focus,
       #actions g[tabindex]:focus-visible, #starCells g.cell:focus-visible { outline: none; }
-      #mark:focus, #panel:focus, #birdPanel button:focus, #birdPanel input[type=range]:focus { outline: none; }
-      #mark:focus-visible, #panel:focus-visible, #birdPanel button:focus-visible, #birdPanel input[type=range]:focus-visible {
+      #gyro:focus, #library button:focus, #library a:focus, #library:focus, #birdPanel button:focus, #birdPanel input[type=range]:focus { outline: none; }
+      #gyro:focus-visible, #library button:focus-visible, #library a:focus-visible, #birdPanel button:focus-visible, #birdPanel input[type=range]:focus-visible {
         outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);
         outline-offset: 3px;
       }
-      #mark { border-radius: 3px; }
-      #panel { border-radius: 50%; }
+      #gyro { border-radius: 50%; }
       #birdPanel input[type=range] { border-radius: 10px; }
       :root[data-quiet-focus] :focus-visible { outline: none !important; }
       /* **A small window is the ring alone** (round apple-mini-2, Eugene
@@ -185,12 +186,14 @@
          more than 600 px either way and near square (`SMALL_WINDOW`, motion.ts) — the Mac
          app's mini player at any of its sides, before and after a reload, or
          a browser window or a frame made as small — draws the ring and
-         nothing round it: no name, no About's key, no machine view's key
-         (ring.ts, `smallChanged`). No phone is one, in either orientation (a
+         nothing round it but the gyroscope in its corner: no name, and no
+         machine view's key in the panel, which lies over the dimmed ring
+         there (ring.ts, `smallChanged`; library-panel.ts). No phone is one, in either orientation (a
          phone's long side is over 600, and its browser cut short by its bars
          is still tall and thin), nor a tablet, nor a desktop window. */
       @media (max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4) {
-        #name, #mark, #panel, #birdPanel, #about { display: none !important; }
+        #name, #machineKey, #birdPanel { display: none !important; }
+        #library #panelShare { margin-right: 10px; }
       }
       /* And as its square shrinks, the words it is too small to carry go, a
          step at a time (round apple-mini; ring.ts says why each goes where it
@@ -309,40 +312,6 @@
       .med  { stroke-width: 2.4; }
       /* the lane initials are a whisper; below tablet width they would be noise */
       @media (max-width: 560px) { .laneKey { display: none; } }
-      /* The page's only words outside the sigil: quiet, engraved the same way,
-         and tucked into the corner clear of the ring at every width. */
-      #mark {
-        position: fixed;
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-        z-index: 2;
-        /* K23: the name as it is written, "Excelsior Arts" — title case,
-           Jost 500 at the sheet's 11 px (10.2 here, the page's Jost being
-           size-adjusted 107.7 %), tracked 0.12 em (upper case at 10 px and
-           0.34 em until then) — and moved in off the right edge by the gear's width
-           and a gap, so the two sit on one line. K28 (Eugene: "a bit small on
-           mobile — a 20 % increase; on desktop the same"): 12.24 px, a fifth
-           more, its line box 19 px, 52 px in to leave the larger gear its place. */
-        font-size: 12.24px;
-        font-weight: 500;
-        line-height: 19px;
-        letter-spacing: 0.12em;
-        right: calc(52px + env(safe-area-inset-right, 0px));
-        color: var(--gold);
-        opacity: 0.3;
-        text-decoration: none;
-        cursor: pointer;
-        text-shadow: 0 0 3px #05040a, 0 0 7px #05040a, 0 1px 2px #05040a;
-        transition: opacity 240ms ease;
-        /* a button since K25, drawn as the name it was */
-        margin: 0;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        font-family: inherit;
-        -webkit-tap-highlight-color: transparent;
-      }
-      #mark:hover,
-      #mark:focus-visible { opacity: 0.85; }
       /* **The app's own name, and the first permanent mark this page has added
          since the panel icon** (Eugene, 09-20). It stands where the `v1 | v2`
          toggle stood under the dev flag — the machine view's selector is the
@@ -412,12 +381,6 @@
          is the portrait phone's; a landscape one keeps the desktop's corners,
          where the ring leaves room. */
       @media (max-width: 699px) and (orientation: portrait) {
-        #mark {
-          right: auto;
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-        }
         #name {
           left: 50%;
           transform: translateX(-50%);
@@ -425,44 +388,6 @@
         }
         /* centred on its ink, not on an inset */
         #name img { margin-left: 0; }
-      }
-      /* **The way into the machine view.** Eugene, 09-19: the page has one key
-         and it is the space bar, so the engineer's face is reached by a
-         control and not by a letter. A button, so Tab reaches it and a screen
-         reader names it; that is not a shortcut. Since K23 it is a gear —
-         eight teeth, line work, the transport's soft corners, a hole — on the
-         footer's line at its right end, centred on the name's line box (16 px
-         tall, 16 px up; 14 on the phone, where the name is centred and the
-         gear still ends the line), in the ring's worn colour at half strength:
-         "noticeable but not in your face" (it was a panel drawn a hair above
-         the ground, above the name). Hidden inside the machine view (M8,
-         machine/look.ts). K28: a fifth larger, 21.6 px, the drawing scaled
-         whole so its line keeps K23's weight, centred in a 44 px square that
-         is the touch target, placed so the gear still ends the line 18 px in
-         and stands level with the name. */
-      #panel {
-        position: fixed;
-        right: calc(7px + env(safe-area-inset-right, 0px));
-        bottom: calc(4px + env(safe-area-inset-bottom, 0px));
-        opacity: 0.5;
-        z-index: 4;
-        width: 44px;
-        height: 44px;
-        display: grid;
-        place-items: center;
-        padding: 0;
-        margin: 0;
-        border: 0;
-        background: transparent;
-        color: var(--gold);
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        transition: opacity 220ms ease;
-      }
-      #panel:hover,
-      #panel:focus-visible { opacity: 0.85; }
-      @media (max-width: 699px) and (orientation: portrait) {
-        #panel { bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
       }
       /* The seed under the die while it is being typed: the caption's own
          type, its colour and its knockout, carried as a shadow because an
@@ -594,106 +519,633 @@
         left: calc(11px + (100% - 22px) * 100 / 130); background: var(--gold); opacity: 0.6;
       }
       #birdPanel .pct { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; pointer-events: none; color: var(--pale); }
-      /* **The About** (round K25): a large sheet centred on the page's black,
-         in the ring's line work — a thin border and the rules in the worn
-         colour, the words in white and the pale; the gold stays in the
-         instrument. On a phone it takes the width less a 16 px gutter each
-         side and scrolls inside itself if it must; the page under it never
-         scrolls (`about-open` on the root while it is up). */
-      #about {
-        box-sizing: border-box;
-        width: min(680px, calc(100vw - 32px));
-        max-width: none;
-        max-height: calc(100dvh - 32px);
-        overflow: auto;
-        overscroll-behavior: contain;
-        margin: auto;
-        padding: 56px 48px 40px;
-        color: rgba(255, 255, 255, 0.86);
-        background: #000000;
+      /* **The gyroscope, the one key to the panel** (PLAN-LIBRARY §2, his word
+         10-20). Line work in the ring's colour: a leaning gyroscope drawn from
+         a 3D model (round gyro-volume), no fill. `library-panel.ts` lays it — right of the ring
+         at its middle in landscape, under it in portrait, in the bottom-right
+         corner of a small window — and it hides while the panel is open. It
+         spins for about two seconds when something is saved (`gyroSpin`), and
+         blinks once instead under reduced motion. */
+      #gyro {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        width: 44px;
+        height: 44px;
+        z-index: 4;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        margin: 0;
+        color: var(--gold);
+        background: transparent;
         border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
-        border-radius: 4px;
-        text-align: center;
+        cursor: pointer;
+        opacity: 0.8;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 220ms ease;
+      }
+      #gyro:hover, #gyro:focus-visible { opacity: 1; }
+      /* his note 10-20: no frame; the glyph is the key, larger (1.4×) and a little heavier. The button stays a 44 px
+         target; a thin circle shows only for the keyboard's focus; a hover brightens it and turns its inner ring a little */
+      #gyro { border-color: transparent; background: transparent; }
+      #gyro:focus-visible { outline: none; border-color: color-mix(in srgb, var(--gold) 70%, transparent); }
+      #gyro svg { width: 81%; height: 81%; overflow: visible; }
+      #gyro { color: var(--ring-ink, var(--gold)); }   /* the ring's line colour, not the type's paler ink (his word 10-21) */
+      /* round gyro-volume (10-21): the glyph is a leaning gyroscope in antique gold line work, drawn and turned by
+         `library-panel.ts` from `gyro-glyph.ts` — its rotor spins twice about the axle on a save (the same 2 s and
+         curve), a mouse resting on it turns the rotor one spoke; the blink stays CSS */
+      #gyro.blink { animation: gyroBlink 600ms ease; }
+      @keyframes gyroBlink { 50% { opacity: 0.15; } }
+      :root[data-panel] #gyro { visibility: hidden; opacity: 0; }
+
+      /* **The ring makes room, as one piece** (his word 10-20): one transform
+         on the stage, about the ring's centre, so nothing on it is redrawn and
+         every motion keeps its phase. Landscape: into the left 3/5, scaled to
+         fit it; portrait: into the top 3/5; a small window: dimmed under the
+         panel. The numbers are `library-panel.ts`'s, for the viewport as it is. */
+      #stage {
+        transform-origin: 50% 50%;
+        transition: transform 520ms cubic-bezier(0.22, 0.7, 0.2, 1), opacity 320ms ease;
+      }
+      :root[data-panel]:not([data-view="machine"]) #stage {
+        transform: translate(var(--open-dx, 0px), var(--open-dy, 0px)) scale(var(--open-k, 1));
+      }
+      :root[data-panel][data-panel-mode="mini"] #stage { opacity: 0.3; }
+      /* **one surface at a time** (his pick 10-21, `libraryAway`): a bird's control opened over a panel under the ring
+         sends the panel down and out, still open, and closing the control brings it back as it was */
+      :root[data-panel] #library { transition: opacity 260ms ease, transform 250ms ease, translate 220ms ease, visibility 0s; }
+      :root[data-panel][data-panel-away][data-panel-mode="port"] #library {
+        translate: 0 calc(100% + 24px); opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 220ms ease, transform 250ms ease, translate 220ms ease, visibility 0s linear 220ms;
+      }
+      :root[data-panel][data-panel-mode="port"] #name { visibility: hidden; }
+
+      /* **The panel floats** (his word 10-20): a rounded rectangle held in
+         from the edges, a thin line, no glow and no shadow. **It wears the
+         ring's colour**: its line, the active tab's mark, the accents and the
+         gyroscope are `--gold`, which the ring steps as its colour steps
+         (`wearColour`, ring.ts); the text is white, the quiet text white
+         tinted toward it. Roomy on a wide screen, compact on a phone and a
+         small window (`data-density`). */
+      #library {
+        --quiet: color-mix(in srgb, var(--gold) 38%, rgba(255, 255, 255, 0.62));
+        --line: color-mix(in srgb, var(--gold) 55%, transparent);
+        position: fixed;
+        inset: auto;
+        margin: 0;
+        z-index: 5;
+        box-sizing: border-box;
+        max-width: none;
+        max-height: none;
+        padding: 0;
+        flex-direction: column;
+        color: #ffffff;
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--line);
+        border-radius: 10px;
         font-family: inherit;
         font-weight: 450;
+        overflow: hidden;
         touch-action: pan-y;
-        -webkit-user-select: text;
-        user-select: text;
+        opacity: 1;
+        transition: opacity 260ms ease, transform 250ms ease;
       }
-      #about::backdrop { background: rgba(0, 0, 0, 0.78); }
-      #about h2 { margin: 0; color: #ffffff; font-size: 30px; font-weight: 500; letter-spacing: 0.04em; line-height: 1.2; }
-      #about .aboutVer { color: rgba(255, 255, 255, 0.62); font-size: 0.55em; letter-spacing: 0.12em; margin-left: 0.3em; white-space: nowrap; }
-      #about .aboutSub { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255, 255, 255, 0.62); }
-      #about hr { width: 56px; margin: 28px auto; border: 0; border-top: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); }
-      #about .aboutWhat { margin: 0; font-size: 15px; line-height: 1.75; color: #ffffff; opacity: 0.86; }
-      #about .aboutWhat span { display: block; }
-      #about .aboutLinks { list-style: none; margin: 0; padding: 0; font-size: 13px; letter-spacing: 0.06em; line-height: 2.3; }
-      #about .aboutLinks a {
+      #library[open] { display: flex; }
+      @starting-style { #library[open] { opacity: 0; } }
+      #library .libHead { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 18px 0 28px; }
+      /* the roomy head's gaps even (his word 10-21: "left and top padding around tab to border should be uniform"): the tab
+         words' tops stand as far below the border as their left edge stands in from it, the × centred on their line */
+      #library:not([data-density="compact"]) .libHead { padding-top: 5px; }
+      #library:not([data-density="compact"]) .libClose { margin-top: 13px; }
+      #library .libTabs { display: flex; gap: 30px; }
+      #library [role="tab"] {
+        height: 40px;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        border-bottom: 1.5px solid transparent;
+        background: transparent;
+        font: inherit;
+        font-size: 12.5px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--quiet);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #library [role="tab"]:hover { color: #ffffff; }
+      #library [role="tab"][aria-selected="true"] { color: #ffffff; border-bottom-color: var(--gold); }
+      /* the active tab's line sits about 7 px under the text's baseline (his word 10-20): the text rests near the foot
+         of the 40 px target and the room is above it, so the target keeps its height */
+      #library [role="tab"] { display: inline-flex; align-items: flex-end; box-sizing: border-box; line-height: 1; padding-bottom: 5px; }
+      #library .libClose {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(255, 255, 255, 0.78);
+        background: transparent;
+        border: 0;
+        border-radius: 50%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* his note 10-20: frameless at rest, a thin circle on hover and focus */
+      #library .libClose { border: 1px solid transparent; transition: border-color 160ms ease; }
+      #library .libClose:hover, #library .libClose:focus-visible { color: #ffffff; border-color: var(--gold); }
+      #library .libClose svg { width: 14px; height: 14px; }
+      /* the × on the machine-view key's vertical line (his word 10-20): its size and right inset, 30 px and 16 px
+         (26 px and 10 px compact), centred over the key's centre; a finger's target as the key's */
+      #library .libHead { padding-right: 16px; }
+      #library .libClose { width: 30px; height: 30px; position: relative; }
+      #library[data-density="compact"] .libHead { padding-right: 10px; }
+      #library[data-density="compact"] .libClose { width: 26px; height: 26px; }
+      @media (pointer: coarse) { #library .libClose::after { content: ''; position: absolute; inset: -7px; } }
+      #library .libBody { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 24px 28px; }
+      #library .libBody[hidden] { display: none; }
+      /* Playlists, the first visit: the throne's outline and what it does */
+      #library .libFirst { flex: 1 0 auto; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+      #library .libThrone { width: 64px; height: 40px; color: var(--gold); overflow: visible; }
+      #library .libThrone .arc { stroke: var(--quiet); }
+      /* **the empty tab's example sky** (his word 10-21): a playlist's constellation at the throne's old footprint, its
+         stars at a row's scale (`EXAMPLE_SKY`, playlists-ui.ts). It never pushes the words or the keys out of a short
+         panel: there the gaps close up first, then the figure goes (container `plBody`, the tab's own height). */
+      #library .libSky { display: block; flex: none; width: 68px; height: 44px; }
+      #library .libSky svg { display: block; width: 100%; height: 100%; }
+      #library[data-density="compact"] .libSky { width: 56px; height: 36px; }
+      #library #libPlaylists { container: plBody / size; }
+      @container plBody (max-height: 190px) { #library .libFirst { gap: 6px; } #library .libFirst .plIcon { margin-top: 2px; } }
+      @container plBody (max-height: 150px) { #library .libSky { display: none; } }
+      #library .libFirst h2 { margin: 0; font-size: 16px; font-weight: 500; color: #ffffff; }
+      #library .libFirst p { margin: 0; max-width: 300px; font-size: 11.5px; line-height: 1.5; letter-spacing: 0.04em; color: var(--quiet); }
+      /* the machine view's key, the gear's successor: a mixer's faders in the corner on every tab */
+      #library .libFoot { flex: none; display: flex; justify-content: flex-end; align-items: flex-end; }
+      #library .machineKey {
+        margin: 0 16px 16px 0;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+        background: #000000;
+        border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+        border-radius: 50%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #library .machineKey:hover, #library .machineKey:focus-visible { border-color: var(--gold); }
+      #library .machineKey svg { width: 16px; height: 16px; }
+      @media (pointer: coarse) { #library .machineKey { position: relative; } #library .machineKey::after { content: ''; position: absolute; inset: -7px; } }
+      /* **the share circle** beside it (10-21), the same circle; the foot stays one line: where it is tight the pills
+         drop their words to circles before anything hides */
+      #library .shareKey { flex: none; margin-right: 8px; }
+      #library .shareKey svg { width: 15px; height: 15px; }
+      #library .libFoot { container: libFootBar / inline-size; }
+      @container libFootBar (max-width: 340px) {
+        #library .plFoot .plIcon.plWord { width: 26px; min-width: 26px; padding: 0 !important; border-radius: 50%; }
+        #library .plFoot .plIcon.plWord span { display: none; }
+      }
+
+      /* **The About** (round K25), as it was, inside its tab: the words in white
+         and the quiet ink, the rules in the ring's line */
+      #libAbout { text-align: center; -webkit-user-select: text; user-select: text; }
+      #libAbout h2 { margin: 8px 0 0; color: #ffffff; font-size: 30px; font-weight: 500; letter-spacing: 0.04em; line-height: 1.2; }
+      #libAbout .aboutVer { color: var(--quiet); font-size: 0.55em; letter-spacing: 0.12em; margin-left: 0.3em; white-space: nowrap; }
+      #libAbout .aboutSub { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--quiet); }
+      #libAbout hr { width: 56px; margin: 28px auto; border: 0; border-top: 1px solid var(--line); }
+      #libAbout .aboutWhat { margin: 0; font-size: 15px; line-height: 1.75; color: #ffffff; opacity: 0.86; }
+      #libAbout .aboutWhat span { display: block; }
+      #libAbout .aboutLinks { list-style: none; margin: 0; padding: 0; font-size: 13px; letter-spacing: 0.06em; line-height: 2.3; }
+      #libAbout .aboutLinks a {
         color: #ffffff;
         text-decoration: underline;
-        text-decoration-color: color-mix(in srgb, var(--gold) 55%, transparent);
+        text-decoration-color: var(--line);
         text-underline-offset: 4px;
         text-decoration-thickness: 1px;
         border-radius: 2px;
       }
-      #about .aboutLinks a:hover { text-decoration-color: var(--gold); }
-      /* the close key in the corner, drawn as the desk's keys are: a small
-         capitalised word in a thin box with a 2 px corner */
-      #about .aboutClose {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        height: 22px;
-        min-width: 24px;
-        padding: 0 9px;
-        margin: 0;
-        font: inherit;
-        font-size: 9.5px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.72);
-        background: transparent;
-        border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
-        border-radius: 2px;
-        cursor: pointer;
-      }
-      #about .aboutClose:hover { border-color: var(--gold); color: #ffffff; }
-      #about:focus, #about .aboutClose:focus, #about .aboutLinks a:focus { outline: none; }
-      #about .aboutClose:focus-visible, #about .aboutLinks a:focus-visible {
-        outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent);
-        outline-offset: 3px;
-      }
+      #libAbout .aboutLinks a:hover { text-decoration-color: var(--gold); }
+      #libAbout .aboutStore { margin: 14px 0 4px; line-height: 0; }
+      #libAbout .aboutStore a { display: inline-block; border-radius: 8px; }
+      #libAbout .aboutStore img { display: block; width: auto; height: 40px; }
       /* the switch: the desk's key with two states, its state a word in its own
-         cell — on in white over a worn-colour border, off dimmed */
-      #about .aboutKey {
-        display: inline-flex;
-        align-items: stretch;
-        height: 26px;
-        padding: 0;
-        margin: 0;
-        font: inherit;
-        font-size: 10px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.86);
-        background: transparent;
-        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
-        border-radius: 2px;
-        cursor: pointer;
+         cell — on in white over the ring's line, off dimmed */
+      /* his note 10-20: the name a pill, the switch beside it a small pill
+         switch in line work, its state a word; off dimmed */
+      #libAbout .aboutPills { display: inline-flex; align-items: center; gap: 8px; }
+      #libAbout .aboutKeyName {
+        display: inline-flex; align-items: center; height: 26px; padding: 0 12px;
+        font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.86);
+        border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; cursor: pointer;
       }
-      #about .aboutKey > span { display: grid; place-items: center; padding: 0 10px; }
-      #about .aboutKeyState { min-width: 30px; border-left: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); color: #ffffff; }
-      #about .aboutKey[aria-checked="false"] { color: rgba(255, 255, 255, 0.5); border-color: rgba(255, 255, 255, 0.22); }
-      #about .aboutKey[aria-checked="false"] .aboutKeyState { color: rgba(255, 255, 255, 0.5); border-left-color: rgba(255, 255, 255, 0.22); }
-      #about .aboutKey:hover { border-color: var(--gold); }
-      #about .aboutKey:focus { outline: none; }
-      #about .aboutKey:focus-visible { outline: 1.5px dashed color-mix(in srgb, var(--gold) 80%, transparent); outline-offset: 3px; }
-      #about .aboutReportsWhat { margin: 12px auto 0; max-width: 480px; font-size: 11.5px; line-height: 1.6; color: rgba(255, 255, 255, 0.6); }
-      :root.about-open, :root.about-open body { overflow: hidden; }
-      @media (max-width: 699px) {
-        #about { padding: 52px 20px 28px; }
-        #about h2 { font-size: 24px; }
-        #about .aboutWhat { font-size: 14px; }
+      #libAbout .aboutKey {
+        position: relative; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 2px; margin: 0;
+        font: inherit; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #ffffff;
+        background: transparent; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      }
+      @media (pointer: coarse) { #libAbout .aboutKey::after { content: ''; position: absolute; inset: -9px -6px; } }
+      #libAbout .aboutSwitch { position: relative; width: 30px; height: 16px; border: 1px solid var(--gold); border-radius: 999px; transition: border-color 160ms ease; }
+      #libAbout .aboutKnob { position: absolute; top: 2px; left: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); transition: left 160ms ease, background 160ms ease; }
+      #libAbout .aboutKeyState { min-width: 22px; text-align: left; }
+      #libAbout .aboutKey[aria-checked="false"] { color: rgba(255, 255, 255, 0.5); }
+      #libAbout .aboutKey[aria-checked="false"] .aboutSwitch { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+      #libAbout .aboutKey[aria-checked="false"] .aboutKnob { left: 2px; background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); }
+      #libAbout .aboutKey:hover .aboutSwitch, #libAbout .aboutKey:focus-visible .aboutSwitch, #libAbout .aboutKeyName:hover { border-color: var(--gold); }
+      #libAbout .aboutReportsWhat { margin: 12px auto 0; max-width: 480px; font-size: 11.5px; line-height: 1.6; color: var(--quiet); }
+      /* the maker's name, at the foot where the footer had it (K23, K28): Jost
+         500, tracked 0.12 em, in the ring's colour */
+      #libAbout .aboutMaker { margin: 32px 0 0; font-size: 12.24px; font-weight: 500; letter-spacing: 0.12em; }
+      #libAbout .aboutMaker a { color: var(--gold); opacity: 0.7; text-decoration: none; border-radius: 2px; }
+      #libAbout .aboutMaker a:hover { opacity: 1; }
+
+      /* compact: a phone and a small window — smaller type, tighter padding */
+      /* **The throne** (PLAN-LIBRARY §2, phase 3): one state. A newcomer's first minute pulses it once; a save fills
+         the plus's dot for one beat. Line work, no glow, no fade on a press. */
+      /* a little quieter than the ring's own line work, more so on the mini player where it stands large (his word
+         10-21); full under the hand, on focus and while held */
+      #throne { cursor: pointer; outline: none; opacity: 0.78; transition: opacity 160ms ease; }
+      :root[data-panel-mode="mini"] #throne { opacity: 0.62; }
+      #throne:hover, #throne:focus-visible, #throne.held, :root[data-panel-mode="mini"] #throne:hover, :root[data-panel-mode="mini"] #throne.held { opacity: 1; }
+      /* **The press, Stops, as a mechanism** (his notes 10-20: "a mechanical device, not a spring"). The teeth travel down
+         together at one steady pace, a gentle ease-in at the very start only, and stop in turn: the innermost at 0.9
+         (85 ms), a 35 ms detent, the next at 1.4 (167 ms), a detent, the top arc and the shackle at 1.8 (240 ms), a hard
+         stop held at least 120 ms (ring.ts). The release is slower, 330 ms, linear with a soft ease-out, the innermost
+         lifting first, and no overshoot. Transform only; no fade. */
+      #throne.held .tp1 { animation: thPress1 240ms linear forwards; }
+      #throne.held .tp2 { animation: thPress2 240ms linear forwards; }
+      #throne.held .tp3 { animation: thPress3 240ms linear forwards; }
+      @keyframes thPress1 { 0% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 35.4%, 100% { transform: translateY(calc(var(--u) * 0.9)); } }
+      @keyframes thPress2 { 0% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 35.4%, 50% { transform: translateY(calc(var(--u) * 0.9)); } 69.6%, 100% { transform: translateY(calc(var(--u) * 1.4)); } }
+      @keyframes thPress3 { 0% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 35.4%, 50% { transform: translateY(calc(var(--u) * 0.9)); } 69.6%, 84.2% { transform: translateY(calc(var(--u) * 1.4)); } 100% { transform: translateY(calc(var(--u) * 1.8)); } }
+      #throne.spring .tp1 { animation: thLift1 250ms cubic-bezier(0.3, 0.3, 0.6, 1) both; }
+      #throne.spring .tp2 { animation: thLift2 290ms cubic-bezier(0.3, 0.3, 0.6, 1) 40ms both; }
+      #throne.spring .tp3 { animation: thLift3 250ms cubic-bezier(0.3, 0.3, 0.6, 1) 80ms both; }
+      @keyframes thLift1 { from { transform: translateY(calc(var(--u) * 0.9)); } to { transform: none; } }
+      @keyframes thLift2 { from { transform: translateY(calc(var(--u) * 1.4)); } to { transform: none; } }
+      @keyframes thLift3 { from { transform: translateY(calc(var(--u) * 1.8)); } to { transform: none; } }
+      @media (prefers-reduced-motion: reduce) { #throne.held .tp, #throne.spring .tp { animation: none; } }
+      /* the save: the plus's centre dot full for one beat of the set's clock (playlists-ui.ts), no fade */
+      #throne .throneDot { fill: url(#gold); fill-opacity: 0; }
+      #throne.saved .throneDot { fill-opacity: 1; }
+      /* the hint (playlists-ui.ts `pulseTick`): two small presses, half the press's travel, the steps sinking and lifting
+         in the press's own order, no fade (his word 10-21) */
+      #throne.pulse .tp1 { animation: thNudge1 1100ms linear; }
+      #throne.pulse .tp2 { animation: thNudge2 1100ms linear; }
+      #throne.pulse .tp3 { animation: thronePulse 1100ms linear; }
+      @keyframes thNudge1 { 0%, 50% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 12%, 22% { transform: translateY(calc(var(--u) * 0.45)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 38% { transform: none; } 62%, 72% { transform: translateY(calc(var(--u) * 0.45)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 88%, 100% { transform: none; } }
+      @keyframes thNudge2 { 0%, 50% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 12%, 22% { transform: translateY(calc(var(--u) * 0.7)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 38% { transform: none; } 62%, 72% { transform: translateY(calc(var(--u) * 0.7)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 88%, 100% { transform: none; } }
+      @keyframes thronePulse { 0%, 50% { transform: none; animation-timing-function: cubic-bezier(0.35, 0, 1, 1); } 12%, 22% { transform: translateY(calc(var(--u) * 0.9)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 38% { transform: none; } 62%, 72% { transform: translateY(calc(var(--u) * 0.9)); animation-timing-function: cubic-bezier(0.3, 0.3, 0.6, 1); } 88%, 100% { transform: none; } }
+      @media (prefers-reduced-motion: reduce) { #throne.pulse .tp { animation: none; } }
+      /* the birds' imprint on its way to the gyroscope: the flight moves `.imprintFly`, the turn over is `.imprintFace`'s
+         under its perspective (saveMotion, playlists-ui.ts) */
+      .imprintFly { position: fixed; z-index: 6; pointer-events: none; transform-origin: 50% 50%; }
+      .imprintFly .imprintFace { width: 100%; height: 100%; transform-origin: 50% 50%; }
+      .imprintFly svg { display: block; width: 100%; height: 100%; overflow: visible; }
+      /* under the ring: below the square's edge, outside every mark on it */
+      #nowList {
+        position: absolute;
+        left: 50%;
+        top: min(calc(50% + var(--ring) / 2 + 2px), calc(100% - 26px));
+        transform: translateX(-50%);
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 3px 10px;
+        margin: 0;
+        background: transparent;
+        border: 0;
+        color: var(--gold);
+        font: inherit;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #nowList[hidden] { display: none; }
+      #nowList svg { width: 18px; height: 18px; flex: none; color: color-mix(in srgb, var(--gold) 45%, transparent); }
+      #nowList .nlName { color: #ffffff; }
+      #nowList .nlOf { color: color-mix(in srgb, var(--gold) 38%, rgba(255, 255, 255, 0.62)); letter-spacing: 0.14em; }
+      :root[data-view="machine"] #nowList { display: none; }
+      /* the mini player is a small square (his word 10-21): the line under the ring a size down, to the ring's own type */
+      :root[data-panel-mode="mini"] #nowList { top: min(calc((150% + 0.43 * var(--ring)) / 2), calc(100% - 8px)); transform: translate(-50%, -50%); font-size: 8px; gap: 5px; padding: 2px 6px; letter-spacing: 0.16em; }   /* midway between the ring's outer lane (0.43 of its square, as drawn) and the window's edge, never past it (his word 10-21) */
+      :root[data-panel-mode="mini"] #nowList svg { width: 12px; height: 12px; }
+
+      /* **The Playlists tab** (W2, W3, W7, W8, W10; his review 10-20:
+         icon keys, compact all over): rows of buttons, the card a form.
+         Two-line rows on a wide screen, one line and smaller type on a phone
+         and the mini player. An icon key is 30 px to the eye (26 compact) and
+         a 44 px target under a finger, by its hit area, not its drawing. */
+      #library #libPlaylists { position: relative; padding: 14px 20px 8px; }
+      #library .pl { display: flex; flex-direction: column; min-height: 100%; }
+      #library :where(.pl, .plUndo, .plFoot, .shareMenu) button { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; text-align: left; }
+      #library .pl svg { flex: none; color: color-mix(in srgb, var(--gold) 45%, transparent); }
+      #library .plCaps { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--quiet); }
+      #library .plQuiet, #library .plSub { color: var(--quiet); }
+      #library .plNotice { margin: 0 0 8px; font-size: 11px; color: #ffffff; }
+      #library .plIcon { position: relative; flex: none; height: 30px; min-width: 30px; padding: 0 7px !important; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--gold) !important; border: 1px solid var(--line) !important; border-radius: 4px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+      /* his note 10-20: the ring's own shapes. An icon alone is a circle, like
+         the ring's transport nodes; an icon with its word is a pill. A thin
+         line, quiet at rest, full on hover and focus. */
+      #library .plIcon { border-color: color-mix(in srgb, var(--gold) 40%, transparent) !important; border-radius: 999px; }
+      #library .plIcon:not(.plWord) { width: 30px; padding: 0 !important; border-radius: 50%; }
+      #library .plIcon.plWord { padding: 0 11px 0 9px !important; }
+      #library .plIcon:hover, #library .plIcon:focus-visible { border-color: var(--gold) !important; }
+      #library .plIcon:disabled { opacity: 0.4; cursor: default; }
+      #library .plIcon span { color: #d8d8d8; }
+      #library .pl .plIcon svg.plGlyph, #library .plFoot svg.plGlyph { width: 15px; height: 15px; color: var(--gold); }
+      @media (pointer: coarse) { #library .plIcon::after { content: ''; position: absolute; inset: -7px -4px; } }
+      #library .plFoot { flex: 1; display: flex; gap: 8px; align-items: center; padding: 0 0 16px 20px; }
+      #library:has(#libPlaylists[hidden]) .plFoot { display: none; }
+      #library .plNow { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 5px; margin-bottom: 12px; }
+      #library .plNowMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+      #library .plNowLine { font-size: 13px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #library .plNowLine .plQuiet { font-size: 11px; }
+      #library .plDot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+      #library .plHeadRow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+      #library .plHead { margin: 0; font-size: 10px; font-weight: 450; letter-spacing: 0.28em; text-transform: uppercase; color: var(--quiet); }
+      #library .plLists, #library .plTracks { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+      /* the playlists' list: lines only between its rows, none above the first or under the last (his word 10-21) */
+      #library .plLists { border-top: 0; }
+      #library .plLists li:last-child { border-bottom: 0; }
+      #library .plLists li, #library .plTracks li { position: relative; display: flex; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.9); touch-action: pan-y; }
+      #library .plOpen { flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; gap: 12px; }
+      #library .plOpen svg { width: 30px; height: 30px; }
+      #library .plText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+      #library .plName { font-size: 13.5px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #library .plSub { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #library .plName .plNameText { overflow: hidden; text-overflow: ellipsis; }
+      /* a stats figure of one or two digits: a box two figures wide, right-aligned, tabular (his word 10-20) */
+      #library .plFig { display: inline-block; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; }
+      #library .plPlay .plName { display: flex; align-items: center; min-width: 0; }
+      #library .plOpen .plName { display: flex; align-items: center; min-width: 0; }
+      /* the playing mark: three level bars in the accent after the name; still and dimmer while paused */
+      #library svg.plLevel, #library .plOpen svg.plLevel { flex: none; width: 10px; height: 10px; margin-left: 7px; fill: var(--gold); }
+      #library svg.plLevel.still { opacity: 0.55; }
+      #library[data-density="compact"] svg.plLevel, #library[data-density="compact"] .plOpen svg.plLevel { width: 9px; height: 9px; margin-left: 5px; }
+      #library .on > .plOpen .plName, #library .plTrack.on .plName { color: var(--gold); }
+      /* current, not sounding (a reload resumed it, a pause): marked, quieter than playing */
+      #library .current > .plOpen .plName { color: color-mix(in srgb, var(--gold) 60%, #ffffff); }
+      #nowList.quiet { opacity: 0.55; }
+      #library .plNewRow { padding: 6px 0; }
+      #library .plFieldForm { display: contents; }
+      #library .plNewRow .plNew { flex: 1; margin: 0; }
+      /* **No zoom on a focused field on a phone** (his note 10-20): iOS zooms any input under 16 px, so on touch
+         every field in the panel is 16 px, kept compact by its padding and line-height; pinch zoom stays */
+      @media (pointer: coarse) {
+        #library input[type="text"], #library select, #library .plLabel {
+          font-size: 16px !important; line-height: 1.15;
+        }
+        #library .plNew input, #library .plLabel { padding-top: 0; padding-bottom: 0; }
+      }
+      /* the row's way in, drawn (his word 10-21: "more pronounced arrows"): a chevron in line work, not the font's thin › */
+      #library .plChev, #library .plOpen svg.plChev, #library[data-density="compact"] .plOpen svg.plChev { flex: none; width: 8px; height: 13px; fill: none; stroke: color-mix(in srgb, #ffffff 30%, var(--gold)); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      #library .plNew { margin: 0 0 8px; display: flex; gap: 6px; }
+      #library .plNew input, #library .plCard input[type="text"] {
+        flex: 1; min-width: 0; height: 30px; padding: 0 10px; font: inherit; font-size: 12.5px; color: #ffffff;
+        background: transparent; border: 1px solid var(--line); border-radius: 4px; color-scheme: dark;
+      }
+      #library .plLink { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--quiet); align-self: flex-start; }
+      #library .plLink:hover { color: #ffffff; }
+      #library .libFirst .plIcon { margin-top: 6px; }
+      #library .plListHead { position: relative; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+      #library .plListHead > svg { width: 36px; height: 36px; }
+      /* the playlist's way back (his word 10-21): the panel × 's circle, drawn, its left edge on the content's */
+      #library .plBack { flex: none; width: 30px; height: 30px; display: grid; place-items: center; color: var(--gold); border: 1px solid transparent !important; border-radius: 50%; transition: border-color 160ms ease; }
+      #library .plBack svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+      #library .plBack:hover, #library .plBack:focus-visible { border-color: var(--gold) !important; outline: none; }
+      #library[data-density="compact"] .plBack { width: 26px; height: 26px; }
+      /* the chevron's own left edge on the tab words' (his word 10-21); the hover circle may stand out past it. The glyph
+         starts 12.2 px into the 30 px circle (14 px drawn, 4.2 of 14 in); the body is padded 20 against the head's 28 */
+      #library:not([data-density="compact"]) .plBack { margin-left: -4px; }
+      #library[data-density="compact"] .plBack { margin-left: -6px; }   /* 26 px circle: 10.2 px in, body and head both 16 */
+      /* the header's name: plain text at rest (rename is ⋯ → Rename) */
+      #library .plTitle { font-size: 16px; color: #ffffff; min-width: 0; }
+      #library .plMore { width: 28px; height: 28px; display: grid; place-items: center; color: var(--quiet); font-size: 15px; flex: none; text-align: center !important; }
+      /* **one right-hand axis** (his word 10-21): the ×, every ⋯, every row's › and the foot's last circle centred on one
+         vertical line, the × and the foot's circle setting it */
+      #library .plMore { margin-right: -3px; }
+      #library .plOpen svg.plChev { margin-right: 7px; }
+      #library[data-density="compact"] .plOpen svg.plChev { margin-right: 6px; }
+      #library .plMenu { position: absolute; right: 0; top: 34px; z-index: 2; display: flex; flex-direction: column; background: #000000; border: 1px solid var(--line); border-radius: 5px; padding: 3px 0; }
+      #library .plMenu button { padding: 6px 16px !important; font-size: 12.5px; }
+      #library .plKeys { display: flex; flex-wrap: wrap; gap: 6px; }
+      #library .plPlay { flex: 1; min-width: 0; height: 44px; display: flex; align-items: center; gap: 10px; }
+      /* the track's number on the tab words' left edge, as the back chevron is (his word 10-21): the body is padded 20
+         against the head's 28 (16 against 20 compact), so the column steps in by the difference */
+      #library .plNum { width: 16px; margin-left: 8px; text-align: left; font-size: 10.5px; color: var(--quiet); flex: none; font-variant-numeric: tabular-nums; }
+      #library[data-density="compact"] .plNum { margin-left: 4px; }
+      /* the time's right edge under the header's last circle (his word 10-21): the head's gap before its ⋯, here too */
+      #library .plTime { width: 38px; margin-right: 10px; text-align: right; font-size: 11.5px; color: var(--quiet); font-variant-numeric: tabular-nums; flex: none; }
+      #library .plTrack.dragging { z-index: 2; border: 1px solid var(--line); }
+      #library .plShareAt { position: relative; flex: none; display: inline-flex; }
+      #library .plShared { position: absolute; top: calc(100% + 4px); right: 0; display: flex; gap: 6px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; color: #d8d8d8; pointer-events: none; z-index: 2; }
+      #library .plShared b { font-weight: inherit; color: var(--quiet); }
+      #library .plFrom { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px; margin-bottom: 10px; }
+      #library .plFrom button { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--quiet); text-decoration: underline; text-underline-offset: 3px; }
+      #library .plField { display: flex; flex-direction: column; gap: 4px; }
+      #library .plRowIn { display: flex; gap: 6px; align-items: center; }
+      #library .plField .plIcon { align-self: flex-start; }
+      /* **The ⋯ menu** (his note 10-20): one dropdown for a track and a
+         playlist, anchored to its ⋯ and standing over the panel, down or up
+         as it fits (`fitMenu`, playlists-ui.ts); over the whole panel on the
+         mini player. A track's label is renamed on its row. */
+      #library .plMenu { min-width: 150px; max-height: 300px; overflow: auto; }   /* a track's eight rows whole (Move up and down, 10-21) */
+      #library .plMenu button { display: block; width: 100%; text-align: left; white-space: nowrap; }
+      #library .plMenu button:hover, #library .plMenu button:focus-visible { color: var(--gold); outline: none; }
+      #library .plTracks .plMenu { top: calc(100% - 4px); }
+      /* **The throne's menu** (his word 10-20): the ⋯ menus' look, floating under the throne, about six rows */
+      #throneMenu { --line: color-mix(in srgb, var(--gold) 55%, transparent); position: fixed; z-index: 7; display: flex; flex-direction: column; min-width: 170px; max-width: min(320px, calc(100vw - 12px)); max-height: 204px; overflow: auto; overscroll-behavior: contain; background: #000000; border: 1px solid var(--line); border-radius: 5px; padding: 3px 0; font-family: inherit; color: #ffffff; }
+      #throneMenu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px 16px; font: inherit; font-size: 12.5px; text-align: left; white-space: nowrap; color: inherit; background: transparent; border: 0; cursor: pointer; }
+      #throneMenu button span { overflow: hidden; text-overflow: ellipsis; }
+      #throneMenu button svg { flex: none; width: 16px; height: 16px; color: var(--gold); }
+      #throneMenu button:hover, #throneMenu button:focus-visible, #throneMenu button:focus { color: var(--gold); outline: none; }
+      /* **every menu answers the hand** (his word 10-21: "need cursor icon on menu row and highlight on mouse hover ... for all menus"):
+         a hand cursor, and the row under it lit in a tint of the ring's colour */
+      #library .plMenu button, #throneMenu button { cursor: pointer; }
+      #library .plMenu button:hover, #library .plMenu button:focus-visible, #throneMenu button:hover, #throneMenu button:focus-visible { background: color-mix(in srgb, var(--gold) 16%, transparent); }
+      #throneMenu .thNote { margin: 0; padding: 6px 16px; font-size: 12.5px; color: var(--gold); }
+      @media (pointer: coarse) { #throneMenu button { padding: 9px 16px; } #throneMenu { max-height: 252px; } }
+      :root[data-panel-mode="mini"] #library .plMenu { position: fixed; inset: 10px; max-height: none; }
+      /* an open ⋯ menu may stand past a short panel's edge, over the dimmed ring (`fitMenu`) */
+      :root:not([data-panel-mode="mini"]) #library:has(.plMenu) { overflow: visible; }
+      #library .plMenu button { overflow: hidden; text-overflow: ellipsis; }
+      /* renaming: the field takes the row from the dot to the edge; genre, time and ⋯ wait */
+      #library .plTrack.renaming .plSub, #library .plTrack.renaming .plTime, #library .plTrack.renaming .plMore { visibility: hidden; }
+      /* **one rename field** (his word 10-20): the input and its ✓ circle, for a track's label over its row and for a
+         playlist's name in its header */
+      #library .plFieldForm.plEdit { display: flex; align-items: center; gap: 6px; min-width: 0; }
+      #library .plTrack .plEdit { position: absolute; left: 40px; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; }
+      #library[data-density="compact"] .plTrack .plEdit { left: 34px; }
+      #library .plTitleRow .plEdit { flex: 1 1 auto; }
+      #library .plLabel { flex: 1 1 auto; min-width: 0; width: 100%; height: 26px; padding: 0 6px; font: inherit; font-size: 13px; color: #ffffff; background: #000000; border: 1px solid var(--line); border-radius: 4px; outline: none; }
+      #library .plLabel:focus { border-color: var(--gold); }
+      #library .plLabel::placeholder { color: rgba(255, 255, 255, 0.6); }
+      #library .plRename { font-size: 15px; height: 28px; }
+      /* the default's star: beside its name, and a circle in its header, filled while it is the default */
+      #library .plTitleRow { display: flex; align-items: center; min-width: 0; }
+      #library .plTitleRow .plTitle { max-width: 100%; }
+      #library .plAsk { display: flex; flex-direction: column; gap: 8px; }
+      #library .plAsk p { margin: 0; font-size: 13.5px; color: #ffffff; }
+      #library .plGone { margin: 0; padding-left: 16px; font-size: 11px; color: var(--quiet); }
+      #library .plUndo { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 0 0; font-size: 11px; color: var(--quiet); background: rgba(0, 0, 0, 0.9); }
+      #library .plUndo button { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #ffffff; }
+      #library[data-density="compact"] #libPlaylists { padding: 8px 12px 6px; }
+      #library[data-density="compact"] .plIcon { height: 26px; min-width: 26px; }
+      #library[data-density="compact"] .plIcon:not(.plWord) { width: 26px; }
+      #library[data-density="compact"] .plIcon.plWord { padding: 0 9px 0 7px !important; }
+      #library[data-density="compact"] .plFoot { padding: 0 0 10px 12px; gap: 6px; }
+      /* the stats under the name on every size (his word 10-20): two short lines, the name truncating first */
+      #library[data-density="compact"] .plOpen { height: 42px; gap: 8px; }
+      #library[data-density="compact"] .plOpen svg { width: 22px; height: 22px; }
+      #library[data-density="compact"] .plPlay .plText { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; }
+      #library[data-density="compact"] .plName { font-size: 12.5px; }
+      #library[data-density="compact"] .plSub { font-size: 10.5px; }
+      #library[data-density="compact"] .plPlay { height: 34px; gap: 7px; }
+      #library[data-density="compact"] .plListHead > svg { width: 28px; height: 28px; }
+      /* the header keeps its name first: it truncates before anything else gives way */
+      #library .plListHead .plText { flex: 1 1 auto; min-width: 72px; }
+      #library .plTitle { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+      #library .plTitleRow .plTitle { min-width: 0; flex: 0 1 auto; }
+      #library[data-density="compact"] .plListHead { gap: 6px; }
+      /* a track's label before its genre: the genre gives way first */
+      #library .plPlay .plName { flex: 1 1 auto; min-width: 2.5em; }
+      #library .plPlay .plSub { flex: 0 100 auto; min-width: 0; }
+      /* the tabs fit, with room for a third */
+      #library[data-density="compact"] .libTabs { gap: 14px; }
+      #library[data-density="compact"] [role="tab"] { letter-spacing: 0.14em; }
+      #library[data-density="compact"] .plTitle { font-size: 14px; }
+      #library[data-density="compact"] .plTime { width: 32px; margin-right: 6px; font-size: 10.5px; }
+      #library[data-density="compact"] .plDot { width: 7px; height: 7px; }
+      #library[data-density="compact"] .plNow { padding: 4px 8px; margin-bottom: 8px; }
+      #library[data-density="compact"] .plNowLine { font-size: 12px; }
+      #library[data-density="compact"] { border-radius: 8px; }
+      #library[data-density="compact"] .libHead { padding: 10px 10px 0 16px; }
+      #library[data-density="compact"] .libTabs { gap: 20px; }
+      #library[data-density="compact"] [role="tab"] { height: 34px; font-size: 11px; padding-bottom: 4px; }
+      #library[data-density="compact"] .libBody { padding: 14px 16px; }
+      #library[data-density="compact"] .machineKey { margin: 0 10px 10px 0; width: 26px; height: 26px; }
+      #library[data-density="compact"] .shareKey { margin-right: 6px; }
+      #library[data-density="compact"] .libFirst { gap: 10px; }
+      #library[data-density="compact"] .libFirst h2 { font-size: 14px; }
+      #library[data-density="compact"] .libFirst p { font-size: 11px; }
+      #library[data-density="compact"] #libAbout h2 { font-size: 22px; }
+      #library[data-density="compact"] #libAbout hr { margin: 18px auto; }
+      #library[data-density="compact"] #libAbout .aboutWhat { font-size: 13px; line-height: 1.6; }
+      #library[data-density="compact"] #libAbout .aboutLinks { font-size: 12px; line-height: 2.1; }
+      /* **The Genres sky**: line work in the ring's colour, no glow; the names white, the families quiet */
+      /* **The head at the top of a compact panel** (his word 10-21: "align tabs higher ... to give more space for
+         playlist"): in the compact density (a phone, a small window; not the mini player) the tab labels stand 16 px
+         under the panel's top, as far in as the sides, the underline's gap to the text as it was, and the × centred on
+         the labels' line at the right inset the machine key keeps; the list takes the height. `--tab-fs` is the
+         labels' size (larger on a phone, below). */
+      /* **The mini player's panel** (his word 10-21): the tab words as far below the border as they stand in from it, the ×
+         on their line; and only what a small square can use — no ⋯ menus, no files (Download, Open, Back up); the share
+         circles stay, a track's link one press away */
+      :root[data-panel-mode="mini"] #library .libHead { padding-top: 0; margin-top: -3px; align-items: center; }
+      :root[data-panel-mode="mini"] #library .libClose { position: relative; top: 6px; }
+      :root[data-panel-mode="mini"] #library [role="tab"] { height: 34px; }
+      /* the playlist's own share goes too, and on the Playlists tab the list runs the panel's whole height, the foot's
+         circle floating over its end, with room after the last row for it to stand on black (his word 10-21) */
+      :root[data-panel-mode="mini"] #library .plShareAt { display: none !important; }
+      :root[data-panel-mode="mini"] #library:has(#libPlaylists:not([hidden])) .libFoot { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; }
+      :root[data-panel-mode="mini"] #library:has(#libPlaylists:not([hidden])) .libFoot button { pointer-events: auto; }
+      :root[data-panel-mode="mini"] #library #libPlaylists { padding-bottom: 64px; }
+      :root[data-panel-mode="mini"] #library .plMore, :root[data-panel-mode="mini"] #library [data-act="open"], :root[data-panel-mode="mini"] #library [data-act="backup"], :root[data-panel-mode="mini"] #library [data-act="download"], :root[data-panel-mode="mini"] #library [data-act="new"] { display: none !important; }   /* and New: the mini player is for listening (his word 10-21) */
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] { --tab-fs: 11px; }
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] .libHead { padding-top: 0; align-items: flex-end; }
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] [role="tab"] { font-size: var(--tab-fs); height: calc(20px + var(--tab-fs)); }
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] .libClose { margin-bottom: calc(var(--tab-fs) / 2 - 9px); }
+      /* **The Playlists tab on a phone, for the thumb** (his word 10-21: "generally playlist text is a bit too small on
+         iOS ... as for desktop it's fine"): on a phone-size touch screen (a finger and the panel's compact density, the
+         app on an iPhone among them; never a desktop at any width, never the mini player) its type is a step larger,
+         about a fifth (12.5 to 15 px for a row), still one line a row, and every row is a 44 px target at least. The
+         ⋯ menus and the throne's share it: 44 px rows, 15 px words, a wider minimum, about six rows before they scroll;
+         where a menu opens is `fitMenu`'s (playlists-ui.ts). The one place for all of it; the query is motion.ts's
+         `PHONE_SIZE`. The Genres tab's sky is not in it. */
+      @media (pointer: coarse) and (max-width: 699px), (pointer: coarse) and (max-height: 499px) {
+        :root:not([data-panel-mode="mini"]) #library[data-density="compact"] { --tab-fs: 13px; }
+        :root:not([data-panel-mode="mini"]) #library [role="tab"] { position: relative; }
+        :root:not([data-panel-mode="mini"]) #library [role="tab"]::after { content: ''; position: absolute; inset: -8px 0; }
+        :root:not([data-panel-mode="mini"]) #library .plTitle { font-size: 17px; }
+        :root:not([data-panel-mode="mini"]) #library .plName { font-size: 15px; }
+        :root:not([data-panel-mode="mini"]) #library .plSub { font-size: 12.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plTime { width: 38px; font-size: 12.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plNum { width: 18px; font-size: 12px; }
+        :root:not([data-panel-mode="mini"]) #library .plPlay { height: 44px; }
+        :root:not([data-panel-mode="mini"]) #library .plOpen { height: 52px; }
+        :root:not([data-panel-mode="mini"]) #library .plOpen svg { width: 26px; height: 26px; }
+        :root:not([data-panel-mode="mini"]) #library .plOpen svg.plChev { width: 10px; height: 16px; stroke-width: 2; }
+        :root:not([data-panel-mode="mini"]) #library .plListHead > svg { width: 32px; height: 32px; }
+        :root:not([data-panel-mode="mini"]) #library .plDot { width: 8px; height: 8px; }
+        :root:not([data-panel-mode="mini"]) #library svg.plLevel, :root:not([data-panel-mode="mini"]) #library .plOpen svg.plLevel { width: 11px; height: 11px; }
+        :root:not([data-panel-mode="mini"]) #library .plNowLine { font-size: 14px; }
+        :root:not([data-panel-mode="mini"]) #library .plNowLine .plQuiet { font-size: 12.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plCaps, :root:not([data-panel-mode="mini"]) #library .plHead, :root:not([data-panel-mode="mini"]) #library .plLink { font-size: 11.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plIcon { font-size: 11.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plNotice, :root:not([data-panel-mode="mini"]) #library .plUndo, :root:not([data-panel-mode="mini"]) #library .plGone { font-size: 13px; }
+        :root:not([data-panel-mode="mini"]) #library .plUndo button { font-size: 11.5px; }
+        :root:not([data-panel-mode="mini"]) #library .plAsk p { font-size: 15px; }
+        :root:not([data-panel-mode="mini"]) #library .libFirst h2 { font-size: 16px; }
+        :root:not([data-panel-mode="mini"]) #library .libFirst p { font-size: 13px; }
+        :root:not([data-panel-mode="mini"]) #library .plMenu { min-width: 200px; max-height: calc(8 * 44px + 8px); }   /* a track's eight rows whole, with the padding and border, where the room allows (`fitMenu` caps it to the room) */
+        :root:not([data-panel-mode="mini"]) #library .plMenu button { min-height: 44px; line-height: 44px; padding: 0 20px !important; font-size: 15px; }
+        :root:not([data-panel-mode="mini"]) #throneMenu { min-width: 200px; max-height: calc(6 * 44px + 8px); }
+        :root:not([data-panel-mode="mini"]) #throneMenu button { min-height: 44px; padding: 0 20px; gap: 11px; font-size: 15px; }
+        :root:not([data-panel-mode="mini"]) #throneMenu button svg { width: 18px; height: 18px; }
+        :root:not([data-panel-mode="mini"]) #throneMenu .thNote { padding: 12px 20px; font-size: 15px; }
+      }
+      #library #libGenres { display: flex; overflow: hidden; padding: 8px 12px 0; }
+      #library #libGenres[hidden] { display: none; }
+      /* the canvas: a drag pans, a pinch or ctrl-wheel zooms, all inside it and never the panel's scroll */
+      #library .skyWrap { position: relative; flex: 1; min-height: 0; overflow: clip; touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; cursor: grab; }
+      #library .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: inherit; }
+      #library .skyField { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+      #library .sky .skyOpen { opacity: 0.6; }
+      #library .sky .skyFigure { stroke-width: 0.7; opacity: 0.3; }
+      #library .sky .skyOpen.dim { opacity: 0.32; }
+      /* recentre: a circle, the crosshair alone, shown once the view has moved */
+      #library .skyHome { position: relative; flex: none; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; color: var(--gold); background: #000000; border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 50%; cursor: pointer; }
+      /* hidden, its slot stays: nothing beside it shifts */
+      #library .skyHome[data-off] { visibility: hidden; }
+      /* the sky's foot: recentre at the machine-view key's size and inset, on its baseline, and the legend between */
+      #library .skyFoot { flex: 1; min-width: 0; display: none; align-items: center; gap: 14px; padding: 0 0 16px 16px; }
+      #library:has(#libGenres:not([hidden])) .skyFoot { display: flex; }
+      #library .skyLegend { min-width: 0; height: 16px; display: flex; flex-wrap: wrap; gap: 0 14px; overflow: hidden; font-size: 10px; letter-spacing: 0.08em; color: var(--quiet); }
+      #library .skyLeg { display: inline-flex; align-items: center; gap: 6px; height: 16px; white-space: nowrap; cursor: help; }
+      #library .skyLeg[hidden] { display: none; }
+      #library .skyLeg svg { width: 18px; height: 6px; overflow: visible; }
+      #library .skyLeg .solid { stroke: color-mix(in srgb, #ffffff 55%, var(--gold)); stroke-width: 0.9; opacity: 0.6; }
+      #library .skyLeg .dots { stroke: var(--gold); stroke-width: 1; stroke-dasharray: 3 3; }
+      #library .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      #library[data-density="compact"] .skyFoot { padding: 0 0 10px 10px; gap: 10px; }
+      #library[data-density="compact"] .skyHome { width: 26px; height: 26px; }
+      #library[data-density="compact"] .skyLegend { font-size: 9px; gap: 0 10px; }
+      #library[data-density="compact"] .skyLeg svg { width: 14px; }
+      #library .skyHome:hover, #library .skyHome:focus-visible { border-color: var(--gold); outline: none; }
+      #library .skyHome svg { width: 16px; height: 16px; }
+      @media (pointer: coarse) { #library .skyHome::after { content: ''; position: absolute; inset: -7px; } }
+      #library .sky .skyFamily { fill: var(--quiet); opacity: 0.7; letter-spacing: 0.16em; text-anchor: middle; }
+      #library .sky .skyOpen { fill: none; stroke: var(--quiet); stroke-width: 0.8; }
+      #library .sky .skyStar { fill: var(--gold); }
+      #library .sky .skyName { fill: #ffffff; letter-spacing: 0.06em; }
+      #library .sky .skyTip { fill: var(--quiet); letter-spacing: 0.06em; }
+      #library .sky .skyList { fill: none; stroke: var(--gold); stroke-width: 0.8; stroke-dasharray: 3 3; }
+      #library .sky .skyHere { fill: none; stroke: var(--gold); stroke-width: 1.2; }
+      #library .sky .skyPressed { fill: none; stroke: var(--gold); stroke-width: 0.8; }
+      /* a star's key: 44 px round it, for the keyboard and a reader; a pointer's press finds the nearest star */
+      #library .skyKey { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 0; border-radius: 50%; background: transparent; pointer-events: none; }
+      #library .skyKey:focus-visible { outline: 1px solid var(--gold); outline-offset: -12px; }
+      #library[data-density="compact"] #libGenres { padding: 4px 6px 0; }
+      @media (prefers-reduced-motion: reduce) {
+        #stage, #library { transition: none; }
       }
     </style>
   </head>
@@ -708,63 +1160,121 @@
          stays said and not drawn, because it is a description and the ring is
          the description. -->
     <h1 id="name"><img src="./wordmark.svg" alt="Deep House" width="14415" height="1610" /></h1>
-    <p class="said">An endless deep house set, generated in your browser. Nothing is recorded: every sound is built as it plays. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
+    <p class="said">An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline. Nothing is recorded or streamed. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
     <div id="say" aria-live="polite" role="status"></div>
     <!-- The set leaves through here: iOS hangs its lock-screen card and its
          controls on a playing media element, not on an audio graph. -->
     <audio id="sound" playsinline></audio>
 
-    <!-- The footer's name opens the About (round K25): a button, its look the
-         name's as it was, its name for a screen reader "About". -->
-    <button id="mark" type="button" aria-label="About" aria-haspopup="dialog" aria-controls="about">Excelsior Arts</button>
+    <!-- **The gyroscope, the one key to the panel** (PLAN-LIBRARY §2, his word
+         10-20: the page is the title, the ring and the gyroscope). An antique
+         gold gyroscope drawn from a small 3D model, leaning upper left to lower
+         right (round gyro-volume, 10-21; `gyro-glyph.ts` draws it into the empty
+         svg), in the ring's line work and colour: right of the ring in
+         landscape, under it in portrait, in the corner of a small window
+         (`library-panel.ts` lays it). Hidden while the panel is open. -->
+    <button id="gyro" type="button" title="Playlists · Map · About" aria-label="Playlists, Map and About" aria-haspopup="dialog" aria-controls="library">
+      <svg viewBox="-14 -14 28 28" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </button>
 
-    <!-- **The About** (round K25, Eugene: "click on Excelsior Arts should show
-         a large popup centred in the page, aka the About page"). A native
-         modal dialog: the page under it is inert, focus goes in and comes back
-         to the key that opened it, and Escape closes it — the dialog's own
-         contract, which the page's one-key rule does not reach: it is not a
-         shortcut the page adds but how a modal sheet is left. Also closed by
-         its key in the corner and by a press on the dark outside. Nothing of
-         it is written into the address: it is not a place one returns to. -->
-    <dialog id="about" tabindex="-1" aria-labelledby="aboutTitle" aria-describedby="aboutWhat">
-      <button class="aboutClose" id="aboutClose" type="button" aria-label="Close the About">close</button>
-      <h2 id="aboutTitle">Deep House <span class="aboutVer" id="aboutVer"></span></h2>
-      <p class="aboutSub">Offline Electronic Music Generator</p>
-      <hr />
-      <p class="aboutWhat" id="aboutWhat">
-        <span>A helpful music companion. No distracting vocals. No agenda. Just vibes.</span>
-        <span>The default sound is tuned to deep house. Other genres are being built and coming soon…</span>
-        <span>Right now the player is at its best on three sounds: its default lightweight deep house themes, liquid drum &amp; bass (turn Ember up), and slow-beat ambient soundscapes (turn Ember down).</span>
-        <span>The link is always the track that plays. Share it, and it plays the same anywhere.</span>
-      </p>
-      <hr />
-      <ul class="aboutLinks">
-        <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener">Follow on X for news</a></li>
-        <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener">Composer Eugene T · Follow</a></li>
-        <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Source</a></li>
-        <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener">License: PolyForm Noncommercial 1.0.0</a></li>
-      </ul>
-      <hr />
-      <!-- The one thing the page ever sends, and its switch (K25): a two-state
-           key in the desk's style, on unless this listener said otherwise. -->
-      <div class="aboutReports">
-        <button class="aboutKey" id="aboutReports" type="button" role="switch" aria-checked="true" aria-describedby="aboutReportsWhat">
-          <span class="aboutKeyName">Anonymous error reports</span><span class="aboutKeyState" id="aboutReportsState">on</span>
+    <!-- **The panel** (PLAN-LIBRARY §2): a non-modal dialog, so the ring beside
+         it stays live. Tabs are read off the markup: a third is a tab button
+         and a tabpanel of the same `data-tab`. Closed by its × and by Esc;
+         nothing of it is written into the address. -->
+    <dialog id="library" tabindex="-1" aria-label="Playlists, Map and About">
+      <div class="libHead">
+        <div class="libTabs" role="tablist">
+          <button type="button" role="tab" id="tabPlaylists" data-tab="playlists" aria-controls="libPlaylists" aria-selected="true">Playlists</button>
+          <button type="button" role="tab" id="tabGenres" data-tab="genres" aria-controls="libGenres" aria-selected="false">Map</button>
+          <button type="button" role="tab" id="tabAbout" data-tab="about" aria-controls="libAbout" aria-selected="false">About</button>
+        </div>
+        <button class="libClose" id="panelClose" type="button" aria-label="Close (Esc)" title="Close (Esc)">
+          <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 L12 12 M12 2 L2 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
         </button>
-        <p class="aboutReportsWhat" id="aboutReportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+      </div>
+
+      <!-- Playlists, the first visit (phase 3 wires the rest) -->
+      <section class="libBody" role="tabpanel" id="libPlaylists" data-tab="playlists" aria-labelledby="tabPlaylists">
+        <div class="libFirst">
+          <!-- the throne, the astrolabe's ornament at twelve o'clock, on its arc of the rim -->
+          <svg class="libThrone" viewBox="-18 -114 36 19.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path class="arc" d="M -17.5 -94.4 A 96 96 0 0 1 17.5 -94.4" stroke-width="0.45"/><path d="M -16.39 -97.39 A 98.76 98.76 0 0 1 16.39 -97.39" stroke-width="0.63"/><path d="M -11.70 -100.12 A 100.80 100.80 0 0 1 11.70 -100.12" stroke-width="0.54"/><path d="M -7.65 -102.31 A 102.60 102.60 0 0 1 7.65 -102.31" stroke-width="0.44"/><path d="M -4.30 -104.07 A 104.16 104.16 0 0 1 4.30 -104.07" stroke-width="0.38"/><path d="M -4.08 -109.08 A 4.08 4.08 0 1 1 4.08 -109.08 A 4.08 4.08 0 1 1 -4.08 -109.08" stroke-width="0.57"/><path d="M 0.00 -111.48 L 0.00 -106.68 M -2.40 -109.08 L 2.40 -109.08" stroke-width="0.38"/><path d="M -0.66 -109.08 A 0.66 0.66 0 1 1 0.66 -109.08 A 0.66 0.66 0 1 1 -0.66 -109.08" stroke-width="0.38"/></svg>
+          <h2>No playlists yet</h2>
+          <p>Press the throne on top of the ring to save</p>
+        </div>
+      </section>
+
+      <!-- **The About** (round K25), as it was, moved into the panel, with the
+           maker's name at its foot where the footer had it -->
+      <section class="libBody" role="tabpanel" id="libAbout" data-tab="about" aria-labelledby="tabAbout" hidden>
+        <h2 id="aboutTitle">Deep House <span class="aboutVer" id="aboutVer"></span></h2>
+        <p class="aboutSub">An astrolabe for music</p>
+        <hr />
+        <p class="aboutWhat" id="aboutWhat">
+          <span>A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.</span>
+          <span>At its best on three sounds: deep house, the default; liquid drum &amp; bass (turn Ember up); ambient soundscapes (turn Ember down).</span>
+          <span>A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.</span>
+          <span>One link, one track: share it and it plays the same anywhere.</span>
+          <span>Fully offline. No account. No ads. No tracking.</span>
+        </p>
+        <hr />
+        <ul class="aboutLinks">
+          <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener">Follow on X for news</a></li>
+          <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener">Composer Eugene T · Follow</a></li>
+          <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Source</a></li>
+          <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener">License: PolyForm Noncommercial 1.0.0</a></li>
+        </ul>
+        <!-- the app on the App Store (his word 10-21), on the web only: the app's shell removes it (shell-library.ts). Apple's
+             own badge, unaltered, bundled (the page loads nothing from elsewhere), 40 px tall as Apple asks at least -->
+        <p class="aboutStore" id="aboutStore"><a href="https://apps.apple.com/app/id6824689539" target="_blank" rel="noopener"><img src="./app-store-badge.svg" width="120" height="40" alt="Download on the App Store" /></a></p>
+        <hr />
+        <!-- The one thing the page ever sends, and its switch (K25): a two-state
+             key in the desk's style, on unless this listener said otherwise. -->
+        <div class="aboutReports">
+          <span class="aboutPills">
+            <label class="aboutKeyName" id="aboutReportsName" for="aboutReports">Anonymous error reports</label>
+            <button class="aboutKey" id="aboutReports" type="button" role="switch" aria-checked="true" aria-labelledby="aboutReportsName" aria-describedby="aboutReportsWhat">
+              <span class="aboutSwitch" aria-hidden="true"><span class="aboutKnob"></span></span><span class="aboutKeyState" id="aboutReportsState">on</span>
+            </button>
+          </span>
+          <p class="aboutReportsWhat" id="aboutReportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+        </div>
+        <p class="aboutMaker"><a href="https://github.com/excelsior-arts" target="_blank" rel="noopener">Excelsior Arts</a></p>
+      </section>
+
+      <!-- **Genres: the sky** (PLAN-LIBRARY §2, phase 4; `genres-sky.ts` draws it) -->
+      <section class="libBody" role="tabpanel" id="libGenres" data-tab="genres" aria-labelledby="tabGenres" hidden>
+        <div class="skyWrap">
+        </div>
+      </section>
+
+      <!-- The machine view's key, the gear's successor, in the corner on every
+           tab, on a foot of its own under the scroll; hidden in a small window, by size -->
+      <div class="libFoot">
+      <div class="plFoot" id="plFoot"></div>
+      <!-- the sky's foot (Genres only): recentre in the bottom-left slot, kept even while hidden, and the legend -->
+      <div class="skyFoot" id="skyFoot">
+        <button type="button" class="skyHome" id="skyHome" aria-label="Recentre" title="Recentre" data-off="">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="4.2" /><path d="M8 1.5 V4.5 M8 11.5 V14.5 M1.5 8 H4.5 M11.5 8 H14.5" /></svg>
+          </button>
+        <span class="skyLegend">
+          <span class="skyLeg" title="Lines join a family's tuned genres"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="solid" /></svg>Family<span class="vh">: lines join a family's tuned genres</span></span>
+          <span class="skyLeg" id="skyLegList" title="The playing playlist's tracks, in order"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="dots" /></svg>Playlist<span class="vh">: the playing playlist's tracks, in order</span></span>
+        </span>
+      </div>
+      <!-- the share circle (his word 10-21): the playing sound's link, copied or shared, from a small menu (playlists-ui.ts) -->
+      <button class="machineKey shareKey" id="panelShare" type="button" aria-label="Share what plays" title="Share" aria-haspopup="menu" aria-expanded="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.8 9.2 L9.2 6.8"/><path d="M7.4 4.6 L8.6 3.4 A2.5 2.5 0 0 1 12.6 7.4 L11.4 8.6"/><path d="M8.6 11.4 L7.4 12.6 A2.5 2.5 0 0 1 3.4 8.6 L4.6 7.4"/></svg>
+      </button>
+      <button class="machineKey" id="machineKey" type="button" aria-label="the machine view" title="Machine view" aria-expanded="false">
+        <svg viewBox="0 0 18 18" aria-hidden="true">
+          <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 2 V16 M9 2 V16 M14 2 V16" /></g>
+          <g fill="#000000" stroke="currentColor" stroke-width="1.2">
+            <rect x="2" y="10" width="4" height="2.6" rx="0.6" /><rect x="7" y="4.5" width="4" height="2.6" rx="0.6" /><rect x="12" y="8" width="4" height="2.6" rx="0.6" />
+          </g>
+        </svg>
+      </button>
       </div>
     </dialog>
-
-    <!-- The panel: the way into the machine view (hidden inside it since M8).
-         Since K23 its mark is a gear, eight teeth in the transport's soft
-         corners, on the footer's line at its right end. -->
-    <button id="panel" type="button" aria-label="the machine view" aria-expanded="false">
-      <svg width="21.6" height="21.6" viewBox="0 0 18 18" aria-hidden="true" fill="none"
-           stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round">
-        <path d="M7.38 3.29Q7.72 3.15 7.71 2.79L7.69 1.5Q7.69 1.13 8.06 1.13L9.94 1.13Q10.31 1.13 10.31 1.5L10.29 2.79Q10.28 3.15 10.62 3.29L11.89 3.82Q12.23 3.96 12.48 3.7L13.38 2.77Q13.64 2.51 13.9 2.77L15.23 4.1Q15.49 4.36 15.23 4.62L14.3 5.52Q14.04 5.77 14.18 6.11L14.71 7.38Q14.85 7.72 15.21 7.71L16.5 7.69Q16.87 7.69 16.87 8.06L16.87 9.94Q16.87 10.31 16.5 10.31L15.21 10.29Q14.85 10.28 14.71 10.62L14.18 11.89Q14.04 12.23 14.3 12.48L15.23 13.38Q15.49 13.64 15.23 13.9L13.9 15.23Q13.64 15.49 13.38 15.23L12.48 14.3Q12.23 14.04 11.89 14.18L10.62 14.71Q10.28 14.85 10.29 15.21L10.31 16.5Q10.31 16.87 9.94 16.87L8.06 16.87Q7.69 16.87 7.69 16.5L7.71 15.21Q7.72 14.85 7.38 14.71L6.11 14.18Q5.77 14.04 5.52 14.3L4.62 15.23Q4.36 15.49 4.1 15.23L2.77 13.9Q2.51 13.64 2.77 13.38L3.7 12.48Q3.96 12.23 3.82 11.89L3.29 10.62Q3.15 10.28 2.79 10.29L1.5 10.31Q1.13 10.31 1.13 9.94L1.13 8.06Q1.13 7.69 1.5 7.69L2.79 7.71Q3.15 7.72 3.29 7.38L3.82 6.11Q3.96 5.77 3.7 5.52L2.77 4.62Q2.51 4.36 2.77 4.1L4.1 2.77Q4.36 2.51 4.62 2.77L5.52 3.7Q5.77 3.96 6.11 3.82Z" />
-        <circle cx="9" cy="9" r="2.42" />
-      </svg>
-    </button>
 
     <!-- The phone's panel for the bird a finger is on: its words, and Less
          and More. Hidden until a finger opens it (`ring.ts`). -->
@@ -868,6 +1378,11 @@
           <g id="live"></g>
         </svg>
       </div>
+      <!-- **The playing playlist, under the ring** (PLAN-LIBRARY §2): its small
+           constellation, its name and "8 of 10", below the ring's own marks;
+           a press opens the panel on it. Inside the stage, so it moves and
+           scales with the ring when the panel opens. -->
+      <button id="nowList" type="button" hidden></button>
     </div>
     <script type="module" src="./ring.ts"></script>
   </body>

@@ -25,7 +25,7 @@ import { themeHash } from './link-digest.ts';
 import { placeReadsOf } from '../src/generator.ts';
 import { libraryTurn } from '../src/library-draw.ts';
 import { BIRDS, HOUSE, parseSpell, type Bird, type Spell } from '../src/spell.ts';
-import { CELLS, TUNED_STYLES, presetSpell } from '../src/machine/genre-table.ts';
+import { CELLS, TUNED_STYLES, presetSpell } from '../src/genres/genre-table.ts';
 import { clockAt, type TimeEntry } from '../src/musical-time.ts';
 import { freeStyle, TILE } from './second-clock-fixture.ts';
 import { borrowLines, digestOf, type BorrowedFile } from './zones-borrow.ts';

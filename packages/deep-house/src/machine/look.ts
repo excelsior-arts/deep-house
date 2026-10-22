@@ -166,21 +166,19 @@ export const SHEET = `
   overscroll-behavior: auto;
 }
 :root[data-view="machine"] #field,
-:root[data-view="machine"] #name,
-:root[data-view="machine"] #mark { display: none; }
+:root[data-view="machine"] #name { display: none; }
 /* The ring keeps its own look and is the same SVG: what changes is the box it
    is centred in, which is the panel instead of the window. */
 :root[data-view="machine"] #stage { position: absolute; inset: 0; }
 :root[data-view="machine"] #tilt { width: 100%; height: 100%; }
 
-/* The panel mark is the way in, and not seen in the view (M8, Eugene: *"the
-   bottom-right icon going to the machine view should be hidden in the machine
-   view itself"*): the ways out are CLOSE in the toolbar under the ring (M13)
-   and a still press on the dark round the ring. */
-:root[data-view="machine"] #panel { display: none; }
-/* the About's scroll lock holds inside the view (M14, the review of 09-26): this sheet's
-   body rule came later at the same weight and let the page scroll under it */
-:root[data-view="machine"].about-open body { overflow: hidden; }
+/* The way in is the panel's corner key, and neither the gyroscope nor the
+   panel is seen in the view (M8, Eugene: *"the bottom-right icon going to the
+   machine view should be hidden in the machine view itself"*): the ways out
+   are CLOSE in the toolbar under the ring (M13) and a still press on the dark
+   round the ring. */
+:root[data-view="machine"] #gyro,
+:root[data-view="machine"] #library { display: none; }
 
 #machine {
   position: relative;
@@ -222,13 +220,13 @@ export const SHEET = `
   min-height: 0;
 }
 #machine .ringbox { position: relative; flex: 0 0 auto; height: 316px; border-bottom: 1px solid ${INK.line}; overflow: hidden; }
-/* **The ring's toolbar** (M13): directly under the ring, on its ground, one row
-   of a fixed height with COPY LINK, SHOW / HIDE LEDGER and CLOSE right-aligned.
-   On a phone the ring and the toolbar are pinned together as one block. */
-#machine .ring-block { flex: 0 0 auto; background: ${INK.ground}; }
-/* (M19) the toolbar's keys are a finger's: 24 px, the row growing with them */
-#machine .ring-tools { display: flex; justify-content: flex-end; align-items: center; gap: ${SPACE.hair}px; height: ${TOOL_KEY_H + SPACE.s * 2}px; padding: 0 ${SPACE.s}px; box-sizing: border-box; background: ${INK.ground}; border-bottom: 1px solid ${INK.line}; }
-#machine .ring-tools .pane-key { white-space: nowrap; height: ${TOOL_KEY_H}px; }
+/* the ring's block; on a phone it is what is pinned. Its × (10-21, the toolbar under it gone) is the panel's:
+   30 px, a thin circle on hover and focus, 22 px down and 16 px in from the corner as the panel's stands */
+#machine .ring-block { position: relative; flex: 0 0 auto; background: ${INK.ground}; }
+#machine .ring-close { position: absolute; top: 22px; left: 16px; z-index: 3; width: 30px; height: 30px; padding: 0; margin: 0; display: grid; place-items: center; color: rgba(255, 255, 255, 0.78); background: transparent; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 50%; cursor: pointer; transition: border-color 160ms ease; -webkit-tap-highlight-color: transparent; }
+#machine .ring-close:hover, #machine .ring-close:focus-visible { color: #ffffff; border-color: var(--gold); outline: none; }
+#machine .ring-close svg { width: 14px; height: 14px; }
+@media (pointer: coarse) { #machine .ring-close::after { content: ''; position: absolute; inset: -7px; } }
 #machine .view.rack .engine-block { flex: 0 0 auto; }
 #machine .engine-block { border-top: 1px solid ${INK.line}; }
 /* **The SCENES block** (D3): a name and SAVE, then the kept scenes, newest
@@ -296,17 +294,6 @@ export const SHEET = `
 #machine h2 .log-key:focus-visible { outline: 1px solid ${INK.bright}; outline-offset: 2px; }
 #machine h2.with-caption { display: flex; align-items: baseline; gap: ${SPACE.s}px; }
 #machine h2 .caption { text-transform: none; letter-spacing: 0.02em; color: ${INK.note}; font-size: 10px; margin-left: ${SPACE.s}px; }
-#machine .genre-block { flex: 0 0 auto; }
-/* The GENRES header (M8; M13, Eugene: WORK IN PROGRESS on the title's line at
-   every width): the title on the left and the tag centred in the room beside
-   it — one line, never wrapped; on a phone the tag's size and tracking come
-   down a step. One level since GA8: no tier's name and no BACK. */
-/* (M18) the title is the one column that may shrink, and ends in an ellipsis
-   (under house-v1 it carries a caption) */
-#machine h2.genre-head { display: grid; grid-template-columns: minmax(0, max-content) 1fr; align-items: center; gap: ${SPACE.s}px; }
-#machine h2.genre-head > .title { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-#machine h2.genre-head > .wip { justify-self: center; font-size: 8px; letter-spacing: 0.16em; color: ${INK.note}; white-space: nowrap; }
-#machine .view.scrolling h2.genre-head > .wip { font-size: 7px; letter-spacing: 0.08em; }
 #machine h2.with-key { display: flex; align-items: center; justify-content: space-between; gap: ${SPACE.s}px; }
 #machine .pane-key { font-family: inherit; font-size: ${KEY.font}px; letter-spacing: 0.04em; text-transform: uppercase; height: ${KEY.h}px; min-width: ${KEY.w}px; padding: 0 ${SPACE.s}px; border-radius: 2px; color: ${INK.value}; background: ${INK.sunken}; border: 1px solid ${INK.edge}; cursor: pointer; }
 #machine .pane-key:hover, #machine .pane-key:focus-visible { border-color: ${INK.bright}; outline: none; }
@@ -603,8 +590,8 @@ export const SHEET = `
 }
 #machine .engine .row:first-child { border-left: 0; }
 #machine .engine .row:hover, #machine .engine .row:focus-visible { background: ${INK.panel}; outline: none; }
-/* a key's focus is a hairline of the bright ink inside it (M14), the lit engine row and the lit genre key included */
-#machine .engine .row:focus-visible, #machine .genres button:focus-visible { outline: none; box-shadow: inset 0 0 0 1px ${INK.bright}; }
+/* a key's focus is a hairline of the bright ink inside it (M14), the lit engine row included */
+#machine .engine .row:focus-visible { outline: none; box-shadow: inset 0 0 0 1px ${INK.bright}; }
 #machine .engine .row .id { letter-spacing: 0.1em; overflow: hidden; text-overflow: ellipsis; }
 #machine .engine .row.on { background: ${INK.panel}; color: ${INK.bright}; }
 #machine .engine .row.arriving { color: ${INK.amber}; }

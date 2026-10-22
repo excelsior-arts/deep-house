@@ -35,7 +35,14 @@ interface Window {
    * window, the Mac's mini player among them, is the page's own to read off
    * its size (src/motion.ts, `smallWindow`), and never the shell's to say.
    * `ink` hands the shell the tab icon's ink, for the Mac's Dock icon
-   * (src/tab-icon.ts).
+   * (src/tab-icon.ts). `send`, `on` and `receive` are the library's pipe (src/shell-library.ts): files saved and
+   * opened, the iCloud value, the keyboard's frame.
    */
-  deepHouseShell?: { platform: string; ink?: (hex: string) => void };
+  deepHouseShell?: {
+    platform: string;
+    ink?: (hex: string) => void;
+    send?: (m: { ev: string; [k: string]: unknown }) => void;
+    on?: (kind: string, fn: (m: { kind: string; [k: string]: unknown }) => void) => void;
+    receive?: (m: unknown) => boolean;
+  };
 }
