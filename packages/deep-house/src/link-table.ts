@@ -61,6 +61,9 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'view', class: 'view', absent: 'the ring', written: '`view=machine` while the machine view is open, removed when it closes (K21); a stored place carries it' },
   { name: 'out', class: 'view', absent: 'a media element on an Apple phone, straight out elsewhere', written: 'never; kept as given' },
   { name: 'latency', class: 'view', absent: 'the playback hint', written: 'never; kept as given' },
+  // star-keys round 3 (prototype only): which of the icon variants the ring's love key and the panel's scroll draw
+  { name: 'heart', class: 'view', absent: 'the pick (`HEART_PICK`, heart-glyph.ts)', written: 'never; kept as given, read once as the page opens' },
+  { name: 'scroll', class: 'view', absent: 'the pick (`SCROLL_PICK`, scroll-glyph.ts)', written: 'never; kept as given, read once as the page opens' },
   ...BYPASS_NAMES.map((name) => ({ name, class: 'bypass' as const, absent: 'the stage in the chain', written: 'never; kept as given' })),
   // D1: how far a library turn's row leaks beyond its place, 0..1 (`src/library-draw.ts`)
   // DNB-CLEAN: a listening link's desk, the machine view's solo and mute by layer or instrument (`control.ts`)
@@ -72,6 +75,8 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'names', class: 'list', absent: 'no labels', written: 'only by Share on a playlist, always: the labels, `~` between, empty for none' },
   { name: 'id', class: 'list', absent: 'a new playlist (its name with " 2" where taken)', written: 'only by Share on a playlist, last: the UUID without its dashes' },
   { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
+  // round audio-slack: a check's render made to fall behind, for the slowdown watch (`src/render-stress.ts`)
+  { name: 'stress', class: 'view', absent: 'no stress', written: 'never; kept as given, read once as the context is made; never on a shared link' },
 ]);
 
 export const ROW: Record<string, LinkRow> = Object.fromEntries(LINK_ROWS.map((r) => [r.name, r]));

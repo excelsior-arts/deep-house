@@ -25,7 +25,7 @@
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { LEGEND_H, PAD, RACK_MIN_WIDTH, SOURCE_H, bellsAt, layoutCanvas, mainPath, rackOf, shapeOf } from './layout.ts';
+import { LEGEND_H, PAD, RACK_MIN_WIDTH, RACK_WIDE_MIN, SOURCE_H, bellsAt, layoutCanvas, mainPath, rackOf, shapeOf } from './layout.ts';
 import type { Fit, Layout, Place } from './layout.ts';
 import { INK, LAMP, METER_FLOOR, REST, REST_BOX, SCALE, SPACE, TOOL_KEY_H, density, meterAt } from './look.ts';
 import type { Lamp } from './look.ts';
@@ -967,7 +967,7 @@ function Facts({ snap }: { snap: MachineSnapshot }) {
       <div className="fact wide load" data-fact="load">
         <span className="k">load</span>
         <div className="load-grid">
-          {loadCells(snap.load).map((c) => (
+          {loadCells(snap.load, snap.slow).map((c) => (
             <div key={c.k} className="cell" data-load={c.k} title={`${c.k} ${c.v}`}>
               <span className="k">{c.k}</span>
               <span className={`v${c.tone ? ` ${c.tone}` : ''}`}>{c.v}</span>
@@ -1125,15 +1125,16 @@ function Ledger({ snap, hide }: { snap: MachineSnapshot; hide: () => void }) {
 // **At most once a frame** (M14, both reviews' F4/F10: a window-edge drag
 // delivered a width a pixel, each a new density and a new layout of the whole
 // graph — 40 one-pixel steps were 1.1 s of script and 34,572 mutations at 1440).
-function useWidth(): number {
-  const [w, setW] = useState(() => (typeof window === 'undefined' ? 1200 : window.innerWidth));
+function useWidth(): [number, number] {
+  const read = (): [number, number] => (typeof window === 'undefined' ? [1200, 800] : [window.innerWidth, window.innerHeight]);
+  const [wh, setWh] = useState(read);
   useEffect(() => {
     let raf = 0;
-    const on = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; setW(window.innerWidth); }); };
+    const on = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; setWh((was) => { const now = read(); return now[0] === was[0] && now[1] === was[1] ? was : now; }); }); };
     window.addEventListener('resize', on);
     return () => { window.removeEventListener('resize', on); if (raf) cancelAnimationFrame(raf); };
   }, []);
-  return w;
+  return wh;
 }
 
 /** How much room the graph's own pane has, measured and then watched. */
@@ -1244,8 +1245,7 @@ export function Machine({ store, control, ringHost, exit }: {
   store: MachineStore; control: Control; ringHost: (el: HTMLDivElement | null) => void; exit?: () => void;
 }) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
-  const width = useWidth();
-  const rack = width >= RACK_MIN_WIDTH;
+  const [width, height] = useWidth();
   const [paneRef, pane] = usePane();
   // **The ledger may be put away** (M6), and the graph takes its width; the
   // choice is this viewer's, kept in this browser (and forgotten where the
@@ -1253,6 +1253,11 @@ export function Machine({ store, control, ringHost, exit }: {
   // **hidden for a viewer who has not chosen** (M10, Eugene: *"for all new users
   // the ledger is hidden by default"*); a viewer who chose keeps the choice
   const [ledgerOn, setLedgerOn] = useState(() => { try { return localStorage.getItem(LEDGER_KEY) === 'shown'; } catch (e) { return false; } });
+  // **The rack on a wide, short screen too** (iphone-duo round 2): under `RACK_MIN_WIDTH` a window wider than tall
+  // (a phone or the Duo turned, the Duo open inside its status bar's band, a short desktop window) has the rack's
+  // two columns, the ring and its readings beside the graph, from `RACK_WIDE_MIN`, the ledger put away; the stacked
+  // page left the ring small in a wide black band over readings set large. Taller than wide, it stacks as before.
+  const rack = width >= RACK_MIN_WIDTH || (width > height && width >= RACK_WIDE_MIN && !ledgerOn);
   const showLedger = (on: boolean) => {
     setLedgerOn(on);
     try { localStorage.setItem(LEDGER_KEY, on ? 'shown' : 'hidden'); } catch (e) { /* nothing kept */ }

@@ -1,0 +1,38 @@
+{
+  "note": "The featured playlists, in the order the Playlists tab shows them; the first is the one a first run starts on. Each is read-only in the page and plays on the engine its links name. Written by tools/feature.ts from a playlist's share link or file; every link is a row of the link digest, so an engine change that moves one stops the release. The three below are placeholders made of frozen rows (the 27191 benchmark, the golden masters, the Drum & Bass tile's riffs), to be replaced by curated playlists.",
+  "playlists": [
+    {
+      "id": "b0263c6b-7b04-4e19-9bba-bbb1dd582432",
+      "name": "Ambient",
+      "links": [
+        "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=27191&v=2&theme=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=27191&v=2&theme=3&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=27191&v=2&theme=4&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=27191&v=2&theme=5&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81"
+      ]
+    },
+    {
+      "id": "313baca7-8b32-4381-ab91-94c7630433de",
+      "name": "Drive",
+      "links": [
+        "seed=92970&v=2",
+        "seed=1&v=2",
+        "seed=21323&v=2",
+        "seed=92970&v=2&theme=2",
+        "seed=1&v=2&theme=2"
+      ]
+    },
+    {
+      "id": "136e4bbf-46ff-4b83-8a36-226ebadad29c",
+      "name": "Liquid",
+      "links": [
+        "seed=1&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85",
+        "seed=1&v=2&spell=em:0.90",
+        "seed=1&v=2&spell=em:0.95,ti:0.80,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85",
+        "seed=1&v=2&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
+        "seed=1&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:1.00,lo:1.00"
+      ]
+    }
+  ]
+}

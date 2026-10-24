@@ -190,6 +190,12 @@ export type MixOptions = Style['set'] & {
   /** the audio-only overrides `readBypass` answered with, or none */
   bypass?: Bypass | null;
   destination?: AudioNode;
+  /**
+   * The page's own call on each of the transport's ticks, after it has
+   * scheduled (round audio-slack: the slowdown watch, `src/slowdown.ts`). It
+   * reads two clocks and touches nothing the mix plays.
+   */
+  onTick?: () => void;
 };
 
 

@@ -220,6 +220,9 @@ export const SHEET = `
   min-height: 0;
 }
 #machine .ringbox { position: relative; flex: 0 0 auto; height: 316px; border-bottom: 1px solid ${INK.line}; overflow: hidden; }
+/* a short rack (a phone or the Duo turned, a low window; iphone-duo round 2): the ring's box gives way to the readings
+   under it, 42 % of the height at most, so they keep a share of the column; 316 px from 752 px of height up */
+#machine .view.rack .ringbox { height: min(316px, 42dvh); }
 /* the ring's block; on a phone it is what is pinned. Its × (10-21, the toolbar under it gone) is the panel's:
    30 px, a thin circle on hover and focus, 22 px down and 16 px in from the corner as the panel's stands */
 #machine .ring-block { position: relative; flex: 0 0 auto; background: ${INK.ground}; }
@@ -530,7 +533,7 @@ export const SHEET = `
 #machine .line .bar { color: ${INK.dim}; margin-right: 8px; }
 #machine .line .fields { color: ${INK.dim}; }
 #machine .line.clip .what, #machine .line.late .what, #machine .line.fault .what { color: ${INK.red}; }
-#machine .line.hot .what, #machine .line.prepare .what { color: ${INK.amber}; }
+#machine .line.hot .what, #machine .line.prepare .what, #machine .line.slow .what { color: ${INK.amber}; }
 #machine .line.seam .what, #machine .line.cast .what, #machine .line.spell .what,
 #machine .line.engine .what { color: ${INK.signal}; }
 #machine .line.desk .what { color: ${INK.amber}; }

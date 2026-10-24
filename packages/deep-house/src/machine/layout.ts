@@ -364,6 +364,8 @@ let S = 1;
 
 /** The one designed break: under this the three panes become one long page. */
 export const RACK_MIN_WIDTH = 900;
+/** Wider than tall, the rack from this width, the ledger put away (view.tsx; iphone-duo round 2). */
+export const RACK_WIDE_MIN = 580;
 
 /** a coordinate as the path writes it: to a hundredth, so an arc meets its runs on the tangent */
 const r = (v: number) => Math.round(v * 100) / 100;

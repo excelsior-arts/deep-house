@@ -38,6 +38,8 @@ const CONVERSATION_STRIKES: ReadonlySet<string> = new Set(['conversation-call', 
 import type { SourceMix } from '@deep-house/engine/source-mix';
 import { sayHello } from './console-hello.ts';
 import { pageBase } from './page-base.ts';
+import { watchSlowdowns, settleSlowdowns, slowSummary, slowdowns } from './slowdown.ts';
+import { readStress, stressRender } from './render-stress.ts';
 
 /** A set playing, as `createMix` hands one back. */
 export type Mix = ReturnType<typeof createMix>;
@@ -261,6 +263,14 @@ function writeStore(v: SavedPlace) {
 function clearStore() {
   try { localStorage.removeItem(STORE); } catch (e) { /* blocked */ }
 }
+/**
+ * **Whether this browser keeps a place** (a seed it left): what a first run is told by (featured, 10-23). A bare
+ * address with none starts on the first featured playlist (`playlists-ui.ts`, `openListLink`).
+ */
+export function placeStored(): boolean {
+  const was = readStore();
+  return !!(was && was.seed);
+}
 /** The stored link onto a bare address, in place; whether it was. */
 function adoptStoredLink(): boolean {
   try {
@@ -294,6 +304,12 @@ function isApplePhone(): boolean {
     // iPadOS reports itself as a Mac; a Mac has no touch screen
     return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
   } catch (e) { return false; }
+}
+
+/** A context whose device would not start within the wait (`wakeDevice`): the device's, never a report. */
+class DeviceAsleep extends Error {
+  readonly ctxState: string;
+  constructor(ctxState: string) { super(`the audio device would not start (${ctxState})`); this.ctxState = ctxState; }
 }
 
 function outMode(): 'direct' | 'element' | 'silent' {
@@ -1115,7 +1131,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     emit();
   }
 
-  function restore(): 'url' | 'fresh' | 'rolled' | 'restored' {
+  function restore(): 'url' | 'fresh' | 'restored' {
     const url = urlSeed();
     const was = readStore();
     // The strategy is read off the page first and off what was persisted
@@ -1166,17 +1182,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // with no seed it is the link table's seed at the link's own theme, as it
     // is in a browser that stored nothing. The store's seed, theme and second
     // were restored under `?v=2&theme=2` (R25 of the review of 09-24).
-    // **A bare address in a browser that stored nothing throws the die**
-    // (Eugene, K16: *"every time a bare page is opened and there is no local
-    // storage yet, we should not seed 1 but throw a die for the user, and
-    // whatever seed it is, that is what the person gets"*): the throw's own
-    // roll (`rollSeed`), stored at once so the next bare open on this device
-    // comes back to it, and the address left bare until a hand acts.
-    if (linkBare(location.search) && !(was && was.seed)) {
-      state.seed = rollSeed();
-      state.themeIndex = urlTheme();
-      return 'rolled';
-    }
+    // **A bare address in a browser that stored nothing** no longer throws the die (featured, his word 10-23: the
+    // random first seed "is not really working out"): the page puts the first featured playlist's first track on the
+    // address before the transport is made (`openListLink`, playlists-ui.ts), so it arrives here as a link. Only where
+    // there is none to put (an empty table) does a bare first open come here, and it is the link table's seed.
     if (!was || !was.seed || !linkBare(location.search)) {
       state.themeIndex = urlTheme();
       return 'fresh';
@@ -1189,6 +1198,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     return 'restored';
   }
 
+  let slowTick: (() => void) | null = null;
   function ctx(): AudioContext {
     if (!state.ctx) {
       const Ctor = window.AudioContext || window.webkitAudioContext;
@@ -1202,6 +1212,12 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // A phone call, another app's audio or a locked screen leaves the
       // context 'interrupted' or 'suspended'; nothing resumes it but us.
       state.ctx.addEventListener('statechange', wake);
+      // **The slowdown watch** (round audio-slack, `slowdown.ts`): the render
+      // clock against the wall clock on each of the transport's ticks.
+      slowTick = watchSlowdowns(state.ctx, OUT);
+      // and a check's render made to fall behind (`?stress=`, `render-stress.ts`)
+      const stress = readStress(linkRaw('stress', location.search));
+      if (stress) void stressRender(state.ctx, stress);
     }
     return state.ctx;
   }
@@ -1277,6 +1293,141 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       keep.pause();
     }
   }
+
+  // **The sound is checked, not assumed** (round lock-resume, his iPhone 10-23: a pause, a while in other apps,
+  // the lock screen's play did nothing, and the app then said it played, silently). On the element path the set
+  // reaches the speaker through links the page does not own: the context's device, the stream, and WebKit's
+  // element. After a long pause in the background any of them can be dead with the page none the wiser: a
+  // context whose `resume()` never settles (WebKit holds the promise until it can have its audio session), one
+  // that says `running` while its clock stands (WebKit lets its audio session go when its process is suspended,
+  // and the context is not told), or an element that plays nothing. So a start is not a sound until the render
+  // clock and the element are seen moving:
+  // - the device's wake is bounded (`wakeDevice`, 3 s): a resume that has not run by then fails the start, and
+  //   the key shows paused;
+  // - once the set is up, and whenever the page comes back into view while it says it plays, `hear` watches
+  //   both clocks for 1.5 s;
+  // - a set that is not heard (`checkSound`; the face shows the start's wait meanwhile) has its device stopped
+  //   and started again and the element handed its stream again; then a stream of its own (the clock runs, the
+  //   element does not) or a context of its own, built anew, the set started where it was;
+  // - and what still cannot sound stops, paused: the next press builds a new context inside its own gesture.
+  // The element path only: the direct one (the Mac, desktop browsers) and the checks' silent one are unchanged.
+  const WAKE_WAIT_MS = 3000;
+  const HEAR_MS = 1500;
+  /** what the render clock must have moved, at least, over the check (a device buffer is at most ~85 ms) */
+  const HEAR_MOVED_S = 0.2;
+  /** the output did not come back: the next start builds a context of its own first, inside its gesture */
+  let outputDead = false;
+  /** a check or a revival under way, superseded by a stop or a newer start */
+  let hearGen = 0;
+  /** the set is being revived: the face shows the start's wait */
+  let reviving = false;
+  const checksSound = OUT === 'element';
+  const settleWithin = (p: Promise<unknown>, ms: number): Promise<boolean> =>
+    Promise.race([p.then(() => true, () => false), new Promise<boolean>((r) => setTimeout(() => r(false), ms))]);
+
+  /** The device woken, or not within the wait: a context that cannot have its device is said, not waited on. */
+  async function wakeDevice(c: AudioContext): Promise<void> {
+    if (c.state === 'running') return;
+    // asked at once, so a start's first call is still inside its gesture
+    const resumed = c.resume();
+    if (!checksSound) { await resumed; return; }
+    await settleWithin(resumed, WAKE_WAIT_MS);
+    if ((c.state as AudioContextState) !== 'running') throw new DeviceAsleep(c.state);
+  }
+
+  /** Whether the set is heard: the render clock and the element both move within `HEAR_MS` of wall time. */
+  async function hear(gen: number): Promise<boolean | null> {
+    const c = state.ctx;
+    if (!c) return false;
+    const t0 = performance.now(), ct0 = c.currentTime, et0 = keep ? keep.currentTime : 0;
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 250));
+      if (gen !== hearGen || state.ctx !== c) return null;
+      const moved = c.currentTime - ct0;
+      const el = !!keep && !keep.paused && keep.currentTime > et0;
+      if (c.state === 'running' && moved >= HEAR_MOVED_S && el) return true;
+      // a context that is not running under a set that says it plays is not heard, and no wait will change that
+      if (performance.now() - t0 >= (c.state === 'running' ? HEAR_MS : HEAR_MS / 3)) return false;
+    }
+  }
+
+  /** What the check reads, for the ledger. */
+  function soundFacts(): Record<string, string | number | boolean> {
+    const c = state.ctx;
+    return { ctx: c ? c.state : 'none', clock: c ? +c.currentTime.toFixed(3) : 0, hidden: !!document.hidden,
+      element: keep ? (keep.paused ? 'paused' : 'playing') : 'none', elementTime: keep ? +keep.currentTime.toFixed(3) : 0 };
+  }
+
+  /** After a start, or the page back in view: is the set heard, and if not, bring it back or say it stopped. */
+  function checkSound(why: 'start' | 'shown' | 'rebuilt' | 'shell'): void {
+    if (!checksSound || !state.mix || !state.playing) return;
+    const gen = ++hearGen;
+    void (async () => {
+      const heard = await hear(gen);
+      if (heard !== false || gen !== hearGen || !state.mix) return;
+      const was = soundFacts();
+      reviving = true;
+      emit();
+      try {
+        // 1. the device stopped and started again, the element handed its stream again
+        const c = state.ctx!;
+        await settleWithin(c.suspend(), 1000);
+        await settleWithin(c.resume(), WAKE_WAIT_MS / 2);
+        if (gen !== hearGen) return;
+        const d = sink() as MediaStreamAudioDestinationNode | null;
+        if (keep && d) { keep.srcObject = null; keep.srcObject = d.stream; keep.play().catch(() => {}); }
+        const ct1 = c.currentTime;
+        if (await hear(gen)) {
+          note('transport', 'the set was not heard; its output was started again', { why, step: 'device', ...was });
+          return;
+        }
+        if (gen !== hearGen || !state.mix) return;
+        // 2. built anew and the set started where it was (once: a rebuilt one that is not heard either stops):
+        // a stream of its own where the clock runs and the element does not; else a context of its own. A
+        // browser that starts a context only inside a gesture (Safari) cannot start that one from here: its
+        // start fails, paused, and the next press builds it inside its gesture.
+        if (why !== 'rebuilt') {
+          const running = c.state === 'running' && c.currentTime - ct1 >= HEAR_MOVED_S;
+          note('transport', running ? 'the set was not heard; a new stream plays it on' : 'the set was not heard; a new audio context plays it on',
+            { why, step: running ? 'stream' : 'context', ...was });
+          rebuildAndPlay(running ? 'stream' : 'context');
+          return;
+        }
+        // 3. it cannot sound: paused, honestly; the next press starts on a new context inside its gesture
+        note('transport', 'the set could not be heard; it is paused, and the next play builds its output again', { why, ...soundFacts() });
+        outputDead = true;
+        reviving = false;
+        stop('system');
+      } finally {
+        if (gen === hearGen && reviving) { reviving = false; emit(); }
+      }
+    })();
+  }
+
+  /** Let the context go: the next `ctx()` builds a new one, and its stream and the element's source with it. */
+  function dropContext(): void {
+    const c = state.ctx;
+    if (!c) return;
+    state.ctx = null;
+    state.sink = null;
+    if (keep) keep.srcObject = null;
+    c.close().catch(() => {});
+  }
+
+  /** The set stopped where it is, its stream (or its whole context) replaced, and started again from there. */
+  let rebuilt = false;
+  function rebuildAndPlay(what: 'stream' | 'context'): void {
+    syncFromMix();
+    disposeMix();
+    state.playing = false;
+    if (what === 'context') dropContext();
+    else { state.sink = null; if (keep) keep.srcObject = null; }
+    rebuilt = true;
+    void start();
+  }
+
+  // the page back in view while it says it plays: is it heard (the lock screen, another app, a long while)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSound('shown'); });
 
   function mixOpts(): Partial<MixOptions> {
     // The spell goes with the options, so the plan the transport draws from —
@@ -1761,7 +1912,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       presetName: t.presetLabel,
       minutes: state.minutes,
       playing: state.playing,
-      starting: (state.starting && !state.playing) || !!(state.playing && live && live.leading),
+      starting: (state.starting && !state.playing) || reviving || !!(state.playing && live && live.leading),
       bpm: t.bpm,
       /** and the tempo the grid is actually counting at: the theme's own, until a seam moves it */
       gridBpm: +(60 / spb).toFixed(1),
@@ -2156,6 +2307,11 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   function stop(by?: unknown) {
     stoppedBy = by === 'system' ? 'system' : 'hand';
     cancelStartup();
+    // a sound check or a revival under way is over (`checkSound`)
+    hearGen += 1;
+    reviving = false;
+    // a slowdown open at a stop is closed where its lag last rose (`slowdown.ts`)
+    settleSlowdowns();
     // Where the set had actually reached, before the mix that knows it is let
     // go: this is the position that is remembered and resumed from.
     syncFromMix();
@@ -2225,6 +2381,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     mediaHandlers();
     // A start still in flight is superseded by this one rather than racing it.
     cancelStartup();
+    // an output that could not be heard last time is built again first, inside this press (`checkSound`)
+    if (outputDead) { outputDead = false; dropContext(); }
+    const afterRebuild = rebuilt;
+    rebuilt = false;
     const gen = generation;
     const stale = () => gen !== generation;
     state.starting = true;
@@ -2243,7 +2403,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // compile and its voices — is built while the device wakes. The anchor
       // is still read only after the context runs and its output buffer has
       // been said (`settleHead`), so where the record starts is unmoved.
-      const woken = (c.state !== 'running' ? c.resume() : Promise.resolve())
+      // On the element path the wait is bounded (`wakeDevice`): a device that cannot be had fails the start.
+      const woken = wakeDevice(c)
         .then(() => { startMark('resumed'); return settleHead(c); })
         .then(() => { startMark('head'); });
       // handled where it is awaited, in the set's start; a start overtaken
@@ -2275,7 +2436,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       const from = clamp(state.position, 0, Math.max(0, playable() - 0.5));
       disposeMix('one was still alive when another was asked for');
       const d = sink();
-      mine = createMix(c, { ...mixOpts(), destination: d ? d : c.destination });
+      // nothing judged in the first second of a set (`slowdown.ts`)
+      settleSlowdowns();
+      mine = createMix(c, { ...mixOpts(), destination: d ? d : c.destination, onTick: slowTick ?? undefined });
       if (sourceMix) mine.setSourceMix(sourceMix);
       pending = mine;
       // Where the set was left goes into the start itself rather than into a
@@ -2313,14 +2476,22 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // ones set inside the gesture were set before that happened.
       mediaHandlers(true);
       loop();
+      // and is it heard (the element path): if not, it is brought back or said to be stopped
+      checkSound(afterRebuild ? 'rebuilt' : 'start');
     } catch (err) {
       // A context that would not resume, a limiter that would not load: the
       // start owns nothing (the `finally` below lets it go) and says so, rather
       // than leaving an unhandled rejection behind a ring that shows nothing
       // (R72). Every caller drops the promise, so this is where it ends.
-      console.error('deep-house: the set could not start', err);
-      // ours, and not a context the browser refused (R1, the held-errors audit)
-      report('start', 'the set could not start', err);
+      if (err instanceof DeviceAsleep) {
+        // the device's, not ours: said in the ledger, the key left paused, the next press builds the output again
+        note('transport', 'the output would not wake; the set stays paused', { ctx: err.ctxState, hidden: !!document.hidden });
+        outputDead = true;
+      } else {
+        console.error('deep-house: the set could not start', err);
+        // ours, and not a context the browser refused (R1, the held-errors audit)
+        report('start', 'the set could not start', err);
+      }
       state.playing = false;
       emit();
     } finally {
@@ -2486,6 +2657,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
     /** `?lock=engine`: the link names its engine and the machine view's selector holds it. */
     engineLocked: ENGINE_LOCKED,
+    /** The slowdowns since the page loaded (`slowdown.ts`): a count, the longest, the last; and each of them, for a check. */
+    slowSummary,
+    slowdowns,
     get sourceMix(): SourceMix { return sourceMix ?? defaultSourceMix; },
     /** Is a mixer in the set at all? Only once a control has moved off clean. */
     get sourceMixOn(): boolean { return sourceMix !== null; },
@@ -2931,7 +3105,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       const here = linkHere(location.search, { pageDefault: PAGE_DEFAULT });
       if ((L.recipe ?? null) !== (here.recipe ?? null) || L.accompaniment !== here.accompaniment || L.development !== here.development) {
         const q = new URLSearchParams(search);
-        for (const name of ['view', 'out', 'latency']) { const v = linkRaw(name, location.search); if (v !== null && !q.has(name)) q.set(name, v); }
+        for (const name of ['view', 'out', 'latency', 'stress']) { const v = linkRaw(name, location.search); if (v !== null && !q.has(name)) q.set(name, v); }
         store();
         location.assign(`${location.pathname}?${q.toString()}${location.hash}`);
         return true;
@@ -2981,6 +3155,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     journal,
     out: OUT,
     latencyHint: LATENCY,
+    /** Is the set heard (the element path): asked by the Apple app's shell after the system's audio services restarted. */
+    checkSound(): void { checkSound('shell'); },
 
     // what the browser actually gave us, for the bench to show
     timing(): Timing {

@@ -572,7 +572,7 @@ const samePrimedPlace = (a: PrimedPlace, b: PrimedPlace) => a.seed === b.seed &&
   && a.style === b.style && sameSpell(a.spell, b.spell) && definitionOf(a.recipe) === definitionOf(b.recipe);
 /** What a set was asked, as one string: the options a page hands `createMix`, the room's bypass beside them. */
 const askedKey = (opts: Partial<MixOptions>, bypass: Bypass | null): string =>
-  JSON.stringify(opts, (k, v) => (k === 'destination' || k === 'lookahead' ? undefined   // the scheduler's, not the plan's
+  JSON.stringify(opts, (k, v) => (k === 'destination' || k === 'lookahead' || k === 'onTick' ? undefined   // the scheduler's, not the plan's
     : k === 'recipe' && v && typeof v === 'object' ? `#${definitionOf(v as Recipe)}` : v)) + '|' + (bypass ? bypass.label : '');
 
 /**
@@ -640,6 +640,8 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // the swap — the same instant the theme index and the readout change hands.
   let masterSeed = seed;
   const destination = opts.destination || ctx.destination;
+  // the page's call on each tick (the slowdown watch): read once, as the destination is
+  const onTick = opts.onTick ?? null;
 
   // The master is the *set's* room, not a theme's: two decks pass through one
   // of these at a seam, so it can belong to neither. It used to be built on
@@ -2403,6 +2405,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     } finally {
       ticking = false;
     }
+    if (onTick) { try { onTick(); } catch (err) { /* a watch never stops the set */ } }
     // and a voice's note that threw inside a deck (the deck drops the one note
     // and counts it): a line for the step, as the late counter is
     for (const d of [current, incoming]) {

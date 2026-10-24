@@ -1,22 +1,29 @@
 // **The Playlists tab, the throne's save and playing a playlist** (PLAN-LIBRARY §2, phase 3).
 //
-// - **The throne** (ring.ts draws it at twelve o'clock and hands its presses here) saves what plays into Saved:
+// - **The throne, now love** (ring.ts draws the heart key at the star's lower left and hands its presses here; star-keys
+//   10-22) saves what plays into Saved:
 //   a copy of the birds' imprint lifts off the ring and slides into the gyroscope, which spins (`gyroSpin`). With
 //   the panel open the throne flashes once; under reduced motion the gyroscope blinks. A save never opens the panel.
-// - **The tab**: the overview (what plays, your playlists, + New playlist, files), a playlist's page (its header,
-//   Play and ↓ .deephouse, its rows, reordering), one ⋯ menu for a track and a playlist, and the questions a file asks.
+// - **The tab**: the overview (what plays, your playlists in your order, + New playlist, files), a playlist's page (its
+//   header, Play and ↓ .deephouse, its rows, reordering), one ⋯ menu for a track and a playlist, and the questions a
+//   file asks. Your playlists reorder as a playlist's tracks do (pl-order, his word 10-23): a drag of a row, a press
+//   and hold for a finger, or Move up and Move down in the playlist's ⋯; each with Undo.
 // - **Playing**: a row plays through `control.playPlace` (the journal walk's `mix.cast` path); next and back step
 //   through the playlist (`control.steer`), the next track is asked just before the record's own seam, the
 //   playlist repeats, and the dice leave it. Where it is (its name and the track's place) rides the player's store.
 // - **Files**: ↓ .deephouse and Back up everything download through `playlists.ts`'s writers; Open a .deephouse
 //   file and a file dropped on the page read through `readDeephouseFile`.
 //
+// - **Featured** (his word 10-23, `featured.ts`): the release's own playlists, under yours after a hairline with the
+//   section's word, read-only (play, share, Save a copy, open in app), never in the record. A bare address in a browser
+//   that stored nothing starts on the first, at its first track (`openListLink`).
+//
 // The record is `playlists.ts`'s and the worked-out values `sky.ts`'s; this file only shows and asks. Copy is
 // short point labels, no prose (his word 10-20). Nothing here is written into the address.
 
 import {
   libraryStore, playlistOf, tracksOf, saveTrack, addToPlaylist, createPlaylist, removeTrack, removePlaylist, renamePlaylist,
-  moveTrack, setLabel, replaceLink, restore, replaceLibrary, writePlaylistFile, writeBackupFile, readDeephouseFile, playlistFileSummary,
+  moveTrack, movePlaylist, inOrder, setLabel, replaceLink, restore, replaceLibrary, writePlaylistFile, writeBackupFile, readDeephouseFile, playlistFileSummary,
   openPlaylistFile, backupSummary, saveTarget, playlistById, mergeLibraries, normaliseLink, soundKey, SAVED, PlaylistError,
 } from './playlists.ts';
 import { writePlaylistLink, readPlaylistLink, isPlaylistLink, savePlaylistLink, LIST_ROWS, LONG_LINK } from './playlist-link.ts';
@@ -29,9 +36,12 @@ import { pageBase } from './page-base.ts';
 import { appleDevice, openInApp, APP_STORE, syncAppBanner } from './open-in-app.ts';
 import { note } from './ledger.ts';
 import { stepIndex, indexOfSound, seamDue, placeWords, playMark } from './playlist-play.ts';
-import { romanNumeral } from './control.ts';
+import { romanNumeral, placeStored } from './control.ts';
+import { linkBare } from './link.ts';
+import { FEATURED, FEATURED_WORD, featuredById, featuredTracks, copyOfFeatured } from './featured.ts';
+import type { Featured } from './featured.ts';
 import type { Control } from './control.ts';
-import { openLibrary, libraryOpen, gyroSpin } from './library-panel.ts';
+import { openLibrary, libraryOpen, gyroSpin, scrollInks } from './library-panel.ts';
 import { reducedMotion } from './motion.ts';
 import { shellStore, shellSave, shellPick, shellShareLink, startShellLibrary } from './shell-library.ts';
 import { BIRDS, BIRD_CODE, HOUSE } from './spell.ts';
@@ -39,8 +49,10 @@ import type { Bird } from './spell.ts';
 
 export interface PlaylistDeps {
   control: Control;
-  /** the throne on the ring, for its flash and its one pulse */
-  throne: Element | null;
+  /** the save's key on the ring (love, since star-keys), for its menu's anchor, its focus and its one pulse */
+  throne: () => Element | null;
+  /** says whether what plays is in a playlist: the heart filled or drawn in outline */
+  loved: (on: boolean) => void;
   /**
    * **The ring's imprint**, a copy to fly: the star sheet cloned (the eight birds in their nodes with their glyphs,
    * the lines joining them, the core ring), line work only, and the screen box it stands in. The live ring is not
@@ -81,19 +93,41 @@ function appMissed(): void {
 let quiet = false;
 /** Share's word beside its key: "Copied", and "Long link" past `LONG_LINK` */
 let shared: { name: Name; long: boolean; timer: number } | null = null;
-/** a playlist link opened this page: where it landed and the track the address holds, for `startPlaylists` */
-let fromLink: { name: Name; index: number } | null = null;
+/**
+ * a playlist link opened this page (`open`: the panel opens on it), or a first run put the first featured playlist's
+ * first track on the address (it does not): where it is and the track the address holds, for `startPlaylists`
+ */
+let fromLink: { name: Name; index: number; open: boolean } | null = null;
 const section = document.getElementById('libPlaylists') as HTMLElement | null;
 const label = document.getElementById('nowList') as HTMLButtonElement | null;
 
 // --- small things -----------------------------------------------------------
 
 const esc = (s: unknown) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const shownName = (n: Name) => n ?? SAVED;
+/**
+ * **A featured playlist's name in the page** (featured, 10-23): its id behind a mark no typed name begins with (U+E000,
+ * a private-use character), so it never meets one of yours, in the views, the attributes and the place the store
+ * keeps (an older edition finds no playlist of that name and resumes none).
+ */
+const FEAT = '\uE000';
+const featKey = (id: string): string => `${FEAT}${id}`;
+const isFeat = (n: Name): n is string => n !== null && n.startsWith(FEAT);
+const featOf = (n: Name): Featured | undefined => (isFeat(n) ? featuredById(n.slice(FEAT.length)) : undefined);
+/** each featured playlist as the record's shape, made once: it is never written */
+const FEAT_LISTS = new Map<string, Playlist>(FEATURED.map((f) => [featKey(f.id), { id: f.id, name: f.name, tracks: featuredTracks(f) }]));
+/**
+ * **The line over the featured section while you have no playlist** (featured, 10-23; his review): a loved track
+ * starts your own.
+ */
+const YOURS_FIRST = 'Love a track to start your own';
+const shownName = (n: Name) => featOf(n)?.name ?? n ?? SAVED;
 const keyOf = (n: Name) => n ?? '';
 const say = (text: string) => { const el = document.getElementById('say'); if (el) el.textContent = text; };
-const liveLists = (): Playlist[] => doc.playlists.filter((p) => p.removed === undefined && p.renamed === undefined);
-const linksOf = (n: Name) => tracksOf(playlistOf(doc, n)).map((t) => t.link);
+/** Your playlists, in the order you keep them (`inOrder`, pl-order). */
+const liveLists = (): Playlist[] => inOrder(doc);
+/** A playlist by its name in the page: one of yours (`null`, Saved), or a featured one (`featKey`). */
+const listOf = (n: Name): Playlist | undefined => (isFeat(n) ? FEAT_LISTS.get(n) : playlistOf(doc, n));
+const linksOf = (n: Name) => tracksOf(listOf(n)).map((t) => t.link);
 
 function linkParts(link: string) {
   const q = new URLSearchParams(normaliseLink(link).link);
@@ -108,32 +142,96 @@ function titleOf(t: Track): string {
 const genreSafe = (link: string) => { try { return genreOf(link).name; } catch (e) { return ''; } };
 const colourSafe = (link: string) => { try { return colourOf(link); } catch (e) { return 'var(--gold)'; } };
 
-// the empty tab's example sky (his word 10-21): seven real tuned genre links (Drone, Bells, Deep House, Dub Techno, Chillstep, Tech House, Liquid), four colour families
-const EXAMPLE_SKY: readonly string[] = [
-  'seed=5&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81',
-  'seed=8&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90',
-  'seed=7&v=2',
-  'seed=21&v=2&spell=em:0.73,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80',
-  'seed=16&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80',
-  'seed=14&v=2&spell=em:0.70,ti:0.45,ze:0.60,ro:0.60,sp:0.40',
-  'seed=3&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85',
-];
-/** A playlist's constellation, or an empty ring where it has no stars yet. */
-function sky(links: readonly string[], px: number, h = px): string {
-  if (!links.length) return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}" aria-hidden="true"><circle cx="${px / 2}" cy="${px / 2}" r="${px / 4}" fill="none" stroke="currentColor" stroke-dasharray="2 3" opacity="0.5"/></svg>`;
-  try { return constellationOf(links, px, h).replace('<svg ', '<svg aria-hidden="true" '); } catch (e) { return ''; }
+/**
+ * **A playlist's constellation, in a slot of its own** (his word 10-23: "at least we assume some kind of fixed width of
+ * the star map thumbnail"): a box the stylesheet sizes for each place and density (`.skySlot`, index.html), there from
+ * the first paint whether or not the drawing is, so the words beside it never move; the drawing fills it. An empty
+ * ring where the playlist has no stars yet; an empty box where the drawing fails.
+ */
+function sky(links: readonly string[], px: number, h = px, cls = ''): string {
+  return `<span class="skySlot${cls ? ` ${cls}` : ''}" aria-hidden="true">${drawSky(links, px, h)}</span>`;
+}
+/**
+ * **Each drawing once** (pl-sky, 10-23): kept by what it is drawn from (the links in order, which carry each star's
+ * place and ink, and the size), the most recently used kept, at most `SKIES_MAX`, so a re-render (every change of the
+ * record or the transport) copies a string instead of working the stars out again.
+ */
+const SKIES = new Map<string, string>();
+const SKIES_MAX = 48;
+function drawSky(links: readonly string[], px: number, h: number): string {
+  if (!links.length) return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}"><circle cx="${px / 2}" cy="${px / 2}" r="${px / 4}" fill="none" stroke="currentColor" stroke-dasharray="2 3" opacity="0.5"/></svg>`;
+  const k = `${px}x${h}\n${links.join('\n')}`;
+  const hit = SKIES.get(k);
+  if (hit !== undefined) { SKIES.delete(k); SKIES.set(k, hit); return hit; }
+  let svg: string;
+  try { svg = constellationOf(links, px, h); } catch (e) { return ''; }
+  SKIES.set(k, svg);
+  if (SKIES.size > SKIES_MAX) SKIES.delete(SKIES.keys().next().value!);
+  return svg;
+}
+/**
+ * **Warmed in an idle slot after the page starts**: the drawings the page has not needed yet (a playlist's own page,
+ * the throne's menu, the line under the ring), so the first of each draws from the store. The rows' are drawn by the
+ * first render.
+ */
+function warmSkies(): void {
+  const ric = (globalThis as { requestIdleCallback?: (fn: () => void, o: { timeout: number }) => number }).requestIdleCallback;
+  const later = (fn: () => void) => (typeof ric === 'function' ? ric(fn, { timeout: 2000 }) : setTimeout(fn, 200));
+  const lists = [...liveLists().slice(0, 12), ...FEAT_LISTS.values()].map((p) => tracksOf(p).map((t) => t.link)).filter((l) => l.length);
+  const work = () => {
+    const links = lists.shift();
+    if (!links) return;
+    drawSky(links, 52, 52);
+    drawSky(links, 16, 16);
+    later(work);
+  };
+  later(work);
 }
 
 // --- time, lazily (a full plan a link: asked in idle slots, kept by sky.ts) --
 
-const known = new Map<string, string>();
+interface Time { clock: string; minutes: number }
+/** a link's time as planned this session */
+const known = new Map<string, Time>();
 const queue: string[] = [];
 let queued = false;
+/** a link's time as it reads, planned now or kept from before (`kept`); null while it is neither */
+const timeKnown = (link: string): Time | undefined => known.get(link) ?? kept.get(link);
 function timeText(link: string): string | null {
-  if (known.has(link)) return known.get(link)!;
+  const k = known.get(link);
+  if (k) return k.clock;
   if (!queue.includes(link)) queue.push(link);
   runTimes();
-  return null;
+  return kept.get(link)?.clock ?? null;
+}
+/**
+ * **Times kept from the last session** (pl-sky, 10-23): the first opening of the panel planned every row's tracks one
+ * by one, 1.8 s (WebKit) to 2.9 s (Chromium at a sixth of the speed) for 23 tracks, and each row's stats stepped
+ * 43 px right as its time joined ("6 tracks", then "38 m · 6 tracks"). So the times planned are kept in local storage
+ * for the version that planned them and shown at once; each is still planned again in its turn (what plays decides,
+ * never what was kept), and only one that differs moves. At most `KEPT_MAX` links, the most recently planned.
+ */
+const TIMES_KEY = 'deephouse.times';
+const KEPT_MAX = 400;
+const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '';
+const kept = ((): Map<string, Time> => {
+  const m = new Map<string, Time>();
+  try {
+    const o = JSON.parse(localStorage.getItem(TIMES_KEY) ?? 'null') as { v?: string; t?: Record<string, [number, string]> } | null;
+    if (o && o.v === VERSION && o.t) for (const [l, x] of Object.entries(o.t)) if (Array.isArray(x) && typeof x[0] === 'number' && typeof x[1] === 'string') m.set(l, { minutes: x[0], clock: x[1] });
+  } catch (e) { /* nothing kept */ }
+  return m;
+})();
+let keepTimer = 0;
+function keepTimes(): void {
+  clearTimeout(keepTimer);
+  keepTimer = window.setTimeout(() => {
+    const all = new Map(kept);
+    for (const [l, t] of known) { all.delete(l); all.set(l, t); }
+    const t: Record<string, [number, string]> = {};
+    for (const [l, x] of [...all].slice(-KEPT_MAX)) t[l] = [Math.round(x.minutes * 1000) / 1000, x.clock];
+    try { localStorage.setItem(TIMES_KEY, JSON.stringify({ v: VERSION, t })); } catch (e) { /* nothing kept */ }
+  }, 1000);
 }
 /**
  * **Times are planned only while they can be seen** (the review of 10-21, F7): the panel open on Playlists. Each is
@@ -151,40 +249,33 @@ function runTimes(): void {
     const l = queue.shift();
     if (l) {
       const t = timeOf(l);
-      known.set(l, t ? t.clock : '');
-      paintTimes();
+      const now = { clock: t ? t.clock : '', minutes: t?.minutes ?? 0 };
+      const was = kept.get(l);
+      known.set(l, now);
+      if (!was || was.clock !== now.clock || Math.round(was.minutes * 1000) !== Math.round(now.minutes * 1000)) paintTimes();
+      keepTimes();
     }
     if (queue.length) later(work); else queued = false;
   };
   later(work);
 }
-/**
- * **A playlist's total, written out** (his review 10-20): "2 h 44 m · 4 tracks · Repeat", "52 m · 1 track · Repeat".
- * Repeat is its mode, the only one for now. The time joins once every track's is planned.
- */
 /** Repeat is said only where it applies (his word 10-20): on the current or playing playlist. */
 const modeOf = (n: Name) => (playing && playing.name === n ? ' · Repeat' : '');
-function totalText(n: Name): string {
-  const links = linksOf(n);
-  let sum = 0, all = true;
-  for (const l of links) { const t = timeText(l); if (t === null) all = false; else sum += timeOf(l)?.minutes ?? 0; }
-  const m = Math.round(sum);
-  const time = all && links.length ? `${m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`} · ` : '';
-  return `${time}${links.length} track${links.length === 1 ? '' : 's'}${modeOf(n)}`;
-}
 /**
- * **A playlist's stats, one plain string** (his word 10-20: "let's do strings"): "46 m · 6 tracks", and "· Repeat" on
- * the current playlist. The only help to the eye: each number of one or two digits sits in a box two figures wide,
- * right-aligned, in tabular figures, so "7 m" and "46 m" start together down the rows; hours just flow.
+ * **A playlist's stats, one plain string** (his word 10-20: "let's do strings"), the count first as music apps say it
+ * (featured, 10-23: "5 tracks · 39 m"): "6 tracks · 46 m", "4 tracks · 2 h 44 m" past the hour, and "· Repeat" on the
+ * current playlist. The count is known from the first paint and the time joins at the end once every track is planned,
+ * so nothing before it moves (it replaced pl-sky's slot as wide as "8 h 88 m", which left a gap in every row). Only
+ * "· Repeat" after it may step once, the first time the time arrives on a first-ever launch. A playlist with no tracks
+ * has no time. The row and the playlist's page head say the same.
  */
 function totalCols(n: Name): string {
   const links = linksOf(n);
   let sum = 0, all = true;
-  for (const l of links) { const t = timeText(l); if (t === null) all = false; else sum += timeOf(l)?.minutes ?? 0; }
+  for (const l of links) { const t = timeText(l); if (t === null) all = false; else sum += timeKnown(l)?.minutes ?? 0; }
   const m = Math.round(sum);
-  const num = (x: number) => (x < 100 ? `<span class="plFig">${x}</span>` : String(x));
-  const time = all && links.length ? `${m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${num(m)} m`} · ` : '';
-  return `${time}${num(links.length)} track${links.length === 1 ? '' : 's'}${esc(modeOf(n))}`;
+  const time = links.length && all ? ` · ${m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`}` : '';
+  return `${links.length} track${links.length === 1 ? '' : 's'}${time}${esc(modeOf(n))}`;
 }
 /**
  * **The playing mark** (his review 10-20): three level bars after the name, moving with the set's own beat (`levelTick`);
@@ -216,8 +307,8 @@ function levelTick(): void {
 }
 function paintTimes(): void {
   if (!section) return;
-  for (const el of section.querySelectorAll<HTMLElement>('[data-time]')) { const t = known.get(el.dataset.time!); if (t !== undefined) el.textContent = t; }
-  for (const el of document.querySelectorAll<HTMLElement>('[data-total]')) el.textContent = totalText(dec(el.dataset.total));
+  for (const el of section.querySelectorAll<HTMLElement>('[data-time]')) { const t = timeKnown(el.dataset.time!); if (t !== undefined) el.textContent = t.clock; }
+  for (const el of document.querySelectorAll<HTMLElement>('[data-total]')) el.innerHTML = totalCols(dec(el.dataset.total));
   for (const el of document.querySelectorAll<HTMLElement>('[data-cols]')) el.innerHTML = totalCols(dec(el.dataset.cols));
 }
 /** A playlist's name in an attribute: `s` for Saved, `n:` and the name for a named one. */
@@ -318,6 +409,7 @@ function openShareMenu(): void {
   const m = document.createElement('div');
   m.className = 'plMenu shareMenu';
   m.setAttribute('role', 'menu');
+  m.dataset.by = menuBy;
   m.setAttribute('aria-label', 'Share');
   const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
   // the system's share sheet in the iPhone and iPad app; the Mac app's web view has none that answers (his report 10-21)
@@ -420,6 +512,29 @@ function saveInto(name: string | undefined, link: string): boolean {
   return true;
 }
 
+/**
+ * **Is what plays saved** (star-keys): its sound in any playlist, the library's own match, the same reading the lock
+ * screen's Save gives the shell (`lockSaved`, shell-library.ts). The heart is filled while it is.
+ */
+function savedNow(): boolean {
+  if (!deps) return false;
+  const link = deps.control.linkPlaying();
+  return liveLists().some((p) => indexOfSound(tracksOf(p).map((t) => t.link), link) >= 0);
+}
+/**
+ * **The scroll's stars in the playlists' colours** (his review 10-22): one per playlist, the colour its
+ * constellation's first star is drawn in (`colourOf`, the Map tab's and the rows' own source), in the library's
+ * order; with no playlist holding a track, the featured playlists' (featured, 10-23: they took the example sky's place).
+ */
+function paintScroll(): void {
+  const lists = liveLists().map((p) => tracksOf(p)).filter((t) => t.length);
+  scrollInks(lists.length ? lists.map((t) => colourSafe(t[0].link)) : FEATURED.map((f) => colourSafe(f.links[0])));
+}
+function paintLoved(): void {
+  if (!deps) return;
+  try { deps.loved(savedNow()); } catch (e) { /* a link the page cannot read is not saved */ }
+}
+
 // --- the throne's menu: which playlist (his word 10-20) -------------------------
 
 let throneMenu: HTMLElement | null = null;
@@ -438,12 +553,13 @@ function openThroneMenu(names: string[], link: string): void {
   m.id = 'throneMenu';
   m.className = 'plMenu thMenu';
   m.setAttribute('role', 'menu');
+  m.dataset.by = menuBy;
   m.setAttribute('aria-label', 'Save to');
   m.innerHTML = names.map((n) => `<button type="button" role="menuitem" tabindex="-1" data-name="${esc(n)}">${sky(linksOf(n), 16)}<span>${esc(n)}</span></button>`).join('');
   document.body.append(m);
   throneMenu = m;
   // under the throne, centred on it, kept inside the window (the mini player's may cover the ring)
-  const t = (deps.throne as Element | null)?.getBoundingClientRect();
+  const t = deps.throne()?.getBoundingClientRect();
   const w = m.offsetWidth, h = m.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
   const x = t ? t.left + t.width / 2 - w / 2 : (vw - w) / 2, y = t ? t.bottom + 6 : 40;
   m.style.left = `${Math.max(6, Math.min(vw - w - 6, x)).toFixed(1)}px`;
@@ -480,14 +596,14 @@ function closeThroneMenu(): void {
   const release = throneRelease;
   throneRelease = null;
   release?.();
-  (deps.throne as HTMLElement | null)?.focus?.({ preventScroll: true });
+  (deps.throne() as HTMLElement | SVGElement | null)?.focus?.({ preventScroll: true });
 }
 // a press anywhere outside the menu closes it, without saving
 document.addEventListener('pointerdown', (e) => { if (throneMenu && !throneMenu.contains(e.target as Node)) closeThroneMenu(); }, true);
 
 let dotTimer = 0;
 function saveMotion(): void {
-  const throne = deps.throne;
+  const throne = deps.throne();
   // the plus's dot fills as the imprint lifts off, a star added to the map, and stays full for one beat of the set's
   // clock (half a second while nothing plays); no fade
   if (throne) {
@@ -572,7 +688,7 @@ function pulseTick(): void {
   try { done = localStorage.getItem(PULSE_KEY) === 'pulsed'; } catch (e) { done = true; }
   if (done) return;
   try { localStorage.setItem(PULSE_KEY, 'pulsed'); } catch (e) { /* blocked: it pulses this once anyway */ }
-  deps.throne?.classList.add('pulse');
+  deps.throne()?.classList.add('pulse');
 }
 
 // --- playing a playlist -------------------------------------------------------
@@ -617,7 +733,7 @@ function playAt(name: Name, i: number, kind: 'cast' | 'skip' | 'back' = 'cast', 
 function step(d: number, kind: 'skip' | 'back' | 'cast'): boolean {
   if (!playing) return false;
   const n = linksOf(playing.name).length;
-  if (!n || !playlistOf(doc, playing.name)) { leave(); return false; }
+  if (!n || !listOf(playing.name)) { leave(); return false; }
   return playAt(playing.name, stepIndex(playing.index, n, d), kind, d < 0 ? -1 : 1);
 }
 /**
@@ -646,6 +762,7 @@ function soundingChanged(): void {
 }
 function seamTick(): void {
   pulseTick();
+  paintLoved();
   runTimes();
   // the level bars wake when the panel opens again on a playing row
   if (!levelFrame) levelFrame = requestAnimationFrame(levelTick);
@@ -737,11 +854,22 @@ function addFile(file: LibraryDoc, how: 'add' | 'keep-both' | 'replace', name: N
 
 /** which page the section last showed, so a re-render of the same page keeps its scroll */
 let shownWhere = '';
+/** where the overview was left, so Back from a playlist lands where the hand went in (his word 10-23) */
+let overviewTop = 0;
+/** the playlist Back came from: its row takes the focus Back had */
+let backFrom: string | null = null;
+/** a row is lifted under a hand: the section is not rewritten under it (`renderHeld` runs once it is set down) */
+let holding = false;
+let renderHeld = false;
 function render(): void {
+  if (holding) { renderHeld = true; return; }
+  renderHeld = false;
   paintLabel();
+  paintLoved();
+  paintScroll();
   for (const fn of watchers) fn();
   if (!section) return;
-  if (view.kind === 'list' && !playlistOf(doc, view.name)) view = { kind: 'overview' };
+  if (view.kind === 'list' && !listOf(view.name)) view = { kind: 'overview' };
   if (menu && (view.kind !== 'list' || (menu.link && indexOfSound(linksOf(view.name), menu.link) < 0))) menu = null;
   const head = (notice ? `<p class="plNotice" role="status">${esc(notice)}</p>` : '')
     + (noticeApp ? `<p class="plNotice" role="status">Not installed? <a href="${APP_STORE}" target="_blank" rel="noopener">Get the app</a></p>` : '');
@@ -756,44 +884,56 @@ function render(): void {
   // the list stays where the hand left it when the page it shows is the same one (his report 10-21: a press on the last
   // track to play it threw the list to its top)
   const where = view.kind === 'list' ? `list:${view.name}` : view.kind;
-  const keep = where === shownWhere ? section.scrollTop : 0;
+  if (shownWhere === 'overview' && where !== 'overview') overviewTop = section.scrollTop;
+  const keep = where === shownWhere ? section.scrollTop : where === 'overview' ? overviewTop : 0;
   shownWhere = where;
   rendering = true;
   try { section.innerHTML = `<div class="pl">${head}${body}</div>${foot}`; } finally { rendering = false; }
   if (keep) section.scrollTop = keep;
   // what is being typed survives a re-render
   for (const [k, v] of drafts) { const i = section.querySelector<HTMLInputElement>(`input[data-focus="${k}"]`); if (i) i.value = v; }
-  // Open and Back up belong to the overview's foot alone
-  if (plFoot) plFoot.innerHTML = view.kind === 'overview' && liveLists().length ? `${naming === 'new' ? '' : newBox('new')}${key('open', 'open', 'Open a .deephouse file', 'Open')}${key('backup', 'backup', 'Back up everything', 'Back up')}` : '';
-  if (focused) section.querySelector<HTMLElement>(`[data-focus="${focused}"]`)?.focus({ preventScroll: true });
+  // New, Open and Back up belong to the overview's foot alone; Back up only once there is something of yours to keep
+  if (plFoot) plFoot.innerHTML = view.kind === 'overview' && (liveLists().length || FEATURED.length) ? `${naming === 'new' ? '' : newBox('new')}${key('open', 'open', 'Open a .deephouse file', 'Open')}${liveLists().length ? key('backup', 'backup', 'Back up everything', 'Back up') : ''}` : '';
+  const backRow = focused === 'back' && backFrom !== null && view.kind === 'overview' ? `l:${backFrom}` : null;
+  backFrom = null;
+  if (backRow || focused) section.querySelector<HTMLElement>(`[data-focus="${CSS.escape(backRow ?? focused!)}"]`)?.focus({ preventScroll: true });
   paintTimes();
   placeMenu();
   if (!levelFrame) levelFrame = requestAnimationFrame(levelTick);
+}
+
+/**
+ * **A playlist's row** in the overview: its constellation, its name with the playing mark, its stats, the way in. One of
+ * yours carries its id (`drag`), which a drag moves it by; a featured one has none and stays where it is.
+ */
+function rowHtml(n: Name, links: readonly string[], drag?: string): string {
+  const mark = playMark(!!playing && playing.name === n, sounding());
+  const on = mark === 'playing';
+  // the position in the playlist is the label under the ring's; the row says only that it plays (his word 10-20)
+  return `<li class="plRow${on ? ' on' : mark ? ' current' : ''}" data-row="${totalAttr(n)}"${drag ? ` data-drag="1" data-id="${esc(drag)}"` : ''}><button type="button" class="plOpen" data-act="list" data-name="${totalAttr(n)}" data-focus="l:${esc(keyOf(n))}"${on ? ' aria-current="true"' : ''}>${sky(links, 44)}
+      <span class="plText"><span class="plName"><span class="plNameText">${esc(shownName(n))}</span>${mark ? levelMark(on) : ''}</span><span class="plSub" data-cols="${totalAttr(n)}">${totalCols(n)}</span></span><svg class="plChev" viewBox="0 0 10 16" aria-hidden="true"><path d="M3 2.5 L8 8 L3 13.5"/></svg></button>
+      </li>`;
 }
 
 function overview(): string {
   const lists = liveLists();
   const named = lists.filter((p) => p.name !== undefined);
   const shown = lists.filter((p) => p.name !== undefined || tracksOf(p).length || !named.length);
+  // **the featured section** (featured, his word 10-23): under yours, a hairline with the section's word, the rows as yours look
+  const featured = FEATURED.length
+    ? `<div class="plSplit"><span class="plCaps">${esc(FEATURED_WORD)}</span></div><ul class="plLists plFeatured">${FEATURED.map((f) => rowHtml(featKey(f.id), f.links)).join('')}</ul>`
+    : '';
+  const newRow = naming === 'new' ? `<li class="plRow plNewRow">${newBox('new')}</li>` : '';
   if (!shown.length) {
-    // a playlist's sky, as its row draws one (his word 10-21: "the sky map icon ... is how we show our playlists");
-    // then two ways in: a new playlist, or a file (his word 10-20: "so Add or Open")
-    return `<div class="libFirst"><span class="libSky">${sky(EXAMPLE_SKY, 68, 44)}</span>
-      <h2>No playlists yet</h2><p>Press the throne on top of the ring to save</p>
+    // nothing of yours yet: one line saying how yours starts, then the featured playlists (they took the example sky's
+    // place); the foot holds New and Open. With no featured playlist either, the first visit's words and its two keys.
+    if (featured) return `${newRow ? `<ul class="plLists">${newRow}</ul>` : `<p class="plLead">${esc(YOURS_FIRST)}</p>`}${featured}`;
+    return `<div class="libFirst"><h2>No playlists yet</h2><p>Press the heart on the ring to save</p>
       ${naming === 'new' ? newBox('new') : `<div class="plKeys">${newBox('new')}${key('open', 'open', 'Open a .deephouse file', 'Open file')}</div>`}</div>`;
   }
-  const rows = shown.map((p) => {
-    const n: Name = p.name ?? null;
-    const links = tracksOf(p).map((t) => t.link);
-    const mark = playMark(!!playing && playing.name === n, sounding());
-    const on = mark === 'playing';
-    // the position in the playlist is the label under the ring's; the row says only that it plays (his word 10-20)
-    return `<li class="plRow${on ? ' on' : mark ? ' current' : ''}" data-row="${totalAttr(n)}"><button type="button" class="plOpen" data-act="list" data-name="${totalAttr(n)}" data-focus="l:${esc(keyOf(n))}"${on ? ' aria-current="true"' : ''}>${sky(links, 44)}
-      <span class="plText"><span class="plName"><span class="plNameText">${esc(shownName(n))}</span>${mark ? levelMark(on) : ''}</span><span class="plSub" data-cols="${totalAttr(n)}">${totalCols(n)}</span></span><svg class="plChev" viewBox="0 0 10 16" aria-hidden="true"><path d="M3 2.5 L8 8 L3 13.5"/></svg></button>
-      </li>`;
-  }).join('');
-  // a new playlist's name is typed in place, as the last row
-  return `<ul class="plLists">${rows}${naming === 'new' ? `<li class="plRow plNewRow">${newBox('new')}</li>` : ''}</ul>`;
+  const rows = shown.map((p) => rowHtml(p.name ?? null, tracksOf(p).map((t) => t.link), shown.length > 1 ? p.id : undefined)).join('');
+  // a new playlist's name is typed in place, as the first row: where it lands (pl-order)
+  return `<ul class="plLists plOwn">${newRow}${rows}</ul>${featured}`;
 }
 
 let naming: string | null = null;   // where the + New playlist box is open: 'new'
@@ -856,10 +996,27 @@ function focusEnd(sel: string): void {
  * Dashlane each by its own mark), with no autocorrect or spell marks and a capital to start. No field has an id or
  * a name a manager reads as an account's.
  */
+/**
+ * **How the last menu was asked for** (star-keys round 6, his word 10-22: "playlist dropdown shows first row highlight
+ * on mobile, which is not correct as we don't have mouse events"). Every menu still takes the focus on its first row
+ * (a keyboard's and a reader's), but it is drawn lit only for a keyboard: each menu carries `data-by` (touch, mouse,
+ * key), and index.html lights a row by the focus only under `key`, by hover only where a pointer can hover, and by a
+ * finger only while it presses. A key pressed in an open menu turns it to `key`.
+ */
+type MenuBy = 'touch' | 'mouse' | 'key';
+let menuBy: MenuBy = 'mouse';
+document.addEventListener('pointerdown', (e) => { menuBy = e.pointerType === 'mouse' ? 'mouse' : 'touch'; }, true);
+// WebKit presses a row (`:active`) only where a touch is listened for
+document.addEventListener('touchstart', () => { /* :active on iOS */ }, { passive: true });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return;
+  menuBy = 'key';
+  for (const m of document.querySelectorAll<HTMLElement>('.plMenu[data-by]')) m.dataset.by = 'key';
+}, true);
 const FIELD_ATTRS = 'type="text" autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" autocapitalize="sentences" autocorrect="off" spellcheck="false" enterkeyhint="done"';
 const textField = (attrs: string): string => `<input ${FIELD_ATTRS} ${attrs} />`;
 function menuHtml(items: MenuItem[], label: string): string {
-  return `<div class="plMenu" role="menu" aria-label="${esc(label)}">${items.map((it) => `<button type="button" role="menuitem" tabindex="-1" data-act="${it.act}"${Object.entries(it.data ?? {}).map(([k, v]) => ` data-${k}="${v}"`).join('')}>${esc(it.label)}</button>`).join('')}</div>`;
+  return `<div class="plMenu" role="menu" data-by="${menuBy}" aria-label="${esc(label)}">${items.map((it) => `<button type="button" role="menuitem" tabindex="-1" data-act="${it.act}"${Object.entries(it.data ?? {}).map(([k, v]) => ` data-${k}="${v}"`).join('')}>${esc(it.label)}</button>`).join('')}</div>`;
 }
 function trackMenu(n: Name, link: string): string {
   // the second level, shared by Move to… and Copy to…: the other playlists
@@ -868,6 +1025,9 @@ function trackMenu(n: Name, link: string): string {
     const [act, label] = menu.level === 'move' ? ['moveTo', 'Move to'] : ['copyTo', 'Copy to'];
     return menuHtml([{ act: 'moveBack', label: `‹ ${label}` }, ...others.map((p) => ({ act, label: shownName(p.name ?? null), data: { name: enc(p.name ?? null) } }))], label);
   }
+  // **a featured playlist's track is read-only** (featured, 10-23): it is copied into one of yours, its link copied
+  // or opened in the app; never renamed, moved or removed
+  if (isFeat(n)) return menuHtml([...(liveLists().length ? [{ act: 'copyOpen', label: 'Copy to…' }] : []), { act: 'copy', label: 'Copy link' }, ...(appleDevice() ? [{ act: 'openApp', label: 'Open in app' }] : [])], 'Track');
   const others = liveLists().length > 1;
   // the order by the menu as well as by a drag (his word 10-21), each only where it can go
   const at = indexOfSound(linksOf(n), link), last = linksOf(n).length - 1;
@@ -876,8 +1036,13 @@ function trackMenu(n: Name, link: string): string {
     ...(others ? [{ act: 'moveOpen', label: 'Move to…' }, { act: 'copyOpen', label: 'Copy to…' }] : []), { act: 'copy', label: 'Copy link' }, ...(appleDevice() ? [{ act: 'openApp', label: 'Open in app' }] : []), { act: 'removeTrack', label: 'Remove' }], 'Track');
 }
 function listMenu(n: Name): string {
+  // a featured playlist's: Save a copy (an ordinary playlist of yours) and Open in app; nothing that edits it
+  if (isFeat(n)) return menuHtml([{ act: 'saveCopy', label: 'Save a copy' }, ...(appleDevice() ? [{ act: 'openAppList', label: 'Open in app' }] : [])], 'Playlist');
   // Make default is the header's star circle alone (his word 10-20): no second way in the menu
-  return menuHtml([{ act: 'renameFocus', label: 'Rename' }, ...(appleDevice() && tracksOf(playlistOf(doc, n)).length ? [{ act: 'openAppList', label: 'Open in app' }] : []), { act: 'removeList', label: 'Remove', data: { name: enc(n) } }], 'Playlist');
+  // its place among yours by the menu as well as by a drag (pl-order), each only where it can go
+  const lists = liveLists(), at = lists.findIndex((p) => (p.name ?? null) === n);
+  const order = at < 0 ? [] : [...(at > 0 ? [{ act: 'listUp', label: 'Move up' }] : []), ...(at < lists.length - 1 ? [{ act: 'listDown', label: 'Move down' }] : [])];
+  return menuHtml([{ act: 'renameFocus', label: 'Rename' }, ...order, ...(appleDevice() && tracksOf(listOf(n)).length ? [{ act: 'openAppList', label: 'Open in app' }] : []), { act: 'removeList', label: 'Remove', data: { name: enc(n) } }], 'Playlist');
 }
 /** Focus the open menu's first item. */
 function focusMenu(): void { section?.querySelector<HTMLElement>('.plMenu [role="menuitem"]')?.focus({ preventScroll: true }); }
@@ -947,7 +1112,7 @@ window.visualViewport?.addEventListener('scroll', () => refitSoon());
 
 /** **The playlist's link**: this page's own origin and path, then the playlist (`playlist-link.ts`). */
 function shareUrl(n: Name): string {
-  const p = playlistOf(doc, n)!;
+  const p = listOf(n)!;
   return `${pageBase()}?${writePlaylistLink({ name: shownName(p.name ?? n), id: p.id ?? null, tracks: tracksOf(p) })}`;
 }
 /** Share, and beside it "Copied" for a moment, with "Long link" past `LONG_LINK`. */
@@ -981,7 +1146,8 @@ function share(n: Name): void {
  * ring's line. Called by the ring before the transport is made.
  */
 export function openListLink(): LinkProblem | null {
-  if (typeof location === 'undefined' || !isPlaylistLink(location.search)) return null;
+  if (typeof location === 'undefined') return null;
+  if (!isPlaylistLink(location.search)) { firstRun(); return null; }
   const rest = linkQuery(location.search);
   for (const name of [...LIST_ROWS, ...SOUND]) rest.delete(name);
   const address = (link: string) => {
@@ -1005,18 +1171,41 @@ export function openListLink(): LinkProblem | null {
   const links = linksOf(name);
   const at = links.length ? playableFrom(links, 0, 1) : -1;
   address(at >= 0 ? links[at] : '');
-  fromLink = { name, index: Math.max(0, at) };
+  fromLink = { name, index: Math.max(0, at), open: true };
   return null;
 }
 
+/**
+ * **A first run starts on the first featured playlist** (featured, his word 10-23: "never just on bare arena"): a bare
+ * address (no sound row) in a browser that keeps no place puts that playlist's first track it can play on the address,
+ * the rest of the address kept (the view, `out`), before the transport reads it; `startPlaylists` makes it the playing
+ * playlist, so the ring's line names it and the seam takes its next track. The page starts as any link does: cued,
+ * waiting for a hand. The panel stays shut. A link, a stored place, or a table with nothing playable leaves it.
+ */
+function firstRun(): void {
+  try { if (!linkBare(location.search) || placeStored()) return; } catch (e) { return; }
+  const f = FEATURED[0];
+  if (!f) return;
+  const name = featKey(f.id), links = linksOf(name);
+  const at = playableFrom(links, 0, 1);
+  if (at < 0) return;
+  const q = linkQuery(links[at]);
+  for (const [k, v] of linkQuery(location.search)) q.append(k, v);
+  const search = q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/');
+  try { history.replaceState(null, '', `${location.pathname}?${search}${location.hash}`); } catch (e) { return; }
+  fromLink = { name, index: at, open: false };
+}
+
 function listPage(n: Name, from?: string): string {
-  const p = playlistOf(doc, n)!;
+  const p = listOf(n)!;
   const ts = tracksOf(p);
   const links = ts.map((t) => t.link);
   const on = !!playing && playing.name === n;
+  // a featured playlist's page: the same rows, nothing that edits it (no drag, no rename, no download)
+  const fixed = isFeat(n);
   const banner = from ? `<div class="plFrom"><span class="plCaps">From a ${esc(from)} · ${esc(shownName(n))}</span><button type="button" data-act="removeList" data-name="${totalAttr(n)}">Remove</button></div>` : '';
   const named = p.name ?? SAVED;
-  const name = renamingList
+  const name = renamingList && !fixed
     ? editField('rename', textField(`class="plLabel plRename" value="${esc(named)}" aria-label="Playlist name" maxlength="80" data-rename="${esc(named)}" data-focus="rename"`))
     : `<span class="plTitle">${esc(named)}</span>`;
   const headMenu = menu && !menu.link ? listMenu(n) : '';
@@ -1024,7 +1213,7 @@ function listPage(n: Name, from?: string): string {
   const rows = ts.map((t, i) => {
     const mark = playMark(on && playing!.index === i, sounding());
     const time = timeText(t.link);
-    return `<li class="plTrack${mark === 'playing' ? ' on' : mark ? ' current' : ''}${renaming === t.link ? ' renaming' : ''}" data-i="${i}" data-drag="1">
+    return `<li class="plTrack${mark === 'playing' ? ' on' : mark ? ' current' : ''}${renaming === t.link ? ' renaming' : ''}" data-i="${i}"${fixed ? '' : ' data-drag="1"'}>
       <button type="button" class="plPlay" data-act="play" data-i="${i}" aria-label="Play ${esc(titleOf(t))}" data-focus="t:${i}">
         <span class="plNum" aria-hidden="true">${i + 1}</span><span class="plDot" style="background:${esc(colourSafe(t.link))}"></span>
         <span class="plText">${renaming === t.link ? '' : `<span class="plName"><span class="plNameText">${esc(titleOf(t))}</span>${mark ? levelMark(mark === 'playing') : ''}</span>`}<span class="plSub">${esc(playable(t.link) ? genreSafe(t.link) : 'Needs a newer version')}</span></span>
@@ -1033,8 +1222,8 @@ function listPage(n: Name, from?: string): string {
       <button type="button" class="plMore" aria-label="Track" aria-haspopup="menu" aria-expanded="${menu?.link === t.link}" data-act="trackMenu" data-link="${esc(t.link)}" data-focus="m:${i}">⋯</button>${menu?.link === t.link ? trackMenu(n, t.link) : ''}</li>`;
   }).join('');
   return `${banner}<div class="plListHead"><button type="button" class="plBack" aria-label="Back" title="All playlists" data-act="back" data-focus="back"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.6 2.6 L4.2 7 L8.6 11.4"/></svg></button>${sky(links, 52)}
-      <div class="plText"><span class="plTitleRow">${name}</span><span class="plSub" data-total="${totalAttr(n)}">${esc(totalText(n))}</span></div>
-      ${key('download', 'download', 'Download .deephouse')}${shareKey(n, ts.length)}
+      <div class="plText"><span class="plTitleRow">${name}</span><span class="plSub" data-total="${totalAttr(n)}">${totalCols(n)}</span></div>
+      ${fixed ? '' : key('download', 'download', 'Download .deephouse')}${shareKey(n, ts.length)}
       <button type="button" class="plMore" aria-label="Playlist" aria-haspopup="menu" aria-expanded="${!!headMenu}" data-act="menu" data-focus="menu">⋯</button>${headMenu}</div>
     <ul class="plTracks" data-list="${totalAttr(n)}">${rows}</ul>`;
 }
@@ -1053,7 +1242,7 @@ function askBackup(v: Extract<View, { kind: 'askBackup' }>): string {
 /** **Under the ring, while a playlist plays**: its small constellation, its name and "8 of 10"; a press opens it. */
 function paintLabel(): void {
   if (!label) return;
-  if (!playing || !playlistOf(doc, playing.name)) { label.hidden = true; return; }
+  if (!playing || !listOf(playing.name)) { label.hidden = true; return; }
   const links = linksOf(playing.name);
   label.hidden = false;
   // where you are, always; quieter while nothing sounds
@@ -1075,9 +1264,11 @@ function act(el: HTMLElement): void {
   const v = view;
   const was = menu;
   if (!['moveOpen', 'copyOpen', 'moveBack', 'copy'].includes(a ?? '')) menu = null;
+  // **a featured playlist is read-only** (featured, 10-23): whatever would edit it does nothing, whichever way it came
+  if (v.kind === 'list' && isFeat(v.name) && ['renameTrack', 'renameFocus', 'removeList', 'moveUp', 'moveDown', 'listUp', 'listDown', 'moveOpen', 'moveTo', 'removeTrack', 'download'].includes(a ?? '')) { render(); return; }
   switch (a) {
-    case 'list': view = { kind: 'list', name: nameOf(el) }; renamingList = false; break;
-    case 'back': view = { kind: 'overview' }; renamingList = false; break;
+    case 'list': if (dragged) return; view = { kind: 'list', name: nameOf(el) }; renamingList = false; break;
+    case 'back': backFrom = v.kind === 'list' ? keyOf(v.name) : null; view = { kind: 'overview' }; renamingList = false; break;
     case 'trackMenu': menu = was && was.link === el.dataset.link ? null : { link: el.dataset.link!, level: 'top', anchor: el.dataset.focus ?? '' }; renaming = null; break;
     case 'menu': menu = was && !was.link ? null : { level: 'top', anchor: 'menu' }; break;
     case 'moveOpen': if (was) menu = { ...was, level: 'move' }; break;
@@ -1085,6 +1276,15 @@ function act(el: HTMLElement): void {
     case 'moveBack': if (was) menu = { ...was, level: 'top' }; break;
     case 'renameTrack': if (was?.link) { renaming = was.link; render(); focusEnd('.plTrack .plLabel'); } return;
     case 'renameFocus': renamingList = true; render(); focusEnd('[data-rename]'); return;
+    // **Save a copy** (featured, 10-23): the featured playlist as an ordinary one of yours, opened; Undo takes it back
+    case 'saveCopy': if (v.kind === 'list') {
+      const f = featOf(v.name);
+      let id = '';
+      if (f && edit(() => { const c = copyOfFeatured(doc, f); id = c.id; return c.doc; }, { undoText: 'Saved a copy', silent: true })) {
+        say('Saved');
+        view = { kind: 'list', name: playlistById(doc, id)?.name ?? null };
+      }
+    } break;
     case 'new': naming = el.dataset.where ?? 'new'; render(); section?.querySelector<HTMLInputElement>('[data-focus="newName"]')?.focus(); return;
     case 'open': pickFile(); return;
     case 'backup': download(writeBackupFile(doc)); return;
@@ -1108,7 +1308,23 @@ function act(el: HTMLElement): void {
       break;
     }
     // **a dated edit** (sync-fixes, 10-21): what comes back is dated after the removal, so the next merge keeps it everywhere
-    case 'undo': if (undo) { const back = undo.doc; clearTimeout(undo.timer); undo = null; commit(restore(back, doc), { silent: true }); } break;
+    case 'undo': if (undo) {
+      const back = undo.doc;
+      clearTimeout(undo.timer);
+      undo = null;
+      // the playing track keeps playing where Undo puts it (a move of it, or of one before it, taken back)
+      const was = playing ? linksOf(playing.name)[playing.index] : undefined;
+      if (commit(restore(back, doc), { silent: true }) && playing && was !== undefined) {
+        const i = indexOfSound(linksOf(playing.name), was, playing.index);
+        if (i >= 0 && i !== playing.index) { playing.index = i; deps.control.remember(); }
+      }
+    } break;
+    case 'listUp': case 'listDown': if (v.kind === 'list' && !isFeat(v.name)) {
+      const lists = liveLists(), from = lists.findIndex((p) => (p.name ?? null) === v.name);
+      const to = from + (a === 'listUp' ? -1 : 1);
+      // the ⋯ keeps the focus, so a keyboard moves it again at once
+      if (from >= 0 && to >= 0 && to < lists.length && shiftList(lists[from].id!, to)) { section?.querySelector<HTMLElement>('[data-focus="menu"]')?.focus({ preventScroll: true }); return; }
+    } break;
     case 'moveUp': case 'moveDown': if (v.kind === 'list' && v.name !== null && was?.link) {
       const from = indexOfSound(linksOf(v.name), was.link), to = from + (a === 'moveUp' ? -1 : 1);
       if (from >= 0 && to >= 0 && to < linksOf(v.name).length) shiftTrack(v.name, from, to);
@@ -1146,7 +1362,7 @@ function act(el: HTMLElement): void {
       const file = v.file;
       // it wins over sync (sync-fixes, 10-21): what it drops is tombstoned and what it writes dated, now
       edit(() => replaceLibrary(doc, file), { undoText: 'Replaced', silent: true });
-      if (playing && !playlistOf(doc, playing.name)) playing = null;
+      if (playing && !listOf(playing.name)) playing = null;
       view = { kind: 'overview' };
     } break;
     case 'cancel': view = { kind: 'overview' }; break;
@@ -1222,9 +1438,11 @@ function rename(el: HTMLInputElement): void {
   render();
 }
 
-/** A track from one place in its playlist to another, the playing one's index following it (a drag, or Move up/down). */
+/** A track from one place in its playlist to another, the playing one's index following it (a drag, or Move up/down), with Undo. */
 function shiftTrack(name: string, from: number, to: number): void {
-  if (edit(() => moveTrack(doc, name, from, to), { silent: true })) {
+  if (isFeat(name)) return;
+  const t = tracksOf(playlistOf(doc, name))[from];
+  if (edit(() => moveTrack(doc, name, from, to), { silent: true, undoText: `Moved ${t ? titleOf(t) : ''}`.trim() })) {
     if (playing && playing.name === name) {
       const p = playing.index;
       playing.index = p === from ? to : p > from && p <= to ? p - 1 : p < from && p >= to ? p + 1 : p;
@@ -1233,24 +1451,39 @@ function shiftTrack(name: string, from: number, to: number): void {
     render();
   }
 }
+/** **One of your playlists to place `to`** among yours (a drag, or Move up/down; pl-order), with Undo. */
+function shiftList(id: string, to: number): boolean {
+  const p = playlistById(doc, id);
+  if (!p) return false;
+  if (!edit(() => movePlaylist(doc, id, to), { silent: true, undoText: `Moved ${shownName(p.name ?? null)}` })) return false;
+  render();
+  return true;
+}
 
-/** Reorder by drag (a press and hold on touch). A playlist is removed only by its ⋯ menu, with Undo (his word 10-20). */
+/**
+ * Reorder by drag (a press and hold on touch): a playlist's tracks on its page, and your playlists in the overview
+ * (pl-order), each row only among its own list's (a featured row is never dragged, nor anything into their section).
+ * A playlist is removed only by its ⋯ menu, with Undo (his word 10-20).
+ */
 function wireGestures(): void {
   if (!section) return;
   let g: { id: number; el: HTMLElement; kind: 'drag' | 'wait'; x: number; y: number; from: number; to: number; hold: number; touch: boolean } | null = null;
-  const rowsOf = () => [...section.querySelectorAll<HTMLElement>('.plTracks > li')];
+  /** the rows the held one moves among: its own list's that move (a playlist's tracks, or your playlists) */
+  const rowsOf = (el: HTMLElement) => [...(el.parentElement?.children ?? [])].filter((x): x is HTMLElement => x instanceof HTMLElement && x.matches('li[data-drag]'));
   section.addEventListener('pointerdown', (e) => {
-    const li = (e.target as HTMLElement).closest<HTMLElement>('li[data-drag]');
+    const li = (e.target as HTMLElement).closest<HTMLElement>('.plTracks > li[data-drag], .plOwn > li[data-drag]');
     if (!li || (e.target as HTMLElement).closest('.plMore')) return;
     dragged = false;
     const touch = e.pointerType === 'touch';
-    g = { id: e.pointerId, el: li, kind: 'wait', x: e.clientX, y: e.clientY, from: Number(li.dataset.i), to: Number(li.dataset.i), hold: 0, touch };
+    const i = rowsOf(li).indexOf(li);
+    g = { id: e.pointerId, el: li, kind: 'wait', x: e.clientX, y: e.clientY, from: i, to: i, hold: 0, touch };
     if (touch && li.dataset.drag) g.hold = window.setTimeout(() => { if (g && g.kind === 'wait') startDrag(); }, 380);
   });
   const startDrag = () => {
     if (!g) return;
     g.kind = 'drag';
     dragged = true;
+    holding = true;
     g.el.classList.add('dragging');
     try { g.el.setPointerCapture(g.id); } catch (e) { /* gone */ }
   };
@@ -1264,7 +1497,7 @@ function wireGestures(): void {
     if (g.kind === 'drag') {
       e.preventDefault();
       g.el.style.transform = `translateY(${dy}px)`;
-      const rows = rowsOf();
+      const rows = rowsOf(g.el);
       let to = g.from;
       for (const [i, r] of rows.entries()) { if (r === g.el) continue; const b = r.getBoundingClientRect(); if (e.clientY > b.top + b.height / 2) to = i >= g.from ? i : i + 1; else if (i < g.from && e.clientY < b.top + b.height / 2) { to = Math.min(to, i); } }
       g.to = Math.max(0, Math.min(rows.length - 1, to));
@@ -1277,8 +1510,17 @@ function wireGestures(): void {
     g = null;
     was.el.style.transform = '';
     was.el.classList.remove('dragging');
+    holding = false;
     const v = view;
-    if (was.kind === 'drag' && v.kind === 'list' && v.name !== null && was.to !== was.from) shiftTrack(v.name, was.from, was.to);
+    const id = was.el.dataset.id;
+    const target = rowsOf(was.el)[was.to]?.dataset.id;
+    if (was.kind === 'drag' && was.to !== was.from) {
+      if (id !== undefined && target !== undefined && v.kind === 'overview') {
+        const to = liveLists().findIndex((p) => p.id === target);
+        if (to >= 0) shiftList(id, to);
+      } else if (id === undefined && v.kind === 'list' && v.name !== null) shiftTrack(v.name, was.from, was.to);
+    }
+    if (renderHeld) render();
     if (was.kind === 'drag') setTimeout(() => { dragged = false; }, 0);
   };
   section.addEventListener('pointerup', end);
@@ -1294,7 +1536,7 @@ const watchers = new Set<() => void>();
 export function skyFeed(): { saved: string[]; playing: string[] | null } {
   const seen = new Set<string>(), saved: string[] = [];
   for (const p of liveLists()) for (const t of tracksOf(p)) { const k = soundKey(t.link); if (!seen.has(k)) { seen.add(k); saved.push(t.link); } }
-  return { saved, playing: playing && playlistOf(doc, playing.name) ? linksOf(playing.name) : null };
+  return { saved, playing: playing && listOf(playing.name) ? linksOf(playing.name) : null };
 }
 /** Called after every change the tab draws (the record, the playing playlist). */
 export const skyWatch = (fn: () => void): void => { watchers.add(fn); };
@@ -1310,22 +1552,24 @@ export function startPlaylists(d: PlaylistDeps): void {
   deps = d;
   // a reload carries on in the playlist the store names, where what plays is still its track
   const r = d.control.resumedPlaylist;
-  if (fromLink && playlistOf(doc, fromLink.name)) {
-    playing = { ...fromLink };
-    view = { kind: 'list', name: fromLink.name, from: 'link' };
-    d.control.remember();
+  const opened = !!fromLink && !!listOf(fromLink.name);
+  if (fromLink && opened) {
+    playing = { name: fromLink.name, index: fromLink.index };
+    if (fromLink.open) view = { kind: 'list', name: fromLink.name, from: 'link' };
   } else if (r) {
     const i = indexOfSound(linksOf(r.name), d.control.linkNow(), r.index);
-    if (i >= 0 && playlistOf(doc, r.name)) playing = { name: r.name, index: i };
+    if (i >= 0 && listOf(r.name)) playing = { name: r.name, index: i };
   }
   lastRecord = recordKey();
   d.control.steer({ next: () => step(1, 'skip'), back: () => step(-1, 'back'), leave, place: () => playing && { ...playing } });
+  // the place written down once the steer is there to say it, so a reload resumes in the playlist
+  if (opened) d.control.remember();
   store.subscribe((next) => {
     if (quiet) return;
     // another tab's write or an iCloud merge ends the Undo too: its snapshot predates what arrived
     if (undo && next !== doc) { clearTimeout(undo.timer); undo = null; }
     doc = next;
-    if (playing && !playlistOf(doc, playing.name)) playing = null;
+    if (playing && !listOf(playing.name)) playing = null;
     render();
   });
   wire();
@@ -1342,7 +1586,8 @@ export function startPlaylists(d: PlaylistDeps): void {
   // and at once on every change of the transport's own state: the ring's key, the lock screen, Space
   d.control.subscribe(() => soundingChanged());
   render();
-  if (fromLink) openLibrary('playlists', label);
+  warmSkies();
+  if (fromLink?.open) openLibrary('playlists', label);
   fromLink = null;
   syncAppBanner();
   startShellLibrary({ openFile: (f) => void openFile(f), doc: () => doc, link: () => d.control.linkPlaying(), save: (name) => saveInto(name, d.control.linkPlaying()) });

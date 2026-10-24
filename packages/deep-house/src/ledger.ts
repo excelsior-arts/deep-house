@@ -40,6 +40,8 @@ export const KINDS = [
   'fault',
   // a theme's voices that could not be prepared, falling back to the live path (K33; it was written as `late`)
   'prepare',
+  // the render clock fell behind the wall clock: the sound slowed (round audio-slack, `slowdown.ts`)
+  'slow',
 ] as const;
 
 export type LedgerKind = typeof KINDS[number];
@@ -86,14 +88,21 @@ export const REPORTED_KINDS: ReadonlyArray<{ kind: LedgerKind; why: string; repo
   // sessions); the transport's own fault is a late note at a start
   // (`lateInfo().cause === 'resume'`, `dsp.ts`).
   { kind: 'late', why: 'notes reached late at a start: the transport\'s own fault', when: (e: Entry) => e.fields.cause === 'resume' },
+  // A slowdown is the device's and not the track's, but it is heard (the
+  // iPhone's tape wow, Eugene 10-23), so it is counted where it happens: the
+  // first of a session and then at most one each ten minutes, carrying how many
+  // and the longest since the last (`REPORT_CAPS.slowEveryMs`, `fault-report.ts`).
+  { kind: 'slow', why: 'the render clock fell behind real time: the sound slowed (a tape wow through a phone\'s media element, a click straight out)' },
   // and what the page catches, each its own kind of report (`CAUGHT`)
   ...CAUGHT.map((c) => ({ kind: 'fault' as const, report: c.report, why: c.why })),
 ]);
 /**
  * **How many a session sends** (the held-errors audit of 09-26: a healthy build
  * 0-5 events a thousand sessions): each kind once a session, and six in all.
+ * A slowdown is outside both: the first of a session, then one each ten
+ * minutes at most (round audio-slack).
  */
-export const REPORT_CAPS = Object.freeze({ perKind: 1, perSession: 6 });
+export const REPORT_CAPS = Object.freeze({ perKind: 1, perSession: 6, slowEveryMs: 10 * 60 * 1000 });
 /** Whether a line is a fault the reports carry. */
 export const isReported = (e: Entry): boolean => REPORTED_KINDS.some((r) => r.kind === e.kind
   && (r.report ? e.fields.report === r.report : !e.fields.report) && (!r.when || r.when(e)));

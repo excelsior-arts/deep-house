@@ -69,6 +69,7 @@ import { LIBRARY } from '../src/recipes.ts';
 import { exact, seamProgram } from './program.ts';
 import { writePlaylistLink, readPlaylistLink } from '../src/playlist-link.ts';
 import type { ListLink } from '../src/playlist-link.ts';
+import { FEATURED } from '../src/featured.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const FILE = path.join(HERE, 'link-digest.json');
@@ -108,8 +109,25 @@ export function listRows(): GridRow[] {
     return { group: 'lists', link: i === 2 ? q.replace(/^list=[^&]*&/, '').replace(/&names=$/, '') : q };
   });
 }
-/** Every row the digest holds: the grid's track links, then the playlist links. */
-export const rowsAll = (): GridRow[] => [...grid(), ...listRows()];
+/**
+ * **The featured playlists' tracks** (featured, his word 10-23; group `featured`): every link of `src/featured.json`,
+ * once, that the grid does not already hold as a theme, so each is a frozen row like any other. **The release lock**:
+ * an engine change that moves a featured track moves its row, and a featured link not yet blessed is "not in the
+ * digest"; either stops `--check`, `bless.ts`'s check and the release. A curated link is blessed at merge.
+ */
+export function featuredRows(): GridRow[] {
+  const held = new Set(grid().filter((r) => !r.themes).map((r) => r.link));
+  const out: GridRow[] = [];
+  for (const f of FEATURED) for (const link of f.links) if (!held.has(link)) { held.add(link); out.push({ group: 'featured', link }); }
+  return out;
+}
+/** The featured links the digest does not hold as a theme's row, in the table's order: none, where every one is frozen. */
+export function featuredUnfrozen(file: Saved = saved()): string[] {
+  const rows = new Set(file.rows.filter((r) => !('themes' in r && r.themes)).map((r) => r.link));
+  return [...new Set(FEATURED.flatMap((f) => f.links))].filter((l) => !rows.has(l));
+}
+/** Every row the digest holds: the grid's track links, the featured playlists' tracks, then the playlist links. */
+export const rowsAll = (): GridRow[] => [...grid(), ...featuredRows(), ...listRows()];
 
 const V = { '1': 'house-v1', '2': 'house-v2' } as const;
 const GOLDEN_THEMES: Record<string, number> = { 1: 6, 92970: 4, 21323: 4 };

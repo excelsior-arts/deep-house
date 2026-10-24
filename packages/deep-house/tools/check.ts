@@ -2427,7 +2427,7 @@ check('a small window is decided by its size, and no phone, tablet or desktop wi
   const MOTION = fs.readFileSync(path.join(ROOT, 'src', 'motion.ts'), 'utf8');
   const q = /export const SMALL_WINDOW = '([^']+)';/.exec(MOTION);
   must(q, 'src/motion.ts no longer states SMALL_WINDOW');
-  must(q[1] === '(max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)', `the small window is ${q[1]}`);
+  must(q[1] === '(pointer: fine) and (max-width: 600px) and (max-height: 600px) and (min-aspect-ratio: 4/5) and (max-aspect-ratio: 5/4)', `the small window is ${q[1]}`);
   must(PAGE.includes(`@media ${q[1]} {`), 'index.html does not hide the chrome round the ring under motion.ts\'s small window');
   must(!/deepHouseShell\.mini|data-mini|dataset\.mini/.test(RING + PAGE), 'something still hangs off the shell\'s mini flag');
   const rules = [...PAGE.matchAll(/@media ([^{]+)\{\s*([^}]*)\}/g)].filter((m) => /visibility: hidden|display: none !important/.test(m[2]));

@@ -25,7 +25,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { saved, verify, BENCHMARK_SEED, blessRefusal, lastCut, openWindow, sinceCut } from './link-digest.ts';
+import { saved, verify, BENCHMARK_SEED, blessRefusal, lastCut, openWindow, sinceCut, featuredUnfrozen } from './link-digest.ts';
+import { FEATURED } from '../src/featured.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -84,6 +85,13 @@ function check(): number {
     : `link digest: ${d.rows} rows unmoved`);
   say(bench.length ? `27191: MOVED (${bench.length} rows) — Eugene listens before this lands` : '27191: unmoved');
   if (d.moved.length) moved++;
+  // **the featured playlists' lock** (featured, 10-23): every featured link is a frozen row of the digest; one that is
+  // not yet (a curated playlist just written by tools/feature.ts) is named, and blessed at merge
+  const links = new Set(FEATURED.flatMap((f) => f.links)).size;
+  const loose = featuredUnfrozen(file);
+  say(loose.length ? `featured: ${loose.length} of ${links} links not in the digest (a bless adds them)\n${loose.slice(0, 12).map((l) => `  ${l}`).join('\n')}`
+    : `featured: ${links} links of ${FEATURED.length} playlists, every one a frozen row`);
+  if (loose.length && !d.moved.length) moved++;
   // the freeze, as the digest's own check reads it (`sinceCut`): a shipped row moved outside a window, or a digest
   // that differs from the cut's with no blessing added (the review of 10-08, A4)
   const cut = lastCut();

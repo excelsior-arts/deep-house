@@ -13,6 +13,9 @@
 //   on a first run. Signed out (`cloud-paused`), nothing is sent and the library here stays.
 // - **The keyboard:** the shell posts how far the keyboard covers the page (iOS), which the panel's lift reads
 //   before `visualViewport` (`library-panel.ts`).
+// - **The fold** (iOS, the iPhone Duo's inner display, round duo-fold): the shell says where the crease runs across
+//   the page, or that none does (`library-panel.ts` lays the ring and the panel round it).
+// - **The Mac window's buttons** (round duo-fold): where they stand, so the wordmark lines up with them.
 // - **The lock screen's Save** (iOS, round lock-like): the shell's feedback command in the system's player asks the
 //   page to save what plays, through the throne's own save; the page says whether what plays is saved, and the
 //   shell only shows it.
@@ -196,6 +199,52 @@ export function onShellKeyboard(fn: () => void): void {
   keyboardListeners.push(fn);
 }
 
+// --- the fold -----------------------------------------------------------------
+
+/** **The crease across the page** (duo-fold): `v` a vertical line at x = `at`, `h` a horizontal one at y = `at`, in CSS px of the layout viewport. */
+export interface ShellFold { axis: 'v' | 'h'; at: number }
+let fold: ShellFold | null = null;
+const foldListeners: (() => void)[] = [];
+
+/** Where the fold runs, as the shell last said; null in a browser, on a screen without one, or in a window not spanning it. */
+export const shellFold = (): ShellFold | null => fold;
+
+/** Called whenever the shell says the fold moved, came or went. */
+export function onShellFold(fn: () => void): void {
+  foldListeners.push(fn);
+}
+
+function foldSaid(m: Message): void {
+  const at = Number(m.at);
+  const next: ShellFold | null = (m.axis === 'v' || m.axis === 'h') && Number.isFinite(at) ? { axis: m.axis, at } : null;
+  if (next?.axis === fold?.axis && next?.at === fold?.at) return;
+  fold = next;
+  for (const fn of foldListeners) fn();
+}
+
+// --- the Mac's window buttons ---------------------------------------------------
+
+/** **Where the Mac window's buttons stand** (duo-fold): the leftmost's left edge and their foot, in the page's CSS px (the foot above the page, so below 0). */
+export interface ShellChrome { left: number; foot: number }
+let chrome: ShellChrome | null = null;
+const chromeListeners: (() => void)[] = [];
+
+/** The Mac main window's buttons, as the shell last said; null in a browser, on iOS, in full screen and in the mini player. */
+export const shellChrome = (): ShellChrome | null => chrome;
+
+/** Called whenever the shell says the buttons moved, came or went. */
+export function onShellChrome(fn: () => void): void {
+  chromeListeners.push(fn);
+}
+
+function chromeSaid(m: Message): void {
+  const left = Number(m.left), foot = Number(m.foot);
+  const next = Number.isFinite(left) && Number.isFinite(foot) ? { left, foot } : null;
+  if (next?.left === chrome?.left && next?.foot === chrome?.foot) return;
+  chrome = next;
+  for (const fn of chromeListeners) fn();
+}
+
 // --- the lock screen's Save -----------------------------------------------------
 
 /** What the lock screen's Save needs of the page: the library as it stands, what plays, and the throne's save. */
@@ -263,6 +312,8 @@ export function startShellLibrary(d: { openFile: (f: File) => void } & LockDeps)
     const name = typeof m.name === 'string' ? m.name : 'Playlist.deephouse';
     d.openFile(new File([typeof m.text === 'string' ? m.text : ''], name, { type: 'application/json' }));
   });
+  s.on('fold', foldSaid);
+  s.on('mac-chrome', chromeSaid);
   s.on('keyboard', (m) => {
     const v = Number(m.overlap);
     keyboardOverlap = Number.isFinite(v) && v > 0 ? v : 0;

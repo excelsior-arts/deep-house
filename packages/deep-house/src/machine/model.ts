@@ -21,6 +21,7 @@ import { dropInfo } from '@deep-house/engine/deck';
 import { lateInfo } from '@deep-house/engine/dsp';
 import { loadNow } from './load.ts';
 import type { LoadReading } from './load.ts';
+import type { SlowSummary } from '../slowdown.ts';
 import { pianoCacheStats } from '@deep-house/engine/voices';
 import { describeDeck, describeGraph, describeMaster, joinParts } from '@deep-house/engine/describe';
 import { settingsOf } from '@deep-house/engine/settings';
@@ -169,6 +170,8 @@ export interface MachineSnapshot {
   counters: Counters;
   /** what playing costs this machine, the last whole second of it (`load.ts`); null until there is one */
   load: LoadReading | null;
+  /** the slowdowns since the page loaded (`slowdown.ts`): how many, the longest, the last */
+  slow: SlowSummary | null;
   output: Output;
   ledger: Entry[];
   /**
@@ -725,6 +728,7 @@ export function describeMachine(
       piano: pianoCacheStats(),
     },
     load: loadNow(),
+    slow: control.slowSummary(),
     output: {
       route: control.out,
       clock: clockSource(),

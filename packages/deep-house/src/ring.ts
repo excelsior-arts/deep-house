@@ -65,10 +65,11 @@ import type { Candidate } from './cast-pool.ts';
 import { reducedMotion, coarsePointer, smallWindow } from './motion.ts';
 import { startLibrary, openLibrary, closeLibrary, libraryOpen, keyboardHold, libraryAway } from './library-panel.ts';
 import { startPlaylists, pressThrone, closeMenu, openListLink } from './playlists-ui.ts';
+import { heartSvg, heartNamed } from './heart-glyph.ts';
+import { linkRaw } from './link-table.ts';
 import { startGenres } from './genres-sky.ts';
 import { startShellTilt } from './shell-tilt.ts';
-import { throneParts, THRONE_WEIGHT, THRONE_SCALE, THRONE_SCALE_PHONE, THRONE_SCALE_MINI, THRONE_SHACKLE } from './throne-glyph.ts';
-import { phoneSize } from './motion.ts';
+import { phoneSize, pageViewport } from './motion.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
 
 // ==========================================================================
@@ -101,7 +102,7 @@ const TAU = Math.PI * 2;
 // --- radii, outward -------------------------------------------------------
 const R_CORE_IN = 137;
 const R_CORE = 150;
-const R_ACT = R_CORE;    // the four actions sit ON the centre circle's stroke
+const R_ACT = R_CORE;    // the five keys sit ON the centre circle's stroke
 const R_STAR = 316;      // the eight parameter cells
 /**
  * **One size for every control, read off the ring's own square** (Eugene,
@@ -609,6 +610,8 @@ const roman = (n: number) => romanNumeral(n).toLowerCase();
  * and the big play mark round the way the die does.
  */
 const dieCorner = (R: number) => R * 1.12 * 0.075;
+/** Which of the hearts love draws: `?heart=N` on the prototype (star-keys round 3), else the pick. */
+const HEART_VARIANT = heartNamed(linkRaw('heart'));
 /** The pair's turn, in degrees, negative to the left (K26: Eugene's 5.5°, the logo's own). */
 const DIE_TURN = -5.5;
 /** How many pairs of dice have been drawn: each one's knock-out mask has an id of its own. */
@@ -797,6 +800,15 @@ const GLYPH = {
       d += `${roundCorner([x, -h], [x + dir * w, 0], [x, h], dieCorner(R))} `;
     }
     el('path', { class: 'ln fix thin', ...ROUND_ENDS, d }, g);
+  },
+  // **Love** (star-keys; his reviews 10-22): an engraved heart, pierced by an arrow flying down to the lower left
+  // while what plays is in a playlist. Eight variants for his review (`heart-glyph.ts`), `?heart=N` picks one on
+  // the prototype. The arrow and its gaps are always drawn and shown by the key's `loved` class (index.html draws
+  // the shaft along itself in 250 ms, and back); the line is the transport's, the corners the die's.
+  heart(g: Mark<SVGGElement>, R: number): void {
+    const gg = el('g', { class: 'heart' }, g);
+    const line = `class="ln fix thin" stroke-linejoin="round" stroke-linecap="round"`;
+    gg.innerHTML = heartSvg(HEART_VARIANT, R, dieCorner(R), { line, id: `love${++dieKnocks}`, ring: true });
   },
 };
 
@@ -2294,18 +2306,39 @@ const LABEL_SIZE = 11;
 // (405, 600 and 112 from the middle).
 const labelUp = () => C - R_ACT + ctrlR + 20;
 const labelDown = () => C + R_ACT - ctrlR - 15;
-const labelSideX = () => R_ACT - ctrlR - 3;
 const LABEL_SIDE_Y = C - 22;
+/** A word's cap height at `LABEL_SIZE`, for the room beside a key. */
+const LABEL_CAP = 8;
 
-/** One of the four: where its node sits, and where its word is said. */
-interface Action { id: string; f: number; word: string; lx: number; ly: number; la: string }
-/** The four, at the control size of the moment. */
+/**
+ * **Five keys in a classical star, one point up** (star-keys, his word 10-22): play at the top, skip upper right,
+ * the dice lower right, love lower left, back upper left. Fractions of a turn from twelve, clockwise; the five
+ * points are a fifth of a turn apart.
+ */
+const ACT_F = { play: 0, skip: 0.2, cast: 0.4, love: 0.6, back: 0.8 } as const;
+type ActId = keyof typeof ACT_F;
+/** One of the five: where its node sits, and where its word is said. */
+interface Action { id: ActId; f: number; word: string; lx: number; ly: number; la: string }
+/**
+ * The five, in the order a Tab walks them (the reading order round the star), at the control size of the moment. **Each word beside its own node, inside the centre disc**: play's in
+ * the clear band under it, as always; skip's and back's on the section's line, run in from their node's inner edge
+ * at the height the word stands (the key is nearer the middle there than the old side keys were); the dice's and
+ * love's just over their node, in the band under the reading's last line.
+ */
 function actionsNow(): Action[] {
+  const kx = (f: number) => px(f, R_ACT), ky = (f: number) => py(f, R_ACT);
+  // where a side key's circle stands at the word's cap line: its word ends there, three units in
+  const side = (f: number) => {
+    const dy = LABEL_SIDE_Y - LABEL_CAP - ky(f);
+    return Math.sqrt(Math.max(0, ctrlR * ctrlR - dy * dy)) + 3;
+  };
+  const over = (f: number) => ky(f) - ctrlR - 6;
   return [
-    { id: 'play', f: 0, word: 'play', lx: C, ly: labelUp(), la: 'middle' },
-    { id: 'skip', f: 0.25, word: 'skip', lx: C + labelSideX(), ly: LABEL_SIDE_Y, la: 'end' },
-    { id: 'cast', f: 0.5, word: 'cast', lx: C, ly: labelDown(), la: 'middle' },
-    { id: 'back', f: 0.75, word: 'back', lx: C - labelSideX(), ly: LABEL_SIDE_Y, la: 'start' },
+    { id: 'play', f: ACT_F.play, word: 'play', lx: C, ly: labelUp(), la: 'middle' },
+    { id: 'skip', f: ACT_F.skip, word: 'skip', lx: kx(ACT_F.skip) - side(ACT_F.skip), ly: LABEL_SIDE_Y, la: 'end' },
+    { id: 'cast', f: ACT_F.cast, word: 'cast', lx: kx(ACT_F.cast), ly: over(ACT_F.cast), la: 'middle' },
+    { id: 'love', f: ACT_F.love, word: 'save', lx: kx(ACT_F.love), ly: over(ACT_F.love), la: 'middle' },
+    { id: 'back', f: ACT_F.back, word: 'back', lx: kx(ACT_F.back) + side(ACT_F.back), ly: LABEL_SIDE_Y, la: 'start' },
   ];
 }
 
@@ -2322,6 +2355,10 @@ interface ActionNode extends Action {
 let gActions: Mark<SVGGElement> | null = null;
 let gLabels: Mark<SVGGElement> | null = null;
 const actionNodes: ActionNode[] = [];
+/** whether what plays is in a playlist (`playlists-ui.ts` says so): the arrow through the heart (love, below) */
+let loved = false;
+/** love is down: from a pointer's press until its lift, and while the playlist menu it opened is up */
+let loveDown = false;
 let playGlyphG: Mark<SVGGElement> | null = null;
 /** What the top key draws: the question until anything has played, then play or pause (K25). */
 type PlayMode = 'about' | 'play' | 'pause';
@@ -2344,11 +2381,15 @@ function buildActions(r: Readout) {
   for (const a of actionsNow()) {
     const x = px(a.f, R_ACT);
     const y = py(a.f, R_ACT);
+    const love = a.id === 'love';
     const g = el('g', {
       'data-action': a.id, transform: `translate(${x} ${y})`,
-      role: 'button', tabindex: '0', 'aria-label': a.word,
+      role: 'button', tabindex: '0', 'aria-label': love ? 'Save what plays' : a.word,
+      ...(love ? { id: 'love', 'aria-pressed': loved ? 'true' : 'false' } : {}),
     }, gActions);
     g.addEventListener('keydown', (ev: KeyboardEvent) => {
+      // **Love's press is the throne's** (star-keys): Enter presses and lifts it; Space stays the page's play
+      if (love) { if (ev.key === 'Enter') loveKey(ev); return; }
       if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
       // **The page's one key plays wherever the focus is** (round K30, the reviews of 09-26):
       // before the first play the key at twelve is the About, and a close of the
@@ -2373,6 +2414,7 @@ function buildActions(r: Readout) {
     if (a.id === 'play') { playGlyphG = gl; playDrawn = null; playOut = null; }
     else if (a.id === 'skip') GLYPH.step(gl, ctrlR, 1);
     else if (a.id === 'back') GLYPH.step(gl, ctrlR, -1);
+    else if (love) { GLYPH.heart(gl, ctrlR); paintLoved(); }
     else GLYPH.die(gl, ctrlR);
     // What it does, said only while the finger is on it, and said inside the
     // centre disc where there is room for it: out on the ring the word had to
@@ -2395,7 +2437,8 @@ function buildActions(r: Readout) {
   const refused = control.linkProblems;
   if (refused.length) {
     const line = refused[0].short + (refused.length > 1 ? ` +${refused.length - 1}` : '');
-    linkNote = txt(gLabels, line, C, labelDown() + 24, LINK_NOTE_SIZE, { op: 0, ls: 0.2, fill: '#ffffff' });
+    // between the two keys at the star's foot, in the release's band (the two are never said together)
+    linkNote = txt(gLabels, line, C, labelDown(), LINK_NOTE_SIZE, { op: 0, ls: 0.2, fill: '#ffffff' });
     linkNote.setAttribute('data-link-note', '');
     el('title', {}, linkNote).textContent = refused.map((p) => p.long).join('. ');
     linkNote.style.transition = 'opacity 160ms ease';
@@ -2898,7 +2941,7 @@ function paintActionGlow() {
   for (let i = 0; i < actionHalos.length; i++) {
     const a = actionNodes[i];
     if (!a) continue;
-    const on = a.id === hoveredAction || (a.id === 'play' && sounding(last));
+    const on = a.id === hoveredAction || (a.id === 'play' && sounding(last)) || (a.id === 'love' && loveDown);
     const h = actionHalos[i];
     put(h.crisp, 'opacity', on ? HALO_CRISP.op : 0);
     put(h.wide, 'opacity', on ? HALO_WIDE.op : 0);
@@ -2941,6 +2984,9 @@ interface CellNode {
   saidLines: string;
   /** whether its lines read another bird's move, not the set (round K11b) */
   consequent: boolean;
+  /** the fourth line as the reading gives it, and whether it is held back for room (`wordsTight`, rel-rows) */
+  sub2Full: string;
+  tight: boolean;
   gt: Mark<SVGGElement>;
   bb: DOMRect;
   hg: Mark<SVGGElement>;
@@ -3212,7 +3258,7 @@ function buildCells(r: Readout) {
     if (sz !== 1) knot.setAttribute('transform', `translate(${kx.toFixed(1)} ${ky.toFixed(1)}) scale(${sz.toFixed(4)})`);
     const bird2 = birdOf(c.id);
     const node: CellNode = { ...c, g, knot, glyph: gl, glyphLevel, glyphOut: null, fadeAt: 0,
-      title, word, sub, sub2, lines, linesOut: null, linesFrom: 1, linesAt: 0, saidLines: '', consequent: false, gt, bb, hg, x, y, f,
+      title, word, sub, sub2, lines, linesOut: null, linesFrom: 1, linesAt: 0, saidLines: '', consequent: false, sub2Full: '', tight: false, gt, bb, hg, x, y, f,
       dx: kx - x, dy: ky - y, wx: 0, wy: 0, put: '', putKnot: '', putHalo: halo,
       bird: bird2, pendFill, holdArc, markWide, markCrisp, orn,
       markAt: was ? was.mark : 0, ornAt: was ? was.orn : 0, markSaid: '',
@@ -3673,7 +3719,7 @@ function turnWords(turnDeg: number, force: boolean) {
     const fixed: Box[] = [];
     for (let j = 0; j < cellNodes.length; j++) if (!fresh8.includes(j) && wordAt[j]?.aim) fixed.push(wordAt[j].aim);
     const cands = new Map<number, { k: number; box: Box; firm: boolean }[]>();
-    for (const i of fresh8) {
+    const candsOf = (i: number) => {
       const x = ctxOf(i);
       const firm: { k: number; box: Box; firm: boolean }[] = [];
       const loose: { k: number; box: Box; firm: boolean }[] = [];
@@ -3685,7 +3731,20 @@ function turnWords(turnDeg: number, force: boolean) {
         const f = x.swayTurns.every((dt) => x.costAt(k, WORD_SLACK, dt, false) === 0);
         (f ? firm : loose).push({ k, box, firm: f });
       }
-      cands.set(i, [...firm, ...loose]);
+      return [...firm, ...loose];
+    };
+    for (const i of fresh8) {
+      // **The fourth line gives way** (`wordsTight`): asked with it first, and without it only where it leaves
+      // the words no clear side and its absence gives them one
+      const c = cellNodes[i];
+      if (c.tight && wordsTight(c, false)) ctxCache[i] = undefined;
+      let list = candsOf(i);
+      if (!list.length && c.sub2Full && wordsTight(c, true)) {
+        ctxCache[i] = undefined;
+        list = candsOf(i);
+        if (!list.length) { wordsTight(c, false); ctxCache[i] = undefined; list = candsOf(i); }
+      }
+      cands.set(i, list);
     }
     const seq = [...fresh8].sort((p, q) => cands.get(p)!.length - cands.get(q)!.length);
     const pick: { k: number; box: Box; firm: boolean; i: number }[] = [];
@@ -4216,7 +4275,8 @@ function paintCell(c: CellNode, r: Readout) {
   if (c.saidTitle !== tu) { c.saidTitle = tu; c.title.textContent = tu; }
   const up = String(v.word ?? '').toUpperCase();
   const su = String(v.sub ?? '').toUpperCase();
-  const su2 = (COARSE ? '' : String(v.sub2 || '')).toUpperCase();
+  c.sub2Full = (COARSE ? '' : String(v.sub2 || '')).toUpperCase();
+  const su2 = c.tight ? '' : c.sub2Full;
   const said = `${up}\n${su}\n${su2}`;
   const changed = c.saidLines !== said;
   if (changed) {
@@ -4264,6 +4324,26 @@ function measureWords(c: CellNode): DOMRect {
   c.title.textContent = said;
   return bb;
 }
+/**
+ * **A bird's fourth line gives way where its words have no room** (rel-rows, 10-24). Since star-keys set the
+ * five keys on the star's points, the upper two stand where the birds beside them hang their words on a
+ * small square: at the house on a 390 px square with a mouse, Spark's four lines found no side clear of
+ * the skip key, and through the sway its words' box ran up to 6.6 units into the key. The fourth line is
+ * the quietest (0.35 of the light) and the one a finger never reads (`COARSE`), so where the words with it
+ * have no clear side and without it have one, it is held back until the room is asked again. Asked again
+ * whenever the birds' sides are asked afresh (a bird come to rest, the square resized), with the line first,
+ * in the same call, so it never flickers. Says whether anything changed.
+ */
+function wordsTight(c: CellNode, on: boolean): boolean {
+  if (c.tight === on) return false;
+  c.tight = on;
+  const s = on ? '' : c.sub2Full;
+  if (c.sub2.textContent === s) return false;
+  c.sub2.textContent = s;
+  if (c.saidLines) c.saidLines = c.saidLines.split('\n').slice(0, 2).concat(s).join('\n');
+  return resizeWords(c);
+}
+
 let wordsResized = false;
 function resizeWords(c: CellNode): boolean {
   const bb = measureWords(c);
@@ -4850,23 +4930,27 @@ function sectionName(r: { section?: string; sub?: string }): string {
  * ("MAIN GROOVE · OPEN AND DRIVING") is wider than the room between them
  * once the keys grow. There it is set smaller, all of it, by as much as it
  * needs to clear both keys by `SECTION_CLEAR`; a short one keeps its size.
- * Measured only when the line or the controls' size changes. Anywhere but a
- * small window (`smallWindow`, motion.ts) the line is as it was.
+ * Measured only when the line or the controls' size changes. **Everywhere since
+ * the star** (star-keys): the upper keys stand nearer the middle at the line's
+ * height than the old side keys did, so a long line is fitted on every screen.
  */
 const SECTION_SIZE = 12;
 const SECTION_LS = 0.32;
 const SECTION_BASE = 22;        // how far above the centre the line stands
 const SECTION_CLEAR = 6;
+const SECTION_CAP = 9;          // the line's cap height at its size
 let sectionFit = '';
 function fitSection(): void {
-  if (!sectionText || (!sectionFit && !smallWindow.on)) return;
-  const want = smallWindow.on ? `${ctrlR}|${sectionText.textContent}` : '';
+  if (!sectionText) return;
+  const want = `${ctrlR}|${sectionText.textContent}`;
   if (want === sectionFit) return;
   sectionFit = want;
   let size = SECTION_SIZE;
   if (want) {
-    // where a step key's circle crosses the line's baseline, the nearer edge
-    const room = 2 * (R_ACT - Math.sqrt(Math.max(0, ctrlR * ctrlR - SECTION_BASE * SECTION_BASE)) - SECTION_CLEAR);
+    // where an upper key's circle is widest across the line's height (its cap line, the nearer to the key's
+    // centre), the nearer edge
+    const kx = px(ACT_F.skip, R_ACT) - C, dy = C - SECTION_BASE - SECTION_CAP - py(ACT_F.skip, R_ACT);
+    const room = 2 * (kx - Math.sqrt(Math.max(0, ctrlR * ctrlR - dy * dy)) - SECTION_CLEAR);
     const drawn = Number(sectionText.getAttribute('font-size')) || SECTION_SIZE;
     let wide = 0;
     // the box and not `getComputedTextLength`, which in WebKit leaves the
@@ -5188,9 +5272,9 @@ function buildLive() {
   nextDrawnFor = null;
 
   // a held die: the ground darkens under it and a ring closes round it
-  holdDim = el('circle', { cx: px(0.5, R_ACT).toFixed(1), cy: py(0.5, R_ACT).toFixed(1),
+  holdDim = el('circle', { cx: px(ACT_F.cast, R_ACT).toFixed(1), cy: py(ACT_F.cast, R_ACT).toFixed(1),
     r: ctrlR, fill: '#000', opacity: 0 }, gLive);
-  holdRing = sweepArc(px(0.5, R_ACT), py(0.5, R_ACT), ctrlR, gLive);
+  holdRing = sweepArc(px(ACT_F.cast, R_ACT), py(ACT_F.cast, R_ACT), ctrlR, gLive);
 
   // the cast: one ring leaving the circle when a new mix is rolled
   castRing = ink(el('circle', { cx: C, cy: C, r: 200, fill: 'none', 'stroke-width': 2, opacity: 0 }, gLive), 'stroke', '#ffe9a8');
@@ -5223,15 +5307,16 @@ function buildLive() {
   tellTP.setAttribute('text-anchor', 'middle');
   tellText.appendChild(tellTP);
 
-  // The four beats of the bar; the one you are on is lit. Each dot sits at
-  // the middle of its own quarter of the circle rather than at its start, so
-  // the bar still begins at twelve o'clock and runs clockwise while the four
-  // axes are left to the four action nodes — a dot on an axis fell inside a
-  // node and read as a mark of the node's own, beside its glyph.
+  // The four beats of the bar; the one you are on is lit. Each dot sits in a
+  // gap between two of the star's keys (star-keys: the four gaps either side
+  // of the two upper points, 0.1, 0.3, 0.7 and 0.9 of a turn), so the bar
+  // still begins just after twelve o'clock and runs clockwise, and no dot falls
+  // inside a node to read as a mark of the node's own; the gap at the star's
+  // foot, between love and the dice, is the seed's.
   gBeat = el('g', {}, gInnerLive);
   beatDots = [];
   for (let i = 0; i < 4; i++) {
-    const f = (i + 0.5) / 4;
+    const f = [0.1, 0.3, 0.7, 0.9][i];
     beatDots.push(el('circle', {
       cx: px(f, R_CORE_IN - 6).toFixed(1), cy: py(f, R_CORE_IN - 6).toFixed(1),
       r: i === 0 ? 3 : 2.2, fill: 'url(#gold)', opacity: 0.25,
@@ -5701,7 +5786,7 @@ function aimTilt(e: PointerEvent) {
 /**
  * **The phone's lean, in the Apple app** (round phone-tilt; shell-tilt.ts): the target the device's tilt asks for, as
  * fractions of `TILT_MAX`, taken into the same target the hover sets, so the frame's ease and every rule on it hold.
- * **A hand wins:** while a pointer is down on the ring or drags (`dragging`), while the throne is held, and while a
+ * **A hand wins:** while a pointer is down on the ring or drags (`dragging`), while love is held, and while a
  * mouse or trackpad has hovered in the last moment (an iPad's), the hand's lean stands and the phone's waits. Reduce
  * Motion takes it away, as it does the hover's. In a browser it is never called.
  */
@@ -5714,13 +5799,14 @@ function leanByDevice(x: number, y: number): void {
 
 stage.addEventListener('pointermove', (e: PointerEvent) => {
   if (e.pointerType !== 'touch') mouseAt = performance.now();
-  // **the throne moves nothing but itself** (his note 10-20): over it, and while it is held, the ring's lean toward
-  // the hand holds where it was, so a press reads as the throne's alone
+  // **love moves nothing but itself** (the throne's rule, his note 10-20): over it, and while it is held, the ring's
+  // lean toward the hand holds where it was, so a press reads as the key's alone
   const hit = hitAt(e);
-  // the throne's tooltip (his word 10-21), the ring's layer carrying it only while the hand is over the throne
-  const tip = hit.kind === 'throne' ? 'Save to playlist' : '';
+  const onLove = hit.kind === 'action' && hit.action.id === 'love';
+  // the throne's tooltip, kept on love (his word 10-21), the ring's layer carrying it only while the hand is over it
+  const tip = onLove ? 'Save to playlist' : '';
   if (tiltEl.title !== tip) tiltEl.title = tip;
-  if (!(dragging && (dragging.kind === 'band' || dragging.kind === 'spin')) && hit.kind !== 'throne' && throneHeld === null) aimTilt(e);
+  if (!(dragging && (dragging.kind === 'band' || dragging.kind === 'spin')) && !onLove && throneHeld === null) aimTilt(e);
   if (dragging) return;
   // The whole viewport reports here, so the arrow goes back to normal when the
   // pointer leaves the sigil as well as when it lands on something.
@@ -5763,11 +5849,7 @@ let machineWanted = false;
 function markSays(open: boolean) {
   const m = document.getElementById('machineKey');
   if (m) m.setAttribute('aria-expanded', open ? 'true' : 'false');
-  // the view's ring sits in a corner square as the mini player's does, so its throne turns as there (his word 10-21)
-  machineUp = open;
-  placeThrone();
 }
-let machineUp = false;
 
 function openMachine(): Promise<MachineView | null> {
   if (smallWindow.on) return Promise.resolve(null);   // a small window is the ring alone
@@ -6349,7 +6431,7 @@ const hitSeed = (pt: Pt2) => !seedEditing && seedBoxHit(pt);
 type Hit =
   | { kind: 'action'; action: ActionNode; f: number; inner: Pt2 }
   | { kind: 'cell'; cell: CellNode; f: number; inner: Pt2 }
-  | { kind: 'seed' | 'core' | 'band' | 'spin' | 'throne' | 'none'; f: number; inner: Pt2 };
+  | { kind: 'seed' | 'core' | 'band' | 'spin' | 'none'; f: number; inner: Pt2 };
 
 // One hit test, used by the pointer handlers and by the cursor, so what the
 // arrow promises is exactly what the finger gets.
@@ -6378,7 +6460,6 @@ function hitAt(e: PointerEvent): Hit {
     if (said) return { kind: 'cell', cell: said, f, inner };
   }
   if (hitSeed(inner)) return { kind: 'seed', f, inner };
-  if (hitThrone(pt)) return { kind: 'throne', f, inner };
   // **The centre answers out to the circle a hand sees** (round K22, Eugene:
   // *"in the machine view, play/stop by pressing the ring's centre pulse circle
   // is not working"*): the disc's rim is the pulse's own circle, lifted off it
@@ -6405,7 +6486,6 @@ function cursorFor(hit: { kind: string }) {
   switch (hit.kind) {
     case 'action':
     case 'core':
-    case 'throne':
       return 'pointer';
     case 'seed':
       return 'text';      // the one reading on the ring you can write back
@@ -7169,15 +7249,16 @@ tiltEl.addEventListener('pointerdown', (e: PointerEvent) => {
     return;
   }
   const hit = hitAt(e);
-  if (hit.kind !== 'throne') aimTilt(e);
+  const loveHit = hit.kind === 'action' && hit.action.id === 'love';
+  if (!loveHit) aimTilt(e);
   try { tiltEl.setPointerCapture(e.pointerId); } catch (err) { /* headless */ }
-  if (hit.kind === 'action') {
+  if (loveHit) { hoverAction('love'); dragging = { kind: 'none' }; throneDown(e.pointerId); }
+  else if (hit.kind === 'action') {
     hoverAction(hit.action.id);
     dragging = { kind: 'action', action: hit.action };
     if (hit.action.id === 'cast') { hold.at = performance.now(); hold.fired = false; }
     else if (hit.action.id === 'play' && !aboutMode()) dragging.played = pressPlay(e, true);
   }
-  else if (hit.kind === 'throne') { dragging = { kind: 'none' }; throneDown(e.pointerId); }
   else if (hit.kind === 'seed') {
     // A cancelled press sends no mouse events after the touch, so the field
     // opens once and keeps the keyboard it was given.
@@ -7774,7 +7855,7 @@ function paintRays(trace: number) {
   if (!coronaRays || key === raysFor) return;
   raysFor = key;
   const clearA = (ctrlR + 4) / R_CORE;
-  const acts = [0, 0.25, 0.5, 0.75].map((f) => ang(f));
+  const acts = Object.values(ACT_F).map((f) => ang(f));
   // the gradient every ray fades along: the rim's light to nothing at the reach
   if (coronaFade) {
     put(coronaFade, 'r', (R_CORE + trace).toFixed(2));
@@ -7875,8 +7956,7 @@ function paintPlayhead(last: Readout): void {
   if (Math.abs(f - lastShadeF) > 0.0009) {
     lastShadeF = f;
     setPlayedSplit(f);
-    // the time gives way to the throne at twelve (`engraveAt`); the needle still passes under it
-    const fe = engraveAt(f);
+    const fe = f;
     const top = Math.sin(ang(fe)) < 0.02;
     const rr = top ? R_ENGRAVE : R_ENGRAVE + 18;
     const w = 0.075;
@@ -8244,14 +8324,14 @@ const MINI_BIG_K = 1.3;
 function fitViewport() {
   // a field typed in the panel holds the ring where it is while the keyboard is up (`keyboardHold`)
   if (keyboardHold()) return;
-  const vv = window.visualViewport;
+  // the visual viewport, or the window's own size where it has not caught up with a turn (round 4, `pageViewport`)
+  const v = pageViewport();
   const root = document.documentElement.style;
-  if (vv && Math.abs(vv.scale - 1) > 0.01) return;
-  const w = vv ? vv.width : window.innerWidth;
-  const h = vv ? vv.height : window.innerHeight;
-  const set = (k: string, v: string) => { if (root.getPropertyValue(k) !== v) root.setProperty(k, v); };
-  set('--vv-top', `${(vv ? vv.offsetTop : 0).toFixed(2)}px`);
-  set('--vv-left', `${(vv ? vv.offsetLeft : 0).toFixed(2)}px`);
+  if (v.zoomed) return;
+  const w = v.w, h = v.h;
+  const set = (k: string, val: string) => { if (root.getPropertyValue(k) !== val) root.setProperty(k, val); };
+  set('--vv-top', `${v.top.toFixed(2)}px`);
+  set('--vv-left', `${v.left.toFixed(2)}px`);
   set('--vv-w', `${w.toFixed(2)}px`);
   set('--vv-h', `${h.toFixed(2)}px`);
   set('--vv-min', `${Math.min(w, h).toFixed(2)}px`);
@@ -8376,116 +8456,40 @@ if (window.visualViewport) {
 if (panelEl && typeof ResizeObserver === 'function') new ResizeObserver(() => layPanel()).observe(panelEl);
 
 // ==========================================================================
-// **The throne: save what plays** (PLAN-LIBRARY §2, phase 3). The astrolabe's
-// ornament at twelve o'clock, standing on the band's outer line as the
-// wireframe draws it (its ring of 96 is the band's edge here): an outline in
-// the ring's colour, line work, no glow, with one state. A press, or Enter on
-// it, saves what plays (`playlists-ui.ts`); it never opens the panel. It sits
-// outside the bloom, so its flash and its newcomer's pulse re-blur nothing.
-const THRONE_K = R_BAND_OUT / 96;
-const throneG = el('g', { id: 'throne', role: 'button', tabindex: '0', 'aria-label': 'Save what plays' }, outerSvg);
-// **behind the ring's text and marks** (his note 10-20): the first thing drawn on the outer sheet, under the bloomed
-// rim, the timeline and its words, the live lanes and the needle; its press is the ring's own hit test (`hitThrone`)
-outerSvg.insertBefore(throneG, outerSvg.querySelector('#outerGlow'));
-// **B5 · Four steps** (`throne-glyph.ts`): four arcs over the rim and the shackle with the save in it. Each part is a
-// tooth of the press by how far it closes toward the rim (`tp0` the base, still; `tp1` 0.9; `tp2` 1.4; `tp3` 1.8, the
-// top arc and the shackle with it), and `--u` is the wireframe's unit in the ring's, for index.html's keyframes.
-// **Larger on a phone, for the thumb** (his word 10-21): `THRONE_SCALE_PHONE` on a phone-size touch screen
-// (`phoneSize`, never the mini player), and there a finger's target of at least 44 px each way (`throneReach`).
-let throneZ = THRONE_SCALE;
-let thronePlus: SVGGElement | null = null;
-let throneHit: SVGRectElement | null = null;
-const thronePlusAt = { x: C, y: C };
-function drawThrone(): void {
-  throneZ = smallWindow.on ? THRONE_SCALE_MINI : phoneSize.on ? THRONE_SCALE_PHONE : THRONE_SCALE;
-  throneG.replaceChildren();
-  thronePlus = throneHit = null;
-  (throneG as unknown as HTMLElement).style.setProperty('--u', `${(THRONE_K * throneZ).toFixed(3)}px`);
-  for (const p of throneParts(THRONE_K, C, C, THRONE_WEIGHT, throneZ)) {
-    const tooth = p.press >= 1.8 ? 3 : p.press >= 1.4 ? 2 : p.press > 0 ? 1 : 0;
-    if (p.plus) {
-      // the plus stays upright wherever the throne stands (turned, an × would read as a close): its tooth moves it
-      // radially, and inside that a counter-turn about the shackle's centre
-      const tooth3 = el('g', { class: `tp tp${tooth}` }, throneG);
-      thronePlus = el('g', {}, tooth3) as unknown as SVGGElement;
-      Object.assign(thronePlusAt, p.plus);
-      el('path', { class: 'ln', d: p.d, 'stroke-width': p.w.toFixed(2) }, thronePlus);
-      continue;
-    }
-    el('path', { class: `ln tp tp${tooth}${p.dot ? ' throneDot' : ''}`, d: p.d, 'stroke-width': p.w.toFixed(2) }, throneG);
-  }
-  // the finger's target may reach past the ring's square, where the ring's sheet catches nothing: an unpainted
-  // square there brings the press to the ring's own hit test
-  if (throneZ !== THRONE_SCALE) throneHit = el('rect', { fill: 'none', 'pointer-events': 'all' }, throneG) as unknown as SVGRectElement;
-  sizeThroneHit();
-  // **its focus mark** (sync-fixes, 10-21): the round keys' dashed circle (`focusRing`), one ornament gap outside its
-  // round node, the shackle that holds the save, in the throne's group so it turns with it (twelve, or 45° on the mini
-  // player). A circle round the whole glyph ran past the window's top and through the band's lanes and the time.
-  const S = THRONE_SHACKLE, RIM = 96;
-  throneFocus = focusRing(throneG, C, C + (-RIM + (S.y + RIM) * throneZ) * THRONE_K, S.r * throneZ * THRONE_K + ORN_GAP + ornW() / 2);
-  throneFocus.setAttribute('pointer-events', 'none');
-  if (document.activeElement === throneG) markFocus(throneG, throneFocus, true);
+// **Love: save what plays** (star-keys, his word 10-22: "Love on the left with actual Love icon ... Love icon is
+// filled if track is in playlist"). The fifth key of the star, lower left, in place of the throne: the same node,
+// size, focus mark, hover and halo as the other four (`buildActions`), a heart for its glyph (`GLYPH.heart`). Its
+// press is the throne's, reused: `pressThrone` saves at once into the one playlist or asks which of several, holding
+// the key down until a playlist is chosen, and the save's flight lands on the panel's key.
+//
+// **Pressed like a crown** (the throne's mechanism, his notes 10-20): the press runs its whole travel (240 ms) and
+// holds at the bottom 120 ms before any release lifts it, so a quick click is never cut; the save runs on the
+// release. The key's halo stays lit while it is down; the heart sinks a little into the node.
+function paintLoved(): void {
+  const k = loveNode()?.g;
+  if (!k) return;
+  put(k, 'aria-pressed', loved ? 'true' : 'false');
+  k.classList.toggle('loved', loved);
 }
-let throneFocus: Mark<SVGCircleElement> | null = null;
-/** The throne's square in the ring's units: its half width and how far out from the centre, a finger's 44 px at least on a phone. */
-function throneReach(): { half: number; out: number } {
-  const z = throneZ / THRONE_SCALE;
-  let half = 16.5 * THRONE_K * z, out = 96 * THRONE_K + 19 * THRONE_K * z;
-  if (throneZ !== THRONE_SCALE) {
-    const u = 1000 / Math.max(1, tiltEl.offsetWidth);
-    half = Math.max(half, 23 * u);
-    out = Math.max(out, R_SEC + 12 + 46 * u);
-  }
-  return { half, out };
+function setLoved(on: boolean): void {
+  if (on === loved) return;
+  loved = on;
+  paintLoved();
 }
-function sizeThroneHit(): void {
-  if (!throneHit) return;
-  const { half, out } = throneReach();
-  for (const [k, v] of Object.entries({ x: C - half, y: C - out, width: 2 * half, height: out - R_SEC - 12 })) throneHit.setAttribute(k, v.toFixed(1));
-}
-drawThrone();
-phoneSize.watch(() => { drawThrone(); placeThrone(); });
-window.addEventListener('resize', sizeThroneHit);
-/**
- * **Where the throne stands**, a fraction of a turn from twelve: at twelve, and on the mini player (`smallWindow`) and
- * in the machine view's corner square (`machineUp`, 10-21) at 45° clockwise (his word 10-20), the whole glyph turned about the ring's centre so its arcs stay concentric with the
- * rim and its press stays radial. The hit test, the time's way round it and the save menu's anchor all follow.
- */
-let throneTurn = 0;
-function placeThrone(): void {
-  throneTurn = smallWindow.on || machineUp ? THRONE_MINI_TURN : 0;
-  if (throneTurn) throneG.setAttribute('transform', `rotate(${(throneTurn * 360).toFixed(1)} ${C} ${C})`);
-  else throneG.removeAttribute('transform');
-  if (thronePlus) {
-    if (throneTurn) thronePlus.setAttribute('transform', `rotate(${(-throneTurn * 360).toFixed(1)} ${thronePlusAt.x.toFixed(2)} ${thronePlusAt.y.toFixed(2)})`);
-    else thronePlus.removeAttribute('transform');
-  }
-}
-const THRONE_MINI_TURN = 0.125;
-placeThrone();
-smallWindow.watch(() => { drawThrone(); placeThrone(); });
-// **Pressed like a stopwatch's crown** (his note 10-20): in toward the
-// centre a few units and a little squeezed while held, back with a short
-// overshoot on release, and the save starts on the release. Only the throne
-// moves; under reduced motion it does not travel.
+const loveNode = () => actionNodes.find((a) => a.id === 'love') ?? null;
 let throneHeld: number | null = null;
-/**
- * **A mechanism, not a spring** (his note 10-20): the press runs its whole travel (240 ms, the teeth stopping in turn)
- * and holds at the bottom 120 ms before any release lifts it (330 ms, innermost first, no overshoot); a quick click
- * waits for both, so the motion is never cut. The save runs on the release, as before.
- */
 const THRONE_PRESS_MS = 240, THRONE_HOLD_MS = 120;
 let throneDownAt = 0, throneLiftTimer = 0;
 function throneDown(id: number): void {
   throneHeld = id;
-  if (REDUCED) return;
   clearTimeout(throneLiftTimer);
-  throneG.classList.remove('spring');
-  throneG.classList.add('held');
+  loveDown = true;
   throneDownAt = performance.now();
+  paintActionGlow();
+  if (!REDUCED) loveNode()?.g.classList.add('held');
 }
 /**
- * **Held until a playlist is chosen** (his word 10-21): where the press opens the menu of playlists, the throne stays
+ * **Held until a playlist is chosen** (his word 10-21): where the press opens the menu of playlists, the key stays
  * down while it is open and lifts as it closes (a playlist chosen, Esc, a press outside); otherwise it lifts at once.
  */
 function throneUp(save: boolean): void {
@@ -8494,57 +8498,33 @@ function throneUp(save: boolean): void {
   else throneLift();
 }
 function throneLift(): void {
-  if (!throneG.classList.contains('held')) return;
+  if (!loveDown) return;
   clearTimeout(throneLiftTimer);
-  const wait = Math.max(0, THRONE_PRESS_MS + THRONE_HOLD_MS - (performance.now() - throneDownAt));
+  const wait = REDUCED ? 0 : Math.max(0, THRONE_PRESS_MS + THRONE_HOLD_MS - (performance.now() - throneDownAt));
   throneLiftTimer = window.setTimeout(() => {
-    throneG.classList.remove('held');
-    throneG.classList.add('spring');
+    loveDown = false;
+    loveNode()?.g.classList.remove('held');
+    paintActionGlow();
   }, wait);
 }
 window.addEventListener('pointerup', (e: PointerEvent) => { if (throneHeld === e.pointerId) throneUp(true); });
 window.addEventListener('pointercancel', (e: PointerEvent) => { if (throneHeld === e.pointerId) throneUp(false); });
-throneG.addEventListener('focus', () => { if (throneFocus) markFocus(throneG, throneFocus, true); });
-throneG.addEventListener('blur', () => { if (throneFocus) markFocus(throneG, throneFocus, false); });
-throneG.addEventListener('keydown', (ev: KeyboardEvent) => {
-  if (ev.key !== 'Enter') return;   // Space stays the page's play
+/** Enter on the focused key: a press and its lift, as a pointer's. */
+function loveKey(ev: KeyboardEvent): void {
   ev.preventDefault();
   ev.stopPropagation();
   if (ev.repeat) return;
   throneDown(-1);
   setTimeout(() => throneUp(true), 90);
+}
+// the newcomer's hint (two small presses) ends by itself
+document.addEventListener('animationend', (e: AnimationEvent) => {
+  if (e.animationName === 'lovePulse') (e.target as Element).closest('#love')?.classList.remove('pulse');
 });
-throneG.addEventListener('animationend', (e: AnimationEvent) => { if (e.animationName === 'thLift3') throneG.classList.remove('spring'); else if (e.animationName === 'thronePulse') throneG.classList.remove('pulse'); });
-/**
- * **The live time gives way to the throne** (10-20): while the needle is
- * within `THRONE_CLEAR` of twelve, its time slides along its arc to the side
- * of the throne it is on — the clockwise side as a theme begins — and back to
- * the needle by `2 × THRONE_CLEAR`, linearly, so it never jumps; the needle
- * itself passes under the throne. Fractions of a turn, twelve at nought.
- */
-const THRONE_CLEAR = 0.04;
-function engraveAt(f: number): number {
-  // about where the throne stands (twelve, or the mini player's half past one)
-  const g = (((f - throneTurn) % 1) + 1) % 1;
-  const d = g > 0.5 ? g - 1 : g;
-  const at = (x: number) => (((x + throneTurn) % 1) + 1) % 1;
-  // the larger throne on a phone keeps the same air
-  const clear = (THRONE_CLEAR * throneZ) / THRONE_SCALE;
-  if (d >= 0 && d < 2 * clear) return at(clear + d / 2);
-  if (d < 0 && d > -2 * clear) return at(1 - clear + d / 2);
-  return f;
-}
-/** The throne's square on the rim: above the band's own reach (`hitAt`) out to the ring's edge, as wide as the glyph and a little air. */
-function hitThrone(pt: Pt2): boolean {
-  // in the throne's own frame: turned back by where it stands
-  const a = -throneTurn * 2 * Math.PI, x0 = pt.x - C, y0 = pt.y - C;
-  const dx = x0 * Math.cos(a) - y0 * Math.sin(a), dy = -(x0 * Math.sin(a) + y0 * Math.cos(a));
-  const { half, out } = throneReach();
-  return Math.abs(dx) <= half && dy > R_SEC + 12 && dy <= out;
-}
 startPlaylists({
   control,
-  throne: throneG,
+  throne: () => loveNode()?.g ?? null,
+  loved: setLoved,
   imprint: () => {
     // one clone of the star sheet, pruned to line work: the birds in their nodes, the lines joining them, and the core ring
     const svg = starSvg.cloneNode(true) as SVGSVGElement;
@@ -8690,8 +8670,8 @@ export interface RingHandle {
     marks: { halo: number; orn: number; wide: number; crisp: number; wideW: number; crispW: number; ornPx: number; ornR: number };
     /** how far off its spoke it stands, in ring units; how far it is lifted, 0..1; the size it is drawn at */
     side: number; lift: number; size: number;
-    /** where its words stand, upright in ring units, the bird they stand off, the side and what the spot cost */
-    words: { box: Box; bird: { x: number; y: number; r: number }; side: number; cost: number; below: number } | null;
+    /** where its words stand, upright in ring units, where they are gliding to, the bird they stand off, the side and what the spot cost */
+    words: { box: Box; aim: Box; bird: { x: number; y: number; r: number }; side: number; cost: number; below: number } | null;
   }[];
   /**
    * The lines between birds the ring draws besides the frame's (round K13):

@@ -54,13 +54,17 @@ export interface Track {
  * its creation and never changed; any non-empty string reads (a hand-edited file). Its `name` is a plain field,
  * dated by `nameEdited` so a rename on one device and a track added on another both survive a merge. A removed
  * playlist leaves `{ id, name, removed }`, and one folded into another by a merge `{ id, removed, into }`. An
- * older file's rename record (`renamed`, `at`) is followed once on reading and never written.
+ * older file's rename record (`renamed`, `at`) is followed once on reading and never written. Its place among the
+ * others is its own `rank`, dated by `rankEdited` (pl-order): moving one playlist writes that playlist alone.
  */
 export interface Playlist {
   id?: string;
   name?: string;
   edited?: string;
   nameEdited?: string;
+  /** **Its place among yours** (pl-order, 10-23): a fractional index (`rankBetween`), dated by `rankEdited`. None: after the ranked ones, in the record's order. */
+  rank?: string;
+  rankEdited?: string;
   removed?: string;
   into?: string;
   renamed?: string;
@@ -283,7 +287,7 @@ export function readLibrary(input: unknown, now: number = Date.now()): ReadResul
     if (!isList(p)) { out.push(p); continue; }
     const i = out.findIndex((q) => isList(q) && keyOfList(q) === keyOfList(p));
     if (i < 0) out.push(p);
-    else out[i] = mergeList(out[i], p);
+    else out[i] = mergeList(out[i], p, now);
   }
   doc.playlists = savedFirst(dedupeTracks(out));
   const lives = () => doc.playlists.filter(isList);
@@ -340,8 +344,13 @@ const savedFirst = (lists: Playlist[]): Playlist[] => {
  * `newer`'s), each track the newer of its two copies, whole. The name is the newer naming's (`nameEdited`), so
  * a rename here and a track added there both survive. A track the winning order does not hold is never lost (only
  * a tombstone removes): it goes at the end.
+ *
+ * **The place is the newer placing's** (`rankEdited`, pl-order), so a move here and a track added there both survive.
+ * Where the place comes from the copy that lost on `edited`, the result is dated a second past both (`edited`): a
+ * 2.3.1 device merges a playlist whole by `edited` alone, and so takes this copy, place and all, instead of handing
+ * its own older place back to the cloud (a tie on `edited` goes, by its text, to the copy without a rank).
  */
-function mergeList(here: Playlist, there: Playlist): Playlist {
+function mergeList(here: Playlist, there: Playlist, now: number = Date.now()): Playlist {
   const thereWins = newer(here, there, playlistChange, () => true) === there;
   const [win, lose] = thereWins ? [there, here] : [here, there];
   const out: Playlist = { ...clone(win) };
@@ -350,6 +359,15 @@ function mergeList(here: Playlist, there: Playlist): Playlist {
   const named = newer(naming(here), thereNaming, (x) => x.at, () => true) === thereNaming ? there : here;
   if (named.name !== undefined) out.name = named.name;
   if (named.nameEdited !== undefined) out.nameEdited = named.nameEdited;
+  const placing = (p: Playlist) => ({ at: msOr(p.rankEdited, 0), rank: isRank(p.rank) ? p.rank : '' });
+  const therePlacing = placing(there);
+  const placed = newer(placing(here), therePlacing, (x) => x.at, (x) => x.rank !== '') === therePlacing ? there : here;
+  delete out.rank;
+  delete out.rankEdited;
+  if (isRank(placed.rank)) out.rank = placed.rank;
+  if (placed.rankEdited !== undefined) out.rankEdited = placed.rankEdited;
+  if (placed !== win && (out.rank !== win.rank || out.rankEdited !== win.rankEdited))
+    out.edited = stamp(Math.max(now, Math.floor(Math.max(playlistChange(here), playlistChange(there)) / 1000) * 1000 + 1000));
   const loseByKey = new Map((lose.tracks ?? []).map((t) => [soundKey(t.link), t]));
   const held = new Set<string>();
   const tracks: Track[] = [];
@@ -400,7 +418,7 @@ export function mergeLibraries(here: LibraryDoc, there: LibraryDoc, now: number 
     const q = out[i];
     // a tombstone against a playlist: the newer change wins; two playlists: the merge above
     if (!isList(q) || !isList(p)) out[i] = newer(q, p, playlistChange, isList);
-    else out[i] = mergeList(q, p);
+    else out[i] = mergeList(q, p, now);
   }
   // two live playlists of one name fold into the older
   const byName = new Map<string, Playlist>();
@@ -410,7 +428,7 @@ export function mergeLibraries(here: LibraryDoc, there: LibraryDoc, now: number 
     const q = byName.get(p.name);
     if (!q) { byName.set(p.name, p); kept.push(p); continue; }
     const [old, young] = ageOf(p) < ageOf(q) || (ageOf(p) === ageOf(q) && String(p.id) < String(q.id)) ? [p, q] : [q, p];
-    const merged = mergeList(old, { ...young, id: old.id, name: old.name, nameEdited: old.nameEdited });
+    const merged = mergeList(old, { ...young, id: old.id, name: old.name, nameEdited: old.nameEdited }, now);
     kept[kept.indexOf(q)] = merged;
     byName.set(p.name, merged);
     into.set(young.id!, old.id!);
@@ -453,9 +471,15 @@ export const playlistById = (doc: LibraryDoc, id: string | undefined): Playlist 
 /** The live playlist of a name (names are unique); `null` is Saved's. */
 export const playlistOf = (doc: LibraryDoc, name: string | null): Playlist | undefined =>
   doc.playlists.find((p) => isList(p) && keyOfList(p) === (name ?? SAVED));
-/** **The live playlists, the most recently modified first** (its own `edited`: a save, an edit, a rename; never undefined first). */
+/**
+ * **The live playlists, the most recently modified first** (its own `edited`: a save, an edit, a rename; never undefined
+ * first). A move is not a modification here (pl-order): where the last `edited` is the move's own (`rankEdited`), the
+ * playlist counts from its naming and its tracks' changes instead.
+ */
 export function byRecent(doc: LibraryDoc): Playlist[] {
-  const changed = (p: Playlist) => Math.max(msOr(p.edited, 0), msOr(p.nameEdited, 0));
+  const changed = (p: Playlist) => (p.edited !== undefined && p.edited === p.rankEdited
+    ? Math.max(msOr(p.nameEdited, 0), ...(p.tracks ?? []).map((t) => Math.max(trackChange(t), msOr(t.edited, 0))))
+    : Math.max(msOr(p.edited, 0), msOr(p.nameEdited, 0)));
   return doc.playlists.filter(isList).map((p, i) => ({ p, i })).sort((a, b) => changed(b.p) - changed(a.p) || a.i - b.i).map((x) => x.p);
 }
 /**
@@ -502,7 +526,7 @@ export function saveTrack(doc0: LibraryDoc, link: string, now: number = Date.now
     if (t.kind === 'one') name = t.name;
     else {
       doc = clone(doc0);
-      doc.playlists.unshift({ id: newId(), name: SAVED, edited: stamp(now), nameEdited: stamp(now), tracks: [] });
+      doc.playlists.unshift({ id: newId(), name: SAVED, edited: stamp(now), nameEdited: stamp(now), ...topPlace(doc, now), tracks: [] });
       name = SAVED;
     }
   }
@@ -528,13 +552,13 @@ export function addToPlaylist(doc0: LibraryDoc, name: string, link: string, now:
   return doc;
 }
 
-/** **A new playlist**, at the end, with its own new id; names are unique. */
+/** **A new playlist**, at the top of yours (`topPlace`; the record's end), with its own new id; names are unique. */
 export function createPlaylist(doc0: LibraryDoc, name: string, now: number = Date.now()): LibraryDoc {
   const n = oneLine(name);
   if (!n) throw new PlaylistError('A playlist needs a name.');
   if (playlistOf(doc0, n)) throw new PlaylistError(`A playlist called ${n} already exists.`);
   const doc = clone(doc0);
-  doc.playlists.push({ id: newId(), name: n, edited: stamp(now), nameEdited: stamp(now), tracks: [] });
+  doc.playlists.push({ id: newId(), name: n, edited: stamp(now), nameEdited: stamp(now), ...topPlace(doc, now), tracks: [] });
   return doc;
 }
 
@@ -582,6 +606,101 @@ export function moveTrack(doc0: LibraryDoc, name: string, from: number, to: numb
   shown.splice(to, 0, t);
   p.tracks = [...shown, ...(p.tracks ?? []).filter((x) => !live(x))];
   p.edited = stamp(now);
+  return doc;
+}
+
+// --- the order of your playlists (pl-order, his word 10-23) -------------------
+
+/**
+ * **A rank's digits**, in the order their character codes sort, so two ranks compare as plain strings on every
+ * device. A rank is a fraction's digits after the point, never ending in the nought digit, so there is always room
+ * between two (`rankBetween`).
+ */
+const RANK_DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function isRank(r: unknown): r is string {
+  return typeof r === 'string' && /^[0-9A-Za-z]*[1-9A-Za-z]$/.test(r);
+}
+/** The digits of a fraction strictly between `a` (none: nought) and `b` (none: one); `a` < `b`. */
+function midRank(a: string, b: string | null): string {
+  if (b !== null) {
+    let n = 0;
+    while ((a[n] ?? '0') === b[n]) n++;
+    if (n > 0) return b.slice(0, n) + midRank(a.slice(n), b.slice(n));
+  }
+  const da = a ? RANK_DIGITS.indexOf(a[0]) : 0;
+  const db = b !== null ? RANK_DIGITS.indexOf(b[0]) : RANK_DIGITS.length;
+  if (db - da > 1) return RANK_DIGITS[Math.round((da + db) / 2)];
+  if (b !== null && b.length > 1) return b.slice(0, 1);
+  return RANK_DIGITS[da] + midRank(a.slice(1), null);
+}
+/** **A rank between two** (`null`: the top, or the bottom); refused where `a` is not before `b`. */
+export function rankBetween(a: string | null, b: string | null): string {
+  if (a !== null && !isRank(a)) throw new PlaylistError(`${a} is not a rank.`);
+  if (b !== null && !isRank(b)) throw new PlaylistError(`${b} is not a rank.`);
+  if (a !== null && b !== null && a >= b) throw new PlaylistError(`No rank lies between ${a} and ${b}.`);
+  return midRank(a ?? '', b);
+}
+const byRank = (x: Playlist, y: Playlist) => (x.rank! < y.rank! ? -1 : x.rank! > y.rank! ? 1 : String(x.id) < String(y.id) ? -1 : String(x.id) > String(y.id) ? 1 : 0);
+
+/**
+ * **Your playlists in the order you keep them** (pl-order): the ranked ones by their rank (two of one rank, made at
+ * once on two devices, by their ids), then the ones with none in the record's order. Every library before this round
+ * has none, so it shows as it always did; a 2.3.1 device's new playlist joins at the end, as it did there.
+ */
+export function inOrder(doc: LibraryDoc): Playlist[] {
+  const lives = doc.playlists.filter(isList);
+  return [...lives.filter((p) => isRank(p.rank)).sort(byRank), ...lives.filter((p) => !isRank(p.rank))];
+}
+/** **A new playlist's place: the top of yours** (pl-order: easier to find than the end), dated `now`. */
+function topPlace(doc: LibraryDoc, now: number): { rank: string; rankEdited: string } {
+  const first = inOrder(doc).find((p) => isRank(p.rank));
+  return { rank: rankBetween(null, first?.rank ?? null), rankEdited: stamp(now) };
+}
+/**
+ * **The order seen, written as ranks**: every live playlist with none gets one, after the ranked, in the order shown,
+ * each dated `at` (its `edited` too, so a 2.3.1 device merging it takes it whole). The first move does it once.
+ */
+function rankAll(doc: LibraryDoc, at: string): void {
+  let last: string | null = null;
+  for (const p of inOrder(doc)) {
+    if (isRank(p.rank)) { last = p.rank; continue; }
+    p.rank = rankBetween(last, null);
+    p.rankEdited = at;
+    p.edited = at;
+    last = p.rank;
+  }
+}
+
+/**
+ * **Move one of your playlists** (by its id) to place `to` in `inOrder`'s order (pl-order). It writes that playlist
+ * alone: a rank between its new neighbours, dated by `rankEdited`, and its `edited` with it (a 2.3.1 device merges a
+ * playlist whole by `edited`, so it takes the move). The first move writes the order seen as ranks first
+ * (`rankAll`); neighbours of one rank (two devices' new playlists) are spaced out too. Both dates are a second past
+ * the newest change the library records where now is not (`after`), so a quick second move wins the first.
+ */
+export function movePlaylist(doc0: LibraryDoc, id: string, to: number, now: number = Date.now()): LibraryDoc {
+  const shown0 = inOrder(doc0);
+  const from = shown0.findIndex((p) => p.id === id);
+  if (from < 0 || to < 0 || to >= shown0.length || to === from) return doc0;
+  const doc = clone(doc0);
+  const at = after(doc0, now);
+  rankAll(doc, at);
+  const lists = inOrder(doc);
+  const [p] = lists.splice(lists.findIndex((q) => q.id === id), 1);
+  lists.splice(to, 0, p);
+  const before = to > 0 ? lists[to - 1].rank! : null;
+  // the first rank past the one before: the moved playlist and any of one rank with it go between
+  let k = to + 1;
+  while (k < lists.length && before !== null && lists[k].rank! <= before) k++;
+  const upper = k < lists.length ? lists[k].rank! : null;
+  let r = before;
+  for (let j = to; j < k; j++) {
+    const q = lists[j];
+    r = rankBetween(r, upper);
+    q.rank = r;
+    q.rankEdited = at;
+    q.edited = at;
+  }
   return doc;
 }
 
@@ -637,7 +756,7 @@ export function setSaved(doc: LibraryDoc, link: string, saved: Date | number | s
 function after(doc: LibraryDoc, now: number): string {
   let newest = 0;
   for (const p of doc.playlists) {
-    newest = Math.max(newest, playlistChange(p), msOr(p.nameEdited, 0));
+    newest = Math.max(newest, playlistChange(p), msOr(p.nameEdited, 0), msOr(p.rankEdited, 0));
     for (const t of p.tracks ?? []) newest = Math.max(newest, trackChange(t), msOr(t.edited, 0));
   }
   return stamp(Math.max(now, Math.floor(newest / 1000) * 1000 + 1000));
@@ -663,6 +782,7 @@ export function restore(snapshot: LibraryDoc, current: LibraryDoc, now: number =
     p.edited = at;
     if (!isList(q)) continue;
     if (p.name !== q.name) p.nameEdited = at;
+    if (p.rank !== q.rank && isRank(p.rank)) p.rankEdited = at;
     const theirs = new Map((q.tracks ?? []).map((t) => [soundKey(t.link), t]));
     const mine = new Set<string>();
     for (const t of p.tracks ?? []) {
@@ -677,6 +797,10 @@ export function restore(snapshot: LibraryDoc, current: LibraryDoc, now: number =
   }
   // a playlist made since the snapshot (an import, a copy kept both) goes as a dated removal
   for (const q of was.values()) if (isList(q)) doc.playlists.push({ id: q.id, name: q.name, removed: at });
+  // **an order first written since** (the first move ranks every playlist): the snapshot's order written as ranks, so
+  // the playlists come back where they stood and not where the ranks put them
+  const ranked = new Set(current.playlists.filter((q) => isList(q) && isRank(q.rank)).map((q) => q.id));
+  if (doc.playlists.some((p) => isList(p) && !isRank(p.rank) && ranked.has(p.id))) rankAll(doc, at);
   return doc;
 }
 
@@ -693,6 +817,7 @@ export function replaceLibrary(here: LibraryDoc, file: LibraryDoc, now: number =
   for (const p of doc.playlists.filter(isList)) {
     p.edited = at;
     p.nameEdited = at;
+    if (isRank(p.rank)) p.rankEdited = at;
     for (const t of p.tracks ?? []) if (live(t)) t.edited = at;
   }
   for (const h of here.playlists.filter(isList)) {
@@ -722,10 +847,12 @@ export function safeFileName(name: string): string {
 
 export interface FileOut { text: string; fileName: string }
 
-/** **One playlist as a file** (`"kind": "playlist"`): that playlist alone, no tombstones, named after it. */
+/** **One playlist as a file** (`"kind": "playlist"`): that playlist alone, no tombstones, no place among yours, named after it. */
 export function writePlaylistFile(doc: LibraryDoc, name: string | null): FileOut {
   const p = clone(mustHave(doc, name));
   p.tracks = tracksOf(p);
+  delete p.rank;
+  delete p.rankEdited;
   const out: LibraryDoc = { format: LIBRARY_FORMAT, version: LIBRARY_VERSION, kind: 'playlist', playlists: [p] };
   return { text: `${JSON.stringify(out, null, 2)}\n`, fileName: safeFileName(name ?? SAVED) };
 }
@@ -775,12 +902,15 @@ export function playlistFileSummary(here: LibraryDoc, file: LibraryDoc): { name:
  * **Open a playlist file**: added as it stands (`add`: a new id here; its name with " 2" where the name is taken),
  * as a copy beside the one of its id (`keep-both`: a new id and the Keep-both name), or over the one of its id
  * (`replace`: its name and tracks become the file's, the ones it drops tombstoned so a merge does not bring them
- * back).
+ * back). Added, it stands at the top of yours; replacing, where the one it replaces stood.
  */
 export function openPlaylistFile(here: LibraryDoc, file: LibraryDoc, how: 'add' | 'keep-both' | 'replace', now: number = Date.now()): LibraryDoc {
   const p = clone(file.playlists.find(isList)!);
   p.tracks = tracksOf(p);
   p.edited = stamp(now);
+  // **a place is this library's own** (pl-order): one the file brings means nothing here
+  delete p.rank;
+  delete p.rankEdited;
   const doc = clone(here);
   const was = playlistById(doc, p.id);
   if (how === 'replace' && was) {
@@ -790,13 +920,17 @@ export function openPlaylistFile(here: LibraryDoc, file: LibraryDoc, how: 'add' 
     const clash = doc.playlists.some((q) => q !== was && isList(q) && q.name === p.name);
     // what it writes is dated now (sync-fixes, 10-21), so a stale copy's older edit of a track never wins it back
     const wrote = p.tracks.map((t) => ({ ...t, edited: stamp(now) }));
-    doc.playlists[doc.playlists.indexOf(was)] = { ...p, ...(clash ? { name: keepBothName(doc, p.name ?? null) } : {}), nameEdited: stamp(now), tracks: [...wrote, ...gone, ...old] };
+    // a replaced playlist keeps its place here
+    const place = { ...(was.rank !== undefined ? { rank: was.rank } : {}), ...(was.rankEdited !== undefined ? { rankEdited: was.rankEdited } : {}) };
+    doc.playlists[doc.playlists.indexOf(was)] = { ...p, ...(clash ? { name: keepBothName(doc, p.name ?? null) } : {}), nameEdited: stamp(now), ...place, tracks: [...wrote, ...gone, ...old] };
     return doc;
   }
   if (was && how === 'add') throw new PlaylistError(`${p.name ?? SAVED} is here already.`);
   if (was || how === 'keep-both') p.id = newId();
   if (playlistOf(doc, p.name ?? null)) { p.name = keepBothName(doc, p.name ?? null); p.nameEdited = stamp(now); }
   doc.playlists = doc.playlists.filter((q) => !(q.removed !== undefined && q.id === p.id));
+  // added, it goes at the top of yours, as a new playlist does
+  Object.assign(p, topPlace(doc, now));
   doc.playlists.push(p);
   return doc;
 }

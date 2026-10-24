@@ -125,7 +125,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const METER = fileURLToPath(import.meta.resolve('@deep-house/engine/meter'));
 import { setLayout } from './setplan.ts';
 import { layersWhere } from '@deep-house/engine/voices';
-import { planTheme } from '../src/mix.ts';
+import { DEFAULT_STRATEGY, planTheme } from '../src/mix.ts';
 import { programOf } from '../src/performance.ts';
 import { laneVoices } from '../src/lanes.ts';
 import { biasFor } from '../src/spell.ts';
@@ -206,6 +206,9 @@ function jobFor(scene) {
     const layout = setLayout(scene.masterSeed, scene.themes, { themeBars: scene.themeBars });
     const s = layout.seams[0];
     job.predicted = { at: s.at, swapAt: s.swapAt, end: s.end, bars: s.bars, bar: s.bar };
+    // the style the prediction is laid in, said to the render: a bare page no longer stays bare (a first open puts
+    // the first featured link, \`v=2\`, on the address), and an unnamed render reads its style off the address
+    job.strategy = DEFAULT_STRATEGY;
     job.maxSeconds = s.end + G.tailSeconds;
   }
   return job;
@@ -288,7 +291,7 @@ const MEASURE = async (job) => {
     watch();
     const mix = await window.deepHouse.renderMix({
       masterSeed: job.masterSeed, themes: job.themes, themeBars: job.themeBars,
-      maxSeconds: job.maxSeconds, sampleRate: rate, tail: job.tailSeconds,
+      maxSeconds: job.maxSeconds, sampleRate: rate, tail: job.tailSeconds, opts: { strategy: job.strategy },
     });
     window.AudioWorkletNode = Orig;
     await posted(mix.buffer.length);

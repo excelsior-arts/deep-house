@@ -14,7 +14,10 @@
 // name and version as every error report carries them.
 //
 // **Each kind once a session, and six in all** (`REPORT_CAPS`, the held-errors
-// audit's budget): a long clip is one report. Nothing is sent where the switch is
+// audit's budget): a long clip is one report. A slowdown (round audio-slack,
+// `slowdown.ts`) has its own throttle: the first of a session, then one each
+// ten minutes at most, with the count and the longest since the last
+// (`slowThrottle`). Nothing is sent where the switch is
 // off, on localhost, or in a development build (`instrument.ts` decides; this
 // asks `reportsRunning`). The output's full scale is seen by the machine
 // view's taps, which run while the view is open; a thrown stage and a late
@@ -22,6 +25,7 @@
 import { Sentry, reportsRunning } from './instrument.ts';
 import { watch, all, isReported, reportedAs, REPORT_CAPS } from './ledger.ts';
 import type { Entry } from './ledger.ts';
+import { slowThrottle } from './slowdown.ts';
 
 interface Transport {
   state: { strategy: string; strategyTo?: string | null };
@@ -33,6 +37,8 @@ const sentKinds = new Map<string, number>();
 let sentAll = 0;
 let last = 0;
 
+const slowGate = slowThrottle();
+
 /**
  * The event a fault makes: the line, the kind, the engine, the bar, and the link.
  * A caught error (round R1, `report()` in the ledger) goes under its own kind,
@@ -40,10 +46,24 @@ let last = 0;
  * in the planner is the same bug on every track, where a sound fault is a fault
  * of the track it sounded in.
  */
-export function faultEvent(e: Entry, link: string, engine: string) {
+export function faultEvent(e: Entry, link: string, engine: string, slow: { count: number; longest: number } | null = null) {
   const kind = reportedAs(e);
   const caught = kind !== e.kind;
   const error = typeof e.fields.error === 'string' ? e.fields.error : null;
+  // **A slowdown** (round audio-slack) is the device's: its length, its lowest
+  // rate, the page hidden or not and the output path, with the count and the
+  // longest since the last one sent; one issue per output path, the link a tag
+  if (e.kind === 'slow') {
+    const f = e.fields;
+    return {
+      message: e.what,
+      level: 'warning' as const,
+      tags: { fault: kind, engine, link, out: String(f.out ?? '') },
+      extra: { bar: e.bar, theme: e.theme, ms: f.ms, low: f.low, lost: f.lost, hidden: f.hidden, out: f.out,
+        count: slow ? slow.count : 1, longest: slow ? slow.longest : f.ms },
+      fingerprint: ['sound-fault', 'slow', String(f.out ?? '')],
+    };
+  }
   return {
     message: e.what,
     level: 'warning' as const,
@@ -67,9 +87,15 @@ export function reportFaults(control: Transport): () => void {
       // the caps (`REPORT_CAPS`): each kind once a session, six in all
       // (a caught error by its own kind: a planner's bug does not use up the tick's)
       const kind = reportedAs(e);
-      if ((sentKinds.get(kind) || 0) >= REPORT_CAPS.perKind || sentAll >= REPORT_CAPS.perSession) continue;
-      sentKinds.set(kind, (sentKinds.get(kind) || 0) + 1);
-      sentAll += 1;
+      let slow: { count: number; longest: number } | null = null;
+      if (e.kind === 'slow') {
+        slow = slowGate(typeof e.fields.ms === 'number' ? e.fields.ms : 0, e.at);
+        if (!slow) continue;
+      } else {
+        if ((sentKinds.get(kind) || 0) >= REPORT_CAPS.perKind || sentAll >= REPORT_CAPS.perSession) continue;
+        sentKinds.set(kind, (sentKinds.get(kind) || 0) + 1);
+        sentAll += 1;
+      }
       // **The reporter never throws into whoever wrote the line** (R1): a line is
       // written from inside a catch, a tick or a start, and a link that cannot
       // be written (a `link` fault is exactly that) is sent as none.
@@ -80,7 +106,7 @@ export function reportFaults(control: Transport): () => void {
         engine = control.state.strategyTo ?? control.state.strategy;
         link = control.link.withTime(second);
       } catch (err) { /* sent without it */ }
-      const ev = faultEvent(e, link, engine);
+      const ev = faultEvent(e, link, engine, slow);
       // an event built whole, so the SDK adds no stack of its own: a fault is
       // not where in the code, it is where in the track
       try { Sentry.captureEvent({ message: ev.message, level: ev.level, tags: ev.tags, extra: ev.extra, fingerprint: ev.fingerprint }); } catch (err) { /* the SDK's own */ }

@@ -18,7 +18,12 @@ import { linkSameSound } from '../src/link.ts';
 import { cleanLink } from '../src/share-link.ts';
 import { playlistById, libraryStore, LIBRARY_KEY, UNREAD_KEY } from '../src/playlists.ts';
 import { restore, replaceLibrary, BEFORE_SWITCH_KEY } from '../src/playlists.ts';
+import { rankBetween, inOrder, movePlaylist, byRecent, moveTrack } from '../src/playlists.ts';
+import * as shipped from './fixtures/playlists-2.3.1.ts';
 import { shellStore } from '../src/shell-library.ts';
+import { FEATURED, FEATURED_WORD, featuredById, featuredTracks, copyOfFeatured } from '../src/featured.ts';
+import { entryOf, withEntry } from './feature.ts';
+import { featuredUnfrozen, featuredRows, saved as digestSaved } from './link-digest.ts';
 
 const DAY = 24 * 3600 * 1000;
 const T0 = Date.parse('2026-10-20T12:00:00Z');
@@ -28,6 +33,69 @@ const L = (...parts) => parts.join('&');
 const A = L('seed=1', 'v=2'), B = L('seed=2', 'v=2'), C = L('seed=3', 'v=2');
 
 export function playlistChecks(check, must) {
+  check('the featured table reads whole: ids and names unique, every link as the page writes it, playable and naming its engine, the first run\'s first track playable', () => {
+    must(FEATURED.length >= 1, 'no featured playlist: a first run would fall back to a seed');
+    must(FEATURED_WORD === 'Featured', `the section's word is ${FEATURED_WORD}`);
+    const ids = FEATURED.map((f) => f.id), names = FEATURED.map((f) => f.name);
+    must(new Set(ids).size === ids.length && new Set(names).size === names.length, `ids ${ids.join()} or names ${names.join()} repeat`);
+    for (const f of FEATURED) {
+      must(featuredById(f.id) === f && Object.isFrozen(f), `${f.name} is not found by its id or can be edited`);
+      must(f.links.length >= 1 && new Set(f.links).size === f.links.length, `${f.name} holds ${f.links.length} links, some twice`);
+      must(!f.labels || f.labels.length === f.links.length, `${f.name} has ${f.labels?.length} labels for ${f.links.length} links`);
+      for (const l of f.links) {
+        const n = normaliseLink(l);
+        must(n.ok && n.link === l, `${f.name}: ${l} is not a link as the page writes it (${n.ok ? n.link : n.why})`);
+        must(/(^|&)v=/.test(l), `${f.name}: ${l} names no engine`);
+      }
+      must(featuredTracks(f).map((t) => t.link).join() === f.links.join(), `${f.name}'s tracks are not its links in order`);
+    }
+    return `${FEATURED.length} playlists (${names.join(', ')}), ${FEATURED.reduce((n, f) => n + f.links.length, 0)} links, the first run on ${FEATURED[0].name}'s ${FEATURED[0].links[0]}`;
+  });
+  check('Save a copy makes an ordinary playlist of yours (a new id, the name, " 2" where it is taken, the tracks and labels in order); the featured table and its ids never enter the record', () => {
+    const f = FEATURED[0];
+    const one = copyOfFeatured(emptyLibrary(), f, at(0));
+    const p = playlistById(one.doc, one.id);
+    must(!!p && p.name === f.name && one.id !== f.id && /^[0-9a-f-]{36}$/.test(one.id), `the copy is ${JSON.stringify(p && [p.name, p.id])}`);
+    must(tracksOf(p).map((t) => t.link).join() === f.links.join(), 'the copy\'s tracks are not the featured ones in order');
+    const two = copyOfFeatured(one.doc, f, at(1));
+    must(playlistById(two.doc, two.id)?.name === `${f.name} 2` && two.id !== one.id, `a second copy is ${playlistById(two.doc, two.id)?.name}`);
+    must(!JSON.stringify(two.doc).includes(f.id), 'a featured id is in the record');
+    // edits of the copy are ordinary: renamed, its track removed; the table stands as it was
+    const edited = removeTrack(renamePlaylist(one.doc, f.name, 'Mine', at(2)), 'Mine', f.links[0], at(3));
+    must(tracksOf(playlistOf(edited, 'Mine')).length === f.links.length - 1 && featuredById(f.id)!.links.length === f.links.length, 'editing the copy moved the table');
+    const labelled = { ...f, id: 'x', name: 'Labelled', labels: f.links.map((_, i) => (i ? '' : 'first light')) };
+    const lc = copyOfFeatured(emptyLibrary(), labelled, at(0));
+    must(tracksOf(playlistById(lc.doc, lc.id))[0].label === 'first light', 'a featured label did not reach the copy');
+    return `${f.name} copied as ${f.name} (new id), again as ${f.name} 2; the record holds no featured id; the copy edits as any playlist`;
+  });
+  check('the release lock: every featured link is a frozen row of the link digest (group featured where the grid lacks it), and one that is not is named', () => {
+    const file = digestSaved();
+    const loose = featuredUnfrozen(file);
+    const rows = featuredRows();
+    // a digest without one of the featured links names exactly that link
+    const one = FEATURED[0].links[0];
+    const less = { ...file, rows: file.rows.filter((r) => r.link !== one) };
+    must(featuredUnfrozen(less).includes(one), `a digest without ${one} does not name it`);
+    must(rows.every((r) => r.group === 'featured' && FEATURED.some((f) => f.links.includes(r.link))), 'a featured row is not a featured link');
+    return `${loose.length ? `${loose.length} not yet blessed: ${loose.join(', ')}` : 'every featured link frozen'}; ${rows.length} rows of the featured group beside the grid's`;
+  });
+  check('tools/feature.ts: a share link becomes an entry (its id, its name, its links as the page writes them, its labels), written over the entry of its id in place, or at a place asked', () => {
+    const link = '?' + L('list=Night+test', 'v=2', 'play=27191-3-em14gl0ve34sp0lo81~6~812-2-ze20ve80', 'names=cool+bells~~', 'id=3f9c2a71e8b44d0c9a1e5b7d2c6f8a90');
+    const e = entryOf(`https://example.org/deep-house/${link}`);
+    must(e.id === '3f9c2a71-e8b4-4d0c-9a1e-5b7d2c6f8a90' && e.name === 'Night test', `the entry is ${e.id} ${e.name}`);
+    must(e.links.length === 3 && e.links.every((l) => normaliseLink(l).link === l) && e.labels?.join('|') === 'cool bells||', `the links ${e.links.join(' ')} labels ${e.labels}`);
+    const table = { note: '', playlists: FEATURED.map((f) => ({ ...f })) };
+    const added = withEntry(table, e, { at: 1 });
+    must(added.playlists[0].id === e.id && added.playlists.length === FEATURED.length + 1, 'at 1 is not the first run\'s place');
+    const again = withEntry(added, { ...e, name: 'Night' });
+    must(again.playlists.length === added.playlists.length && again.playlists[0].name === 'Night', 'the same id again did not replace its entry in place');
+    const over = withEntry(table, e, { replace: FEATURED[1].id });
+    must(over.playlists[1].id === FEATURED[1].id && over.playlists[1].name === 'Night test' && over.playlists.length === FEATURED.length, '--replace did not keep the entry\'s id and place');
+    let refused = '';
+    try { entryOf('?' + L('list=Bad', 'v=9', 'play=6')); } catch (err) { refused = err.message; }
+    must(/does not play/.test(refused), `a track this edition can't play was not refused (${refused})`);
+    return 'id, name, links and labels from the link; same id replaced in place; --at 1 first; --replace keeps the id; an unplayable track refused';
+  });
   check('the share circle copies a clean link: the track\'s own rows on the page\'s base, out and the view and the rest left behind, the same sound as the address', () => {
     const address = '?' + L('seed=6', 'v=2', 'theme=2', 'spell=em:0.20', 'out=silent', 'view=machine', 'lock=engine', 't=40');
     const base = 'https://example.org/deep-house/';
@@ -99,7 +167,7 @@ export function playlistChecks(check, must) {
     lib = setLabel(addToPlaylist(lib, 'Sunday bells', B, at(0)), B, 'cool bells dialog', at(0));
     const one = writePlaylistFile(lib, 'Sunday bells');
     const back = readDeephouseFile(one.text);
-    must(one.fileName === 'Sunday bells.deephouse' && back.kind === 'playlist' && JSON.stringify(back.doc.playlists[0]) === JSON.stringify(playlistOf(lib, 'Sunday bells')), 'a playlist file did not read back equal');
+    must(one.fileName === 'Sunday bells.deephouse' && back.kind === 'playlist' && JSON.stringify(back.doc.playlists[0]) === JSON.stringify({ ...playlistOf(lib, 'Sunday bells'), rank: undefined, rankEdited: undefined }), 'a playlist file did not read back equal (but its place among yours, pl-order)');
     const all = readDeephouseFile(writeBackupFile(lib, {}, T0).text);
     must(all.kind === 'library' && JSON.stringify(all.doc.playlists) === JSON.stringify(lib.playlists) && JSON.stringify(all.doc.preferences) === '{}', 'a backup did not read back equal');
     must(writePlaylistFile(createPlaylist(lib, 'a/b: c?', at(0)), 'a/b: c?').fileName === 'a b c.deephouse', 'a file name is not made safe');
@@ -338,12 +406,12 @@ export function playlistChecks(check, must) {
     }
     // its record is the 2.3.0 record: read as it stands, unknown fields none, the format and version unchanged
     const r = readLibrary(JSON.stringify(replaced));
-    const known = new Set(['id', 'name', 'edited', 'nameEdited', 'removed', 'into', 'tracks', 'link', 'label', 'saved']);
+    const known = new Set(['id', 'name', 'edited', 'nameEdited', 'rank', 'rankEdited', 'removed', 'into', 'tracks', 'link', 'label', 'saved']);
     const fields = new Set(replaced.playlists.flatMap((p) => [...Object.keys(p), ...(p.tracks ?? []).flatMap((t) => Object.keys(t))]));
     must(!!r.doc && replaced.version === 1 && [...fields].every((f) => known.has(f)), `the replaced record reads ${r.error ?? 'fine'} with fields ${[...fields].join(', ')}`);
     // Keep both and a merge from a backup stay as they were: the merge brings Q and R back from the stale copy
     must(names(mergeLibraries(mergeLibraries(here, backup, at(3)), stale, at(4))) === 'P,Q,R,S', 'a merge from a backup changed');
-    return 'after Replace, a stale copy merged either way leaves P (A, the backup\'s label) and S, with Q, R and B gone; the record holds only 2.3.0\'s fields; a merge still keeps all four';
+    return 'after Replace, a stale copy merged either way leaves P (A, the backup\'s label) and S, with Q, R and B gone; the record holds only 2.3.0\'s fields and the places (pl-order); a merge still keeps all four';
   });
   check('the library kept aside before another iCloud account\'s is adopted reads back as a backup (sync-fixes, 10-21)', () => {
     const m = new Map();
@@ -426,6 +494,163 @@ export function playlistChecks(check, must) {
     const legacy = readLibrary(JSON.stringify(base));
     must(!!legacy.doc && legacy.doc.version === base.version && content(legacy.doc) === content(base), `the record reads ${legacy.error ?? 'changed'}`);
     return `${said.join(', ')}: the same both ways and settled; the removal against an edit keeps the track; the record unchanged`;
+  });
+  // --- the order of your playlists (pl-order, 10-23) ---------------------------
+  const order = (d) => inOrder(d).map((p) => p.name).join(',');
+  const byId = (d) => new Map(d.playlists.map((p) => [p.id, JSON.stringify(p)]));
+  /** the playlists whose entries differ between two copies, by name */
+  const touched = (a, b) => { const x = byId(a), y = byId(b); return [...new Set([...x.keys(), ...y.keys()])].filter((k) => x.get(k) !== y.get(k)).map((k) => JSON.parse(x.get(k) ?? y.get(k)).name).sort().join(','); };
+  /** a library made the way 2.3.1 made it: no place on any playlist, the record's order the creation's */
+  const unranked = (names, t) => { let d = shipped.emptyLibrary(); for (const n of names) d = shipped.createPlaylist(d, n, t); return d; };
+  check('a playlist\'s place is a rank of its own: always room between two, one past the top and the bottom, a new playlist at the top, a file\'s place left behind (pl-order)', () => {
+    // a thousand ranks made at random places among the others, then a hundred at the top and the bottom: all in order, all valid
+    const ranks = [rankBetween(null, null)];
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 1000; i++) {
+      const k = Math.floor(rnd() * (ranks.length + 1));
+      ranks.splice(k, 0, rankBetween(k ? ranks[k - 1] : null, k < ranks.length ? ranks[k] : null));
+    }
+    for (let i = 0; i < 100; i++) { ranks.unshift(rankBetween(null, ranks[0])); ranks.push(rankBetween(ranks.at(-1), null)); }
+    must(ranks.every((r, i) => /^[0-9A-Za-z]*[1-9A-Za-z]$/.test(r) && (!i || ranks[i - 1] < r)), 'the ranks are not in order');
+    const longest = Math.max(...ranks.map((r) => r.length));
+    must(longest <= 24, `a rank ran to ${longest} digits`);
+    let refused = 0;
+    for (const [a, b] of [['V', 'V'], ['k', 'V'], ['V0', null], ['', null]]) { try { rankBetween(a, b); } catch (e) { refused++; } }
+    must(refused === 4, `${4 - refused} bad pairs were given a rank`);
+    // a new playlist, the throne's first Saved, an opened file and a copy kept both: each at the top
+    let d = createPlaylist(createPlaylist(emptyLibrary(), 'One', at(0)), 'Two', at(1));
+    must(order(d) === 'Two,One', `two new playlists stand ${order(d)}`);
+    must(order(saveTrack(emptyLibrary(), A, at(0))) === 'Saved', 'the first save made no Saved');
+    const file = readDeephouseFile(writePlaylistFile(movePlaylist(d, playlistOf(d, 'One').id, 0, at(2)), 'One').text).doc;
+    must(file.playlists[0].rank === undefined && file.playlists[0].rankEdited === undefined, 'a playlist file carries its place');
+    d = createPlaylist(d, 'Three', at(3));
+    const opened = openPlaylistFile(d, { ...file, playlists: [{ ...file.playlists[0], id: 'elsewhere', name: 'Four', rank: '0001' }] }, 'add', at(4));
+    must(order(opened) === 'Four,Three,Two,One', `an opened file stands ${order(opened)}`);
+    const kept = openPlaylistFile(d, file, 'keep-both', at(4));
+    must(order(kept).startsWith('One 2,'), `a copy kept both stands ${order(kept)}`);
+    // replacing keeps the place of the one it replaces
+    const moved = movePlaylist(d, playlistOf(d, 'One').id, 0, at(4));
+    const rep = openPlaylistFile(moved, file, 'replace', at(5));
+    must(order(rep) === order(moved) && playlistOf(rep, 'One').rank === playlistOf(moved, 'One').rank, `replacing moved it: ${order(moved)} became ${order(rep)}`);
+    return `1,201 ranks in order, the longest ${longest} digits, four bad pairs refused; new playlists, a first Saved, an opened file and a copy kept both at the top; a file carries no place and a replace keeps the place`;
+  });
+  check('a library with no ranks shows as it did; the first move ranks the order seen, every move after it writes the moved playlist alone, and the save menu takes no move for a change (pl-order)', () => {
+    const old = unranked(['P', 'Q', 'R', 'S'], at(0));
+    must(order(old) === 'P,Q,R,S' && old.playlists.every((p) => p.rank === undefined), `a 2.3.1 library stands ${order(old)}`);
+    // a playlist made here in it goes at the top, the rest as they were
+    const one = createPlaylist(old, 'N', at(1));
+    must(order(one) === 'N,P,Q,R,S', `a new one in a 2.3.1 library: ${order(one)}`);
+    // the first move: S to the top; the order seen kept as ranks
+    const m1 = movePlaylist(old, playlistOf(old, 'S').id, 0, at(2));
+    must(order(m1) === 'S,P,Q,R' && inOrder(m1).every((p) => typeof p.rank === 'string'), `the first move left ${order(m1)}`);
+    // then each move writes one entry
+    const m2 = movePlaylist(m1, playlistOf(m1, 'P').id, 3, at(3));
+    must(order(m2) === 'S,Q,R,P' && touched(m1, m2) === 'P', `P to the bottom left ${order(m2)}, writing ${touched(m1, m2)}`);
+    const m3 = movePlaylist(m2, playlistOf(m2, 'R').id, 1, at(4));
+    must(order(m3) === 'S,R,Q,P' && touched(m2, m3) === 'R', `R up left ${order(m3)}, writing ${touched(m2, m3)}`);
+    // a missing rank among ranked ones (a 2.3.1 device's new playlist): after them, and a move ranks it where it is seen
+    const late = shipped.createPlaylist(m3, 'Old', at(5));
+    must(order(late) === 'S,R,Q,P,Old', `a 2.3.1 device's new playlist stands ${order(late)}`);
+    const m4 = movePlaylist(late, playlistOf(late, 'Q').id, 0, at(6));
+    must(order(m4) === 'Q,S,R,P,Old' && touched(late, m4) === 'Old,Q', `Q to the top left ${order(m4)}, writing ${touched(late, m4)}`);
+    // two of one rank (two devices' new playlists at once): a move between them spaces them
+    const twin = { ...m4, playlists: m4.playlists.map((p) => (p.name === 'R' ? { ...p, rank: playlistOf(m4, 'S').rank } : p)) };
+    const tw = inOrder(twin).map((p) => p.name);
+    const m5 = movePlaylist(twin, playlistOf(twin, 'P').id, 2, at(7));
+    must(order(m5) === [tw[0], tw[1], 'P', ...tw.slice(2).filter((n) => n !== 'P')].join(), `between two of one rank: ${order(m5)}`);
+    // a move is not a modification for the throne's menu; a track's move is
+    let r = addToPlaylist(addToPlaylist(unranked(['P', 'Q'], at(0)), 'P', A, at(1)), 'Q', B, at(2));
+    must(byRecent(r).map((p) => p.name).join() === 'Q,P', 'the save menu before the move');
+    r = movePlaylist(r, playlistOf(r, 'P').id, 0, at(3));
+    must(byRecent(r).map((p) => p.name).join() === 'Q,P', `after P was moved the save menu reads ${byRecent(r).map((p) => p.name).join()}`);
+    // an Undo of the first move: back where they stood, and dated so the other device takes it
+    const undone = restore(old, m1, at(8));
+    const there = mergeLibraries(m1, undone, at(9)), here = mergeLibraries(undone, m1, at(9));
+    must(order(undone) === 'P,Q,R,S' && order(there) === 'P,Q,R,S' && order(here) === 'P,Q,R,S', `the first move undone: ${order(undone)}, merged ${order(here)} here and ${order(there)} there`);
+    const undone2 = restore(m2, m3, at(8));
+    must(order(mergeLibraries(m3, undone2, at(9))) === order(m2), 'a later move undone did not hold through a merge');
+    return 'a 2.3.1 library P,Q,R,S as it was; S to the top ranked the order seen; P down and R up each wrote one entry; a 2.3.1 device\'s new playlist after the ranked; two of one rank spaced; a move left the save menu\'s order; Undo held through a merge';
+  });
+  check('two devices reordering different playlists both keep their moves, either way round; a move here and a track added there both survive (pl-order)', () => {
+    const base = unranked(['P', 'Q', 'R', 'S', 'T'], at(0));
+    const synced = movePlaylist(base, playlistOf(base, 'T').id, 0, at(1));   // T,P,Q,R,S on both
+    const a = movePlaylist(synced, playlistOf(synced, 'P').id, 4, at(2));    // T,Q,R,S,P
+    const b = movePlaylist(synced, playlistOf(synced, 'S').id, 0, at(3));    // S,T,P,Q,R
+    const ab = mergeLibraries(a, b, at(4)), ba = mergeLibraries(b, a, at(4));
+    must(order(ab) === 'S,T,Q,R,P' && order(ba) === order(ab), `the merged order is ${order(ab)} one way and ${order(ba)} the other`);
+    // the same playlist moved on both: the later move wins
+    const c = movePlaylist(synced, playlistOf(synced, 'Q').id, 0, at(2)), e = movePlaylist(synced, playlistOf(synced, 'Q').id, 4, at(3));
+    must(order(mergeLibraries(c, e, at(4))) === order(e) && order(mergeLibraries(e, c, at(4))) === order(e), 'the later of two moves of one playlist lost');
+    // a move here, a track added to the same playlist later there: both survive
+    const moved = movePlaylist(synced, playlistOf(synced, 'R').id, 0, at(2));
+    const added = addToPlaylist(synced, 'R', A, at(3));
+    for (const [where, m] of [['here', mergeLibraries(moved, added, at(4))], ['there', mergeLibraries(added, moved, at(4))]]) {
+      must(order(m) === order(moved) && tracksOf(playlistOf(m, 'R')).some((t) => t.link === A), `${where}: ${order(m)}, R holding ${tracksOf(playlistOf(m, 'R')).length} tracks`);
+      // dated past both, so a 2.3.1 device takes the merged playlist whole
+      must(Date.parse(playlistOf(m, 'R').edited) > Date.parse(playlistOf(added, 'R').edited), `${where}: the merged R is not dated past the edit`);
+    }
+    return `P down on one device, S up on the other: ${order(ab)} both ways; the later of two moves of Q wins; R moved here and given a track there keeps both, dated past both`;
+  });
+  check('2.3.1 against a record holding places (pl-order): its reader, its edits and its merge carry rank and rankEdited; its merge takes a move whole; a mixed pair of devices settles with nothing left to send', () => {
+    const canon = (d) => JSON.stringify({ ...d, playlists: [...d.playlists].sort((x, y) => String(x.id).localeCompare(String(y.id))) },
+      (_k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
+    const places = (d) => d.playlists.filter((p) => p.removed === undefined).map((p) => `${p.name}:${p.rank ?? '-'}:${p.rankEdited ?? '-'}`).sort().join(' ');
+    // a record ranked here, as iCloud hands it to the store app
+    const old = unranked(['P', 'Q', 'R', 'S'], at(0));
+    const ranked = movePlaylist(old, playlistOf(old, 'S').id, 0, at(1));
+    const r = shipped.readLibrary(JSON.stringify(ranked));
+    must(!!r.doc && places(r.doc) === places(ranked), `2.3.1's reader: ${r.error ?? places(r.doc)}`);
+    // its edits keep the places (a track saved, renamed, a label, a track moved, another removed, a playlist made)
+    let e = shipped.addToPlaylist(r.doc, 'P', A, at(2));
+    e = shipped.renamePlaylist(e, 'Q', 'Q2', at(2));
+    e = shipped.setLabel(e, A, 'a label', at(2));
+    e = shipped.addToPlaylist(e, 'P', B, at(2));
+    e = shipped.moveTrack(e, 'P', 1, 0, at(2));
+    e = shipped.removeTrack(e, 'P', A, at(2));
+    e = shipped.createPlaylist(e, 'New', at(2));
+    const kept = (d) => ['P', 'R', 'S'].every((n) => playlistOf(d, n).rank === playlistOf(ranked, n).rank) && playlistOf(d, 'Q2').rank === playlistOf(ranked, 'Q').rank;
+    must(kept(e), `2.3.1's edits left ${places(e)}`);
+    must(order(e) === 'S,P,Q2,R,New', `2.3.1's edits read here as ${order(e)}`);
+    // its merge, both ways: the store app (an older copy, no places) meets the cloud's ranked one
+    for (const [what, m] of [['here first', shipped.mergeLibraries(old, ranked, at(3))], ['the cloud first', shipped.mergeLibraries(ranked, old, at(3))]]) must(places(m) === places(ranked), `2.3.1's merge, ${what}: ${places(m)}`);
+    // and a later move of a ranked playlist (its rank alone changes) against the store app's copy of the order before
+    for (const [n, to] of [['P', 3], ['Q', 0], ['R', 0], ['S', 2]]) {
+      const later = movePlaylist(ranked, playlistOf(ranked, n).id, to, at(3));
+      for (const m of [shipped.mergeLibraries(ranked, later, at(4)), shipped.mergeLibraries(later, ranked, at(4))]) must(places(m) === places(later), `2.3.1's merge lost ${n}'s move: ${places(m)}`);
+    }
+    // a backup it writes, read here
+    const back = readDeephouseFile(shipped.writeBackupFile(e, {}, at(4)).text);
+    must(order(back.doc) === order(e), `2.3.1's backup reads here as ${order(back.doc)}`);
+    // the two devices, by turns through the cloud as the shell does (merge what came, send it where it differs),
+    // with a move here and an edit of the same playlist later on 2.3.1, made before either heard the other
+    const devices = {
+      now: { doc: movePlaylist(ranked, playlistOf(ranked, 'R').id, 0, at(5)), merge: mergeLibraries },
+      old: { doc: shipped.addToPlaylist(ranked, 'R', C, at(6)), merge: shipped.mergeLibraries },
+    };
+    let cloud = ranked, writes = 0, quiet = 0, turn = 0;
+    for (; turn < 40 && quiet < 4; turn++) {
+      const d = devices[turn % 2 ? 'old' : 'now'];
+      const merged = d.merge(d.doc, cloud, at(7) + turn * 1000);
+      d.doc = merged;
+      if (canon(merged) !== canon(cloud)) { cloud = merged; writes++; quiet = 0; } else quiet++;
+    }
+    must(quiet >= 4, `the two devices were still sending after ${turn} turns (${writes} writes)`);
+    must(order(devices.now.doc) === 'R,S,P,Q' && order(devices.old.doc) === 'R,S,P,Q', `they settled on ${order(devices.now.doc)} here and ${order(devices.old.doc)} on 2.3.1`);
+    must(tracksOf(playlistOf(devices.old.doc, 'R')).some((t) => t.link === C) && tracksOf(playlistOf(devices.now.doc, 'R')).some((t) => t.link === C), 'the 2.3.1 edit was lost');
+    // a playlist file 2.3.1 writes from it carries its place; opened here, the place is left behind
+    const file = readDeephouseFile(shipped.writePlaylistFile(ranked, 'S').text).doc;
+    must(file.playlists[0].rank !== undefined, 'the 2.3.1 playlist file carries no place');
+    must(order(openPlaylistFile(old, { ...file, playlists: [{ ...file.playlists[0], id: 'x', name: 'Y' }] }, 'add', at(8))) === 'Y,P,Q,R,S', 'a 2.3.1 file\'s place was taken');
+    return `2.3.1 reads, edits (seven kinds), merges both ways (a first and a later move) and backs up a ranked record with every place kept; a move here and a later edit there settled in ${writes} writes on R,S,P,Q with the edit kept`;
+  });
+  check('a track moved in its playlist comes back by Undo through a merge (pl-order: every reorder has Undo)', () => {
+    const d = addToPlaylist(addToPlaylist(addToPlaylist(createPlaylist(emptyLibrary(), 'P', at(0)), 'P', A, at(0)), 'P', B, at(0)), 'P', C, at(0));
+    const m = moveTrack(d, 'P', 0, 2, at(1));
+    const u = restore(d, m, at(1));
+    const links = (x) => tracksOf(playlistOf(x, 'P')).map((t) => t.link).join();
+    must(links(mergeLibraries(m, u, at(2))) === [A, B, C].join() && links(mergeLibraries(u, m, at(2))) === [A, B, C].join(), 'the order undone did not hold');
+    return 'A,B,C moved to B,C,A and undone in the same second: A,B,C after a merge either way';
   });
   check('the sky: the house and three bench links stand where they stood, with their genres, and the house wears the gold', () => {
     const pin = [

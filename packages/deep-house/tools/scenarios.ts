@@ -45,6 +45,8 @@ import { HOUSE, BIRD_CODE } from '../src/spell.ts';
 import { SKY_PLACES } from '../src/sky.ts';
 // a library written before the page opens, for the seam rows (the review of 10-21)
 import { emptyLibrary, saveTrack, addToPlaylist } from '../src/playlists.ts';
+// the featured playlists' table, for the first run's rows and the section's (featured, 10-23)
+import { FEATURED } from '../src/featured.ts';
 import { ICON_GOLD, ICON_EVERY, iconInk, iconHref } from '../src/tab-icon.ts';
 // The glyphs as the page draws them, for a scenario that must tell two levels of
 // one bird apart by their drawing and not only by their count of marks.
@@ -326,7 +328,7 @@ export const SCENARIOS = [
   {
     name: 'a stop inside a start leaves nothing playing',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 01. Every startup takes a generation token and every
     // continuation after an await asks whether it is still the one that was
@@ -354,7 +356,7 @@ export const SCENARIOS = [
   {
     name: 'planning a theme while one plays leaves the playing one alone',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 02. `generate()` applies a preset's params and then puts the
     // table back exactly as it found it, and every deck re-applies its own
@@ -413,7 +415,7 @@ export const SCENARIOS = [
   {
     name: 'an offline render while a set plays is its own room',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 02's other half, and round C's. `renderTrack()` used to apply a
     // preset to the shared table, await the worklet's module and the voices'
@@ -479,7 +481,7 @@ export const SCENARIOS = [
   {
     name: 'two sets in one context each keep their own master',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // The review's initialisation half of finding 02: `createMix()` built its
     // shared master before selecting the first track, so its EQ depended on
@@ -538,7 +540,7 @@ export const SCENARIOS = [
   {
     name: 'a seek inside a hand-over keeps the theme and the clock running',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 03. A seek cancels the hand-over in flight, lets the arriving
     // and retiring decks go, brings the sum out of its dip and lands one fresh
@@ -643,7 +645,7 @@ export const SCENARIOS = [
   {
     name: 'ten pause/play cycles leave the late counter at zero',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // What Eugene saw on the bench, at his own seed and bar: every press of
     // pause and play wrote a stumble into the log — "seed 99895 · theme IV ·
@@ -870,7 +872,8 @@ export const SCENARIOS = [
     //
     // Ten cold starts on the deepest buffer the page can be asked for, each
     // from a context that has been stopped: not one note may be reached late.
-    query: 'latency=0.3',
+    // (a seed named, so the cold start is a set's and not a bare first open's featured playlist, 10-23)
+    query: 'latency=0.3&v=2&seed=1',
     page: body(`
       const late = () => window.deepHouse.late;
       const before = late().count;
@@ -907,7 +910,7 @@ export const SCENARIOS = [
   {
     name: 'ten skips leave the late counter at zero',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // **Its own deadline** (`test-browsers.ts`): ten cuts and ten waits for a landing: 22 s on a quiet machine and past two minutes on a busy one (`TODO.md`).
     deadline: 300000,
@@ -986,7 +989,7 @@ export const SCENARIOS = [
   {
     name: 'a cut is answered inside a beat and a bit',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // **Its own deadline** (`test-browsers.ts`): the same, and for the same reason.
     deadline: 300000,
@@ -1085,7 +1088,7 @@ export const SCENARIOS = [
   {
     name: 'a cast never stops the output, and the seam lands on the bar',
     area: 'seam',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     setup: () => ({ from: '15576', to: '92970' }),
     page: body(`
@@ -1277,7 +1280,7 @@ export const SCENARIOS = [
   {
     name: 'a next pressed while a cast is being built goes on into the cast, and the output never stops',
     area: 'seam',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // R7. The cast awaits its cold landing, a next overtakes it, and the cast
     // answers null — which the face read as a refusal, and stopped and started
@@ -1352,7 +1355,7 @@ export const SCENARIOS = [
   {
     name: 'a play pressed twice on the element path leaves the element playing',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // R8. On the element path (an iPhone's) a start that a second start
     // overtook paused the element in its `finally` while the newer start was
@@ -1412,9 +1415,137 @@ export const SCENARIOS = [
   },
 
   {
+    name: 'on the element path a set that is not heard is brought back, or honestly paused, and the next play sounds',
+    area: 'transport',
+    query: 'seed=1',
+    // Round lock-resume (his iPhone 10-23: a long pause in the background, the lock screen's play did nothing,
+    // the app then said it played, silently). The links a page does not own are made dead here, behind the
+    // page's back, and the page must find it out by itself (control.ts `checkSound`): a render clock that
+    // stands while the context says `running` (its device stopped under it) is brought back on a context
+    // built anew, the set where it was, or, where a browser starts a context only inside a gesture (WebKit),
+    // ends paused and the next press sounds; one that stands on every context ends paused, and the next press
+    // sounds; a device whose resume never settles fails the start, paused, instead of a start that waits for
+    // ever under a key that says it plays. Each press is an evaluate of its own, as a hand's gesture is. On
+    // `?out=element` in this page, the element muted before it is ever played, so nothing is heard on any
+    // engine, and the page put back after.
+    deadline: 150000,
+    drive: async (page) => {
+      const back = page.url();
+      const at = new URL(back);
+      await page.goto(`${at.origin}${at.pathname}?out=element&v=2&seed=5`);
+      try {
+        const up = await page.waitForFunction(() => !!(window.ring && window.ring.control), null, { timeout: 25000 }).then(() => true, () => false);
+        if (!up) return { noPage: true };
+        await page.evaluate(() => {
+          const play = HTMLMediaElement.prototype.play;
+          HTMLMediaElement.prototype.play = function () { this.muted = true; this.volume = 0; return play.call(this); };
+          const c2 = window.ring.control, el = document.getElementById('sound');
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          window.__lr = {
+            c2, sleep,
+            waitFor: async (fn, ms) => { const end = performance.now() + ms; while (performance.now() < end) { if (fn()) return true; await sleep(100); } return false; },
+            look: () => ({ playing: c2.state.playing, starting: c2.state.starting, mix: !!c2.mix, paused: el.paused,
+              ctx: c2.state.ctx ? c2.state.ctx.state : null, seconds: +c2.readout().seconds.toFixed(2), face: !!c2.readout().starting }),
+            moving: async () => { const c = c2.state.ctx, t = c ? c.currentTime : 0; await sleep(700); return !!c && c.currentTime - t > 0.3; },
+            clock: Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'currentTime'),
+            resume: AudioContext.prototype.resume,
+          };
+        });
+        // a hand's press: a gesture of its own
+        const press = () => page.evaluate(() => { void window.__lr.c2.start(); });
+        const settle = () => page.evaluate(async () => { const L = window.__lr; await L.waitFor(() => !L.c2.state.starting, 20000); await L.sleep(2500); return { ...L.look(), moving: await L.moving() }; });
+        const out = {};
+        await press();
+        out.up = await settle();
+
+        // 1. this context's clock stands while it says running, and the page comes back into view
+        Object.assign(out, await page.evaluate(async () => {
+          const L = window.__lr, c2 = L.c2;
+          const first = c2.state.ctx, stood = first.currentTime, from = +c2.readout().seconds.toFixed(2);
+          window.__lr.first = first;
+          Object.defineProperty(first, 'currentTime', { configurable: true, get: () => stood });
+          // the page coming back into view is what asks (an unlock, a return from another app)
+          document.dispatchEvent(new Event('visibilitychange'));
+          // the check reads for a second and a half before it calls the set unheard
+          await L.sleep(1900);
+          const revivingFace = L.look().face;
+          await L.waitFor(() => !c2.state.starting && (c2.state.ctx !== first || !c2.state.playing), 15000);
+          await L.sleep(1800);
+          return { revivingFace, revived: { ...L.look(), newContext: c2.state.ctx !== first, moving: await L.moving(), from } };
+        }));
+        if (!out.revived.playing) { await press(); out.revivedByPress = await settle(); }
+
+        // 2. every context's clock stands (asked as the app's shell asks): the set ends paused, and the next press
+        // (the clock given back) sounds
+        out.dead = await page.evaluate(async () => {
+          const L = window.__lr, c2 = L.c2;
+          Object.defineProperty(BaseAudioContext.prototype, 'currentTime', { configurable: true, get: () => 1 });
+          window.__lr.second = c2.state.ctx;
+          c2.checkSound();
+          const stopped = await L.waitFor(() => !c2.state.playing && !c2.state.starting, 20000);
+          await L.sleep(900);
+          Object.defineProperty(BaseAudioContext.prototype, 'currentTime', L.clock);
+          return { ...L.look(), stopped };
+        });
+        await press();
+        out.afterDead = { ...(await settle()), newContext: await page.evaluate(() => window.__lr.c2.state.ctx !== window.__lr.second) };
+
+        // 3. a device whose resume never settles: the start fails paused within the wait, the next press sounds
+        await page.evaluate(async () => {
+          const L = window.__lr, c2 = L.c2;
+          c2.stop();
+          await L.sleep(600);
+          L.third = c2.state.ctx;
+          await Promise.race([L.third.suspend(), L.sleep(3000)]);
+          L.third.resume = () => new Promise(() => {});
+          L.t3 = performance.now();
+        });
+        await press();
+        out.asleep = await page.evaluate(async () => {
+          const L = window.__lr, c2 = L.c2;
+          await L.sleep(300);
+          const askedFace = L.look().face;
+          const gaveUp = await L.waitFor(() => !c2.state.playing && !c2.state.starting, 12000);
+          const ms = Math.round(performance.now() - L.t3);
+          await L.sleep(300);
+          return { ...L.look(), askedFace, gaveUp, ms };
+        });
+        await press();
+        out.afterAsleep = { ...(await settle()), newContext: await page.evaluate(() => window.__lr.c2.state.ctx !== window.__lr.third) };
+        await page.evaluate(async () => { window.__lr.c2.stop(); await window.__lr.sleep(500); });
+        return out;
+      } finally {
+        await page.goto(back);
+        await page.waitForFunction(() => !!(window.ring && window.ring.control), null, { timeout: 25000 }).catch(() => {});
+      }
+    },
+    judge: (r) => {
+      if (r.noPage) return { ok: false, why: 'the page on ?out=element never came up' };
+      const sounding = (x) => !!x && x.playing && x.mix && !x.paused && x.ctx === 'running' && x.moving;
+      const honest = (x) => !!x && !x.playing && !x.starting && x.paused && !x.face;
+      const revived = sounding(r.revived) && r.revived.newContext && r.revived.seconds >= r.revived.from;
+      const pausedThenPressed = honest(r.revived) && sounding(r.revivedByPress);
+      const fails = [
+        !sounding(r.up) && `the first play did not sound: ${JSON.stringify(r.up)}`,
+        !r.revivingFace && 'the face did not show the wait while the set was revived',
+        !(revived || pausedThenPressed) && `a standing clock was neither brought back on a new context nor paused with the next press sounding: ${JSON.stringify(r.revived)} ${JSON.stringify(r.revivedByPress || null)}`,
+        !(r.dead.stopped && honest(r.dead)) && `a clock that stands everywhere did not end paused: ${JSON.stringify(r.dead)}`,
+        !(sounding(r.afterDead) && r.afterDead.newContext) && `the press after a dead output did not sound on a new context: ${JSON.stringify(r.afterDead)}`,
+        !(r.asleep.askedFace && r.asleep.gaveUp && honest(r.asleep) && r.asleep.ms < 6000) && `a device that never wakes did not leave the key paused: ${JSON.stringify(r.asleep)}`,
+        !(sounding(r.afterAsleep) && r.afterAsleep.newContext) && `the press after a sleeping device did not sound on a new context: ${JSON.stringify(r.afterAsleep)}`,
+      ].filter(Boolean);
+      return {
+        ok: !fails.length,
+        why: fails.join('; '),
+        note: `a standing clock ${revived ? `came back on a new context at ${r.revived.seconds} s (from ${r.revived.from})` : 'ended paused and the next press sounded'}; one standing everywhere ended paused and the next press sounded on a new context; a device that never woke left the key paused after ${r.asleep && r.asleep.ms} ms and the next press sounded`,
+      };
+    },
+  },
+
+  {
     name: 'a hidden page keeps the face current: a theme that arrives while no frame is drawn is read, journalled and stored',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // R14. The frame loop was the only reader of the transport, and a hidden
     // page draws no frames: on a locked phone the lock-screen card froze, no
@@ -1463,7 +1594,7 @@ export const SCENARIOS = [
   {
     name: 'a mixer control moved inside a blend leaves the blend running',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // R18. The first move off clean installed a mixer and then *sought* the
     // transport so the look-ahead already scheduled would pass through it — a
@@ -1498,7 +1629,7 @@ export const SCENARIOS = [
   {
     name: 'five nexts inside a second land five ahead, and nothing stops',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene, 09-19 17:20: *"no cut guard on next/previous/dice or the lock
     // screen; a press during a blend retargets it."* Five presses with nothing
@@ -1602,7 +1733,8 @@ export const SCENARIOS = [
     // the first time a hand-over a hand asked for is in flight. Every row has
     // a page of its own since 09-24; the parameter, which is nothing the page
     // reads, is kept as this row's statement that it needs one.
-    query: 'fresh=fill',
+    // (and a seed, so a bare first open's featured playlist, 10-23, does not take the ring's next and back)
+    query: 'fresh=fill&v=2&seed=1',
     page: body(`
       const fill = () => document.querySelector('#cutFill .fill');
       const wedge = () => document.querySelector('#cutFill rect.fill');
@@ -1878,7 +2010,7 @@ export const SCENARIOS = [
   {
     name: 'the journal walks back across casts, and a reload keeps it',
     area: 'journal',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // `notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md` §3b, Eugene: *"back, back, back should restore the seed
     // you were on three tracks ago, and forward, forward re-advance."* The
@@ -2027,7 +2159,7 @@ export const SCENARIOS = [
   {
     name: 'the page has one key, the top of it is the name, and the way into the view is the gyroscope\'s panel and its corner key',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene, 09-19: no keyboard shortcut for any tooling or behaviour; the
     // space bar is the only key, and the machine view is reached by a control.
@@ -2062,11 +2194,23 @@ export const SCENARIOS = [
         w: Math.round(r.width), h: Math.round(r.height),
         label: mark.getAttribute('aria-label'), tab: mark.tabIndex, tag: mark.tagName,
         ink: getComputedStyle(mark).color,
-        marks: Array.from(mark.querySelectorAll('svg > *')).map((n) => n.tagName),
-        filled: Array.from(mark.querySelectorAll('svg > *')).filter((n) => {
-          const f = n.getAttribute('fill') || getComputedStyle(n).fill;
-          return f && f !== 'none';
-        }).length,
+        // (star-keys, 10-22: the key is the folded map, scroll-glyph.ts, its layers drawn into one turned <g>.
+        // What it must stay is line work: the sheet, the map's lines and the crease stroked; the only fills are
+        // the map's stars, each a dot, and the turned corner's back, faint. Empty layers of the other forms are not marks.)
+        ...(() => {
+          const layers = Array.from(mark.querySelectorAll('svg > g > *')).filter((n) => (n.getAttribute('d') || '').trim());
+          const fillOf = (n) => n.getAttribute('fill') || getComputedStyle(n).fill;
+          const filled = layers.filter((n) => { const f = fillOf(n); return f && f !== 'none'; });
+          const lines = layers.filter((n) => !filled.includes(n) && +(n.getAttribute('stroke-width') || getComputedStyle(n).strokeWidth || 0) > 0);
+          const dots = filled.filter((n) => { const b = n.getBBox(); return b.width <= 3 && b.height <= 3; });
+          const faint = filled.filter((n) => !dots.includes(n) && +(n.getAttribute('opacity') ?? 1) <= 0.2);
+          return {
+            marks: layers.map((n) => n.tagName),
+            groups: mark.querySelectorAll('svg > *').length,
+            lines: lines.length, stars: dots.length, faint: faint.length,
+            filled: filled.length - dots.length - faint.length,
+          };
+        })(),
       };
       mark.focus();
       out.mark.focusable = document.activeElement === mark;
@@ -2146,9 +2290,11 @@ export const SCENARIOS = [
       const deaf = k.now.seed === k.was.seed && k.now.theme === k.was.theme
         && k.now.playing === k.was.playing && k.now.view === k.was.view;
       const space = r.space.paused && r.space.played;
-      // (the gyroscope is at least a 44 px touch target past the ring (62 on a desktop, 1.4× its glyph, 10-20); line work, its axle's two knobs the one filled layer)
+      // (the gyroscope is at least a 44 px touch target past the ring (62 on a desktop, 1.4× its glyph, 10-20); line work:
+      // since star-keys the folded map in one turned group, at least three stroked layers, four or more stars as dots,
+      // at most the corner's faint back besides, and nothing else filled)
       const corner = r.mark.clearsRing > 0 && r.mark.w >= 44 && r.mark.h >= 44 && r.mark.w <= 72 && r.mark.h <= 72;
-      const drawn = r.mark.marks.length >= 4 && r.mark.filled <= 1;
+      const drawn = r.mark.groups === 1 && r.mark.lines >= 3 && r.mark.stars >= 4 && r.mark.faint <= 1 && r.mark.filled === 0;
       const reachable = r.mark.tag === 'BUTTON' && r.mark.tab === 0 && !!r.mark.label && r.mark.focusable;
       const both = r.opened && !r.inView.onTop && r.inView.hidden && r.inView.expanded === 'true' && r.closed && r.after.expanded === 'false';
       const n = r.name;
@@ -2172,7 +2318,7 @@ export const SCENARIOS = [
           : !space ? `the space bar paused ${r.space.paused} and played ${r.space.played}`
           : !named ? `the name reads ${JSON.stringify(n)}${r.toggle ? ', and the v1 | v2 toggle is still on the page' : ''}${r.inView.name ? ', and it stands over the machine view' : ''}${r.nameBack ? '' : ', and it did not come back with the ring'}`
           : !corner ? `the gyroscope sits ${r.mark.clearsRing} px clear of the ring at ${r.mark.w}x${r.mark.h}`
-          : !drawn ? `the mark is ${r.mark.marks.join('+')} with ${r.mark.filled} filled`
+          : !drawn ? `the mark is ${r.mark.groups} group(s) of ${r.mark.marks.length} layers: ${r.mark.lines} stroked, ${r.mark.stars} star dots, ${r.mark.faint} faint and ${r.mark.filled} other fills`
           : !reachable ? `the mark is a ${r.mark.tag} at tabindex ${r.mark.tab} labelled ${r.mark.label}`
           : !both ? `the panel opened ${r.panel}, the view opened ${r.opened}, the gyroscope seen over the view ${r.inView.onTop} (hidden ${r.inView.hidden}), closed ${r.closed}, expanded ${r.inView.expanded} then ${r.after.expanded}`
           : !r.after.playing ? 'the set stopped across the flip'
@@ -2182,7 +2328,7 @@ export const SCENARIOS = [
           + `${(n.ofScreen * 100).toFixed(0)} % of the screen wide, ${n.fromTop} px down, clearing the ring by ${n.clearsRing} px and the corner mark entirely, `
           + `the wordmark its one child with no border and no ground behind it; no engine toggle anywhere on the page, and it stands aside for the engineer's face and comes back with the ring; `
           + `the way in is the gyroscope, a ${r.mark.w}x${r.mark.h} button ${r.mark.clearsRing} px clear of the ring, `
-          + `${r.mark.marks.length} line-work layers (${r.mark.filled} filled), in ${r.mark.ink} over the page's black, labelled and at tabindex 0; `
+          + `the folded map in line work (${r.mark.lines} stroked layers, ${r.mark.stars} stars as dots, the corner's faint back, nothing else filled), in ${r.mark.ink} over the page's black, labelled and at tabindex 0; `
           + `it opens the panel, whose corner key opens the view; neither is seen over it, and the view's close shut it, with the set playing throughout`,
       };
     },
@@ -2191,7 +2337,7 @@ export const SCENARIOS = [
   {
     name: 'the title is the wordmark, white, named Deep House, where the type stood',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // 09-23: the header's DEEP HOUSE became `wordmark.svg`, drawn from Jost
     // Medium, and the rule it was placed by is that **nothing moved**: its cap
@@ -2818,7 +2964,7 @@ export const SCENARIOS = [
   {
     name: 'a spell set mid-set is a seam from the next phrase line',
     area: 'seam',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // `?spell=` and `?recipe=` are read once, when the set is made; this is the
     // same layer moved by a hand (`notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md` §3). What follows is
@@ -2910,7 +3056,7 @@ export const SCENARIOS = [
   {
     name: 'a seek lands without a click and builds nothing on the tick',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Two parked items of `TODO.md` and a gate for the third. A seek used to
     // find the preparation of wherever the deck had *started* — the memo was
@@ -3043,7 +3189,7 @@ export const SCENARIOS = [
   {
     name: 'offline and live schedule the same theme',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Round E's one contract, watched rather than argued. Every engine looks a
     // voice up in `deepHouse.voices` at fire time, so wrapping that object is
@@ -3146,7 +3292,7 @@ export const SCENARIOS = [
   {
     name: 'a stopped set stops being processed',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 04. A processor that returns true for ever is processed for as
     // long as the context lives, connected to anything or not, so three starts
@@ -3181,7 +3327,7 @@ export const SCENARIOS = [
   {
     name: 'a flick and a cancelled drag both end the scrub: a flick gives the position back, a cancelled press keeps the place the hand pressed',
     area: 'transport',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Finding 05. A drag ends exactly once, whatever ends it: a lift, a flick,
     // a cancelled gesture, a pointer capture the system took away. Before
@@ -3238,7 +3384,7 @@ export const SCENARIOS = [
   {
     name: 'a reset to seed one is the untouched first load',
     area: 'seam',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene's smoke test: on theme six of a seed, a long press on the die put
     // the seed back to one and left the set playing theme six of it. A stop's
@@ -3330,7 +3476,7 @@ export const SCENARIOS = [
   {
     name: 'a mouse\'s drag turns nothing: the band scrubs and the star stays',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // The star holds the turn the record had reached instead of following the
     // previewed position: a scrub used to repeat the dice swipe's own
@@ -3479,7 +3625,7 @@ export const SCENARIOS = [
   {
     name: 'an untouched ring renders byte-identical to v1',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Interface round one put a derived colour over the whole ring, and the
     // claim the round stands on is that at the house vector it is not there:
@@ -4072,7 +4218,7 @@ export const SCENARIOS = [
   {
     name: 'the type is light on every hue',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene, 09-23: *"give the text a bias toward white/light as the hue
     // travels, so type stays readable on every hue"*. The ring is sent toward
@@ -4195,7 +4341,7 @@ export const SCENARIOS = [
   {
     name: 'the ring\'s colour steps at a boundary and never on a frame',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // The gradient lives in <defs> and all three bloomed groups reference it, so
     // writing its stops re-runs their gaussian blur. It is therefore stepped
@@ -4243,7 +4389,7 @@ export const SCENARIOS = [
   {
     name: 'a cell\'s explanation stays while the pointer is on it',
     area: 'words',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene, reading them on the page: the line should be visible for as long
     // as the mouse is on the circle, and go when it leaves. So on a pointer that
@@ -4294,7 +4440,7 @@ export const SCENARIOS = [
   {
     name: 'the star never leaves fifteen degrees of north',
     area: 'ring',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene's rule once the cells became a compass: earth stays at the top.
     // The star sways rather than turning — one cycle of a sine over the theme's
@@ -4547,9 +4693,49 @@ export const SCENARIOS = [
   },
 
   {
+    // **The slowdown watch** (round audio-slack, `src/slowdown.ts`): a render
+    // held to under half of real time for two seconds in every five
+    // (`?stress=`, `src/render-stress.ts`) is a slowdown each time, about two
+    // seconds long, in the ledger and on the view's load row.
+    name: 'a render held back is a slowdown, about as long as it was held, on the load row',
+    area: 'view',
+    serial: true,
+    query: 'v=2&seed=1&stress=6,5,2',
+    page: body(`
+      await started();
+      await waitFor(() => ctl.mix && ctl.mix.state.running, 12000);
+      await sleep(12500);
+      const all = ctl.slowdowns();
+      await bounded(window.ring.machine.open(), 12000);
+      await sleep(1200);
+      const cell = (k) => { const c = document.querySelector('#machine [data-fact="load"] [data-load="' + k + '"] .v'); return c ? c.textContent : null; };
+      const cells = { slow: cell('slow'), slowest: cell('slowest'), last: cell('last') };
+      const summary = ctl.slowSummary();
+      window.ring.machine.close();
+      ctl.stop();
+      await sleep(300);
+      return { all, cells, summary };
+    `),
+    judge: (r) => {
+      const whole = r.all.filter((s) => s.ms >= 1600 && s.ms <= 2600);
+      const shown = r.cells.slow === String(r.summary.count) && r.cells.slowest === `${r.summary.longestMs} ms`
+        && !!r.cells.last && / ago$/.test(r.cells.last);
+      return {
+        ok: whole.length >= 1 && r.all.every((s) => s.low < 0.8) && shown,
+        why: !whole.length ? `no slowdown of about two seconds: ${JSON.stringify(r.all)}`
+          : !r.all.every((s) => s.low < 0.8) ? `a slowdown read a lowest rate of 0.8 or more: ${JSON.stringify(r.all)}`
+          : `the load row reads ${JSON.stringify(r.cells)} against ${JSON.stringify(r.summary)}`,
+        note: `${r.all.length} slowdowns over 12.5 s of a render held back two seconds in five: `
+          + r.all.map((s) => `${s.ms} ms (low ${s.low}, ${s.lostMs} ms lost)`).join(', ')
+          + `; the load row reads slow ${r.cells.slow}, slowest ${r.cells.slowest}, last ${r.cells.last}`,
+      };
+    },
+  },
+
+  {
     name: 'a pause leaves every box where it was',
     area: 'view',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene, 09-19: *"when I press pause most of the graph's nodes except the
     // instruments disappear — doesn't look right, jarring."* The cause was that
@@ -4759,7 +4945,7 @@ export const SCENARIOS = [
     // **Alone** (M2), for the same reason: the LED going out 200 ms after the
     // tone stops is a meter frame arriving on time.
     serial: true,
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // The one scenario that writes into the machine, and it says so. A bus is
     // driven over full scale by a tone connected straight to it — a test-only
@@ -4842,7 +5028,7 @@ export const SCENARIOS = [
   {
     name: 'the ledger names a seam and a cast with their bars',
     area: 'view',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     setup: () => ({ from: '15576', to: '92970' }),
     page: body(`
@@ -4899,7 +5085,7 @@ export const SCENARIOS = [
   {
     name: 'the phone is one page, and only the graph scrolls sideways',
     area: 'view',
-    // seed 1 by name: since K16 a bare page throws the die
+    // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
     query: 'seed=1',
     // Eugene's own layout (`PLAN-MACHINE-VIEW` §2d as he re-drew it on 09-19):
     // below the break the three columns stack into one long page — the ring,
@@ -6669,7 +6855,7 @@ SCENARIOS.push({
   page: body(HAND + `
     const boxDist = (b, x, y) => Math.hypot(Math.max(b.x - x, 0, x - (b.x + b.w)), Math.max(b.y - y, 0, y - (b.y + b.h)));
     const meet = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-    const shot = (label) => {
+    const shot = (label, blocked = []) => {
       const cs = cells();
       const gaps = cs.map((c) => +(boxDist(c.words.box, c.words.bird.x, c.words.bird.y) - c.words.bird.r).toFixed(2));
       const costs = cs.map((c) => c.words.cost);
@@ -6685,8 +6871,12 @@ SCENARIOS.push({
         words.forEach((v, j) => { if (j > i && meet(a, shrink(v))) hits.push(label + ' words ' + i + ' on words ' + j); });
         act.forEach((n, j) => { const q = shrink(n); const cx = q.x + q.w / 2, cy = q.y + q.h / 2; if (boxDist(a, cx, cy) < q.w / 2) hits.push(label + ' words ' + i + ' on action ' + j); });
       });
-      // below whenever below is clear, and never above
-      const notBelow = cs.filter((c) => c.words.below === 0 && c.words.side !== 0).map((c) => c.name);
+      // below whenever below is clear, and never above: below-first is asked as the birds land, and a side is kept
+      // while it stays clear (the placer's rule since K3/K14), so a bird whose below was crowded at some point
+      // between the ask and rest (the plan for the new values lands half a second after the ask and changes
+      // the tempo, and with it the sway's reach) may keep the side it took then; below clear all the way through
+      // and not taken is still a failure
+      const notBelow = cs.filter((c, i) => c.words.below === 0 && c.words.side !== 0 && !blocked[i]).map((c) => c.name);
       // above only as the last resort, inside towards the centre (round K4)
       const above = cs.filter((c) => c.words.side < 5 && c.words.box.y + c.words.box.h <= c.words.bird.y - c.words.bird.r).map((c) => c.name);
       // and never over the track: no corner of the box past the lane band's inner edge
@@ -6695,6 +6885,30 @@ SCENARIOS.push({
       const below = cs.filter((c) => c.words.side === 0).length;
       return { label, gaps, costs, sides: cs.map((c) => c.words.side), hits, notBelow, above, below, onTrack };
     };
+    // **Read once the words have come to rest** (rel-rows, 10-24): eight birds sent at once slide for about a
+    // second, and their sides are asked afresh as they land, so the words still glide round their birds until
+    // about 1.8 s after the ask (measured on 2.3.1 and 2.3.2 alike). The 900 ms this row slept read that glide
+    // in passing: a pass on 2.3.1 by where the glide happened to be. The state read is the arrangement the
+    // placer comes to rest on: every bird's words at their aim and every side unchanged for 400 ms (six
+    // seconds at most, and a row that never settles is read where it stands and says so).
+    const settle = async () => {
+      const t0 = performance.now();
+      let sides = '', since = t0;
+      // whether each bird's below was crowded at any reading from the ask to rest
+      const blocked = cells().map(() => false);
+      const look = () => cells().forEach((c, i) => { if (c.words.below !== 0) blocked[i] = true; });
+      while (performance.now() - t0 < 900) { look(); await sleep(50); }
+      while (performance.now() - t0 < 6000) {
+        look();
+        const cs = cells();
+        const now = cs.map((c) => c.words.side).join(',');
+        const glide = Math.max(...cs.map((c) => Math.hypot(c.words.box.x - c.words.aim.x, c.words.box.y - c.words.aim.y)));
+        if (now !== sides || glide > 0.5) { sides = now; since = performance.now(); }
+        else if (performance.now() - since >= 400) return { ms: Math.round(performance.now() - t0), blocked };
+        await sleep(50);
+      }
+      return { ms: null, blocked };
+    };
     const out = [];
     for (const size of ['phone', 'desktop']) {
       if (size === 'desktop') { el('tilt').style.width = '940px'; el('tilt').style.height = '940px'; }
@@ -6702,8 +6916,8 @@ SCENARIOS.push({
       for (const v of [0, null, 1]) {
         if (v === null) window.ring.release(null);
         else for (let i = 0; i < 8; i++) window.ring.pull(i, v);
-        await sleep(900);
-        out.push(shot(size + ' ' + (v === null ? 'house' : v === 0 ? '0%' : '130%')));
+        const rest = await settle();
+        out.push({ ...shot(size + ' ' + (v === null ? 'house' : v === 0 ? '0%' : '130%'), rest.blocked), rest: rest.ms });
       }
     }
     el('tilt').style.width = ''; el('tilt').style.height = '';
@@ -6719,15 +6933,17 @@ SCENARIOS.push({
     const notBelow = r.flatMap((x) => x.notBelow.map((n) => `${n} at ${x.label}`));
     const above = r.flatMap((x) => x.above.map((n) => `${n} at ${x.label}`));
     const onTrack = r.flatMap((x) => x.onTrack.map((n) => `${n} at ${x.label}`));
+    const restless = r.filter((x) => x.rest == null).map((x) => x.label);
     return {
-      ok: !gapBad.length && !costBad.length && !hits.length && !notBelow.length && !above.length && !onTrack.length,
-      why: gapBad.length ? `words stand ${gapBad[0].g} off bird ${gapBad[0].i} at ${gapBad[0].at}`
+      ok: !restless.length && !gapBad.length && !costBad.length && !hits.length && !notBelow.length && !above.length && !onTrack.length,
+      why: restless.length ? `the words never came to rest at ${restless.join(', ')}`
+        : gapBad.length ? `words stand ${gapBad[0].g} off bird ${gapBad[0].i} at ${gapBad[0].at}`
         : costBad.length ? `bird ${costBad[0].i}'s words found no clear spot at ${costBad[0].at} (cost ${costBad[0].c})`
         : hits.length ? hits[0]
         : notBelow.length ? `${notBelow[0]}'s words are not below it where below was clear`
         : above.length ? `${above[0]}'s words stand above it without being refused everywhere else`
         : `${onTrack[0]}'s words reach over the track`,
-      note: `all eight birds at 0 %, at the house and at 130 %, on a phone's square and a desktop's: every bird's words stand `
+      note: `all eight birds at 0 %, at the house and at 130 %, on a phone's square and a desktop's, read once the words came to rest (${r.map((x) => x.rest).join('/')} ms): every bird's words stand `
         + `${Math.min(...all)}-${Math.max(...all)} units off its edge (the gap is 8), on no bird, no other words and no action, on the placer's `
         + `boxes and on the drawn page alike; below the bird wherever below was clear (${r.map((x) => x.below).join('/')} of eight across the six states), `
         + `to the side otherwise, inside towards the centre only when both were refused, and never over the track`,
@@ -8443,7 +8659,9 @@ SCENARIOS.push({
         let presses = 0;
         for (const label of labels) {
           const loc = p.locator(`#machine [role="button"][aria-label="${label}"]`).first();
-          await loc.scrollIntoViewIfNeeded();
+          // to the middle of the screen: "if needed" leaves a key half under the phone's bottom edge,
+          // where its centre is off the screen (round audio-slack's load row is a line taller there)
+          await loc.evaluate((e) => e.scrollIntoView({ block: 'center' }));
           for (let i = 0; i < 20; i++) {
             const was = await loc.getAttribute('aria-pressed');
             const bb = await loc.boundingBox();
@@ -10629,15 +10847,21 @@ SCENARIOS.push({
       await p.waitForTimeout(400);
       const open = await p.evaluate(() => { const l = document.getElementById('library'); const b = l.getBoundingClientRect(); return { view: window.ring.machine.on, address: /view=machine/.test(location.search), open: l.open, seen: b.width > 0 && b.height > 0, about: !document.getElementById('libAbout').hidden, scroll: scrollY }; });
       await p.keyboard.press('Escape');
-      await p.waitForTimeout(300);
+      // (star-keys, 10-22: the panel zooms back into the folded map, 520 ms, and the dialog closes and gives the focus
+      // back when it lands. A close that never lands, or lands late, is still a failure: two seconds is four zooms.)
+      const t0 = Date.now();
+      await p.waitForFunction(() => !document.getElementById('library').open, null, { timeout: 2000 }).catch(() => {});
+      const landed = Date.now() - t0;
+      await p.waitForTimeout(100);
       const back = await p.evaluate(() => { const a = document.activeElement; return { open: document.getElementById('library').open, active: a ? a.getAttribute('data-action') || a.id || a.tagName : null, playing: window.ring.control.playing }; });
+      back.landed = landed;
       return { open, back };
     } finally { await own.close(); }
   },
   judge: (r) => ({
     ok: !r.open.view && !r.open.address && r.open.open && r.open.seen && r.open.about && r.open.scroll === 0 && !r.back.open && r.back.active === 'play' && !r.back.playing,
     why: JSON.stringify(r),
-    note: `the question pressed inside the view closed it (view=machine off the address) and the panel stood open on About, the page at ${r.open.scroll}; Escape closed it with the focus on ${r.back.active} and the set not started`,
+    note: `the question pressed inside the view closed it (view=machine off the address) and the panel stood open on About, the page at ${r.open.scroll}; Escape closed it (landed in ${r.back.landed} ms) with the focus on ${r.back.active} and the set not started`,
   }),
 });
 
@@ -12260,7 +12484,7 @@ SCENARIOS.push({
 SCENARIOS.push({
   name: 'a bird\'s words are measured again when the page\'s face arrives late',
   area: 'words',
-  // seed 1 by name: since K16 a bare page throws the die
+  // seed 1 by name: a bare page is not seed 1 (K16 threw the die; since featured, 10-23, it starts on a featured playlist)
   query: 'seed=1',
   deadline: 90000,
   drive: async (page) => {
@@ -12903,8 +13127,8 @@ SCENARIOS.push({
         const unit = el('tilt').offsetWidth / 1000;
         const read = (n) => n ? { w: +(+n.getAttribute('stroke-width') * unit).toFixed(2), op: +n.getAttribute('opacity'), ink: n.getAttribute('stroke') } : null;
         // the die: a still press, read half way, let go off the node so it is not a tap
-        const dim = document.querySelector('circle[fill="#000"][cx="500.0"]');
-        const db = dim.getBoundingClientRect();
+        // (found by its action: it stood at the foot until star-keys, 10-22, set it on the star's lower right point)
+        const db = document.querySelector('#actions g[data-action="cast"] > circle').getBoundingClientRect();
         const die = { x: db.x + db.width / 2, y: db.y + db.height / 2 };
         mouse('pointermove', die, el('stage'));
         mouse('pointerdown', die, el('tilt'));
@@ -13148,11 +13372,11 @@ SCENARIOS.push({
     const others = cells().filter((c, k) => k !== 6).map((c) => c.marks.halo);
     const act = (w) => Math.max(0, ...[...document.querySelectorAll('circle[stroke-width="' + w + '"]')].map((n) => +n.getAttribute('opacity')));
     const sk = document.querySelectorAll('#starCells g.cell')[6];
-    // the skip node, east of the centre on the core's stroke
+    // the skip node, found by its action: it stood east of the centre until star-keys (10-22) set the five keys
+    // on the star's points, skip at a fifth of a turn
     const tb = el('tilt').getBoundingClientRect();
-    const dim = document.querySelector('circle[fill="#000"][cx="500.0"]').getBoundingClientRect();
-    const core = (dim.y + dim.height / 2) - (tb.y + tb.height / 2);
-    mouse('pointermove', { x: tb.x + tb.width / 2 + core, y: tb.y + tb.height / 2 }, el('stage'));
+    const sn = document.querySelector('#actions g[data-action="skip"] > circle').getBoundingClientRect();
+    mouse('pointermove', { x: sn.x + sn.width / 2, y: sn.y + sn.height / 2 }, el('stage'));
     await sleep(300);
     const transport = { crisp: act('1.3'), wide: act('6') };
     const birdAfter = cells()[6].marks.halo;
@@ -14453,6 +14677,9 @@ SCENARIOS.push({
 // side, a desktop and a big touch screen — the ring's square is centred on the
 // viewport within a pixel, before and after its panel opens; and in the
 // machine view it is centred in its own box.
+// Since duo-fold (10-23) a ring as large as the height allows rises just enough
+// to keep room under it for its line, clear of its readout; across it is still
+// centred within a pixel.
 SCENARIOS.push({
   name: 'the ring stands in the middle of the viewport on every screen, with its panel open or not, and in the middle of its box in the machine view',
   area: ['ring', 'panel'],
@@ -14508,7 +14735,12 @@ SCENARIOS.push({
     const bad = [];
     for (const x of r.out) {
       for (const [when, m] of [['before', x.before], ['with the panel open', x.after]]) {
-        if (Math.abs(m.dx) > 1 || Math.abs(m.dy) > 1) bad.push(`${x.name} ${when}: the ring's centre stands ${m.dx}, ${m.dy} px off the viewport's`);
+        // **or risen just enough to keep its line's room** (duo-fold, `LINE_TOP` in library-panel.ts): where the ring
+        // is as large as the height allows, the line under it (0.53 of the side under the centre, 28 px) keeps 0.03 of
+        // the shorter side from the foot, so the ring stands that much above the middle and no more
+        const foot = m.h / 2 + m.dy + 0.53 * m.side + 28;
+        const risen = m.dy < 0 && Math.abs(foot - (m.h - 0.03 * Math.min(m.w, m.h))) <= 1.5;
+        if (Math.abs(m.dx) > 1 || (Math.abs(m.dy) > 1 && !risen)) bad.push(`${x.name} ${when}: the ring's centre stands ${m.dx}, ${m.dy} px off the viewport's`);
       }
       if (!x.open) bad.push(`${x.name}: the panel did not open under a finger`);
     }
@@ -14826,77 +15058,8 @@ SCENARIOS.push({
   },
 });
 
-// **Round K16: a bare first open throws the die** (Eugene: *"every time a bare
-// page is opened and there is no local storage yet, we should not seed 1 but
-// throw a die for the user, and whatever seed it is, that is what the person
-// gets"*). Each page is given the die's roll in advance (its `Math.random`,
-// which is the throw's source), so the seed it must land on is known: an
-// empty store's bare open plays that seed with the address bare and the die's
-// caption saying it; a hand's start writes it into the link; a second bare open
-// on the same store comes back to it whatever the die would say; a cleared
-// store rolls again; and a page with no roll given lands in the throw's space.
-SCENARIOS.push({
-  name: 'a bare first open throws the die: its seed plays, the address carries it from the first hand, a second open restores it and a cleared store rolls anew',
-  area: 'link',
-  deadline: 120000,
-  drive: async (page) => {
-    const bare = page.url().replace(/\?.*$/, '?out=silent');
-    const ctx = await page.context().browser().newContext({ viewport: { width: 390, height: 844 } });
-    // (a store is cleared before the page's own script runs: a page closing
-    // writes its place down, so clearing from inside one is undone by its close)
-    const open = async (roll, clear = false) => {
-      const p = await ctx.newPage();
-      if (clear) await p.addInitScript(() => { try { localStorage.removeItem('deep-house.player'); localStorage.removeItem('deep-house.journal'); } catch (e) {} });
-      if (roll != null) await p.addInitScript((v) => { Math.random = () => v; }, roll);
-      await p.goto(bare, { waitUntil: 'networkidle' });
-      await p.waitForFunction(() => window.ring && window.deepHouse);
-      await p.waitForTimeout(600);
-      const read = () => p.evaluate(() => ({ seed: window.ring.control.readout().seed, url: location.search,
-        caption: [...document.querySelectorAll('#inner text')].map((t) => t.textContent).find((t) => /^seed /i.test(t)) || '',
-        stored: (() => { try { return JSON.parse(localStorage.getItem('deep-house.player') || 'null'); } catch (e) { return null; } })() }));
-      return { p, read };
-    };
-    const out = {};
-    // an empty store: the die's roll plays, and the address stays bare
-    await ctx.clearCookies();
-    const a = await open(0.12345);
-    out.first = await a.read();
-    await a.p.evaluate(async () => { await window.ring.control.start(); await new Promise((r) => setTimeout(r, 1500)); window.ring.control.stop(); await new Promise((r) => setTimeout(r, 300)); });
-    out.afterHand = await a.read();
-    await a.p.close();
-    // a second bare open on the same store: the same seed, whatever the die would say
-    const b = await open(0.9);
-    out.second = await b.read();
-    await b.p.close();
-    // a cleared store: the die again
-    const c = await open(0.54321, true);
-    out.cleared = await c.read();
-    await c.p.close();
-    // no roll given: a seed in the throw's own space
-    const d = await open(null, true);
-    out.free = await d.read();
-    await d.p.close();
-    await ctx.close();
-    return out;
-  },
-  judge: (r) => {
-    const bad = [];
-    if (r.first.seed !== '12345') bad.push(`an empty store's bare open played seed ${r.first.seed}, not the die's 12345`);
-    if (/seed=/.test(r.first.url)) bad.push(`the untouched page wrote ${r.first.url}`);
-    if (!/seed 12345/i.test(r.first.caption)) bad.push(`the die's caption says "${r.first.caption}"`);
-    if (!r.first.stored || String(r.first.stored.seed) !== '12345') bad.push(`the store holds ${JSON.stringify(r.first.stored)}`);
-    if (!/seed=12345/.test(r.afterHand.url)) bad.push(`after a hand the address is ${r.afterHand.url}`);
-    if (r.second.seed !== '12345') bad.push(`a second bare open played ${r.second.seed}, not the stored 12345`);
-    if (r.cleared.seed !== '54321') bad.push(`a cleared store played ${r.cleared.seed}, not the die's 54321`);
-    if (!(/^\d+$/.test(r.free.seed) && Number(r.free.seed) < 100000)) bad.push(`a free roll played ${r.free.seed}`);
-    return {
-      ok: !bad.length,
-      why: bad[0],
-      note: `an empty store's bare open played the die's seed ${r.first.seed} with the address bare ("${r.first.url}") and the caption "${r.first.caption}"; the first hand wrote "${r.afterHand.url}"; `
-        + `a second bare open came back to ${r.second.seed}; a cleared store rolled ${r.cleared.seed}; a free roll landed on ${r.free.seed}`,
-    };
-  },
-});
+// (Round K16's bare first open that threw the die went with featured, 10-23: a bare first open starts on the first
+// featured playlist now, held by its row under `library`.)
 
 // **Round K19: the beat is the ring's first, and the breath keeps it** (Eugene:
 // *"the pulse on fast beats was better on the very original ring
@@ -16984,6 +17147,9 @@ const SKY = `
     await sleep(150);
     document.getElementById('tabGenres').click();
     await waitFor(() => document.querySelectorAll('#libGenres .skyKey').length > 10, 8000);
+    // (star-keys, 10-22: the panel zooms out of the folded map and takes no hand until it is whole, 520 ms; a press
+    // asked of it before then is a press on the ring under it. So the sky is asked once the zoom has landed.)
+    await waitFor(() => !document.documentElement.hasAttribute('data-unrolling'), 5000);
     await sleep(350);
   };
   const skyKey = (name) => [...document.querySelectorAll('#libGenres .skyKey')].find((k) => k.getAttribute('aria-label') === name);
@@ -17236,8 +17402,8 @@ const LIB = `
   const tracks = (d, name) => { const p = live(d).find((x) => (x.name ?? 'Saved') === name); return p ? (p.tracks || []).filter((t) => t.removed === undefined).map((t) => t.link) : null; };
   const said = () => (document.getElementById('say') || { textContent: '' }).textContent.trim();
   const undoBar = () => { const u = document.querySelector('#library .plUndo'); return u ? u.textContent.replace(/\\s+/g, ' ').trim() : null; };
-  // the throne by its key; with two playlists or more its menu asks, and its first row (the most recent) is taken
-  const throne = async () => { const t = document.getElementById('throne'); t.focus(); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await sleep(400); const m = document.querySelector('#throneMenu [data-name]'); if (m) { m.click(); await sleep(400); } };
+  // the throne by its key (the heart, #love, since star-keys); with two playlists or more its menu asks, and its first row (the most recent) is taken
+  const throne = async () => { const t = document.getElementById('love'); t.focus(); t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await sleep(400); const m = document.querySelector('#throneMenu [data-name]'); if (m) { m.click(); await sleep(400); } };
   const panel = async () => { if (!document.getElementById('library').open) { document.getElementById('gyro').click(); await sleep(250); } document.getElementById('tabPlaylists').click(); await sleep(150); };
   const pressAct = async (act, sel = '') => { const b = document.querySelector('#library [data-act="' + act + '"]' + sel); if (!b) return false; b.click(); await sleep(250); return true; };
 `;
@@ -17736,6 +17902,386 @@ SCENARIOS.push({
     why: JSON.stringify(r),
     note: `a save into a full storage said "${r.notice}" in the panel, and the record stayed as it was`,
   }),
+});
+
+// **Featured** (his word 10-23: the random first seed "is not really working out ... never just on bare arena"): the
+// release's own playlists (`src/featured.json`), under yours in the Playlists tab, read-only, and the first is where a
+// first run starts. The rows read the table, so they hold whatever it holds when the placeholders are replaced.
+const FEAT_PLACE = (link) => { const q = new URLSearchParams(link); return { seed: q.get('seed'), theme: Math.max(0, Number(q.get('theme') ?? 1) - 1) }; };
+const FEAT_READ = `
+  const nowList = () => { const l = document.getElementById('nowList'); return l && !l.hidden ? l.textContent.replace(/\\s+/g, ' ').trim() : null; };
+  const heartOn = () => document.getElementById('love')?.getAttribute('aria-pressed') === 'true';
+  const texts = (sel) => [...document.querySelectorAll(sel)].map((e) => e.textContent.replace(/\\s+/g, ' ').trim());
+  const menuItems = () => texts('#libPlaylists .plMenu [role="menuitem"]');
+`;
+const featReady = async (p) => { await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 }); await p.waitForTimeout(1200); };
+// **A first run's own page**: a fresh context (nothing stored) opened on the bare address. Not `ownPage`, whose first
+// load is the runner's page's address, which the first run has already rewritten to its track's link (a link, stored).
+const featFresh = async (page, opts, init = null) => {
+  const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 }, ...opts });
+  const p = await ctx.newPage();
+  if (init) await p.addInitScript(init);
+  await p.goto(page.url().replace(/\?.*$/, '?out=silent'), { waitUntil: 'networkidle', timeout: 30000 });
+  await featReady(p);
+  return { page: p, close: () => ctx.close() };
+};
+
+SCENARIOS.push({
+  name: 'a bare first open with nothing stored starts on the first featured playlist, its first track cued and its name on the ring\'s line; a reopen resumes it, and a seed link or a stored place still wins',
+  area: 'library',
+  deadline: 150000,
+  drive: async (page) => {
+    const bare = page.url().replace(/\?.*$/, '?out=silent');
+    const browser = page.context().browser();
+    const read = (p) => p.evaluate(() => {
+      const l = document.getElementById('nowList'), c = window.ring.control;
+      return { url: location.search, seed: String(c.readout().seed), theme: c.state.themeIndex, playing: c.playing, panel: document.getElementById('library').open,
+        label: l && !l.hidden ? l.textContent.replace(/\s+/g, ' ').trim() : null, lib: localStorage.getItem('deephouse.library') };
+    });
+    const out = {};
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    try {
+      const a = await ctx.newPage();
+      await a.goto(bare, { waitUntil: 'networkidle' });
+      await featReady(a);
+      out.first = await read(a);
+      // the ring's next steps the playlist, still cued; the page closing writes its place down
+      await a.evaluate(async () => { window.ring.control.skip(); await new Promise((r) => setTimeout(r, 2500)); });
+      out.stepped = await read(a);
+      await a.close();
+      const b = await ctx.newPage();
+      await b.goto(bare, { waitUntil: 'networkidle' });
+      await featReady(b);
+      out.reopened = await read(b);
+      await b.close();
+    } finally { await ctx.close(); }
+    // a seed link wins over the first run, and a place stored by one wins over it on a bare open after
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    try {
+      const c = await ctx2.newPage();
+      await c.goto(`${bare}&v=2&seed=812`, { waitUntil: 'networkidle' });
+      await featReady(c);
+      out.link = await read(c);
+      await c.close();
+      const d = await ctx2.newPage();
+      await d.goto(bare, { waitUntil: 'networkidle' });
+      await featReady(d);
+      out.stored = await read(d);
+      await d.close();
+    } finally { await ctx2.close(); }
+    return out;
+  },
+  judge: (r) => {
+    const f = FEATURED[0], n = f.links.length, one = FEAT_PLACE(f.links[0]), two = FEAT_PLACE(f.links[1 % n]);
+    const named = (label, i) => !!label && label.includes(f.name) && label.includes(`${i} of ${n}`);
+    const bad = [];
+    if (r.first.seed !== one.seed || r.first.theme !== one.theme) bad.push(`a first run is on seed ${r.first.seed} theme ${r.first.theme + 1}, not the first featured track's ${one.seed} theme ${one.theme + 1}`);
+    if (!named(r.first.label, 1)) bad.push(`a first run's line under the ring says "${r.first.label}", not ${f.name} 1 of ${n}`);
+    if (r.first.playing) bad.push('a first run started sounding by itself');
+    if (r.first.panel) bad.push('a first run opened the panel');
+    if (r.first.lib !== null) bad.push(`a first run wrote the record: ${String(r.first.lib).slice(0, 80)}`);
+    if (/Featured/i.test(r.first.label || '')) bad.push(`the ring's line says the section's word: "${r.first.label}"`);
+    if (r.stepped.seed !== two.seed || r.stepped.theme !== two.theme || !named(r.stepped.label, 2)) bad.push(`next from a first run is on ${r.stepped.seed} theme ${r.stepped.theme + 1}, "${r.stepped.label}"`);
+    if (r.reopened.seed !== two.seed || r.reopened.theme !== two.theme || !named(r.reopened.label, 2)) bad.push(`a reopen is on ${r.reopened.seed} theme ${r.reopened.theme + 1}, "${r.reopened.label}", not where it was left`);
+    if (r.link.seed !== '812' || r.link.label) bad.push(`a seed link opened ${r.link.seed} with the line "${r.link.label}"`);
+    if (r.stored.seed !== '812' || r.stored.label) bad.push(`a bare open after a link's place was stored opened ${r.stored.seed} with the line "${r.stored.label}"`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `a first run cued ${f.name}'s first track (seed ${r.first.seed}, "${r.first.label}", ${r.first.url}), panel shut, nothing written to the record; next went to "${r.stepped.label}" and a reopen came back there; `
+        + `a seed link played ${r.link.seed} and a bare open after it came back to ${r.stored.seed}, no playlist line either time`,
+    };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a first run plays through its first track\'s seam into the featured playlist\'s second',
+  area: 'library',
+  deadline: 300000,
+  drive: async (page) => {
+    const own = await featFresh(page, {});
+    const p = own.page;
+    try {
+      return await p.evaluate(body(SEAM_PASS + `
+        const r = { cued: heard() };
+        await started();
+        r.played = await playing();
+        r.pass = await pass();
+        ctl.stop();
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const f = FEATURED[0], n = f.links.length, two = FEAT_PLACE(f.links[1 % n]);
+    const bad = [];
+    if (!(r.cued.label || '').includes(`1 of ${n}`)) bad.push(`the first run is cued with the line "${r.cued.label}"`);
+    if (!r.played) bad.push('the first run did not start on a press');
+    if (!r.pass.arrived) bad.push('the first seam never arrived');
+    if (r.pass.seed !== two.seed || r.pass.theme !== two.theme) bad.push(`past the seam it plays seed ${r.pass.seed} theme ${r.pass.theme + 1}, not the second track's ${two.seed} theme ${two.theme + 1}`);
+    if (!(r.pass.label || '').includes(`2 of ${n}`)) bad.push(`past the seam the line says "${r.pass.label}"`);
+    return { ok: !bad.length, why: bad[0], note: `cued "${r.cued.label}", started, and at the seam took ${f.name}'s second track (seed ${r.pass.seed} theme ${r.pass.theme + 1}, "${r.pass.label}")` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'the featured playlists stand under yours after their word, a line over them while you have none; one is read-only, Save a copy makes it yours, its track never fills the heart, and nothing of it goes to the record or iCloud',
+  area: 'library',
+  deadline: 150000,
+  drive: async (page) => {
+    // the app's pipe, stubbed: what the page sends to iCloud is kept to read
+    const own = await featFresh(page, {}, () => {
+      const on = {};
+      window.__sent = [];
+      window.__on = on;
+      window.deepHouseShell = { platform: 'macos', send: (m) => window.__sent.push(m), on: (k, fn) => { on[k] = fn; } };
+    });
+    const p = own.page;
+    try {
+      return await p.evaluate(body(LIB + FEAT_READ + `
+        const r = {};
+        // an empty iCloud heard: from here a change of the record is sent
+        window.__on.cloud?.({ kind: 'cloud', text: '' });
+        await sleep(300);
+        r.heart = heartOn();
+        await panel();
+        r.zero = { lead: texts('#libPlaylists .plLead'), split: texts('#libPlaylists .plSplit'), featured: texts('#libPlaylists .plFeatured .plNameText'), own: document.querySelectorAll('#libPlaylists .plLists:not(.plFeatured) .plRow:not(.plNewRow)').length };
+        await pressAct('list', '[data-name^="n:\\uE000"]');
+        r.page = { title: texts('#libPlaylists .plTitle')[0], drag: document.querySelectorAll('#libPlaylists li[data-drag]').length, download: !!document.querySelector('#libPlaylists [data-act="download"]'), share: !!document.querySelector('#libPlaylists [data-act="share"]'), tracks: document.querySelectorAll('#libPlaylists .plTrack').length };
+        await pressAct('menu');
+        r.headMenu = menuItems();
+        await pressAct('menu');
+        await pressAct('trackMenu');
+        r.trackMenu = menuItems();
+        await pressAct('trackMenu');
+        r.sentBefore = window.__sent.filter((m) => m.ev === 'cloud-write').length;
+        await pressAct('menu');
+        await pressAct('saveCopy');
+        r.copy = { title: texts('#libPlaylists .plTitle')[0], drag: document.querySelectorAll('#libPlaylists li[data-drag]').length, undo: undoBar() };
+        await sleep(2200);
+        r.heartAfter = heartOn();
+        r.lib = lib();
+        r.writes = window.__sent.filter((m) => m.ev === 'cloud-write').map((m) => m.text);
+        await pressAct('back');
+        r.some = { lead: texts('#libPlaylists .plLead'), own: texts('#libPlaylists .plLists:not(.plFeatured) .plNameText'), split: texts('#libPlaylists .plSplit'), featured: texts('#libPlaylists .plFeatured .plNameText') };
+        r.store = localStorage.getItem('deep-house.player') || '';
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const f = FEATURED[0], names = FEATURED.map((x) => x.name), ids = FEATURED.map((x) => x.id);
+    const bad = [];
+    if (r.heart) bad.push('a featured track filled the heart');
+    if (r.zero.own || r.zero.lead.length !== 1 || !r.zero.lead[0]) bad.push(`with none of yours: ${r.zero.own} rows of yours and the line ${JSON.stringify(r.zero.lead)}`);
+    if (r.zero.split.join() !== 'Featured' || r.zero.featured.join() !== names.join()) bad.push(`the section reads ${JSON.stringify(r.zero.split)} over ${JSON.stringify(r.zero.featured)}`);
+    if (r.page.title !== f.name || r.page.drag || r.page.download || !r.page.share || r.page.tracks !== f.links.length) bad.push(`a featured playlist's page: ${JSON.stringify(r.page)}`);
+    if (r.headMenu.join() !== 'Save a copy') bad.push(`its ⋯ offers ${JSON.stringify(r.headMenu)}`);
+    if (r.trackMenu.join() !== 'Copy link') bad.push(`a track's ⋯ offers ${JSON.stringify(r.trackMenu)}`);
+    if (r.sentBefore) bad.push(`${r.sentBefore} iCloud writes before anything of yours was made`);
+    const lives = (r.lib?.playlists ?? []).filter((x) => x.removed === undefined);
+    const copy = lives[0];
+    if (lives.length !== 1 || copy.name !== f.name || ids.includes(copy.id) || (copy.tracks ?? []).filter((t) => t.removed === undefined).length !== f.links.length) bad.push(`after Save a copy the record holds ${JSON.stringify(lives.map((x) => [x.name, x.id, (x.tracks ?? []).length]))}`);
+    if (r.copy.title !== f.name || r.copy.drag !== f.links.length || !/Undo/.test(r.copy.undo || '')) bad.push(`Save a copy opened ${JSON.stringify(r.copy)}`);
+    if (!r.heartAfter) bad.push('the copy\'s track left the heart empty');
+    if (!r.writes.length || r.writes.some((t) => ids.some((id) => t.includes(id))) || !r.writes.at(-1).includes(copy?.id ?? '-')) bad.push(`iCloud was sent ${r.writes.length} writes: ${r.writes.map((t) => t.slice(0, 60)).join(' | ')}`);
+    if (r.some.lead.length || r.some.own.join() !== f.name || r.some.split.join() !== 'Featured' || r.some.featured.join() !== names.join()) bad.push(`with one of yours the tab reads ${JSON.stringify(r.some)}`);
+    if (ids.some((id) => (r.lib ? JSON.stringify(r.lib) : '').includes(id))) bad.push('a featured id is in the record');
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `none of yours: "${r.zero.lead[0]}", then ${r.zero.split[0]}: ${r.zero.featured.join(', ')}; ${f.name} open: no drag, no download, ⋯ ${JSON.stringify(r.headMenu)}, a track's ⋯ ${JSON.stringify(r.trackMenu)}; the heart empty on its track; `
+        + `Save a copy made ${copy?.name} (${copy?.id?.slice(0, 8)}…, ${f.links.length} tracks, draggable, ${r.copy.undo}), the heart filled, iCloud sent ${r.writes.length} write${r.writes.length === 1 ? '' : 's'} holding the copy and no featured id; the tab then reads ${r.some.own.join()} over ${r.some.split[0]}`,
+    };
+  },
+});
+
+// **Your playlists in your order** (pl-order, his word 10-23: "I already have quite a lot of them and it's getting a
+// little messy"): a 2.3.1 record (no ranks) stored, then reordered by a mouse's drag, a finger's press and hold, and
+// the playlist's ⋯ (a mouse and the keyboard), with Undo; the order read off the rows, the record and what the page
+// sends to iCloud (the app's pipe, stubbed), and again after a reload.
+const ORDER_RECORD = (() => {
+  const t = '2026-10-20T12:00:00Z';
+  const link = (s) => ['seed=' + s, 'v=2'].join('&');
+  return JSON.stringify({ format: 'deep-house.library', version: 1, kind: 'library', playlists: ['P', 'Q', 'R', 'S'].map((n, i) => ({
+    id: `0000000${i + 1}-0000-4000-8000-00000000000${i + 1}`, name: n, edited: t, nameEdited: t, tracks: [{ link: link(i + 1), saved: t }],
+  })) });
+})();
+const ORDER_READ = `
+  const own = () => [...document.querySelectorAll('#libPlaylists .plOwn > li.plRow .plNameText')].map((e) => e.textContent.trim()).join(',');
+  const rowsAt = () => [...document.querySelectorAll('#libPlaylists .plOwn > li.plRow')].map((li) => { const b = li.getBoundingClientRect(); return { x: b.left + b.width * 0.4, y: b.top + b.height / 2, h: b.height }; });
+  const ranked = (d) => (d ? d.playlists.filter((p) => p.removed === undefined).slice().sort((a, b) => (a.rank === undefined) - (b.rank === undefined) || (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0)).map((p) => p.name).join(',') : '');
+  const opened = () => !!document.querySelector('#libPlaylists .plListHead');
+  const featured = () => ({ names: [...document.querySelectorAll('#libPlaylists .plFeatured .plNameText')].map((e) => e.textContent.trim()).join(','), drag: document.querySelectorAll('#libPlaylists .plFeatured [data-drag]').length });
+  const items = () => [...document.querySelectorAll('#libPlaylists .plMenu [role="menuitem"]')].map((e) => e.textContent.trim());
+  const sent = () => { const w = (window.__sent || []).filter((m) => m.ev === 'cloud-write'); return w.length ? JSON.parse(w[w.length - 1].text) : null; };
+  // a finger by hand: pointer events of the touch kind, which the rows' own gesture reads (every engine makes them)
+  const finger = async (from, to, holdMs, id) => {
+    const el = document.elementFromPoint(from.x, from.y);
+    const ev = (type, x, y) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+    ev('pointerdown', from.x, from.y);
+    await sleep(holdMs);
+    for (let k = 1; k <= 10; k++) { ev('pointermove', from.x, from.y + ((to.y - from.y) * k) / 10); await sleep(16); }
+    ev('pointerup', to.x, to.y);
+    await sleep(400);
+  };
+`;
+SCENARIOS.push({
+  name: 'your playlists reorder by a mouse\'s drag, a finger\'s press and hold, and Move up and Move down in a playlist\'s ⋯ (by the keyboard too), each with Undo; a drag never opens one, the featured stay below and still, and the order survives a reload and reaches iCloud',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 180000,
+  drive: async (page) => {
+    const init = (record) => {
+      try { if (localStorage.getItem('deephouse.library') === null) localStorage.setItem('deephouse.library', record); } catch (e) { /* none */ }
+      const on = {};
+      window.__sent = [];
+      window.__on = on;
+      window.deepHouseShell = { platform: 'macos', send: (m) => window.__sent.push(m), on: (k, fn) => { on[k] = fn; } };
+    };
+    const open = async (opts) => {
+      const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 }, ...opts });
+      const p = await ctx.newPage();
+      await p.addInitScript(init, ORDER_RECORD);
+      await p.goto(page.url(), { waitUntil: 'networkidle', timeout: 30000 });
+      await featReady(p);
+      return { page: p, close: () => ctx.close() };
+    };
+    const out = {};
+    // a mouse, then the ⋯ by mouse and by keyboard, then Undo, then a reload
+    const desk = await open({});
+    try {
+      const p = desk.page;
+      out.desk = await p.evaluate(body(LIB + ORDER_READ + `
+        window.__on.cloud?.({ kind: 'cloud', text: '' });
+        await sleep(300);
+        await panel();
+        // the panel's slide in ends before a row is measured
+        await sleep(700);
+        return { first: own(), featured: featured(), drags: document.querySelectorAll('#libPlaylists .plOwn > li[data-drag]').length };
+      `));
+      const rows = await p.evaluate(body(ORDER_READ + 'return rowsAt();'));
+      // P dragged by a mouse below R
+      await p.mouse.move(rows[0].x, rows[0].y);
+      await p.mouse.down();
+      for (let k = 1; k <= 12; k++) { await p.mouse.move(rows[0].x, rows[0].y + ((rows[2].y + rows[2].h * 0.3 - rows[0].y) * k) / 12); await p.waitForTimeout(16); }
+      await p.mouse.up();
+      await p.waitForTimeout(400);
+      Object.assign(out.desk, await p.evaluate(body(LIB + ORDER_READ + `return { dragged: own(), draggedOpened: opened(), draggedUndo: undoBar(), draggedRecord: ranked(lib()) };`)));
+      // the last of yours dragged far down, over the featured section: it stays the last of yours, they stay as they were
+      const rows2 = await p.evaluate(body(ORDER_READ + `return { own: rowsAt(), feat: [...document.querySelectorAll('#libPlaylists .plFeatured > li')].map((li) => { const b = li.getBoundingClientRect(); return { y: b.top + b.height / 2 }; }) };`));
+      const last = rows2.own[rows2.own.length - 1], deep = rows2.feat[rows2.feat.length - 1] ?? { y: last.y + 200 };
+      await p.mouse.move(last.x, last.y);
+      await p.mouse.down();
+      for (let k = 1; k <= 12; k++) { await p.mouse.move(last.x, last.y + ((deep.y - last.y) * k) / 12); await p.waitForTimeout(16); }
+      await p.mouse.up();
+      await p.waitForTimeout(400);
+      // a featured row pressed and dragged up over yours: nothing moves, and it opens nothing on its own
+      const f0 = rows2.feat[0];
+      if (f0) {
+        await p.mouse.move(last.x, f0.y);
+        await p.mouse.down();
+        for (let k = 1; k <= 12; k++) { await p.mouse.move(last.x, f0.y - ((f0.y - rows2.own[0].y) * k) / 12); await p.waitForTimeout(16); }
+        await p.mouse.up();
+        await p.waitForTimeout(400);
+      }
+      Object.assign(out.desk, await p.evaluate(body(LIB + ORDER_READ + `
+        const r = { intoFeatured: own(), featuredAfter: featured() };
+        if (opened()) await pressAct('back');
+        // R's page: its ⋯ offers Move up and Move down where it can go; Move up, then Move down by the keyboard
+        await pressAct('list', '[data-name="n:R"]');
+        await pressAct('menu');
+        r.rMenu = items();
+        await pressAct('listUp');
+        r.upFocus = document.activeElement?.dataset.focus ?? null;
+        r.upUndo = undoBar();
+        await pressAct('back');
+        r.up = own();
+        await pressAct('list', '[data-name="n:Q"]');
+        const more = document.querySelector('#libPlaylists [data-act="menu"]');
+        more.focus();
+        return r;
+      `)));
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(300);
+      for (let k = 0; k < 6; k++) {
+        const t = await p.evaluate(() => document.activeElement?.textContent?.trim());
+        if (t === 'Move down') break;
+        await p.keyboard.press('ArrowDown');
+        await p.waitForTimeout(80);
+      }
+      await p.keyboard.press('Enter');
+      await p.waitForTimeout(400);
+      Object.assign(out.desk, await p.evaluate(body(LIB + ORDER_READ + `
+        const r = { keyFocus: document.activeElement?.dataset.focus ?? null, keyUndo: undoBar() };
+        await pressAct('back');
+        r.key = own();
+        // Undo on the playlist's page, where the move was made (any other press ends it, as every edit's)
+        await pressAct('list', '[data-name="n:Q"]');
+        await pressAct('menu');
+        await pressAct('listUp');
+        await pressAct('undo');
+        await pressAct('back');
+        r.undone = own();
+        r.undoneRecord = ranked(lib());
+        // the first and the last of yours: no Move up on the first, no Move down on the last
+        const names = own().split(',');
+        await pressAct('list', '[data-name="n:' + names[0] + '"]'); await pressAct('menu'); r.firstMenu = items(); await pressAct('menu'); await pressAct('back');
+        await pressAct('list', '[data-name="n:' + names[names.length - 1] + '"]'); await pressAct('menu'); r.lastMenu = items(); await pressAct('menu'); await pressAct('back');
+        await sleep(2200);
+        const c = sent();
+        r.cloud = ranked(c);
+        r.cloudRanks = c ? c.playlists.filter((x) => x.removed === undefined).every((x) => typeof x.rank === 'string' && typeof x.rankEdited === 'string') : false;
+        return r;
+      `)));
+      await p.reload({ waitUntil: 'networkidle' });
+      await featReady(p);
+      out.desk.reloaded = await p.evaluate(body(LIB + ORDER_READ + `await panel(); return own();`));
+    } finally { await desk.close(); }
+    // a finger: a quick slide is the list's scroll and moves nothing; a press and hold, then a slide, moves the row
+    const phone = await open({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    try {
+      out.phone = await phone.page.evaluate(body(LIB + ORDER_READ + `
+        await panel();
+        await sleep(700);
+        const r = { first: own() };
+        let rows = rowsAt();
+        await finger(rows[0], { x: rows[0].x, y: rows[2].y + rows[2].h * 0.3 }, 60, 31);
+        r.slid = own();
+        r.slidOpened = opened();
+        rows = rowsAt();
+        await finger(rows[0], { x: rows[0].x, y: rows[2].y + rows[2].h * 0.3 }, 520, 32);
+        r.held = own();
+        r.heldOpened = opened();
+        r.heldUndo = undoBar();
+        r.heldRecord = ranked(lib());
+        return r;
+      `));
+    } finally { await phone.close(); }
+    return out;
+  },
+  judge: (r) => {
+    const d = r.desk, ph = r.phone, bad = [];
+    if (d.first !== 'P,Q,R,S' || d.drags !== 4) bad.push(`the 2.3.1 record showed ${d.first} with ${d.drags} rows to drag`);
+    if (!d.featured.names || d.featured.drag) bad.push(`the featured section reads ${JSON.stringify(d.featured)}`);
+    if (d.dragged !== 'Q,R,P,S' || d.draggedRecord !== 'Q,R,P,S' || d.draggedOpened || !/Moved P/.test(d.draggedUndo || '')) bad.push(`a mouse's drag of P below R: rows ${d.dragged}, record ${d.draggedRecord}, ${d.draggedOpened ? 'opened it' : 'shut'}, Undo ${JSON.stringify(d.draggedUndo)}`);
+    if (d.intoFeatured !== 'Q,R,P,S' || JSON.stringify(d.featuredAfter) !== JSON.stringify(d.featured)) bad.push(`dragging into or out of the featured section left ${d.intoFeatured} and ${JSON.stringify(d.featuredAfter)}`);
+    if (d.rMenu.filter((x) => x !== 'Open in app').join() !== 'Rename,Move up,Move down,Remove') bad.push(`R's ⋯ offers ${d.rMenu.join(', ')}`);
+    if (d.up !== 'R,Q,P,S' || d.upFocus !== 'menu' || !/Moved R/.test(d.upUndo || '')) bad.push(`Move up on R: ${d.up}, the focus on ${d.upFocus}, Undo ${JSON.stringify(d.upUndo)}`);
+    if (d.key !== 'R,P,Q,S' || d.keyFocus !== 'menu' || !/Moved Q/.test(d.keyUndo || '')) bad.push(`Move down on Q by the keyboard: ${d.key}, the focus on ${d.keyFocus}, Undo ${JSON.stringify(d.keyUndo)}`);
+    if (d.undone !== 'R,P,Q,S' || d.undoneRecord !== 'R,P,Q,S') bad.push(`Move up on Q and its Undo left ${d.undone} (record ${d.undoneRecord})`);
+    if (d.firstMenu.includes('Move up') || !d.firstMenu.includes('Move down') || d.lastMenu.includes('Move down') || !d.lastMenu.includes('Move up')) bad.push(`the first's ⋯ ${d.firstMenu.join(', ')}; the last's ${d.lastMenu.join(', ')}`);
+    if (d.cloud !== 'R,P,Q,S' || !d.cloudRanks) bad.push(`iCloud was last sent ${d.cloud || 'nothing'}${d.cloudRanks ? '' : ', a playlist without its place'}`);
+    if (d.reloaded !== 'R,P,Q,S') bad.push(`after a reload the rows read ${d.reloaded}`);
+    if (ph.first !== 'P,Q,R,S' || ph.slid !== 'P,Q,R,S' || ph.slidOpened) bad.push(`a finger's quick slide: ${ph.first} → ${ph.slid}${ph.slidOpened ? ', opened' : ''}`);
+    if (ph.held !== 'Q,R,P,S' || ph.heldRecord !== 'Q,R,P,S' || ph.heldOpened || !/Moved P/.test(ph.heldUndo || '')) bad.push(`a finger's press and hold: rows ${ph.held}, record ${ph.heldRecord}, ${ph.heldOpened ? 'opened it' : 'shut'}, Undo ${JSON.stringify(ph.heldUndo)}`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `a 2.3.1 record P,Q,R,S; a mouse's drag of P below R: ${d.dragged} ("${(d.draggedUndo || '').replace(/Undo$/, '').trim()}" with Undo), nothing opened; a drag over the featured section moved nothing; R's ⋯ Move up: ${d.up}; Q's Move down by the keyboard: ${d.key}, the focus kept on ⋯; Q's Move up undone: ${d.undone}; `
+        + `iCloud sent ${d.cloud} with every place; a reload: ${d.reloaded}; a finger's quick slide moved nothing, its press and hold: ${ph.held}`,
+    };
+  },
 });
 
 SCENARIOS.push({

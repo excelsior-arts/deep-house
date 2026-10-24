@@ -30,6 +30,7 @@
 // view: two numbers kept beside the late count, and no onset moved.)
 
 import { headroomSince, lateInfo } from '@deep-house/engine/dsp';
+import type { SlowSummary } from '../slowdown.ts';
 
 export interface LoadReading {
   /** the main thread's share of the second spent on frames, 0..100 */
@@ -140,13 +141,15 @@ export interface LoadCell { k: string; v: string; tone?: 'warn' | 'bad' }
  * **The load row's cells** (`view.tsx`), always the same cells for the same
  * place, so the row never changes its height as figures come and go: the
  * page's own four, everywhere — `main` (%), `frame` and `longest` (ms),
- * `headroom` (ms). A figure not measured yet reads `—`, as every reading in
- * the view does.
+ * `headroom` (ms) — and the slowdowns since the page loaded (round
+ * audio-slack, `slowdown.ts`): `slow`, how many; `slowest`, the longest;
+ * `last`, how long ago the last one began. A figure not
+ * measured yet reads `—`, as every reading in the view does.
  *
  * Tones: notes late in the second, or a headroom below nought, are a fault; a
- * headroom under 20 ms a warning.
+ * headroom under 20 ms a warning; a slowdown a warning.
  */
-export function loadCells(r: LoadReading | null): LoadCell[] {
+export function loadCells(r: LoadReading | null, slow: SlowSummary | null = null, now: number = performance.now()): LoadCell[] {
   const dash = '\u2014';
   const head = r && r.headroomMs != null ? r.headroomMs : null;
   const cells: LoadCell[] = [
@@ -157,11 +160,21 @@ export function loadCells(r: LoadReading | null): LoadCell[] {
       k: 'headroom', v: head == null ? dash : `${head} ms${r && r.late ? ` \u00b7 ${r.late} late` : ''}`,
       tone: r && (r.late || (head != null && head < 0)) ? 'bad' : head != null && head < 20 ? 'warn' : undefined,
     },
+    { k: 'slow', v: slow ? String(slow.count) : dash, tone: slow && slow.count ? 'warn' : undefined },
+    { k: 'slowest', v: slow && slow.longestMs ? `${slow.longestMs} ms` : dash },
+    // how long ago the last began: its length is the ledger's line, and a phone's cell holds eight letters
+    { k: 'last', v: slow && slow.last ? `${ago(now - slow.last.at)} ago` : dash },
   ];
   return cells;
 }
 
+/** How long ago, in the fewest words: `40 s`, `12 min`, `3 h`. */
+function ago(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min` : `${Math.floor(s / 3600)} h`;
+}
+
 /** The row as one line of words, for a log or a check: `main 12 % · frame 16.7 ms · …`. */
-export function loadWords(r: LoadReading | null): string {
-  return loadCells(r).map((c) => `${c.k} ${c.v}`).join(' \u00b7 ');
+export function loadWords(r: LoadReading | null, slow: SlowSummary | null = null): string {
+  return loadCells(r, slow).map((c) => `${c.k} ${c.v}`).join(' \u00b7 ');
 }
