@@ -187,7 +187,17 @@ function renderNoise(ctx: BaseAudioContext, spec: HatSpec): Promise<AudioBuffer>
 // seconds of metal and of noise for the life of the context, about a megabyte a
 // tone. A read refreshes an entry's place, so the hats a theme strikes are never
 // the oldest, and the drums' own pattern (`DRUM_BODIES`) trims the rest.
+//
+// **Never under what the preparation warms** (release-gates, 10-29): `prepareHats` renders every row's tones, both
+// variants and a grained tone's plain twin, two buffers each (24 with three rows and grain), and at a cap of 16 the
+// last of them pushed out the first: the closed hat a theme strikes most. A render that fires every note before it
+// starts (`renderProgram`, the suites' windows, a mastering render) then built every closed hat live, the fallback
+// below, while a deck and the WAV recording, which pour a window at a time, read the buffers from their second window
+// on: the same theme's hats differed by up to 0.82 between the two (seed 1, the first theme, 17.6 s). The cap is the
+// larger of the two, per context, so a context keeps whatever it was prepared with and still trims a set's walk.
 export const HAT_RENDERS = 16;
+const warmed = new WeakMap<BaseAudioContext, number>();
+const capOf = (ctx: BaseAudioContext): number => Math.max(HAT_RENDERS, warmed.get(ctx) ?? 0);
 function rendered(ctx: BaseAudioContext, key: string, make: () => Promise<AudioBuffer>, defer: boolean): AudioBuffer | Promise<AudioBuffer> {
   let per = cache.get(ctx);
   if (!per) {
@@ -201,7 +211,7 @@ function rendered(ctx: BaseAudioContext, key: string, make: () => Promise<AudioB
     return hit;
   }
   const got = cached(per, ctx, key, make, defer);
-  bound(per, HAT_RENDERS);
+  bound(per, capOf(ctx));
   return got;
 }
 
@@ -221,15 +231,14 @@ export function prepareHats(ctx: BaseAudioContext, settings: Settings): Promise<
   const waits: Promise<AudioBuffer>[] = [];
   const H = settings.hats;
   const n = Math.max(1, Math.round(H.variants ?? 1));
-  for (const row of ROWS) {
-    for (let i = 0; i < n; i++) {
-      const spec = variantOf(specOf(row, H, settings.sends), i, H);
-      for (const s of hasGrain(spec) ? [spec, plainOf(spec)] : [spec]) {
-        const { metal, noise } = buffersFor(ctx, s);
-        if (metal instanceof Promise) waits.push(metal);
-        if (noise instanceof Promise) waits.push(noise);
-      }
-    }
+  // what this preparation renders, counted before the first of them, so none of them is trimmed by the next (above)
+  const specs = ROWS.flatMap((row) => Array.from({ length: n }, (_, i) => variantOf(specOf(row, H, settings.sends), i, H)))
+    .flatMap((spec) => (hasGrain(spec) ? [spec, plainOf(spec)] : [spec]));
+  warmed.set(ctx, Math.max(warmed.get(ctx) ?? 0, 2 * specs.length));
+  for (const s of specs) {
+    const { metal, noise } = buffersFor(ctx, s);
+    if (metal instanceof Promise) waits.push(metal);
+    if (noise instanceof Promise) waits.push(noise);
   }
   return Promise.all(waits).then(() => undefined);
 }

@@ -154,9 +154,11 @@ test('a request the worker cannot take is refused before it is asked, and planne
   assert.equal(askOf(seed, 0, { ...request, style: { ...styleOfAsk(request) } as any }), null);
   // an unknown mode throws here, as the plan would
   assert.equal(askOf(seed, 0, { ...request, development: 'nonsense' as any }), null);
-  // and the page's destination never crosses
-  const ask = askOf(seed, 0, { ...request, destination: {} as any, lookahead: 0.1 } as any)!;
-  assert.ok(!('destination' in ask.opts) && !('style' in ask.opts));
+  // and the page's own handles never cross: its destination, and the tick's watch, a function the worker's postMessage
+  // cannot clone (merge-fix, 10-26: with it every landing a hand asked for was planned on the page's thread)
+  const ask = askOf(seed, 0, { ...request, destination: {} as any, lookahead: 0.1, onTick: () => {} } as any)!;
+  assert.ok(!('destination' in ask.opts) && !('style' in ask.opts) && !('onTick' in ask.opts));
+  assert.doesNotThrow(() => structuredClone(ask), 'the ask a set makes crosses to the worker');
 });
 
 // The control names a plan by its reach as a number (`reachOf`), so a stopped

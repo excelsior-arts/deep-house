@@ -246,6 +246,9 @@ const shut = async (thing, what) => {
 const openAt = async (page, extra, settle = 600) => {
   await page.goto(pageUrl(extra), { waitUntil: 'networkidle', timeout: NAV_TIMEOUT });
   await page.waitForFunction(() => window.ring && window.deepHouse, { timeout: 20000 });
+  // the opening draws the ring in for a second and a bit from a steady page (smooth-motion); a row starts on the ring
+  // as it stands after it
+  await page.waitForFunction(() => !(window.ring.opening && window.ring.opening()), null, { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(settle);
 };
 

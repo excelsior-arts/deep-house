@@ -149,10 +149,18 @@ test('natural handovers finish the closing phrase and never round past the theme
       if(next)assert.ok(next.at>=seam.end-1e-8,'a protected close cannot overlap the preceding seam');
     }
   }
+  // Seed 4's theme handed over at 112 of 120 bars, after its one climax settled, until round length-2 put the grooves
+  // at 3-4 minutes (his word 10-27: "We should aim for 3-4mins here"): 84 bars since, its grooves too short for a
+  // climax ("a short theme can stay level"), so it hands over where its closing groove ends, at 76. Seed 7's theme
+  // keeps two and hands over where the second settles.
   const t=planTheme(4,0,{...opts,recipe:piano,development:'shaped'});
   const p=seamPlan(t,t.blendBars);
-  assert.equal(p.bar,112);assert.equal(p.bars,6);
-  assert.ok(p.bar>=JSON.parse(String(t.dice.developmentShape)).peaks.at(-1).settled);
+  assert.equal(p.bar,76);assert.equal(p.bars,6);
+  assert.equal(p.bar,t.arrangement.handoverNotBefore);
+  const seven=planTheme(7,0,{...opts,recipe:piano,development:'shaped'});
+  const peaks=JSON.parse(String(seven.dice.developmentShape)).peaks;
+  assert.equal(peaks.length,2);
+  assert.ok(seamPlan(seven,seven.blendBars).bar>=peaks.at(-1).settled);
   const end={...t,arrangement:{...t.arrangement,handoverNotBefore:t.bars}};
   assert.equal(seamPlan(end,end.blendBars).bar,end.bars);
 });

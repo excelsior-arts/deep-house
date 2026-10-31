@@ -205,6 +205,45 @@ export interface StyleTable {
      * it is under `clampDb`; absent, the one clamp both ways
      */
     clampUpNoKickDb?: number;
+    /** the most a house window is cut, in dB, where it is under `clampDb`; absent, the one clamp both ways */
+    clampDownDb?: number;
+    /** what a decibel of cut gives back on a house window, where it is measured apart from `slopeDown` */
+    houseSlopeDown?: number;
+    /**
+     * **By the kind of place** (round loudness-place): three anchors — the ambient (no drums), the deep groove (drums,
+     * under 112 BPM felt), the beat-led (drums at 128 and over) — and a line in the theme's drums' and tempo's shares
+     * between them. `aims`: the level the trim lands the loudest passage at, in LUFS, in place of `targetLufs`.
+     * `allowance`: the share of 10 ms blocks the headroom reading lets reach the limiter, and the deepest over it, in dB.
+     */
+    aims?: { ambient: number; groove: number; beat: number };
+    allowance?: { share: { ambient: number; groove: number; beat: number }; deepest: { ambient: number; groove: number; beat: number } };
+    /** a lift's slope and a house cut's on a beat-led window, where measured apart; the house's slide to them with the reading */
+    slopeUpBeat?: number;
+    houseSlopeDownBeat?: number;
+    /** the most a beat-led window with a headroom reading is lifted, in dB; the clamp slides to it with the reading */
+    clampUpBeatDb?: number;
+    /** what a decibel of cut gives back on a drumless window once it is off the ceiling (round loudness-place) */
+    slopeOff?: number;
+    /** the most a drumless window of a theme with no drums is cut, in dB; the clamp slides to it as the drums' share falls */
+    clampDownAmbientDb?: number;
+    /**
+     * **The density by the kind of place** (round loudness-place): drive made upstream so the limiter catches peaks
+     * only, each knob at its beat-led strength and sliding to nothing with the reading: the drums' and the kick's soft
+     * clip (dB into it), a gentle glue on the theme's sum after its trim (its threshold, ratio, knee and times), the
+     * limiter's release. A place whose own row sets one keeps its own.
+     *
+     * Round 2 (loudness-place): the knobs read at an **amount by place** (`amount`: the ambient, the deep groove at the
+     * slow end of its tempos and at the fast end, the beat-led), not at the beat-led strength alone; and the theme's sum
+     * clip's top follows the same amount (`clipTopDb`: over the limiter's ceiling at the trim, at no density and at the
+     * full). `hit`: the kick's and the clap's level set down on a groove whose trim passes `fromDb` (a thin body under
+     * its hits), by the excess, at most `mostDb`, sliding to nothing on the beat-led.
+     */
+    density?: {
+      drumClipDb: number; knee: number; curve: number; glue: { threshold: number; knee: number; ratio: number; attack: number; release: number }; releaseMs: number;
+      amount?: { ambient: number; slow: number; groove: number; beat: number; slowBpm: readonly [number, number] };
+      clipTopDb?: { none: number; full: number };
+      hit?: { fromDb: number; mostDb: number; levels: readonly string[] };
+    };
     intercept: number;
     coef: Record<string, number>;
     centre: Record<string, number>;
@@ -213,6 +252,11 @@ export interface StyleTable {
      * record's rule) or the loudest main window the fit reads
      */
     window?: 'first' | 'loudest';
+    /**
+     * a voice's loudness as this style plays it, read by the model in place of the registry's fact (`TIMBRES`), where
+     * the style plays the voice otherwise than the registry measured it; the draw reads the registry's, unmoved
+     */
+    timbres?: Record<string, { loudnessDb: number }>;
     /**
      * how far a theme may be trimmed before its master limiter works past the
      * stated share and depth, predicted off the same columns; absent, no cap
@@ -239,7 +283,8 @@ export interface StyleTable {
       intercept: number;
       coef: Record<string, number>;
       centre: Record<string, number>;
-      headroom?: { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
+      /** `shift`: what the family's headroom gains at another allowance than the 15 % and 8 dB it was fitted at, measured at the anchors (round loudness-place) */
+      headroom?: { intercept: number; coef: Record<string, number>; centre: Record<string, number>; shift?: { ambient?: number; groove?: number; beat?: number } };
     }>;
   };
   /** the chances that make a groove this groove */

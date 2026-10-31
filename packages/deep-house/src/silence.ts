@@ -16,6 +16,8 @@
 // has them (before, else after) and moved in time, or, with no pad anywhere in
 // the theme, its keys, else its bass. Nothing is drawn, so no die moves.
 
+import { BY_NAME } from '@deep-house/engine/voices';
+
 /** The shortest silent run that is a gap and not a rest. */
 export const SILENT_RUN_BARS = 2;
 /** The layers that can carry a gap, in the order they are asked. */
@@ -69,9 +71,20 @@ export function silentRuns(events: readonly Ev[], sections: readonly Section[], 
  * every note ends by the run's last. Answers the runs it filled and the layer.
  */
 export function fillSilence(events: Ev[], sections: readonly Section[], bars: number, barSeconds: number, loopBars: number,
-  timeline?: Array<{ layers: string[] }>): Array<{ from: number; bars: number; layer: string }> {
+  timeline?: Array<{ layers: string[] }>, keepOut: ReadonlyArray<{ from: number; to: number }> = []): Array<{ from: number; bars: number; layer: string }> {
   const filled: Array<{ from: number; bars: number; layer: string }> = [];
   const endOf = (e: Ev) => e.t + Math.max(e.p.dur ?? 0, 0);
+  // **The bed keeps out of the windows the keys own** (`keepOut`, in seconds: the keys plan's pickups and landings, where
+  // the theme has one): a note the gap takes ends, its release counted, before the next window opens (round
+  // length-after: a two-bar gap before the keys' landing held its chord 0.6 s into the strike)
+  // (a note sounds its attack and decay whatever its length: one that cannot before the window is not laid)
+  const kept = (ev: Ev, t: number, end: number): number => {
+    const P = (BY_NAME[ev.voice as string]?.row?.parameters ?? {}) as Record<string, number>;
+    const release = Math.max(Number(ev.p.release ?? P.release ?? 0), 0), least = Number(ev.p.attack ?? P.attack ?? 0) + Number(P.decay ?? 0);
+    let e = end;
+    for (const w of keepOut) if (w.to > t && w.from < Math.max(e, t + least) + release) e = Math.min(e, w.from - release);
+    return e < end && e - t < least ? t : e;
+  };
   for (const [from, n] of silentRuns(events, sections, bars, barSeconds)) {
     const a = from * barSeconds, b = (from + n) * barSeconds;
     for (const layer of BED_LAYERS) {
@@ -94,7 +107,7 @@ export function fillSilence(events: Ev[], sections: readonly Section[], bars: nu
       if (shift == null) continue;
       const add: Ev[] = [];
       for (const e of own) {
-        const t = Math.max(a, e.t + shift), end = Math.min(b, endOf(e) + shift);
+        const t = Math.max(a, e.t + shift), end = kept(e, t, Math.min(b, endOf(e) + shift));
         if (end - t < 0.05) continue;
         add.push({ ...e, t, bar: Math.floor(t / barSeconds + 1e-9), p: { ...e.p, dur: end - t } });
       }
@@ -116,7 +129,9 @@ export function fillSilence(events: Ev[], sections: readonly Section[], bars: nu
       if (!before.length) continue;
       const last = Math.max(...before.map((e) => e.t));
       const chord = before.filter((e) => Math.abs(e.t - last) < 1e-6);
-      events.push(...chord.map((e) => ({ ...e, t: a, bar: from, p: { ...e.p, dur: b - a } })));
+      const held = chord.map((e) => ({ ...e, t: a, bar: from, p: { ...e.p, dur: kept(e, a, b) - a } })).filter((e) => e.p.dur >= 0.05);
+      if (!held.length) continue;
+      events.push(...held);
       events.sort((x, y) => x.t - y.t);
       if (timeline) for (let i = from; i < from + n; i++) if (timeline[i] && !timeline[i].layers.includes(layer)) timeline[i].layers = [...timeline[i].layers, layer];
       filled.push({ from, bars: n, layer });

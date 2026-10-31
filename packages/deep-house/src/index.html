@@ -271,8 +271,10 @@
            too short for the middle (`ringPlace`, library-panel.ts; an app's
            browser, inapp-layout 10-22): a move of the stage, before the open
            panel's transform, which takes it back; and onto the fold where the
-           shell says one crosses the page (duo-fold, `shellLayout`) */
-        translate: var(--ring-dx, 0px) var(--ring-dy, 0px);
+           shell says one crosses the page (duo-fold, `shellLayout`). One
+           matrix with the open panel's move, never a second transform beside
+           it (panel-motion, below) */
+        transform: var(--ring-m, none);
       }
       #tilt {
         position: relative;
@@ -293,6 +295,17 @@
         overflow: visible;
         display: block;
         will-change: transform, opacity;
+      }
+      /* **The drawing does not hear the window's numbers** (mac-resize): the stage's and the panel's layout is said in
+         custom properties on the root, which every element inherits, and WebKit drew all three bloomed sheets again
+         whenever one changed, nothing in them reading any (30 to 50 ms, a window's drag at 26 frames a second). The
+         sheets set them back to nothing, so the numbers stop at the square that is laid out from them. A new layout
+         property said on the root, and read outside the drawing, belongs in this list. */
+      .layer {
+        --vv-top: initial; --vv-left: initial; --vv-w: initial; --vv-h: initial; --vv-min: initial;
+        --ring: initial; --ring-fit: initial; --ring-dy: initial;
+        --ring-m: initial; --open-m: initial;
+        --name-fs: initial; --name-x: initial; --name-y: initial;
       }
       #outer { transform: translateZ(-13px); }
       #star  { transform: translateZ(17px); }
@@ -319,7 +332,14 @@
       text.tell { fill: #ffffff; }
       /* One gradient for every line on the ring, the transport's included:
          since 09-23 nothing on it keeps the gold when the spell moves away. */
-      .ln { fill: none; stroke: url(#gold); stroke-linecap: round; stroke-linejoin: round; }
+      /* The ring's line work is cut in the gold (`#gold`) inside the bloom and in the live gold (`#goldLive`) outside
+         it: the live gold walks to the coming theme's colour on a seam's own clock, which costs the unfiltered layers
+         nothing, and the bloomed gold steps once, at the swap, under the bloom's unfiltered copy (`.twin`, in the coming
+         gold, `#goldNext`), since a write the bloom reads re-runs its blur (ring-seam, his eye 10-30). The coming
+         theme's lanes wear the coming gold. At rest the three are one colour to the byte. */
+      .ln { fill: none; stroke: url(#goldLive); stroke-linecap: round; stroke-linejoin: round; }
+      #outerGlow .ln, #starGlow .ln, #innerGlow .ln { stroke: url(#gold); }
+      .twin .ln, .next .ln { stroke: url(#goldNext); }
       .hair { stroke-width: 1.1; opacity: 0.75; }
       .thin { stroke-width: 1.6; }
       .med  { stroke-width: 2.4; }
@@ -395,6 +415,9 @@
         left: calc(var(--name-x) - 0.082em);
         top: calc(var(--name-y) - 0.254em);
       }
+      /* **Through a drag of the Mac window's edge the window shows the mark itself**, in its corner (panel-resize,
+         PageHost.swift), and the page's is away until its first layout at the size the hand let go at */
+      :root[data-name-away] #name { visibility: hidden; }
       /* **A phone held sideways keeps the corners** (K30, the reviews of 09-26):
          under 700 px wide and short, the ring reaches the top and the bottom
          edges, so the name centred over it and the credit centred under it sat
@@ -584,19 +607,33 @@
          on the stage, about the ring's centre, so nothing on it is redrawn and
          every motion keeps its phase. Landscape: into the left 3/5, scaled to
          fit it; portrait: into the top 3/5; a small window: dimmed under the
-         panel. The numbers are `library-panel.ts`'s, for the viewport as it is. */
+         panel. The numbers are `library-panel.ts`'s, for the viewport as it is.
+         **One matrix, the rest's move in it** (panel-motion, his word 10-24 on the Mac: "if I open the paper on the
+         right, things are not as smooth"): written as a move and a scale beside the rest's `translate`, WebKit handed
+         Core Animation three transforms to add, and they were added the other way round: the move scaled with the
+         ring through the whole ease, its end 22 px short of the stage's own, and the ring jumped there as the ease
+         let go (and back at a close's start). One `matrix()` at each end is one transform, and its interpolation is
+         the move's and the scale's own: the same path, frame for frame. The ease runs only into and out of the open
+         panel, so the rest's move (`--ring-m`) lands at once, as the `translate` it replaces did. */
       #stage {
         transform-origin: 50% 50%;
+        transition: opacity 320ms ease;
+      }
+      :root[data-panel] #stage, :root[data-unrolling] #stage {
         transition: transform 520ms cubic-bezier(0.22, 0.7, 0.2, 1), opacity 320ms ease;
       }
       :root[data-panel]:not([data-view="machine"]) #stage {
-        transform: translate(var(--open-dx, 0px), var(--open-dy, 0px)) scale(var(--open-k, 1));
+        transform: var(--open-m, none);
       }
       :root[data-panel][data-panel-mode="mini"] #stage { opacity: 0.3; }
       /* **a turn lands in one frame** (round 4, `layShell`): the ring's and the panel's eases are held while the new
          layout lands, so nothing glides from where it stood in the old shape; the ring's own motion is untouched (it
          runs inside the stage); an open panel whose place changed comes in with a short fade */
       :root[data-turning] #stage, :root[data-turning] #library { transition: none !important; }
+      /* **and so does a window resized by hand, every step of it** (mac-resize, `viewportChanged` in ring.ts): through a
+         drag and its tail the ring and the open panel stand where the window's size puts them on every frame, and no
+         ease of the open transform trails half a second behind the window's edge */
+      :root[data-resizing] #stage, :root[data-resizing] #library { transition: none !important; }
       #library.turnIn { animation: libTurnIn 150ms ease-out; }
       @keyframes libTurnIn { from { opacity: 0; } }
       /* **one surface at a time** (his pick 10-21, `libraryAway`): a bird's control opened over a panel under the ring
@@ -609,6 +646,9 @@
       /* the phone held upright: its wordmark, centred over the ring, goes while the panel is under it; everywhere else
          it stays in its corner (duo-fold, `data-name-corner` from library-panel.ts's `placeName`) */
       :root[data-panel][data-panel-mode="port"]:not([data-name-corner]) #name { visibility: hidden; }
+      /* and a near-square desktop window, upright but with its paper beside the ring (panel-fit, `PHONE_W`): its
+         wordmark stands centred over the window, not over the ring moved aside, so it goes while the paper is open too */
+      :root[data-panel][data-panel-mode="land"]:not([data-name-corner]) #name { visibility: hidden; }
       /* beside the panel, where the open ring reaches the wordmark (library-panel.ts `nameYields`) */
 
       /* **The panel floats** (his word 10-20): a rounded rectangle held in
@@ -684,9 +724,15 @@
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
       }
-      /* his note 10-20: frameless at rest, a thin circle on hover and focus */
-      #library .libClose { border: 1px solid transparent; transition: border-color 160ms ease; }
-      #library .libClose:hover, #library .libClose:focus-visible { color: #ffffff; border-color: var(--gold); }
+      /* frameless at rest (his note 10-20), and frameless lit: the cross alone lights, in the ring's gold, under a mouse's hover, a key's
+         focus and a finger's press, with the hand (his word 10-30: "let's remove hover for X in the paper just highlight
+         with cross color and hand, and circle doesn't fit corner well anyways"; the filled disc of 10-24 sat round in a
+         square fold). A touch screen keeps its last tap as `:hover`, so hover is a mouse's alone, and a focus the page
+         put back after a pointer (`data-quiet-focus`) draws nothing */
+      #library .libClose { border: 1px solid transparent; transition: color 160ms ease; }
+      @media (hover: hover) { #library .libClose:hover { color: var(--gold); } }
+      :root:not([data-quiet-focus]) #library .libClose:focus-visible,
+      #library .libClose:active { color: var(--gold); }
       #library .libClose svg { width: 14px; height: 14px; }
       /* the × on the machine-view key's vertical line (his word 10-20): its size and right inset, 30 px and 16 px
          (26 px and 10 px compact), centred over the key's centre; a finger's target as the key's */
@@ -725,7 +771,8 @@
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
       }
-      #library .machineKey:hover, #library .machineKey:focus-visible { border-color: var(--gold); }
+      @media (hover: hover) { #library .machineKey:hover { border-color: var(--gold); } }
+      :root:not([data-quiet-focus]) #library .machineKey:focus-visible, #library .machineKey:active { border-color: var(--gold); }
       #library .machineKey svg { width: 16px; height: 16px; }
       @media (pointer: coarse) { #library .machineKey { position: relative; } #library .machineKey::after { content: ''; position: absolute; inset: -7px; } }
       /* **the share circle** beside it (10-21), the same circle; the foot stays one line: where it is tight the pills
@@ -782,7 +829,8 @@
       #libAbout .aboutKey[aria-checked="false"] { color: rgba(255, 255, 255, 0.5); }
       #libAbout .aboutKey[aria-checked="false"] .aboutSwitch { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
       #libAbout .aboutKey[aria-checked="false"] .aboutKnob { left: 2px; background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent); }
-      #libAbout .aboutKey:hover .aboutSwitch, #libAbout .aboutKey:focus-visible .aboutSwitch, #libAbout .aboutKeyName:hover { border-color: var(--gold); }
+      @media (hover: hover) { #libAbout .aboutKey:hover .aboutSwitch, #libAbout .aboutKeyName:hover { border-color: var(--gold); } }
+      :root:not([data-quiet-focus]) #libAbout .aboutKey:focus-visible .aboutSwitch { border-color: var(--gold); }
       #libAbout .aboutReportsWhat { margin: 12px auto 0; max-width: 480px; font-size: calc(11.5px * var(--pk, 1)); line-height: 1.6; color: var(--quiet); }
       /* the maker's name, at the foot where the footer had it (K23, K28): Jost
          500, tracked 0.12 em, in the ring's colour */
@@ -841,16 +889,22 @@
       :root #library[data-sheet] { border: 0; border-radius: 0; background: transparent; }
       #library .sheetEdge { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
       /* round 7 (his word 10-22 from the phone: "something is not right with paper corners", "paper fold should be
-         lighter for more realistic feel"): one crisp line, nearly square corners (1.5 px, `SHEET_R`), the panel on whole
+         lighter for more realistic feel"): one crisp line, corners round as the ring (8 px, `SHEET_R`, his word 10-30), the fold's tip the same corner turned over, the panel on whole
          pixels and nothing clipped to the outline (library-panel.ts). The line is the ring's colour at 70 % mixed over
          black, opaque, so where the flap's crease runs along the outline's it is the same one line, not two thin ones
          summing. The flap is the paper's back turned over: the ring's colour 17 % over black at the crease, 10 % at the
          tip, paper catching light, no glow. */
-      :root { --sheet-line: color-mix(in srgb, var(--ring-ink, var(--gold)) 70%, #000000); }
-      .flapLit stop:first-child { stop-color: color-mix(in srgb, var(--ring-ink, var(--gold)) 17%, #000000); }
-      .flapLit stop:last-child { stop-color: color-mix(in srgb, var(--ring-ink, var(--gold)) 10%, #000000); }
+      /* **quieter on the open sheet** (panel-fit, his word 10-26: "reduce the brightness of page dividing bar and the
+         brightness of the panel rectangle border with folding corner … it still grabs attention from ring ui, so maybe
+         we mute it a bit, maybe 30-40% off"): the outline, the turned corner's line and its light, and the crease, at
+         `--sheet-k` (0.65) of their mix with black, each the same ink, only less of it. The zoom's frame starts at the
+         key's weight (1) and eases to the sheet's (library-panel.ts `paintRoll`), so the hand-over has no step. */
+      #library .sheetEdge { --sheet-k: 0.65; }
+      #library .sheetEdge, #unroll svg { --sheet-line: color-mix(in srgb, var(--ring-ink, var(--gold)) calc(70% * var(--sheet-k, 1)), #000000); }
+      .flapLit stop:first-child { stop-color: color-mix(in srgb, var(--ring-ink, var(--gold)) calc(17% * var(--sheet-k, 1)), #000000); }
+      .flapLit stop:last-child { stop-color: color-mix(in srgb, var(--ring-ink, var(--gold)) calc(10% * var(--sheet-k, 1)), #000000); }
       #library .sheetEdge .edge { fill: rgba(0, 0, 0, 0.9); stroke: var(--sheet-line); stroke-width: 1; stroke-linejoin: miter; }
-      #library .sheetEdge .crease { fill: none; stroke: color-mix(in srgb, var(--ring-ink, var(--gold)) 14%, transparent); stroke-width: 1; shape-rendering: crispEdges; }
+      #library .sheetEdge .crease { fill: none; stroke: color-mix(in srgb, var(--ring-ink, var(--gold)) calc(14% * var(--sheet-k, 1)), transparent); stroke-width: 1; shape-rendering: crispEdges; }
       #library .sheetEdge .flap { fill: url(#flapLitSheet); stroke: var(--sheet-line); stroke-width: 1; stroke-linejoin: miter; }
       :root #library[data-sheet] .libHead { padding-right: calc(var(--corner, 44px) + 4px); }
       :root #library[data-sheet] .libHead .libClose { position: absolute; z-index: 1; left: var(--x-x, calc(100% - 31px)); top: var(--x-y, 31px); width: var(--x-d, 26px); height: var(--x-d, 26px); margin: 0; transform: translate(-50%, -50%); }
@@ -914,7 +968,8 @@
       #library .plIcon { border-color: color-mix(in srgb, var(--gold) 40%, transparent) !important; border-radius: 999px; }
       #library .plIcon:not(.plWord) { width: 30px; padding: 0 !important; border-radius: 50%; }
       #library .plIcon.plWord { padding: 0 11px 0 9px !important; }
-      #library .plIcon:hover, #library .plIcon:focus-visible { border-color: var(--gold) !important; }
+      @media (hover: hover) { #library .plIcon:hover { border-color: var(--gold) !important; } }
+      :root:not([data-quiet-focus]) #library .plIcon:focus-visible, #library .plIcon:active { border-color: var(--gold) !important; }
       #library .plIcon:disabled { opacity: 0.4; cursor: default; }
       #library .plIcon span { color: #d8d8d8; }
       #library .pl .plIcon svg.plGlyph, #library .plFoot svg.plGlyph { width: 15px; height: 15px; color: var(--gold); }
@@ -951,6 +1006,8 @@
       /* the playing mark: three level bars in the accent after the name; still and dimmer while paused */
       #library svg.plLevel, #library .plOpen svg.plLevel { flex: none; width: 10px; height: 10px; margin-left: 7px; fill: var(--gold); }
       #library svg.plLevel.still { opacity: 0.55; }
+      /* through a mix each row's bars go on and off as the blend runs (ring-seam): a fade, never a step */
+      #library svg.plLevel[data-mix] rect { transition: opacity 0.6s ease; }
       #library[data-density="compact"] svg.plLevel, #library[data-density="compact"] .plOpen svg.plLevel { width: 9px; height: 9px; margin-left: 5px; }
       #library .on > .plOpen .plName, #library .plTrack.on .plName { color: var(--gold); }
       /* current, not sounding (a reload resumed it, a pause): marked, quieter than playing */
@@ -982,7 +1039,9 @@
       /* the playlist's way back (his word 10-21): the panel × 's circle, drawn, its left edge on the content's */
       #library .plBack { flex: none; width: 30px; height: 30px; display: grid; place-items: center; color: var(--gold); border: 1px solid transparent !important; border-radius: 50%; transition: border-color 160ms ease; }
       #library .plBack svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-      #library .plBack:hover, #library .plBack:focus-visible { border-color: var(--gold) !important; outline: none; }
+      @media (hover: hover) { #library .plBack:hover { border-color: var(--gold) !important; } }
+      :root:not([data-quiet-focus]) #library .plBack:focus-visible, #library .plBack:active { border-color: var(--gold) !important; }
+      #library .plBack:focus-visible { outline: none; }
       #library[data-density="compact"] .plBack { width: 26px; height: 26px; }
       /* the chevron's own left edge on the tab words' (his word 10-21); the hover circle may stand out past it. The glyph
          starts 12.2 px into the 30 px circle (14 px drawn, 4.2 of 14 in); the body is padded 20 against the head's 28 */
@@ -1104,6 +1163,18 @@
       #library[data-density="compact"] .libBody { padding: 14px 16px; }
       #library[data-density="compact"] .machineKey { margin: 0 10px 10px 0; width: 26px; height: 26px; }
       #library[data-density="compact"] .shareKey { margin-right: 6px; }
+      /* **the Playlists tab of a phone's panel, its inner padding up to doubled** (panel-fit, his word 10-26: "for
+         playlist view specifically need to increase padding for playlists items, as the names aren't that long and
+         the horizontal stretch with empty void in the middle doesn't look great … double inner panel padding to have
+         similar to desktop"): the list of lists and a playlist's own tracks, and the foot's keys under them, stand
+         `--pl-pad` in from the paper's sides (library-panel.ts `PL_PAD`): 12 px on a phone's panel, as it was, where
+         doubling cut the track names and crowded the foot, rising to 24 px on a panel 480 wide and wider, where the
+         void was (the desktop's is 20). The tab row over them, the Map and the About keep theirs; the mini player
+         keeps its own. The left side only (his word 10-26: "had to do it once got left side, as right side icons were
+         aligned to paper fold close icon button"): the rows' ⋯, the playlist's link and ⋯ and the foot's right key
+         keep the phone's 12 px, under the turned corner's ×. */
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] #libPlaylists { padding-left: var(--pl-pad, 12px); }
+      :root:not([data-panel-mode="mini"]) #library[data-density="compact"] .plFoot { padding-left: var(--pl-pad, 12px); }
       #library[data-density="compact"] .libFirst { gap: 10px; }
       #library[data-density="compact"] .libFirst h2 { font-size: calc(14px * var(--pk, 1)); }
       #library[data-density="compact"] .libFirst p { font-size: calc(11px * var(--pk, 1)); }
@@ -1180,7 +1251,7 @@
       #library .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: inherit; }
       #library .skyField { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
       #library .sky .skyOpen { opacity: 0.6; }
-      #library .sky .skyFigure { stroke-width: 0.7; opacity: 0.3; }
+      #library .sky .skyFigure { stroke: #8f8f8f; stroke-width: 0.7; opacity: 0.3; }
       #library .sky .skyOpen.dim { opacity: 0.32; }
       /* recentre: a circle, the crosshair alone, shown once the view has moved */
       #library .skyHome { position: relative; flex: none; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; color: var(--gold); background: #000000; border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 50%; cursor: pointer; }
@@ -1200,14 +1271,26 @@
       #library[data-density="compact"] .skyHome { width: 26px; height: 26px; }
       #library[data-density="compact"] .skyLegend { font-size: calc(9px * var(--pk, 1)); gap: 0 10px; }
       #library[data-density="compact"] .skyLeg svg { width: 14px; }
-      #library .skyHome:hover, #library .skyHome:focus-visible { border-color: var(--gold); outline: none; }
+      @media (hover: hover) { #library .skyHome:hover { border-color: var(--gold); } }
+      :root:not([data-quiet-focus]) #library .skyHome:focus-visible, #library .skyHome:active { border-color: var(--gold); }
+      #library .skyHome:focus-visible { outline: none; }
       #library .skyHome svg { width: 16px; height: 16px; }
       @media (pointer: coarse) { #library .skyHome::after { content: ''; position: absolute; inset: -7px; } }
-      #library .sky .skyFamily { fill: var(--quiet); opacity: 0.7; letter-spacing: 0.16em; text-anchor: middle; }
-      #library .sky .skyOpen { fill: none; stroke: var(--quiet); stroke-width: 0.8; }
+      /* colour means pressable, gray means not yet (his word 10-28): rings, family names and figures are gray */
+      #library .sky .skyFamily { fill: #8f8f8f; opacity: 0.7; letter-spacing: 0.16em; text-anchor: middle; }
+      #library .sky .skyOpen { fill: none; stroke: #8f8f8f; stroke-width: 0.8; }
       #library .sky .skyStar { fill: var(--gold); }
       #library .sky .skyName { fill: #ffffff; letter-spacing: 0.06em; }
       #library .sky .skyTip { fill: var(--quiet); letter-spacing: 0.06em; }
+      #library .sky .skyDot { opacity: 0.42; }
+      #library .sky .skyDot.on { opacity: 0.8; }
+      #library .sky .skyTip.near { opacity: 0.7; }
+      /* a track's name reads as a title, not a place: as written, no tracking (his word 10-28: "remove uppercase effect from it, as it being perceived as genre name") */
+      #library .sky .skyTip.track { letter-spacing: 0; text-transform: none; }
+      #library .sky .skyTip.inert { opacity: 0.8; }
+      #library .sky .skyPoint { stroke: #000000; stroke-width: 0.8; }
+      #library .sky .skyPointOn { fill: none; stroke: var(--gold); stroke-width: 1; }
+      #library .sky .skyPointOn.still { opacity: 0.5; }
       #library .sky .skyList { fill: none; stroke: var(--gold); stroke-width: 0.8; stroke-dasharray: 3 3; }
       #library .sky .skyHere { fill: none; stroke: var(--gold); stroke-width: 1.2; }
       #library .sky .skyPressed { fill: none; stroke: var(--gold); stroke-width: 0.8; }
@@ -1216,8 +1299,13 @@
       #library .skyKey:focus-visible { outline: 1px solid var(--gold); outline-offset: -12px; }
       #library[data-density="compact"] #libGenres { padding: 4px 6px 0; }
       @media (prefers-reduced-motion: reduce) {
-        #stage, #library { transition: none; }
+        #stage, :root[data-panel] #stage, :root[data-unrolling] #stage, #library { transition: none; }
       }
+      /* **The TV's page** (round tv-scene, tv-mode.ts): the ring alone, its name in the corner and the line under it;
+         no key, no panel and nothing a hand would reach for, since nobody touches a TV */
+      :root[data-tv] #gyro, :root[data-tv] #library, :root[data-tv] #birdPanel { display: none !important; }
+      :root[data-tv] #nowList { pointer-events: none; }
+      :root[data-tv], :root[data-tv] * { cursor: none !important; }
     </style>
   </head>
   <body>
@@ -1283,9 +1371,9 @@
         <hr />
         <p class="aboutWhat" id="aboutWhat">
           <span>A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.</span>
-          <span>At its best on three sounds: deep house, the default; liquid drum &amp; bass (turn Ember up); ambient soundscapes (turn Ember down).</span>
+          <span>Its best sounds are in the Featured playlists.</span>
           <span>A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.</span>
-          <span>One link, one track: share it and it plays the same anywhere.</span>
+          <span>One link, one track: it plays the same anywhere.</span>
           <span>Fully offline. No account. No ads. No tracking.</span>
         </p>
         <hr />
@@ -1375,6 +1463,18 @@
         <svg class="layer" id="outer" viewBox="0 0 1000 1000" aria-hidden="true">
           <defs>
             <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
+              <stop offset="0" stop-color="#fff3c8" />
+              <stop offset="0.34" stop-color="#ffd97a" />
+              <stop offset="0.68" stop-color="#f2c14e" />
+              <stop offset="1" stop-color="#b9781f" />
+            </linearGradient>
+            <linearGradient id="goldLive" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
+              <stop offset="0" stop-color="#fff3c8" />
+              <stop offset="0.34" stop-color="#ffd97a" />
+              <stop offset="0.68" stop-color="#f2c14e" />
+              <stop offset="1" stop-color="#b9781f" />
+            </linearGradient>
+            <linearGradient id="goldNext" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">
               <stop offset="0" stop-color="#fff3c8" />
               <stop offset="0.34" stop-color="#ffd97a" />
               <stop offset="0.68" stop-color="#f2c14e" />

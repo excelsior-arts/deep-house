@@ -7,11 +7,12 @@
 // plan, FX palette — so the product of the dice, not one number, is what makes
 // two seeds different records.
 
+import { ensembleLean, ensembleRoot, ensembleTide, type EnsembleBlock } from './ensemble.ts';
 import { charactersOf } from './parts/sound.ts';
 import { mergeParams, hatEnergy, INSTRUMENTS } from '@deep-house/engine/params';
 import type { ParamOverrides } from '@deep-house/engine/params';
 import { resolveSettings } from '@deep-house/engine/settings';
-import { voicePlaying, TIMBRES, VOICE_KNOBS, GLUE_SHAPES, BY_NAME, VOICE_COST_UNITS, rowsThrough, malletLives } from '@deep-house/engine/voices';
+import { voicePlaying, TIMBRES, VOICE_KNOBS, GLUE_SHAPES, BY_NAME, VOICE_COST_UNITS, rowsThrough, voiceLives, voiceRing, timbreOfNote } from '@deep-house/engine/voices';
 import { CEILING as CAST_CEILING } from './catalogue-v2.ts';
 import type { Knobs } from '@deep-house/engine/voices';
 import { dbToGain, midiToHz } from '@deep-house/engine/dsp';
@@ -35,11 +36,14 @@ import { developmentOf, type Development } from './development.ts';
 import { prepareRhythmDevelopment, type RhythmPhase, type rhythmPickup } from './development-rhythm.ts';
 import { kickPickupHits, recipeRhythmSource, rhythmGates, type RhythmPerformer } from './parts/perform-rhythm.ts';
 import { recipeRequest, type Accompaniment } from './recipe-request.ts';
-import { accompanimentOf, drawLibrary, DRAWABLE, settleDrums, travelOf, type LibraryDrawn, type Settled } from './library-draw.ts';
+import { accompanimentOf, drawLibrary, reachOf, DRAWABLE, settleDrums, travelOf, type LibraryDrawn, type Settled } from './library-draw.ts';
 import { turnRoles } from './roles.ts';
 import type { RolesReadout } from './roles.ts';
-import { readPlace, zoneOf, zoneBands, heldSpell, type PlaceLane, type PlaceRead, leanFactor, leanShift, placedProfile, placedKnob, bassDriveFor, grainFor, drumGrainFor, BED_BELL, bellOfBed, floorOfBed, GHOST_VEL, withoutTechniques, type StylePlaces, type GrammarNeed } from './places.ts';
-import { loudnessFeatures } from './loudness.ts';
+import { techniqueAt, drawTechnique, techniqueOrder, laneForeground, TechniqueRefused } from './technique.ts';
+import { PartRefused } from './refused.ts';
+import { needsMet, type NeedsContext } from './needs.ts';
+import { readPlace, zoneOf, zoneBands, heldSpell, type PlaceLane, type PlaceRead, type Zone, type TechniqueEntry, type TechniqueBlock, type TechniqueLane, leanFactor, leanShift, placedProfile, placedKnob, bassDriveFor, grainFor, drumGrainFor, BED_BELL, bellOfBed, floorOfBed, GHOST_VEL, withoutTechniques, type StylePlaces, type GrammarNeed } from './places.ts';
+import { bedEnergyDb } from './loudness.ts';
 import { eqProfileOf, type EqProfile } from '@deep-house/engine/master';
 import { costOf as effectsCost } from '@deep-house/engine/effects';
 import { rollMotifs, performMotif, type MotifPerformer, type PlayedMotif } from './motif-perform.ts';
@@ -47,10 +51,10 @@ import { rollPhrased, phrasedInSection, rollMined, minedEntrance, drawRiff, pair
 import { minedPhraseRuns, runPitch, withAfterKick, afterKickAt, knobAt } from './mined-phrase.ts';
 import { recipeFigureSource, rollFigures } from './parts/perform-figure.ts';
 import { rollTexture, treat } from './parts/treat.ts';
-import { SCALES, makeProgression, chordAtBar, noteName, foldTo, foldInto, DEGREE_NAMES, wheelRoot, rootOnWheel } from './theory.ts';
+import { SCALES, makeProgression, chordAtBar, noteName, foldTo, foldInto, voiceHeld, DEGREE_NAMES, wheelRoot, rootOnWheel } from './theory.ts';
 import { planKeys, inPickup, keysReadout, type KeysPlan, type KeysChord, type KeysReadout } from './keys-phrase.ts';
 import { laneLevelDb, offShift } from './lane-level.ts';
-import { stage } from './performance.ts';
+import { stage, floorUnderDb } from './performance.ts';
 import type { PlannedTheme } from './performance.ts';
 import { walkAt, walked } from './walk.ts';
 import type { Chord, Progression } from './theory.ts';
@@ -68,10 +72,10 @@ import { kitOf, answersOf, statesOf, type Kit, type KitLane, type KitMove } from
 import { planDevelopment, resolveForm, developmentOf as developmentRowOf, auxOf, surfaceOf, bassAnswersOf, stateAt, arcAt, withEndGlide,
   type DevelopmentPlan, type ReservedWindow } from './phrase-development.ts';
 import { planAmbientVoices, admitAmbient, ambientEvents, type AmbientVoicesPlan } from './ambient-voices.ts';
-import { planConversation, conversationRowOf, type ConversationSummary } from './slow-conversation.ts';
+import { planConversation, conversationRowOf, washOf, type ConversationSummary, type BreathLine } from './slow-conversation.ts';
 import { planSurf, planWaves, surfRowOf, type SurfSummary } from './surf.ts';
 import { planJourney, journeyRowOf, journeySays, higherOf, leadChords, type JourneySummary } from './journey.ts';
-import { TREATMENTS as TREATMENT_ROWS, SECTION_LIBRARY as SECTION_ROWS, FORM_LIBRARY, GLIDE_LIBRARY, recipeById } from './recipes.ts';
+import { TREATMENTS as TREATMENT_ROWS, SECTION_LIBRARY as SECTION_ROWS, FORM_LIBRARY, GLIDE_LIBRARY, ENSEMBLE_LIBRARY, recipeById } from './recipes.ts';
 import { drawSectionRows, grammarWith, type SectionPin } from './sections.ts';
 import { sweepsOf, sweepCurves, glueFadesOf, type BusSweepCurves } from './sweep.ts';
 import * as P from './patterns.ts';
@@ -82,12 +86,16 @@ import { PRODUCER_ROWS, arrange, type PhrasePlan, type FilterSpan, type Producer
 import { musicalTime, clockAt, FREE_BPM, type MusicalTime } from './musical-time.ts';
 import { planPhraseMap, type PhraseMap } from './phrase-map.ts';
 import { applyHygiene, HYGIENE_ROWS, type HygieneResult } from './hygiene.ts';
+import { breakPulse, type BreakPulsePlan, type PulseEvent } from './break-pulse.ts';
 import { momentsOf, type Moment, type MomentsInput } from './moments.ts';
 import { planPhrasing, summarised, said as saidOf, bumpCurve, dipCurve, factorCurve, glueParams, PHRASING_ROWS, TONAL_LAYERS, type Phrasing, type BarKit } from './phrasing.ts';
 import { applyPadArc, PAD_ARC_ROWS, type PadArc } from './pad-arc.ts';
-import { HAT_SCENE, sceneBar, gravityOf, sceneVariation, levelOf, fillStep, fillChance, busyAt, restsAt, struckAt, type SceneBar, type SceneHatSteps } from './hat-scene.ts';
+import { HAT_SCENE, sceneBar, gravityOf, sceneVariation, levelOf, fillStep, fillChance, busyAt, restsAt, struckAt, keysByHats, KEYS_BY_HATS, keysByBody, KEYS_BY_BODY, type SceneBar, type SceneHatSteps, type KeysByHatsStep, type KeysByBodyStep } from './hat-scene.ts';
 import { hatsMoveHere } from './hat-moves.ts';
 import { HAT_FIGURE, planHatFigure } from './hat-figure.ts';
+import { planHook, hookArc, hookWord, hookRowOf, pedalTones, loopChordAt, sawEnergy, pedalGainDb, HOOK_HOUSE, type HookRow, type SawNote } from './hook.ts';
+import { phraseBar } from './phrase.ts';
+import { KEYS_MOMENTS, atKeysLevel, planKeysMoments, riffLine, soloLine, type KeysMomentsPlan, type MomentHarmony, type MomentNote } from './keys-moments.ts';
 import type { SpaceRow } from '@deep-house/engine/space';
 
 const TAIL_SECONDS = 4;
@@ -274,6 +282,8 @@ export interface EventMeta {
   treatment?: 'none';
   /** A ringing struck note is not a sustained tone merely because it is long. */
   articulation?: 'struck';
+  /** the part of an ensemble that played it (`PitchedFigure.as`, `RhythmPart.as`): its check reads the roles by it */
+  ensemble?: string;
   /** A background texture keeps its musical role even when borrowing a keys voice; the sparse keys are a part of their own (liquid-space round 1); a featured detail too (liquid-ambient). */
   role?: 'texture' | 'sparse-keys' | 'detail';
   bar: number;
@@ -395,6 +405,8 @@ export type ThemeDice = {
    * is the object it was.
    */
   library?: string;
+  /** the ensemble a place drew for the theme (`EnsembleEntry`), or its refusal */
+  ensemble?: string;
   /** the bass's own figure where it is not the mask's (a held line; round DNB-7, a glide line) */
   bassFigure?: string;
   /** the glide row the place played (round DNB-7), and the bar its second line takes over */
@@ -404,6 +416,8 @@ export type ThemeDice = {
   riff?: string;
   /** the form row the place drew (round DNB-6) */
   form?: string;
+  /** the hook the theme plays (round trance-1, `src/hook.ts`): the gate's pattern, the riff's rhythm and shape */
+  hook?: string;
 };
 
 /**
@@ -460,6 +474,8 @@ export interface Track {
     targetLufs?: number;
     /** what the place's windows measure at a trim of nought, in LUFS (round DNB-4, `DrumsEntry.measuredLufs`) */
     measuredLufs?: number;
+    /** how far this theme's windows stand from its place's at nought, in dB, where the place leans it (the sea's `levelDb`): the trim gives it back one for one */
+    levelDb?: number;
   };
   progression: Progression;
   arrangement: ReturnType<typeof makeArrangement>;
@@ -477,6 +493,8 @@ export interface Track {
   filterMove?: string | null;
   /** how far this theme is from the record's target loudness, in dB */
   trimDb?: number;
+  /** the level the trim aims the theme at, in LUFS (round loudness-place, `loudness.ts` `targetOf`): a playlist's hand-over reads it for the entry glide */
+  aimLufs?: number;
   /**
    * **What the spell asked of the voices this theme drew**, by event name —
    * PLAN-MODULATION M1's own field, and it is on the plan for the same reason
@@ -557,6 +575,8 @@ export interface Track {
   phraseMap?: PhraseMap;
   /** what the arrangement's hygiene did (PLAN-UNIFY U1, `src/hygiene.ts`): the holds it faded, the beds it laid where the groove went bare; house-v2's positions the producer does not arrange, where it did anything */
   hygiene?: HygieneResult;
+  /** what the break rule did (round break-pulse-rule, `src/break-pulse.ts`): the carrier a beat-led theme's breaks keep, where it kept one */
+  breakPulse?: BreakPulsePlan;
   /**
    * what the arrangement's phrases did (PLAN-UNIFY U2, `src/phrasing.ts`): the sub-segments inside the long mains (each
    * labelled, for the ring to show one day), the structural arrivals the drums answered, the bass's outs and the
@@ -812,6 +832,10 @@ export function seasoningOf(style: Style, bias: Bias, tables: Record<string, Kno
  * never in it, so no hash reads it (a plan carried from another thread has none).
  */
 const PLACE_READS = new WeakMap<object, readonly PlaceRead[]>();
+/** One strike of the keys' lane as the keys by the body read it (round piano-tone): its level as played less the hats' step, and what else sounds in its band in the window from it, by class, as linear power as played. */
+export interface BodyRead { bar: number; t: number; db: number; parts: Record<string, number> }
+const BODY_READS = new WeakMap<object, readonly BodyRead[]>();
+export const bodyReadsOf = (track: object): readonly BodyRead[] | null => BODY_READS.get(track) ?? null;
 export const placeReadsOf = (track: object): readonly PlaceRead[] | null => PLACE_READS.get(track) ?? null;
 
 /** Who played the bass lane of a plan this module composed, remembered beside it (the plan's bytes carry no such field). */
@@ -901,12 +925,64 @@ export function heldByZone<S extends Partial<Spell> | null | undefined>(style: S
   return zone?.inert?.length ? heldSpell(zone, full) as unknown as S : spell;
 }
 
+/**
+ * **A theme's clock and the tempo its place tables are read at**, from its room's tempo (`roomBpm`, asked only where the
+ * set forces none): the set's where it forces one, else the room's carried into the derived family's band (at the house
+ * family the two bands are the same pair of numbers, and this is the room's to the bit). **The second clock**
+ * (PLAN-AMBIENT §4, C1): a place whose time entry says `free` plans its themes at the nominal 60 BPM, a beat a second,
+ * asked at the tempo drawn (the place's address); the set asks it first and says so (`clock`), so a set's free theme is
+ * its minutes at 60. No shipped place says it, so this is the tempo drawn everywhere. ...and its place tables are read at
+ * its address (`placeBpm`), never at the nominal 60: the tempo a metered theme at this spell reads them at (the tempo
+ * drawn, or the set's, handed in as `placeBpm`). On every metered theme `placeBpm` is `bpm`. `composeThemeOnce` reads its
+ * clock here, and `compose` the composer's own theme's before it is planned (the ensemble's admission).
+ */
+function themeClockOf(style: Style, bias: Bias, derived: Derived | null, zone: Zone | null, roomBpm: () => number,
+  force: { bpm?: number | null; clock?: 'free' | null; placeBpm?: number | null }): { drawnBpm: number; freeClock: boolean; bpm: number; placeBpm: number } {
+  const P = ((style as Style & { places?: StylePlaces }).places ?? {}) as StylePlaces;
+  const drawnBpm = force.bpm || (derived ? tempoInFamily(roomBpm(), derived) : roomBpm());
+  const freeClock = force.clock === 'free' || (force.clock == null && switchOn(style, 'placeTables') && clockAt(P, bias.spell, drawnBpm, zone) === 'free');
+  const bpm = freeClock ? FREE_BPM : drawnBpm;
+  return { drawnBpm, freeClock, bpm, placeBpm: freeClock ? (force.placeBpm ?? drawnBpm) : bpm };
+}
+
 function compose(given: GenerateOptions, leadOnly: boolean): Track | string {
   // **A zone's inert birds** are held at its centre for everything the composer reads (PLAN-ZONES §3.4)
   const P = switchOn(given.style, 'placeTables') ? (given.style as Style & { places?: StylePlaces }).places : undefined;
   const opts = { ...given, spell: heldByZone(given.style, given.spell) };
   const zone = P?.zones?.length ? zoneOf(P, biasFor(opts.spell ?? null, opts.style).spell) : null;
   const { style, seed = 1, spell = null, recipe = null, motif = null, visit = null, library = null, development = 'base', reach = null } = opts;
+  // **An ensemble by place** (a technique entry, 10-28; its reader `src/technique.ts`): the composer's own theme, where
+  // the ensemble's table reads an entry, plays the ensemble at its zone's share (the dial widening it past its radius),
+  // where the row's needs and its tempo window hold; drawn before the library's turn (a theme that plays an ensemble
+  // takes no turn). A row that refuses to plan falls back as its entry says (`refused: 'theme'`: the composer's own
+  // theme, the refusal on the readout).
+  const ensembleAt = P && !recipe && !motif && !developmentOf(style, development) ? (() => {
+    // (read at the tempo the composer's own theme reads every other table at, its `placeBpm`: the set's, else its room's
+    // draw, as `composeThemeOnce` draws it, never the family's centre)
+    const bias = biasFor(spell, style);
+    const roomBpm = () => rollTempo(new Rng(`${seed}::tempo`), resolveSettings({ base: style.base, room: resolveRoom(style, opts.preset ?? 'auto', new Rng(`${seed}::preset`), bias).params }).tempo, bias.ranges).bpm;
+    const bpm = themeClockOf(style, bias, derivedFor(style, bias), zone, roomBpm, { bpm: opts.bpm, clock: opts.clock, placeBpm: opts.placeBpm }).placeBpm;
+    const drawn = drawTechnique(techniqueAt(P, 'ensemble', bias.spell, bpm, zone, reach ?? 0), seed, 'ensemble');
+    const row = drawn ? recipeById(drawn.technique.row, ENSEMBLE_LIBRARY) : null;
+    const e = row?.ensemble as EnsembleBlock | undefined;
+    if (!drawn || !row || !e) return null;
+    if (!needsMet(drawn.technique.needs ?? e.needs, { derived: bias.derived, kitRow: !!readPlace(P, 'drums', bias.spell, bpm, zone)?.kit })) return null;
+    if (bpm < e.tempo[0] || bpm > e.tempo[1]) return null;
+    return { row, refused: drawn.technique.refused };
+  })() : null;
+  if (ensembleAt) {
+    try {
+      const played = composeTheme({ ...opts, recipe: ensembleAt.row }, leadOnly);
+      if (typeof played !== 'string') played.dice.ensemble = ensembleAt.row.id;
+      return played;
+    } catch (e) {
+      // (a refusal only, `PartRefused`: a register that does not hold the phrase here, a lane off; any other error is a fault and throws)
+      if (ensembleAt.refused !== 'theme' || !(e instanceof PartRefused)) throw e;
+      const plan = composeTheme(opts, leadOnly);
+      if (typeof plan !== 'string') plan.dice.ensemble = `${ensembleAt.row.id} refused (${String((e as Error)?.message || e).replace(/\s+/g, ' ').slice(0, 160)})`;
+      return plan;
+    }
+  }
   if (!visit || recipe || motif || !switchOn(style, 'libraryDraw')) return composeTheme(opts, leadOnly);
   // **The library inside a zone** (PLAN-ZONES §2.3, §3.9): a turn there draws only the zone's own list, at any reach
   // (no row leaks into a zone until the role rule says which roles it may take), and a row a zone lists is drawn
@@ -950,25 +1026,26 @@ function compose(given: GenerateOptions, leadOnly: boolean): Track | string {
 }
 
 /**
- * **A sea refused is no sea** (the ambient-waves review, 10-18, its third finding): the lanes a place's sea replaces are
- * held off long before the sea is laid (the families withheld, the gates silent), and the sea can still be refused
- * where it is laid (the cast over the catalogue's ceiling after its fallbacks, or no wave in the theme). A theme that
- * held its pad, its sub and its keys' figure off for a sea that never came was a hole that only the never-silent pass
- * filled. So a refusal plans the theme again as if its place laid no sea (`withoutTechniques(style, 'sea')`): the
- * lanes it would have held off play as drawn, the program the check plans with the sea taken out, to the bit.
+ * **A technique refused is none** (the ambient-waves review, 10-18, its third finding, for the sea; every technique's
+ * since engine-data, where its entry says `refused: 'without'`): the lanes a place's technique replaces are held off
+ * long before it is laid (the families withheld, the gates silent), and it can still be refused where it is laid (the
+ * sea: the cast over the catalogue's ceiling after its fallbacks, or no wave in the theme). A theme that held its pad,
+ * its sub and its keys' figure off for a sea that never came was a hole that only the never-silent pass filled. So a
+ * refusal plans the theme again as if its place laid none (`withoutTechniques`): the lanes it would have held off play
+ * as drawn, the program the check plans with the technique taken out, to the bit.
  */
-class SeaRefused extends Error {}
 function composeTheme(opts: GenerateOptions, leadOnly: boolean, fromLibrary = false, turnRow: { id: string; scope: string } | null = null): Track | string {
   try { return composeThemeOnce(opts, leadOnly, fromLibrary, turnRow); } catch (e) {
-    if (!(e instanceof SeaRefused)) throw e;
-    return composeThemeOnce({ ...opts, style: withoutTechniques(opts.style as Style & { places?: StylePlaces }, 'sea') }, leadOnly, fromLibrary, turnRow);
+    if (!(e instanceof TechniqueRefused)) throw e;
+    return composeThemeOnce({ ...opts, style: withoutTechniques(opts.style as Style & { places?: StylePlaces }, e.lane) }, leadOnly, fromLibrary, turnRow);
   }
 }
 
-function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forceBpm = null, clock: forceClock = null, placeBpm: forcePlaceBpm = null, root: forceRoot = null, scaleName: forceScale = null, bars: forceBars = null, fitBars = null, avoidOrgan = false, spell = null, lanes = null, timbres = null, recipe = null, accompaniment = 'base', development = 'base', motif: forceMotif = null }: GenerateOptions, leadOnly: boolean, fromLibrary = false, turnRow: { id: string; scope: string } | null = null): Track | string {
+function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forceBpm = null, clock: forceClock = null, placeBpm: forcePlaceBpm = null, root: forceRoot = null, scaleName: forceScale = null, bars: forceBars = null, fitBars = null, avoidOrgan = false, spell = null, lanes = null, timbres = null, recipe = null, accompaniment = 'base', development = 'base', motif: forceMotif = null, reach = null }: GenerateOptions, leadOnly: boolean, fromLibrary = false, turnRow: { id: string; scope: string } | null = null): Track | string {
   const requestedForm = developmentOf(style, development);
   if (requestedForm && recipe?.scope === 'track') throw new Error('A complete arrangement retains its own development; extract a part first');
-  const request = recipeRequest(recipe, accompaniment);
+  // an ensemble's ingredients widen with the draw's reach (`EnsembleBlock.reach`); its salt never does
+  const request = recipeRequest(recipe, accompaniment, reachOf(reach));
   if (request.pin && forceMotif) throw new Error('A pinned part and a tool motif override cannot both select the phrase');
   if (request.motif && forceMotif) throw new Error('A recipe motif and a tool motif override cannot both select the phrase');
   if (request.motif && (!switchOn(style, 'motif') || !['bass', 'lead'].includes(request.motif.register))) {
@@ -1079,6 +1156,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // theme's drawn one, never its nominal 60; read only once it is set below); inside a zone no read is by tempo,
   // and the zone itself is the spell's (its tempo band on derive()'s centre), never this
   const placeAt = <K extends PlaceLane>(lane: K, at: number = placeBpm) => readPlace(PLACED, lane, bias.spell, at, ZONE, placeTrace);
+  // what this theme offers a technique's needs (`src/needs.ts`); the drums' place is read only where a need asks for it
+  const needsCtx: NeedsContext = { derived: DERIVED, get kitRow() { return !!(placesOn && placeAt('drums')?.kit); } };
   const kit = DERIVED ? DERIVED.kit : FOUR_FLOOR;
   // The room drew a tempo out of its own measured window; the derived family
   // says which band of tempi this theme belongs in, and `tempoInFamily` carries
@@ -1089,16 +1168,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // mapped it for the whole set before it gets here — one grid for a set is the
   // thing `makeSetClock` exists for, so the mapping happens once, where the set
   // draws, and never twice.
-  const drawnBpm = forceBpm || (DERIVED ? tempoInFamily(roomBpm, DERIVED) : roomBpm);
-  // **The second clock** (PLAN-AMBIENT §4, C1): a place whose time entry says `free` plans its themes at the nominal
-  // 60 BPM, a beat a second, asked at the tempo drawn (the place's address); the set asks it first and says so
-  // (`clock`), so a set's free theme is its minutes at 60. No shipped place says it, so this is `drawnBpm` everywhere.
-  const freeClock = forceClock === 'free' || (forceClock == null && placesOn && clockAt(PLACED, bias.spell, drawnBpm, ZONE) === 'free');
-  const bpm = freeClock ? FREE_BPM : drawnBpm;
-  // ...and its place tables are read at its address, never at the nominal 60: the tempo a metered theme at this spell
-  // reads them at (the tempo drawn, or the set's, handed in as `placeBpm`), so a place marked free reads every table
-  // as its metered self does. Planned at 60, addressed where it stands. On every metered theme this is `bpm`.
-  const placeBpm = freeClock ? (forcePlaceBpm ?? drawnBpm) : bpm;
+  // (the second clock and the tables' tempo, `themeClockOf`)
+  const { drawnBpm, freeClock, bpm, placeBpm } = themeClockOf(style, bias, DERIVED, ZONE, () => roomBpm, { bpm: forceBpm, clock: forceClock, placeBpm: forcePlaceBpm });
   const beat = 60 / bpm;
   const barSeconds = beat * 4;
   const swing = S.swing;
@@ -1114,7 +1185,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // journey's** (the review of ambient-psy): it plays only where the journey's table lays one, so its region is inside
   // the journey's — `HARMONY` lists fewer places than `JOURNEY`, and 10 of 20000 drumless spells (HELD_DRONE's
   // neighbourhood, 0.51 from 27191) had heard phrygian's i-bII with no journey; there they play the house's walk.
-  const journeyHere = placesOn && !recipe ? !!placeAt('journey')?.journey : false;
+  const journeyHere = placesOn && !recipe ? !!placeAt('journey')?.technique : false;
   const harmonyAt = placesOn ? placeAt('harmony') : null;
   const harmonyPlays = harmonyAt && (!harmonyAt.scales || journeyHere) ? harmonyAt : null;
   const modeRow = !recipe ? harmonyPlays : null;
@@ -1204,49 +1275,87 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     drawn[laneSound.lane] = placedTimbre;
     if ((laneSound.lane === 'pad') === leadSustained) { drawn.lead = placedTimbre; placed.lead = true; }
   }
+  // **The hook** (round trance-1, `src/hook.ts`): where the hook table (or the house's leak) plays the gate or the riff,
+  // the figure lane is the struck, gritty supersaw's and plays the hook alone — the stab swapped after every die above,
+  // as a lane's sound is, and the lead with it where the lead is the struck layer. The composer's own themes, and a
+  // library turn whose row leaves the figure free (a bass row, a build's drums); a row's own figure, a pin and a shape's
+  // own stab play as drawn.
+  // (a recipe's forbids and explicit tone are asked first, as of a lane's sound: a refused voice is no hook)
+  // (its needs are its row's, `hook.json`: the drums on, the four-floor kit; `needsMet`, the one reader of every technique's)
+  // (the voice is the row's: the row the place reads asked first, and past reach 0 a zone away that plays another row asked too)
+  const HOOK = placesOn && DERIVED && (!recipe || !wanted.struckFigures.length) && !request.pin && !shape.stabTimbre ? (() => {
+    const admits = (row: HookRow | null): row is HookRow => !!row && !!TIMBRES[row.voice] && passes('hook', 'stab', row.voice, drawn.stab || null);
+    const read = hookRowOf(placeAt('hook')?.technique?.row);
+    if (!admits(read) || !needsMet(read.needs, needsCtx)) return null;
+    // (the lane read by the one reader, its house zone the hook row's: the reach dial widens every entry's zone,
+    // `src/place-zone.ts`; inside a zone the zone's own entry alone)
+    const h = planHook({ seed, spell: bias.spell, scale, read: techniqueAt(PLACED, 'hook', bias.spell, placeBpm, ZONE, reach ?? 0, placeTrace, HOOK_HOUSE) });
+    return h && (h.row === read || (admits(h.row) && needsMet(h.row.needs, needsCtx))) ? h : null;
+  })() : null;
+  if (HOOK) {
+    drawn.stab = HOOK.row.voice;
+    placed.stab = true;
+    if (!leadSustained) { drawn.lead = HOOK.row.voice; placed.lead = true; }
+  }
   // **The support by place** (round DNB-3, `SupportEntry` in places.ts): what
   // the voices beside the drums and the bass may do where the nearest place
   // says. The held layer's timbre is drawn from the place's beds off a stream
   // of its own, after every die above, as the lane's sound is; a held lead is
   // the held layer, so it is the drawn bed too.
   const supportRow = placesOn ? placeAt('support') : null;
-  // **Struck voices in conversation by place** (PLAN-AMBIENT Phase 1, `ConversationEntry` in places.ts): where the
-  // nearest place lays one, the lanes it replaces are held off below and its strikes are laid after the swells. The
-  // composer's own themes only (`!recipe`): a library turn or a pin plays its row as drawn.
-  const convAt = placesOn && !recipe ? placeAt('conversation')?.conversation ?? null : null;
+  // **The techniques by place, read by one reader** (engine-data, 10-28; `src/technique.ts`): the technique lanes in
+  // their entries' priority order; a technique that lays the theme's whole foreground in place of the lanes it silences
+  // (the conversation, the sea), or that is the theme's whole character (the journey), is admitted only where no earlier
+  // one has taken the **one foreground** (the ambient-waves review, 10-18), so a spell between two such places plays the
+  // first one's program exactly (each place is the nearest of its own table, and the tables disagree near their edges:
+  // where WAVES is nearest in the sea's and BELLS in the conversation's, the two had stacked and the cast budget cut the
+  // sea to pieces; there BELLS plays). Its needs are `needsMet`'s (`no-kit` at BELLS and WAVES: no drums play, so
+  // neither ever meets a kit), its share its zone's (whole, for these; the dial widens it past reach 0). The composer's
+  // own themes only (`!recipe`): a library turn or a pin plays its row as drawn. The ensemble is read in `compose` (it is
+  // the whole theme's request) and the hook on the figure lane (above), by the same reader.
+  const techniques = new Map<TechniqueLane, { entry: TechniqueEntry; technique: TechniqueBlock }>();
+  const foreground: string[] = [];
+  if (placesOn && !recipe) for (const lane of techniqueOrder(PLACED)) {
+    if (!laneForeground(PLACED, lane) || foreground.length) continue;
+    const drawn = drawTechnique(techniqueAt(PLACED, lane, bias.spell, placeBpm, ZONE, reach ?? 0, placeTrace), seed, lane);
+    if (!drawn || !needsMet(drawn.technique.needs, needsCtx)) continue;
+    // (its row must exist: a planner with no row lays nothing and takes no foreground)
+    const rowOk = lane === 'conversation' ? !!conversationRowOf(drawn.technique.row) : lane === 'journey' ? !!journeyRowOf(drawn.technique.row) : lane === 'sea' ? !!surfRowOf(drawn.technique.row) : false;
+    if (!rowOk) continue;
+    techniques.set(lane, drawn);
+    foreground.push(lane);
+  }
+  // **Struck voices in conversation by place** (PLAN-AMBIENT Phase 1, `src/slow-conversation.ts`): where the place lays
+  // one, the lanes it replaces are held off below and its strikes are laid after the swells.
+  const convAt = techniques.get('conversation')?.technique ?? null;
   const convRow = convAt ? conversationRowOf(convAt.row) : null;
-  const convEntry = convRow ? placeAt('conversation')! : null;
+  const convEntry = techniques.get('conversation')?.entry ?? null;
   const convPlace = convEntry ? convEntry.place : null;
-  // **The weather alone, by its own needs** (PLAN-AMBIENT Phase 4, PLAN-UNIFY §0b's cut for the weather alone,
-  // `AmbientVoicesEntry.weather` in places.ts): where the nearest place lays a sea, the lanes it replaces are held off
+  // **The conversation's own bed** (ambient-bowls, `ConversationEntry.conversation.bed`): where its entry names one, the
+  // held layer is drawn among those timbres off a stream of its own, in place of the lane's sound and the palette's
+  // partner (BOWLS: strings and the swell, no synth under the bowls), and the held lead with it, as the support's bed is
+  // ...and the wash over it (round 2: Tide's lean on the bed; at its low end the bowls alone, the pad held off)
+  const convWash = convRow && convEntry ? washOf(convRow, bias.spell,
+    Object.fromEntries(BIRDS.map((b) => [b, (convEntry.centre ?? ZONE?.centre ?? convEntry.place.birds)[b] ?? HOUSE[b]])), ZONE ? zoneBands(ZONE) : undefined) : null;
+  const convBed = convAt?.bed && !convWash?.off ? Object.entries(convAt.bed).filter(([t, w]) => w > 0 && TIMBRES[t]).map(([v, w]) => ({ v, w })) : [];
+  if (convBed.length && !shape.padTimbre) {
+    const bedTimbre = new Rng(`${seed}::conversation:bed`).weighted(convBed);
+    drawn.pad = bedTimbre;
+    placed.pad = true;
+    if (leadSustained && !shape.leadTimbre) { drawn.lead = bedTimbre; placed.lead = true; }
+  }
+  // **One long journey by place** (PLAN-AMBIENT Phase 6, `src/journey.ts`): its own form and its treatments play in
+  // place of the tables' wherever it plays; laid after everything else (below). It holds no lane off, but it is the
+  // theme's whole character, so it stands second in the one foreground, ahead of the sea.
+  const journeyAt = techniques.get('journey')?.entry ?? null;
+  const journeyRow = journeyAt?.technique ? journeyRowOf(journeyAt.technique.row) : null;
+  // **The sea** (PLAN-AMBIENT Phase 4, `src/surf.ts`): where the place lays one, the lanes it replaces are held off
   // below, the progression's chords move at its sets' lines and its waves are laid with the conversation. It needs no
-  // kit and no keys' harmony, and at WAVES it needs no drums (its row's `needs`: `no-kit`); the composer's own themes
-  // only, as the conversation's.
-  //
-  // **One foreground a theme** (the ambient-waves review, 10-18): a technique that lays the theme's whole foreground in
-  // place of the lanes it holds off (the conversation, the sea, and any later one), or that is the theme's whole character
-  // (the journey), is admitted only where no earlier one has taken it, in this order (the conversation, the journey, the
-  // sea), so a spell between two such places plays the first one's program exactly. Each place
-  // is the nearest of its own table, and the tables disagree near their edges: where WAVES is nearest in the ambient
-  // voices' and BELLS in the conversation's, the two had stacked and the cast budget cut the sea to pieces; there BELLS
-  // plays, as on `local`. A later technique joins by admitting itself only while `foreground` is empty and pushing its
-  // name when it lays.
-  const foreground: string[] = convRow ? ['conversation'] : [];
-  // **One long journey by place** (PLAN-AMBIENT Phase 6, `JourneyEntry` in places.ts): read here, so its own form and its
-  // treatments play in place of the tables' wherever it plays; laid after everything else (below). The composer's own
-  // themes only (`!recipe`), as the conversation's. It holds no lane off, but it is the theme's whole character, so it
-  // joins the one foreground second, ahead of the sea: where PSY's journey and WAVES's sea both lie nearest in their own
-  // tables (PSY's own spell among them, as PSY is not in the ambient voices' table), the journey plays.
-  const journeyAt = placesOn && !recipe && !foreground.length ? placeAt('journey') : null;
-  const journeyRow = journeyAt?.journey ? journeyRowOf(journeyAt.journey.row) : null;
-  if (journeyRow) foreground.push('journey');
-  const seaEntry = placesOn && !recipe && !foreground.length ? placeAt('ambientVoices') : null;
-  // (its needs: `kit` the place's own kit plays, `no-kit` no drums do: the spell derives none, every percussion gate off)
-  const seaAt = seaEntry?.weather && (seaEntry.weather.needs ?? []).every((n) => n === 'kit' ? !!(placesOn && placeAt('drums')?.kit)
-    : n === 'no-kit' ? !!DERIVED && !DERIVED.drumsOn : false) ? seaEntry.weather : null;
+  // kit and no keys' harmony (its entry's `needs`: `no-kit`).
+  const seaEntry = techniques.get('sea')?.entry ?? null;
+  const seaAt = seaEntry?.technique ?? null;
   const seaRow = seaAt ? surfRowOf(seaAt.row) : null;
   const seaPlace = seaRow ? seaEntry!.place : null;
-  if (seaRow) foreground.push('sea');
   const ONE_BED = !!supportRow?.oneBed;
   if ((supportRow?.bed || supportRow?.bedRule) && !shape.padTimbre && !placed.pad) {
     const rule = supportRow.bedRule;
@@ -1289,7 +1398,10 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // A place's conversation is the theme's composition (PLAN-AMBIENT Phase 1): no family of the style's parts is drawn
   // there, so nothing asks a lane it holds off; elsewhere the support's own withholding, as before.
   const withheldFamilies = [...(supportRow?.withhold ?? []),
-    ...(convRow || seaRow ? ((style as Style & { composition?: CompositionPolicy }).composition?.families ?? []).map((f) => f.id) : [])];
+    ...(convRow || seaRow ? ((style as Style & { composition?: CompositionPolicy }).composition?.families ?? []).map((f) => f.id) : []),
+    // under the hook (trance-1) the figure is the hook's: no family that writes a struck figure is drawn
+    ...(HOOK ? ((style as Style & { composition?: CompositionPolicy }).composition?.families ?? [])
+      .filter((f) => f.variants.some((v) => !!(v.request as { struckFigures?: unknown[] } | undefined)?.struckFigures?.length)).map((f) => f.id) : [])];
   const writesParts = wanted.rhythm.length > 0 || !!wanted.bassMotif || wanted.heldBass || wanted.struckFigures.length > 0
     || !!wanted.texture || wanted.pedalHarmony || Object.keys(wanted.tone).length > 0
     || Object.keys(wanted.ambience).length > 0 || Object.keys(wanted.presence).length > 0;
@@ -1299,8 +1411,11 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       withheldFamilies.length ? new Set(withheldFamilies) : undefined) : null;
   // A track row's own cells answer the lanes' withdrawal as a part's do (`rowCellsAt`, 10-13: the afro-house
   // row's bongo): a hand cell leaves on a fast four-floor or over a continuous bed, its shaker cell plays on.
+  // The bed is the one that sounds: a row whose request holds every sustained lane off (`forbids: ['sustained']`)
+  // has the pad drawn and never played, and a bed that never plays sends no hand away (10-28).
+  const bedSounds = style.lanes.some((l) => l.role === 'sustained' && (!l.gate || !wanted.silent.includes(l.gate)));
   const rowRhythm = composition ? wanted.rhythm
-    : rowCellsAt(wanted.rhythm, style.lanes, bpm, bias.spell as unknown as Record<string, number>, { kit: bias.derived.kit, bed: TIMBRES[drawn.pad] });
+    : rowCellsAt(wanted.rhythm, style.lanes, bpm, bias.spell as unknown as Record<string, number>, { kit: bias.derived.kit, bed: bedSounds ? TIMBRES[drawn.pad] : undefined });
   const parts = composition?.parts ?? (rowRhythm === wanted.rhythm ? wanted : { ...wanted, rhythm: [...rowRhythm] });
   // **One foreground** (composition.ts): with the drone in front, the lanes
   // and the timbre dice withdraw the real-world class too, each at its pace.
@@ -1504,9 +1619,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // ...and a lane the drone in front leaves with nothing to draw is held off
   // the same way: the sixteenth lane under a drone at a mask's pace.
   // ...and the lanes the place's support holds off by role (round DNB-3: the sixteenths at the fast broken places).
-  // ...and the lanes a place's conversation replaces (PLAN-AMBIENT Phase 1: the pad, the sub and the keys' figure at BELLS).
-  // ...and the lanes a place's sea replaces (PLAN-AMBIENT Phase 4: the pad, the sub and the keys' figure at WAVES).
-  const heldByPlace = [...(supportRow?.holdOff ?? []), ...(convRow ? convAt!.holdOff ?? [] : []), ...(seaRow ? seaAt!.holdOff ?? [] : [])]
+  // ...and the lanes a place's technique replaces (`silences`: the pad, the sub and the keys' figure at BELLS and at
+  // WAVES), in the techniques' order, and the conversation's wash (its pad held off at Tide's low end).
+  const heldByPlace = [...(supportRow?.holdOff ?? []), ...[...techniques.values()].flatMap((t) => t.technique.silences ?? []), ...(convWash?.off ? ['sustained'] : [])]
     .flatMap((role) => style.lanes.filter((l) => l.role === role && l.gate).map((l) => l.gate as string));
   const silentDerived = [...new Set([...(DERIVED && !DERIVED.drumsOn ? percussionGates(style.lanes) : []), ...silencedBy(style, bias, laneWithdrawn), ...heldByPlace])];
   const silent = wanted.silent.length
@@ -1517,7 +1632,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // so at the house the mined walk is what it was. A cycle is drawn off a
   // stream of its own; the progression's own stream is read as before.
   // (a mode's entry only where its journey plays: `harmonyPlays`, above)
-  const HARM = harmonyPlays;
+  // ...or the conversation's own, where its entry names one (ambient-bowls: BOWLS's pedal), so it plays where it does
+  const HARM = convRow && convAt?.harmony ? { id: convEntry!.id, place: convEntry!.place, ...convAt.harmony } : harmonyPlays;
   // ...and where a place lays a sea, the sea's own chords (its row's `harmony`, PLAN-AMBIENT Phase 4): a cycle the sets
   // of waves play one chord a set (below), drawn off the same stream, so the harmony is one line of the sea's entry
   const seaCycles = seaRow?.harmony?.cycles ?? null;
@@ -1526,7 +1642,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const cycle = seaCycles ? dice('harmony-place').weighted(seaCycles.map((c) => ({ v: c, w: c.w })))
     : fitting.length ? dice('harmony-place').weighted(fitting.map((c) => ({ v: c, w: c.w }))) : null;
   let progression = makeProgression(dice('prog'), chordRoot, scaleName, S, CORPUS, {
-    pedal: parts.pedalHarmony || (!seaCycles && !!HARM?.pedal),
+    // (a conversation's cycle of one degree is its pedal: round 2, the tonic held where the bowls' harmony draws no sway)
+    pedal: parts.pedalHarmony || (!seaCycles && (!!HARM?.pedal || !!(convRow && convAt?.harmony && HARM?.id === convEntry?.id && cycle?.degrees.length === 1))),
     ...(cycle ? { degrees: cycle.degrees, loopBars: cycle.loop, changeEvery: cycle.every, ...(cycle.voicing ? { voicingStyle: cycle.voicing } : {}) } : {}),
     ...(cycle?.voicing ? {} : { voicingStyle }),
     degreeBias: shape.degreeBias,
@@ -1621,7 +1738,10 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const bassDevelopment = contourPolicy && request.pin?.role !== 'bassline' && request.motif?.register !== 'bass' && !forceMotif
     ? contourPolicy.bass : null;
 
-  const { UPPERS, FIGURE } = rollFigures({ style, parts, forbids: recipe?.forbids || [], silent, dice, streamFor, originFor, characters });
+  // an ensemble's roles draw their voices as any track's do: leaned by the birds about its own centre (`ensembleLean`)
+  const ensembleBlock = (recipe as { ensemble?: EnsembleBlock } | null)?.ensemble;
+  const { UPPERS, FIGURE } = rollFigures({ style, parts, forbids: recipe?.forbids || [], silent, dice, streamFor, originFor, characters,
+    ...(ensembleBlock?.centre ? { lean: ensembleLean(ensembleBlock, bias.spell as unknown as Record<string, number>) } : {}) });
   const UPPER = UPPERS[0] ?? null;
   const TEXTURE = rollTexture({ style, parts, forbids: recipe?.forbids || [], dice, partStream });
 
@@ -1634,7 +1754,11 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const exposedBed = new Set<object>();
 
   const at = (bar: number, step: number) => bar * barSeconds + P.stepToBeats(step, swing) * beat;
-  const push = (voice: string, t: number, p: NoteParams, meta: EventMeta) => events.push({ t, voice, p, ...meta });
+  // under the hook the figure lane plays the hook alone: every other writer's note on its voice is left unwritten
+  const push = (voice: string, t: number, p: NoteParams, meta: EventMeta) => {
+    if (HOOK && voice === HOOK.row.voice && !p.hook) return;
+    events.push({ t, voice, p, ...meta });
+  };
 
   // --- the lanes ---------------------------------------------------------
   //
@@ -1905,7 +2029,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // rows with a form, the theme draws one among those whose window holds its
   // length, off a stream of its own; its order is laid in its blocks and the
   // section rows it prefers join the place's.
-  const formPlace = placesOn ? (journeyRow && journeyAt!.journey!.form ? { id: journeyAt!.id, place: journeyAt!.place, ...journeyAt!.journey!.form } : placeAt('form')) : null;
+  const formPlace = placesOn ? (journeyRow && journeyAt!.technique!.form ? { id: journeyAt!.id, place: journeyAt!.place, ...journeyAt!.technique!.form }
+    // ...and the conversation's own, where its entry names one (ambient-bowls: BOWLS's opening, long middle and close)
+    : convRow && convAt?.form ? { id: convEntry!.id, place: convEntry!.place, ...convAt.form } : placeAt('form')) : null;
   const formRecipe = (() => {
     if (!formPlace?.rows?.length) return null;
     const length = fitBars ?? wantedBars;
@@ -1925,10 +2051,16 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const sectionRows = placesOn || request.section
     ? drawSectionRows(seed, SECTION_ROWS, style.sections, formPrefers, request.section, sectionPin) : new Map<string, Recipe>();
   const grammar = sectionRows.size ? grammarWith(style.sections, sectionRows, LANES.flatMap((l) => (l.gate ? [l.gate] : []))) : null;
+  // **Every section line on the phrase** (round length-2, house-v2's `phraseLines`): the theme's phrase, as the phrase map
+  // below will count it, handed to the form so no section ends on a stub of one (`onPhraseLines`, `src/arrangement.ts`).
+  // The line is the form's and not a place's: with the place tables off it is the house's own phrase, so the house's
+  // form never hangs on the tables (GA6; round length-after)
+  const phraseLine = switchOn(style, 'phraseLines')
+    ? musicalTime({ bpm, spell: bias.spell as unknown as Record<string, number>, entry: placesOn ? placeAt('time') : undefined }).phraseBars : 0;
   const { continuity, shaped, arrangement, bars, support } = planForm({ style, grammar, LANES, silent, laneOn, form, contourPolicy,
     figureSelected: !!UPPER || playedMotifs.some(m => m.register !== 'bass'), figureSustained: UPPER?.articulation === 'sustained',
     padUnderFigure: !UPPER && padUnderStab && !ONE_BED, leadSustained, bothChance, leadAloneChance: TB.leadAlone,
-    parts, pinned: request.pin, composition, wantedBars, fitBars,
+    parts, pinned: request.pin, composition, wantedBars, fitBars, phrase: phraseLine,
     // **The cut reads the texture** (round L2): a main's is its harmonic roll
     // — the sustained layer held or away, the figure on or not — and the
     // theme may solo where the bass's solo would ask it (`src/solo.ts`): the
@@ -2033,6 +2165,27 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // the theme has a grid (R16 of the review of 09-24, question 4). Every device
   // below that counts phrases asks this and nothing else.
   const phraseAt = phraseGrid(arrangement, switchOn(style, 'sectionPhrases'), kickGate as string | undefined);
+  // **Where the saw plays** (trance-2, `hookArc`): the hook's runs over the sections, one entry a bar
+  const HOOK_ARC = HOOK ? hookArc(HOOK, arrangement.sections, bars) : null;
+  // **In a run the hook owns the harmony** (trance-2, his ear 10-28: "it can't be that complex for that complex sound, three
+  // chords at best"): the run's bars take the hook's loop as the progression's chords from their downbeats, so the bass
+  // (its home the loop's root or the key's, `bassPc`) and every reader of `chordAtBar` play it; the theme's own elsewhere
+  if (HOOK && HOOK_ARC?.some((x) => x.state === 'run' || x.state === 'break')) {
+    const states: Array<{ bar: number; chord: Chord }> = [];
+    // one chord object a loop chord, listed with the progression's own, so a change reads as one (`chordKey`)
+    const loopChords = new Map<string, Chord>();
+    for (let b = 0; b < bars; b++) {
+      const x = HOOK_ARC[b];
+      let ch = chordAtBar(progression, b);
+      if (x.state === 'run' || x.state === 'break') {
+        const l = loopChordAt(HOOK, x.at * 4, chordRoot, scale), k = `${l.label}:${l.notes.join()}:${l.bassPc}`;
+        if (!loopChords.has(k)) loopChords.set(k, l);
+        ch = loopChords.get(k)!;
+      }
+      if (!states.length || states[states.length - 1].chord !== ch) states.push({ bar: b, chord: ch });
+    }
+    progression = { ...progression, chords: [...progression.chords, ...loopChords.values()], states };
+  }
 
   // Phrase-level variation, memoised so a bar and its neighbour share the same
   // music and the change happens where the rule says it does.
@@ -2144,8 +2297,72 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
 
   const rhythmPerformer: RhythmPerformer = { seed, S, rhythm, rhythmMotion, rhythmPolicy, contourPolicy, trace: shaped?.trace ?? null,
     arrangement, silent, at, beat, barSeconds, laneOn, voiceOf, trimOf, cellTrimOf, push, characters, pinned: request.pin, selectedRecipeFor, placeHand };
+  // **The keys' moments** (keys-moments, `src/keys-moments.ts`; his ear 10-29: *"color in breakdown - great"*,
+  // *"either solo or second riff both sound good"*): where the style opts in, the keys that are a part
+  // whose row says it stays (`PitchedFigure.stays.solo`) or the theme's lead on the row's voices may take a long
+  // breakdown's last phrase alone, and the lead a second riff in a long stretch of itself. Planned once the
+  // sub-sections are drawn (below, `KM.plan`); the notes written the first time a moment's bar is asked, from the keys'
+  // own notes laid before it; every bar a moment plays is kept for the plan's record.
+  const KM = { plan: null as KeysMomentsPlan | null, solo: null as MomentNote[] | null, riff: null as MomentNote[] | false | null,
+    played: { solo: [] as number[], riff: [] as number[] } };
+  const kmOn = switchOn(style, 'keysMoments');
+  const kmPart = kmOn ? UPPERS.find((u) => !!u.stays?.solo && KEYS_MOMENTS.voices.includes(u.voice)) ?? null : null;
+  const kmLane = firstByRole('figure');
+  const kmLead = kmOn && !HOOK && !UPPERS.length && !!MOTIF && MOTIF.register === 'lead' && ownFigure && !!kmLane && KEYS_MOMENTS.voices.includes(voiceOf(kmLane));
+  const kmKey = ((progression.root % 12) + 12) % 12;
+  // the bar's chord as the key's seventh chord on its degree (root, third, fifth, seventh), and the key's scale
+  const kmHarmony = (bar: number): MomentHarmony => {
+    const d = chordAtBar(progression, bar).degree, sc = progression.scale;
+    return { tones: [0, 2, 4, 6].map((k) => (kmKey + sc[(((d + k) % 7) + 7) % 7]) % 12), scale: sc.map((i) => (kmKey + i) % 12) };
+  };
+  /** the keys' own notes laid before a bar: the part's, or the lead's on its voice */
+  const kmBefore = (bar: number): PlanEvent[] => kmPart ? events.filter((e) => upperEvents.has(e) && e.bar < bar && e.voice === kmPart.voice)
+    : events.filter((e) => e.layer === 'keys' && e.bar < bar && kmLane && e.voice === voiceOf(kmLane));
+  // the keys' laid notes as the level reads them: the last sixteen bars of them (the statement the moment follows)
+  const kmLaid = (laid: PlanEvent[]) => { const last = Math.max(0, ...laid.map((e) => e.bar)); return laid.filter((e) => e.bar > last - 16).map((e) => ({ t: e.t, vel: Number(e.p.vel) })); };
+  const kmIn = (span: { from: number; to: number } | null | undefined, bar: number) => !!span && bar >= span.from && bar < span.to;
+  const kmNotes = (bar: number): { notes: MomentNote[]; kind: 'solo' | 'riff' } | null => {
+    const P = KM.plan;
+    if (!P) return null;
+    if (kmIn(P.solo, bar)) {
+      if (!KM.solo) {
+        const laid = kmBefore(P.solo!.from);
+        KM.solo = atKeysLevel(soloLine(seed, P.solo!.from, kmHarmony, laid.map((e) => Number(e.p.midi)).filter(Number.isFinite),
+          kmPart ? (kmPart.range ?? FIGURE!.register)[0] : S.piano.low, kmPart ? (kmPart.range ?? FIGURE!.register)[1] : S.piano.high),
+          kmLaid(laid), KEYS_MOMENTS.solo.level);
+      }
+      return { notes: KM.solo.filter((n) => n.bar === bar), kind: 'solo' };
+    }
+    if (kmIn(P.riff, bar) && kmLead) {
+      if (KM.riff === null) {
+        // only a stretch of one unchanged hook takes it: every return of the hook in the section so far the same notes
+        // at the same places (a hook its moves have already varied is not the repetition the riff answers)
+        const sec = arrangement.sections.find((x) => bar >= x.startBar && bar < x.startBar + x.bars)!;
+        const laid = kmBefore(P.riff!.from).filter((e) => e.bar >= sec.startBar).sort((a, b) => a.t - b.t);
+        // each return (the last one cut where the riff starts) against the first's same bars
+        const every = Math.max(1, MOTIF!.returns), sig = (w: number, n: number) => laid.filter((e) => e.bar >= w && e.bar < w + n)
+          .map((e) => `${e.bar - w}:${e.step}:${e.p.midi}`).join(' ');
+        const returns: boolean[] = [];
+        for (let w = sec.startBar + every; w < P.riff!.from; w += every) { const n = Math.min(every, P.riff!.from - w); returns.push(sig(w, n) === sig(sec.startBar, n)); }
+        const unchanged = returns.length >= 1 && returns.every(Boolean) && sig(sec.startBar, every) !== '';
+        // the hook as it was stated: its first statement's notes in the section, in their order
+        const hook = laid.slice(0, MOTIF!.motif.degrees.length).map((e) => Number(e.p.midi));
+        KM.riff = unchanged ? atKeysLevel(riffLine(P.riff!.from, P.riff!.to - P.riff!.from, kmHarmony, hook, S.piano.high), kmLaid(laid), KEYS_MOMENTS.riff.level) : false;
+        if (!unchanged) P.said = P.said.map((x) => (x.startsWith('the second riff') ? `no second riff: the hook already moves in its stretch ${x.slice(x.indexOf('('))}` : x));
+      }
+      if (KM.riff) return { notes: KM.riff.filter((n) => n.bar === bar), kind: 'riff' };
+    }
+    return null;
+  };
+  const kmPlayed = (kind: 'solo' | 'riff', bar: number) => { if (!KM.played[kind].includes(bar)) KM.played[kind].push(bar); };
   const motifPerformer: MotifPerformer = { seed, S, progression, bassDevelopment, parts, arrangement, bars, beat, barSeconds,
-    at, laneOn, voiceOf, push, bassChanges, ownFigure, pianoHall, pianoDelay, stabTimbre, tremolo, fx, stabWet };
+    at, laneOn, voiceOf, push, bassChanges, ownFigure, pianoHall, pianoDelay, stabTimbre, tremolo, fx, stabWet,
+    moment: kmLead ? (c) => {
+      const m = kmNotes(c.bar);
+      if (!m) return null;
+      kmPlayed(m.kind, c.bar);
+      return { notes: m.notes };
+    } : undefined };
   const heldBassUntil = new Map<Lane, number>();
   // **The theme's glide lines** (round DNB-7): home is the key's own note folded into
   // the line's register, the room over it the register's; the first line plays to the
@@ -2190,7 +2407,13 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   })();
   const FIGURES: Record<string, FigureSource | null> = {
     recipeFigure: recipeFigureSource({ seed, UPPERS, FIGURE, streamFor, progression, at, beat, push,
-      pinned: request.pin, events, upperEvents, phraseParameters, characters }),
+      pinned: request.pin, events, upperEvents, phraseParameters, characters,
+      moment: kmPart ? (c) => {
+        const m = kmNotes(c.bar);
+        if (!m || m.kind !== 'solo') return null;
+        kmPlayed('solo', c.bar);
+        return { part: kmPart, notes: m.notes, ringBeats: KEYS_MOMENTS.solo.ringBeats };
+      } : undefined }),
     // A requested part replaces its role's mask, keeping its gate and palette.    // A requested part replaces its role's mask, keeping its gate and palette.
     // Separate random streams leave unrelated instruments' variation alone.
     recipeRhythm: recipeRhythmSource(rhythmPerformer),
@@ -2390,6 +2613,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       for (const motif of playedMotifs) {
         const role = motif.register === 'bass' ? 'bassline' : 'figure';
         const lanes = g.lanes.filter(l => l.role === role);
+        // under the hook the figure is the hook's: a lead motif's bars play the hook (trance-1)
+        if (HOOK && role === 'figure') { if (c.keysSection) for (const lane of lanes.filter((l) => laneOn(l, c.layers))) hookLane(lane, c); continue; }
         if (lanes.length) {
           const from = events.length;
           performMotif(motifPerformer, motif, { ...g, lanes }, c);
@@ -2649,6 +2874,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
    * in the chain has to be told.
    */
   function stabLane(lane: Lane, c: BarContext) {
+    if (HOOK) { hookLane(lane, c); return; }
     const voice = voiceOf(lane);
     if (ownFigure) {
       if (pianoRole === 'arp') {
@@ -2721,20 +2947,70 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     }
   }
 
+  /**
+   * **One bar of the hook** (round trance-1, `src/hook.ts`; its rows and its arc round trance-2): where the arc plays the
+   * saw (the tease, a run, a run's closing bars alone), the riff row's bar (`phraseBar`) over the chords it moves through
+   * inside the theme's own, on the figure lane's voice, its chop as deep as the arc says; and at a run's first bar (and
+   * every few of it), the pedal under it where the birds chose one.
+   */
+  const hookWritten = new Set<string>();
+  const hookKey = ((progression.root % 12) + 12) % 12;
+  const hookScalePcs = scale.map((i: number) => (hookKey + i) % 12);
+  // the chord under the saw: the loop's in a run (on the beat), the theme's elsewhere (the tease)
+  const hookChordAt = (bar: number, step: number) => {
+    const x = HOOK_ARC?.[bar];
+    if (x && (x.state === 'run' || x.state === 'break')) return loopChordAt(HOOK!, x.at * 4 + Math.floor(step / 4), chordRoot, scale);
+    const ch = chordAtBar(progression, bar);
+    return { rootMidi: ch.rootMidi, notes: ch.notes.slice(0, 3), scalePcs: hookScalePcs };
+  };
+  function hookLane(lane: Lane, c: BarContext) {
+    const ab = HOOK_ARC?.[c.bar];
+    if (!ab || ab.state === 'off' || hookWritten.has(`${lane.id}:${c.bar}`)) return;
+    hookWritten.add(`${lane.id}:${c.bar}`);
+    const voice = voiceOf(lane), H = HOOK!, W = H.row;
+    const stepS = beat / 4;
+    const room = { reverb: +(W.room.reverb[0] + W.room.reverb[1] * H.light).toFixed(3), delay: +(W.room.delay[0] + W.room.delay[1] * H.light).toFixed(3),
+      ...(W.room.lowHz ? { sendLowHz: W.room.lowHz } : {}) };
+    for (const n of phraseBar(H.pick, ab.at, (st) => hookChordAt(c.bar, st))) {
+      push(voice, at(c.bar, n.step), { midi: n.midi, dur: +(n.durSteps * stepS).toFixed(4), vel: n.vel, hook: 'gate', cutoffMul: n.cutoffMul,
+        light: H.light, edge: H.edge, ...room, gate: { ...n.gate, floor: ab.floor, stepS: +stepS.toFixed(5) }, gain: +(ab.gain * dbToGain(W.levelDb ?? 0)).toFixed(4) },
+        { bar: c.bar, step: n.step, layer: layerOf(voice), note: noteName(n.midi) });
+    }
+    // (one bed, `ONE_BED`: the saw is the figure, so no pedal is laid under it; the timeline says the same)
+    if (H.pedal && ab.pedalBars > 0 && !ONE_BED) {
+      const chords: number[][] = [];
+      for (let b = c.bar; b < c.bar + ab.pedalBars; b++) for (let st = 0; st < 16; st += 4) chords.push([...hookChordAt(b, st).notes]);
+      for (const midi of pedalTones(H, hookKey, scale, chords))
+        push(H.pedal.voice, c.barStart, { midi, dur: +(ab.pedalBars * barSeconds - 0.05).toFixed(4), vel: W.pedal.vel, pedal: true },
+          { bar: c.bar, step: 0, layer: layerOf(H.pedal.voice), note: noteName(midi) });
+    }
+  }
+
+  const heldTop = new Map<Lane, number>();
   /** One drone lane's chord: the voicing, folded into the register, held. */
   function droneLane(lane: Lane, c: BarContext, holdBars?: number) {
     const voice = voiceOf(lane);
-    const available = support ? support.until[c.bar] * beat - c.barStart : Infinity;
+    // under the hook's runs the pad lane is the pedal's or silent (trance-2): a chord held into a run stops where it begins
+    const inRun = (b: number) => HOOK_ARC?.[b]?.state === 'run' || HOOK_ARC?.[b]?.state === 'break';
+    if (inRun(c.bar)) return;
+    let runAt = Infinity;
+    if (HOOK_ARC) for (let b = c.bar + 1; b < c.bar + (holdBars ?? c.chord.bars) && b < bars; b++) if (inRun(b)) { runAt = (b - c.bar) * barSeconds; break; }
+    const available = Math.min(runAt, support ? support.until[c.bar] * beat - c.barStart : Infinity);
     const release = Math.min(1.6, c.chord.bars * barSeconds * .8);
     const dur = Math.min((holdBars ?? c.chord.bars) * barSeconds, available - release);
     if (dur <= 0) return;
-    const notes = c.chord.voicing.map((m) => foldTo(m, S.register.padLow, S.register.padHigh));
+    // a place's held front part voiced as one line (`LaneSoundEntry.voicing`, trance-1): the same count of voices on every
+    // chord, the top led by step inside its band; elsewhere the voicing folded into the register, as it always was
+    const held = placed.pad && laneSound?.lane === 'pad' ? laneSound.voicing : undefined;
+    const notes = held ? voiceHeld(c.chord.voicing, held.voices, held.top, heldTop.get(lane) ?? null, held.root ? c.chord.rootMidi : null)
+      : c.chord.voicing.map((m) => foldTo(m, S.register.padLow, S.register.padHigh));
+    if (held) heldTop.set(lane, notes[notes.length - 1]);
     // A bottom octave when the voicing has floated up out of the register.
     // MEASURED: the references carry -9.5 dB in 120-250 Hz and a chord sitting
     // entirely above middle C leaves that band to the kick alone, which is what
     // makes a mix sound like a bass and a treble with a hole between them.
     const lowest = Math.min(...notes);
-    if (lowest > S.register.padOctaveBelow) notes.unshift(lowest - 12);
+    if (!held && lowest > S.register.padOctaveBelow) notes.unshift(lowest - 12);
     notes.forEach((midi, i) => {
       push(
         voice,
@@ -2752,6 +3028,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
           spread: padSpread,
           reverb: padWet,
           delay: padDelay,
+          // the place's held front part at its row's level (`LaneSoundEntry.voicing.levelDb`, trance-2)
+          ...(held?.levelDb ? { gain: dbToGain(held.levelDb) } : {}),
         },
         { bar: c.bar, step: 0, layer: layerOf(voice), note: noteName(midi) }
       );
@@ -2840,6 +3118,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // (`recipes/treatments/`, round T1); a treatment row pinned by link plays
   // its own kind on every bar the kind's rule admits, the other kinds silent.
   const ownCells = recipe?.scope === 'track' && Object.keys((recipe.wants as { rhythm?: object } | undefined)?.rhythm ?? {}).length > 0;
+  // a switch-up gives back the figure by the bars its parts ask (`PitchedFigure.stays.back`, keys-room): the colour stays
+  const figureBack = Math.max(0, ...UPPERS.map((u) => u.stays?.back ?? 0));
+  const figureGives: Record<string, number> = figureBack ? { figure: figureBack } : {};
   // the birds on the rates (PLAN-UNIFY U2: Veil on the fill at a section's line at the fast places), held under one
   const subEntry = placesOn ? placeAt('subSections') : null;
   const subEntryRates = subEntry?.leans ? { ...subEntry.rates, fill: Math.min(1, subEntry.rates.fill * leanFactor(subEntry.leans, 'fill', bias.spell)) } : subEntry?.rates;
@@ -2852,8 +3133,11 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const subRates = placeRates && request.treatment ? pinnedRates(placeRates, request.treatment.applies!, pinnedSpans()) : placeRates;
   const subsDrawn: SubSection[] = subRates
     ? planSubSections(seed, arrangement, subRates, { drums: DERIVED ? DERIVED.drumsOn : true, broken: !!breakRow, pinned: !!request.treatment,
-      spell: bias.spell, bpm }, request.treatment ? [request.treatment] : TREATMENT_ROWS)
+      spell: bias.spell, bpm, gives: figureGives }, request.treatment ? [request.treatment] : TREATMENT_ROWS)
     : [];
+  // the keys' moments, now the switch-ups are known: a riff never where one takes the keys out
+  if ((kmPart || kmLead) && !request.pin && !request.treatment) KM.plan = planKeysMoments(seed, arrangement.sections, bias.spell as unknown as Record<string, number>,
+    { solo: true, riff: kmLead, free: (x) => !subsDrawn.some((sub) => sub.kind === 'switch-up' && sub.startBar < x.to && x.from < sub.startBar + sub.bars) });
   // **The phrase development by place** (liquid-space, 10-11, `src/phrase-development.ts`): where the nearest place
   // names a development row and its kit plays, the track is planned phrase by phrase before a bar is laid — the
   // form's states, one move a phrase, the bass's answers, one auxiliary part, the surface. The planner owns the
@@ -2871,8 +3155,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // its own and plays none of them; a library turn keeps the place's kit and line (`fromLibrary`), so its phrases are
   // planned too, whether or not its row's own cells leave room for the small things.
   const ownTheme = !recipe || fromLibrary;
-  const has: Record<GrammarNeed, boolean> = { kit: !!KIT, 'no-kit': !!DERIVED && !DERIVED.drumsOn };
-  const needsMet = (needs: readonly GrammarNeed[] | undefined) => (needs ?? []).every((n) => has[n]);
+  const grammarNeedsMet = (needs: readonly GrammarNeed[] | undefined) => needsMet(needs, { derived: DERIVED, kitRow: !!KIT });
   const devOn = !!devRow && !!KIT && ownTheme;
   const lineEnds = new Set(arrangement.sections.map((s) => s.startBar + s.bars - 1));
   const subsAtLines: SubSection[] = devOn
@@ -2890,7 +3173,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // 8-bar planner then takes the chapters' policy and leaves the required motif slots to the detail.
   const bedLaneOf = firstByRole('sustained');
   const bedVoice = bedLaneOf ? voiceOf(bedLaneOf) : null;
-  const ambientPlan: AmbientPlan | null = ownTheme && keysPlan && devEntry?.ambient && needsMet(devEntry.ambient.needs) && bedVoice ? (() => {
+  const ambientPlan: AmbientPlan | null = ownTheme && keysPlan && devEntry?.ambient && grammarNeedsMet(devEntry.ambient.needs) && bedVoice ? (() => {
     const P0 = (BY_NAME[bedVoice]?.row?.parameters ?? {}) as Record<string, unknown>;
     const num = (k: string, d: number) => (typeof P0[k] === 'number' ? P0[k] as number : d);
     return planAmbient({ seed, arrangement, bars, barSeconds, keys: keysPlan, spell: bias.spell as unknown as Record<string, number>, rows: devEntry.ambient!,
@@ -2905,7 +3188,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // a thunder and the fillers take the one featured-detail slot before the phrases are planned, and their windows ride
   // in as reserved (`detail`), so no conspicuous drum answer is drawn while one speaks; realised after the kit, under the budget
   const ambientAt = placesOn ? placeAt('ambientVoices')?.ambient ?? null : null;
-  const ambientEntry = ambientAt && needsMet(ambientAt.needs) ? ambientAt : null;
+  const ambientEntry = ambientAt && grammarNeedsMet(ambientAt.needs) ? ambientAt : null;
   const voicesPlan: AmbientVoicesPlan | null = ownTheme && keysPlan && ambientEntry ? planAmbientVoices({ seed: String(seed), entry: ambientEntry,
     sections: arrangement.sections, bars, barSeconds, keys: keysPlan, spell: bias.spell as unknown as Record<string, number>,
     ...(ambientPlan ? { slots: voicesSlots(ambientPlan, arrangement.sections) } : {}) }) : null;
@@ -3092,11 +3375,30 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       layers = { ...layers };
       for (const g of [kickGate, remembered === 'hints' ? gateOf('backbeat') : gateOf('offbeat', 'offbeat')]) if (g) (layers as Record<string, boolean>)[g] = true;
     }
+    // **The hook's bars** (trance-1; its arc trance-2, `hookArc`): the figure lane sounds where the arc plays the saw and
+    // nowhere else; a run's closing bars are the saw alone (every other layer out), so the timeline says what plays; the
+    // pedal holds on the pad lane under a run where the birds chose it
+    const arcBar = HOOK_ARC?.[bar];
+    if (arcBar && figureGate) {
+      keysSection = arcBar.state !== 'off';
+      layers = { ...layers, [figureGate as string]: keysSection };
+      if (arcBar.state === 'break') layers = Object.fromEntries(Object.keys(layers).map((k) => [k, k === figureGate]));
+      // under a run the pad lane is the pedal's or silent (one saw layer, the chopped one): the held pad plays outside the runs
+      if ((arcBar.state === 'run' || arcBar.state === 'break') && droneGate) {
+        padSection = !!HOOK!.pedal && arcBar.state === 'run';
+        layers = { ...layers, [droneGate as string]: padSection };
+      }
+      // ...and one bed holds under the hook as everywhere (`ONE_BED`, above, read before the arc): where the saw plays the
+      // figure, the pad lane (the pedal, or the held pad) yields
+      if (ONE_BED && keysSection && padSection) {
+        padSection = false;
+        if (droneGate) layers = { ...layers, [droneGate as string]: false };
+      }
+    }
     const kickParts = rhythm.filter(r=>r.lane.role==='kick');
     const kickThisBar = !!layers[kickGate as string] && (kickParts.length
       ? kickParts.some(({part})=>part.steps.some(s=>Math.floor(s/16)===bar%part.bars)) : !kickOut.has(bar));
     if (kickThisBar) kickBars++;
-
     timeline.push({
       bar,
       t: barStart,
@@ -3260,6 +3562,18 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       push(rise.voice, endT - dur, { dur, gain: 0.5 }, { bar: s.startBar + s.bars - s.riserLast, layer: layerOf(rise.voice) });
     }
   }
+  // **A run cuts in** (trance-2, source 10 measured: every entry of its saw a cut on the bar): no glue gesture (a riser,
+  // a swell, a sweep, an impact) sounds into or lands on the bar a hook's run begins
+  if (HOOK_ARC) {
+    const gestureVoices = new Set([stroke, swell, fall, rise].filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.voice));
+    const entries = HOOK_ARC.flatMap((x, b) => (x.state === 'run' && x.at === 0 ? [b * barSeconds] : []));
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (!gestureVoices.has(e.voice)) continue;
+      const dur = Number(e.p.dur ?? 0), from = e.voice === swell?.voice ? e.t - dur : e.t, to = e.voice === swell?.voice ? e.t : e.t + dur;
+      if (entries.some((E) => from <= E + 0.05 && to >= E - barSeconds)) events.splice(i, 1);
+    }
+  }
 
 
   /**
@@ -3296,8 +3610,14 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
    *     takes the swell and the impact or the fall, as before.
    *   Alternate the lead-ins. The first return rises, the second takes a
    *     different lead-in — the swell and the impact on the downbeat, or the
-   *     fall into a bar's drop-out — and the third rises again; two returns
-   *     running never share one.
+   *     bar's drop-out — and the third rises again; two returns running
+   *     never share one. The drop-out has no noise over it (round v24-bugs,
+   *     his ear on Drive - Fog Bank, 10-29: *"Wind slush not fitting"*, a
+   *     falling sweep over a breakdown's last bar into the drop): a fall is
+   *     the gesture out of a section, after an impact or into a break, and
+   *     into a return it says the energy goes down where it comes back. The
+   *     drop-out keeps its turn and its moment, so the spacing and the
+   *     alternation around it are what they were.
    *   Length by tempo. Four bars at 110 BPM and over, two from 90, and under
    *     90 one bar of swell rather than noise.
    *   Spacing is between sections' moments. A breakdown's opening sweep and
@@ -3358,7 +3678,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       const riser = rise && scene !== 'drone-forward' && earned && s.bars > bars + 2
         ? (haze || bars === 1 ? (swell ? 'swell-long' : null) : 'riser') : null;
       const accent = stroke && fx.impact && next.impactFirst ? 'swell-impact' : null;
-      const drop = fall && fx.sweep ? 'fall' : null;
+      // the bar's drop-out with no noise over it (his ear 10-29, "Wind slush not fitting"): the fall leads out of a
+      // section, never in; the drop-out keeps its turn in the alternation and its moment in the spacing
+      const drop = fall && fx.sweep ? 'drop-out' : null;
       const order = returns % 2 === 0 ? [riser, accent, drop] : [accent, drop, riser];
       returns++;
       const pick = order.find((x) => x && x !== previous) ?? null;
@@ -3374,8 +3696,6 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       } else if (pick === 'swell-impact') {
         hit(line);
         if (swell) arrive(line, 1.8, 0.35);
-      } else {
-        push(fall!.voice, (line - 1) * barSeconds, { dur: barSeconds, gain: 0.45 }, { bar: line - 1, layer: layerOf(fall!.voice) });
       }
     });
     // Whether `next` brings the kick back after `s`: a section whose grammar
@@ -4518,25 +4838,20 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // noise transitions earn their place, and an acoustic texture gets none): the glue's noises and a noise bed the fx
   // palette drew are taken out where the conversation lays, as the glue's gates take them where they refuse.
   let conversation: ConversationSummary | null = null;
+  let convBreath: BreathLine | null = null;
+  /** the glue's noises and a noise bed the fx palette drew, taken out where a technique's entry says `noiseGlue: false` */
+  const takeOutNoise = () => {
+    const kept = events.filter((e) => !(e.layer === 'fx' && (isNoiseGlue(e.voice) || TIMBRES[e.voice]?.family === 'noise')));
+    if (kept.length !== events.length) { events.length = 0; events.push(...kept); }
+  };
   if (convRow && convPlace) {
     const unitsOf = (voices: Iterable<string>) => [...new Set(voices)].reduce((a, v) => a + (VOICE_COST_UNITS[BY_NAME[v]?.cost as keyof typeof VOICE_COST_UNITS] ?? 0), 0);
     const castVoiceOf = (e: PlanEvent) => e.drawn ?? e.voice;
     const sounding = new Set(events.map(castVoiceOf));
-    const ringOf = (voice: string, vel: number): number | null => {
-      const row = BY_NAME[voice]?.row as { topology?: string; parameters?: { partials?: number[][]; release?: number } } | undefined;
-      const P = row?.topology === 'mallet' ? row.parameters : undefined;
-      return P?.partials?.length ? P.partials[0][1] * (1 + 0.2 * vel) + (P.release ?? 0) : null;
-    };
-    // the oscillators one strike runs, each for its own seconds (the mallet topology: a sine a partial, each stopped at
-    // its own envelope's end, and the discs' LFO with the fundamental, as the engine's `malletLives` says; the FM bell:
-    // two carriers and two modulators to its note's end and release)
-    const oscillatorsOf = (voice: string, vel: number, dur: number): number[] => {
-      const row = BY_NAME[voice]?.row as { topology?: string; parameters?: { partials?: number[][]; tremoloDepth?: number; release?: number; attack?: number } } | undefined;
-      const P = row?.parameters;
-      if (row?.topology === 'mallet' && P?.partials?.length) return malletLives({ partials: P.partials, attack: P.attack ?? 0, release: P.release ?? 0, tremoloDepth: P.tremoloDepth ?? 0 }, vel);
-      if (row?.topology === 'fm-bell') return Array(4).fill(dur + (P?.release ?? 1) + 0.02);
-      return [];
-    };
+    // how long a struck voice rings, and the oscillators one strike runs for its own seconds: the engine's own word on
+    // its topologies (`voiceRing`, `voiceLives` in `@deep-house/engine/voices`; engine-data: the rules had been here)
+    const ringOf = (voice: string, vel: number): number | null => voiceRing(BY_NAME[voice]?.row as Parameters<typeof voiceRing>[0], vel);
+    const oscillatorsOf = (voice: string, vel: number, dur: number): number[] => voiceLives(BY_NAME[voice]?.row as Parameters<typeof voiceLives>[0], vel, dur);
     const keysDb = roomLevels.keys ?? 0;
     // a voice's footing is the level it really plays at in this room: where the room turned its word off (the growl
     // room's shaker, -60) and the voice is not the word's own, the style's base level (`laneLevelDb`), never the -60,
@@ -4552,10 +4867,10 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       for (const c of planned.events)
         push(c.voice, c.t, c.p as NoteParams, { bar: c.bar, step: c.step, layer: layerOf(c.voice), ...(c.p.midi != null ? { note: noteName(c.p.midi) } : {}),
           role: 'detail', part: c.part, treatment: 'none' });
-      const kept = events.filter((e) => !(e.layer === 'fx' && (isNoiseGlue(e.voice) || TIMBRES[e.voice]?.family === 'noise')));
-      if (kept.length !== events.length) { events.length = 0; events.push(...kept); }
+      if (convAt!.noiseGlue === false) takeOutNoise();
       events.sort((a, b) => a.t - b.t);
       conversation = planned.summary;
+      convBreath = planned.breath;
     }
   }
   // **The sea, laid** (PLAN-AMBIENT Phase 4, `src/surf.ts`): beside the conversation and for the same reasons (before
@@ -4571,8 +4886,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     const planned = planSurf({ seed: String(seed), row: seaRow, sections: arrangement.sections, bars, barSeconds, key: { root: rootPc, scale }, chords: seaChords,
       spell: bias.spell, centre: Object.fromEntries(BIRDS.map((b) => [b, seaPlace.birds[b] ?? HOUSE[b]])), unitsOf, besides: unitsOf(sounding), ceiling: CAST_CEILING, ...(seaWaves ? { anchors: seaWaves } : {}) });
     if (planned) {
-      const kept = events.filter((e) => !(e.layer === 'fx' && (isNoiseGlue(e.voice) || TIMBRES[e.voice]?.family === 'noise')));
-      if (kept.length !== events.length) { events.length = 0; events.push(...kept); }
+      if (seaAt!.noiseGlue === false) takeOutNoise();
       for (const c of planned.events)
         push(c.voice, c.t, c.p as NoteParams, { bar: c.bar, step: c.step, layer: layerOf(c.voice), ...(typeof c.p.midi === 'number' && c.role === 'detail' ? { note: noteName(c.p.midi) } : {}),
           role: c.role, part: c.part, treatment: 'none' });
@@ -4580,12 +4894,13 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       sea = planned.summary;
     }
   }
-  // ...and a sea refused is no sea: the theme is planned again with the lanes it held off (`SeaRefused`, above)
-  if (seaRow && !sea) throw new SeaRefused('the sea was refused');
+  // ...and a sea refused is no sea where its entry says so: the theme is planned again with the lanes it held off (`TechniqueRefused`, above)
+  if (seaRow && !sea && seaAt!.refused === 'without') throw new TechniqueRefused('sea', 'the sea was refused');
   // Nothing in the middle of a theme is ever fully silent: house-v2's
   // `neverSilent` (`src/silence.ts`), the last word after every pass above
   // that takes notes away, and before the swells, which read the bed it lays.
-  if (switchOn(style, 'neverSilent')) fillSilence(events as any, arrangement.sections, bars, barSeconds, progression.loopBars || 8, timeline);
+  if (switchOn(style, 'neverSilent')) fillSilence(events as any, arrangement.sections, bars, barSeconds, progression.loopBars || 8, timeline,
+    (keysPlan?.reserved ?? []).map((w) => ({ from: (w.from * barSeconds) / 16, to: (w.to * barSeconds) / 16 })));
   // **A held reed is never alone** (`catalogue.exposed`, his ear 10-13 on the Downtempo tile's seed 17: "reed organ
   // in empty quiet room is like a little torture for listener, although the motif is interesting"): after the gaps
   // are filled, a run of bars where a front the block names sounds and nothing else does — no bed, no kick, no bass,
@@ -4595,7 +4910,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   layAmbientVoices();
   const swells = switchOn(style, 'swellIn')
     ? swellsOf({ style, spell: bias.spell, barSeconds, bars, arrangement, timeline, events, lanes: LANES }) : [];
-  applySwells(events, swells, barSeconds);
+  // an ensemble that keeps its entrances as written (`EnsembleBlock.swellIn: false`): its roles take no swell
+  const keepsEntrances = (recipe as { ensemble?: EnsembleBlock } | null)?.ensemble?.swellIn === false;
+  applySwells(keepsEntrances ? events.filter((e) => !(e as { ensemble?: string }).ensemble) : events, swells, barSeconds);
   // the ambient bed's notes keep their own entrance (each opens over its own crest), whatever a layer's entrance swell wrote
   for (const [e, sw] of ambientSwell) e.p = { ...e.p, swell: sw };
   // The melodic bus's filter, moved by the section where the spell, the cast,
@@ -4666,10 +4983,41 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   };
   // Two lifted sections side by side are one lift: the gain goes from the first's to the second's across the line
   // and never back to unity between them (the review of 10-08, B11: a 1.4 dB dip for a second at each such line).
+  // **A breakdown's bed from where the groove left it** (round loudness-place, round 2; the switch `breakdownBed`): the
+  // duck's mean power the groove before the breakdown gave the melodic bus, against the breakdown's own (a pump carrier
+  // ducks it too), as the breakdown-lite's bed is kept (the phrasing, below); never over the lift
+  const bedKept = switchOn(style, 'breakdownBed') ? (() => {
+    const SC = S.sidechain as typeof S.sidechain & { firstLeg?: number };
+    const depth = 10 ** ((bedRow?.duckDb ?? SC.depthDb) / 20);
+    const legs: Array<[number, number]> = [[0, 1], [SC.attack, depth * 1.12], [drumsRow?.duck?.minimumAt ?? SC.minimumAt, depth],
+      [beat * (drumsRow?.duck?.firstLeg ?? SC.firstLeg ?? 0.45), depth + (1 - depth) * 0.6], [beat * (drumsRow?.duck?.recoverBy ?? SC.recoverBy), 1]];
+    const duckAt = (dt: number) => {
+      for (let i = 1; i < legs.length; i++) if (dt <= legs[i][0]) { const [t0, v0] = legs[i - 1], [t1, v1] = legs[i]; return v0 + (v1 - v0) * (dt - t0) / Math.max(1e-9, t1 - t0); }
+      return 1;
+    };
+    const kicks = events.filter((e) => BY_NAME[e.voice]?.roles.includes('kick')).map((e) => e.t).sort((x, y) => x - y);
+    const power = (fromBar: number, toBar: number) => {
+      let sum = 0, n = 0, k = 0;
+      for (let t = fromBar * barSeconds; t < toBar * barSeconds; t += 0.004) {
+        while (k < kicks.length && kicks[k] <= t) k++;
+        const g = k > 0 && t - kicks[k - 1] < 4 * beat ? duckAt(t - kicks[k - 1]) : 1;
+        sum += g * g; n++;
+      }
+      return n ? sum / n : 1;
+    };
+    return (i: number): number => {
+      const s = arrangement.sections[i];
+      if (s.kind !== 'breakdown' || !kicks.length) return 1;
+      let g: (typeof arrangement.sections)[number] | undefined;
+      for (let j = i - 1; j >= 0 && !g; j--) if (arrangement.sections[j].kind === 'main' || arrangement.sections[j].kind === 'drop') g = arrangement.sections[j];
+      if (!g) return 1;
+      return Math.min(1, Math.sqrt(power(g.startBar, g.startBar + g.bars) / Math.max(1e-9, power(s.startBar, s.startBar + s.bars))));
+    };
+  })() : null;
   const melodicGain: PlanPoint[] = [{ t: 0, value: 1 }];
   arrangement.sections.forEach((s, i) => {
     if (!s.lift) return;
-    const lift = liftOf(s.kind);
+    const lift = liftOf(s.kind) * (bedKept ? bedKept(i) : 1);
     const a = s.startBar * barSeconds;
     const b = (s.startBar + s.bars) * barSeconds;
     const prev = arrangement.sections[i - 1], next = arrangement.sections[i + 1];
@@ -4700,6 +5048,10 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     })),
     ...(sweeps && (sweeps.hp || sweeps.lp) ? { sweep: sweeps } : {}),
   };
+  // **The breath** (PLAN-AMBIENT P2, ambient-bowls; `breathOf` in slow-conversation.ts): where the conversation's row
+  // breathes, its line multiplies the melodic bus's (`factorCurve`), the one writer of `melodic.gain`, as the phrasing's
+  // gains do: the arrangement's lifts stand where they stood and the breath moves over them by its own factor
+  if (convBreath) automation.melodicGain = factorCurve(automation.melodicGain, convBreath.knots);
   // **The arrangement's phrases on the automation** (PLAN-UNIFY U2): a filtered phrase closes the master's low-pass and
   // opens it into its line; a breakdown-lite lifts the melodic bus as a breakdown does (the bed exposed); the field
   // leans into an answered arrival and back. What was heard is what the track names.
@@ -5169,6 +5521,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       ...(sea ? { sea: [sea.row, `${sea.periodS.toFixed(1)} s`, sea.voices.bloom, sea.voices.bell ?? 'no bell', sea.voices.bass].join(' · ') } : {}),
       // the journey's row, the mode the place drew and the pulse's voice (PLAN-AMBIENT Phase 6): row · mode · pulse
       ...(journey ? { journey: [journey.summary.row, scaleName, journey.summary.pulse.voice ?? 'no pulse'].join(' · ') } : {}),
+      ...(HOOK ? { hook: hookWord(HOOK) } : {}),
       ...(glideOn ? { bassFigure: 'glide', glide: glideRecipe!.id, ...(RIFF ? { riff: RIFF.id } : {}), ...(Number.isFinite(glideSwitchAt) ? { glideSwitchBar: arrangement.sections[glideSwitchAt].startBar } : {}) } : {}) },
     // Not part of the plan: how wet this theme's harmonic layer is, is a
     // mixing decision, so it lives here as a readout rather than in `dice`.
@@ -5228,7 +5581,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       // **Effects by place** (GA6): the nearest place's multipliers on the
       // rota's weights, over whatever a row's wants leaned; none at the house.
       // ...or the journey's own, where one plays (PLAN-AMBIENT Phase 6)
-      const T = placesOn ? (journeyRow && journeyAt!.journey!.treatments ? { weights: journeyAt!.journey!.treatments } : placeAt('treatments')) : null;
+      const T = placesOn ? (journeyRow && journeyAt!.technique!.treatments ? { weights: journeyAt!.technique!.treatments } : placeAt('treatments')) : null;
       const base = bias.weights.treatmentRota;
       if (!base) return {};
       const names = ((style.candidates as any[]).find((c) => c.id === 'treatmentRota')?.list() ?? []).map((e: any) => String(e.v ?? e));
@@ -5255,21 +5608,61 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     track.paramOverrides = mergeParams(track.paramOverrides, { levels: { sub: roomSub + subDb } }) as ParamOverrides;
     track.sound = { ...track.sound, subDb };
   }
+  // **An ensemble's balance** (`EnsembleBlock.level`): dB onto the lanes' levels, the approved balance it was heard in
+  // where a later house rule (the sub's step, the hats' trims) moved it; inside the ensemble it wins.
+  // **An ensemble's development wins over the house's fill** (`EnsembleBlock.development`): a role a section kind does
+  // not name sits it out; a part sits out by itself (`PitchedFigure.leaves`), and a note another rule copied into that
+  // section from it (the never-silent rule's held chord, S21) is taken out with it.
+  const ensembleDev = (recipe as { ensemble?: EnsembleBlock } | null)?.ensemble?.development;
+  if (ensembleDev) {
+    const kindAt = (bar: number) => arrangement.sections.find((x) => bar >= x.startBar && bar < x.startBar + x.bars)?.kind ?? '';
+    track.events = track.events.filter((e) => {
+      const role = (e as { ensemble?: string }).ensemble, plays = ensembleDev[kindAt(e.bar)];
+      return !role || !plays || plays.includes(role);
+    });
+  }
+  // **Tide's wetness inside an ensemble** (`EnsembleBlock.tideSends`): every role's sends by one factor, so the near
+  // roles stay nearest and the far one farthest while the whole room opens and closes with Tide, as in any track
+  {
+    const E = (recipe as { ensemble?: EnsembleBlock } | null)?.ensemble;
+    const k = E ? ensembleTide(E, (bias.spell as unknown as Record<string, number>).tide) : 1;
+    if (k !== 1) track.events = track.events.map((e) => !(e as { ensemble?: string }).ensemble ? e
+      : { ...e, p: { ...e.p, ...Object.fromEntries(['reverb', 'hall', 'delay', 'room', 'background'].filter((s) => Number.isFinite(e.p[s]))
+        .map((s) => [s, +(Number(e.p[s]) * k).toFixed(4)])) } });
+  }
+  const ensembleLevel = (recipe as { ensemble?: EnsembleBlock } | null)?.ensemble?.level;
+  const rootDb = ensembleBlock ? ensembleRoot(ensembleBlock, (bias.spell as unknown as Record<string, number>).root) : 0;
+  if (ensembleLevel || rootDb) {
+    const now = (mergeParams(structuredClone(style.base) as unknown as Record<string, unknown>, (track.paramOverrides || {}) as Record<string, unknown>) as { levels: Record<string, number> }).levels;
+    const shift: Record<string, number> = { ...(ensembleLevel ?? {}) };
+    if (rootDb) { shift.sub = (shift.sub ?? 0) + rootDb; shift.subCeilingOverBaseDb = (shift.subCeilingOverBaseDb ?? 0) + Math.max(0, rootDb); }
+    track.paramOverrides = mergeParams(track.paramOverrides, { levels: Object.fromEntries(Object.entries(shift)
+      .filter(([k]) => Number.isFinite(now[k])).map(([k, db]) => [k, now[k] + db])) }) as ParamOverrides;
+  }
   // The trim's ceiling by place (round DNB-3, `DrumsEntry.trimMostDb`): read by the set's trim (`set-plan.ts`).
   if (drumsRow?.trimMostDb != null) track.sound = { ...track.sound, trimMostDb: drumsRow.trimMostDb };
   // ...and the place's own level (round DNB-4): read by the trim's model (`loudnessFamily`).
-  if (drumsRow?.targetLufs != null) track.sound = { ...track.sound, targetLufs: drumsRow.targetLufs,
+  // Since round loudness-place a place may measure itself and name no level: its aim is the place function's.
+  if (drumsRow?.targetLufs != null || drumsRow?.measuredLufs != null) track.sound = { ...track.sound,
+    ...(drumsRow.targetLufs != null ? { targetLufs: drumsRow.targetLufs } : {}),
     ...(drumsRow.measuredLufs != null ? { measuredLufs: drumsRow.measuredLufs } : {}) };
   // ...and the conversation's (PLAN-AMBIENT Phase 1): a theme of struck voices measures itself where it plays one
-  if (conversation && convAt?.level) track.sound = { ...track.sound, targetLufs: convAt.level.targetLufs, measuredLufs: convAt.level.measuredLufs };
-  // ...and the sea's (PLAN-AMBIENT Phase 4): a theme of waves measures itself where it lays one, moved by what Tide and
-  // Veil take from the sea (ambient-waves-3: `SurfSummary.levelDb`, measured), so a calm sea's trim lifts it back into
-  // the band and a large rough one's eases its limiting
-  if (sea && seaAt?.level) track.sound = { ...track.sound, targetLufs: seaAt.level.targetLufs, measuredLufs: +(seaAt.level.measuredLufs + sea.levelDb).toFixed(2) };
+  if (conversation && convAt?.level) track.sound = { ...track.sound, targetLufs: convAt.level.targetLufs, ...(convAt.level.measuredLufs != null ? { measuredLufs: convAt.level.measuredLufs } : {}) };
+  // ...and its own bed's level (ambient-bowls, `bedDb`): the held layer's room level moved by it, as the sub's step is,
+  // so the bed sits under the bowls it holds up
+  if (conversation && convAt?.bedDb) {
+    const roomPad = (pre.params?.levels as Record<string, number> | undefined)?.pad ?? style.base.levels.pad;
+    track.paramOverrides = mergeParams(track.paramOverrides, { levels: { pad: roomPad + convAt.bedDb + (convWash?.db ?? 0) } }) as ParamOverrides;
+  }
+  // ...and the sea's (PLAN-AMBIENT Phase 4): a theme of waves measures itself where it lays one, and carries what Tide
+  // and Veil take from the sea (ambient-waves-3: `SurfSummary.levelDb`, measured about the place), which the trim gives
+  // back one for one (ambient-waves-4: `levelDb`, in the trim's own decibels), so a calm sea's trim lifts it back into
+  // the band and a large rough one's sits at the place's level
+  if (sea && seaAt?.level) track.sound = { ...track.sound, targetLufs: seaAt.level.targetLufs, ...(seaAt.level.measuredLufs != null ? { measuredLufs: seaAt.level.measuredLufs } : {}), levelDb: sea.levelDb };
   // ...and the journey's (PLAN-AMBIENT Phase 6): a theme on one long line measures itself where it plays one
-  if (journey && journeyAt?.journey?.level) track.sound = { ...track.sound, targetLufs: journeyAt.journey.level.targetLufs,
-    ...(journeyAt.journey.level.measuredLufs != null ? { measuredLufs: journeyAt.journey.level.measuredLufs } : {}),
-    ...(journeyAt.journey.level.trimMostDb != null ? { trimMostDb: journeyAt.journey.level.trimMostDb } : {}) };
+  if (journey && journeyAt?.technique?.level) track.sound = { ...track.sound, targetLufs: journeyAt.technique.level.targetLufs,
+    ...(journeyAt.technique.level.measuredLufs != null ? { measuredLufs: journeyAt.technique.level.measuredLufs } : {}),
+    ...(journeyAt.technique.level.trimMostDb != null ? { trimMostDb: journeyAt.technique.level.trimMostDb } : {}) };
 
   // **The grain by place** (round SPARK-1, `grainFor` in places.ts): the
   // nearest row of the style's grain table, else the house's own, written into
@@ -5306,7 +5699,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const bedRead = exposedBed.size && EXPOSED ? { ...track, events: track.events.map((e) => exposedBed.has(e)
     ? { ...e, p: { ...e.p, gain: ((e.p as { gain?: number }).gain ?? 1) / dbToGain(EXPOSED.bedDb) } } : e) } : track;
   const beds = bedRow && (bedRow.bellDb || floored.length)
-    ? arrangement.sections.map((sec) => ({ sec, bed: loudnessFeatures(bedRead as any, style, { from: sec.startBar, bars: sec.bars }).harmonicEnergyDb }))
+    ? arrangement.sections.map((sec) => ({ sec, bed: bedEnergyDb(bedRead as any, style, { from: sec.startBar, bars: sec.bars }) }))
     : [];
 
   // **The floors keyed to the bed** (round EQ-6, `floorOfBed` in places.ts):
@@ -5394,11 +5787,19 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
         if (m.bar === 'last' && m.clear && lanes.every((l) => m.clear!.includes(l))) emptied[id] = [m.fromStep ?? 0, m.toStep ?? 16];
       }
     }
+    // the keys' moments as they played (keys-moments): the bars each sounded, the plan's words beside them
+    const kmSpan = (b: number[]) => b.length ? { from: Math.min(...b), to: Math.max(...b) + 1 } : null;
+    const keysMoments = KM.plan ? { solo: kmSpan(KM.played.solo), riff: kmSpan(KM.played.riff), said: KM.plan.said } : null;
+    if (keysMoments && (keysMoments.solo || keysMoments.riff || keysMoments.said.length)) (track as Track & { keysMoments?: unknown }).keysMoments = keysMoments;
     const moments = momentsOf({ bars, phrasing: track.phrasing ?? null, house: namedSubs, risers, padArc: track.padArc ?? null,
+      keys: keysMoments ? [
+        ...(keysMoments.solo ? [{ kind: 'solo' as const, ...keysMoments.solo, label: `the piano alone ${keysMoments.solo.from}-${keysMoments.solo.to - 1}: a line of its own notes, then back` }] : []),
+        ...(keysMoments.riff ? [{ kind: 'riff' as const, ...keysMoments.riff, label: `a second riff ${keysMoments.riff.from}-${keysMoments.riff.to - 1}: the hook's notes on a new rhythm` }] : []),
+      ] : null,
       passage: track.passage ? { marks: track.passage.marks ?? null, builds: track.passage.builds ?? [] } : null,
       development: track.development ? { ...(track.development as NonNullable<MomentsInput['development']>), emptied } : null,
       // the sea's shape (PLAN-AMBIENT Phase 4): its large waves, its sets' lines, its bells and its great waves
-      sea: sea ? { waveList: sea.waveList, setLines: sea.setLines, bells: track.events.filter((e) => e.part === 'wave-bell').map((e) => e.t), barSeconds } : null,
+      sea: sea ? { row: sea.row, waveList: sea.waveList, setLines: sea.setLines, bells: track.events.filter((e) => e.part === 'wave-bell').map((e) => e.t), barSeconds } : null,
       // the conversation's exchanges (PLAN-AMBIENT Phase 1): its calls and answers as struck
       conversation: conversation ? { strikes: track.events.filter((e) => e.part === 'conversation-call' || e.part === 'conversation-answer')
         .map((e) => ({ t: e.t, part: e.part as string, voice: e.voice, ...(typeof e.note === 'string' ? { note: e.note } : {}) })), barSeconds, breathS: conversation.breathS } : null });
@@ -5419,6 +5820,96 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     releaseOf: (e) => { const r = e.p.release ?? (S as unknown as Record<string, { release?: unknown } | undefined>)[e.voice]?.release; return typeof r === 'number' ? r : null; },
   }) : null;
   if (hygiene && (hygiene.faded || hygiene.fillers.length)) track.hygiene = hygiene;
+
+  // **A struck chord over the drone keeps clear of it** (`ScenePolicy.clearOfBed`): where a figure's chord, at its
+  // strike or where the bed changes under its ring, is not the bed's harmony (a tone outside the notes the bed holds)
+  // and rubs it (a tone the given semitones from a bed note), the rubbing tone takes the bed's note: the chord's tones
+  // from the harmony the bed holds. A chord of the bed's own tones keeps its colour, a seventh the bed itself holds
+  // among them. Where the move doubles a tone the chord has, that tone is let go and the rest struck to the chord's
+  // power (a tone's power its velocity to the fourth). Said on the plan (`clearedOfBed`).
+  const clearOfBed = (style as Style & { composition?: CompositionPolicy }).composition?.scene?.clearOfBed;
+  // (a pinned phrase plays as written: the pin is the listener's or the row's own notes)
+  if (clearOfBed?.length && !request.pin && (composition?.trace.scene === 'drone-back' || composition?.trace.scene === 'drone-forward')) {
+    const beds = track.events.filter((e) => e.layer === 'pad' && Number.isFinite(Number(e.p.midi)));
+    const pc = (m: number) => ((m % 12) + 12) % 12;
+    const strikes = new Map<string, PlanEvent[]>();
+    for (const e of track.events) if (upperEvents.has(e) && Number.isFinite(Number(e.p.midi))) {
+      const k = `${e.voice}|${e.bar}|${e.step}`; strikes.set(k, [...(strikes.get(k) ?? []), e]);
+    }
+    const gone = new Set<PlanEvent>(); const said: string[] = [];
+    for (const tones of strikes.values()) {
+      if (tones.length < 2) continue;
+      const from = Math.min(...tones.map((e) => e.t)), to = Math.max(...tones.map((e) => e.t + Number(e.p.dur ?? 0)));
+      const moments = [from, ...beds.map((b) => b.t).filter((t) => t > from && t < to)];
+      const moved: string[] = [], off: PlanEvent[] = [], shifted = new Set<PlanEvent>();
+      for (const at of moments) {
+        const under = beds.filter((b) => b.t <= at + 1e-6 && at < b.t + Number(b.p.dur ?? 0));
+        if (!under.length) continue;
+        const held = new Set(under.map((b) => pc(Number(b.p.midi))));
+        const live = tones.filter((e) => !off.includes(e));
+        if (live.every((e) => held.has(pc(Number(e.p.midi))))) continue;
+        for (const e of live) {
+          if (shifted.has(e)) continue;
+          const m = Number(e.p.midi), bed = under.find((b) => clearOfBed.includes(Math.abs(m - Number(b.p.midi))));
+          if (!bed) continue;
+          const onto = m + Math.sign(Number(bed.p.midi) - m) * (Math.abs(Number(bed.p.midi) - m) % 12);
+          // a tone moves once, and only onto a note that rubs no bed note anywhere under its ring; else it is let go
+          const rubsLater = beds.some((b) => b.t < e.t + Number(e.p.dur ?? 0) && e.t < b.t + Number(b.p.dur ?? 0) && clearOfBed.includes(Math.abs(onto - Number(b.p.midi))));
+          shifted.add(e);
+          if (rubsLater || live.some((x) => x !== e && Number(x.p.midi) === onto)) { off.push(e); moved.push(`${noteName(m)} let go`); continue; }
+          e.p = { ...e.p, midi: onto }; (e as { note?: string }).note = noteName(onto); moved.push(`${noteName(m)}→${noteName(onto)}`);
+        }
+      }
+      if (!moved.length) continue;
+      if (off.length) {
+        const k = Math.pow(tones.length / (tones.length - off.length), 1 / 4);
+        for (const e of tones) if (off.includes(e)) gone.add(e); else e.p = { ...e.p, vel: Number(e.p.vel) * k };
+      }
+      said.push(`${tones[0].bar}:${tones[0].step} ${moved.join(' ')}`);
+    }
+    if (gone.size) track.events = track.events.filter((e) => !gone.has(e));
+    if (said.length) (track as { clearedOfBed?: string[] }).clearedOfBed = said;
+  }
+
+  // **Under the drone in front the keys strike single tones** (`ScenePolicy.oneTone`, 10-29): the drone holds the
+  // harmony, so a phrase's chord there is struck as one tone of the bed's chord: its top where the bed sounds it, else the
+  // bed's tone nearest the top (the lower of two as near). The tone keeps the chord's longest ring (a phrase's last
+  // tone rings on) and the chord's weight; a single tone plays as written, and a pinned phrase as its pin wrote it.
+  // Said on the plan (`oneTone`: bar:step, the chord, the tone).
+  const oneTone = (style as Style & { composition?: CompositionPolicy }).composition?.scene?.oneTone;
+  if (oneTone && !request.pin && composition?.trace.scene === 'drone-forward') {
+    const beds = track.events.filter((e) => e.layer === 'pad' && Number.isFinite(Number(e.p.midi)));
+    const pc = (m: number) => ((m % 12) + 12) % 12;
+    const strikes = new Map<string, PlanEvent[]>();
+    for (const e of track.events) if (e.layer === 'keys' && upperEvents.has(e) && Number.isFinite(Number(e.p.midi))) {
+      const k = `${e.voice}|${e.bar}|${e.step}`; strikes.set(k, [...(strikes.get(k) ?? []), e]);
+    }
+    // a phrase's chords only: a voice whose every strike is a chord is a comp (the offbeat chords, the ringing chords),
+    // and its chords are what it plays
+    const phrased = new Set([...strikes.values()].filter((g) => g.length === 1).map((g) => g[0].voice));
+    const gone = new Set<PlanEvent>(); const said: string[] = [];
+    for (const tones of strikes.values()) {
+      if (tones.length < 2 || !phrased.has(tones[0].voice)) continue;
+      const top = tones.reduce((a, b) => (Number(b.p.midi) > Number(a.p.midi) ? b : a));
+      const m = Number(top.p.midi);
+      const under = beds.filter((b) => b.t <= top.t + 1e-6 && top.t < b.t + Number(b.p.dur ?? 0));
+      const held = new Set(under.map((b) => pc(Number(b.p.midi))));
+      let onto = m;
+      if (held.size && !held.has(pc(m))) {
+        for (let d = 1; d <= 6; d++) { if (held.has(pc(m - d))) { onto = m - d; break; } if (held.has(pc(m + d))) { onto = m + d; break; } }
+      }
+      const was = tones.map((e) => Number(e.p.midi)).sort((x, y) => x - y).map((x) => noteName(x)).join(' ');
+      const dur = Math.max(...tones.map((e) => Number(e.p.dur ?? 0)));
+      // the chord's weight in one tone (a tone's power its velocity to the fourth, as the clearing above strikes it)
+      const vel = Math.min(1, Math.pow(tones.reduce((x, e) => x + Number(e.p.vel ?? 0) ** 4, 0), 1 / 4));
+      top.p = { ...top.p, midi: onto, dur, vel };
+      (top as { note?: string }).note = noteName(onto);
+      for (const e of tones) if (e !== top) gone.add(e);
+      said.push(`${top.bar}:${top.step} ${was}→${noteName(onto)}`);
+    }
+    if (gone.size) track.events = track.events.filter((e) => !gone.has(e));
+    if (said.length) (track as { oneTone?: string[] }).oneTone = said;
+  }
 
   // **Who carries the low end** (round DUB-1, `turnRoles` in roles.ts): read
   // last, over the theme every table above has written, so what it changes is
@@ -5568,7 +6059,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     const roomCap = (most: number | undefined) => most !== undefined && Number.isFinite(padLane) ? Math.min(0, most - padLane) : 0;
     const held = redrawnSounds ? roomCap(apart!.bedMostDb) : 0;
     for (const e of track.events) {
-      if (e.layer !== 'pad') continue;
+      // (the hook's pedal is not the bed: it stands against the saw, set last below)
+      if (e.layer !== 'pad' || (e.p as { pedal?: boolean }).pedal) continue;
       const db = Math.min(roomCap(FRONT.bedMostDb), synthBed && FRONT.beds!.includes(e.voice) ? FRONT.bedDb! : 0) - held;
       if (db < 0) move(e, db);
       // ...and a bed whose timbre is denser in a band than the others, that band taken down with a bell (`bands`, the
@@ -5620,12 +6112,213 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // A voicing may instead be **leaned by the birds** (`LeanedVoicing`, 10-13: "choosing bright or dark shouldn't be
   // to me, but to birds positions"): its two ends, and the one lean's shift (`shiftOf`) placing the theme between
   // them, half-way at the row's centre; a level in decibels walks in a straight line, every other number in ratio.
-  const voicings = (style as Style & { voicings?: Readonly<Record<string, Readonly<Record<string, number>> | LeanedVoicing>> }).voicings;
+  const voicings = (style as Style & { voicings?: Readonly<Record<string, Readonly<Record<string, number | object>> | LeanedVoicing>> }).voicings;
   if (voicings) {
     const sounded = new Set(track.events.map((e) => e.voice));
     const voiced = Object.fromEntries(Object.entries(voicings).filter(([voice]) => sounded.has(voice))
       .map(([voice, v]) => [voice, isLeaned(v) ? voicingAt(v, bias.spell as unknown as Record<string, number>) : v]));
     if (Object.keys(voiced).length) track.paramOverrides = mergeParams(track.paramOverrides, voiced) as ParamOverrides;
+  }
+
+  // **The pedal against the saw** (trance-pad; his ear 10-28 on Uplifting Trance's seed 65499: *"the pad is too loud and
+  // dominates over the track (the saw is okay)"*): each strike's tones set last, over every level above, to stand the
+  // row's `underDb` under the saw sounding over its hold, read as the program will play both: the notes' gain,
+  // velocity and gate, the room's lane, the keyed floor and the stage's level at the bar; the drawn voice's own
+  // loudness (the row's measured `db`) and the tones' count taken off, so a loud voice or two tones stand where one
+  // quiet tone would. The pedal was set against its lane (+3 dB) and measured on one voice; another drawn louder on a
+  // hotter pad lane stood 5.6 LU over the saw.
+  if (HOOK?.pedal && track.events.some((e) => (e.p as { pedal?: boolean }).pedal)) {
+    const levels = { ...roomLevels, ...((track.paramOverrides as { levels?: Record<string, number> }).levels ?? {}) };
+    const rows = stage(track as unknown as PlannedTheme, style);
+    // a note's lane as the program plays it: the room's level and the keyed floor, and the stage's for the saw (the
+    // desk leaves the pedal where it stands)
+    const laneAt = (voice: string, layer: 'keys' | 'pad', t: number, bar: number) => {
+      const key = BY_NAME[voice]?.level;
+      return (laneLevelDb(style, levels, voice, key ?? layer) ?? -12) + floorUnderDb(track.automation?.floors, t, key) + (layer === 'keys' ? rows[bar]?.level.keys ?? 0 : 0);
+    };
+    const saws = track.events.filter((e) => (e.p as { hook?: string }).hook === 'gate');
+    const strikes = new Map<number, PlanEvent[]>();
+    for (const e of track.events) if ((e.p as { pedal?: boolean }).pedal) strikes.set(e.t, [...(strikes.get(e.t) ?? []), e]);
+    const silentPedal = new Set<PlanEvent>();
+    for (const [t, tones] of strikes) {
+      const hold = Number(tones[0].p.dur) || barSeconds;
+      let energy = 0;
+      for (const e of saws) {
+        if (e.t < t - 1e-6 || e.t >= t + hold) continue;
+        const p = e.p as unknown as SawNote & { gain?: number; vel?: number };
+        energy += ((p.gain ?? 1) * (p.vel ?? 1)) ** 2 * sawEnergy({ ...p, gain: p.gain ?? 1, vel: p.vel ?? 1, dur: Math.min(Number(p.dur) || 0, t + hold - e.t) })
+          * 10 ** (laneAt(e.voice, 'keys', e.t, Math.floor(e.t / barSeconds + 1e-6)) / 10);
+      }
+      // (no saw over the hold, nothing to stand under: the strike is not played)
+      if (!(energy > 0)) { for (const e of tones) silentPedal.add(e); continue; }
+      const bar = Math.floor(t / barSeconds + 1e-6);
+      const sawDb = 10 * Math.log10(energy / hold) - laneAt(tones[0].voice, 'pad', t, bar);
+      const g = dbToGain(pedalGainDb(HOOK, sawDb, tones.length));
+      for (const e of tones) (e.p as Record<string, number>).gain = +g.toFixed(4);
+    }
+    if (silentPedal.size) for (let i = track.events.length - 1; i >= 0; i--) if (silentPedal.has(track.events[i])) track.events.splice(i, 1);
+  }
+
+  // **The keys by the hats** (round keys-balance, `keysByHats` in hat-scene.ts; his words 10-29: *"balance the volume
+  // based on hat loudness as it work in one place but not in another"*): the row's lane steps down, section by
+  // section, where its strikes stand over the hats past what his references reach, never more than the row's most; a
+  // section without the kick holds the step of its groove. Read off the notes as the program plays them (the lane, the
+  // keyed floor, the stage, the gain and the velocity) and written into the keyed floors, so the loudness trim reads it
+  // as it reads the bed's. Said on the plan (`keysByHats`).
+  if (switchOn(style, 'keysByHats') && KEYS_BY_HATS) {
+    const R = KEYS_BY_HATS;
+    const levels = { ...roomLevels, ...((track.paramOverrides as { levels?: Record<string, number> }).levels ?? {}) };
+    const keyOf = (e: PlanEvent) => BY_NAME[e.voice]?.level ?? e.layer;
+    const lane = track.events.filter((e) => e.layer === 'keys' && keyOf(e) === R.lane && Number.isFinite(Number(e.p.midi)));
+    if (lane.length) {
+      const rows = stage(track as unknown as PlannedTheme, style);
+      const dbOf = (e: PlanEvent) => {
+        const p = e.p as { gain?: number; vel?: number };
+        const key = keyOf(e);
+        return (laneLevelDb(style, levels, e.voice, key) ?? -12) + floorUnderDb(track.automation?.floors, e.t, key)
+          + (e.layer === 'keys' ? rows[e.bar]?.level.keys ?? 0 : 0) + 20 * Math.log10(Math.max(1e-6, (p.gain ?? 1) * (p.vel ?? 1)));
+      };
+      const strikes = new Map<string, { bar: number; tones: number[] }>();
+      for (const e of lane) { const k = `${e.bar}|${e.step}`; const s = strikes.get(k) ?? { bar: e.bar, tones: [] }; s.tones.push(dbOf(e)); strikes.set(k, s); }
+      const trim = Number((track.paramOverrides as { hats?: { trimDb?: number } }).hats?.trimDb ?? 0);
+      const hats = track.events.filter((e) => e.layer === 'hats' || e.layer === 'shaker').map((e) => ({ bar: e.bar, voice: e.voice, db: dbOf(e) + trim }));
+      const steps = keysByHats({ sections: arrangement.sections, barSeconds, kickAt: (b) => !!track.timeline[b]?.layers.includes('kick'),
+        strikes: [...strikes.values()], hats }, R);
+      if (steps.some((s) => s.db !== 0)) {
+        // merged into the keyed floors: every line either sets, each step the floor's own there plus the hats'
+        const was = track.automation?.floors ?? [];
+        const lines = [...new Set([...was.map((f) => f.t), ...steps.map((s) => s.bar * barSeconds)])].sort((a, b) => a - b);
+        const hatsAt = (t: number) => { let db = 0; for (const s of steps) if (s.bar * barSeconds <= t + 1e-9) db = s.db; return db; };
+        const key = R.lane as 'keys' | 'piano' | 'pad';
+        track.automation = { ...track.automation, floors: lines.map((t) => {
+          let at: BedFloorStep | null = null;
+          for (const f of was) if (f.t <= t + 1e-9) at = f;
+          const step: BedFloorStep = { ...(at ?? {}), t };
+          const db = +((at?.[key] ?? 0) + hatsAt(t)).toFixed(2);
+          if (db) step[key] = db; else delete step[key];
+          return step;
+        }) };
+      }
+      if (steps.some((s) => s.over !== null)) (track as { keysByHats?: KeysByHatsStep[] }).keysByHats = steps;
+    }
+  }
+
+  // **The keys by the body** (round piano-tone, `keysByBody` in hat-scene.ts; his words 10-29: *"it seems we could play
+  // off synth drone pads, where piano sinks, but on open tracks it seems a bit too loud"*): beside the hats, which read
+  // the top, the scene under the piano reads its body. At each of the lane's strikes, the strike as played over what
+  // else sounds in its band in the 0.4 s from it (the bed held under it, the bass, the drums' hits), each as played and
+  // by its class's measured loudness in the band (the row's `scene`); the lane steps down where the scene leaves the
+  // piano open and lifts a little under a thick bed, a few decibels at most. With the hats' step it takes the deeper
+  // of the two (the hats' step read off the same strikes), written into the keyed floors as the hats' is. Said on the
+  // plan; each strike's reading is the plan's trace (`bodyReadsOf`, outside the hashed program).
+  if (switchOn(style, 'keysByBody') && KEYS_BY_BODY) {
+    const R = KEYS_BY_BODY;
+    const levels = { ...roomLevels, ...((track.paramOverrides as { levels?: Record<string, number> }).levels ?? {}) };
+    const keyOf = (e: PlanEvent) => BY_NAME[e.voice]?.level ?? e.layer;
+    const lane = track.events.filter((e) => e.layer === 'keys' && keyOf(e) === R.lane && Number.isFinite(Number(e.p.midi)));
+    if (lane.length) {
+      const rows = stage(track as unknown as PlannedTheme, style);
+      const hatsSteps = (track as { keysByHats?: KeysByHatsStep[] }).keysByHats ?? [];
+      const hatsAt = (bar: number) => { let db = 0; for (const h of hatsSteps) if (h.bar <= bar) db = h.db; return db; };
+      // as played, less the hats' step (the floors carry it now): the two steps are read off the same strikes
+      const dbOf = (e: PlanEvent) => {
+        const p = e.p as { gain?: number; vel?: number };
+        const key = keyOf(e);
+        const staged = e.layer === 'keys' ? rows[e.bar]?.level.keys ?? 0 : e.layer === 'pad' ? rows[e.bar]?.level.pad ?? 0 : 0;
+        return (laneLevelDb(style, levels, e.voice, key) ?? -12) + floorUnderDb(track.automation?.floors, e.t, key) + staged
+          + 20 * Math.log10(Math.max(1e-6, (p.gain ?? 1) * (p.vel ?? 1)));
+      };
+      const classOf = (e: PlanEvent) => `${e.layer}:${e.layer === 'pad' ? timbreOfNote(e.voice, e.p as NoteParams) ?? e.voice : e.voice}`;
+      // the spell's seasoning of the voice, by its knobs' measured slopes, as the loudness model reads it (a darkened
+      // bed covers less of the band)
+      const seasonedDb = (e: PlanEvent) => {
+        const voice = e.layer === 'pad' ? voicePlaying('pad', timbreOfNote(e.voice, e.p as NoteParams) ?? e.voice) : e.voice;
+        const set = (knobs as Record<string, Record<string, number>> | undefined)?.[voice];
+        if (!set) return 0;
+        let db = 0;
+        for (const [name, x] of Object.entries(set)) { const k = VOICE_KNOBS[voice]?.[name]; if (k && Number.isFinite(k.slopeDb) && Number.isFinite(x)) db += k.slopeDb * (x - k.default); }
+        return db;
+      };
+      const W = R.window;
+      const scene = track.events.filter((e) => !lane.includes(e)).map((e) => {
+        const dur = Math.max(0, Number(e.p.dur) || 0);
+        return { t: e.t, end: e.t + dur, held: dur > W, cls: classOf(e), db: dbOf(e) + seasonedDb(e) };
+      });
+      const strikes = new Map<string, { bar: number; t: number; power: number }>();
+      for (const e of lane) {
+        const k = `${e.bar}|${e.step}`;
+        const s = strikes.get(k) ?? { bar: e.bar, t: e.t, power: 0 };
+        s.power += Math.pow(10, (dbOf(e) - hatsAt(e.bar)) / 10);
+        strikes.set(k, s);
+      }
+      const trace: BodyRead[] = [...strikes.values()].map((s) => {
+        const parts: Record<string, number> = {};
+        for (const x of scene) {
+          const w = x.held ? Math.max(0, Math.min(x.end, s.t + W) - Math.max(x.t, s.t)) / W : x.t >= s.t - 0.02 && x.t < s.t + W ? 1 : 0;
+          if (w > 0) parts[x.cls] = (parts[x.cls] ?? 0) + w * Math.pow(10, x.db / 10);
+        }
+        return { bar: s.bar, t: s.t, db: 10 * Math.log10(s.power), parts };
+      });
+      BODY_READS.set(track, trace);
+      const read = trace.map((s) => {
+        const under = Object.entries(s.parts).reduce((a, [c, p]) => a + p * Math.pow(10, (R.scene[c] ?? R.scene[c.split(':')[0]] ?? R.sceneDb) / 10), 0);
+        return { bar: s.bar, db: s.db + R.keysDb, bed: under > 0 ? 10 * Math.log10(under) : -Infinity };
+      });
+      const body = keysByBody({ sections: arrangement.sections, kickAt: (b) => !!track.timeline[b]?.layers.includes('kick'), strikes: read }, R);
+      // with the hats' step: the deeper of the two where either steps down, else the body's lift
+      const steps = body.map((b) => { const h = hatsAt(b.bar); return { ...b, db: (h < 0 || b.db < 0 ? Math.min(h, b.db) : b.db) - h }; });
+      if (steps.some((s) => s.db !== 0)) {
+        const was = track.automation?.floors ?? [];
+        const lines = [...new Set([...was.map((f) => f.t), ...steps.map((s) => s.bar * barSeconds)])].sort((a, b) => a - b);
+        const bodyAt = (t: number) => { let db = 0; for (const s of steps) if (s.bar * barSeconds <= t + 1e-9) db = s.db; return db; };
+        const key = R.lane as 'keys' | 'piano' | 'pad';
+        track.automation = { ...track.automation, floors: lines.map((t) => {
+          let at: BedFloorStep | null = null;
+          for (const f of was) if (f.t <= t + 1e-9) at = f;
+          const step: BedFloorStep = { ...(at ?? {}), t };
+          const db = +((at?.[key] ?? 0) + bodyAt(t)).toFixed(2);
+          if (db) step[key] = db; else delete step[key];
+          return step;
+        }) };
+      }
+      if (body.some((s) => s.over !== null)) (track as { keysByBody?: KeysByBodyStep[] }).keysByBody = body;
+    }
+  }
+
+  // **A break keeps its rhythm in beat-led places** (round break-pulse-rule, `src/break-pulse.ts`,
+  // `recipes/arrangement/break-pulse.json`; his words 10-30: *"There's always some notion of rhythm throughout. Not
+  // necessarily a full drum set, but we can't lose the rhythm"*, and *"ideally should follow beat style, if it's
+  // straight then hats, if it's broken half time"*): where the theme is beat-led (the tempo as played), every beatless
+  // stretch of a breakdown keeps one carrier of its own sounds, chosen by the beat's style and leaned by the birds; deep
+  // and slow places keep their break as it was. Last, over the events as they play: the hats' and the keys' levels above
+  // are read off the groove, and the bed's paths (the hygiene's fades) are ridden, not replaced. Said on the plan.
+  if (switchOn(style, 'breakPulse')) {
+    const levels = { ...roomLevels, ...((track.paramOverrides as { levels?: Record<string, number> }).levels ?? {}) };
+    const rows = stage(track as unknown as PlannedTheme, style);
+    const hatsTrim = Number((track.paramOverrides as { hats?: { trimDb?: number } }).hats?.trimDb ?? 0);
+    // the spell's seasoning of the voice, by its knobs' measured slopes (a longer hat, a brighter bed is a louder one)
+    const seasoned = (e: PulseEvent) => {
+      const voice = e.layer === 'pad' ? voicePlaying('pad', timbreOfNote(e.voice, e.p as NoteParams) ?? e.voice) : e.voice;
+      const set = (knobs as Record<string, Record<string, number>> | undefined)?.[voice];
+      let db = 0;
+      if (set) for (const [name, x] of Object.entries(set)) { const k = VOICE_KNOBS[voice]?.[name]; if (k && Number.isFinite(k.slopeDb) && Number.isFinite(x)) db += k.slopeDb * (x - k.default); }
+      return db;
+    };
+    const levelOf = (e: PulseEvent) => {
+      const p = e.p as { gain?: number; vel?: number };
+      const key = BY_NAME[e.voice]?.level ?? e.layer;
+      const bar = e.bar ?? Math.floor(e.t / barSeconds + 1e-6);
+      const staged = e.layer === 'keys' ? rows[bar]?.level.keys ?? 0 : e.layer === 'pad' ? rows[bar]?.level.pad ?? 0 : 0;
+      return (laneLevelDb(style, levels, e.voice, key) ?? -12) + floorUnderDb(track.automation?.floors, e.t, key) + staged
+        + 20 * Math.log10(Math.max(1e-6, (p.gain ?? 1) * (p.vel ?? 1))) + (e.layer === 'hats' || e.layer === 'shaker' ? hatsTrim : 0) + seasoned(e);
+    };
+    const pulse = breakPulse({
+      seed: String(seed), events: track.events as unknown as PulseEvent[], sections: arrangement.sections,
+      barSeconds, bars, bpm, clock: (track as { clock?: string }).clock, spell: bias.spell as unknown as Record<string, number>,
+      ghost: (e) => isGhost(e as unknown as PlanEvent), levelOf,
+      classOf: (e) => `${e.layer}:${e.layer === 'pad' ? timbreOfNote(e.voice, e.p as NoteParams) ?? e.voice : e.voice}`,
+    });
+    if (pulse) track.breakPulse = pulse;
   }
 
   BASS_LANE.set(track, bassLane);

@@ -4,7 +4,7 @@
 //   node tools/labels-audit.ts --place BELLS      one place
 //   node tools/labels-audit.ts --seeds 4          master seeds 1..n, themes 0-2 each (default 4)
 //
-// For every shipped place (the tiles, BELLS, 27191's drone and seed 6's golden) and every control, the control is moved
+// For every shipped place (the tiles, BELLS, BOWLS, 27191's drone and seed 6's golden) and every control, the control is moved
 // across its travel (0, 0.25, 0.5, 0.75, 1 and the place's own value) with the other seven at the place, every theme is
 // planned as the app plans it, and two things are read at each value: what the cell says (the big word and the short
 // line, `bird-labels.ts`, the ring's one author, with the program's facts as the ring reads them), and what the program
@@ -31,6 +31,7 @@ const PLACES: Record<string, Partial<Spell>> = {
   '27191 (HELD_DRONE)': { ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 },
   "seed 6's golden": { ember: 0, tide: 0.9, zephyr: 0.25, root: 1, gleam: 0, veil: 0, spark: 0.1, loom: 1 },
   BELLS: { ember: 0.05, tide: 0.65, zephyr: 0.65, root: 0.10, gleam: 0.80, veil: 0.30, spark: 0.55, loom: 0.90 },
+  BOWLS: { ember: 0.02, tide: 0.95, zephyr: 0.50, root: 0.40, gleam: 0.80, veil: 0, spark: 0, loom: 1 },
   Techno: { ember: 0.75, zephyr: 0.5, root: 0.6, veil: 0.6 },
   'Dub techno (DEEP_STILL)': { ember: 0.72, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 },
   Trance: { ember: 0.88, tide: 0.7, zephyr: 0.6, root: 0.6, veil: 0.6 },

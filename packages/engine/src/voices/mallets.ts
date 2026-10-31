@@ -36,7 +36,7 @@
 import { midiToHz, route, panner, startTime, noiseSource, MIN_RELEASE } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import { strikeTilt, withControls } from './descriptor.ts';
+import { strikeTilt, tiltAmount, withControls } from './descriptor.ts';
 import type { NoteParams, VoiceRenderer } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
@@ -80,8 +80,9 @@ const PARAMETERS = contract({
 const PARTIAL_GUARD = 0.01;
 
 /**
- * How far a strike's hardness tilts the bar (zephyr-air): each upper partial by its ratio to `TILT_PARTIALS` times the
- * tilt, the head's band by `TILT_HEAD` octaves a unit and its level by e^(`TILT_NOISE` x tilt). Set by measure at BELLS
+ * How far a strike's hardness tilts the bar (zephyr-air): each upper partial by its ratio to the row's `partials` times
+ * the tilt, the head's band by `head` octaves a unit and its level by e^(`noise` x tilt), the row's `hardness.tilt`
+ * amounts (engine-data); these are the defaults where a row names none, set by measure at BELLS
  * (`tools/voice-air.ts --curves`): Zephyr 0 to 1 walks the calls' air about mellow to bright.
  */
 const TILT_PARTIALS = 4.5, TILT_HEAD = 1.5, TILT_NOISE = 3;
@@ -107,6 +108,7 @@ function bar(
   // the higher modes, so each partial is lifted by its ratio to the tilt's power, and the head's noise is louder and
   // higher; a softer one the other way, less far (`strikeTilt`; none where the row does not declare the control)
   const tilt = strikeTilt(p, row.descriptor.controls);
+  const tiltPartials = tiltAmount(row.descriptor.controls, 'partials', TILT_PARTIALS), tiltHead = tiltAmount(row.descriptor.controls, 'head', TILT_HEAD), tiltNoise = tiltAmount(row.descriptor.controls, 'noise', TILT_NOISE);
   const peak = vel * (p.gain ?? 1) * S.trim;
   // Velocity shortens nothing and brightens everything: a bar hit harder rings
   // the same length and puts more into its upper partials, which is the
@@ -133,7 +135,7 @@ function bar(
   const spread = (p.spread ?? S.spread) * (p.spreadMul ?? 1);
   // a partial over the fundamental by its ratio to the tilt's power; one under it (the temple bell's hum) only ever
   // falls: at a hard strike as the tilt says, at a soft one held where it is (a softer strike never lifts the hum)
-  const lifts = S.partials.map(([ratio]: number[], i: number) => { const l = tilt && i > 0 ? Math.min(ratio, 4) ** (TILT_PARTIALS * tilt) : 1; return ratio < 1 ? Math.min(1, l) : l; });
+  const lifts = S.partials.map(([ratio]: number[], i: number) => { const l = tilt && i > 0 ? Math.min(ratio, 4) ** (tiltPartials * tilt) : 1; return ratio < 1 ? Math.min(1, l) : l; });
   let fundamentalEnd = end;
   S.partials.forEach(([ratio, decay, level]: number[], i: number) => {
     const o = ctx.createOscillator();
@@ -170,11 +172,11 @@ function bar(
   const noise = noiseSource(ctx, time, S.malletTime + 0.01);
   const bp = ctx.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.frequency.value = tilt ? Math.min(16000, S.malletHz * 2 ** (TILT_HEAD * tilt)) : S.malletHz;
+  bp.frequency.value = tilt ? Math.min(16000, S.malletHz * 2 ** (tiltHead * tilt)) : S.malletHz;
   bp.Q.value = 1.2;
   const ng = ctx.createGain();
   ng.gain.setValueAtTime(0, time);
-  ng.gain.linearRampToValueAtTime(peak * S.malletLevel * vel * (tilt ? Math.exp(TILT_NOISE * tilt) : 1), time + 0.0008);
+  ng.gain.linearRampToValueAtTime(peak * S.malletLevel * vel * (tilt ? Math.exp(tiltNoise * tilt) : 1), time + 0.0008);
   ng.gain.exponentialRampToValueAtTime(0.0001, time + S.malletTime);
   ng.gain.linearRampToValueAtTime(0, time + S.malletTime + MIN_RELEASE);
   noise.connect(bp);
@@ -201,7 +203,7 @@ function bar(
     const lo1 = band('highpass', strike.hz * Math.SQRT1_2), lo2 = band('highpass', strike.hz * Math.SQRT1_2);
     const hi1 = band('lowpass', strike.hz * Math.SQRT2), hi2 = band('lowpass', strike.hz * Math.SQRT2);
     const cg = ctx.createGain();
-    const top = peak * strike.level * vel * (tilt ? Math.exp(TILT_NOISE * tilt) : 1);
+    const top = peak * strike.level * vel * (tilt ? Math.exp(tiltNoise * tilt) : 1);
     cg.gain.setValueAtTime(0, time);
     cg.gain.linearRampToValueAtTime(top, time + 0.0005);
     cg.gain.exponentialRampToValueAtTime(Math.max(1e-6, top * 0.001), time + strike.decay);

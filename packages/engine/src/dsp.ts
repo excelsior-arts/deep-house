@@ -501,6 +501,11 @@ export interface SendAmounts {
   echo?: number;
   /** the part's own space (`withPartSpace`): read there and never by `route`, which leaves it alone */
   partSpace?: number;
+  /**
+   * the time sends' floor, Hz (round trance-2): where given, what goes to the delay and the reverb passes a high-pass at
+   * this corner first, so a part's tail stays off the low end (the dry is untouched); absent, the sends are the note itself
+   */
+  sendLowHz?: number;
 }
 
 /** The most any send may be: a gain, 6 dB over unity. */
@@ -528,6 +533,17 @@ export function route(ctx: BaseAudioContext, node: AudioNode, out: VoiceOut, amo
   const background = send(amounts.background, 0);
   const immersed = send(amounts.immersed, 0);
   const echo = send(amounts.echo, 0);
+  // the time sends' floor: one high-pass the delay and the reverb both read from
+  let timed: AudioNode = node;
+  const low = amounts.sendLowHz;
+  if (typeof low === 'number' && Number.isFinite(low) && low > 20 && ((delay > 0 && out.delay) || (reverb > 0 && out.reverb))) {
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = Math.min(4000, low);
+    hp.Q.value = 0.7;
+    node.connect(hp);
+    timed = hp;
+  }
   if (dry === 1 && out.dry) {
     node.connect(out.dry);
   } else if (dry > 0 && out.dry) {
@@ -539,13 +555,13 @@ export function route(ctx: BaseAudioContext, node: AudioNode, out: VoiceOut, amo
   if (delay > 0 && out.delay) {
     const g = ctx.createGain();
     g.gain.value = delay;
-    node.connect(g);
+    timed.connect(g);
     g.connect(out.delay);
   }
   if (reverb > 0 && out.reverb) {
     const g = ctx.createGain();
     g.gain.value = reverb;
-    node.connect(g);
+    timed.connect(g);
     g.connect(out.reverb);
   }
   if (room > 0 && out.room) {

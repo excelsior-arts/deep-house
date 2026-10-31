@@ -314,7 +314,8 @@ test('keyboard character is style data, preserves the score and isolates legacy 
   // Exercise the still-supported keyboard patch independently of the ordinary
   // style's new replacement part, which no longer asks this voice to stab.
   const patchStyle = { ...style, composition: { ...style.composition,
-    families: style.composition.families.filter(f => f.id !== 'ringing-keys') } };
+    // (and the two keyboard parts of 10-28 that claim the figure on an airy theme)
+    families: style.composition.families.filter(f => !['ringing-keys', 'acoustic-keys', 'hum'].includes(f.id)) } };
   const legacyStyle = { ...patchStyle, base: legacyBase };
   // The patch voices the ep wherever a draw, a request or a tool names the
   // timbre; the tool override pins it here on two seeds.
@@ -341,7 +342,40 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
   const family = style.composition.families.find(f => f.id === 'ringing-keys')!;
   const without = { ...style, composition: { ...style.composition, families: style.composition.families.filter(f => f !== family) } };
   const spell = { ...HOUSE, spark: .52, gleam: .6 };
-  for (const variant of family.variants) {
+  // 10-28: over a grid the family plays the three phrases he picked (the ringing chords, the soft piano's line, the
+  // line answered by the chords), every note under a pedal; with no grid the single ringing tones below stay.
+  for (const variant of family.variants.filter(v => !v.request.struckFigures![0].motif.grid)) {
+    assert.deepEqual(variant.when, { drums: true });
+    for (const part of variant.request.struckFigures!) {
+      assert.deepEqual(struckFigureProblems(part), []);
+      const candidates = figureCandidates(part, style, []);
+      assert.ok(candidates.length >= 1 && candidates.every(c => c.timbre === 'piano'), 'the phrase character plays the piano');
+      assert.ok((part.pedal?.beats ?? 0) >= 4 && (part.pedal?.landingBeats ?? 0) >= 4, 'the notes ring under a pedal and a phrase lands');
+    }
+    const only = { ...style, composition: { ...style.composition, families: [{ ...family, chance: 1, variants: [variant], excludes: undefined }] } };
+    const track = generate({ style: only, seed: 12, spell, bpm: 104, bars: 64, timbres: { leadTimbre: 'ep', stabTimbre: 'ep' } });
+    const notes = track.events.filter(e => e.voice === 'piano');
+    assert.ok(notes.length > 8 && track.events.every(e => e.p.preset !== 'ep'));
+    assert.ok(notes.every(e => Number(e.p.dur) >= 60 / track.bpm - 1e-8), 'a pedalled note rings at least a beat');
+    // a chord outweighs a single note (his ear 10-28, "chords should be more pronounced as it's more notes"), and reads
+    // fuller, not louder ("now chord is a bit too loud comparing to mix"): beside single notes it lands 1 to 3 dB over
+    // the phrase's typical one
+    const at = new Map<string, typeof notes>();
+    for (const e of notes) at.set(`${e.bar}:${e.step}`, [...(at.get(`${e.bar}:${e.step}`) ?? []), e]);
+    const median = (xs: number[]) => xs.sort((a, b) => a - b)[xs.length >> 1];
+    // (within one part: the line answered by the chords sets two parts at their own levels)
+    const singles = variant.request.struckFigures!.length > 1 ? [] : [...at.values()].filter(g => g.length === 1).map(g => Number(g[0].p.vel));
+    // (a breakdown's thin statement is softer on purpose, `stays.thin.level`, keys-room 10-29: its chords stand alone there)
+    const thinIn = (bar: number) => { const k = track.arrangement.sections.find(s => bar >= s.startBar && bar < s.startBar + s.bars)?.kind;
+      return !!k && variant.request.struckFigures!.some(p => p.stays?.thin?.sections.includes(k)); };
+    for (const g of [...at.values()].filter(g => g.length > 1 && !thinIn(g[0].bar!))) {
+      const power = g.reduce((n, e) => n + Number(e.p.vel) ** 4, 0);
+      const over = singles.length ? 10 * Math.log10(power / median(singles) ** 4) : null;
+      if (over !== null) assert.ok(over >= 1 && over <= 3, `a chord at bar ${g[0].bar} lands ${over.toFixed(1)} dB over the phrase's single note`);
+    }
+  }
+  for (const variant of family.variants.filter(v => !!v.request.struckFigures![0].motif.grid)) {
+    assert.deepEqual(variant.when, { drums: false });
     const request = variant.request, part = request.struckFigures![0], grid = part.motif.grid!.beats;
     assert.deepEqual(struckFigureProblems(part), []);
     // A family of ringing keyboards, with the piano it was written on the
@@ -362,9 +396,11 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
       assert.ok(motif.cell.every(n => n >= grid * 4 && n % (grid * 4) === 0));
     }
     const only = { ...style, composition: { ...style.composition, families: [{ ...family, chance: 1, variants: [variant], excludes: undefined }] } };
-    const track = generate({ style: only, seed: 12, spell, bpm: 104, bars: 64, timbres: { leadTimbre: 'ep', stabTimbre: 'ep' } });
+    // with no grid, where these single tones play since 10-28: the benchmark's spell, under the drums line
+    const track = generate({ style: only, seed: 12, spell: { ...HOUSE, ember: .14, gleam: 0, veil: .34, spark: .3, loom: .81 }, bpm: 104, bars: 64, timbres: { leadTimbre: 'ep', stabTimbre: 'ep' } });
     const notes = track.events.filter(e => e.voice === track.dice.struckFigureVoice);
-    assert.ok(notes.length > 8); assert.ok(track.events.every(e => e.p.preset !== 'ep'));
+    // (with no grid the ambient lead may be the ep; the figure's own lane never is)
+    assert.ok(notes.length > 8); assert.ok(track.events.filter(e => e.layer === 'keys').every(e => e.p.preset !== 'ep'));
     for (let i = 0; i < notes.length; i++) {
       assert.equal(notes[i].step! % (grid * 4), 0);
       assert.ok(Math.abs(Number(notes[i].p.dur) - grid * 60 / track.bpm) < 1e-8);
@@ -414,7 +450,8 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
     const next = composeParts(style, seed, bias, 'medium', bpm)!;
     // GA4's families draw last and take what is left: a part the ringing keys
     // held the space or the budget for is theirs to lose, and theirs only.
-    const GA4 = ['held-mid', 'perc-loop', 'lazy-kit', 'ghost-backbeat', 'bright-stab', 'lead-line', 'arp-line', 'stab-and-two-tone', 'echo-chord', 'wide-chords'];
+    // (and the airy theme's keyboard and hum of 10-28, drawn last on what the texture leaves)
+    const GA4 = ['held-mid', 'perc-loop', 'lazy-kit', 'ghost-backbeat', 'bright-stab', 'lead-line', 'arp-line', 'stab-and-two-tone', 'echo-chord', 'wide-chords', 'acoustic-keys', 'hum'];
     const drop = (sel: Record<string, string>) => Object.fromEntries(Object.entries(sel).filter(([k]) => !GA4.includes(k)));
     const { 'ringing-keys': replacement, ...other } = next.trace.selected;
     assert.deepEqual(drop(other), drop(old.trace.selected));
@@ -440,14 +477,19 @@ test('ringing articulation gives a melody space over a drone without changing it
     const both = rows.filter(r => r.figure.keys.sounds && r.figure.pad.sounds);
     assert.ok(both.length > 16);
     for (const row of both) {
-      assert.equal(row.figure.keys.hold, 1, 'the whole note keeps its measured length');
+      // 10-28: the ringing keys are phrases under a pedal now, not one whole note a bar: they ring through most of it
+      assert.ok(row.figure.keys.hold >= .5, 'the keys ring through most of the bar');
       assert.equal(row.figure.keys.struck, true);
       assert.equal(row.lead, 'keys'); assert.equal(row.role.pad, 'back');
       assert.equal(row.treat.keys, null, 'a ringing melody must not receive a background modulation');
       assert.equal(row.level.bass, old[row.bar].level.bass);
     }
-    assert.equal(rows[4].role.pad, 'back', 'make room from the first entrance, before novelty ages');
-    assert.equal(old[4].lead, null, 'unmarked legacy whole notes retain their old classification');
+    // (the first entrance was bar 4, after a four-bar intro, until round length-2's phrase lines gave some themes an
+    // eight-bar one; his word 10-27: "it doesn't always account for segment length before break": read where it is)
+    const entrance = rows.find(r => r.figure.keys.sounds)!;
+    assert.ok(entrance.figure.pad.sounds, `the keys enter at bar ${entrance.bar} without the pad`);
+    assert.equal(entrance.role.pad, 'back', 'make room from the first entrance, before novelty ages');
+    assert.equal(old[entrance.bar].lead, null, 'unmarked legacy whole notes retain their old classification');
     const noKeys = stage({ ...track, events: track.events.filter(e => e.layer !== 'keys') });
     assert.ok(noKeys.every(row => row.lead !== 'keys'), 'an empty melody must not claim foreground');
     const renamed = stage({ ...track, events: track.events.map(e => e.articulation ? { ...e, voice: 'glassBell' } : e) });
@@ -571,7 +613,9 @@ test('ordinary catalogue reaches learned parts, varied motifs and simpler combin
     for (const name of Object.keys(choice.selected)) counts[name] = (counts[name] || 0) + 1;
     if (!['bass', 'figure', 'pulse', 'percussion'].some(k => choice.selected[k])) simple++;
     if (choice.selected.bass) shapes.add(`${track.dice.motifDegrees}|${track.dice.motifCell}`);
-    for (const [key, count] of Object.entries(choice.usage)) assert.ok(Number(count) <= style.composition.limits[key as keyof typeof style.composition.limits]);
+    // a variant's allowance (two parts written to share one space) widens the budget for that draw alone
+    const allowed = (key: string) => style.composition.families.reduce((n, f) => n + Number((f.variants.find(v => v.id === choice.selected[f.id])?.allowance as Record<string, number> | undefined)?.[key] ?? 0), 0);
+    for (const [key, count] of Object.entries(choice.usage)) assert.ok(Number(count) <= style.composition.limits[key as keyof typeof style.composition.limits] + allowed(key));
     if (choice.selected.pulse) assert.ok(track.events.some(e => e.role === 'texture' && e.p.dry === 0 && e.p.immersed > 0));
     if (i <= 12) assert.deepEqual(programOf(track), programOf(planTheme(String(i), 0, { strategy:'house-v2' })));
   }

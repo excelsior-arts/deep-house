@@ -106,8 +106,10 @@ function voicesFaults(t: ReturnType<typeof plan>): string[] {
     const mains = a.weather.spans.filter((x) => x.technique === 'main');
     for (let i = 1; i < mains.length; i++) check(mains[i].from - mains[i - 1].to >= W.absenceBars, `weather spans at bars ${mains[i - 1].to} and ${mains[i].from} with no absence`);
     check(a.weather.upperShare <= W.upperMost, `the upper air takes ${a.weather.upperShare} of the track`);
+    // (each span read by its own part: where the upper air is the main's own voice, as the rain's is, an upper window
+    // inside the outro's span holds the main's segments too; seed 5's met there once round length-2 lengthened its outro)
     for (const x of a.weather.spans) {
-      const last = ev.filter((e) => (e.part === 'weather' || e.part === 'weather-upper') && e.voice === x.voice && e.t >= x.from * bs - 1e-6 && e.t < x.to * bs).pop();
+      const last = ev.filter((e) => e.part === (x.technique === 'upper' ? 'weather-upper' : 'weather') && e.voice === x.voice && e.t >= x.from * bs - 1e-6 && e.t < x.to * bs).pop();
       if (last) check(last.t + Number(last.p.dur) <= x.to * bs + 1e-3, `the span at bar ${x.from} runs past its end`);
     }
     check(a.weather.thunder.length <= 2, `${a.weather.thunder.length} thunders`);
@@ -115,7 +117,9 @@ function voicesFaults(t: ReturnType<typeof plan>): string[] {
     const wx = ev.filter((e) => /^weather/.test(e.part ?? '') && e.part !== 'weather-thunder');
     for (const x of wx) check(new Set(wx.filter((y) => y.t <= x.t + 1e-6 && y.t + Number(y.p.dur) > x.t + 1e-6).map((y) => y.voice)).size <= 2, `three weather sources at ${x.t.toFixed(1)} s`);
     for (let i = 1; i < a.weather.thunder.length; i++) check(a.weather.thunder[i].bar - a.weather.thunder[i - 1].bar >= 64, 'two thunders under sixty-four bars apart');
-    if (a.weather.spans.length) check(!ev.some((e) => e.voice === 'airBed' && e.part !== 'weather'), 'the surface still plays beside the weather');
+    // (the passage's gated weather is the weather's own note on a sixteenth gate, `weather-gate`: a texture with its gain
+    // path, not the surface; seed 8 lays one in its last main since round length-2's forms)
+    if (a.weather.spans.length) check(!ev.some((e) => e.voice === 'airBed' && e.part !== 'weather' && !(e.part === 'texture' && Array.isArray(e.p.gainPath))), 'the surface still plays beside the weather');
 
     // the cast: under the ceiling, every new part's verdict recorded
     // the cast as the admissions count it: a voice a place swapped for its sound alone counts as drawn (PLAN-UNIFY U1, `EventMeta.drawn`)

@@ -44,6 +44,8 @@ export interface FormRequest {
   soloBars?: number;
   /** one section per this many bars: the window counted in time at the played tempo (L3, `SECTION_TIME`); the house's 22 where none */
   windowBars?: number;
+  /** the theme's phrase in written bars where every section line is to stand on one (house-v2's `phraseLines`); 0 for none */
+  phrase?: number;
   dArr: Rng;
   CORPUS: Style['corpus'];
   sectionBars: number;
@@ -52,7 +54,7 @@ export interface FormRequest {
 
 /** The arrangement, its development trace, and the harmonic support the form leaves. */
 export function planForm({ style, grammar = null, LANES, silent, laneOn, form, contourPolicy, figureSelected, figureSustained, padUnderFigure,
-  leadSustained, bothChance, leadAloneChance, parts, pinned, composition, wantedBars, fitBars = null, texture = null, soloBars = 0, windowBars = SECTION_TIME.windowBars, dArr, CORPUS, sectionBars, dice }: FormRequest) {
+  leadSustained, bothChance, leadAloneChance, parts, pinned, composition, wantedBars, fitBars = null, texture = null, soloBars = 0, windowBars = SECTION_TIME.windowBars, phrase = 0, dArr, CORPUS, sectionBars, dice }: FormRequest) {
   const roleAvailable = (role: string) => LANES.some(l => l.role === role && (!l.gate || !silent.includes(l.gate)));
   const continuity = contourPolicy ? harmonicSupport({
     figureAvailable:roleAvailable('figure'), sustainedAvailable:roleAvailable('sustained'),
@@ -82,7 +84,7 @@ export function planForm({ style, grammar = null, LANES, silent, laneOn, form, c
   // shape's re-read of a groove. The style itself where it has none.
   const styled = grammar ? { ...style, sections: grammar } : style;
   const sections = grammar ?? style.sections;
-  const originalArrangement = makeArrangement(form ? Math.min(fitBars ?? wantedBars, form.themeBarsMax) : wantedBars, dArr, CORPUS, sections, sectionBars, silent, shortOutro, form ? null : fitBars, cutRule, windowBars, mains);
+  const originalArrangement = makeArrangement(form ? Math.min(fitBars ?? wantedBars, form.themeBarsMax) : wantedBars, dArr, CORPUS, sections, sectionBars, silent, shortOutro, form ? null : fitBars, cutRule, windowBars, mains, form ? 0 : phrase);
   const phrased = form ? developArrangement(originalArrangement, styled, form, developmentQuantum(parts, form), silent, protectedGates) : originalArrangement;
   const shaped = contourPolicy ? shapeArrangement(phrased,
     {...styled,sections:{...sections,kinds:{...sections.kinds,[form!.bridgeKind]:form!.bridge}}},

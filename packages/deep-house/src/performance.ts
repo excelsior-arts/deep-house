@@ -150,6 +150,7 @@ import type { Style } from '@deep-house/engine/style';
 import { sectionAtBar, phraseGrid, setGrid } from './arrangement.ts';
 import type { Arrangement, PhraseGrid } from './arrangement.ts';
 import { switchOn } from './lanes.ts';
+import { beatOf, BEAT_LED_TEMPO, type BeatLed } from './beat-reading.ts';
 
 // --- what a plan is ---------------------------------------------------------
 //
@@ -1088,6 +1089,9 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
     }
 
     if (ev.layer !== 'pad' && ev.layer !== 'keys') { out.push(base); continue; }
+    // the hook's pedal (trance-pad): set against the saw at plan time, a background the desk leaves where it stands, its
+    // level, colour and treatment (`generator.ts`, the pedal against the saw)
+    if (ev.p?.pedal) { out.push(base); continue; }
     const lane = ev.layer === 'pad' ? 'pad' : 'keys';
     const role = row.role[lane] || 'mid';
     const seg = ev.treatment === 'none' ? null : row.seg[lane];
@@ -1157,7 +1161,13 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
         const P = (track as { phrasing?: { segments?: ReadonlyArray<{ kind: string; from: number; to: number }>; outs?: ReadonlyArray<{ from: number; to: number }> } }).phrasing;
         const dropped = !!P && ((P.segments ?? []).some((x) => x.kind === 'drop-out' && x.from <= line && line < x.to)
           || (P.outs ?? []).some((x) => x.from <= line && line < x.to));
-        if (bar <= line && endBar > line && !carries && !dropped) {
+        // ...and only where the layer is struck again on the bar after the line, as the rule says (round break-pulse-rule,
+        // Drive - Supercell's breakdown: a chord struck every eight bars off the sixteen-bar line was cut at the line and
+        // nothing came back for five bars, 6 s of silence in a pad-alone break). house-v2's `hygiene` holds such a chord
+        // through; the record cuts it as it always did.
+        const restruck = () => !(style as { switches?: Record<string, boolean> }).switches?.hygiene
+          || track.events.some((x) => x !== ev && x.layer === ev.layer && Math.abs(x.t / barSeconds - (line + 1)) < 1e-6);
+        if (bar <= line && endBar > line && !carries && !dropped && restruck()) {
           p.dur = Math.max(barSeconds * H.minBars, (line - bar) * barSeconds);
           p.release = Math.min(base.release ?? 1.2, H.release);
         }
@@ -1276,7 +1286,10 @@ export function seamPlan(
   // seam at bar 128, and the record ran out at 116 — MEASURED 29 s of true
   // silence before the next theme faded in from nothing.
   if (after > bar) bar = lineWithRoom(Math.max(0, notBefore / bs, protectedBar), [q, PHRASE_BARS, 1], track.bars);
-  if (keepsOutOfTheRise(track, style)) bar = outOfTheRise(track, bar, Math.max(floorBar, notBefore / bs, protectedBar), q);
+  if (keepsOutOfTheRise(track, style)) {
+    const lo = Math.max(floorBar, notBefore / bs, protectedBar);
+    bar = onThePhrase(track, outOfTheRise(track, bar, lo, q), lo, need);
+  }
   const bars = Math.max(2, Math.min(asked, track.bars - bar - 2));
   return { at: bar * bs, bar, bars, boundary: q };
 }
@@ -1337,6 +1350,36 @@ function outOfTheRise(track: PlannedTheme, bar: number, lo: number, q: number): 
   if (breakdown != null) return breakdown;
   const settle = sections.find((s) => ['main', 'outro'].includes(s.kind) && s.startBar >= lo && s.startBar <= last);
   return settle ? settle.startBar : bar;
+}
+
+/**
+ * **A seam begins on the record's phrase** (round chillstep-ends, his word 10-29: *"both chillstep songs in Drive
+ * playlist were chopped in the end after we reduced length"*). The lines above are counted from bar nought, and the
+ * form's phrases from each section's first bar (house-v2's `phraseLines`, round length-2): behind a four-bar intro a
+ * sixteen-bar line falls half a phrase into a main, and the blend began there, so the record's last phrase was cut
+ * in half and the arriving theme's phrases ran across the record's. Where the theme has a grid, a seam off its
+ * section's phrase moves to a phrase line of that section: the later one where the whole blend still fits behind
+ * it and it is not the first bar of a build or a drop, else the earlier one where that is not under `lo` (the
+ * floor, the blend before, a closing phrase that must finish), else the later one with the blend shortened to
+ * what is left (four bars at least), else it stays. The phrase is the theme's own (the
+ * phrase map's: eight bars at the house, sixteen at the half-time places).
+ */
+function onThePhrase(track: PlannedTheme, bar: number, lo: number, need: number): number {
+  const A = track.arrangement;
+  if (!(bar > 0 && bar < track.bars)) return bar;
+  const phrase = Math.round((track as { phraseMap?: { time?: { phraseBars?: number } } }).phraseMap?.time?.phraseBars ?? 8);
+  if (!(phrase > 1)) return bar;
+  const s = sectionAtBar(A, bar);
+  const k = bar - s.startBar;
+  if (k % phrase === 0) return bar;
+  const up = Math.min(s.startBar + s.bars, s.startBar + Math.ceil(k / phrase) * phrase);
+  const down = s.startBar + Math.floor(k / phrase) * phrase;
+  const rise = (b: number) => b < track.bars && ['build', 'drop'].includes(sectionAtBar(A, b).kind);
+  if (up + need <= track.bars && !rise(up)) return up;
+  if (down >= lo - 1e-9 && down > 0) return down;
+  // and where neither does, the later line with a shorter blend: the blend gives way before the floor, as above
+  if (track.bars - up - 2 >= Math.min(need - 2, 4) && !rise(up)) return up;
+  return bar;
 }
 
 // The first line from `first` to `last` that lands inside a main groove, or
@@ -1405,24 +1448,37 @@ export function blendBarsFor(track: PlannedTheme, bars: number): number {
  *           so it glides as it always has, over `tempoGlideBars` (sixteen)
  *           after the blend; every planned set, and every lock laid on one, is
  *           this case and nothing else.
- *   near    0.85 to 1.18 (`TEMPO_NEAR`, a pitch fader's wide range): blended
- *           beat-matched on the outgoing grid, then the grid glides to the new
- *           tempo after the blend, **one bar a percent** (`GLIDE_BARS_PER_PERCENT`)
- *           — a 4 % nudge in four bars, 104 → 112 in eight — never more than
- *           `tempoGlideBars`.
- *   half / double   the doubled or halved ratio within 8 % (`TEMPO_FOLD`, the
- *           standard pitch fader): the arriving theme is counted two of its
- *           beats to one of the grid's (or one to two) — the crossover is on
- *           the shared grid with no glide in it, 104 → 208 is 104 → 104 at
- *           double time — and what is left over (0.95 for 55.3 → 105.1) is a
- *           near glide after the blend.
- *   far     anything else: **the DJ's order**. The outgoing theme is ridden to
- *           the arriving theme's tempo first, on its own deck, before a note of
- *           the new theme sounds — eight bars an octave of tempo
- *           (`RIDE_BARS_PER_OCTAVE`), four at least, `tempoGlideBars` at most,
- *           in the outgoing theme's bars — and then blended at the arriving
- *           theme's own tempo, beat-matched, with nothing left to glide. The
- *           incoming theme never plays at a tempo that is not its own.
+ *   near    within 6 % (`TEMPO_GLIDE`; round pl-clock, it was 0.85 to 1.18):
+ *           blended beat-matched on the outgoing grid, then the grid glides to
+ *           the new tempo after the blend, **one bar a percent**
+ *           (`GLIDE_BARS_PER_PERCENT`) — a 4 % nudge in four bars — never more
+ *           than `tempoGlideBars`. A ratio, so it means the same at every
+ *           tempo: 6 BPM at 100, 7 at 120, 10 at 174, 5 at 87. Six and not the
+ *           brief's four because of Ember's notch (round K40: 5 BPM from 70 up)
+ *           and his own words, "more than 5bpm": one notch of a hand on Ember
+ *           is the gentlest tempo move there is, and from 85 BPM up (the house's
+ *           95-105 whole, where a notch is 4.8 to 5.3 %) it stays a nudge,
+ *           beat-matched; at four, every notch under 125 BPM was a hand-over.
+ *   half / double   the doubled or halved ratio within the same 6 %
+ *           (`TEMPO_FOLD`): the arriving theme is counted two of its beats to
+ *           one of the grid's (or one to two) — the crossover is on the shared
+ *           grid with no glide in it, 104 → 208 is 104 → 104 at double time —
+ *           and what is left over is a near glide after the blend.
+ *   split   anything else (round pl-clock; his ear 10-26 on the ride and the
+ *           wide glides: *"when we mix with speed up / down clock it sounds
+ *           pretty bad"*): **two clocks, a hand-over and not a blend**. Nothing
+ *           is ridden and nothing glides. The outgoing deck is held off the grid
+ *           at the tempo it is heard at (`holdOffGrid`) and the grid jumps to
+ *           the arriving theme's own at the blend's first instant, so each deck
+ *           keeps its own clock; the arriving theme comes in on its top alone
+ *           and the grooves change hands whole at the swap, the record's calls
+ *           with them, so two grooves never sound at two tempi (`seamCurves`,
+ *           the two-clock tail), and the blend is the free tail's seconds
+ *           (`splitSeamBars`).
+ *           It was `far`, the outgoing theme ridden to the arriving tempo over
+ *           eight bars an octave before the blend; the ride's machinery
+ *           (`rideInRoom`, `keepRide`) is kept for a rule that asks for one,
+ *           and this one never does.
  *
  *   free    **either side free** (PLAN-AMBIENT §4.3, the second clock, C2-C3):
  *           nothing is ridden and nothing glides. A free theme is counted in
@@ -1442,14 +1498,16 @@ export function blendBarsFor(track: PlannedTheme, bars: number): number {
  * numbers out, swept in `tools/check-transport.ts`.
  */
 export const TEMPO_DRIFT = 0.01;
-export const TEMPO_NEAR: readonly [number, number] = [0.85, 1.18];
-export const TEMPO_FOLD = 0.08;
+/** the widest a seam glides, straight or folded 2:1; past it the seam is two clocks (round pl-clock) */
+export const TEMPO_GLIDE = 0.06;
+export const TEMPO_NEAR: readonly [number, number] = [1 / (1 + TEMPO_GLIDE), 1 + TEMPO_GLIDE];
+export const TEMPO_FOLD = TEMPO_GLIDE;
 export const GLIDE_BARS_PER_PERCENT = 1;
 export const RIDE_BARS_PER_OCTAVE = 8;
 export const RIDE_BARS_LEAST = 4;
 
 export interface SeamTempo {
-  kind: 'drift' | 'near' | 'double' | 'half' | 'far' | 'free';
+  kind: 'drift' | 'near' | 'double' | 'half' | 'far' | 'free' | 'split';
   /** the arriving theme's tempo over the outgoing one's, as heard */
   ratio: number;
   /** the arriving theme's beats to one of the outgoing theme's on the grid */
@@ -1491,8 +1549,152 @@ export function seamTempo(fromBpm: number, toBpm: number, o: { tempoGlideBars?: 
       return { kind: perBeat > 1 ? 'double' : 'half', ratio, perBeat, ride: 0, glide: glideBarsFor(left, o) };
     }
   }
-  const ride = Math.max(RIDE_BARS_LEAST, Math.min(most, Math.ceil(RIDE_BARS_PER_OCTAVE * Math.abs(Math.log2(ratio)) - 1e-9)));
-  return { kind: 'far', ratio, perBeat: 1, ride, glide: 0 };
+  return { kind: 'split', ratio, perBeat: 1, ride: 0, glide: 0 };
+}
+
+/** A seam whose decks keep their own clocks: either side free, or two metered sides too far apart to glide. */
+export const ownClocks = (rule: { kind: SeamTempo['kind'] }): boolean => rule.kind === 'free' || rule.kind === 'split';
+
+/**
+ * **How beat-led a theme is** (round mix-voices, his word 10-30: *"for fast dancing tracks we preserve rhythm on
+ * mixing despite quickly switching to other, on other tracks is fine to follow your pitch"*, and *"it's the same rule
+ * as for breaks. There's always some notion of rhythm throughout"*). One number from nought to one, read off the plan
+ * and never off a genre's name: whether a listener dances to this, so that the rhythm may not stop when it changes
+ * hands (a seam's leaving groove, `seamShape`) or when it breathes (a break, a later round's).
+ *
+ *   - **the tempo it is felt at** (`felt`): its tempo, or twice it where a slow theme's drums run double: three hits a
+ *     beat or more, a backbeat on every beat (three and a half snares or claps a bar, ghost strokes not counted) in
+ *     half its grooves' bars, and the kick at half that (two and a half a bar at most: not a four on the floor).
+ *     Half-time at 85 counts as 170 only when its drums say so. Dense hats alone do not (a first reading by hits
+ *     alone read every trip hop at 81-90 and downtempo at 91-99 as Drum & Bass), nor a busy rimshot (Vibe - Control
+ *     Panel, Ambient Dub at 106, read as 200), nor claps on a four on the floor (downtempo at 91-94). Over the grid
+ *     four trip hop themes at 81-90 read double: claps on every beat over a kick on one and three;
+ *   - **the tempo's share** (`tempo`): nought at 112 BPM and below, one at 128 and above, linear between
+ *     (`BEAT_LED_TEMPO`): the house's 95-124 is a groove to sink into, 128 and up is a floor (fast house, techno,
+ *     trance, chillstep, Drum & Bass); Dub Techno at 124.5 reads 0.78;
+ *   - **the drums' share** (`drums`): of the bars of its grooves (mains and drops; the whole theme where it has none),
+ *     the share where a kick or a drum strikes. An ambient theme at any tempo reads nought; a sparse woodblock, a few
+ *     hundredths.
+ *
+ * `value` is the product. **0.5 and up is beat-led**: its seams keep a rhythm carrier audible from the first instant
+ * of the hand-over to the last (`seamShape`). The more beat-led, the more pulse stays: from 0.75 its kick stays with its
+ * top percussion to the swap. Pure and cheap (the program is the plan's, kept). `bpm` is the tempo it is played at,
+ * where a playlist pulls it; left out, its own.
+ *
+ * **A break reads the tempo as played** (round break-pulse-rule, `tempo: 'played'`): the same reading without the felt
+ * doubling. The doubling put 34 slow themes with busy drums on the grid (Downtempo, Trip Hop and one house theme at
+ * 82-99 BPM) among the beat-led, and his word is that slow places keep their beatless break; a hand-over keeps the
+ * felt reading it was approved on.
+ */
+export type { BeatLed };
+export { BEAT_LED_TEMPO };
+export const BEAT_LED = 0.5;
+export const BEAT_DRIVE = 0.75;
+export interface BeatLedOptions {
+  /** `'felt'` (the default, a hand-over's): a slow theme whose drums run double reads twice its tempo; `'played'`
+   * (a break's): its tempo as it plays */
+  tempo?: 'felt' | 'played';
+}
+/** (the arithmetic is `beat-reading.ts`'s, shared with the trim's aim; here it reads the compiled program) */
+export function beatLed(track: PlannedTheme, bpm: number = track.bpm, o: BeatLedOptions = {}): BeatLed {
+  return beatLedOf({ events: programOf(track).events, sections: track.arrangement?.sections ?? [], barSeconds: track.barSeconds,
+    clock: (track as { clock?: string }).clock }, bpm, o);
+}
+/**
+ * **The reading off any list of events** (a program's, or a plan's still being written: the break rule reads it in the
+ * generator, before there is a program): an event's bus is its own where it carries one (a program's), else its
+ * voice's, as the compiler gives it (`VOICE_BUS`, else the melodic bus). The same number `beatLed` reads.
+ */
+export function beatLedOf(input: {
+  events: ReadonlyArray<{ t: number; voice: string; bus?: string }>;
+  sections: ReadonlyArray<{ kind: string; startBar: number; bars: number }>;
+  barSeconds: number;
+  clock?: string;
+}, bpm: number, o: BeatLedOptions = {}): BeatLed {
+  return beatOf({ clock: input.clock, barSeconds: input.barSeconds, arrangement: { sections: input.sections } }, input.events, bpm, o);
+}
+
+/**
+ * **How the arriving bar counts a two-clock tail** (round pl-clock). A metered record leaving on two clocks leaves
+ * the way a free one does, in seconds and not bars (`tailSeconds`: Loom's presence, Tide's ring, the record's own
+ * birds), never longer than the blend it was planned to hand over in (`bars` of the grid's bar as it stands at the
+ * line, `gridBar`), laid on the arriving theme's bar at the tempo it plays at (`toBar`): the grid jumps to it where
+ * the blend begins. Two bars at least.
+ */
+export function splitSeamBars(bars: number, gridBar: number, seconds: number, toBar: number): { bars: number; barSeconds: number; jump: true } {
+  const s = Math.min(bars * gridBar, seconds);
+  return { bars: Math.max(2, Math.round(s / toBar)), barSeconds: toBar, jump: true };
+}
+/**
+ * **Where the grooves change hands on two clocks** (round pl-clock): four arriving bars in, never past the blend's
+ * half. The arriving theme comes in on its top alone over the record's groove, and one phrase of a melody over another
+ * tempo's beat is as long as that should run before the arriving groove lands whole.
+ *
+ * Since round mix-voices (his word 10-30: *"I almost don't even hear any ahead of time voices"*) this is the floor: a
+ * hand-over between two tracks swaps on the arriving phrase line (`seamLead` in set-plan.ts), its sustained voices
+ * over the record from the first bar, its rhythmic ones half a phrase at most.
+ */
+export const SPLIT_SWAP_BARS = 4;
+
+// --- a playlist's clock (round pl-clock) -------------------------------------
+
+/**
+ * **How far a playlist pulls a track's tempo to its own** (his word 10-26): the DJ's classic ±8 % pitch fader. A
+ * track whose tempo, folded by 1, 2 or 4 either way, is within this of the list's plays at the list's tempo (or at
+ * half, double, a quarter or four times it, as it folded); beyond it, at its own, on two clocks.
+ */
+export const LIST_PULL = 0.08;
+const FOLDS = [1, 2, 0.5, 4, 0.25] as const;
+/** how far apart two tempi are, as a share: 0.08 is 8 % either way */
+const apart = (a: number, b: number): number => Math.max(a / b, b / a) - 1;
+/** a tempo folded by 1, 2 or 4 either way to the nearest of `centre` (the fold, and the tempo it lands on) */
+export function foldTo(bpm: number, centre: number): { fold: number; bpm: number } {
+  let best: { fold: number; bpm: number } = { fold: 1, bpm };
+  for (const f of FOLDS) if (apart(bpm * f, centre) < apart(best.bpm, centre) - 1e-12) best = { fold: f, bpm: bpm * f };
+  return best;
+}
+/**
+ * **The tempo a track plays at under a playlist's clock**: the list's, divided by the fold that brought the track's
+ * own to it, where that is within `LIST_PULL`; null where it is not (an outlier, which plays at its own) or where
+ * there is no list. A 174 BPM track in a list at 172 plays at 172; a 61 BPM half-time track in a list at 124 plays
+ * at 62; a 50 BPM track in a list at 174 is an outlier.
+ */
+export function listPull(own: number, list: number | null | undefined): number | null {
+  if (!(list != null && list > 0 && own > 0)) return null;
+  const f = foldTo(own, list);
+  return apart(f.bpm, list) <= LIST_PULL + 1e-9 ? list / f.fold : null;
+}
+/**
+ * **A playlist's tempo** (his word 10-26: "calculate the average bpm for all tracks in the list"): every track's own
+ * tempo folded by 1, 2 or 4 toward the list's centre, and the mean in log tempo of those that land within
+ * `LIST_PULL` of it. The centre is found first as the track whose tempo gathers the most others within the pull
+ * (ties: the one that gathers the most without a fold, then the tightest, then the slower), so one 50 BPM track in
+ * a Drum & Bass list cannot drag it, and then the mean is taken again over the tracks it gathers until it holds. The
+ * tempi are read in sorted order, so a list's tempo is the same whatever its order or shuffle. One decimal, as a
+ * theme's tempo is drawn. Null for a list with no tempo in it.
+ */
+export function listTempo(tempi: readonly number[]): number | null {
+  const all = tempi.filter((t) => Number.isFinite(t) && t > 0).slice().sort((a, b) => a - b);
+  if (!all.length) return null;
+  const gathered = (c: number) => all.map((t) => foldTo(t, c)).filter((f) => apart(f.bpm, c) <= LIST_PULL + 1e-9);
+  const score = (c: number) => {
+    const g = gathered(c);
+    return { n: g.length, own: g.filter((f) => f.fold === 1).length, spread: g.reduce((s, f) => s + Math.abs(Math.log(f.bpm / c)), 0) };
+  };
+  let centre = all[0];
+  let best = score(centre);
+  for (const c of all) {
+    const k = score(c);
+    if (k.n > best.n || (k.n === best.n && (k.own > best.own || (k.own === best.own && k.spread < best.spread - 1e-12)))) { centre = c; best = k; }
+  }
+  for (let i = 0; i < 16; i++) {
+    const g = gathered(centre).map((f) => Math.log(f.bpm)).sort((a, b) => a - b);
+    if (!g.length) break;
+    const next = Math.exp(g.reduce((s, v) => s + v, 0) / g.length);
+    if (Math.abs(next - centre) < 1e-9) break;
+    centre = next;
+  }
+  return Math.round(centre * 10) / 10;
 }
 
 /**

@@ -71,9 +71,13 @@ test('phrases contain quiet touches, displaced body notes, short runs and whole-
     assert.equal(p.trimDb,loudnessTrimDb(t,t.style));
     if(trim===undefined)trim=p.trimDb;else assert.ok(Math.abs(p.trimDb-trim)<=1,`${r.id} trims ${p.trimDb} against ${trim}`);
     assert.ok(Number.isFinite(p.trimDb));
-    const one=p.events.filter(e=>drum(e)&&e.bar>=24&&e.bar<32);
+    // the cell's third statement in the first main, counted from the main's start: bars 24-31 while the intro was
+    // eight bars, 20-27 since round length-2's phrase lines gave seed 4 a four-bar one (his word 10-27: "it doesn't
+    // always account for segment length before break")
+    const main=t.arrangement.sections.find(s=>s.kind==='main'),at0=main.startBar+16;
+    const one=p.events.filter(e=>drum(e)&&e.bar>=at0&&e.bar<at0+8);
     assert.equal(one.length,part.steps.length,'one whole eight-bar statement of the cell');
-    assert.ok(Array.from({length:8},(_,b)=>b+24).some(b=>!one.some(e=>e.bar===b)));
+    assert.ok(Array.from({length:8},(_,b)=>b+at0).some(b=>!one.some(e=>e.bar===b)));
     assert.equal(new Set(part.strokes).size,4);
     let run=1,longest=1;
     part.steps.forEach((s,i)=>{if(i){run=s===part.steps[i-1]+1?run+1:1;longest=Math.max(longest,run);}});
@@ -81,7 +85,7 @@ test('phrases contain quiet touches, displaced body notes, short runs and whole-
     assert.ok(part.steps.filter(s=>s%4!==0).length/part.steps.length>.9);
     part.strokes.forEach((s,i)=>{if(s==='touch')assert.ok(part.accents[i]<=.08);});
     for(const e of one){
-      const at=part.steps.indexOf((e.bar%8)*16+e.step),sound=handConversation.strokes[part.strokes[at]];
+      const at=part.steps.indexOf(((e.bar-main.startBar)%8)*16+e.step),sound=handConversation.strokes[part.strokes[at]];
       assert.ok(at>=0);for(const [key,v] of Object.entries(sound.params))assert.equal(e.p[key],v);
       assert.ok(Math.abs(e.t-(e.bar+e.step/16)*p.barSeconds)<p.beat*.06);
     }
@@ -113,6 +117,7 @@ test('a stroke must exist on a capable sound character and match the entire cell
 // include the separately audited bass-support repair and duck continuity fix.
 const pickups=['conversation','rolling','answers'].map(v=>recipeById(`house/hand-${v}`));
 test('requested pickups occupy only the end of a bridge and preserve the approved main phrases',()=>{
+  let into=0;
   for(const [index,recipe]of pickups.entries())for(const seed of ['4','6','18','71']){
     const old=programOf(planTheme(seed,0,{...opts,recipe:phrases[index]}));
     const t=planTheme(seed,0,{...opts,recipe}),p=programOf(t);
@@ -120,6 +125,10 @@ test('requested pickups occupy only the end of a bridge and preserve the approve
     const clean=p=>p.events.filter(e=>!bridgeBars.has(e.bar)).map(({i,...e})=>e);
     assert.deepEqual(clean(p),clean(old));assert.equal(p.trimDb,old.trimDb);
     for(const s of t.arrangement.sections.filter(s=>s.kind==='bridge')){
+      // a pickup leads into a groove and never into an outro (`rhythmPickup`): seed 18's bridge closes its theme
+      // since the ringing keys' phrases (10-28) gave its form a sixteen-bar part to lay
+      if(t.arrangement.sections[s.index+1]?.kind!=='main')continue;
+      into++;
       const hits=p.events.filter(e=>e.layer==='shaker'&&e.bar>=s.startBar&&e.bar<s.startBar+s.bars);
       const cell=recipe.wants.rhythm.sixteenth[1].pickup;
       assert.deepEqual(hits.map(e=>(e.bar-(s.startBar+s.bars-2))*16+e.step),cell.steps);
@@ -128,10 +137,15 @@ test('requested pickups occupy only the end of a bridge and preserve the approve
     }
     assert.deepEqual(p,programOf(planTheme(seed,0,{...opts,recipe})));
   }
+  assert.ok(into>=6,`${into} bridges into a groove`);
 });
 test('a supporting pedal follows the sounding chord throughout the reported second section',()=>{
   const t=planTheme('4',0,{...opts,recipe:pickups[0]}),p=programOf(t);
-  for(let bar=44;bar<76;bar++){
+  // the second main: bars 44-75 until round length-2 put the grooves at 3-4 minutes, 40-55 since (his word 10-27:
+  // "We should aim for 3-4mins here")
+  const second=t.arrangement.sections.filter(s=>s.kind==='main')[1];
+  assert.deepEqual([second.startBar,second.bars],[40,16]);
+  for(let bar=second.startBar;bar<second.startBar+second.bars;bar++){
     const chord=t.progression.chords.find(c=>bar%t.progression.loopBars>=c.startBar&&bar%t.progression.loopBars<c.startBar+c.bars);
     const root=p.events.find(e=>e.layer==='bass'&&e.bar===bar&&e.step===0);
     assert.ok(root);assert.equal(root.p.midi%12,chord.rootMidi%12);

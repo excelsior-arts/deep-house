@@ -1,0 +1,205 @@
+{
+ "schema": 1,
+ "kind": "arrangement-hook",
+ "round": "engine-data",
+ "revision": 3,
+ "note": "The hook (src/hook.ts): the struck, gritty supersaw chopping chords, one of the riff's rows (`recipes/arrangement/phrases.json`) drawn by the birds where the place table's hook entry (or the house's leak) plays one, and placed in the track as source 10 places its saw (trance-2, measured 10-28). Every number here is the row's; the code reads it and names no place. `needs`: what the theme must be (src/needs.ts): the drums on, the four-on-the-floor kit. `light` is Gleam's upper part (nought at `from`, whole at `full`), `edge` Spark's (the same). `house`: the hook's zone about the house (`src/place-zone.ts`, the one shape every place entry's zone takes): its `share` at most, rising as the birds in `rise` rise past the house, fading to nought `fade` from the house in the others; the reach dial (the machine view's DRAW) widens it past that edge as it widens the library's band, and the tiles' `radius` with it. `picks`: the riff's rows, each one's weight the entry's (`StylePlaces.hook`, its tile's own mix) times exp of its birds' leans about the tile (Gleam down the dark gallop, Gleam up the bright one, Loom and Tide the sparse one, Veil and Spark the full gallop and the gated chords). `pedal`: his experiment (\"one or two prolonged notes and this sequence of four chords laying over\"): a held synth pad under the runs on the key's `tones` (scale steps, from `low`), a tone dropped where it would sit a semitone off a run's chord, `underDb` under the saw sounding over its hold (his ear 10-28: \"the pad is too loud and dominates over the track (the saw is okay)\"): set against the saw's notes as the program plays them, each voice's `db` its loudness holding the pedal against the saw's at the same written energy (measured, rendered alone: 42 strikes over the three tiles, then set so the loudest of the corner's 475 pedal themes stands about 6 under the saw), so every voice it can draw lands at the same place, and the desk leaves it where it stands; its chance `w` times exp of the leans (Loom and Tide), at most `most`. `arc`: the arc rule the saw plays by (`recipes/arrangement/arcs.json`, `src/arc.ts`): where the saw plays by the section's kind, the runs shaped to the peak, each run's closing bars the saw alone; its knobs are the chop's depth (`floorDb`) and the saw's level (`levelDb`), in dB, ramped from the first run to the peak. `loops` (his ear 10-28: \"it can't be that complex for that complex sound, three chords at best\"): in a run the hook owns the harmony, one short loop of two or three triads drawn by the seed by `w` (beats, the key's scale degree; a loop with a diminished triad in the theme's mode is never drawn), the saw, the bass and the pad on it, aligned to the run's first bar; `bass` the bass's home under it, the chord's root or the key's (a pedal, source 10's); outside the runs the theme's own progression. `levelDb` the saw's level against the lane's (his ear 10-28: \"supersaw is still too loud\"). `room` the reverb and the delay, at the dark end and added at a full light, and the sends' floor (`lowHz`: the tail kept off the low end, the dry untouched); the room's own bus gives the rest, an 18 ms pre-delay, a 2.4 s hall darkened at 4 kHz and the dotted-eighth delay, both ducked under the kick (his ear 10-28: \"do we use dry sound for saw? I think it might need to be a bit more wet\"; source 10's own saw measured nearly dry, its tail 23 dB down 0.1 s after it stops).",
+ "rows": [
+  {
+   "id": "supersaw-hook",
+   "voice": "supersawGrit",
+   "needs": [
+    "drums",
+    "four-floor"
+   ],
+   "light": {
+    "from": 0.65,
+    "full": 0.9
+   },
+   "edge": {
+    "from": 0.275,
+    "full": 0.45
+   },
+   "house": {
+    "share": 0.3,
+    "radius": 0,
+    "fade": 0.6,
+    "rise": {
+     "ember": 0.86,
+     "gleam": 0.92,
+     "spark": 0.45
+    }
+   },
+   "picks": [
+    {
+     "row": "gallop",
+     "by": {
+      "veil": 3,
+      "spark": 3
+     }
+    },
+    {
+     "row": "gated-chords",
+     "by": {
+      "veil": 2,
+      "spark": 2
+     }
+    },
+    {
+     "row": "gallop-dark",
+     "by": {
+      "gleam": -5
+     }
+    },
+    {
+     "row": "gallop-bright",
+     "by": {
+      "gleam": 5
+     }
+    },
+    {
+     "row": "gallop-sparse",
+     "by": {
+      "loom": 4,
+      "tide": 4
+     }
+    }
+   ],
+   "pedal": {
+    "w": 0.35,
+    "most": 0.8,
+    "by": {
+     "loom": 3,
+     "tide": 3
+    },
+    "voices": [
+     {
+      "v": "wavePad",
+      "w": 2,
+      "db": -11.6
+     },
+     {
+      "v": "sawPad",
+      "w": 1,
+      "db": -12.8
+     },
+     {
+      "v": "padHaze",
+      "w": 1,
+      "db": -11.7
+     }
+    ],
+    "tones": [
+     0,
+     4
+    ],
+    "low": 48,
+    "vel": 0.55,
+    "restrikeBars": 8,
+    "underDb": 8
+   },
+   "arc": "saw-runs",
+   "room": {
+    "reverb": [
+     0.45,
+     0.2
+    ],
+    "delay": [
+     0.16,
+     0.08
+    ],
+    "lowHz": 350
+   },
+   "levelDb": -5.5,
+   "loops": [
+    {
+     "id": "i-v-VI",
+     "w": 3,
+     "beats": [
+      [
+       2,
+       0
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       2,
+       5
+      ]
+     ],
+     "bass": "pedal"
+    },
+    {
+     "id": "i-VI-VII",
+     "w": 2,
+     "beats": [
+      [
+       8,
+       0
+      ],
+      [
+       4,
+       5
+      ],
+      [
+       4,
+       6
+      ]
+     ],
+     "bass": "roots"
+    },
+    {
+     "id": "i-v-VI-bars",
+     "w": 2,
+     "beats": [
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       4
+      ],
+      [
+       8,
+       5
+      ]
+     ],
+     "bass": "roots"
+    },
+    {
+     "id": "i-VI",
+     "w": 1,
+     "beats": [
+      [
+       8,
+       0
+      ],
+      [
+       8,
+       5
+      ]
+     ],
+     "bass": "roots"
+    },
+    {
+     "id": "i-VII",
+     "w": 1,
+     "beats": [
+      [
+       8,
+       0
+      ],
+      [
+       8,
+       6
+      ]
+     ],
+     "bass": "pedal"
+    }
+   ]
+  }
+ ]
+}

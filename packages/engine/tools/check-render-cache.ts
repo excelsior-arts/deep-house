@@ -2,12 +2,15 @@
 // reconciled review of 09-24): a failure is not a buffer, renders are rationed,
 // and one asked for by a note being scheduled does not start inside that call.
 // Since the outside review of 10-03 (E01, E02): a permit is one offline context,
+// Since round webkit-offline (10-30): every node a render makes is held until
+// the render settles (Apple WebKit kills the page when a render ends on a
+// node about to go).
 // counted where it is made, and a map's cap holds when its entries land.
 //
 //   node --test tools/check-render-cache.ts
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { cached, job, bound, holding, MAX_JOBS, renderJobs } from '../src/voices/render-cache.ts';
+import test, { mock } from 'node:test';
+import { cached, job, bound, holding, MAX_JOBS, renderJobs, offline, heldNodes, RENDER_DEADLINE, overdueRenders } from '../src/voices/render-cache.ts';
 import { bodiesFor, drumBodies } from '../src/voices/drumkit.ts';
 import type { DrumInstrument } from '../src/voices/drumkit.ts';
 
@@ -129,6 +132,80 @@ test(`four three-variant drum articulations never have more than ${MAX_JOBS} off
     assert.deepEqual(drumBodies(ctx), { ready: 5, flight: 0 });
     for (const k of ['v0', 'v1', 'v2', 'v3']) assert.ok(Array.isArray(bodiesFor(ctx, inst, { key: k, seconds: 0.01, t10: 0.1, variants: 3 })), `${k} is not read back ready`);
   } finally {
+    globalThis.OfflineAudioContext = was;
+  }
+});
+
+// Round webkit-offline (10-30): Apple's WebKit of macOS 27 kills the page when
+// an offline render ends while a node of its graph is about to go, so every
+// node a build makes through the context's `create…` methods is held until the
+// render's promise settles, and let go then.
+test('every node a render makes is held until the render settles, and let go after', async () => {
+  const was = globalThis.OfflineAudioContext;
+  let finish: () => void = () => {};
+  class Base {
+    destination = { kind: 'destination' };
+    createGain() { return { kind: 'gain' }; }
+    createOscillator() { return { kind: 'osc' }; }
+  }
+  class Recorder extends Base {
+    length: number;
+    sampleRate: number;
+    constructor(_channels: number, length: number, sampleRate: number) { super(); this.length = length; this.sampleRate = sampleRate; }
+    createBiquadFilter() { return { kind: 'biquad' }; }
+    startRendering() { return new Promise((ok) => { finish = () => ok({ length: this.length }); }); }
+  }
+  globalThis.OfflineAudioContext = Recorder as unknown as typeof OfflineAudioContext;
+  try {
+    const ctx = { sampleRate: 4000 } as BaseAudioContext;
+    const made: unknown[] = [];
+    const before = heldNodes().peak;
+    const p = offline(ctx, 1, 40, (off) => {
+      made.push(off.createGain(), off.createOscillator(), off.createBiquadFilter(), off.createGain());
+    });
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(made.map((n) => (n as { kind: string }).kind), ['gain', 'osc', 'biquad', 'gain'], 'a held factory did not hand back what it made');
+    assert.equal(heldNodes().renders, 1, 'the render in the air holds nothing');
+    finish();
+    await p;
+    assert.equal(heldNodes().renders, 0, 'a settled render is still held');
+    assert.ok(heldNodes().peak >= Math.max(before, 4), `the render held ${heldNodes().peak} nodes of the 4 it made`);
+  } finally {
+    globalThis.OfflineAudioContext = was;
+  }
+});
+
+// Round webkit-offline (10-30): a render the browser never finishes used to
+// hold its permit for ever, and four of them stopped every later render on the
+// context and a start waiting on its theme's voices. At the deadline it fails,
+// its permit goes back and the next render runs.
+test(`a render that never finishes fails at ${RENDER_DEADLINE} s and gives its permit back`, async () => {
+  const was = globalThis.OfflineAudioContext;
+  class Lost {
+    destination = {};
+    constructor(_c: number, _l: number, _r: number) {}
+    createGain() { return {}; }
+    startRendering() { return new Promise(() => {}); }
+  }
+  globalThis.OfflineAudioContext = Lost as unknown as typeof OfflineAudioContext;
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const ctx = { sampleRate: 4000 } as BaseAudioContext;
+    const before = overdueRenders();
+    const lost = Array.from({ length: MAX_JOBS + 1 }, () => offline(ctx, 1, 4, (off) => { off.createGain(); }));
+    lost.forEach((p) => p.catch(() => {}));
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual({ running: renderJobs(ctx).running, queued: renderJobs(ctx).queued }, { running: MAX_JOBS, queued: 1 });
+    mock.timers.tick(RENDER_DEADLINE * 1000);
+    await new Promise((r) => setImmediate(r));
+    for (const p of lost.slice(0, MAX_JOBS)) await assert.rejects(p, /did not finish/);
+    assert.deepEqual({ running: renderJobs(ctx).running, queued: renderJobs(ctx).queued, contexts: renderJobs(ctx).contexts }, { running: 1, queued: 0, contexts: 1 }, 'the permits were not given back');
+    mock.timers.tick(RENDER_DEADLINE * 1000);
+    await assert.rejects(lost[MAX_JOBS], /did not finish/);
+    assert.equal(overdueRenders() - before, MAX_JOBS + 1);
+    assert.equal(renderJobs(ctx).running, 0);
+  } finally {
+    mock.timers.reset();
     globalThis.OfflineAudioContext = was;
   }
 });

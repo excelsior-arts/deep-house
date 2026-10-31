@@ -57,6 +57,8 @@ import { WORDLESS_VOCAL } from './wordless-vocal.ts';
 import { RIM_BOWL } from './rim-bowl.ts';
 import { JAWARI } from './jawari.ts';
 import { CHANT } from './chant.ts';
+// trance-1 (10-28): the struck, gritty supersaw the hooks play
+import { SUPERSAW_GRIT } from './supersaw-grit.ts';
 
 export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [KICK.id]: KICK,
@@ -87,6 +89,7 @@ export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [WAVETABLE_PAD.id]: WAVETABLE_PAD,
   [SHIMMER_PAD.id]: SHIMMER_PAD,
   [SUPERSAW_LEAD.id]: SUPERSAW_LEAD,
+  [SUPERSAW_GRIT.id]: SUPERSAW_GRIT,
   [SIREN.id]: SIREN,
   [ORGAN_STAB.id]: ORGAN_STAB,
   [PULSE_LEAD.id]: PULSE_LEAD,

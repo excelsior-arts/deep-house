@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "parts/ringing-chords",
+  "revision": 3,
+  "name": "Ringing chords",
+  "scope": "layer",
+  "applies": "figure",
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "wants": {
+    "figures": {
+      "figure": {
+        "follows": "harmony",
+        "articulation": "struck",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.25,
+          "holdMax": 0.4,
+          "brightnessMin": 1500,
+          "brightnessMax": 4000
+        },
+        "prefer": {
+          "holdMin": 0.25,
+          "holdMax": 0.3,
+          "brightnessMin": 3000,
+          "brightnessMax": 4000
+        },
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0,
+              0
+            ],
+            "leaps": [
+              0,
+              0
+            ]
+          },
+          "cell": {
+            "beats": [
+              64,
+              64
+            ]
+          },
+          "onGrid": [
+            1,
+            1
+          ],
+          "range": {
+            "semitones": [
+              0,
+              0
+            ]
+          },
+          "density": [
+            0.5,
+            0.5
+          ],
+          "returns": {
+            "bars": [
+              16,
+              16
+            ]
+          },
+          "paths": [
+            {
+              "degrees": [
+                -3,
+                -3,
+                -3,
+                -3,
+                -3,
+                -3,
+                -3,
+                -3
+              ],
+              "beats": [
+                8,
+                12,
+                4,
+                8,
+                12,
+                8,
+                4,
+                8
+              ],
+              "holds": [
+                4,
+                5,
+                2,
+                4,
+                5,
+                4,
+                2,
+                4
+              ],
+              "accents": [
+                0.8,
+                0.7,
+                0.58,
+                0.76,
+                0.82,
+                0.7,
+                0.55,
+                0.73
+              ]
+            }
+          ]
+        },
+        "strength": [
+          0.49,
+          0.52
+        ],
+        "entry": {
+          "beats": [
+            0,
+            0
+          ]
+        },
+        "spacing": {
+          "bars": [
+            16,
+            16
+          ]
+        },
+        "duration": {
+          "beats": [
+            4,
+            4
+          ]
+        },
+        "behavior": "phrase",
+        "phrasing": {
+          "starts": [
+            0,
+            4
+          ],
+          "dynamics": [
+            0.86,
+            1,
+            0.85
+          ],
+          "character": "ringing"
+        },
+        "voicings": [
+          [
+            -4,
+            -2,
+            0
+          ],
+          [
+            -4,
+            0,
+            3
+          ],
+          [
+            -2,
+            0,
+            3
+          ],
+          [
+            -4,
+            -2,
+            0
+          ]
+        ],
+        "pedal": {
+          "beats": 4,
+          "landingBeats": 8
+        },
+        "stays": {
+          "back": 8,
+          "thin": {
+            "sections": [
+              "breakdown"
+            ],
+            "keep": "ends",
+            "level": 0.8
+          },
+          "solo": true
+        }
+      }
+    }
+  },
+  "forbids": [],
+  "weight": 0,
+  "provenance": {
+    "basis": "the accepted reference-learning arrangements of 09-21/22, a part each, promoted through the style's families (`styles/deep-house-parts.ts`), never pinned or drawn alone",
+    "note": "Eight soft three-note chords over sixteen bars, long holds and room between them: the approved ringing chord part (09-22), its bed clearing left out so a drone it plays beside is never cut; under a pedal of a bar, each phrase's last chord ringing two bars.",
+    "moved": "round keys-room, 10-29 (his ear: \"in Sunrise there is an issue that piano is gone from 0:30 until 1:50\"): the part carries the chords' colour, so it stays: a switch-up that takes it out gives it back a phrase (8 bars) before its section's line, and a breakdown, where a theme sits out, keeps it: over the pad a thinner statement of it, where each phrase starts and where it lands, four chords of eight, each rung as a landing, at 0.8 of its strength; where no pad plays, its whole statement; round keys-moments, 10-29 (his ear on the sketches: \"color in breakdown - great\"): the part may take a long breakdown's last phrase alone, a line of its own notes over its own soft chords (`stays.solo`, `src/keys-moments.ts`), in a share of the themes where it fits"
+  }
+}

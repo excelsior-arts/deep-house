@@ -209,16 +209,27 @@ const foldListeners: (() => void)[] = [];
 /** Where the fold runs, as the shell last said; null in a browser, on a screen without one, or in a window not spanning it. */
 export const shellFold = (): ShellFold | null => fold;
 
-/** Called whenever the shell says the fold moved, came or went. */
+/** Called whenever the shell says the fold moved, came or went (or the screen's middle moved). */
 export function onShellFold(fn: () => void): void {
   foldListeners.push(fn);
 }
 
+/**
+ * **Where the screen's middle falls on the page** (iOS, round duo-balance): said with the fold, the window's middle in
+ * CSS px of the layout viewport, x and y. The web view stands under the status bar's band and over the home
+ * indicator's, so the page's middle is not the screen's (the Duo folded and upright: 24 px apart). Null in a browser.
+ */
+let mid: [number, number] | null = null;
+export const shellMid = (): [number, number] | null => mid;
+
 function foldSaid(m: Message): void {
   const at = Number(m.at);
   const next: ShellFold | null = (m.axis === 'v' || m.axis === 'h') && Number.isFinite(at) ? { axis: m.axis, at } : null;
-  if (next?.axis === fold?.axis && next?.at === fold?.at) return;
+  const said = Array.isArray(m.mid) && m.mid.length === 2 && m.mid.every((v) => Number.isFinite(Number(v)))
+    ? [Number(m.mid[0]), Number(m.mid[1])] as [number, number] : null;
+  if (next?.axis === fold?.axis && next?.at === fold?.at && said?.[0] === mid?.[0] && said?.[1] === mid?.[1]) return;
   fold = next;
+  mid = said;
   for (const fn of foldListeners) fn();
 }
 
@@ -243,6 +254,33 @@ function chromeSaid(m: Message): void {
   if (next?.left === chrome?.left && next?.foot === chrome?.foot) return;
   chrome = next;
   for (const fn of chromeListeners) fn();
+}
+
+// --- the Mac window's drag --------------------------------------------------------
+
+/**
+ * **A hand dragging the Mac window's edge** (panel-resize): the shell says when it begins and ends. Through it the
+ * window shows the wordmark itself, in its corner, and the page puts its own away; with the panel open the page lays
+ * itself out on every step (`follows`), its ring held as one picture from the press (ring.ts), where with it closed
+ * the window holds the page's picture and carries it. At the end, the size the hand let go at.
+ */
+export interface ShellDrag { on: boolean; follows: boolean; w: number; h: number }
+let drag: ShellDrag = { on: false, follows: false, w: 0, h: 0 };
+const dragListeners: ((d: ShellDrag) => void)[] = [];
+/** A drag the page follows, step by step. */
+export const shellDragging = (): boolean => drag.on && drag.follows;
+export function onShellDrag(fn: (d: ShellDrag) => void): void {
+  dragListeners.push(fn);
+}
+function dragSaid(m: Message): void {
+  const on = m.on === true;
+  if (on === drag.on) return;
+  drag = on ? { on, follows: m.hold !== true, w: 0, h: 0 } : { on, follows: drag.follows, w: Number(m.w) || 0, h: Number(m.h) || 0 };
+  for (const fn of dragListeners) fn(drag);
+}
+/** The page's wordmark is back, in its pictures at `w` × `h`: the shell's own goes. */
+export function shellNameBack(w: number, h: number): void {
+  pipe()?.send({ ev: 'name-back', w, h });
 }
 
 // --- the lock screen's Save -----------------------------------------------------
@@ -314,6 +352,7 @@ export function startShellLibrary(d: { openFile: (f: File) => void } & LockDeps)
   });
   s.on('fold', foldSaid);
   s.on('mac-chrome', chromeSaid);
+  s.on('live-resize', dragSaid);
   s.on('keyboard', (m) => {
     const v = Number(m.overlap);
     keyboardOverlap = Number.isFinite(v) && v > 0 ? v : 0;

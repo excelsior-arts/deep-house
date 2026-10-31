@@ -12,7 +12,17 @@ export interface RhythmCharacter extends RhythmSound {
 }
 export interface SoundCharacters {
   rhythm?: Record<string, RhythmCharacter>;
-  phrases?: Record<string, { requires: string[]; params: Record<string, [number,number,number]>; beats: Record<string, [number,number,number]>; treatment?: 'none' }>;
+  phrases?: Record<string, { requires: string[]; params: Record<string, [number,number,number]>; beats: Record<string, [number,number,number]>; treatment?: 'none';
+    /**
+     * **The player's touch** (10-28): a chord's notes struck low to high `rollMs` apart (each gap 70-100 % of it),
+     * the whole strike `timingMs` early or late at most, and the level through a curve, `velocityCurve` over 1
+     * making a soft note softer and leaving a full one where it was. Absent, every note is struck as written.
+     */
+    touch?: { rollMs: number; timingMs: number; velocityCurve: number;
+      /** a chord's accent at least this share of the phrase's strongest (its tones never curved down): a chord outweighs a single note */
+      chordFloor?: number;
+      /** where the phrase also plays single notes: a chord's tones together this many dB over its typical single note */
+      chordOverDb?: number } }>;
   presence: { backgroundDb: number };
   ambience: Record<'intimate' | 'spacious' | 'distant' | 'echo', { room: number; reverb: number; delay: number; background?: number; echo?: number }>;
   tone: Record<string, Record<string, { requires: string[]; params: NoteParams }>>;
@@ -60,6 +70,11 @@ export function characterProblems(c: SoundCharacters): string[] {
       || ![...Object.values(p.params), ...Object.values(p.beats)].every(arch)
       || Object.entries(p.beats).some(([k, v]) => k in p.params || v.some(n => n <= 0)))
       bad.push(`phrase character ${name}: declared controls, entry/crest/exit params and positive beats not repeated in params`);
+    const t = p?.touch;
+    if (t !== undefined && (!object(t) || Object.keys(t).some(k => !['rollMs', 'timingMs', 'velocityCurve', 'chordFloor', 'chordOverDb'].includes(k))
+      || !(t.rollMs >= 0 && t.rollMs <= 60) || !(t.timingMs >= 0 && t.timingMs <= 30) || !(t.velocityCurve >= .5 && t.velocityCurve <= 3)
+      || (t.chordFloor !== undefined && !(t.chordFloor > 0 && t.chordFloor <= 1)) || (t.chordOverDb !== undefined && !(t.chordOverDb >= 0 && t.chordOverDb <= 6))))
+      bad.push(`phrase character ${name}: a touch of a 0-60 ms roll, 0-30 ms of timing and a velocity curve in 0.5-3`);
   }
   const f = c.figure;
   if (f !== undefined) {

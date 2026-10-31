@@ -113,6 +113,8 @@ export interface SurfRow {
   /** the sea's size over the theme (the contour idiom: [the theme's share, size]): the calm, the swell, the calm */
   arc: Knots;
   sizeMost: number;
+  /** what the ring draws of the sea (engine-data; the numbers had been the ring's): a lane's ink faint under `calm`, full from `swell`; a crest along waves of `crest` size or over */
+  display: { calm: number; swell: number; crest: number };
   /** the sea's level by its size (dB a unit of size under size 1), and the whole sea's over its parts' (dB) */
   sea: { sizeDb: number; levelDb: number };
   /** the swell: from `fromDb` under its level and `oct` octaves darker at size 0 and 1, reaching both at the crest */
@@ -142,7 +144,7 @@ export interface SurfRow {
   bass: { voice: string; register: Range; afterS: number; vel: Range; slideS: number; gapS: number; levelDb: number; fall: { holdInto: number; goneInto: number } };
   /** what enters on the wave, by section kind (a kind not named is `main`'s) */
   chapters: Record<string, SurfChapter>;
-  birds: { by: BirdLeans['by']; most?: BirdLeans['most'] };
+  birds: { by: BirdLeans['by']; most?: BirdLeans['most']; ends?: BirdLeans['ends'] };
   budget: { fallbacks: Array<'backwash' | 'surf' | 'bell'> };
 }
 
@@ -200,6 +202,8 @@ export function surfRowsFaults(voiceExists: (v: string) => boolean = () => true)
     if (!r.harmony?.cycles?.length) bad.push(at('the sea\'s chords: a cycle at least'));
     else bad.push(...cycleFaults({ id: `${r.id}.harmony`, place: { birds: {}, tempo: [0, Infinity] }, cycles: r.harmony.cycles }).map((m) => at(m)));
     if (!knots(r.arc, 0.05, 1.5) || !(r.sizeMost >= 1 && r.sizeMost <= 2)) bad.push(at('the arc: knots from 0 to 1, sizes 0.05-1.5; sizeMost 1-2'));
+    const D = r.display;
+    if (!D || !(finite(D.calm) && finite(D.swell) && finite(D.crest) && D.calm >= 0 && D.calm < D.swell && D.swell <= r.sizeMost && D.crest > 0 && D.crest <= r.sizeMost)) bad.push(at('the display: calm under swell, both and the crest inside sizeMost'));
     if (!(r.sea.sizeDb >= 0 && r.sea.sizeDb <= 20) || !(finite(r.sea.levelDb) && Math.abs(r.sea.levelDb) <= 18)) bad.push(at('the sea\'s level by size, 0-20 dB, and its whole level within 18'));
     for (const k of ['swell', 'surf', 'backwash', 'undertow'] as const) {
       const p = r[k];
@@ -266,7 +270,8 @@ export interface SurfSummary {
   budget: { ceiling: number; before: number; after: number; fallback: string[] };
   /**
    * where the theme's trim windows measure at nought against the place's own (dB): what Tide and Veil take from the
-   * sea, measured (the row's `measuredDb` leans), so the trim follows them (`generator.ts`, the sea's level)
+   * sea, measured (the row's `measuredDb` and `measuredStateDb` leans, Tide's and Veil's), so the trim follows them one
+   * for one (`generator.ts`, the sea's level; `loudness.ts`, `placeLevelDb`)
    */
   levelDb: number;
   says: string;
@@ -339,7 +344,7 @@ const partials = (r: Rng, f0: number, n: number, spread: number, rms: number): P
  */
 export function planWaves(I: Pick<SurfInput, 'seed' | 'row' | 'bars' | 'barSeconds' | 'chords' | 'spell' | 'centre'>): SurfAnchors & { periodS: number; state: SeaState } {
   const R = I.row;
-  const L: BirdLeans = { centre: I.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}) };
+  const L: BirdLeans = { centre: I.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}), ...(R.birds.ends ? { ends: R.birds.ends } : {}) };
   const factor = (knob: string) => leanFactor(L, knob, I.spell);
   const end = I.bars * I.barSeconds;
   const rp = new Rng(`${I.seed}::surf:period`);
@@ -482,7 +487,7 @@ export function planWaves(I: Pick<SurfInput, 'seed' | 'row' | 'bars' | 'barSecon
  */
 export function planSurf(I: SurfInput): { events: SurfEvent[]; anchors: SurfAnchors; summary: SurfSummary } | null {
   const R = I.row;
-  const L: BirdLeans = { centre: I.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}) };
+  const L: BirdLeans = { centre: I.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}), ...(R.birds.ends ? { ends: R.birds.ends } : {}) };
   const factor = (knob: string) => leanFactor(L, knob, I.spell);
   const shift = (knob: string) => leanShift(L, knob, I.spell);
   const s16 = I.barSeconds / 16;
@@ -603,6 +608,9 @@ export function planSurf(I: SurfInput): { events: SurfEvent[]; anchors: SurfAnch
       const at = offBeat(at0) ? at0 : at0 + (escape([at0], w.crest + B.afterS[0] - at0, w.crest + B.afterS[1] - at0, offBeat, re.next()) ?? 0);
       const p = (midi: number, vel: number) => ({ midi, vel: +vel.toFixed(3), dur: B.durS, gain: g(B.levelDb), indexMul: B.indexMul, lpMul: [...B.lpMul], reverb: send(B.reverb), delay: B.delay });
       const vel = mix(B.vel, w.size / R.sizeMost);
+      // a crest a breath before the outro's line strikes its bell over it: the chapter is the strike's own as well
+      // (round length-after: the shorter themes put a great wave's break on the line at WAVES)
+      if (chapterAt(at).bell === 'none') continue;
       push(bellVoice, at, 'wave-bell', 'detail', p(m, vel));
       bells++;
       // a great wave's break tumbles: a second strike a step down the pentatonic, softer, off the beat too
@@ -610,7 +618,7 @@ export function planSurf(I: SurfInput): { events: SurfEvent[]; anchors: SurfAnch
         const below = pitches.filter((x) => x < m);
         const t2 = at + pair;
         const t = offBeat(t2) ? t2 : t2 + (escape([t2], at + B.pairS[0] - t2, at + B.pairS[1] - t2, offBeat, re.next()) ?? 0);
-        if (below.length) { push(bellVoice, t, 'wave-bell', 'detail', p(below[below.length - 1], vel * 0.8)); bells++; }
+        if (below.length && chapterAt(t).bell !== 'none') { push(bellVoice, t, 'wave-bell', 'detail', p(below[below.length - 1], vel * 0.8)); bells++; }
       }
     }
   }
@@ -666,7 +674,7 @@ export function planSurf(I: SurfInput): { events: SurfEvent[]; anchors: SurfAnch
     waveList: waves.map((w) => [+w.t0.toFixed(3), +w.crest.toFixed(3), +w.until.toFixed(3), +w.size.toFixed(2), w.set, w.great ? 'great' : w.peak ? 'peak' : '', w.early ? 1 : 0]),
     setLines: anchors.sets.map((x) => +x.t.toFixed(3)),
     budget: { ceiling: I.ceiling, before, after: cost(), fallback },
-    levelDb: +shift('measuredDb').toFixed(2),
+    levelDb: +(shift('measuredDb') + shift('measuredStateDb')).toFixed(2),
     says: `the sea (${R.id}): ${waves.length} waves of ${anchors.periodS.toFixed(1)} s in ${anchors.sets.length} sets, ${greats} great${greats === 1 ? '' : 's'}${anchors.state.crossS ? `, a cross swell of ${anchors.state.crossS.toFixed(1)} s` : ''}; `
       + `${bloomVoice} blooms ×${blooms}, ${bellVoice ?? 'no bell'}${bellVoice ? ` ×${bells}` : ''}, ${R.bass.voice} on the undertow ×${bassNotes}${fallback.length ? `; over the budget: ${fallback.join(', ')} out` : ''}`,
   };

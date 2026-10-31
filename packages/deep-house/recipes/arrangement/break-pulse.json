@@ -1,0 +1,182 @@
+{
+ "schema": 1,
+ "kind": "break-pulse",
+ "round": "break-pulse-rule",
+ "revision": 1,
+ "note": "A break keeps its rhythm in beat-led places (his words 10-30: 'There's always some notion of rhythm throughout. Not necessarily a full drum set, but we can't lose the rhythm'; on the sketches: 'ideally should follow beat style, if it's straight then hats, if it's broken half time'; on Vibe - Solar Wind: 'all three options are nice, could we make it up to the birds to control the approach'). Read off the plan, never a genre: how beat-led the theme is (`beatLed`, the tempo as played), whether its groove is straight (the kick on all four beats) or broken, and which of its own drums it has. Under `bands.lift` the break stays beatless, as today. From it, the beatless stretch of every breakdown run (from its first bar to the first kick, backbeat or build the break already plays) keeps one carrier made of the theme's own sounds: the `hats` line (the groove's hat, thinned and high-passed, building into the drop), the `half-time` ghost (its own backbeat once a bar on 3, kickless and filtered, its ghosts and quartered hats), or the gentle `pump` (the bed's held notes breathing on the beat, a few dB, never a gate or a chop). From `bands.drive` the carrier builds over the stretch into the drop: its last quarter denser and opening; between the two it stays at its lightest throughout. The beat's style picks the default (`own`); the birds lean the others in where they fit (`leans`, the one lean, centred on the house: Spark's straight or broken beat, Tide's close or wide room, Loom's short or long form, Root's body); the pump has no weight of its own and comes only where the birds lean to it, or where it is the only carrier the theme has (a groove of the kick alone). One draw per theme off its own stream, so every break of a theme keeps the same carrier. A drum carrier is lifted inside the break only, to stand `level.target` dB under the bed as the plan reads both (each hit and each note as played, by its measured loudness per unit: the hats by `hat-scene.json`'s `keys.hats`, the bed and the backbeat by its `keysBody.scene`), never past `level.most` up or `level.least` down. Every number is a starting point for listening.",
+ "units": {
+  "bands.*": "share",
+  "least": "bars",
+  "straight": "share",
+  "weights.*": "weight",
+  "leans.*": "lean",
+  "hats.steps.*": "sixteenths",
+  "hats.hp.*": "Hz",
+  "hats.db.*": "dB",
+  "halfTime.backbeat": "sixteenth",
+  "halfTime.hp.*": "Hz",
+  "halfTime.db.*": "dB",
+  "halfTime.hatSteps": "sixteenths",
+  "pump.depthDb.*": "dB",
+  "pump.*Beats": "beats",
+  "pump.back": "share",
+  "level.*": "dB",
+  "level.window": "seconds",
+  "level.hits.*": "dB",
+  "level.beds.*": "dB",
+  "level.hit": "dB",
+  "level.bed": "dB"
+ },
+ "bands": {
+  "lift": 0.5,
+  "drive": 0.75
+ },
+ "least": 4,
+ "straight": 0.5,
+ "weights": {
+  "own": 1,
+  "other": 0.3,
+  "pump": 0.05
+ },
+ "leans": {
+  "says": "the one lean (src/lean.ts), centred on the middle of each bird's range, on the carriers the beat's style did not pick (its own keeps its weight as written): Spark (the beat straight or broken) between the hats and the half-time; Tide (a close, dry room or a wide one) toward the hats or the pump; Loom (short loops or a long form) toward the hats or the half-time ghost; Root (the body) toward the pump. The pump is drawn only where its lean is over one",
+  "centre": 0.5,
+  "strength": 1,
+  "spark": {
+   "hats": -2,
+   "half-time": 2
+  },
+  "tide": {
+   "hats": -4,
+   "pump": 3
+  },
+  "loom": {
+   "hats": -2,
+   "half-time": 2
+  },
+  "root": {
+   "pump": 2
+  }
+ },
+ "hats": {
+  "says": "the groove's own hat, each hit a copy of one it plays (at its step where it plays there, else its nearest of the same kind), on `steps`: `light` through a lift's stretch; a drive's first half on `first`, the next quarter on `second`, the last quarter (two bars at least) on `second` with the groove's sixteenth part on every sixteenth it plays; through a high-pass at `hp` (the last quarter's falling from its first to its second over the bars), `db` over the lift",
+  "steps": {
+   "light": [
+    2,
+    10
+   ],
+   "first": [
+    2,
+    6,
+    10,
+    14
+   ],
+   "second": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14
+   ]
+  },
+  "hp": {
+   "light": 3000,
+   "first": 3000,
+   "second": 2200,
+   "last": [
+    1600,
+    800
+   ]
+  },
+  "db": {
+   "light": 0,
+   "first": 0,
+   "second": 1,
+   "last": [
+    1,
+    3
+   ],
+   "sixteenth": -3
+  }
+ },
+ "halfTime": {
+  "says": "the groove's own backbeat once a bar on `backbeat` (beat 3), kickless and high-passed; at a drive its ghost strokes as the groove plays them and its hat on `hatSteps`; the last quarter lifts by `db.last` and its hat goes to every eighth; at a lift the backbeat alone",
+  "backbeat": 8,
+  "hatSteps": [
+   0,
+   4,
+   8,
+   12
+  ],
+  "hp": {
+   "backbeat": 700,
+   "ghost": 900,
+   "hats": 1500,
+   "last": 500
+  },
+  "db": {
+   "backbeat": -6,
+   "ghost": -4,
+   "hats": -7,
+   "last": 2
+  }
+ },
+ "pump": {
+  "says": "the bed's held notes (a beat long or more) breathing on every beat, the house duck's shape written on the notes: down to `depthDb` at `minimumBeats`, `back` of the way up by `backBeats`, whole by `wholeBeats`; `depthDb` by stage (a lift's throughout; a drive's, then its last quarter's). Never deeper than a few dB, never a gate, never eighths",
+  "depthDb": {
+   "light": 2,
+   "first": 3,
+   "last": 4
+  },
+  "attackS": 0.008,
+  "minimumBeats": 0.12,
+  "back": 0.6,
+  "backBeats": 0.45,
+  "wholeBeats": 0.9
+ },
+ "level": {
+  "says": "the carrier's lift inside the break: its main line's hits (the hats, or the backbeat) per `window` seconds over the stretch, against the bed's mean in a `window` from each beat (what sounds there besides the drums and the noises: the pad, the keys, the bass), each as the program plays it (the room's lane, the keyed floor, the stage, gain and velocity, the spell's seasoning) and by its loudness per unit (`hits` by voice, `beds` by class: a layer and its voice, a pad by its timbre; `hit` and `bed` one the table does not hold), in dB; the lift brings the line to `target` LU under the bed, never past `most`, never under `least`, in half decibels. The units are fitted (tmp lab of round break-pulse-rule) over 78 rendered breaks, the eight featured tracks that move and the beat-led tiles' seeds 1-4, each carrier and each bed rendered alone through the real graph: the bed's median miss 0.5 dB (most 4.7), the line over the bed's 1.4 dB (a hat whose room voices it longer or shorter misses by up to 10, the lift's bounds holding it audible and under the bed). The target: the sketches he heard stood the line 10-17 LU under the bed (Vibe - Solar Wind 10, Drive - Static Charge 12, Vibe - Undertow 17)",
+  "window": 0.4,
+  "target": -13,
+  "most": 16,
+  "least": -8,
+  "hits": {
+   "clap": -4.0,
+   "hatClosed": -13.0,
+   "hatLoose": -4.0,
+   "hatSoft": -13.5,
+   "hatTight": -16.0,
+   "rimshot": -13.5,
+   "snare": -10.5,
+   "snareCrack": -13.5
+  },
+  "hit": -13,
+  "beds": {
+   "bass:reeseDriven": 1.0,
+   "bass:reeseWobble": -1.5,
+   "keys:clavKey": -2.0,
+   "keys:fmEpGlass": -22.5,
+   "keys:fmEpSoft": -23.0,
+   "keys:fmPluck": 3.5,
+   "keys:karplusPluck": 2.0,
+   "keys:keysTineDark": -21.5,
+   "keys:marimba": 5.5,
+   "keys:organStab": -7.5,
+   "keys:piano": -10.5,
+   "keys:pianoClose": -24.0,
+   "keys:pianoConcert": -24.0,
+   "keys:triLead": 1.5,
+   "pad:formantPad": -1.0,
+   "pad:rhodes": -9.5,
+   "pad:strings": -7.5,
+   "pad:supersawLead": -1.0,
+   "pad:supersawPad": -4.0,
+   "pad:swell": -7.0,
+   "pad:wavePad": -6.0
+  },
+  "bed": -4.5
+ }
+}

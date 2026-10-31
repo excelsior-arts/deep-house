@@ -65,7 +65,12 @@
         "unit": "ratio",
         "min": 0.5,
         "max": 1.5,
-        "default": 1
+        "default": 1,
+        "tilt": {
+          "partials": 4.5,
+          "head": 1.5,
+          "noise": 3
+        }
       }
     }
   },

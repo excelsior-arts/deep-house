@@ -2,36 +2,89 @@
   "note": "The featured playlists, in the order the Playlists tab shows them; the first is the one a first run starts on. Each is read-only in the page and plays on the engine its links name. Written by tools/feature.ts from a playlist's share link or file; every link is a row of the link digest, so an engine change that moves one stops the release. The three below are placeholders made of frozen rows (the 27191 benchmark, the golden masters, the Drum & Bass tile's riffs), to be replaced by curated playlists.",
   "playlists": [
     {
-      "id": "b0263c6b-7b04-4e19-9bba-bbb1dd582432",
-      "name": "Ambient",
+      "id": "136e4bbf-46ff-4b83-8a36-226ebadad29c",
+      "name": "Vibe",
       "links": [
-        "seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
-        "seed=27191&v=2&theme=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
-        "seed=27191&v=2&theme=3&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
-        "seed=27191&v=2&theme=4&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
-        "seed=27191&v=2&theme=5&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81"
+        "seed=40&v=2",
+        "seed=8211&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.63,ve:0.60,sp:0.85,lo:0.81",
+        "seed=68599&v=2&spell=ti:0.17,ze:0.32,gl:0.16,ve:1.00,sp:0.10,lo:0.34",
+        "seed=47004&v=2&theme=11&spell=em:0.36,ti:0.34,ze:0.63,ro:0.66,gl:0.05,ve:0.54,sp:0.19,lo:0.80",
+        "seed=80800&v=2&spell=ti:0.17,ze:0.00,gl:0.16,ve:1.00,sp:0.10,lo:0.34",
+        "seed=47004&v=2&theme=16&spell=em:0.36,ti:0.48,ze:0.63,ro:0.66,gl:0.05,ve:0.39,sp:0.19,lo:0.80",
+        "seed=97369&v=2&spell=em:0.37,ti:0.17,ze:0.32,gl:0.16,ve:0.00,sp:0.10,lo:0.34",
+        "seed=33617&v=2&spell=em:0.37,ti:0.37,ze:0.14,ro:0.00,gl:0.00,ve:0.11,sp:0.00,lo:1.00",
+        "seed=6&v=2&spell=em:0.95,ti:0.63,ro:0.75,gl:0.36,ve:0.60,sp:0.85,lo:0.85",
+        "seed=97058&v=2&spell=em:0.33,ti:1.00,ze:0.32,gl:0.16,ve:0.00,sp:0.45,lo:1.00",
+        "seed=1557&v=2&spell=em:0.53,ti:1.00,ze:0.00,gl:0.46,ve:0.11,sp:0.45,lo:0.71",
+        "seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80"
+      ],
+      "labels": [
+        "Pure Gold",
+        "Solar Wind",
+        "Aurora",
+        "Warm Front",
+        "Night Side",
+        "Heat Haze",
+        "Sunrise",
+        "Saturn Rings",
+        "Liquid Gravity",
+        "Deep Dive",
+        "Drizzle",
+        "Undertow"
       ]
     },
     {
       "id": "313baca7-8b32-4381-ab91-94c7630433de",
       "name": "Drive",
       "links": [
-        "seed=92970&v=2",
-        "seed=1&v=2",
-        "seed=21323&v=2",
-        "seed=92970&v=2&theme=2",
-        "seed=1&v=2&theme=2"
+        "seed=1&v=2&theme=16&spell=ro:0.53,gl:0.20,sp:1.00",
+        "seed=13074&v=2&spell=em:0.89,ti:0.00,ze:0.00,ro:0.00,gl:0.89,ve:0.00,lo:0.00",
+        "seed=59261&v=2&spell=em:0.75,ti:0.00,ze:0.17,ro:0.76,gl:1.00,ve:0.14,sp:0.19,lo:1.00",
+        "seed=81414&v=2&spell=em:0.89,ti:0.53,ze:0.04,ro:0.76,gl:0.22,sp:0.01,lo:0.35",
+        "seed=57984&v=2&theme=12&spell=em:0.92,ti:0.90,ze:0.25,ro:0.66,ve:0.15,sp:0.10,lo:0.53",
+        "seed=27191&v=2&theme=10&spell=em:0.92,ti:0.80,ze:0.00,ro:0.36,ve:0.14,sp:0.25,lo:1.00",
+        "seed=32442&v=2&theme=5&spell=em:0.73,ti:0.90,ze:1.00,ro:0.85,ve:0.15,sp:0.00,lo:0.80",
+        "seed=68599&v=2&spell=ti:0.17,ze:0.32,gl:0.16,ve:0.00,sp:0.10,lo:0.34"
+      ],
+      "labels": [
+        "Eli's Ignition",
+        "Static Charge",
+        "Tailwind",
+        "Comet Tail",
+        "Cloudburst",
+        "Supercell",
+        "Jet Stream",
+        "Slow Burn"
       ]
     },
     {
-      "id": "136e4bbf-46ff-4b83-8a36-226ebadad29c",
-      "name": "Liquid",
+      "id": "b0263c6b-7b04-4e19-9bba-bbb1dd582432",
+      "name": "Ambient",
       "links": [
-        "seed=1&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85",
-        "seed=1&v=2&spell=em:0.90",
-        "seed=1&v=2&spell=em:0.95,ti:0.80,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85",
-        "seed=1&v=2&spell=em:0.85,ro:0.30,gl:0.75,sp:0.90",
-        "seed=1&v=2&spell=em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:1.00,lo:1.00"
+        "seed=28617&v=2&theme=2&spell=em:0.00,ti:1.00,ze:0.00,ro:0.00,gl:1.00,ve:1.00,sp:0.21,lo:1.00",
+        "seed=12919&v=2&spell=em:0.05,ti:0.85,ze:0.33,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95",
+        "seed=27191&v=2&theme=3&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=27191&v=2&theme=9&spell=em:0.05,ti:0.85,ze:0.75,ro:0.43,gl:0.25,sp:0.10,lo:0.95",
+        "seed=28617&v=2&theme=24&spell=em:0.00,ti:0.39,ze:0.00,ro:0.00,gl:0.18,ve:1.00,sp:0.00,lo:0.22",
+        "seed=27191&v=2&theme=7&spell=em:0.05,ti:0.46,ze:0.32,ro:0.00,gl:0.78,ve:0.30,sp:0.55",
+        "seed=27191&v=2&theme=7&spell=em:0.05,ti:0.46,ze:0.12,ro:0.65,gl:0.80,ve:0.30,sp:0.55,lo:0.90",
+        "seed=27191&v=2&theme=5&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81",
+        "seed=32442&v=2&theme=5&spell=em:0.18,ti:0.75,ze:0.02,ro:0.48,gl:0.18,ve:0.25,sp:0.12,lo:0.42",
+        "seed=27191&v=2&theme=7&spell=em:0.05,ti:0.85,ze:0.75,ro:0.68,gl:0.50,sp:0.10,lo:0.95",
+        "seed=27191&v=2&theme=8&spell=em:0.05,ti:0.85,ze:0.75,ro:0.43,gl:0.31,sp:0.10,lo:0.95"
+      ],
+      "labels": [
+        "Moon Tide",
+        "Low Orbit",
+        "Deep Field",
+        "Glass Ocean",
+        "Mirage",
+        "Star Chimes",
+        "Eclipse",
+        "Nebula Breath",
+        "Pulsar",
+        "Northern Lights",
+        "Event Horizon"
       ]
     }
   ]

@@ -807,15 +807,21 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const O = R.outs;
   // an out is taken only where something marks it (the review of U2c: 29 of 629 outs were bare, a build bar with no
   // drums and an arrangement's own filter line over it — the "glitch" he named): a build, the tops, or a dip
+  // (into a break no build marks it: the tops or the dip, round length-2)
   const markable = (from: number, to: number, intoBreak: boolean) => {
-    return !!laneAt(to - 1) || (intoBreak && topsMayThin(from, to - 1)) || !I.filterMoves?.(from, to);
+    return (!intoBreak && !!laneAt(to - 1)) || (intoBreak && topsMayThin(from, to - 1)) || !I.filterMoves?.(from, to);
   };
   const markOut = (out: SubSection, from: number, to: number, into: 'drop' | 'return' | 'break', kind: string): { m: Pick<Out, 'fill' | 'ack'>; said: Said[]; b: Pending | null } => {
     const last = to - 1;
     const rng = new Rng(`${I.seed}::phrasing:mark:${to}`);
     const tops = into === 'break' && topsMayThin(from, last);
-    const b = rng.chance(O.fill) ? buildInto(to, kind, { rng, filter: tops ? undefined : O.dip.hz, filterFrom: from * bs, bass: false,
-      into, ...(into === 'break' ? { stop: false, crash: false, hold: true } : { big: true }) }) : null;
+    // **Into a break the groove resolves, it never builds** (round length-2, his word 10-27: *"many times i observed a
+    // build up abruptly stops with break"*): every gesture of the vocabulary but the full stop rises (a roll, a
+    // stutter, a whoosh, a reverse), and a rise the break cuts is a build that leads nowhere. So an out into a break is
+    // marked by the drums thinning (the tops) or the low-pass cut and held closed into the break's own line, and only an
+    // out into a drop or a return builds, where the build lands on the downbeat.
+    const b = into !== 'break' && rng.chance(O.fill) ? buildInto(to, kind, { rng, filter: tops ? undefined : O.dip.hz, filterFrom: from * bs, bass: false,
+      into, big: true }) : null;
     // (the build's own parts are put in front of these when its gesture is drawn)
     const said: Said[] = b ? b.said : [];
     if (into !== 'break' && I.can.glide && I.kit(to).bass) {

@@ -23,7 +23,8 @@
 //       leaves off is its engine's house;
 //   (h) a bare address takes the stored link;
 //   (i) every written link in a grid plays the program it was blessed with
-//       (`tools/link-digest.json`);
+//       (`tools/link-digest.json`), and every sound row those links play is
+//       the row it was blessed with (`tools/sound-rows.json`);
 //   (j) a genre row (`PATTERN_LIBRARY`) pins by its audit link and is refused in
 //       words without its family key's spell.
 import assert from 'node:assert/strict';
@@ -42,6 +43,7 @@ import { developmentFor } from '../src/development.ts';
 import { readBypass, planKey, setOptions } from '../src/set-plan.ts';
 import { planHash } from './golden-plan.ts';
 import * as linkDigest from './link-digest.ts';
+import * as soundRows from './sound-rows.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PKG = path.join(HERE, '..');
@@ -645,7 +647,7 @@ test('(i) every written link in the grid plays the program it was blessed with',
   // both ways, every mode under each accompaniment, the draw and every shipped row.
   const groups = new Map<string, number>();
   for (const r of file.rows) groups.set(r.group, (groups.get(r.group) ?? 0) + 1);
-  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'lists', 'masters', 'modes', 'pulls', 'recipes', 'riffs', 'sets']);
+  assert.deepEqual([...groups.keys()].sort(), ['benchmark', 'featured', 'lists', 'masters', 'modes', 'pulls', 'recipes', 'riffs', 'sets']);
   assert.ok(rows >= 120, `the grid holds ${rows} links`);
   for (const bird of BIRDS) for (const v of ['0.10', '0.90']) for (const ver of ['1', '2'])
     assert.ok(file.rows.some((r) => r.group === 'pulls' && r.link === `seed=1&v=${ver}&spell=${BIRD_CODE[bird]}:${v}`), `no row pulls ${bird} to ${v} under v=${ver}`);
@@ -669,6 +671,23 @@ test('(i) every written link in the grid plays the program it was blessed with',
   const caught = linkDigest.verify(tampered).moved;
   assert.equal(caught.length, 1);
   assert.ok(caught[0].includes(file.rows[7].link), caught[0]);
+});
+
+// **The sound rows those links play** (release-gates, 10-29): a program names a row by its id, so a row's own numbers
+// moved under three featured tracks with the digest unmoved (the wobble bass's corner, 460 to 1800 Hz). Every row the
+// digest plays is held by its hash, and a moved one is named with the featured tracks that play it.
+test('(i) every sound row the grid plays is the row it was blessed with, named with the featured tracks that play it', () => {
+  const file = soundRows.saved();
+  assert.ok(file.blessings.length >= 1 && file.blessings.every((b) => b.trim().length > 20), 'a bless of the sound rows without its reason');
+  const { moved, rows, featured } = soundRows.verify(file);
+  assert.deepEqual(moved, [], `a sound row the digest plays has moved:\n${moved.slice(0, 8).join('\n')}`);
+  assert.ok(rows >= 40 && featured >= 30, `the lock holds ${rows} rows, ${featured} in featured tracks`);
+  // And the check can fail: one row's hash altered is that row named, with its featured tracks.
+  const id = Object.keys(file.rows).find((k) => file.rows[k].featured.length)!;
+  const tampered = { ...file, rows: { ...file.rows, [id]: { ...file.rows[id], hash: '0'.repeat(64) } } };
+  const caught = soundRows.moved(tampered);
+  assert.equal(caught.length, 1);
+  assert.ok(caught[0].startsWith(`${id}: moved`) && file.rows[id].featured.every((n) => caught[0].includes(n)), caught[0]);
 });
 
 // --- (i) the freeze: what a cut shipped, a link keeps -------------------------
@@ -705,14 +724,15 @@ test('(i) a row a cut shipped is frozen, and a digest moved since the cut states
   const added = { ...file, rows: [...file.rows, extra] };
   assert.ok(linkDigest.sinceCut(file, added).some((f) => f.includes('no blessing was added')));
   assert.deepEqual(linkDigest.sinceCut(file, { ...added, blessings: [...file.blessings, 'v3 joins the grid'] }), []);
-  // The stated window (Eugene, 09-26, "go for it", for v2.0.0; 10-11 for v2.1.0; 10-12 for v2.2.0; 10-15 for v2.2.1; 10-16 for v2.2.2; 10-17 for v2.2.3): a shipped row may play
+  // The stated window (Eugene, 09-26, "go for it", for v2.0.0; 10-11 for v2.1.0; 10-12 for v2.2.0; 10-15 for v2.2.1; 10-16 for v2.2.2; 10-17 for v2.2.3;
+  // 10-28 for v2.3.2, merging round length-2: "The length around is great ... so we can merge it now"): a shipped row may play
   // otherwise when the newest blessing counts it, and only then; a dropped row
   // is refused inside it as outside. Both strategies alike since V1-1 (10-02):
   // the record's rows were held by name until then, with their own words
   // (`recordMovedWords`, gone); house-v1 is a composing preset, not a byte
   // lock, and a shared mixing path that moves its rows is counted with the rest.
   const w = linkDigest.WINDOW;
-  assert.equal(w.since, '2026-10-17');
+  assert.equal(w.since, '2026-10-28');
   assert.match(w.reason, /sacrifices with known golden tracks/);
   assert.ok(!('strategy' in w), 'the window names a strategy, and it covers both');
   const v2 = file.rows.findIndex((r) => r.strategy === 'house-v2'), v1 = file.rows.findIndex((r) => r.strategy === 'house-v1');
@@ -767,4 +787,51 @@ test('(o) a playlist link (PLAN-LIBRARY phase 5): its rows are a class of their 
   const lists = JSON.parse(fs.readFileSync(linkDigest.FILE, 'utf8')).rows.filter((r: { group: string }) => r.group === 'lists');
   assert.equal(lists.length, linkDigest.listRows().length, 'the digest holds a playlist link the grid does not, or the other way');
   assert.ok(lists.some((r: { link: string }) => /@\d/.test(r.link)) && lists.some((r: { link: string }) => /%[CD][0-9A-F]%/.test(r.link)), 'no playlist row with a track on another engine, or none with a label past ASCII');
+});
+
+test('(p) a track\'s link knows its Featured playlist (round pl-link): `in` is a context row, not a sound; it round-trips to the track\'s first place in the list; an unknown id or a track not in the list plays the plain track', async () => {
+  const { FEATURED, featuredPlace, linkInFeatured, featuredIndex } = await import('../src/featured.ts');
+  const { normaliseLink } = await import('../src/playlists.ts');
+  const { cleanLink } = await import('../src/share-link.ts');
+  const row = ROWS.get('in');
+  assert.ok(row && row.class === 'context', 'no context row named in');
+  assert.ok(!LINK_ROWS.some((r) => r.class === 'sound' && r.name === 'in'));
+  const f = FEATURED[1], dashless = f.id.replace(/-/g, '');
+  const track = (i: number) => `https://deephouse.audio/?${f.links[i]}`;
+  // not a sound: the same track with it or without it, never kept by a saved track, the clean link or the page's writer
+  const withIn = linkInFeatured(track(1), f);
+  assert.equal(withIn, `${track(1)}&in=${dashless}`, 'the row is not the track\'s link plus in=<id without dashes>, last');
+  const q = withIn.slice(withIn.indexOf('?') + 1);
+  assert.ok(linkSameSound(q, f.links[1]), 'in moved the sound');
+  assert.deepEqual(linkRead(`?${q}`).problems, [], 'a link with in was refused');
+  assert.equal(normaliseLink(q).link, f.links[1], 'a saved track keeps in');
+  assert.equal(cleanLink(`?${q}`, 'https://deephouse.audio/'), track(1), 'the clean link keeps in');
+  assert.equal(linkWrite({ seed: '5', theme: 0, strategy: 'house-v2' }, `out=silent&in=${dashless}`), 'seed=5&v=2&out=silent', 'the page\'s writer keeps in on the address');
+  // the round trip: every track of every list, by its sound, with the time link's t kept beside it
+  for (const g of FEATURED) for (const [i, l] of g.links.entries()) {
+    const first = g.links.findIndex((x) => linkSameSound(x, l));
+    const p = featuredPlace(new URL(linkInFeatured(`https://deephouse.audio/?${l}`, g)).search);
+    assert.ok(p && p.featured === g && p.index === first, `${g.name} ${i + 1} did not land on its place`);
+    const timed = new URL(linkInFeatured(`https://deephouse.audio/?${l}&t=83`, g));
+    assert.equal(timed.searchParams.get('t'), '83');
+    assert.equal(featuredPlace(timed.search)?.index, first);
+  }
+  // the id with its dashes reads too
+  assert.equal(featuredPlace(`?${f.links[2]}&in=${f.id}`)?.index, 2);
+  // an id this edition lacks: the plain track, with no refusal
+  const unknown = `?${f.links[2]}&in=0123456789abcdef0123456789abcdef`;
+  assert.equal(featuredPlace(unknown), null);
+  assert.deepEqual(linkRead(unknown).problems, []);
+  assert.equal(featuredPlace(`?${f.links[2]}&in=`), null);
+  // a track the list doesn't hold: the plain track, and the copy writes none
+  const elsewhere = 'seed=424242&v=2';
+  assert.equal(featuredIndex(f, elsewhere), -1);
+  assert.equal(featuredPlace(`?${elsewhere}&in=${dashless}`), null);
+  assert.equal(linkInFeatured(`https://deephouse.audio/?${elsewhere}`, f), `https://deephouse.audio/?${elsewhere}`);
+  // a list without seeds on the address: none
+  assert.equal(featuredPlace(`?in=${dashless}`), null);
+  // a track that stands twice lands on its first place
+  const twice = { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', name: 'Twice', links: ['seed=7&v=2', 'seed=8&v=2', 'seed=7&v=2'] };
+  const at = featuredPlace(new URL(linkInFeatured('https://deephouse.audio/?seed=7&v=2', twice)).search, [twice]);
+  assert.ok(at && at.index === 0, 'a track standing twice did not land on its first place');
 });

@@ -2,7 +2,7 @@
  "schema": 1,
  "kind": "arrangement-hat-scene",
  "round": "hat-scene",
- "revision": 3,
+ "revision": 5,
  "note": "The hats and the scene (his word 10-16 on the hats' moves: 'relate them to the scene itself, as this is that kind of coherence we seeking, voices give it a main gravity that hats can work of on segments while adding their accents for vectors of track change upward/downward/seam on similar segment parts for liveliness'). The scene's rhythm is read bar by bar from the theme's own sounding voices (the keys, the stabs and the lead, the bass, the pad's strikes, the hand part), never a track recipe's or a pin's part. Over a phrase it is the gravity: the steps its onsets come back to, how busy its bars are, how often they rest. Inside the phrase the hats work off it: a little softer and thinner where the voices are busy, a little fuller where they rest, their accents with the gravity's offbeats and out of the way of its sixteenths; a house hat variation that would fill over busy voices or thin over resting ones takes the next of its kind. At a transition the move's kind leans to the vector of change the voices make across the seam (recipes/arrangement/hat-moves.json `vectors`), read inside the parts either side of it, a build read as the arrival it leads into (round hat-seams). Where the figure rests and the bass carries the bar, the bass's line is the call a hat answer answers. src/hat-scene.ts reads this row. Every number is a starting point for listening.",
  "units": {
   "says": "`voices`: what one onset of each voice adds to a bar's load (each step counted once a voice); `busy`: a bar's load from which its voices are busy (the hand part counts light: its own room is the hat moves' `hands`, and a conga part alone never makes a bar busy); a bar rests where its figure (the keys, the stabs, the lead) strikes nothing while the phrase's figure strikes in some of its bars (a phrase with no figure at all has no rest to fill: there the hats are the figure). `both`: a bar whose load is busy while its figure rests is one of the two, never both: `busy`, the bass and the hand part keep it moving, so it is neither filled nor lifted. `recur`: a step is the gravity's where the phrase's figure, bass or hand part strikes it on that share of its bars or more. `vary`: a hat variation fights where it adds `adds` hits a bar or more over a span whose bars are busy on `busy` of them, adds a sixteenth on the gravity's own, or takes `takes` hits a bar or more over a span that rests on `rest` of its bars. `level`: decibels on the hats' own hits (`lock` on an offbeat the gravity accents where it accents some and not all; `stack` on a sixteenth the bar's figure strikes too; `busy` and `rest` on the bar, both only in a phrase whose figure plays in some of its bars: a phrase with no figure at all has neither, there the hats are the figure and are never stepped back for the bass and the hand part; never past `most` either way; a lift carried past the hit's full velocity by its gain, the velocity held to 1). `thin.ghost`: a hit at that share of its voice's loudest in the bar or under it is a ghost, and a ghost stacked on the figure's sixteenth in a busy bar is taken out. `fill`: in a resting bar, one ghost of the closed hat at `level` of its loudest, on the first of `steps` that no hat, bass or hand strikes, at `chance` (Spark leaning it). `call.bass`: a bar whose figure strikes nothing is called by the bass where the bass strikes that many steps of it or more (a hat answer then answers the bass's line, and its offbeats step off the bass's strikes). `vector`: the voices' energy (the seams' reading without the hats: their lane, their figures and their onsets left out) over up to `bars` bars before the move's bar against up to `bars` from the line, each window inside its own part (never back across the line the move's part begins on, never past the line after the seam's: a one-bar drop-out reads its own bar), a build's bars read at the energy of the line it leads into (a build is a rise by any producer's ear, however its stop thins the bar); `dead`, the change under which the seam is level",
@@ -39,5 +39,41 @@
  "fill": {"chance": 0.5, "level": 0.35, "lean": {"spark": 1.5}, "steps": [15, 13, 11, 7]},
  "call": {"bass": 2},
  "vector": {"dead": 0.08, "bars": 2},
- "moves": {"says": "where the bar's voices are busy, the busy rows' weight (a roll, a swung push, a triplet over a busy figure is two grooves)", "busy": 0}
+ "moves": {"says": "where the bar's voices are busy, the busy rows' weight (a roll, a swung push, a triplet over a busy figure is two grooves)", "busy": 0},
+ "keys": {
+  "says": "The keys by the hats (round keys-balance, his words 10-29: 'balance the volume based on hat loudness as it work in one place but not in another'; 'Aurora has the least problem with mix, I assume because the open hat sounds louder and compensated for piano'). The other side of the relation above: the keys' lane sits by the hats. In each groove section (the kick on in `groove` of its bars or more) where the lane's notes strike: the strikes' median level over the hats' energy per `window` seconds over the section, each as the program plays it and each voice by its measured loudness per unit hit (`keysDb` the lane's voice, `hats` by voice, `hatsDb` an unmeasured hat; fitted over 44 rendered main windows, the featured and house seeds 1-24: the hats' residual 2.4 dB, the piano's 2.4 dB a strike). Past `over`, the most his three references reach as the plan reads them (14.5 dB: a build's ringing chords over a tight hat alone; the two he hears exposed read 6-8 and 22), the lane steps down by `slope` of the excess, never past `most`, in half decibels (a smaller step is not heard). A section without the kick holds the step of the groove before it (else after): the hats leave there by the form, and the keys keep the balance they had over them. `lane`: the level key stepped (the piano's).",
+  "units": {"over": "dB", "slope": "ratio", "most": "dB", "window": "seconds", "groove": "share", "keysDb": "dB", "hatsDb": "dB", "hats.*": "dB"},
+  "lane": "piano",
+  "over": 15,
+  "slope": 0.5,
+  "most": 3,
+  "window": 0.4,
+  "groove": 0.5,
+  "keysDb": -5.7,
+  "hatsDb": -9,
+  "hats": {"hatClosed": -14.5, "hatTight": -12.6, "hatOpen": -4.5, "hatLoose": -4.1, "shaker": -7.9, "cabasa": -9.0}
+ },
+ "keysBody": {
+  "says": "The keys by the body (round piano-tone, his words 10-29 on the string piano: 'next theme on the seed now makes piano actually noticeable louder even than drums'; 'it seems we could play off synth drone pads, where piano sinks, but on open tracks it seems a bit too loud'). Beside the keys by the hats, which read the top: this reads how much of the piano's band (150 Hz-3 kHz) the scene covers. In each groove section (the kick on in `groove` of its bars or more), at each of the lane's strikes: the strike's level as played (less the hats' step) over the scene's in the `window` from it, the bed held under it, the bass and the drums' hits, each as played, seasoned (its knobs' slopes) and by its class's loudness in the band per unit (`scene`: a layer and its voice, a pad by its timbre, else the layer alone; `sceneDb` a class not measured; `keysDb` the piano's), fitted over 697 rendered strikes of the ten featured seeds with the piano, themes 1-8, groove sections (a strike's residual 2.4 dB median; the hats and the kick carry next to nothing in the band). A section's reading is its strikes' median; an uncovered strike reads `open`. Past `over` (his references read 6-9 on the plan: Vibe - Aurora's first theme 6.2-6.3, Vibe - Sunrise 7.2-8.4, Vibe - Drizzle -10 to -11; Vibe - Aurora's second theme, which he heard too loud, 12.4-13.9) the lane steps down by `slope` of the excess, never past `most`, in half decibels; under `under` it would lift by as much, never past `lift` (none: under a thick bed the piano keeps its level). With the hats' step the lane takes the deeper of the two, so Vibe - Night Side's -3 holds. A section without the kick holds the step of the groove before it (else after). `lane`: the level key stepped (the piano's).",
+  "units": {"open": "dB", "over": "dB", "under": "dB", "slope": "ratio", "most": "dB", "lift": "dB", "window": "seconds", "groove": "share", "keysDb": "dB", "scene.*": "dB", "sceneDb": "dB"},
+  "lane": "piano",
+  "open": 30,
+  "over": 10,
+  "under": -30,
+  "slope": 0.75,
+  "most": 3,
+  "lift": 0,
+  "window": 0.4,
+  "groove": 0.5,
+  "keysDb": 0,
+  "scene": {
+   "kick": -40, "kick:kickKnock": -29.7,
+   "bass": -18.6, "bass:sub": -18.6, "bass:reeseWobble": 7.6,
+   "clap": -4, "clap:clap": -4.1, "clap:snare": -3.9, "clap:rimshot": -13.2,
+   "hats": -30, "shaker": -12, "shaker:shaker": -14.5, "shaker:cabasa": -10.8, "shaker:bongo": -0.3,
+   "fx": -40, "keys": 0, "keys:fmEp": 12,
+   "pad": 0, "pad:formantPad": 2.2, "pad:rhodes": -5.3, "pad:strings": -4.2, "pad:supersawLead": 12, "pad:supersawPad": -2.2, "pad:wavePad": -0.2
+  },
+  "sceneDb": 0
+ }
 }

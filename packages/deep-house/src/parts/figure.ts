@@ -5,6 +5,33 @@ import { BY_NAME, TIMBRES, voicePlaying } from '@deep-house/engine/voices';
 import type { MotifBox } from '../motif.ts';
 import { inside, preferLean, type RhythmPart } from './rhythm.ts';
 import { charactersOf } from './sound.ts';
+import { airMeasured } from '../air-lean.ts';
+import DISTANCE from '../../recipes/parts/voice-distance.json' with { type: 'json' };
+
+/** A side's weights (`recipes/parts/voice-distance.json`): `up` where the swapped voice stands above the source, `down` below. */
+type Side = { up: number; down: number };
+const W = DISTANCE as unknown as { air: Side; top: Side & { per: number }; noise: Side & { per: number }; hold: Side & { floor: number } };
+/**
+ * **How far a voice stands from another, as a listener hears a swap** (10-28): on the descriptors the catalogue keeps —
+ * the measured air (`voice-air.json`, wherever the voice was measured in front: the keys, held, the calls; `airMeasured`:
+ * the centroid in octaves, the energy over 1.5 kHz, the noise's flatness) and the declared sustain (`hold`). Each weighs
+ * as the row says (`recipes/parts/voice-distance.json`): brighter, harder and noisier than the source weigh more than
+ * darker and softer (his ear: a darker swap was liked, a harsher one not). **A pair the table has not measured is beyond
+ * any tolerance** (Infinity: never near, the code review of 10-29; it had read 0, the nearest of all); a voice is at
+ * nought from itself.
+ */
+export function voiceDistance(timbre: string, source: string): number {
+  if (timbre === source) return 0;
+  const a = airMeasured(timbre), b = airMeasured(source), ta = TIMBRES[timbre], tb = TIMBRES[source];
+  if (!a || !b) return Infinity;
+  const side = (x: number, s: Side) => (x > 0 ? x * s.up : -x * s.down);
+  let d = 0;
+  d += side(Math.log2(a.hz / b.hz), W.air);
+  d += side((a.over1500 - b.over1500) / W.top.per, W.top);
+  d += side((a.flat - b.flat) / W.noise.per, W.noise);
+  if (ta && tb) d += side(Math.log2(((ta.hold ?? 0) + W.hold.floor) / ((tb.hold ?? 0) + W.hold.floor)), W.hold);
+  return +d.toFixed(3);
+}
 
 export interface PitchedFigure {
   follows: 'harmony';
@@ -28,10 +55,68 @@ export interface PitchedFigure {
   phrasing?: { starts: number[]; dynamics: [number,number,number]; character: string };
   /** An ostinato tiles its cell without melodic development or inserted rests. */
   behavior?: 'phrase' | 'ostinato';
-  /** Omit attacks inside these half-open beat windows, on the theme clock. */
-  rests?: { bars: number; beats: [number, number][] };
+  /** Omit attacks inside these half-open beat windows, on the theme clock (or the section's, `clock: 'section'`). */
+  rests?: { bars: number; beats: [number, number][]; clock?: 'section' };
+  /** The section kinds the part sits out (an ensemble's development: the comp and the lead leave a breakdown to the hum). */
+  leaves?: string[];
+  /**
+   * **The harmony's colour stays** (10-29, his ear: *"in Sunrise there is an issue that piano is gone from 0:30 until
+   * 1:50"*): a part that carries the chords' colour never leaves the track for long without a reason the arrangement
+   * gives.
+   * - `back`: a switch-up that takes the part out gives it back this many bars before its section's line, so the
+   *   return (the switch-up's own lift) is heard inside the section and not lost into the section after it;
+   * - `thin`: the section kinds where a theme sits out (`placementOf`: a breakdown, so the return is an event) in which
+   *   this part stays instead: over the bed (the pad), a thinner statement of itself — fewer notes (`keep`: `ends`,
+   *   where each phrase starts and where it lands; `chords`, the notes it strikes as chords), each rung as a landing,
+   *   at `level` of its strength; where no bed plays, its whole statement, the harmony the section is left with.
+   *   A part that `leaves` the kind still leaves it: another voice carries that section.
+   * - `solo` (keys-moments, his ear 10-29: *"color in breakdown - great"*): the part may take a long
+   *   breakdown's last phrase alone, a free line of its own notes over its own soft chords (`src/keys-moments.ts`, the
+   *   row `recipes/arrangement/keys-moments.json` says where, how often and how), in place of its thin statement there.
+   */
+  stays?: { back?: number; thin?: { sections: string[]; keep: 'ends' | 'chords'; level: number }; solo?: boolean };
+  /**
+   * **Near its source voice** (10-28, his ear: *"those voices make it so harsh"*; *"the voices should roughly be reminding
+   * the piano"*): the voice the role was heard on, how far (`voiceDistance`) a swapped voice may stand from it, and how
+   * gently the weight leans to the nearer (exp(-d / falloff), in place of the palette's weight): inside the limit the
+   * voices are drawn at about even odds.
+   */
+  near?: { voice?: string; max?: number; falloff: number };
+  /**
+   * **The octave its chord root folds into** (10-28, his word: *"not going too wide on the octaves"*): an ensemble's role
+   * keeps the register its source played in whatever the key (a band of an octave about the source's root), in place of
+   * the style's figure home.
+   */
+  home?: [number, number];
+  /**
+   * semitones its register may drift, as scale steps in the key, one draw a theme every drifting part reads alike
+   * (`'ensemble-drift'`), so they move together: an ensemble's register band widened by the draw's reach (`driftAt`)
+   */
+  drift?: number;
+  /** The MIDI register the part may use, in place of the style's figure register (an ensemble's roles keep their order in it). */
+  range?: [number, number];
   /** Reserve harmonic space during this part's active sections. */
   support?: { sustained: 'separate' };
+  /**
+   * **The sustain pedal** (10-28): every note rings on until the pedal lifts, every `beats` beats from the
+   * statement's start, so a line's notes ring into each other; a phrase's last note (and its chord) rings
+   * `landingBeats` from its strike, past the statement's end, as a pedal held through the phrase's close.
+   * Absent, every note is as long as it is written.
+   */
+  pedal?: { beats: number; landingBeats?: number };
+  /**
+   * **A chord where a phrase lands** (10-28, the ensemble): the shape struck on each phrase's last note (`phrasing`'s
+   * groups), single notes inside, in place of `voicings` by note index.
+   */
+  landing?: number[];
+  /**
+   * **The notes vary, the phrase stays** (the ensemble): once a theme, off the part's own stream, its path's degrees
+   * move by a shift drawn in `shift` (scale degrees) and are mirrored about their middle at the chance `invert`;
+   * the rhythm, the holds, the accents and the phrase's landings are the path's own.
+   */
+  vary?: { shift: [number, number]; invert?: number; shared?: boolean };
+  /** The part's name inside an ensemble: its notes carry it (`EventMeta.ensemble`), for the ensemble's check. */
+  as?: string;
 }
 /** Historical part-request name retained for captured policy data. */
 export type StruckFigure = PitchedFigure;
@@ -59,7 +144,16 @@ export function figureCandidates(want: StruckFigure, style: Style, forbids: read
       // borrow a bed-capable instrument while the sustained bed is forbidden.
       || forbids.includes(d.family)) return [];
     if (!inside(t, p)) return [];
-    return [{ timbre: e.v, voice, w: want.prefer && inside(t, want.prefer) ? e.w * preferLean(style) : e.w }];
+    // the source voice comes from the ensemble's roles (`EnsembleBlock.roles[…].source`, laid on by `ensembleTrack`)
+    const near = want.near?.voice ? want.near : null;
+    const far = near ? voiceDistance(e.v, near.voice!) : 0;
+    // (an unmeasured pair is beyond any tolerance, a limit named or not)
+    if (near && (!Number.isFinite(far) || (near.max !== undefined && far > near.max))) return [];
+    const w = want.prefer && inside(t, want.prefer) ? e.w * preferLean(style) : e.w;
+    // near a source, the tolerance does the excluding and every voice inside it is drawn at about even odds (the palette's
+    // own weights and the part's `prefer` set aside), leaning gently to the nearer by the falloff (his ear, 10-28: the
+    // swaps he liked are part of why it is no copy)
+    return [{ timbre: e.v, voice, w: near ? Math.exp(-far / near.falloff) : w }];
   });
 }
 

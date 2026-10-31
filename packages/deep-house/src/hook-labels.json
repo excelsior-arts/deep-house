@@ -1,0 +1,105 @@
+{
+ "kind": "technique-labels",
+ "schema": 1,
+ "note": "The controls' own words where a theme plays the hook (round trance-1, src/hook.ts): Gleam the supersaw's light, Spark its edge, Veil the riff's restless rows against its patient ones. Each band's cut is solved from the hook's own readings (`light`, `edge`, `restless`), never typed; `numbers` are the row's numbers a cut reaches; `frame` the hook table's entry whose birds the bands are solved about, and the walls where the hook still plays (past Spark's the kit breaks).",
+ "frame": {
+  "entry": "saw-corner",
+  "walls": {
+   "spark": [
+    0,
+    0.44
+   ]
+  }
+ },
+ "numbers": {
+  "lit": 0.6,
+  "smooth": 0.35,
+  "driven": 0.75,
+  "even": 0
+ },
+ "labels": {
+  "gleam": {
+   "big": {
+    "reads": "light"
+   },
+   "bands": [
+    {
+     "word": "gritty",
+     "upTo": {
+      "turns": "light"
+     },
+     "says": "The supersaw is driven and crushed, bright with dirt on it.",
+     "short": "Driven, crushed"
+    },
+    {
+     "word": "lit",
+     "upTo": {
+      "at": "numbers.lit",
+      "of": "light"
+     },
+     "says": "The supersaw cleans up, its crush thinning.",
+     "short": "Cleaner, crush thinning"
+    },
+    {
+     "word": "bright",
+     "upTo": null,
+     "says": "The supersaw is clean and open, its chords high and wide.",
+     "short": "Clean, open"
+    }
+   ]
+  },
+  "spark": {
+   "big": {
+    "reads": "edge"
+   },
+   "bands": [
+    {
+     "word": "smooth",
+     "upTo": {
+      "at": "numbers.smooth",
+      "of": "edge"
+     },
+     "says": "The supersaw strikes softly, barely driven.",
+     "short": "Soft strike"
+    },
+    {
+     "word": "driven",
+     "upTo": {
+      "at": "numbers.driven",
+      "of": "edge"
+     },
+     "says": "The supersaw is driven, its gate sharper.",
+     "short": "Driven, sharper"
+    },
+    {
+     "word": "hard",
+     "upTo": null,
+     "says": "The supersaw is driven hard, an octave layered over it.",
+     "short": "Hard, octave over"
+    }
+   ]
+  },
+  "veil": {
+   "big": {
+    "reads": "restless"
+   },
+   "bands": [
+    {
+     "word": "steady",
+     "upTo": {
+      "at": "numbers.even",
+      "of": "restless"
+     },
+     "says": "The chop thins toward the off-beats, the patient gallop.",
+     "short": "Sparser chop"
+    },
+    {
+     "word": "restless",
+     "upTo": null,
+     "says": "The full gallop, every sixteenth chopped.",
+     "short": "Full gallop"
+    }
+   ]
+  }
+ }
+}

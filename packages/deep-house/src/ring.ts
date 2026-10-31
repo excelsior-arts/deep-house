@@ -20,6 +20,8 @@
 
 // No stamp travels with these imports: the build hashes every asset's name,
 // so a new build is a new module graph and no tab keeps an old ring alive.
+// The TV's page first (round tv-scene): before anything that stores is evaluated, its page keeps nothing.
+import { TV_VIEW } from './tv-mode.ts';
 // The exception tracker first, so its handlers stand before any other module runs.
 import { reportsWanted, reportsRunning, setReports } from './instrument.ts';
 import { reportFaults } from './fault-report.ts';
@@ -63,13 +65,16 @@ import { startScribe } from './machine/scribe.ts';
 import { marksOf, SUB_STYLE, R_SUB, R_SUB_LOW } from './ring-subsections.ts';
 import type { Candidate } from './cast-pool.ts';
 import { reducedMotion, coarsePointer, smallWindow } from './motion.ts';
-import { startLibrary, openLibrary, closeLibrary, libraryOpen, keyboardHold, libraryAway } from './library-panel.ts';
+import { startLibrary, openLibrary, closeLibrary, libraryOpen, libraryRolling, keyboardHold, libraryAway } from './library-panel.ts';
 import { startPlaylists, pressThrone, closeMenu, openListLink } from './playlists-ui.ts';
 import { heartSvg, heartNamed } from './heart-glyph.ts';
 import { linkRaw } from './link-table.ts';
 import { startGenres } from './genres-sky.ts';
 import { startShellTilt } from './shell-tilt.ts';
+import { shellDragging, onShellDrag } from './shell-library.ts';
 import { phoneSize, pageViewport } from './motion.ts';
+import { startTvFeed } from './tv-feed.ts';
+import { startTvView } from './tv-view.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
 
 // ==========================================================================
@@ -248,8 +253,11 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 // theme boundary or a seam, under cover of the music changing anyway — never on
 // a frame and never on a beat — while the unfiltered layers, where a colour
 // write costs nothing, cross-fade onto their new shades on the set's own clock:
-// `mix.approach`, which runs 0 to 1 over the thirty-two bars before a hand-over,
-// the same clock the fader is on, and not an animation with a length of its own.
+// the coming theme's lanes' (`laneWalk`, round ring-seam: the lead's eight bars
+// and the crossing to the swap), the same clock the fader is on, and not an
+// animation with a length of its own. Since ring-seam the unfiltered sheets are
+// cut in a gold of their own that walks with them (`#goldLive`), and the bloom is
+// covered through the walk by an unfiltered copy in the coming gold (`.twin`).
 //
 // Every fixed colour on the ring is re-based by one rule — its own offset from
 // the gold in lightness, chroma and hue, laid back down on the new ink — so
@@ -406,6 +414,97 @@ function wearColour(next: RingColour) {
   wornTone.clear();
   inkGen++;
   paintToned(1);
+  // the live gold and the coming gold are the worn one, the walk's type comes off the live sheets, and the bloom's
+  // copy goes: the bloom under it is in the colour it showed (round ring-seam)
+  for (let i = 0; i < goldStops.length; i++) { put(goldLiveStops[i], 'stop-color', next.stops[i].hex); put(goldNextStops[i], 'stop-color', next.stops[i].hex); }
+  liveSaid = '';
+  for (const n of liveType()) { n.style.removeProperty('--gold'); n.style.removeProperty('--pale'); }
+  dropTwins();
+}
+
+/**
+ * **The colour across a seam, on the seam's own clock** (round ring-seam; his eye 10-30: *"I see the birds spinner
+ * slowly change the color to target but the ring itself flips to new colors right after we cross 12 o'clock"*).
+ *
+ * MEASURED before (a playlist of two tracks under different birds, chromium): the birds walked from the playlist's
+ * ask to the swap, while everything cut in the gradient — the band, the rim, the star's circle and lines, the
+ * centre, the type — stepped to the new colour in one frame at the swap. And WebKit (playwright, DPR 2): one write
+ * the bloom reads is a 220 ms frame (a gradient stop, or a bloomed group's own opacity), where a gradient only the
+ * unfiltered sheets read costs a 17 ms frame. So the bloomed gold cannot walk, and it does not:
+ *   - the unfiltered sheets are cut in the live gold (`#goldLive`), which walks with the birds;
+ *   - the bloomed groups are covered by an unfiltered copy of themselves (`.twin`) in the coming gold, at the walk's
+ *     fraction, so they read as walking with the rest; the bloom's halo under it stays the old colour's, a whisper;
+ *   - at the swap the bloomed gold steps under the copy, which then goes, and the colours are one again.
+ * The walk is the coming theme's lanes' own: half the lead's eight bars and half the crossing, so the colour is
+ * the arriving one at the swap, where the band is drawn again in it under the coming lanes.
+ */
+const goldLiveStops = [...document.querySelectorAll('#goldLive stop')];
+const goldNextStops = [...document.querySelectorAll('#goldNext stop')];
+/** the live gold and its type, as last written: colour, coming colour and the walk */
+let liveSaid = '';
+let liveTypeMemo: (HTMLElement | SVGElement)[] | null = null;
+/** the sheets outside the bloom whose type walks with the live gold */
+const liveType = (): (HTMLElement | SVGElement)[] => (liveTypeMemo ??= ['outerLive', 'starLines', 'starWords', 'starCells', 'starLive', 'innerLive', 'live']
+  .map((id) => document.getElementById(id)).filter((n): n is HTMLElement => !!n));
+function paintLive(to: RingColour, e: number): void {
+  const key = `${colour.hex}>${to.hex}@${e.toFixed(3)}`;
+  if (key === liveSaid) return;
+  liveSaid = key;
+  for (let i = 0; i < goldLiveStops.length; i++) {
+    const a = colour.stops[i].hex, b = to.stops[i].hex;
+    put(goldLiveStops[i], 'stop-color', e <= 0 ? a : e >= 1 ? b : mixHex(a, b, e));
+  }
+  const [g0, p0] = typeOf(colour);
+  const [g1, p1] = typeOf(to);
+  for (const n of liveType()) {
+    if (e <= 0) { n.style.removeProperty('--gold'); n.style.removeProperty('--pale'); continue; }
+    n.style.setProperty('--gold', mixHex(g0, g1, e));
+    n.style.setProperty('--pale', mixHex(p0, p1, e));
+  }
+}
+/** The bloomed groups' unfiltered copies in the coming gold, and what each follows. */
+let twins: { g: SVGGElement; follow?: Element }[] = [];
+let twinsFor = '';
+function dropTwins(): void {
+  for (const t of twins) t.g.remove();
+  twins = [];
+  twinsFor = '';
+}
+function twinOf(src: Element, parent: Node, before: Node | null, to: RingColour, words: boolean): SVGGElement {
+  const g = document.createElementNS(NS, 'g') as SVGGElement;
+  g.setAttribute('class', 'twin');
+  g.setAttribute('aria-hidden', 'true');
+  for (const c of [...src.childNodes]) g.appendChild(c.cloneNode(true));
+  // (the centre's words change with every chord inside the bloom, so they are not copied: they step at the swap,
+  // with what they say)
+  if (!words) for (const t of [...g.querySelectorAll('text, foreignObject')]) t.remove();
+  for (const n of g.querySelectorAll('*')) {
+    n.removeAttribute('id');
+    for (const a of ['fill', 'stroke']) if (/^url\(#gold(Live)?\)$/.test(n.getAttribute(a) ?? '')) n.setAttribute(a, 'url(#goldNext)');
+  }
+  const [g1, p1] = typeOf(to);
+  g.style.setProperty('--gold', g1);
+  g.style.setProperty('--pale', p1);
+  parent.insertBefore(g, before);
+  return g;
+}
+function syncTwins(to: RingColour, e: number): void {
+  if (e <= 0.001) { if (twins.length) dropTwins(); return; }
+  if (twinsFor !== to.hex || !twins.length || twins.some((t) => !t.g.isConnected)) {
+    dropTwins();
+    for (let i = 0; i < goldNextStops.length; i++) put(goldNextStops[i], 'stop-color', to.stops[i].hex);
+    const glow = document.getElementById('outerGlow');
+    twins = [
+      ...(glow ? [{ g: twinOf(glow, gOuterLive, gOuterLive.firstChild, to, true) }] : []),
+      { g: twinOf(gSpin, starSvg, gStarLines, to, true), follow: gSpin },
+      { g: twinOf(gCore, gInnerLive, gInnerLive.firstChild, to, false) },
+    ];
+    twinsFor = to.hex;
+  }
+  for (const t of twins) {
+    put(t.g, 'opacity', e.toFixed(3));
+    if (t.follow) put(t.g, 'transform', t.follow.getAttribute('transform') ?? '');
+  }
 }
 
 /**
@@ -429,8 +528,8 @@ let spellWorn: string | 0 = 0;         // a sentinel: no readout has been seen y
 /**
  * **How near the hand-over is, on the clock that hand-over is actually on.**
  *
- * `mix.approach` runs over the thirty-two bars before the *arrangement's* own
- * seam, which is the right clock for a theme turning over by itself and the
+ * The seam's own walk (`laneWalk`, the coming theme's lanes' clock since round
+ * ring-seam) is the right clock for a theme turning over by itself and the
  * wrong one for a hand-asked hand-over: a pull, a cast or an engine asks for a
  * seam that begins on the next phrase line and runs for the bars the set-plan
  * gives it, and before step 5 the colour had no walk at all in front of one —
@@ -463,7 +562,30 @@ function seamWalk(r: Readout): number {
   // the moment between the ask and the seam would be reading the wrong clock
   // out loud.
   if (heldValue.size && !heldIsPlaying(r.spell)) return 0;
-  return clamp((m && m.approach) || 0, 0, 1);
+  return laneWalk(m);
+}
+/** The coming theme's lanes' clock, nought to one: half the lead's eight bars, half the crossing to the swap (ring-seam). */
+const laneWalk = (m: Readout['mix'] | null): number => (m ? clamp(0.5 * (m.lead || 0) + 0.5 * (m.crossing || 0), 0, 1) : 0);
+
+/**
+ * **The coming theme's colour, while its lanes come** (round ring-seam): the birds and the engine the coming theme
+ * will be heard under, from the lead's first bar to the swap — a hand-over the set takes by itself, or a playlist's
+ * next track on the record's own seam line. A press (the die, a row, a step) and a hand on a bird keep their own walk
+ * (`cutWalk`, the held birds'), and a face whose readout does not say the coming birds (the TV's) has none.
+ */
+function seamColourAsk(r: Readout): { spell: Partial<Spell> | null; reads: boolean } | null {
+  const m = r.mix;
+  const n = m && m.next;
+  if (!n || n.spell === undefined) return null;
+  // only a hand-over that begins on the record's own seam line: a press (a skip, a cast, a row) takes the next line
+  // and keeps its own walk, from the moment the transport says where it lands
+  if (!m.seam || !m.seam.own) return null;
+  // (birds that stand at what plays, as a playlist's track leaves them, ask nothing, nor do birds stood at the coming
+  // theme's own, as a playlist's ask stands them a turn before the transport says so; a hand asking other birds does)
+  if (heldValue.size && !heldIsPlaying(r.spell) && spellQuery(heldSpell()) !== spellQuery(n.spell ?? {})) return null;
+  // from the lead's first bar until the readout turns over (the lead is the record's: one to its swap, nought after)
+  if (!((m.lead || 0) > 0)) return null;
+  return { spell: n.spell, reads: cellsControl(n.strategy ?? r.strategy) };
 }
 
 function runColour(r: Readout | null, boundary: boolean) {
@@ -477,14 +599,36 @@ function runColour(r: Readout | null, boundary: boolean) {
   const engine = control.state.strategyTo ?? (r ? r.strategy : null);
   const reads = !r || cellsControl(engine);
   const s = r && reads ? (heldValue.size ? heldSpell() : r.spell) : null;
-  const key = `${reads ? 'reads' : 'record'}|${s ? spellQuery(s) : ''}`;
+  // (round ring-seam) the coming theme's colour while its lanes come, at the swap no longer
+  const seam = r && !boundary ? seamColourAsk(r) : null;
+  const key = seam ? `seam|${seam.reads ? 'reads' : 'record'}|${seam.spell ? spellQuery(seam.spell) : ''}` : `${reads ? 'reads' : 'record'}|${s ? spellQuery(s) : ''}`;
   if (key !== spellWorn) {
     spellWorn = key;
-    asked = ringColour(s);
+    asked = seam ? ringColour(seam.reads ? seam.spell : null) : ringColour(s);
     askedTone.clear();
     inkGen++;
   }
-  if (asked.hex === colour.hex) return;
+  if (asked.hex === colour.hex) {
+    // nothing to walk to (a seek out of the lead, a coming theme in the same colour): the live gold is the worn one
+    if (liveSaid && !liveSaid.startsWith(`${colour.hex}>${colour.hex}@`)) paintLive(colour, 0);
+    if (twins.length) dropTwins();
+    return;
+  }
+  if (seam && r) {
+    // the whole ring on the lanes' clock, paused or playing: a Pause holds the walk where it stands
+    const e = laneWalk(r.mix);
+    paintLive(asked, e);
+    syncTwins(asked, e);
+    if (Math.abs(e - tonedAt) < 1 / 512 && e !== 0 && e !== 1 && asked === tonedFor) return;
+    tonedAt = e;
+    tonedFor = asked;
+    paintToned(e);
+    return;
+  }
+  // a walk of the seam's that is not one any more (a press took over, a hand on a bird): the live sheets back on the
+  // worn gold, and the press's own walk as it was
+  if (twins.length) dropTwins();
+  if (liveSaid) paintLive(colour, 0);
   if (boundary || !r || !r.playing) { wearColour(asked); tonedAt = -1; return; }
   // **Written when the walk has moved a step a colour can show** (R122): the
   // walk ran over every mark on every readout, sixty a second, where a step of
@@ -728,7 +872,7 @@ const GLYPH = {
     const gg = el('g', {
       transform: `translate(${(-(x0 + x1) / 2).toFixed(2)} ${(-(y0 + y1) / 2).toFixed(2)}) rotate(${DIE_TURN})`,
     }, g);
-    const pip = (p: { at: Pt; r: number }, into: Node = gg) => el('circle', { cx: p.at[0].toFixed(2), cy: p.at[1].toFixed(2), r: p.r.toFixed(2), fill: 'url(#gold)' }, into);
+    const pip = (p: { at: Pt; r: number }, into: Node = gg) => el('circle', { cx: p.at[0].toFixed(2), cy: p.at[1].toFixed(2), r: p.r.toFixed(2), fill: 'url(#goldLive)' }, into);
     // the far die, its one pip, then the near one over it: its silhouette
     // knocks out what lies behind, and its line, its one edge and its five.
     // **The knock-out is a hole and not black paint** (round MIX-X5, Eugene on
@@ -781,7 +925,7 @@ const GLYPH = {
       + ` C${(-w).toFixed(2)} ${(top - w * 0.05).toFixed(2)} ${w.toFixed(2)} ${(top - w * 0.05).toFixed(2)} ${w.toFixed(2)} ${(top + w * 0.95).toFixed(2)}`
       + ` C${w.toFixed(2)} ${(top + w * 1.75).toFixed(2)} 0 ${(top + w * 1.7).toFixed(2)} 0 ${(R * 0.2).toFixed(2)}`;
     el('path', { class: 'ln fix thin', ...ROUND_ENDS, d }, g);
-    el('circle', { cx: 0, cy: (R * 0.42).toFixed(2), r: (R * 1.4 * 0.05).toFixed(2), fill: 'url(#gold)' }, g);
+    el('circle', { cx: 0, cy: (R * 0.42).toFixed(2), r: (R * 1.4 * 0.05).toFixed(2), fill: 'url(#goldLive)' }, g);
   },
   // The theme after this one, and its mirror for the theme before. The pair
   // is built outward from the hair between the two marks, which is where the
@@ -1103,7 +1247,11 @@ let ringAsked: Partial<Spell> | null = null;
  */
 let askedFrom: string | null = null;
 let askedWas: Partial<Spell> | null = null;
+/** The TV's page (round tv-scene): the spell the phone's address asks, as the phone's page says it (tv-view.ts). */
+let tvAsk: Partial<Spell> | null = null;
 function askedSpell(): Partial<Spell> | null {
+  // the TV's address carries the spell the music plays, in the delay behind the phone; what a hand asked is said apart
+  if (TV_VIEW) return tvAsk;
   const q = typeof location === 'undefined' ? '' : location.search;
   if (q !== askedFrom) {
     askedFrom = q;
@@ -1391,7 +1539,8 @@ const SECTION: Record<string, { short: string; dash: string | null; op: number }
 
 // ==========================================================================
 // a playlist link is read, saved and taken off the address before the transport reads it (PLAN-LIBRARY §3)
-const listRefused = openListLink();
+// (the TV's page is told its place by the phone's, and takes no link of its own: tv-view.ts)
+const listRefused = TV_VIEW ? null : openListLink();
 const control = createControl();
 if (listRefused) control.linkProblems.push(listRefused);
 // the ledger's faults, reported where the listener's switch is on (K33)
@@ -1557,7 +1706,7 @@ let spinAngle = 0;
  * and is home in three. A turn that was not a throw relaxes home the same way
  * over `SPIN_SETTLE_MS`.
  */
-let spinEase: { a0: number; d: number; t0: number; dur: number } | null = null;
+let spinEase: (MotionClock & { a0: number; d: number; t0: number; dur: number }) | null = null;
 function spinHome(v0: number) {
   const a0 = spinAngle;
   const coast = v0 * SPIN_COAST;
@@ -1569,7 +1718,9 @@ function spinHome(v0: number) {
   const dur = v0 && Math.sign(v0) === Math.sign(d)
     ? clamp((3 * Math.abs(d)) / Math.abs(v0), SPIN_MIN_S, SPIN_MAX_S)
     : SPIN_SETTLE_MS / 1000;
-  spinEase = { a0, d, t0: performance.now(), dur };
+  const t0 = performance.now();
+  // on its own clock from the lift (`tickClock`): a frame the page could not draw is a pause in the throw, not a jump
+  spinEase = { a0, d, t0, dur, at: 0, prev: t0 };
 }
 let dragFrac: number | null = null;     // where a scrub is holding the cursor, while it lasts
 // The progress the star is turned to. A drag along the band moves the cursor
@@ -1598,7 +1749,27 @@ function buildRim() {
 // The two are built in one pass and cleared in one pass, so a guard on either
 // of them covers both.
 let nextLaneG: Mark<SVGGElement> | null = null;
+/** the coming plan the layer above drew before the coming plan changed, going out under it (round ring-seam) */
+let nextLaneWas: Mark<SVGGElement> | null = null;
 let nextInfoText: Mark<SVGTextElement> | null = null;
+/** what the next theme's label last said, its underline included */
+let nextSaid = '';
+/**
+ * **A text whose one part is underlined** (round pl-clock): the parts in order, the one at `at` in a tspan with the
+ * text's own underline — a thin line in the text's own ink, no glow and no colour of its own — or none (`at` -1),
+ * written as plain text.
+ */
+function underlined(text: SVGTextElement, parts: string[], at: number): void {
+  if (at < 0) { text.textContent = parts.join(''); return; }
+  text.textContent = '';
+  parts.forEach((part, i) => {
+    if (i !== at) { text.append(part); return; }
+    const t = document.createElementNS(NS, 'tspan');
+    t.setAttribute('text-decoration', 'underline');
+    t.textContent = part;
+    text.append(t);
+  });
+}
 
 // One lane is drawn as three circles of the same radius, one per loudness
 // step, each with a dash pattern that is literally the bars it plays.
@@ -1679,8 +1850,9 @@ function buildTimeline(r: Readout) {
   // thing the ring is ever handed: it is drawn from the first readout onwards
   drawLanes(gTimeline, r.lanes!, r.bars, {});
   lastShadeF = -1;
-  if (nextLaneG) { clear(nextLaneG); put(nextLaneG, 'opacity', 0); }
-  if (nextInfoText) { nextInfoText.textContent = ''; put(nextInfoText, 'opacity', 0); }
+  // (the coming theme's layer is not cleared here: at a swap it holds the arrived theme's lanes while the band
+  // takes them on underneath, and lands, round ring-seam; `paintNext` draws it again only when the coming plan is
+  // another one)
 
   // the plan: which section each stretch of the theme is
   for (const s of r.plan) {
@@ -1774,37 +1946,123 @@ function drawSubMarks(r: Readout) {
 // theme's seed, and the band showed the old plan's lanes for the whole approach
 // while the line beside it named the new one.
 let nextDrawnFor: object | null = null;
+
+/**
+ * **The coming theme, as one story across a seam** (round ring-seam, 10-30). Eugene: *"the ring gets blurry line way
+ * too ahead of when mixing starting, I wonder why so?"*, and *"when the new track starts through the mix, ring has
+ * one picture (not blurred) and then couple of seconds later another, I always get confused"*.
+ *
+ * It was drawn off `mix.approach`, the thirty-two bars before the plan's own seam, at once at a fifth of its
+ * brightness, and then off `mix.transition`, which runs over the whole blend: past the swap the layer was cleared
+ * and drawn again with the theme *after* the one arriving, brightening over the band while the seam's shade dimmed
+ * it, and at the blend's end both went in one frame. MEASURED (seed 97369, chromium, before): the band sharp at the
+ * swap with the theme after next's halo over it from there, a second picture, and at the blend's end, nine seconds
+ * on, the halo gone and the shade lifted in a frame, a third.
+ *
+ * Now, on the transport's own seam (`mix.lead`, `crossing`, `landing`, control.ts):
+ *   - **the lead**: from nothing over the record's last eight bars before the crossfade begins, to `NEXT_LEAD`;
+ *   - **the crossing**: from the blend's first instant to the swap, it slides into the band and brightens to
+ *     `NEXT_PEAK` while the band behind it goes under the shade, nearly out at the swap (`SHADE_SWAP`);
+ *   - **the landing**: at the swap the band is drawn again with the arrived theme's lanes under that shade, the very
+ *     lanes this layer holds over it; from the swap to the blend's end the layer goes out and the shade lifts, so
+ *     the band comes up through it. The layer is not drawn again in the landing: what it holds is what arrived.
+ * A coming plan that changes (a pull, a playlist's ask, a cast) goes out under the new one (`nextLaneWas`), and
+ * every value reaches its reading through a short ease (`NEXT_EASE_MS`), so a seek, a press or a landed plan that
+ * moves the reading moves the picture by a fade and never by a step. Under reduced motion the values are taken as
+ * they are read.
+ */
+const NEXT_LEAD = 0.5;
+const NEXT_PEAK = 0.92;
+const SHADE_SWAP = 0.85;
+const NEXT_EASE_MS = 280;
+/** what the layer shows now, eased: its opacity, how far it has slid into the band, the band's shade */
+const nextShown = { op: 0, slide: 0, shade: 0, at: 0 };
+/** the old layer's opacity as it goes out, and when it began to */
+const nextWas = { op: 0, from: 0, t0: -1 };
+const NEXT_WAS_MS = 600;
+const easeIO = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+/** The reading the layer is heading for, off the readout. */
+function nextTarget(r: Readout | null): { op: number; slide: number; shade: number; landing: boolean } {
+  if (!r) return { op: 0, slide: 0, shade: 0, landing: false };
+  const m = r.mix;
+  // the bench's crossing (`ring.cross`, `ring.setTransition`): drawn as a crossing that has had its lead
+  const bench = transition;
+  const crossing = Math.max(m.crossing || 0, bench);
+  const landing = !bench && !!m.seam && m.seam.laid && (m.crossing || 0) >= 1;
+  if (landing) {
+    const l = easeIO(clamp(m.landing || 0, 0, 1));
+    return { op: NEXT_PEAK * (1 - l), slide: 1, shade: SHADE_SWAP * (1 - l), landing: true };
+  }
+  if (crossing > 0) {
+    const c = easeIO(clamp(crossing, 0, 1));
+    return { op: NEXT_LEAD + (NEXT_PEAK - NEXT_LEAD) * c, slide: c, shade: SHADE_SWAP * c, landing: false };
+  }
+  return { op: NEXT_LEAD * clamp(m.lead || 0, 0, 1), slide: 0, shade: 0, landing: false };
+}
+
 function paintNext(r: Readout | null) {
   if (!nextLaneG) return;
-  // The coming theme shows through as the seam nears, then crosses over it.
-  const approach = r ? (r.mix.approach || 0) * 0.45 : 0;
-  const t = Math.max(transition, r ? r.mix.transition : 0, approach);
+  const now = performance.now();
+  const want = nextTarget(r);
+  const dt = nextShown.at ? Math.min(250, Math.max(0, now - nextShown.at)) : 0;
+  nextShown.at = now;
+  const k = REDUCED || !dt ? 1 : 1 - Math.exp(-dt / NEXT_EASE_MS);
+  // the first frame takes the reading as it is: a ring built mid-seam does not fade up to where it already is
+  for (const key of ['op', 'slide', 'shade'] as const) nextShown[key] += (want[key] - nextShown[key]) * k;
+  // the old plan going out, on its own short clock (an animation is never cut: a second change replaces what goes)
+  if (nextLaneWas && nextWas.t0 >= 0) {
+    const q = REDUCED ? 1 : clamp((now - nextWas.t0) / NEXT_WAS_MS, 0, 1);
+    put(nextLaneWas, 'opacity', (nextWas.from * (1 - q)).toFixed(3));
+    if (q >= 1) { nextWas.t0 = -1; clear(nextLaneWas); }
+  }
   const info = r && r.mix.next;
-  if (!info || t <= 0.001) {
+  const op = nextShown.op;
+  put(shadeAll, 'fill-opacity', (nextShown.shade > 0.002 ? nextShown.shade : 0).toFixed(3));
+  if (op <= 0.002 && !want.landing && want.op <= 0) {
     put(nextLaneG, 'opacity', 0);
     put(nextInfoText!, 'opacity', 0);
-    // give the band its own brightness back: a seam that came and went, or a
-    // seek away from one, must not leave the lanes dimmed
-    put(shadeAll, 'fill-opacity', 0);
     return;
   }
-  if (nextDrawnFor !== info.lanes) {
+  // **in the landing the layer holds what arrived** and is not drawn again from the readout, whose coming theme is
+  // the one after it by now
+  if (!want.landing && info && nextDrawnFor !== info.lanes) {
+    if (nextDrawnFor && op > 0.02 && nextLaneWas) {
+      // the plan it showed goes out under the new one, from where it stands (round ring-seam)
+      const was = nextLaneG;
+      nextLaneG = nextLaneWas;
+      nextLaneWas = was;
+      clear(nextLaneG);
+      nextWas.from = op;
+      nextWas.t0 = now;
+      put(nextLaneWas, 'opacity', op.toFixed(3));
+      nextLaneG.parentNode!.insertBefore(nextLaneWas, nextLaneG);
+    } else clear(nextLaneG);
     nextDrawnFor = info.lanes;
-    clear(nextLaneG);
     // the coming theme's lanes, so the next minutes are visible before they play
     drawLanes(nextLaneG, info.lanes!, info.bars, { rOffset: -5, scale: 0.42, dim: 1, initials: false, halo: true });
   }
   // the crossing: the next theme slides into the band as the old one leaves
-  const slide = 5 * t;
-  put(nextLaneG, 'transform', `translate(${C} ${C}) scale(${(1 + (slide / R_LANE0)).toFixed(4)}) translate(${-C} ${-C})`);
-  put(nextLaneG, 'opacity', (0.22 + 0.7 * t).toFixed(3));
-  // the band behind it dims as it arrives: a shade over the whole band, under
-  // the coming lanes, in the layer that is repainted anyway
-  const fade = t > 0.02 ? 1 - t * 0.75 : 1;
-  put(shadeAll, 'fill-opacity', ((1 - fade) * SHADE_SEAM).toFixed(3));
-  const label = `${String(info.key).replace('minor', 'min').replace('dorian', 'dor').replace('mixolydian', 'mix').replace('lydian', 'lyd').replace('phrygian', 'phr')} · ${info.bpm} · ${info.durationLabel}`;
-  if (nextInfoText!.textContent !== label.toUpperCase()) nextInfoText!.textContent = label.toUpperCase();
-  put(nextInfoText!, 'opacity', (0.25 + 0.5 * t).toFixed(3));
+  const slide = 5 * nextShown.slide;
+  const tf = `translate(${C} ${C}) scale(${(1 + (slide / R_LANE0)).toFixed(4)}) translate(${-C} ${-C})`;
+  put(nextLaneG, 'transform', tf);
+  if (nextLaneWas && nextWas.t0 >= 0) put(nextLaneWas, 'transform', tf);
+  put(nextLaneG, 'opacity', op.toFixed(3));
+  if (!info || want.landing) {
+    // the label goes with the layer: in the landing it still names what arrived
+    put(nextInfoText!, 'opacity', (nextSaid ? 0.82 * op : 0).toFixed(3));
+    return;
+  }
+  const key = String(info.key).replace('minor', 'min').replace('dorian', 'dor').replace('mixolydian', 'mix').replace('lydian', 'lyd').replace('phrygian', 'phr');
+  const label = `${key} · ${info.bpm} · ${info.durationLabel}`.toUpperCase();
+  // **The tempo a playlist's clock plays it at is underlined** (round pl-clock): one thin line under the number, the
+  // ring's line work, and nothing else; the tempo is the one it will be heard at
+  const said = info.listed ? `${label}̲` : label;
+  if (nextSaid !== said) {
+    nextSaid = said;
+    underlined(nextInfoText!, [`${key} · `.toUpperCase(), String(info.bpm), ` · ${info.durationLabel}`.toUpperCase()], info.listed ? 1 : -1);
+  }
+  put(nextInfoText!, 'opacity', (0.82 * op).toFixed(3));
 }
 
 // ==========================================================================
@@ -2087,7 +2345,7 @@ function buildLinks(r: Readout, verts: string[]) {
     const d = `M${verts[p.a]} L${verts[p.b]}`;
     let dot: Mark<SVGPathElement> | null = null;
     if (p.kind === 'dotted') {
-      dot = el('path', { class: 'dot', d, fill: 'none', stroke: 'url(#gold)', 'stroke-width': dotW().toFixed(3), 'stroke-linecap': 'butt', opacity: DASH_OP, 'data-link': `${p.a}-${p.b}` }, under);
+      dot = el('path', { class: 'dot', d, fill: 'none', stroke: 'url(#goldLive)', 'stroke-width': dotW().toFixed(3), 'stroke-linecap': 'butt', opacity: DASH_OP, 'data-link': `${p.a}-${p.b}` }, under);
       dot.style.strokeDasharray = dashOf();
     }
     linkLines.push({ ...p, dot, trace: null!, wide: null!, crisp: null!, lit: linkLit.get(`${p.a}-${p.b}`) ?? 0,
@@ -2246,7 +2504,9 @@ function flexStar(now: number, words = true): boolean {
   if (!hand && !cellsMoved && now - flexAt < 33) return false;
   flexAt = now;
   cellsMoved = false;
-  const t = flexing ? now / 1000 : 0;
+  // the wander's own clock, which stands still while the birds are held (`holdBirds`): read off the frame's time it
+  // ran on from the wall clock, so a window coming back to the front found every bird a step away and jumped there
+  const t = flexing ? ((heldFrom || now) - heldFor) / 1000 : 0;
   const verts = starVerts(t);
   const ds = starPaths(t, verts);
   for (let i = 0; i < flexLines.length; i++) {
@@ -2741,7 +3001,7 @@ function focusRing(parent: Element, cx: number, cy: number, r: number): Mark<SVG
   const dash = ORN_DASH[0] / (ORN_DASH[0] + ORN_DASH[1]);
   return el('circle', {
     class: 'focusRing', cx: cx.toFixed(1), cy: cy.toFixed(1), r: r.toFixed(2), fill: 'none',
-    stroke: 'url(#gold)', 'stroke-width': ornW().toFixed(2), opacity: 0, 'aria-hidden': 'true',
+    stroke: 'url(#goldLive)', 'stroke-width': ornW().toFixed(2), opacity: 0, 'aria-hidden': 'true',
     'stroke-dasharray': `${(u * dash).toFixed(2)} ${(u * (1 - dash)).toFixed(2)}`,
   }, parent);
 }
@@ -2960,6 +3220,8 @@ interface Box { x: number; y: number; w: number; h: number }
  */
 interface CellNode {
   id: CellId;
+  /** Ember's tempo underlined as a playlist's clock's (round pl-clock) */
+  listed?: boolean;
   layer: string;
   g: Mark<SVGGElement>;
   knot: Mark<SVGGElement>;
@@ -2978,6 +3240,8 @@ interface CellNode {
   lines: Mark<SVGGElement>;
   /** the lines fading out while the new reading fades in, the strength they left at, and when */
   linesOut: Mark<SVGGElement> | null;
+  /** the box the lines fading out were measured in, so they stand off the bird at their own size (`putLinesOut`) */
+  bbOut: DOMRect | null;
   linesFrom: number;
   linesAt: number;
   /** what the three lines were last given, or nothing before the first paint */
@@ -3258,7 +3522,7 @@ function buildCells(r: Readout) {
     if (sz !== 1) knot.setAttribute('transform', `translate(${kx.toFixed(1)} ${ky.toFixed(1)}) scale(${sz.toFixed(4)})`);
     const bird2 = birdOf(c.id);
     const node: CellNode = { ...c, g, knot, glyph: gl, glyphLevel, glyphOut: null, fadeAt: 0,
-      title, word, sub, sub2, lines, linesOut: null, linesFrom: 1, linesAt: 0, saidLines: '', consequent: false, sub2Full: '', tight: false, gt, bb, hg, x, y, f,
+      title, word, sub, sub2, lines, linesOut: null, bbOut: null, linesFrom: 1, linesAt: 0, saidLines: '', consequent: false, sub2Full: '', tight: false, gt, bb, hg, x, y, f,
       dx: kx - x, dy: ky - y, wx: 0, wy: 0, put: '', putKnot: '', putHalo: halo,
       bird: bird2, pendFill, holdArc, markWide, markCrisp, orn,
       markAt: was ? was.mark : 0, ornAt: was ? was.orn : 0, markSaid: '',
@@ -3823,6 +4087,7 @@ function turnWords(turnDeg: number, force: boolean) {
       const aim = boxAtE(dir[0], dir[1]);
       placed[i] = aim;
       wordAt[i] = { box, aim, bird: b, side: was, cost: NaN, below: NaN, t: now };
+      putLinesOut(c, b, box, Math.cos(a0), Math.sin(a0));
       const ox = box.x + w / 2 - (c.bb.x + w / 2);
       const oy = box.y + h / 2 - (c.bb.y + h / 2);
       const [lx, ly] = rot(ox, oy, -t);
@@ -3911,6 +4176,7 @@ function turnWords(turnDeg: number, force: boolean) {
     placed[i] = aim;
     if (fresh && bestN > 0) crowded.push(i);
     wordAt[i] = { box, aim, bird: b, side: best, cost: bestN, below: NaN, t: now };
+    putLinesOut(c, b, box, Math.cos(a0), Math.sin(a0));
     // the words' own origin, off the box's centre, back into the star's frame
     const ox = box.x + w / 2 - (c.bb.x + w / 2);
     const oy = box.y + h / 2 - (c.bb.y + h / 2);
@@ -3922,6 +4188,24 @@ function turnWords(turnDeg: number, force: boolean) {
   // asked first on the next frame, before its neighbours take the room it needs
   if (crowded.length) wordSeq = [...crowded, ...wordSeq.filter((j) => !crowded.includes(j))];
   placer.ms += performance.now() - began;
+}
+
+/**
+ * **The reading fading out stands off the bird at its own size** (drag-words, 10-29). A reading that changes under
+ * a hand cross-fades over `GLYPH_FADE`, the old lines a copy inside the words' group; the box is measured without
+ * them, so the group is placed for the new lines alone, and where the old ones were wider (Gleam dragged, its words
+ * on its left, "D MIN · I-VI-III-VII-I-V-VI" giving way to "D MIN · I-III") they hung centred on the narrower box,
+ * half their extra width over the bird, for the length of the fade. The old lines are put where their own box
+ * stands now, in the same direction off the bird at the same gap, so both readings follow the bird and neither
+ * meets it; the fade runs as it did.
+ */
+function putLinesOut(c: CellNode, b: { x: number; y: number; r: number }, box: Box, dx: number, dy: number) {
+  const o = c.bbOut;
+  if (!c.linesOut || !o) return;
+  const ob = wordBoxOff(b.r, o.width, o.height, b.x, b.y, dx, dy);
+  const tx = ob.x - o.x - (box.x - c.bb.x);
+  const ty = ob.y - o.y - (box.y - c.bb.y);
+  put(c.linesOut, 'transform', `translate(${tx.toFixed(1)} ${ty.toFixed(1)})`);
 }
 
 /**
@@ -4289,6 +4573,7 @@ function paintCell(c: CellNode, r: Readout) {
       c.lines.parentNode!.insertBefore(out, c.lines);
       put(out, 'opacity', from.toFixed(3));
       c.linesOut = out;
+      c.bbOut = c.bb;
       c.linesFrom = from;
       c.linesAt = performance.now();
       put(c.lines, 'opacity', 0);
@@ -4297,6 +4582,14 @@ function paintCell(c: CellNode, r: Readout) {
   }
   c.consequent = moved;
   if (c.word.textContent !== up) c.word.textContent = up;
+  // **The tempo a playlist's clock holds is underlined** (round pl-clock): Ember's word is the tempo heard, and where
+  // that is the list's and not the theme's own, one thin line under it, the ring's line work; a hand's reading or a
+  // move's consequence is the theme's own and carries none
+  const listed = c.id === 'bpm' && r.listBpm != null && !(owned && hand) && !moved && v.word === String(tempoNow(r));
+  if (c.listed !== listed) {
+    c.listed = listed;
+    if (listed) c.word.setAttribute('text-decoration', 'underline'); else c.word.removeAttribute('text-decoration');
+  }
   if (c.sub.textContent !== su) c.sub.textContent = su;
   if (c.sub2.textContent !== su2) c.sub2.textContent = su2;
   if (changed) resizeWords(c);
@@ -4409,7 +4702,7 @@ function runLinesFade(now: number) {
     const p = clamp((now - c.linesAt) / GLYPH_FADE, 0, 1);
     put(c.lines, 'opacity', p.toFixed(3));
     put(c.linesOut, 'opacity', (c.linesFrom * (1 - p)).toFixed(3));
-    if (p >= 1) { c.linesOut.remove(); c.linesOut = null; }
+    if (p >= 1) { c.linesOut.remove(); c.linesOut = null; c.bbOut = null; }
   }
 }
 
@@ -4777,9 +5070,85 @@ const reading = (r: Readout | null) => started || sounding(r);
 let seedText!: Mark<SVGTextElement>, chordText!: Mark<SVGTextElement>,
   notesText!: Mark<SVGTextElement>, sectionText!: Mark<SVGTextElement>,
   themeText!: Mark<SVGTextElement>, coreScale!: Mark<SVGGElement>, coreTextG!: Mark<SVGGElement>;
-// The four beat dots light in turn, four times a bar: they sit beside the
-// bloomed star, because a write inside it re-blurred the whole star.
+// The beat dots light in turn, one a beat: they sit beside the bloomed star,
+// because a write inside it re-blurred the whole star.
 let gBeat: Mark<SVGGElement> | null = null, beatDots: Mark<SVGCircleElement>[] = [];
+/** one dot in each gap between two neighbouring keys */
+const BEAT_GAPS = Object.keys(ACT_F).length;
+const BEAT_R = 2.2;
+const BEAT_LIT = 0.95, BEAT_DIM = 0.2;
+
+/**
+ * **The ring's own beat count** (beat-five, 10-26), which the lit dot is (mod
+ * five). It is read off the readout's bar and beat in the bar and nothing
+ * else, so the TV's page counts the same way off its feed. Inside one theme it
+ * moves by the beats the theme moved; where the theme changes hands (a seam,
+ * a skip, a back, a cast: the seed, the record or the theme's number changes)
+ * or the place jumps back, it moves on by one beat and does not start again at
+ * nought, so a new theme's bar one never sends the dot back to the first gap.
+ * It stands still through a pause. Never played, it is −1.
+ */
+const beatRun: { seed: Readout['seed'] | null; strategy: Readout['strategy'] | null; theme: number; at: number; n: number } =
+  { seed: null, strategy: null, theme: 0, at: 0, n: -1 };
+function beatCount(r: Readout): number {
+  const at = r.bar * 4 + r.beatInBar;
+  const same = r.seed === beatRun.seed && r.strategy === beatRun.strategy && r.mix.themeNumber === beatRun.theme;
+  if (beatRun.n < 0) beatRun.n = at;
+  else if (same && at >= beatRun.at) beatRun.n += at - beatRun.at;
+  else if (!same || at !== beatRun.at) beatRun.n += 1;
+  beatRun.seed = r.seed;
+  beatRun.strategy = r.strategy;
+  beatRun.theme = r.mix.themeNumber;
+  beatRun.at = at;
+  // the TV's page lights the phone's dot: the phone's count, said as its offset off the theme's own beat
+  if (beatSaid && beatSaid.seed === String(r.seed) && beatSaid.strategy === r.strategy && beatSaid.theme === r.mix.themeNumber)
+    beatRun.n = at + beatSaid.off;
+  return beatRun.n;
+}
+/**
+ * **The count as the TV takes it** (10-26): a TV's page starts counting when it starts following, so its lit dot
+ * stood a few gaps off the phone's. The phone says its count as an offset off the theme's own beat, which holds
+ * still inside a theme, so the delay the TV waits never puts it a beat out.
+ */
+export interface BeatSaid { seed: string; strategy: string; theme: number; off: number }
+let beatSaid: BeatSaid | null = null;
+function beatOffset(): BeatSaid | null {
+  return beatRun.n < 0 || beatRun.seed === null || beatRun.strategy === null ? null
+    : { seed: String(beatRun.seed), strategy: beatRun.strategy, theme: beatRun.theme, off: beatRun.n - beatRun.at };
+}
+
+/**
+ * The dots for a readout: the beat's dot lit, and on a bar's first beat the
+ * blink, which falls away over the beat (`live`); a still or paused picture
+ * draws the lit dot alone, so it holds no mark. Under reduced motion the blink
+ * does not fade: the downbeat's dot is drawn blinked for its beat and steps
+ * back at the next, one write each.
+ */
+function paintDots(r: Readout, live: boolean): void {
+  if (!beatDots.length) return;
+  const n = beatCount(r);
+  const on = n % BEAT_GAPS;
+  if (n !== lastBeatDrawn) {
+    unblink();
+    lastBeatDrawn = n;
+    for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === on ? BEAT_LIT : BEAT_DIM);
+  }
+  const k = !live || r.beatInBar !== 0 ? 0 : REDUCED ? 1 : +((1 - r.beatPhase) ** 2).toFixed(2);
+  if (k !== blinkDrawn) blinkAt(on, k);
+}
+
+/** what the blink was last written at, nought to one (−1 before a dot is drawn), and on which dot */
+let blinkDrawn = -1, blinkOn = 0;
+function blinkAt(i: number, k: number): void {
+  blinkDrawn = k;
+  blinkOn = i;
+  // the dot itself, at twice its radius and falling back: line work, no glow
+  beatDots[i].setAttribute('r', (BEAT_R + 2.2 * k).toFixed(2));
+}
+/** the blink let go, wherever it was: a step, a pause */
+function unblink(): void {
+  if (blinkDrawn > 0 && beatDots[blinkOn]) blinkAt(blinkOn, 0);
+}
 
 function buildCore(r: Readout) {
   clear(gCore);
@@ -5265,8 +5634,12 @@ function buildLive() {
   // bloom show through it, so 0.4 opacity read brighter than 0.4 of the light.
   shadePlayed = el('path', { d: '', fill: SHADE_INK, 'fill-opacity': SHADE_PLAYED }, gOuterLive);
   shadeAll = el('path', { d: wedge(SHADE_LO, SHADE_HI, 0, 0.9999), fill: SHADE_INK, 'fill-opacity': 0 }, gOuterLive);
-  // the coming theme, drawn the same way in a dimmer tone, above the shades
-  nextLaneG = el('g', { opacity: 0 }, gOuterLive);
+  // the coming theme, drawn the same way in a dimmer tone, above the shades, and the plan it showed before going
+  // out under it (round ring-seam)
+  // (cut in the coming gold, `.next`: the coming theme's lanes wear its colour, round ring-seam)
+  nextLaneWas = el('g', { opacity: 0, class: 'next' }, gOuterLive);
+  nextLaneG = el('g', { opacity: 0, class: 'next' }, gOuterLive);
+  nextWas.t0 = -1;
   // what is coming: its key, its tempo and how long it runs
   nextInfoText = txt(gOuterLive, '', C, (C + 458).toFixed(1), 12, { op: 0, ls: 0.22 });
   nextDrawnFor = null;
@@ -5289,7 +5662,7 @@ function buildLive() {
   const TRI = roundQuad([[C - 26, C - 37], [C + 41, C], [C - 26, C + 37]], dieCorner(CTRL_R) * (37 / (CTRL_R * 0.46)));
   bigPlay = el('g', { opacity: 1 }, gInnerLive);
   ink(el('path', { d: TRI, fill: 'none', 'stroke-width': 9, opacity: 0.13, ...ROUND_ENDS }, bigPlay), 'stroke', '#ffe0a0');
-  el('path', { d: TRI, fill: 'none', stroke: 'url(#gold)', 'stroke-width': 2.4, ...ROUND_ENDS }, bigPlay);
+  el('path', { d: TRI, fill: 'none', stroke: 'url(#goldLive)', 'stroke-width': 2.4, ...ROUND_ENDS }, bigPlay);
 
   // a cell, answering a tap: one line engraved along the ring beside it
   tellPath = el('path', { id: 'tellPath', d: '', fill: 'none' }, gInnerLive);
@@ -5307,21 +5680,24 @@ function buildLive() {
   tellTP.setAttribute('text-anchor', 'middle');
   tellText.appendChild(tellTP);
 
-  // The four beats of the bar; the one you are on is lit. Each dot sits in a
-  // gap between two of the star's keys (star-keys: the four gaps either side
-  // of the two upper points, 0.1, 0.3, 0.7 and 0.9 of a turn), so the bar
-  // still begins just after twelve o'clock and runs clockwise, and no dot falls
-  // inside a node to read as a mark of the node's own; the gap at the star's
-  // foot, between love and the dice, is the seed's.
-  gBeat = el('g', {}, gInnerLive);
+  // **Five dots, one in every gap between two keys** (beat-five, 10-26), the
+  // foot's between the dice and love included, each at its gap's middle. The
+  // lit one is the ring's own running beat, so it steps one gap clockwise a
+  // beat; a bar is four beats and the ring five gaps, so every bar begins one
+  // dot earlier than the last and the same dot comes round again in five bars.
+  // At rest the five are alike: the bar's first beat is told by a blink and
+  // nothing is held, so no dot stands marked to read as a thing to press.
+  gBeat = el('g', { id: 'beatDots' }, gInnerLive);
   beatDots = [];
-  for (let i = 0; i < 4; i++) {
-    const f = [0.1, 0.3, 0.7, 0.9][i];
+  for (let i = 0; i < BEAT_GAPS; i++) {
+    const f = (i + 0.5) / BEAT_GAPS;
     beatDots.push(el('circle', {
       cx: px(f, R_CORE_IN - 6).toFixed(1), cy: py(f, R_CORE_IN - 6).toFixed(1),
-      r: i === 0 ? 3 : 2.2, fill: 'url(#gold)', opacity: 0.25,
+      r: BEAT_R, fill: 'url(#goldLive)', opacity: 0.25,
     }, gBeat));
   }
+  lastBeatDrawn = -1;
+  blinkDrawn = -1;
 
   haloOn = [];
   haloFlash = [];
@@ -5550,14 +5926,48 @@ function runTell(now: number) {
 
 // ==========================================================================
 // the cast
-const cast: {
+/**
+ * **A motion's own clock** (smooth-motion, 10-24). The cast, the flash, the cross and a throw's ease ran on the wall
+ * clock, so a frame the page could not draw (the rebuild at a cast's swap, a first frame behind fonts and layout) was
+ * the motion jumped ahead by the whole wait: the opening's first visible frame stood half way through its turn. Each
+ * now runs on the frames that draw it, a frame's step at most `FRAME_STEP` as every spring's is: at any rate a screen
+ * keeps it lands where and when it did, more frames draw it finer, and a stall is a pause, never a jump.
+ */
+interface MotionClock { at: number; prev: number }
+function tickClock(c: MotionClock, now: number): number {
+  c.at += Math.min(FRAME_STEP, Math.max(0, now - c.prev));
+  c.prev = Math.max(c.prev, now);
+  return c.at;
+}
+const cast: MotionClock & {
   t0: number; dur: number; collapse: number; swapped: boolean;
   /** the redraw held until the old sigil has folded away */
   pending: (() => void) | null;
   kind: string;
-} = { t0: -1, dur: 1550, collapse: 0.17, swapped: true, pending: null, kind: 'full' };
-const flash = { t0: -1, dur: 460 };
-const cross = { t0: -1, dur: 1100 };
+  /** the opening's clock has started: the page is drawing steadily (`openReady`) */
+  ready: boolean;
+} = { t0: -1, dur: 1550, collapse: 0.17, swapped: true, pending: null, kind: 'full', at: 0, prev: 0, ready: true };
+const flash = { t0: -1, dur: 460, at: 0, prev: 0 };
+const cross = { t0: -1, dur: 1100, at: 0, prev: 0 };
+/**
+ * **The opening** (smooth-motion, his word 10-24: *"when I just start the app, the animation is kind of like too quick
+ * and choppy and abrupt"*). It was the short cast, 430 ms on the wall clock from the module's own run, drawn at the
+ * ring's 30 a second: ten frames, its first visible one already half way through the star's turn, up to 74° a frame.
+ * It is the same choreography at the length the dice's own arrival has (the full cast after its fold, 1286 ms), on
+ * its own clock from the first frame the page draws steadily, at the screen's rate.
+ */
+const OPEN_MS = Math.round(1550 * (1 - 0.17));
+/** the most the opening waits for a steady page (its fonts, its first layout) before it goes anyway */
+const OPEN_WAIT_MS = 900;
+let openFirst = 0, openSteady = 0;
+/** Whether the page draws steadily enough to start the opening: its face is in, and two frames came on time. */
+function openReady(now: number): boolean {
+  if (!openFirst) openFirst = now;
+  const fonts = typeof document === 'undefined' || !document.fonts || document.fonts.status === 'loaded';
+  const dt = cast.prev ? now - cast.prev : Infinity;
+  openSteady = dt <= FRAME_STEP ? openSteady + 1 : 0;
+  return (fonts && openSteady >= 2) || now - openFirst >= OPEN_WAIT_MS;
+}
 
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
@@ -5582,15 +5992,20 @@ function startCast(kind: string, rebuild: (() => void) | null) {
   // how hard the dice were thrown, and it relaxes onto a whole turn by itself.
   // Every other way in — the tap, the reset — clears it before calling here.
   cast.t0 = performance.now();
+  cast.at = 0;
+  cast.prev = cast.t0;
   cast.kind = kind;
-  cast.dur = kind === 'short' ? 430 : 1550;
-  cast.collapse = kind === 'short' ? 0 : 0.17;
-  cast.swapped = kind === 'short';
+  // ('open' is the opening's: the short cast's arrival, unhurried, from a steady page)
+  const arrival = kind === 'short' || kind === 'open';
+  cast.dur = kind === 'short' ? 430 : kind === 'open' ? OPEN_MS : 1550;
+  cast.collapse = arrival ? 0 : 0.17;
+  cast.swapped = arrival;
+  cast.ready = kind !== 'open';
   cast.pending = rebuild || null;
-  if (kind === 'short' && rebuild) { rebuild(); cast.pending = null; }
+  if (arrival && rebuild) { rebuild(); cast.pending = null; }
 }
-const startFlash = () => { flash.t0 = performance.now(); };
-const startCross = () => { cross.t0 = performance.now(); };
+const startFlash = () => { flash.t0 = flash.prev = performance.now(); flash.at = 0; };
+const startCross = () => { cross.t0 = cross.prev = performance.now(); cross.at = 0; };
 
 function resetCastState() {
   layerTransform(outerSvg, Z_OUTER, 0, 1);
@@ -5636,7 +6051,12 @@ function runCast(now: number) {
   // Under reduced motion a cast is its end state, drawn at once: the new sigil,
   // no fold, no turn, no ring leaving the circle (R53). The bench's frozen
   // frame is still the frame it asks for.
-  const p = castFreeze == null ? (REDUCED ? 1 : clamp((now - cast.t0) / cast.dur, 0, 1)) : castFreeze;
+  // the opening holds at its start until the page draws steadily, its clock still (`openReady`)
+  if (!cast.ready && castFreeze == null && !REDUCED) {
+    cast.ready = openReady(now);
+    cast.prev = now;
+  }
+  const p = castFreeze == null ? (REDUCED ? 1 : !cast.ready ? 0 : clamp(tickClock(cast, now) / cast.dur, 0, 1)) : castFreeze;
   const c = cast.collapse;
 
   if (p < c) {
@@ -5692,7 +6112,10 @@ function runCast(now: number) {
   // one ring leaves the circle: the cast
   const rp = clamp(q / 0.72, 0, 1);
   castRing.setAttribute('r', (110 + 420 * easeOutQuint(rp)).toFixed(1));
-  castRing.setAttribute('opacity', (0.75 * Math.pow(1 - rp, 1.6)).toFixed(3));
+  // (the opening's ring comes up out of nothing over its first frames rather than standing there at once, and not
+  // at all while the opening waits for a steady page)
+  const ringIn = cast.kind !== 'open' ? 1 : cast.ready ? clamp(q / 0.06, 0, 1) : 0;
+  castRing.setAttribute('opacity', (0.75 * ringIn * Math.pow(1 - rp, 1.6)).toFixed(3));
   castRing.setAttribute('stroke-width', (3 * (1 - rp) + 0.5).toFixed(2));
   glowSvg.style.opacity = String(clamp(q * 3, 0, 1));
 
@@ -5709,7 +6132,7 @@ function runCast(now: number) {
 function runFlash(now: number) {
   if (flash.t0 < 0) return;
   // the flash is ornament: under reduced motion it is not drawn at all
-  const p = REDUCED ? 1 : clamp((now - flash.t0) / flash.dur, 0, 1);
+  const p = REDUCED ? 1 : clamp(tickClock(flash, now) / flash.dur, 0, 1);
   for (let i = 0; i < haloFlash.length; i++) {
     const local = clamp((p - i * 0.06) / 0.3, 0, 1);
     haloFlash[i].setAttribute('opacity', (Math.sin(Math.PI * local) * 0.7).toFixed(3));
@@ -5720,7 +6143,7 @@ function runFlash(now: number) {
 
 function runCross(now: number) {
   if (cross.t0 < 0) return;
-  const p = REDUCED ? 1 : clamp((now - cross.t0) / cross.dur, 0, 1);
+  const p = REDUCED ? 1 : clamp(tickClock(cross, now) / cross.dur, 0, 1);
   transition = easeInOutQuart(p);
   if (p >= 1) { cross.t0 = -1; transition = 0; }
 }
@@ -5754,6 +6177,10 @@ const TILT_MAX = 4;
 interface Square { left: number; top: number; w: number; h: number }
 let square: Square | null = null;
 let squareFrame = -1;
+/** the square the ring is held at through a resize's drag (0: none) and the scale that puts it on the window's, and the
+ * end of the drag's tail (`viewportChanged`) */
+let holdSide = 0, holdK = 1;
+let resizeUntil = 0;
 let frameNo = 0;
 let handAt = -Infinity;
 function readSquare(): Square {
@@ -5761,9 +6188,11 @@ function readSquare(): Square {
   // one piece (`library-panel.ts`): its box on the screen over its laid-out width
   const s = stage.getBoundingClientRect();
   const k = stage.offsetWidth ? s.width / stage.offsetWidth : 1;
+  // and the square's own, through a resize's drag (`holdK`): the square held, scaled about its middle onto the window's
+  const w = tiltEl.offsetWidth || 1, h = tiltEl.offsetHeight || 1;
   return {
-    left: s.left + tiltEl.offsetLeft * k, top: s.top + tiltEl.offsetTop * k,
-    w: (tiltEl.offsetWidth || 1) * k, h: (tiltEl.offsetHeight || 1) * k,
+    left: s.left + (tiltEl.offsetLeft + w * (1 - holdK) / 2) * k, top: s.top + (tiltEl.offsetTop + h * (1 - holdK) / 2) * k,
+    w: w * holdK * k, h: h * holdK * k,
   };
 }
 function squareNow(): Square {
@@ -7627,7 +8056,8 @@ function transportFlipped(r: Readout) {
 
 function onReadout(r: Readout) {
   last = r;
-  coverDue(r);
+  // (the TV's page has no lock screen to hand a cover to, and no hand for the die: tv-mode.ts)
+  if (!TV_VIEW) coverDue(r);
   if (wasPlaying !== null && wasPlaying !== r.playing) transportFlipped(r);
   wasPlaying = r.playing;
   // **A start asked is a start** (the deep review of 10-08): the set counts as
@@ -7638,7 +8068,7 @@ function onReadout(r: Readout) {
   // the key first, whatever else this readout redraws: a press is answered in
   // the readout that carries it (K42)
   setPlayGlyph(sounding(r));
-  if (!tapPrep || tapPrep.key !== tapKey()) prepTap();
+  if (!TV_VIEW && (!tapPrep || tapPrep.key !== tapKey())) prepTap();
   // Which engine is playing decides whether the cells are controls at all, and
   // the engine can change under a set (the machine view's one control, and the
   // preview's toggle). A ring that has just become the record's puts every
@@ -7677,6 +8107,12 @@ function onReadout(r: Readout) {
     lastChange = r.change.n;
     // The plan's key is taken at once (R61): the next readout found it changed
     // and rebuilt the whole ring in the collapse, and then again at its end.
+    // **A new set that arrives at the record's own seam lands as a theme does** (round ring-seam, his word 10-30:
+    // *"when the new track starts through the mix, ring has one picture (not blurred) and then couple of seconds
+    // later another"*): a playlist's next track taken on the seam line crossed into the band through the blend, so
+    // the ring does not fold and sweep it in again at the swap. A cast a hand asked for (the die, a row, a step)
+    // takes the next line and is a cast, as ever.
+    if (reason === 'seed' && r.mix.seam && r.mix.seam.laid && r.mix.seam.own && r.mix.crossing >= 1) { redrawAll(r); startFlash(); return; }
     if (reason === 'seed') { lastPlanKey = planKeyOf(r); startCast('full', () => redrawAll(r)); return; }
     if (reason === 'theme') { redrawAll(r); startFlash(); return; }
     if (reason === 'refused') { startFlash(); return; }
@@ -7732,7 +8168,6 @@ function paintEngrave(r: Readout) {
 
 function restate(r: Readout) {
   lastPlanKey = planKeyOf(r);
-  nextDrawnFor = null;
   buildTimeline(r);
   repaintCells(r);
   paintHeld(r);
@@ -7743,7 +8178,6 @@ function restate(r: Readout) {
 
 function redrawAll(r: Readout) {
   lastPlanKey = planKeyOf(r);
-  nextDrawnFor = null;
   buildTimeline(r);
   buildSpin(r);
   buildCells(r);
@@ -7753,6 +8187,12 @@ function redrawAll(r: Readout) {
   lastBeatDrawn = -1;
   lastShadeF = -1;
   repaintCore(r);
+  // **The birds stand where the wander has them from the rebuild on** (smooth-motion, 10-24): built each on its spoke,
+  // they were drawn there until the frame's own redraw, which the wander's thirty a second can put a frame off, and a
+  // seam stepped every bird 8 units off its wander and back; while the window was away they stood there until it came
+  // back. Placed now, on the wander's own clock, which stands still while they are held.
+  cellsMoved = true;
+  flexStar(performance.now(), false);
 }
 
 // ==========================================================================
@@ -7802,13 +8242,12 @@ function snapStill() {
   // The beat dots are not a spring and are here for the same reason: a paused
   // set holds the dot that was lit when the hand came off the transport, which
   // is a moment no build decides. A still picture shows the beat the cursor is
-  // actually on, and two runs then light the same dot. A ring that has never
-  // played is left exactly as it is: its four dots are a quiet ring and lighting
-  // one of them would be the hook changing the picture rather than settling it.
-  if (last && beatDots.length && lastBeatDrawn >= 0) {
-    lastBeatDrawn = last.beatInBar;
-    for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === last.beatInBar ? 0.95 : 0.2);
-  }
+  // actually on, and two runs then light the same dot; the downbeat's blink is
+  // motion and is not drawn, so the picture holds no marked dot. A ring that
+  // has never played is left exactly as it is: its five dots are a quiet ring
+  // and lighting one of them would be the hook changing the picture rather
+  // than settling it.
+  if (last && beatRun.n >= 0) { lastBeatDrawn = -1; paintDots(last, false); }
 }
 
 /**
@@ -7932,13 +8371,38 @@ function paintCorona(e: number, k: number, soft: number) {
  */
 const FRAME_MIN_MS = 1000 / 60 - 3;
 const FRAME_REST_MS = 1000 / 30 - 3;
+/** With a TV shown, how long the phone goes without a hand before its ring draws at the rest rate (ms). */
+const TV_REST_MS = 3000;
+/**
+ * The app's measure of the TV's cost (Debug builds only, apple/Debug/TVTour.swift): a screen taken as a fast one, as
+ * a 120 Hz phone's is (the simulator's is 60), and the TV's ring at half its rate. Neither is set anywhere else.
+ */
+const FAST_SCREEN = typeof window !== 'undefined' && (window as { __deepHouseFastScreen?: boolean }).__deepHouseFastScreen === true;
+const TV_HALF = typeof window !== 'undefined' && (window as { __deepHouseTvHalf?: boolean }).__deepHouseTvHalf === true;
 /** the frame gap while the window is not the one in front: four a second, the play head alone */
 const FRAME_AWAY_MS = 250;
-/** and the mini player's, which stays in sight beside other work: the ring's own 30 a second at rest, the play head and
- * the beat, so the pulse reads as it does in front (10-21) */
+/**
+ * and the mini player's while it stays in sight beside other work: the whole ring at its own 30 a second, the birds
+ * wandering and a seam's travel drawn through (his word 10-24: *"when the birds were transitioning from one zone to
+ * another … the rings around birds and all these connecting lines were like frozen"*). Out of sight (covered, or the
+ * app hidden) its page is hidden and the screen draws nothing for it.
+ */
 const FRAME_MINI_AWAY_MS = FRAME_REST_MS;
 /** the screen's own frame gap, eased (a 120 Hz screen's is 8.3 ms) */
 let rawAt = 0, rawGap = 1000 / 60;
+/**
+ * **The moments that move** (smooth-motion, his word 10-24: *"when I spin the birds, it never feels like smooth … it's
+ * okay actually in those moments to boost FPS"*): a hand on the ring, a throw's ease, a cast (the opening's among
+ * them), a seam's flash and cross, a bird travelling to where its value puts it. They draw at the screen's own rate,
+ * a phone's too (it drew a spin at 30 on any screen capped at 60, as an app's web view is); everything else keeps
+ * the loop's pace above. **And the panel's opening and closing** (panel-motion, his word 10-24: "if I open the paper
+ * on the right, things are not as smooth"): the stage glides at the screen's rate, so the ring it carries turns at it
+ * too, and rests at 30 again once the zoom lands.
+ */
+function moving(now: number): boolean {
+  return !!dragging || !!spinEase || cast.t0 >= 0 || flash.t0 >= 0 || cross.t0 >= 0 || resizing(now) || libraryRolling()
+    || cellR.some((r, i) => Math.abs(r - cellTo[i]) > 0.05);
+}
 function atRest(now: number): boolean {
   return !!last && !sounding(last) && !dragging && now - handAt > 1500 && !spinEase && !playOut
     && cast.t0 < 0 && castFreeze == null && wobA <= 0.001 && !cellNodes.some((c) => c.glyphOut || c.linesOut)
@@ -7972,6 +8436,7 @@ function paintPulseNow(now: number, last: Readout): void {
     // music will begin, the core's pulse at rest — there is no beat to show
     // yet — and the point on the needle ticking on the planned beat.
     restPulse();
+    unblink();
     if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
     breathePoint(now, last);
   } else if (last.playing) {
@@ -7998,12 +8463,11 @@ function paintPulseNow(now: number, last: Readout): void {
       paintPulse(REDUCED ? 0 : e, k, soft, every, hard);
     }
     if (cursorFaded !== 1) { cursorFaded = 1; cursorG.setAttribute('opacity', 1); }
-    if (last.beatInBar !== lastBeatDrawn) {
-      lastBeatDrawn = last.beatInBar;
-      for (let i = 0; i < beatDots.length; i++) beatDots[i].setAttribute('opacity', i === last.beatInBar ? 0.95 : 0.2);
-    }
+    paintDots(last, true);
   } else {
     restPoint();
+    // a pause holds the lit dot and lets the blink go: nothing stays marked
+    unblink();
     if (cursorFaded !== 0.6) {
       cursorFaded = 0.6;
       restPulse();
@@ -8014,38 +8478,56 @@ function paintPulseNow(now: number, last: Readout): void {
 
 function frame(now: number) {
   if (frozen) return;                 // the ring is being photographed
+  // the TV's page takes the phone's clock for this frame (tv-view.ts)
+  if (tvView) tvView.tick(now);
+  // a resize's tail is over: the ring laid out at its true square before this frame draws (`viewportChanged`)
+  if (!resizing(now) && (holdSide || document.documentElement.dataset.resizing != null)) releaseHold();
   // (a phone draws every other frame of its screen — 30 a second at 60 Hz, 60
-  // at 120, as before K30 — but every frame while a hand pulls a bird; the
+  // at 120, as before K30 — but every frame while something moves; the
   // screen's own rate is read off the gaps between its frames)
   const pulling = !!dragging && dragging.kind === 'pull' && dragging.moved;
   if (rawAt) rawGap += ((now - rawAt) - rawGap) * 0.1;
   rawAt = now;
-  const fast = rawGap < 12;
+  const fast = rawGap < 12 || FAST_SCREEN;
   // **A hand on the ring runs at the screen's own rate** (K31): a drag, a spin
   // and the throw's ease after it are the picture following the hand, and the
   // 60 a second the rest of the loop keeps put the drawn star a frame behind
   // the hand on a faster screen (a glyph 8.4° off its circle through a whirl,
-  // a dragged bird's halo and ornament a step behind their ease). A phone keeps
-  // its own rule, every frame only while it pulls a bird, as before K30.
+  // a dragged bird's halo and ornament a step behind their ease). **And so does
+  // every moment that moves** (`moving`, smooth-motion), on a phone as on a desktop.
   const handDriven = !!dragging || !!spinEase;
-  const gap = COARSE
-    ? (atRest(now) ? FRAME_REST_MS : !pulling && !fast ? FRAME_REST_MS : pulling ? 0 : FRAME_MIN_MS)
+  // **The TV draws at its screen's rate** while the set plays (round tv-scene: the ring on the big screen is the one
+  // being watched), and rests as a desktop does when nothing moves. **The phone rests while the TV is shown** (his
+  // word 10-26, the battery): with no hand on it for `TV_REST_MS` the phone's ring draws at the rest rate, and a touch
+  // or a moment that moves brings it back to its full rate at once (`moving`, above).
+  const gap = TV_VIEW ? (atRest(now) || TV_HALF ? FRAME_REST_MS : 0)
+    : moving(now) ? 0
+    : COARSE ? (atRest(now) || !fast || (tvFeed.on && tvFeed.rest && now - handAt > TV_REST_MS) ? FRAME_REST_MS : FRAME_MIN_MS)
     // a desktop draws 30 a second while it plays and no hand is on it, as at rest (his word 10-21: the GPU), the birds'
-    // slow wander and the beat's marks reading the same at half the frames; a hand still gets the screen's own rate
-    : handDriven ? 0 : now - handAt < 800 ? FRAME_MIN_MS : FRAME_REST_MS;
+    // slow wander and the beat's marks reading the same at half the frames
+    : now - handAt < 800 ? FRAME_MIN_MS : FRAME_REST_MS;
   // **A window in the background draws at a walk** (his word 10-21: the GPU): seen but not the one in front (another
-  // app over it, the mini player while the hand works elsewhere), the ring is drawn `FRAME_AWAY_MS` apart while it
+  // app over it, the big window while the hand works elsewhere), the ring is drawn `FRAME_AWAY_MS` apart while it
   // plays, enough for the time and the play head
   // the birds hold still meanwhile (`holdBirds`), and with nothing playing nothing is drawn at all
   // (a desktop's question only: a phone's web view can say it has no focus while its app is in front, and iOS stops
   // drawing a background app itself; there it held the birds and the tilt still, his iPhone 10-21)
-  const away = !COARSE && !handDriven && !document.hasFocus();
+  // **The mini player in sight is not away** (10-24): it is the window meant to be watched beside other work, so it
+  // draws the whole ring at `FRAME_MINI_AWAY_MS`, its seams' travel included, and only a hidden one rests.
+  // (and a window resized by hand is in hand, in front or not, for the drag and its tail)
+  // (the TV's page is never in front, and never away: it is the screen being watched)
+  const unfocused = !TV_VIEW && !COARSE && !handDriven && !resizing(now) && !document.hasFocus();
+  const inSight = unfocused && smallWindow.on && document.visibilityState !== 'hidden';
+  const away = unfocused && !inSight;
   holdBirds(away);
   if (away && lastFrame && !(last && sounding(last))) { requestAnimationFrame(frame); return; }
-  if (lastFrame && now - lastFrame < (away ? (smallWindow.on ? FRAME_MINI_AWAY_MS : FRAME_AWAY_MS) : gap)) { requestAnimationFrame(frame); return; }
+  if (lastFrame && now - lastFrame < (away ? FRAME_AWAY_MS : inSight ? Math.max(gap, FRAME_MINI_AWAY_MS) : gap)) { requestAnimationFrame(frame); return; }
   if (lastFrame) { deltas[dIdx % deltas.length] = now - lastFrame; dIdx++; dCount = Math.min(dCount + 1, deltas.length); }
+  // the frame's own step, for the few eases that are written per frame (the lean, the wobble, the halos): at most a
+  // spring's `FRAME_STEP`, so a rate the moments above change draws them finer and never faster
+  const frameDt = lastFrame ? Math.min(FRAME_STEP, now - lastFrame) : 0;
   lastFrame = now;
-  // out of the front only the play head moves (and on the mini player the beat): no bird, halo or word (his word 10-21)
+  // out of the front only the play head moves: no bird, halo or word (his word 10-21)
   if (away) {
     // the large play mark still leaves (or comes back) at once: a set started from a media key or the mini player
     // with the window out of the front left it over the chord (his Mac, 10-21)
@@ -8054,6 +8536,12 @@ function frame(now: number) {
       if (bigPlayOp !== want) { bigPlayOp = want; put(bigPlay, 'opacity', String(want)); }
       bigPlayPrev = now;
     }
+    // A seam's cast, flash or cross that comes while the window is away is its end state at once, as under reduced
+    // motion (10-24): held on its first frame, the old sigil stood half folded with the play head stopped under it
+    // until the window came back, and then jumped.
+    if (cast.t0 >= 0 && castFreeze == null) { cast.at = cast.dur; runCast(now); }
+    if (flash.t0 >= 0) { flash.at = flash.dur; runFlash(now); }
+    if (cross.t0 >= 0) { cross.at = cross.dur; runCross(now); }
     if (last && cast.t0 < 0) { paintPlayhead(last); if (smallWindow.on) paintPulseNow(now, last); }
     requestAnimationFrame(frame);
     return;
@@ -8067,14 +8555,17 @@ function frame(now: number) {
   // the bird does not move under the hand (round K8)
   // (and under reduced motion there is no lean at all: it is ornament)
   if (!pulling) {
-    tiltX += ((free && !REDUCED ? tiltTX : 0) - tiltX) * 0.11;
-    tiltY += ((free && !REDUCED ? tiltTY : 0) - tiltY) * 0.11;
+    // (a tenth and a bit of the way a frame at the rate it was tuned at: 60 a second under a hand on a desktop, 30 on
+    // a phone)
+    const kt = 1 - Math.pow(1 - 0.11, frameDt / (COARSE ? 1000 / 30 : 1000 / 60));
+    tiltX += ((free && !REDUCED ? tiltTX : 0) - tiltX) * kt;
+    tiltY += ((free && !REDUCED ? tiltTY : 0) - tiltY) * kt;
     if (REDUCED) { tiltX = 0; tiltY = 0; }
   }
   let wx = 0, wy = 0;
   if (wobA > 0.001 && !REDUCED) {
     const t = (now - wobT) / 1000;
-    wobA *= 0.94;
+    wobA *= Math.pow(0.94, frameDt / (COARSE ? 1000 / 30 : 1000 / 60));
     wx = wobA * Math.sin(t * 17) * 3;
     wy = wobA * Math.cos(t * 13) * 3;
   }
@@ -8095,7 +8586,7 @@ function frame(now: number) {
   if (!(dragging && dragging.kind === 'spin')) {
     if (spinEase) {
       const e = spinEase;
-      const p = clamp((now - e.t0) / 1000 / e.dur, 0, 1);
+      const p = clamp(tickClock(e, now) / 1000 / e.dur, 0, 1);
       spinAngle = e.a0 + e.d * (1 - Math.pow(1 - p, 3));
       // on the turn: a whole number of turns is the star at home, so the
       // angle is nought again — the same drawing to the last digit
@@ -8152,7 +8643,8 @@ function frame(now: number) {
       // reads a frame, after the frame's own writes)
       const cur = haloLit[i];
       if (Math.abs(cur - want) > 0.005) {
-        const v = REDUCED ? want : cur + (want - cur) * 0.14;
+        // (0.14 of the way a frame at the ring's 30 a second, where a playing ring draws them)
+        const v = REDUCED ? want : cur + (want - cur) * (1 - Math.pow(1 - 0.14, frameDt / (1000 / 30)));
         haloLit[i] = +v.toFixed(3);
         h.crisp.setAttribute('opacity', v.toFixed(3));
         h.wide.setAttribute('opacity', (v * 0.26).toFixed(3));
@@ -8228,6 +8720,8 @@ function frame(now: number) {
     put(gSpin, 'transform', spinAngle ? `rotate(${spinAngle.toFixed(2)} ${C} ${C})` : '');
   }
   if (wordsDue) turnWords(starDeg, false);
+  // the phone's page says what its ring drew to the TV's (tv-feed.ts), while a TV is shown
+  if (tvFeed.on) tvFeed.tick(last);
 
   requestAnimationFrame(frame);
 }
@@ -8440,13 +8934,113 @@ async function renderCover() {
   coverCost.renders += 1;
 }
 
+/**
+ * **A window resized by hand: the ring as one picture at the screen's rate** (mac-resize, his word 10-24: *"when I
+ * resize mac app window, can we use max 60fps on redraw … now ring jittering repositioning it to new window
+ * proportions"*). WebKit drew a drag at about 26 frames a second, 30 to 50 ms a step, and the Mac's window, which
+ * follows the hand at the screen's rate, showed the page's stale frames until the next arrived. Two things cost it, and
+ * either alone held it there: the ring's three bloomed sheets rasterised again at every new size, and every custom
+ * property the layout says on the root (the viewport's, the wordmark's fit, the open panel's) making WebKit draw the
+ * sheets again though none of them reads one (the sheets now set them back, index.html's `.layer`). So on a desktop,
+ * from a drag's second step (`RESIZE_DRAG_GAP`) to `RESIZE_TAIL` after its last, the ring keeps the square it was laid
+ * out at and the screen scales it onto the new one (`scale` on the square, one composited picture: the rim, the star,
+ * the marks and the words together), its box and centre the window's own on every frame; then it is laid out once at
+ * its true size. It grows by at most `HOLD_GROW` of its laid square before it is laid out again, so a long drag
+ * outwards never draws it more than a quarter soft. The moments between draw at the screen's rate (`moving`), the open
+ * panel's eases are held (`data-resizing`, index.html), and a lone resize (full screen, the mini player) is laid out
+ * at once, as before. A phone's turn has its own way (`layShell`, round 4) and is untouched.
+ */
+const RESIZE_TAIL = 300;
+const RESIZE_DRAG_GAP = 150;
+const HOLD_GROW = 1.25;
+/** the last step of a resize, and the end of its tail */
+let resizeAt = -Infinity;
+let resizeW = 0, resizeH = 0;
+/** the ring's true square, as the stylesheet makes it (`--ring`), measured without laying the ring out */
+const ringProbe = document.createElement('div');
+ringProbe.setAttribute('aria-hidden', 'true');
+ringProbe.style.cssText = 'position:fixed;left:0;top:0;width:var(--ring);height:0;visibility:hidden;pointer-events:none';
+document.body.appendChild(ringProbe);
+const resizing = (now: number): boolean => now < resizeUntil || shellDragging();
+// **The Mac window's drag, as the shell tells it** (panel-resize; with the panel open the page follows it step by
+// step): every step a drag's, its tail from the hand's letting go, and the ring held from the press, before the first
+// step moves anything. Held at the first step, the hold's own changes landed with that step's layout, and WebKit's
+// first picture of the drag came 180 to 250 ms late (the window's picture standing still meanwhile); held at the
+// press, it comes in about 70 ms, and every one after in a frame
+onShellDrag((d) => {
+  if (!d.follows) return;
+  if (!d.on) { resizeUntil = Math.max(resizeUntil, performance.now() + RESIZE_TAIL); return; }
+  if (COARSE || document.documentElement.dataset.view === 'machine') return;
+  document.documentElement.dataset.resizing = '';
+  if (!holdSide) holdLaid(parseFloat(getComputedStyle(tiltEl).width) || unitPx * 1000);
+});
+/**
+ * The ring held at `side`: its layout box is the true square's all the same (a margin that makes up the difference,
+ * `holdScale`), so the stage centres it as it centres the true one, a window shorter than the held square included.
+ *
+ * **Held in the stylesheet's own numbers** (panel-resize): the square's variable, as the root has it now, is kept on
+ * the ring, so its width and height read the very value they read before. It was held at `unitPx`, which is read off
+ * `offsetWidth`'s whole pixels (703 for a square laid at 702.9): a new size, however small, lays the three bloomed
+ * sheets out and draws them again (a square 3 px off: 200 ms on the Mac). A square the viewport's units still move
+ * (no viewport said yet) is held in pixels.
+ */
+function holdLaid(side: number): void {
+  holdSide = side;
+  const ring = getComputedStyle(document.documentElement).getPropertyValue('--ring').trim();
+  if (ring && !/\d(?:vmin|vmax|vw|vh|dvh|svh|lvh)\b/.test(ring)) tiltEl.style.setProperty('--ring', ring);
+  else tiltEl.style.width = tiltEl.style.height = `${side}px`;
+}
+/** The held square onto the true one, for this frame's numbers. */
+function holdScale(): void {
+  if (!holdSide) return;
+  // to the fraction of a pixel (`offsetWidth` is whole): the held square is drawn exactly onto the true one
+  const target = ringProbe.getBoundingClientRect().width || holdSide;
+  // grown past what a picture keeps sharp: laid out again at the size it has now, and held there
+  if (target > holdSide * HOLD_GROW) holdLaid(target);
+  holdK = target / holdSide;
+  const s = Math.abs(holdK - 1) < 1e-4 ? '' : holdK.toFixed(5);
+  if (tiltEl.style.scale !== s) tiltEl.style.scale = s;
+  const m = Math.abs(target - holdSide) < 1e-3 ? '' : `${((target - holdSide) / 2).toFixed(3)}px`;
+  if (tiltEl.style.margin !== m) tiltEl.style.margin = m;
+}
+/** The drag is over: the ring laid out at its true square, and its line widths for it, in this frame. */
+function releaseHold(): void {
+  holdSide = 0;
+  holdK = 1;
+  tiltEl.style.removeProperty('--ring');
+  tiltEl.style.width = tiltEl.style.height = tiltEl.style.margin = tiltEl.style.scale = '';
+  delete document.documentElement.dataset.resizing;
+  square = null;
+  sizeControls(true);
+}
 /** The viewport changed: the stage, and then the panel over it (K14b). */
 function viewportChanged() {
+  const v = pageViewport();
+  const now = performance.now();
+  // a step of a resize: the window's size changed (an iOS bar's scroll or a second event for the same step is not one)
+  const step = !v.zoomed && (v.w !== resizeW || v.h !== resizeH);
+  const held = !COARSE && document.documentElement.dataset.view !== 'machine';
+  if (step) {
+    const drag = shellDragging() || now - resizeAt < RESIZE_DRAG_GAP;
+    resizeW = v.w; resizeH = v.h;
+    resizeAt = now;
+    if (held) {
+      resizeUntil = now + RESIZE_TAIL;
+      document.documentElement.dataset.resizing = '';
+      // held at the square last laid out, before the variables below move the stylesheet's, as laid (`holdLaid`)
+      if (drag && !holdSide) holdLaid(parseFloat(getComputedStyle(tiltEl).width) || unitPx * 1000);
+    }
+  }
+  if (!held && holdSide) releaseHold();
   fitViewport();
+  holdScale();
+  // and again once every listener of this frame has laid its part (`layShell`'s, a media query's own)
+  if (holdSide) requestAnimationFrame(holdScale);
   // the ring's square follows the variables on the next layout; read it there
   requestAnimationFrame(layPanel);
 }
 fitViewport();
+{ const v = pageViewport(); resizeW = v.w; resizeH = v.h; }
 window.addEventListener('resize', viewportChanged);
 window.addEventListener('orientationchange', viewportChanged);
 if (window.visualViewport) {
@@ -8521,7 +9115,7 @@ function loveKey(ev: KeyboardEvent): void {
 document.addEventListener('animationend', (e: AnimationEvent) => {
   if (e.animationName === 'lovePulse') (e.target as Element).closest('#love')?.classList.remove('pulse');
 });
-startPlaylists({
+if (!TV_VIEW) startPlaylists({
   control,
   throne: () => loveNode()?.g ?? null,
   loved: setLoved,
@@ -8543,7 +9137,7 @@ startPlaylists({
     return { svg, box: tiltEl.getBoundingClientRect() };
   },
 });
-startGenres(control);
+if (!TV_VIEW) startGenres(control);
 startShellTilt(leanByDevice);
 
 buildRim();
@@ -8585,9 +9179,38 @@ redrawAll(first);
 lastChange = first.change.n;
 last = first;
 control.subscribe(onReadout);
+// **The TV** (round tv-scene): the phone's page says what its ring draws while the app shows a TV (tv-feed.ts); the
+// TV's page follows it (tv-view.ts). In a browser neither runs.
+const tvFeed = TV_VIEW ? { on: false, rest: false, tick() {}, lineSecond: () => null } : startTvFeed({
+  control,
+  pulling: () => { const c = cellNodes.find((x) => x.pulling); return c ? { bird: c.bird, v: c.value } : null; },
+  beats: beatOffset,
+});
+const tvView = !TV_VIEW ? null : startTvView(control, {
+  ask(sp) { tvAsk = sp as Partial<Spell> | null; },
+  pull(p) {
+    const c = p ? cellNodes.find((x) => x.bird === p.bird) ?? null : null;
+    // a pull the phone's hand let go: the bird stands where the asked spell puts it (`followOutsideAsk`)
+    let freed = false;
+    for (const o of cellNodes) if (o.pulling && o !== c) { o.pulling = false; freed = true; }
+    if (freed) layoutCells();
+    if (c && p && controls) setPull(c, clamp(Number(p.v), 0, 1), last);
+  },
+  beats(o) { beatSaid = o; },
+  line(html, hidden, quiet) {
+    const el = document.getElementById('nowList');
+    if (!el) return;
+    if (el.innerHTML !== html) el.innerHTML = html;
+    el.hidden = hidden;
+    el.classList.toggle('quiet', quiet);
+  },
+});
+// what the TV's page follows, for the app's probe and the pair check (tools/tv-pair.ts)
+if (tvView && window.deepHouse) window.deepHouse.tv = () => tvView.state();
+if (!TV_VIEW && window.deepHouse) window.deepHouse.tvLine = () => tvFeed.lineSecond?.() ?? null;
 // the ledger's lines the transport has and does not say, written from now on
 // whether the view is ever opened or not
-startScribe(control);
+if (!TV_VIEW) startScribe(control);
 
 /**
  * **The words' boxes are measured in the face they are drawn in** (R126). A
@@ -8613,7 +9236,7 @@ if (typeof document !== 'undefined' && document.fonts) {
 reducedMotion.watch(reducedChanged);
 coarsePointer.watch(coarseChanged);
 resetCastState();
-startCast('short', null);
+startCast('open', null);
 requestAnimationFrame(frame);
 
 // The engineer's face, for ?view=machine only — the same chunk the panel mark
@@ -8688,6 +9311,8 @@ export interface RingHandle {
   pick(clientX: number, clientY: number, touch?: boolean): string | null;
   /** the star's turn in its two parts: the clamped continuous sway and a finger's spin on top */
   turn(): { sway: number; spin: number; star: number };
+  /** whether the opening is still drawing the ring in (`OPEN_MS`, from a steady page) */
+  opening(): boolean;
   /** hold still for a picture; `at`, a second of the theme the ring is drawn at (M21: a stated frame) */
   still(on?: boolean, at?: number): void;
   /** the tempo the pulse is drawn at, for a test; null gives it back to the grid */
@@ -8706,7 +9331,7 @@ export interface RingHandle {
   /** a bird's words' box as the placer keeps it, and as the words measure now */
   wordBox(i: number): { kept: { w: number; h: number }; now: { w: number; h: number } } | null;
   /** the coming theme's lanes as drawn: whether they are the coming plan's own, and how much is drawn */
-  nextDrawn(): { own: boolean; marks: number; shown: number; sig: number };
+  nextDrawn(): { own: boolean; marks: number; shown: number; sig: number; shade: number; slide: number };
   cross: () => void;
   skip: () => ReturnType<typeof control.skip>;
   back: () => ReturnType<typeof control.back>;
@@ -8820,6 +9445,7 @@ window.ring = {
     return hit.kind === 'cell' ? BIRD[hit.cell.id].name : null;
   },
   turn: () => ({ sway: swayDeg, spin: +spinAngle.toFixed(3), star: starDeg }),
+  opening: () => cast.t0 >= 0 && cast.kind === 'open',
   pulseAt(bpm: number | null) { pulseBpmAsked = bpm; pulseRestKey = ''; },
   still(on = true, at?: number) {
     if (!on) { if (frozen) { frozen = false; requestAnimationFrame(frame); } return; }
@@ -8847,7 +9473,9 @@ window.ring = {
     castRing: castRing ? castRing.getAttribute('opacity') : null,
     coronaReach: +(PULSE_FAST.trace * CORONA_REACH_SLOW * PULSE_SLOW.trace / PULSE_FAST.trace).toFixed(2),
     cover: { ...coverCost, shown: control.coverShown(), hex: coverFor ? coverFor.hex : null },
+    /** the ring's running beat as the dots last drew it (the lit dot is it mod five), and the downbeat's blink, nought to one */
     beat: lastBeatDrawn,
+    blink: Math.max(0, blinkDrawn),
     cursor: cursorG.getAttribute('transform'),
   }),
   impliedPlan(i: number) {
@@ -8866,6 +9494,9 @@ window.ring = {
     shown: nextLaneG ? Number(nextLaneG.getAttribute('opacity')) || 0 : 0,
     // a digest of what is drawn, so two plans' lanes can be told apart
     sig: nextLaneG ? [...nextLaneG.innerHTML].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0, 7) : 0,
+    // the band's seam shade and how far the layer has slid into the band (round ring-seam)
+    shade: shadeAll ? Number(shadeAll.getAttribute('fill-opacity')) || 0 : 0,
+    slide: nextShown.slide,
   }),
   cross: () => { control.prepareNext(); startCross(); },
   skip: () => control.skip(),
@@ -8880,7 +9511,9 @@ window.ring = {
       cast.collapse = 0.17;
       cast.swapped = false;
       cast.pending = () => redrawAll(control.readout() as Readout);
-      cast.t0 = performance.now();
+      cast.t0 = cast.prev = performance.now();
+      cast.at = 0;
+      cast.ready = true;
     }
     castFreeze = clamp(Number(p), 0, 0.999);
   },

@@ -16,6 +16,11 @@ export interface Conditions {
   kits?: string[];
   densities?: string[];
   controls?: Record<string, { min?: number; max?: number }>;
+  /**
+   * The textures a family plays on (a family's condition only): drawn after the texture is read off the families
+   * that make it, so it never moves the texture (the interrupted keyboard on an airy theme, never beside a drone).
+   */
+  textures?: Texture[];
 }
 /**
  * **Air or sustain** — Eugene, 09-22: struck and tuned percussion adds
@@ -95,6 +100,22 @@ export interface ScenePolicy {
   always?: ReadonlyArray<readonly string[]>;
   realWorld: { holdBelow: number; sparseSeconds: number; ringCovers: number };
   floor?: { centreBelow: number; kits: readonly string[] };
+  /**
+   * **A struck chord over the drone keeps clear of it** (10-28, his ear on Vibe - Saturn Rings: *"the full chord doesn't
+   * match the synth pad at all"*): in either drone scene, a chord's tone this many semitones from a note the bed sounds
+   * while the chord rings is let go (its top, the melody's, always stays), and the tones left are struck that much
+   * harder, so the chord keeps its weight.
+   */
+  clearOfBed?: readonly number[];
+  /**
+   * **Under the drone in front the keys strike single tones** (10-29, his ear on Vibe - Saturn Rings: *"trying to see
+   * if we can ditch chord"*): in the `drone-forward` scene a phrase's chord on the keys (a voice that strikes single
+   * tones too) is struck as one tone of the bed's chord, the drone holding the harmony; a comp, every strike a chord,
+   * keeps its chords. `'top'`: the chord's top (the melody's tone), where the bed sounds it; else the bed's
+   * tone nearest it (the lower of two as near). The tone keeps the chord's ring (its longest hold, so a phrase's last
+   * tone still rings) and the chord's weight (its tones' power in one); the single tones play as written.
+   */
+  oneTone?: 'top';
 }
 /** What the timbre dice say about the harmonic layer, as properties, never names. */
 export interface TextureBed {
@@ -120,6 +141,8 @@ export interface PartVariant {
   weight: ControlValue;
   when?: Conditions;
   request: PartRequest;
+  /** Room over the policy's limits this variant's parts bring, written to share one space (a line and the chords answering it). */
+  allowance?: Partial<PartUsage>;
   /** Versioned recipe claims; the arranger must retain the selected score. */
   source?: RecipeSource;
 }

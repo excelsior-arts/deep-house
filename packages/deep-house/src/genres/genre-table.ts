@@ -72,6 +72,12 @@ const TABLE = PRESETS as unknown as {
   families: GenreFamily[];
 };
 export const FAMILIES: readonly GenreFamily[] = TABLE.families;
+/**
+ * **The families the grid draws as a tile of their own** (a tile naming the family and no styles of it: Trance, Techno,
+ * Breaks), read by the sky: such a family's own measured spell stays a lit star beside its lit sub-genres (round
+ * trance-1: the Trance tile and its two neighbours, Hard Trance and Uplifting Trance).
+ */
+export const OWN_TILES: ReadonlySet<string> = new Set(TABLE.grid.around.filter((t) => !t.styles).map((t) => t.family));
 /** The family the house belongs to. */
 export const HOME = TABLE.home;
 

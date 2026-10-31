@@ -232,9 +232,8 @@ export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'pianoElectric', since: '2026-10-10', for: 'an electric grand with a pickup zing' },
   { id: 'keysReedAmp', since: '2026-10-10', for: 'a mellow reed electric piano for a small amplifier' },
   { id: 'fmSineLayer', since: '2026-10-10', for: 'a near-pure sine to double a piano' },
-  // ambient-voices (10-18, PLAN-AMBIENT P2b and P3): the voices the shavasana bowls and the Om places will play,
-  // registered before their places land; a place's round admits them (`BY_PLACE`), and until then no list does.
-  { id: 'bowlRim', since: '2026-10-18', for: 'a singing bowl sustained by a stick on its rim: the struck bowl\'s modes, rising over seconds and falling back' },
+  // ambient-voices (10-18, PLAN-AMBIENT P2b and P3): the voices the Om places will play, registered before their
+  // places land; a place's round admits them (`BY_PLACE`), and until then no list does (the rim left for BOWLS, 10-27).
   { id: 'tanpura', since: '2026-10-18', for: 'a tanpura string over a jawari bridge, its buzz blooming after each pluck' },
   { id: 'chantOm', since: '2026-10-18', for: 'a wordless sung drone opening on a, rounding to o and closing to a hum, with an overtone mode' },
 ].map((e) => Object.freeze(e)));
@@ -264,6 +263,8 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'snareCrack', since: '2026-10-05', for: 'the snare at a fast broken beat, its crack over a shell at 400 Hz (round DNB-7)' },
   { id: 'hatShut', since: '2026-10-05', for: 'the closed hat at a fast broken beat, noise more than metal (round DNB-4)' },
   { id: 'hatSoft', since: '2026-10-06', for: 'the soft closed hat of the liquid kit, its own row so the house keeps its tight hat' },
+  // trance-1 (10-28): the hook's voice, played by the hook table (`src/hook.ts`, `StylePlaces.hook`) and by no list
+  { id: 'supersawGrit', since: '2026-10-28', for: 'the hook at the trance corner and the house\'s leak: a struck, gritty supersaw chopping chords (the gallop and the gated chords)' },
   { id: 'kickKnock', since: '2026-10-04', for: 'the kick at the deep half-time place, a punch over the bass line rather than the sub under it (round DUB-1)' },
   { id: 'reeseWobble', since: '2026-10-04', for: 'the bass at the deep half-time place, a sine carrying the low end under saws swept on the grid (round DUB-1)' },
   { id: 'reeseSub', since: '2026-10-05', for: 'the line at a fast broken beat, a sine that glides and wobbles on the eighths under a faint swept pair of saws (round DNB-5)' },
@@ -290,8 +291,10 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'bellSmall', since: '2026-10-18', for: 'a call of the slow conversation at thin Root: small bells, high and short (bells-birds)' },
   // ambient-bells (10-17, his ear: "some softer woodblock maybe better"): the conversation's hand, a hint and never a strike
   { id: 'woodblockSoft', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a round, low woodblock with no click (ambient-bells)' },
-  { id: 'frameDrum', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a frame drum under a muted hand (ambient-bells)' },
-  { id: 'shakerSoft', since: '2026-10-17', for: 'the hand of the slow conversation where struck voices talk: a soft swish of a shaker, not the record\'s hat-bright one (ambient-bells)' },
+  { id: 'frameDrum', since: '2026-10-17', for: 'a frame drum under a muted hand: the journey\'s soft pulse (ambient-psy); out of the bells\' hand since 10-29 (his ear: the woodblock alone fits)' },
+  // ambient-bowls (10-27, PLAN-AMBIENT P2b): the rim of the bowls' conversation (`recipes/ambient/conversation.json`), named by its row's `rim`
+  { id: 'bowlRim', since: '2026-10-27', for: 'the rim of the bowls\' conversation: a stick drawn round a bowl just struck, so it sings under its own ring (ambient-bowls)' },
+  { id: 'shakerSoft', since: '2026-10-17', for: 'a soft swish of a shaker, not the record\'s hat-bright one (ambient-bells); named by no row since 10-29 (his ear: the woodblock alone fits the bells)' },
 ].map((e) => Object.freeze(e)));
 
 const AWAITING_IDS = new Set<string>(AWAITING.map((a) => a.id));

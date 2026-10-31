@@ -108,7 +108,9 @@ export function resolveSettings({ base, room = null, overrides = null, bypass = 
   // rolls, and it is the loudest thing in the mix that changes. It is a
   // ceiling and not a trim, so `?sub=-3` still lands three decibels under
   // whatever the preset ended up with.
-  const cap = base.levels.sub + base.levels.subCeilingOverBaseDb;
+  // (the ceiling as the room or the theme left it: an ensemble's own balance may lift it, `EnsembleBlock.level`; nothing
+  // else writes it, so every other theme reads the base's)
+  const cap = base.levels.sub + (out.levels.subCeilingOverBaseDb ?? base.levels.subCeilingOverBaseDb);
   if (out.levels.sub > cap) out.levels.sub = cap;
   const done = deepFreeze(out) as Settings;
   // Every row's block, as the room left it, held to its topology's contract:

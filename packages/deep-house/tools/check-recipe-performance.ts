@@ -405,7 +405,9 @@ test('sparse texture keeps its own four-bar clock and return without restaging t
     const old = planTheme(seed, 0, { ...opts, recipe: continuousRecipe });
     const next = planTheme(seed, 0, { ...opts, recipe: pulseRecipe });
     const pulses = next.events.filter(e => e.role === 'texture');
-    assert.ok(pulses.length > 10);
+    // (over ten a theme until round length-2 put the grooves at 3-4 minutes, his word 10-27: "We should aim for 3-4mins
+    // here"; seed 31003 lays ten since, a pulse every four bars of keys)
+    assert.ok(pulses.length >= 8, `${seed}: ${pulses.length} pulses`);
     assert.deepEqual(next.events.filter(e => e.role !== 'texture'), old.events);
     for (const e of pulses) {
       assert.equal(e.bar % 4, 0);
@@ -415,8 +417,20 @@ test('sparse texture keeps its own four-bar clock and return without restaging t
       assert.equal(e.p.reverb, 0);
     }
     const before = programOf(old), after = programOf(next);
-    const withoutIndex = ({ i, ...e }: any) => e;
+    // (loudness by place, his word 10-30: a lifted deep groove sets its kick and clap down by what the plan reads, and
+    // the pulses are part of what it reads, so the program's gains may move by a hair; everything else is the
+    // foreground's own, and no gain moves half a decibel)
+    const noGain = (v: any): any => (Array.isArray(v) ? v.map(noGain) : v && typeof v === 'object'
+      ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'gain' ? undefined : noGain(x)])) : v);
+    const withoutIndex = ({ i, ...e }: any) => noGain(e);
     assert.deepEqual(after.events.filter(e => e.role !== 'texture').map(withoutIndex), before.events.map(withoutIndex));
+    const gains = (v: any, out: number[] = []): number[] => {
+      if (Array.isArray(v)) v.forEach((x) => gains(x, out));
+      else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { if (k === 'gain' && typeof x === 'number') out.push(x); else gains(x, out); }
+      return out;
+    };
+    const ga = gains(after.events.filter(e => e.role !== 'texture')), gb = gains(before.events);
+    assert.ok(ga.length === gb.length && ga.every((g, k) => g === gb[k] || Math.abs(20 * Math.log10(g / gb[k])) < 0.5), `${seed}: a gain moved 0.5 dB or more`);
     assert.deepEqual(after.development, before.development);
     assert.equal(after.events.filter(e => e.role === 'texture').length, pulses.length);
     assert.ok(after.events.filter(e => e.role === 'texture').every(e => e.p.background === 3.2 && !e.p.treatment));

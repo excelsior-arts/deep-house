@@ -8,6 +8,7 @@ import { BY_NAME } from '@deep-house/engine/voices';
 import { dbToGain } from '@deep-house/engine/dsp';
 import type Rng from '../rng.ts';
 import { layerOf } from '../lanes.ts';
+import { PartRefused } from '../refused.ts';
 import { laneLevelDb } from '../lane-level.ts';
 import { placementOf } from '../motif.ts';
 import { chordAtBar, foldTo, noteName, scaleNote, type Progression } from '../theory.ts';
@@ -23,11 +24,13 @@ export function rollTexture({ style, parts, forbids, dice, partStream }:
   if (!parts.texture) return null;
   const want = parts.texture;
   const candidates = textureCandidates(want, style, forbids);
-  if (!candidates.length) throw new Error('recipe texture has no enabled pulse instrument');
+  if (!candidates.length) throw new PartRefused('recipe texture has no enabled pulse instrument');
   const r = dice(`${partStream}-texture`);
   return { ...r.weighted(candidates.map(c => ({ v: c, w: c.w }))),
     strength: r.float(...want.strength), spacing: Math.round(r.float(...want.spacing.bars)),
-    entry: Math.round(r.float(...want.entry.beats) * 4), duration: r.float(...want.duration.beats) };
+    entry: Math.round(r.float(...want.entry.beats) * 4), duration: r.float(...want.duration.beats),
+    // its register drifted with the figures' (`PitchedFigure.drift`): the same scale steps, off the stream they read
+    lift: want.drift ? ((k: number) => dice('ensemble-drift').int(-k, k + 1))(Math.round(want.drift * 7 / 12)) : 0 };
 }
 
 export interface Treatment {
@@ -108,14 +111,21 @@ export function treat({ style, levels, parts, characters, events, upperEvents, p
   // pulse instead of delaying it. Tails may ring across the next bar.
   if (TEXTURE) {
     const gate = style.lanes.find(l => l.role === 'figure')?.gate;
-    if (!gate || silent.includes(gate)) throw new Error('recipe texture has no permitted arrangement gate');
+    if (!gate || silent.includes(gate)) throw new PartRefused('recipe texture has no permitted arrangement gate');
     for (let cycleBar = 0; cycleBar < bars; cycleBar += TEXTURE.spacing) {
-      const bar = cycleBar + Math.floor(TEXTURE.entry / 16), step = TEXTURE.entry % 16;
+      const bar = cycleBar + Math.floor(TEXTURE.entry / 16);
       if (bar >= bars) break;
+      // a pulse clear of named layers (`PulseTexture.clearOf`, the ensemble's "the pulse never meets the bass"): on its
+      // step, or the first eighth after it in the bar where none of them starts, or failing one the first sixteenth
+      const clear = parts.texture!.clearOf, from = TEXTURE.entry % 16;
+      const taken = clear?.length ? new Set(events.filter((e) => e.bar === bar && clear.includes(e.layer)).map((e) => e.step)) : null;
+      const free = (k: number) => (s: number) => s < 16 && (s - from) % k === 0 && !taken!.has(s);
+      const step = taken ? Array.from({ length: 16 - from }, (_, k) => from + k).find(free(2)) ?? Array.from({ length: 16 - from }, (_, k) => from + k).find(free(1)) ?? from : from;
       const context = layersAtBar(arrangement, bar);
       if (!context.layers[gate] || !placementOf(context.section.kind).plays) continue;
       const chord = chordAtBar(progression, bar);
-      const midi = foldTo(scaleNote(progression.root, progression.scale, chord.degree), ...characters!.pulse.register);
+      const folded = foldTo(scaleNote(progression.root, progression.scale, chord.degree), ...(parts.texture!.home ?? characters!.pulse.register));
+      const midi = TEXTURE.lift ? folded + scaleNote(progression.root, progression.scale, chord.degree + TEXTURE.lift) - scaleNote(progression.root, progression.scale, chord.degree) : folded;
       push(TEXTURE.voice, at(bar, step), {
         midi, dur: Math.min(TEXTURE.duration * beat, (bars - bar) * barSeconds - step / 4 * beat),
         vel: TEXTURE.strength, preset: TEXTURE.timbre,

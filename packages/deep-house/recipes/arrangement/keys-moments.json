@@ -1,0 +1,61 @@
+{
+ "schema": 1,
+ "kind": "arrangement-keys-moments",
+ "round": "keys-moments",
+ "revision": 1,
+ "note": "The piano's moments (his idea, 10-29: \"piano solo moment, or some motif that not necessary following the same phrase across the track, as even that gets repetitive\"; his ear on the sketches: \"color in breakdown - great\", \"either solo or second riff both sound good\"). Two moments, neither a must: a share of the themes where each fits takes it, so it never becomes the next repetition. **The solo:** a long breakdown's last phrase goes to the piano alone, a free line made of the keys' own notes (the phrase's, or the hook's where a hook is the keys, never the hook itself, so its return stays an event) in calls and answers over its own soft chords, then a step back for the section after. It plays at the keys' own level, not in front. **The second riff:** in a long stretch of one hook (a long main or drop), eight bars of the hook's notes over the same chords on a new two-bar rhythm, its top reaching the chord's tones over the hook, then the hook again. Every number is a starting point for listening.",
+ "voices": ["piano"],
+ "leans": {
+  "says": "the one lean (src/lean.ts) on each moment's chance, about the house's centre: Loom (the form's length and its development) favours both, Spark (a busier, brighter keys part) the riff",
+  "centre": 0.5,
+  "strength": 1,
+  "loom": { "solo": 0.8, "riff": 0.6 },
+  "spark": { "riff": 1.0 }
+ },
+ "solo": {
+  "says": "a breakdown run of `least` bars or more that a stated section follows: its last `bars` go to the piano alone",
+  "chance": 0.55,
+  "least": 16,
+  "bars": 8,
+  "into": ["build", "main", "drop", "groove"],
+  "span": 14,
+  "over": 5,
+  "level": 0.85,
+  "chordLevel": 0.62,
+  "ringBeats": 2,
+  "order": ["call", "answer", "again", "cadence"],
+  "cells": {
+   "says": "each a two-bar cell of the line: [sixteenth 0-31, beats held, accent, ms late (the rubato), mark]; a mark `s` is a chord tone on a strong place, `p` a passing note by step, `L` a landing (a chord tone held), `C` the cadence's landing on the chord's root with its chord under it",
+   "call": [[2, 1, 0.84, 30, "s"], [6, 0.5, 0.88, 15, "p"], [8, 0.5, 0.84, 5, "p"], [10, 1.5, 1, 20, "s"], [14, 0.5, 0.8, -5, "p"], [16, 2, 0.93, 35, "L"], [24, 1, 0.74, 15, "s"], [28, 0.5, 0.72, 0, "p"], [30, 0.5, 0.78, -10, "p"]],
+   "answer": [[0, 1.5, 1, 25, "s"], [6, 0.5, 0.86, 5, "p"], [8, 1, 0.86, 10, "s"], [12, 0.5, 0.78, 0, "p"], [14, 0.5, 0.8, -5, "p"], [16, 1.5, 0.93, 30, "s"], [22, 0.5, 0.78, 10, "p"], [24, 1.5, 0.82, 40, "L"], [30, 0.5, 0.68, 10, "p"]],
+   "again": [[0, 1, 0.86, 25, "s"], [4, 1, 0.9, 10, "s"], [8, 1.5, 1, 15, "s"], [14, 0.5, 0.88, -5, "p"], [16, 1, 0.93, 30, "s"], [20, 1, 0.82, 10, "p"], [24, 0.5, 0.77, 5, "p"], [26, 0.5, 0.74, 0, "p"], [28, 1, 0.77, 20, "s"]],
+   "cadence": [[0, 2, 0.82, 45, "s"], [8, 1, 0.7, 60, "p"], [12, 1, 0.66, 70, "p"], [16, 4, 0.62, 80, "C"]]
+  },
+  "shapes": {
+   "says": "each cell's contour, the line's height across its notes from 0 (the line's floor) to 1 (its ceiling)",
+   "call": [0.35, 0.85, 0.55],
+   "answer": [1, 0.55, 0.35],
+   "again": [0.4, 0.95, 0.5],
+   "cadence": [0.45, 0]
+  }
+ },
+ "riff": {
+  "says": "a main or a drop of `least` bars or more stating one hook: `bars` of it, from a line at least `after` bars in and `before` bars from its end, play the hook's notes on a new rhythm",
+  "chance": 0.5,
+  "least": 32,
+  "bars": 8,
+  "after": 16,
+  "before": 8,
+  "in": ["main", "drop", "groove"],
+  "level": 0.86,
+  "cell": {
+   "says": "a four-bar cell: [bar, sixteenth, note, beats held, accent]; a note `h<i>` is the hook's i-th note (its order, cycled), `c<k>` the bar's chord's k-th tone over the hook's highest note: a call that rises, an answer home through the hook's own fall",
+   "notes": [
+    [0, 0, "h0", 0.75, 0.92], [0, 3, "c1", 0.75, 0.6], [0, 6, "c2", 1.5, 0.92], [0, 12, "c1", 0.5, 0.55], [0, 14, "h1", 0.5, 0.55],
+    [1, 0, "h1", 1, 0.75], [1, 4, "h0", 0.5, 0.55], [1, 6, "h2", 0.5, 0.75], [1, 8, "h3", 2, 0.85],
+    [2, 0, "h0", 0.75, 0.92], [2, 3, "c1", 0.75, 0.6], [2, 6, "c2", 1, 0.85], [2, 10, "c3", 0.5, 0.75], [2, 12, "c2", 1, 0.7],
+    [3, 0, "c1", 1, 0.75], [3, 4, "h1", 0.5, 0.55], [3, 6, "h2", 1, 0.6], [3, 10, "h3", 1.5, 0.85]
+   ]
+  }
+ }
+}

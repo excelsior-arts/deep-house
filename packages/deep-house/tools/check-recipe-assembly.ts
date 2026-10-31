@@ -66,7 +66,8 @@ test('the extracted piano keeps its ordered phrase while accompaniment varies by
     const notes = t.events.filter(e => e.part === piano.id);
     assert.ok(notes.length > 0 && notes.every(e => e.voice === 'piano'));
     assert.equal(t.dice.struckFigureDegrees, piano.wants!.figures.figure.motif.paths[0].degrees.join(' '));
-    assert.ok(notes.some((e,i) => notes.some((n,j) => j !== i && n.t === e.t && n.p.midi !== e.p.midi)), 'chord landings must survive');
+    // a chord by where it is struck: the player's touch rolls its notes a few milliseconds apart (10-28)
+    assert.ok(notes.some((e,i) => notes.some((n,j) => j !== i && n.bar === e.bar && n.step === e.step && n.p.midi !== e.p.midi)), 'chord landings must survive');
     heard.add(hash(notes)); accompaniments.add(hash(t.events.filter(e => !e.part)));
     const stripped = { ...style, composition: { ...style.composition, families: [] } };
     const samePin = planTheme(seed, 0, { ...options, style: stripped, recipe: piano });

@@ -247,3 +247,133 @@ export function hatSceneFaults(R: Readonly<HatSceneRow>): string[] {
   const bad = hatSceneFaults(HAT_SCENE);
   if (bad.length) throw new Error(`the hat scene: ${bad.join('; ')}`);
 }
+
+/**
+ * **The keys by the hats** (round keys-balance, his words 10-29: *"balance the volume based on hat loudness as it work
+ * in one place but not in another"*; *"Aurora has the least problem with mix, I assume because the open hat sounds
+ * louder and compensated for piano"*). The other side of this file's relation: there the hats work off the voices,
+ * here the keys' lane sits by the hats. The row is `hat-scene.json`'s `keys`.
+ *
+ * Read in each groove section (the kick on in `groove` of its bars or more) where the lane's notes strike: the keys over
+ * the hats, the strikes' median against the hats' energy over the section per `window` seconds, each as the program
+ * plays it (the lane, the keyed floor, the stage, the note's gain and velocity) and each voice by its measured
+ * loudness (`keysDb`, `hats`; an unmeasured hat `hatsDb`). Past `over`, the level his references reach, the lane steps
+ * down by `slope` of the excess, never past `most`, in half decibels. A section without the kick (a breakdown, a drumless build) holds the
+ * step of the groove before it (else after it): there the hats leave by the form, and the keys keep the balance they
+ * had over them. A theme with no groove has no step.
+ */
+export interface KeysByHatsRow {
+  lane: string;
+  over: number;
+  slope: number;
+  most: number;
+  window: number;
+  groove: number;
+  keysDb: number;
+  hatsDb: number;
+  hats: Record<string, number>;
+}
+export const KEYS_BY_HATS: Readonly<KeysByHatsRow> = (SCENE_FILE as unknown as { keys: KeysByHatsRow }).keys;
+export interface KeysByHatsStep { bar: number; kind: string; over: number | null; db: number }
+export function keysByHats(input: {
+  sections: ReadonlyArray<{ kind: string; startBar: number; bars: number }>;
+  barSeconds: number;
+  /** whether the kick plays in the bar */
+  kickAt: (bar: number) => boolean;
+  /** the lane's strikes: their tones' levels as played, in dB (velocity and gain in) */
+  strikes: ReadonlyArray<{ bar: number; tones: readonly number[] }>;
+  /** the hats' hits, each its level as played in dB (velocity, gain and the family trim in) and its voice */
+  hats: ReadonlyArray<{ bar: number; voice: string; db: number }>;
+}, R: Readonly<KeysByHatsRow> = KEYS_BY_HATS): KeysByHatsStep[] {
+  const { sections, barSeconds } = input;
+  const power = (db: number) => Math.pow(10, db / 10);
+  const read: Array<KeysByHatsStep & { groove: boolean }> = sections.map((s) => {
+    let kicks = 0;
+    for (let b = s.startBar; b < s.startBar + s.bars; b++) if (input.kickAt(b)) kicks++;
+    const groove = s.bars > 0 && kicks / s.bars >= R.groove;
+    const inside = (b: number) => b >= s.startBar && b < s.startBar + s.bars;
+    const keys = input.strikes.filter((k) => inside(k.bar)).map((k) => 10 * Math.log10(k.tones.reduce((a, db) => a + power(db), 0)) + R.keysDb)
+      .sort((a, b) => a - b);
+    if (!groove || !keys.length) return { bar: s.startBar, kind: s.kind, over: null, db: 0, groove };
+    const median = keys.length % 2 ? keys[(keys.length - 1) / 2] : (keys[keys.length / 2 - 1] + keys[keys.length / 2]) / 2;
+    const e = input.hats.filter((h) => inside(h.bar)).reduce((a, h) => a + power(h.db + (R.hats[h.voice] ?? R.hatsDb)), 0)
+      * R.window / (s.bars * barSeconds);
+    const over = median - (e > 0 ? 10 * Math.log10(e) : -90);
+    // in half decibels: a smaller step is not heard, and moves nothing
+    const db = Math.round(-2 * Math.min(R.most, R.slope * Math.max(0, over - R.over))) / 2;
+    return { bar: s.startBar, kind: s.kind, over: +over.toFixed(1), db: db || 0, groove };
+  });
+  // a section without the kick, or one the keys do not strike in, holds the step of the groove read before it, else after
+  const readAt = read.map((r) => r.over !== null);
+  return read.map((r, i) => {
+    if (readAt[i]) return { bar: r.bar, kind: r.kind, over: r.over, db: r.db };
+    let j = i - 1; while (j >= 0 && !readAt[j]) j--;
+    if (j < 0) { j = i + 1; while (j < read.length && !readAt[j]) j++; }
+    return { bar: r.bar, kind: r.kind, over: null, db: j >= 0 && j < read.length ? read[j].db : 0 };
+  });
+}
+
+/**
+ * **The keys by the body** (round piano-tone, his words 10-29, on Vibe - Aurora's second theme with the string piano:
+ * *"next theme on the seed now makes piano actually noticeable louder even than drums"*; then *"it seems we could play
+ * off synth drone pads, where piano sinks, but on open tracks it seems a bit too loud"*). Beside the keys by the hats,
+ * which read the top: this reads the body, how much of the piano's own band the bed covers. The row is
+ * `hat-scene.json`'s `keysBody`.
+ *
+ * In each groove section (the kick on in `groove` of its bars or more), at each of the lane's strikes: the strike's
+ * level as played over the scene's in the piano's band in the `window` from it (`src/generator.ts`: the bed held under
+ * it, the bass, the drums' hits, each as played and by its class's measured loudness in the band); an uncovered strike
+ * reads `open`. A section's reading is its strikes' median. Over `over` (open: a sparse bed, the piano over the drums
+ * and the bass) the lane steps down by `slope` of the excess, never past `most`; under `under` (a thick bed the piano
+ * sinks into) it lifts by `slope` of the shortfall, never past `lift`; in half decibels. A section without the kick, or
+ * one the lane does not strike in, holds the step of the groove before it (else after), as the hats' step does.
+ */
+export interface KeysByBodyRow {
+  lane: string;
+  /** the reading of a strike nothing covers */
+  open: number;
+  over: number;
+  under: number;
+  slope: number;
+  most: number;
+  lift: number;
+  /** seconds from a strike the scene is read over */
+  window: number;
+  /** the share of a section's bars the kick plays in for it to be a groove, the only kind read */
+  groove: number;
+  /** the lane's voice: its band's loudness per unit as played */
+  keysDb: number;
+  /** each class of the scene (a layer, or `pad:<timbre>`, else its layer): its band's loudness per unit as played */
+  scene: Record<string, number>;
+  /** a class the table does not measure */
+  sceneDb: number;
+}
+export const KEYS_BY_BODY: Readonly<KeysByBodyRow> | null = (SCENE_FILE as unknown as { keysBody?: KeysByBodyRow }).keysBody ?? null;
+export interface KeysByBodyStep { bar: number; kind: string; over: number | null; db: number }
+export function keysByBody(input: {
+  sections: ReadonlyArray<{ kind: string; startBar: number; bars: number }>;
+  /** whether the kick plays in the bar */
+  kickAt: (bar: number) => boolean;
+  /** the lane's strikes: their level as played and by the voice's loudness, and the scene's under them (-Infinity: none) */
+  strikes: ReadonlyArray<{ bar: number; db: number; bed: number }>;
+}, R: Readonly<KeysByBodyRow>): KeysByBodyStep[] {
+  const read = input.sections.map((s) => {
+    let kicks = 0;
+    for (let b = s.startBar; b < s.startBar + s.bars; b++) if (input.kickAt(b)) kicks++;
+    if (!(s.bars > 0 && kicks / s.bars >= R.groove)) return { bar: s.startBar, kind: s.kind, over: null as number | null, db: 0 };
+    const xs = input.strikes.filter((k) => k.bar >= s.startBar && k.bar < s.startBar + s.bars)
+      .map((k) => Math.min(R.open, k.db - k.bed)).sort((a, b) => a - b);
+    if (!xs.length) return { bar: s.startBar, kind: s.kind, over: null as number | null, db: 0 };
+    const median = xs.length % 2 ? xs[(xs.length - 1) / 2] : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2;
+    const down = Math.min(R.most, R.slope * Math.max(0, median - R.over));
+    const up = Math.min(R.lift, R.slope * Math.max(0, R.under - median));
+    const db = Math.round(2 * (up - down)) / 2;
+    return { bar: s.startBar, kind: s.kind, over: +median.toFixed(1), db: db || 0 };
+  });
+  return read.map((r, i) => {
+    if (r.over !== null) return r;
+    let j = i - 1; while (j >= 0 && read[j].over === null) j--;
+    if (j < 0) { j = i + 1; while (j < read.length && read[j].over === null) j++; }
+    return { ...r, db: j >= 0 && j < read.length ? read[j].db : 0 };
+  });
+}

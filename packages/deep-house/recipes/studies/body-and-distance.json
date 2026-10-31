@@ -1,0 +1,391 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "study/body-and-distance",
+  "revision": 1,
+  "interpreter": "v2.8",
+  "scope": "track",
+  "applies": null,
+  "name": "Body and distance",
+  "origin": "mined",
+  "birds": {
+    "ember": [
+      0.3979,
+      0.4184
+    ],
+    "tide": [
+      0.4574,
+      0.4599
+    ],
+    "zephyr": [
+      0.6637,
+      0.6648
+    ],
+    "root": [
+      0.6971,
+      0.7088
+    ],
+    "gleam": [
+      0.336,
+      0.346
+    ],
+    "veil": [
+      0.7218,
+      0.8285
+    ],
+    "spark": [
+      0.3831,
+      0.3966
+    ],
+    "loom": [
+      0.5096,
+      0.5279
+    ]
+  },
+  "wants": {
+    "harmony": {
+      "movement": "pedal"
+    },
+    "figures": {
+      "bassline": {
+        "follows": "harmony",
+        "articulation": "legato",
+        "motif": {
+          "contour": "pedal",
+          "intervals": {
+            "steps": [
+              0.5,
+              1
+            ],
+            "leaps": [
+              0,
+              0.5
+            ]
+          },
+          "cell": {
+            "beats": [
+              4,
+              4
+            ]
+          },
+          "onGrid": [
+            0.16,
+            0.35
+          ],
+          "range": {
+            "semitones": [
+              2,
+              5
+            ]
+          },
+          "density": [
+            4,
+            6
+          ],
+          "returns": {
+            "bars": [
+              4,
+              4
+            ]
+          }
+        }
+      },
+      "figure": [
+        {
+          "follows": "harmony",
+          "articulation": "struck",
+          "register": "mid",
+          "families": [
+            "keyboard"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.05,
+            "holdMax": 0.09,
+            "brightnessMin": 4000,
+            "brightnessMax": 7500
+          },
+          "motif": {
+            "contour": "pedal",
+            "intervals": {
+              "steps": [
+                1,
+                1
+              ],
+              "leaps": [
+                0,
+                0
+              ]
+            },
+            "cell": {
+              "beats": [
+                2,
+                2
+              ]
+            },
+            "onGrid": [
+              0.25,
+              0.25
+            ],
+            "range": {
+              "semitones": [
+                2,
+                2
+              ]
+            },
+            "density": [
+              16,
+              16
+            ],
+            "returns": {
+              "bars": [
+                4,
+                4
+              ]
+            }
+          },
+          "strength": [
+            0.22,
+            0.26
+          ],
+          "entry": {
+            "beats": [
+              0,
+              0
+            ]
+          },
+          "spacing": {
+            "bars": [
+              1,
+              1
+            ]
+          },
+          "behavior": "ostinato"
+        },
+        {
+          "follows": "harmony",
+          "articulation": "struck",
+          "register": "mid",
+          "families": [
+            "keyboard"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMin": 0.25,
+            "holdMax": 0.45,
+            "brightnessMin": 3800,
+            "brightnessMax": 4800
+          },
+          "motif": {
+            "contour": "arch",
+            "intervals": {
+              "steps": [
+                0.3,
+                1
+              ],
+              "leaps": [
+                0,
+                0.7
+              ]
+            },
+            "cell": {
+              "beats": [
+                2,
+                2
+              ]
+            },
+            "onGrid": [
+              0.2,
+              0.6
+            ],
+            "range": {
+              "semitones": [
+                3,
+                7
+              ]
+            },
+            "density": [
+              8,
+              10
+            ],
+            "returns": {
+              "bars": [
+                8,
+                8
+              ]
+            }
+          },
+          "strength": [
+            0.35,
+            0.4
+          ],
+          "entry": {
+            "beats": [
+              24.5,
+              24.5
+            ]
+          },
+          "spacing": {
+            "bars": [
+              8,
+              8
+            ]
+          },
+          "behavior": "phrase"
+        }
+      ],
+      "texture": {
+        "follows": "harmony",
+        "articulation": "pulse",
+        "register": "mid",
+        "families": [
+          "keyboard"
+        ],
+        "properties": {
+          "struck": true,
+          "holdMin": 0.05,
+          "holdMax": 0.09,
+          "brightnessMin": 4000,
+          "brightnessMax": 7500
+        },
+        "strength": [
+          0.52,
+          0.58
+        ],
+        "spacing": {
+          "bars": [
+            4,
+            4
+          ]
+        },
+        "entry": {
+          "beats": [
+            0.5,
+            0.5
+          ]
+        },
+        "duration": {
+          "beats": [
+            0.5,
+            0.5
+          ]
+        },
+        "ambience": "immersed"
+      }
+    },
+    "rhythm": {
+      "offbeat": [
+        {
+          "bars": 1,
+          "steps": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+            14
+          ],
+          "accents": [
+            0.18,
+            0.32,
+            0.16,
+            0.28,
+            0.18,
+            0.32,
+            0.16,
+            0.27
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.01,
+            "brightnessMin": 7500
+          }
+        }
+      ],
+      "sixteenth": [
+        {
+          "bars": 2,
+          "steps": [
+            0,
+            4,
+            8,
+            12,
+            16,
+            20,
+            24,
+            28,
+            30
+          ],
+          "accents": [
+            0.28,
+            0.22,
+            0.25,
+            0.2,
+            0.28,
+            0.22,
+            0.25,
+            0.2,
+            0.12
+          ],
+          "families": [
+            "drum"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.03,
+            "brightnessMin": 2000,
+            "brightnessMax": 3500
+          }
+        },
+        {
+          "bars": 2,
+          "steps": [
+            7,
+            23,
+            31
+          ],
+          "accents": [
+            0.13,
+            0.11,
+            0.09
+          ],
+          "families": [
+            "noise"
+          ],
+          "properties": {
+            "struck": true,
+            "holdMax": 0.01,
+            "brightnessMax": 7000
+          }
+        }
+      ]
+    },
+    "ambience": {
+      "backbeat": "distant",
+      "sixteenth": "distant",
+      "figure": "spacious"
+    },
+    "presence": {
+      "sixteenth": "supporting",
+      "backbeat": "background"
+    },
+    "tone": {
+      "bassline": "full"
+    }
+  },
+  "forbids": [
+    "sustained"
+  ],
+  "picked": false,
+  "weight": 0,
+  "provenance": {
+    "standing": "an accepted arrangement of the reference-learning milestone (09-20): roughly 80% for now",
+    "reproduction": "the accepted request as it was approved, played on the current engine through a pin; never drawn",
+    "fixed": []
+  }
+}

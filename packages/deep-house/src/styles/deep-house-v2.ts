@@ -31,6 +31,7 @@ import {
   TREATMENT_ROTA, FLAGGED, liveOf, candidateListsV2, layerTable,
 } from '../catalogue-v2.ts';
 import { REGISTRY as EFFECTS } from '@deep-house/engine/effects';
+import { ROWS } from '@deep-house/engine/voices';
 import layerSignatures from '@deep-house/engine/voices/signatures' with { type: 'json' };
 import loudnessFit from './deep-house-v2-loudness.json' with { type: 'json' };
 import type { FrontHeadroom } from '../loudness.ts';
@@ -44,6 +45,8 @@ import type { LayerTable } from '../spell.ts';
 import { HOUSE } from '../spell.ts';
 import type { LeanedVoicing } from '../generator.ts';
 import { places, EQ_V2 } from './deep-house-places.ts';
+import type { LengthKnobs } from '../length.ts';
+import { LENGTH_ROWS } from './deep-house-length.ts';
 import { placesFaults, type StylePlaces } from '../places.ts';
 import { controls, composition } from './deep-house-parts.ts';
 import type { BirdResponse } from '../composition-policy.ts';
@@ -73,12 +76,14 @@ export type StrategyStyle = Style & {
   hatCentroid: Readonly<Record<string, number>>;
   /** round GA6: what the music does away from the house, by place (`src/places.ts`) */
   places: StylePlaces;
+  /** the length rows (`src/length.ts`; engine-data): a groove's band, the drumless band, and the rows a place's entry may name */
+  length: LengthKnobs;
   /** round EQ-3: a room that writes no sixteenths takes the lane at these densities, this far under its offbeat hat (`src/generator.ts`) */
   sixteenthsLean?: Readonly<{ densities: readonly string[]; underHatDb: number }>;
   /** 10-13, the clean keys: the keyboard rows this style plays clean (no strike noise, past the harmonic bus's edge), written into a theme's settings only where the theme sounds one of them (`src/generator.ts`) */
   cleanKeys?: readonly string[];
   /** 10-13, the hand voicing: a voice's settings block as this style voices it, written into a theme's room only where the theme sounds that voice (`src/generator.ts`) */
-  voicings?: Readonly<Record<string, Readonly<Record<string, number>> | LeanedVoicing>>;
+  voicings?: Readonly<Record<string, Readonly<Record<string, number | object>> | LeanedVoicing>>;
   /** 10-13, the hand grammar: what a hand drum drawn on the sixteenth lane plays (`src/hand-phrase.ts`) */
   handPhrases?: Readonly<HandPhrases>;
 };
@@ -266,6 +271,18 @@ export const switches = Object.freeze({
    */
   sectionPhrases: true,
   /**
+   * **Every section line stands on the phrase** (round length-2, his word 10-27: *"our sub segments are not aligned …
+   * it doesn't always account for segment length before break"*). The form is laid on the four-bar grid and every
+   * phrase device counts the theme's phrase (eight bars at the house), so a section could end on a four-bar stub: the
+   * phrase's own ending came early and the next section cut the stub. On, every section between the intro and the
+   * outro is whole phrases, the mains giving the stubs back and the outro taking what is left
+   * (`onPhraseLines`, `src/arrangement.ts`). A development form lays its own. And a short theme still breathes: the
+   * window of the mined run it lays holds a breakdown with a drop or a groove after it, and never ends on a build.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  phraseLines: true,
+  /**
    * **The lead-ins are scheduled by rules and not by a coin** — R34 of the
    * reconciled review of 09-24, Eugene's answer to question 11. The record
    * rolls the riser at a breakdown's end at `riserChance` and spends one glue
@@ -436,6 +453,30 @@ export const switches = Object.freeze({
    */
   padArc: true,
   /**
+   * **The keys by the hats** — round keys-balance (his words 10-29: *"balance the volume based on hat loudness as it
+   * work in one place but not in another"*). On, the piano's lane steps down by section where its strikes stand over
+   * the hats past what his references reach, a few dB at most (`src/hat-scene.ts` `keysByHats`,
+   * `recipes/arrangement/hat-scene.json` `keys`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  keysByHats: true,
+  /**
+   * **The keys by the body** (round piano-tone, his words 10-29: *"it seems we could play off synth drone pads, where
+   * piano sinks, but on open tracks it seems a bit too loud"*). On, the piano's lane steps down by section where the
+   * bed leaves its band open, and lifts a little where a thick bed covers it (`src/hat-scene.ts` `keysByBody`,
+   * `recipes/arrangement/hat-scene.json` `keysBody`).
+   */
+  keysByBody: true,
+  /**
+   * **A break keeps its rhythm in beat-led places** (round break-pulse-rule, his words 10-30: *"There's always some
+   * notion of rhythm throughout. Not necessarily a full drum set, but we can't lose the rhythm"*). On, where the theme
+   * is beat-led (the tempo as played), every beatless stretch of a breakdown keeps one carrier of its own sounds: a
+   * straight beat's hats line, a broken beat's half-time ghost, or, where the birds lean to it, a gentle pump on the bed
+   * (`src/break-pulse.ts`, `recipes/arrangement/break-pulse.json`). Deep and slow places keep their beatless break.
+   */
+  breakPulse: true,
+  /**
    * **The library reaches the draw** — round GA1, Eugene 09-26: *"we go all in
    * on styles … diversity is the priority. We need to wire the new recipes."*
    * On, one theme in three of a set is the library's turn (`libraryTurn`), and
@@ -494,6 +535,21 @@ export const switches = Object.freeze({
    * house-v1 carries no switches and the record never asks.
    */
   subSections: true,
+  /**
+   * **The keys' moments** — round keys-moments, his ear 10-29 on the sketches: *"color in breakdown - great"*,
+   * *"either solo or second riff both sound good"*. On, the piano that carries a theme's keys (a part
+   * whose row says it stays, or the theme's lead) may take a long breakdown's last phrase alone, and the lead a second
+   * riff in a long stretch of itself, each in a share of the themes where it fits (`src/keys-moments.ts`,
+   * `recipes/arrangement/keys-moments.json`).
+   */
+  keysMoments: true,
+  // **A breakdown's bed is lifted from where the groove left it** (round loudness-place, round 2): in the groove the
+  // kick's duck holds the bed down; in a breakdown the kick goes and the bed came back to its unducked level with the
+  // lift on top, so a breakdown stood over its groove (Drive - Comet Tail +2.5 LU with the limiter in 94 % of its blocks,
+  // Vibe - Undertow +1.4 at 56 %) and left the break rule's rhythm carrier no room. On, the breakdown's lift is
+  // read from the duck's mean the groove before it gave the bed (`generator.ts`, the melodic bus's lifts), as the
+  // breakdown-lite's has been since the U2e review. A groove with a light duck moves little; a theme with no kick, none.
+  breakdownBed: true,
 });
 
 /**
@@ -1012,6 +1068,67 @@ const CLAMP_DB_V2 = 6;
 // so it is written here and not in the JSON.
 const CLAMP_UP_NO_KICK_DB_V2 = 2;
 //
+// **A house window is cut 3 dB at most** (round loudness-v24, 10-29). The refit's worst readings are over-readings of
+// windows unlike the ones it was fitted on (Vibe - Drizzle's first theme read 2 LU over its render), and through the
+// master's slope down a 2 LU over-read is a 4 dB cut. On the measured windows the bound cost nothing (an outside read
+// of the round: the landed spread 1.02 -> 1.01 LU, the windows under -15 LUFS 48 -> 43, those over -11.5 as they were).
+// A lift keeps the whole clamp: the headroom bounds it. Reasoned, so it is written here and not in the JSON.
+const CLAMP_DOWN_DB_V2 = 3;
+//
+// **Loudness by place** (round loudness-place, his word 10-30: *"yeah, let's start this loudness project now"*, taking
+// every recommendation of the design, notes/rounds/loudness-by-place.md). Three anchors and a line between them in the
+// theme's drums' share `d` and its beat-led reading `b` (`src/loudness.ts` `byPlace`), never a genre's name:
+//
+// - **the aim** (`AIMS_V2`): ambient −16, the deep groove −13 (where the house has lived), the beat-led −10.5 (his
+//   ear between −10.5 and −11.5 on the Drive sketches: `BEAT_AIM_V2`, one constant). It replaces the block's −13, the
+//   drop family's −11.5 and the liquid place's −9;
+// - **the limiter's allowance** (`ALLOWANCE_V2`): the share of 10 ms blocks the headroom reading lets reach the
+//   ceiling, 5 / 15 / 25 %, and the deepest block over it, 3 dB on an ambient swell, 8 on a groove, 10 on a beat-led
+//   one. A line the trim may use, never a level to reach;
+// - **the lift's clamp** 6 → 8 dB on a beat-led window whose headroom bounds it (`CLAMP_UP_BEAT_DB_V2`);
+// - **the density upstream** (`DENSITY_V2`), at its beat-led strength and sliding to nothing with `b`: the drums' and
+//   the kick's soft clip 2 dB in, a glue on the theme's sum (2:1 from −8 dB at nought, knee 6, 10 / 80 ms: the liquid
+//   place's, which reads as drive and not as pumping; its threshold moves with the trim), the limiter letting go in
+//   100 ms where the room's 200 holds the mix down after every kick. The ceiling then catches peaks;
+// - **the hit rounded on every groove** (the design's 3b): the sum clip's shave 4 → 6 dB past the depth line
+//   (`FRONT.clip.mostDb`) on the deep groove as on the beat-led, since a clip held to 4 left Vibe - Aurora and Vibe -
+//   Night Side where they were (−16.3 and −19.2 whole, their claps 8 dB over at the trim they want).
+//
+// Reasoned, his decisions, so written here and not in the JSON; the slopes by band and the families' shifts are
+// measured, and are the JSON's.
+//
+// **Round 2 (his word 10-30: *"well let's do arrangement round one more time"*), the aims on the world's steps.** The
+// measured medians of integrated loudness (BS.1770) put house at −9.1 LUFS, dance at −8.7, deep house at −10.3 and
+// ambient at −14.1: deep house sits about 1.5 dB under dance and ambient about 3.8 under deep house. The house keeps
+// its own lower floor (an app that plays for hours, his ear on the bass) and takes the world's steps from it: the deep
+// groove −13 → −12 (his note on Vibe - Pure Gold: *"some deep house songs are quieter less punchy … if possible to work on
+// that would be good"*), the beat-led 1.5 dB over it at −10.5 (his word 10-30), the ambient 3.8 under the deep groove,
+// −15.8, never under −16 (his word 10-30: *"we can't make it too quiet still, so it should be balance approach to the
+// rest of our music variety"*). As a line: −15.8 + 3.8·d + 1.5·b.
+export const BEAT_AIM_V2 = -10.5;
+const AIMS_V2 = Object.freeze({ ambient: -15.8, groove: -12, beat: BEAT_AIM_V2 });
+const ALLOWANCE_V2 = Object.freeze({ share: Object.freeze({ ambient: 5, groove: 15, beat: 25 }), deepest: Object.freeze({ ambient: 3, groove: 8, beat: 10 }) });
+const CLAMP_UP_BEAT_DB_V2 = 8;
+// ...and the cut's clamp 6 → 10 dB on a theme with no drums (its aim 3 dB under the house's: the drones the house's −13
+// held on the ceiling come off it; Ambient - Deep Field asks −9)
+const CLAMP_DOWN_AMBIENT_DB_V2 = 10;
+//
+// **Round 2: the density by place, sliding** (his word 10-30: *"technically deep house should be on 60-70% toward full
+// drive at 100%, downtempo more on line 50-60%"*, read as drive and density, not as loudness: the world's step from dance
+// to deep house is in punch, crest 10.2 dB on masters over −9 LUFS against 13.6 under −14, more than in level). The
+// knobs above are the full amount; a place takes `amount` of them: the beat-led 100 %, the deep groove 65 % at 105 BPM
+// felt and over, 55 % at 95 and under (the house's Downtempo tile plays 95-100, its Deep House tile 100-105, its Trip Hop
+// 85-90: the drums' and the tempo's shares put all three at one anchor, so the felt tempo parts them), the ambient none.
+// The theme's sum clip's top follows the same amount (`clipTopDb`, over the ceiling at the trim): 8 dB at none, 2 at the
+// full, so the beat-led's drive is the clip's and not the limiter's, and the deep groove's loudest hit is rounded about
+// 4 dB over. `hit`: the kick and the clap set down on a groove whose trim passes 3 dB, by the excess, 3 dB at most (his
+// word 10-30: *"softer, still clearly a clap"*): the deep grooves that land take 0-2 dB of trim, the three held under
+// their aim by the kick 4.4-5.2.
+const DENSITY_V2 = Object.freeze({ drumClipDb: 2, knee: 0.6, curve: 2, glue: Object.freeze({ threshold: -8, knee: 6, ratio: 2, attack: 0.01, release: 0.08 }), releaseMs: 100,
+  amount: Object.freeze({ ambient: 0, slow: 0.55, groove: 0.65, beat: 1, slowBpm: Object.freeze([95, 105] as const) }),
+  clipTopDb: Object.freeze({ none: 8, full: 2 }),
+  hit: Object.freeze({ fromDb: 3, mostDb: 3, levels: Object.freeze(['kick', 'clap'] as const) }) });
+//
 // This, keyboard character, the saw-lead defaults, the master's EQ profile
 // (`EQ_V2`, round E1) and the present piano (round E1) are v2's own blocks. Every other base field still shares
 // v1's data; its record remains untouched.
@@ -1023,10 +1140,11 @@ const CLAMP_UP_NO_KICK_DB_V2 = 2;
 // the coefficients it was fitted with. `src/loudness.ts` (`trimWindow`,
 // `headroomDb`) says why each is there.
 type FittedModel = { intercept: number; coef: Record<string, number>; centre: Record<string, number> };
-const { targetLufs, slopeUp, slopeDown, intercept, coef, centre, headroom: h, families: fams } = loudnessFit as unknown as {
-  targetLufs: number; slopeUp: number; slopeDown: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>;
+const { targetLufs, slopeUp, slopeDown, houseSlopeDown, slopeUpBeat, houseSlopeDownBeat, intercept, coef, centre, headroom: h, families: fams, timbres: ownTimbres } = loudnessFit as unknown as {
+  targetLufs: number; slopeUp: number; slopeDown: number; houseSlopeDown?: number; slopeUpBeat?: number; houseSlopeDownBeat?: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>;
+  timbres?: Record<string, { loudnessDb: number }>;
   headroom?: { activeMax: number; deepestMax: number; marginDb: number; intercept: number; coef: Record<string, number>; centre: Record<string, number>; front?: FrontHeadroom; clipDepth?: FittedModel };
-  families?: Record<string, FittedModel & { targetLufs?: number; headroom?: FittedModel }>;
+  families?: Record<string, FittedModel & { targetLufs?: number; headroom?: FittedModel & { shift?: { ambient?: number; groove?: number; beat?: number } } }>;
 };
 // The model's reach (round LOUD-1): a model per family of windows the house's
 // sample never held, each fitted on its own measured windows (`src/loudness.ts`,
@@ -1036,20 +1154,26 @@ const { targetLufs, slopeUp, slopeDown, intercept, coef, centre, headroom: h, fa
 const families = fams && Object.freeze(Object.fromEntries(Object.entries(fams).map(([k, m]) => [k, Object.freeze({
   ...(Number.isFinite(m.targetLufs) ? { targetLufs: m.targetLufs } : {}),
   intercept: m.intercept, coef: m.coef, centre: m.centre,
-  ...(m.headroom ? { headroom: Object.freeze({ intercept: m.headroom.intercept, coef: m.headroom.coef, centre: m.headroom.centre }) } : {}),
+  ...(m.headroom ? { headroom: Object.freeze({ intercept: m.headroom.intercept, coef: m.headroom.coef, centre: m.headroom.centre, ...(m.headroom.shift ? { shift: Object.freeze({ ...m.headroom.shift }) } : {}) }) } : {}),
 })])));
 // ...and the windows the front rule moved, read by a share's and a depth's model of their own (round saw-bed,
 // `tools/headroom-front.ts`; `src/loudness.ts` `headroomOf` says why). Measured, so it is the JSON's; carried by the
 // rule it answers for (`FRONT.headroom`, below) and not by the settings a program is compiled with, which it does not
 // change
 const frontHeadroom = h?.front && Object.freeze({ blendDb: h.front.blendDb,
-  share: Object.freeze({ marginDb: h.front.share.marginDb, intercept: h.front.share.intercept, coef: h.front.share.coef, centre: h.front.share.centre }),
+  share: Object.freeze({ marginDb: h.front.share.marginDb, ...(h.front.share.marginBeatDb != null ? { marginBeatDb: h.front.share.marginBeatDb } : {}), intercept: h.front.share.intercept, coef: h.front.share.coef, centre: h.front.share.centre }),
   depth: Object.freeze({ marginDb: h.front.depth.marginDb, intercept: h.front.depth.intercept, coef: h.front.depth.coef, centre: h.front.depth.centre }) });
 // ...and the saw-bed's depth line as fitted without the clip, which the sum clip reads for how deep the hit would go
 // (`FRONT.clip`, below; `src/loudness.ts` `clipPlan`)
 const clipDepth = h?.clipDepth && Object.freeze({ intercept: h.clipDepth.intercept, coef: h.clipDepth.coef, centre: h.clipDepth.centre });
 const headroom = h && Object.freeze({ activeMax: h.activeMax, deepestMax: h.deepestMax, marginDb: h.marginDb, intercept: h.intercept, coef: h.coef, centre: h.centre });
-const loudnessV2 = Object.freeze({ targetLufs, clampDb: CLAMP_DB_V2, clampUpNoKickDb: CLAMP_UP_NO_KICK_DB_V2, slopeUp, slopeDown, intercept, coef, centre, window: 'loudest' as const, ...(headroom ? { headroom } : {}), ...(families ? { families } : {}) });
+// ...and the voices house-v2 plays otherwise than the registry measured them (round loudness-v24: the piano is the
+// string here, the six partials in house-v1), each at its loudness as v2 plays it, where the fit took them
+// (`tools/headroom-front.ts --facts`); the registry's facts, which the draw reads, stay as they are
+const timbres = ownTimbres && Object.freeze(Object.fromEntries(Object.entries(ownTimbres).map(([k, v]) => [k, Object.freeze({ loudnessDb: v.loudnessDb })])));
+const loudnessV2 = Object.freeze({ targetLufs, clampDb: CLAMP_DB_V2, clampUpNoKickDb: CLAMP_UP_NO_KICK_DB_V2, clampDownDb: CLAMP_DOWN_DB_V2, slopeUp, slopeDown, ...(houseSlopeDown != null ? { houseSlopeDown } : {}),
+  ...(slopeUpBeat != null ? { slopeUpBeat } : {}), ...(houseSlopeDownBeat != null ? { houseSlopeDownBeat } : {}),
+  aims: AIMS_V2, allowance: ALLOWANCE_V2, clampUpBeatDb: CLAMP_UP_BEAT_DB_V2, clampDownAmbientDb: CLAMP_DOWN_AMBIENT_DB_V2, slopeOff: 1, density: DENSITY_V2, intercept, coef, centre, window: 'loudest' as const, ...(headroom ? { headroom } : {}), ...(families ? { families } : {}), ...(timbres ? { timbres } : {}) });
 
 // Ordinary-roll feedback, 09-21: the filter's pronounced opening and resonant
 // peak make chord stabs too assertive at home. This is a style voicing of the
@@ -1070,6 +1194,23 @@ const smoothSaw = Object.freeze({ ...base.sawLead,
 const presentPiano = Object.freeze({ ...base.piano,
   dryLevel: .85, sustainLevel: .32, partialDecay: .40,
 });
+
+/**
+ * **The piano in the mix** (10-28, his ear: *"not well in the mix, too dry, and flat"*): a producer's treatment of
+ * the instrument, not of a track, written into a theme's room only where the theme sounds the piano (`voicings`).
+ * Back into its hall (dry .85 -> .72: the hall, 4.2 s behind a 32 ms pre-delay, carries more of the note); wider
+ * (the register's spread .5 -> .8, the right hand further out); a low cut that leaves the drone's register to the
+ * drone (105 -> 160 Hz); and a smoother top (the hardest strike's corner 5.4 -> 4.4 kHz). The bus's edge no
+ * longer reads it (its row's `edge: false`); the touch and the pedal are the parts' (`characters.phrases`,
+ * `PitchedFigure.pedal`).
+ *
+ * **And the string** (round piano-tone, his pick of six sketches on 10-29: *"the 6 sounds a little better"*, after
+ * *"it still sounds like there is a piece of paper between a string and a hammer"*): the piano row's `string`, the
+ * deep house keys — a stiff string over a wooden body, struck by felt (`piano-string.ts` in the engine) — where the
+ * six-partial string had a band of hiss for a top. Written here, so only a theme that sounds the piano carries it, and
+ * house-v1 keeps the six-partial string.
+ */
+const PIANO_VOICING = Object.freeze({ dryLevel: .72, spread: .8, hpHz: 160, brightMax: 4400, string: ROWS.piano.parameters.string as object });
 
 /**
  * **The clean keys** (his ear 10-13, seed 4 at Tide 0.95: the electric piano's
@@ -1279,14 +1420,15 @@ const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8,
 //   (`depth`, the JSON's `headroom.clipDepth`), reads the hit reaching the line. The saw-bed refit found the kick and
 //   the clap landing on one backbeat to be the loudest block of 688 of 971 moved mains, and the trim gave their
 //   loudness back only by driving that hit 10-20 dB into the limiter. `mostDb` 4: the clip's planned shave, at which
-//   the residual it leaves is 26-45 dB under the window and the share line does not move.
+//   the residual it leaves is 26-45 dB under the window and the share line does not move. 6 since round
+//   loudness-place, on every house window (the design's 3b: a hit rounded so one clap never holds a deep track quiet).
 const FRONT = Object.freeze({
   liftDb: -1.5, mostDb: -12.5, bedMostDb: -8, beds: SYNTH_BEDS, bedDb: -5, followDb: -3.5, bpm: Object.freeze([60, 80] as const),
   under: Object.freeze(['sawLead', 'clavKey', 'pluck', 'rhodes']), makeup: Object.freeze({ keys: 0.59, pad: 0.36 }),
   peak: Object.freeze({ keys: 15, pad: 20, bass: 34 }),
   bands: Object.freeze({ wavePad: Object.freeze({ hz: 2800, db: -6, q: 0.9, levelDb: -1.5 }) }),
   ...(frontHeadroom ? { headroom: frontHeadroom } : {}),
-  ...(frontHeadroom && clipDepth ? { clip: Object.freeze({ mostDb: 4, knee: 0.6, curve: 2, depth: clipDepth }) } : {}),
+  ...(frontHeadroom && clipDepth ? { clip: Object.freeze({ mostDb: 6, knee: 0.6, curve: 2, depth: clipDepth }) } : {}),
 });
 
 // --- the catalogue -----------------------------------------------------------
@@ -1574,7 +1716,7 @@ const set = Object.freeze({
   // **Minutes from the birds** (round L1, Eugene 10-01: *"fast beat tracks
   // tend to be too short, sometimes under 2 minutes; the length must not come
   // only from bars count and speed"*): the length is a band in minutes the
-  // derived state asks for (`src/length.ts`, whose `LENGTH` table is the
+  // derived state asks for (`src/length.ts`, whose rows are `LENGTH_V2` above, the
   // knobs), the seed rolls inside it on the ladder above, and the bars follow
   // from the tempo the theme plays at. The cut above stays and still decides
   // which bars come off; `themeBarsMin`, `themeBarsMax` and `themeTrimBars` are
@@ -1617,6 +1759,9 @@ const set = Object.freeze({
   ],
 });
 
+/** The length rows (`deep-house-length.ts`): house-v2's name for the rows both strategies read. */
+export const LENGTH_V2: LengthKnobs = LENGTH_ROWS;
+
 export const style = {
   id: 'deep-house-v2',
   label: 'deep house (v2)',
@@ -1649,6 +1794,7 @@ export const style = {
   composition, controls,
   // Round GA6: what the music does away from the house, by place.
   places,
+  length: LENGTH_V2,
   // Round EQ-3: a room that writes no sixteenths (growl) takes the lane where
   // the density die rolled medium or busy, 11 dB under its offbeat hat
   // (`src/generator.ts`, `notes/rounds/eq-3.md`). v1 has no field: its rooms
@@ -1659,7 +1805,7 @@ export const style = {
   // FM glass past the edge, written only where a theme sounds one
   // (`src/generator.ts`). v1 has no field: its rooms build neither.
   cleanKeys: CLEAN_KEYS,
-  voicings: Object.freeze({ ...HAND_VOICINGS, reedOrgan: REED_VOICING }),
+  voicings: Object.freeze({ ...HAND_VOICINGS, reedOrgan: REED_VOICING, piano: PIANO_VOICING }),
   // 10-13, the hand grammar (his ear on house seed 35: "too primitive, only one hit"): a hand drum the sixteenth
   // lane draws plays a two-drum conversation off this row, in the hand rows' own character (`src/hand-phrase.ts`).
   // v1 has no field: its lane strikes the mask.

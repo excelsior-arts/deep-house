@@ -40,7 +40,7 @@
 import { midiToHz, adsrEnv, route, panner, startTime } from '../dsp.ts';
 import { insert } from './treat.ts';
 import type { VoiceOut } from '../dsp.ts';
-import { strikeTilt, withControls } from './descriptor.ts';
+import { strikeTilt, tiltAmount, withControls } from './descriptor.ts';
 import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
@@ -100,7 +100,7 @@ function fmBell(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: numbe
     // nought, because an exponential ramp may not end on zero.
     // a strike's hardness (zephyr-air, `hardness`; absent the row's own): a harder strike throws the carrier further
     const tilt = strikeTilt(p, row.descriptor.controls, 1);
-    const indexMul = (p.indexMul ?? 1) * (tilt ? Math.exp(TILT_INDEX * tilt) : 1);
+    const indexMul = (p.indexMul ?? 1) * (tilt ? Math.exp(tiltAmount(row.descriptor.controls, 'index', TILT_INDEX) * tilt) : 1);
     idx.gain.setValueAtTime(hz * (S.index[0] + S.index[1] * vel) * indexMul, time);
     idx.gain.exponentialRampToValueAtTime(hz * S.indexFloor * indexMul, time + S.indexDecay);
     mod.connect(idx);
@@ -126,7 +126,7 @@ function fmBell(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: numbe
   return end;
 }
 
-/** How far a strike's hardness throws the index (zephyr-air): e^(`TILT_INDEX` x the tilt), set by measure at BELLS. */
+/** How far a strike's hardness throws the index (zephyr-air): e^(the row's `hardness.tilt.index` x the tilt); this is the default where a row names none, set by measure at BELLS. */
 const TILT_INDEX = 2;
 
 /** What a row of this topology carries: exactly these, each in its range (`schema.ts`). */
@@ -154,6 +154,14 @@ const PARAMETERS = contract({
  * velocity's (`sounds/keyboard/fmBell.json` since round R2). Its note controls
  * — the two sends and `indexMul` — are the row's.
  */
+/**
+ * The oscillators one strike runs, each for its seconds: two carriers and two modulators to the note's end and its
+ * release (`stop(end + 0.02)` above). A planner's cast budget reads it (`voiceLives`, `index.ts`).
+ */
+export function fmBellLives(P: { release?: number }, dur: number): number[] {
+  return Array(4).fill(dur + (P.release ?? 1) + 0.02);
+}
+
 export const FM_BELL: Topology = {
   id: 'fm-bell',
   cost: 'dear',

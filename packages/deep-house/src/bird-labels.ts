@@ -25,11 +25,14 @@
 import LABELS from './bird-labels.json' with { type: 'json' };
 import AIR from './voice-air.json' with { type: 'json' };
 import { BIRDS, HOUSE, HOUSE_OUTER, asSpell, derive, musicalControls, knobsFor } from './spell.ts';
-import { surfRowOf, type SurfRow } from './surf.ts';
+import { surfRowOf, SURF_ROWS, type SurfRow } from './surf.ts';
 import { nearestEntry, leanFactor, leanShift, type BirdLeans } from './places.ts';
 import { VOICE_KNOBS } from '@deep-house/engine/voices';
-import { conversationRowOf, conversationFrame, conversationLeansIn, type ConversationFrame, type ConversationZone } from './slow-conversation.ts';
-import { zoneBands, type StylePlaces } from './places.ts';
+import { conversationRowOf, CONVERSATION_ROWS, conversationFrame, conversationLeansIn, type ConversationFrame, type ConversationZone } from './slow-conversation.ts';
+import { zoneBands, TECHNIQUE_LANES, type StylePlaces, type TechniqueLane } from './places.ts';
+import { techniqueOrder } from './technique.ts';
+import { toneOf, restlessOf } from './hook.ts';
+import HOOK_LABELS from './hook-labels.json' with { type: 'json' };
 import type { Bird, Derived, Spell } from './spell.ts';
 import type { Style } from '@deep-house/engine/style';
 
@@ -986,7 +989,7 @@ const numberAt = (o: unknown, path: string): number | undefined => {
   for (const k of path.split('.')) x = x && typeof x === 'object' ? (x as Record<string, unknown>)[k] : undefined;
   return typeof x === 'number' ? x : undefined;
 };
-type CentreEntry = { id?: string; place: { birds: Partial<Spell> }; centre?: Partial<Spell>; conversation?: { row: string } };
+type CentreEntry = { id?: string; place: { birds: Partial<Spell> }; centre?: Partial<Spell>; technique?: { row: string } };
 /**
  * **The zone that holds a conversation entry as its own** (`Zone.rows.conversation` in places.ts), as the leans' frame
  * reads it: its centre and its address birds' bands, each band's two ends as the planner reads them (`zoneBands`). None
@@ -1007,10 +1010,10 @@ const CONVERSATION: Technique = {
   field: 'conversation',
   name: 'the struck conversation',
   labelsOf: (row) => ((conversationRowOf(row) as unknown as { labels?: Partial<Record<Bird, TechniqueLabel>> } | null)?.labels ?? null),
-  rows: () => ['bells-in-conversation'].filter((r) => !!conversationRowOf(r)),
+  rows: () => CONVERSATION_ROWS.map((r) => r.id),
   frameOf(row, style) {
     const table = (style as Style & { places?: { conversation?: readonly CentreEntry[] } }).places?.conversation;
-    const e = table?.find((x) => x.conversation?.row === row);
+    const e = table?.find((x) => x.technique?.row === row);
     return e ? conversationFrame(e, zoneOfEntry(style, e)) : null;
   },
   readings(row, spell, style) {
@@ -1019,7 +1022,10 @@ const CONVERSATION: Technique = {
     const L = conversationLeansIn(R, spell, f);
     // the bells' size as the share of casts handed to a pole's voice: -1 every cast the small bells', +1 the great bell's
     return { pole: Math.sign(L.size) * L.reach, size: L.size, count: L.count, handover: L.handover, lively: L.lively, still: L.still, leave: L.leave, hard: L.hard,
-      pulse: L.pulse, memory: L.memory, recall: L.recall ? 1 : 0, rests: L.factor('rest'), tail: L.tail, width: L.width };
+      pulse: L.pulse, memory: L.memory, recall: L.recall ? 1 : 0, rests: L.factor('rest'), tail: L.tail, width: L.width,
+      // the bowls' (ambient-bowls): the rim's chance a call, the breath's period as a factor, the small bowl's light against the great one's
+      rim: Math.min(1, (R.rim?.chance ?? 0) * L.factor('rim')), breath: L.factor('breath'), light: L.factor('light') ** 2 / L.factor('bowl:0'),
+      bed: Math.max(-1, Math.min(0, L.shift('bed'))) };
   },
   rowNumber: (row, path) => numberAt(conversationRowOf(row), path),
   words(record, facts) {
@@ -1042,7 +1048,7 @@ const CONVERSATION: Technique = {
  * voices' nearest with this row, no conversation and no journey nearer in theirs, and no drums), so a cut halfway to a
  * wall is inside what a listener can reach and hear.
  */
-type SeaEntry = { id?: string; place: { birds: Partial<Spell>; tempo: readonly [number, number] }; weather?: { row: string } };
+type SeaEntry = { id?: string; place: { birds: Partial<Spell>; tempo: readonly [number, number] }; technique?: { row: string } };
 const SEA_FRAMES = new WeakMap<object, Map<string, ConversationFrame | null>>();
 const seaPlaces = (style: Style) => ((style as Style & { places?: StylePlaces }).places ?? {}) as StylePlaces;
 function seaFrameOf(row: string, style: Style): ConversationFrame | null {
@@ -1050,13 +1056,13 @@ function seaFrameOf(row: string, style: Style): ConversationFrame | null {
   if (!cache) { cache = new Map(); SEA_FRAMES.set(style as object, cache); }
   if (cache.has(row)) return cache.get(row)!;
   const P = seaPlaces(style);
-  const e = (P.ambientVoices as readonly SeaEntry[] | undefined)?.find((x) => x.weather?.row === row);
+  const e = (P.sea as readonly SeaEntry[] | undefined)?.find((x) => x.technique?.row === row);
   let out: ConversationFrame | null = null;
   if (e) {
     const centre = Object.fromEntries(BIRDS.map((b) => [b, e.place.birds[b] ?? HOUSE[b]])) as Record<string, number>;
     const bpm = (e.place.tempo[0] + e.place.tempo[1]) / 2;
-    const plays = (sp: Spell) => (nearestEntry(P.ambientVoices as readonly SeaEntry[] as never, sp, bpm) as SeaEntry | null)?.weather?.row === row
-      && !nearestEntry(P.conversation, sp, bpm)?.conversation && !nearestEntry(P.journey, sp, bpm)?.journey && !derive(sp).drumsOn;
+    const plays = (sp: Spell) => (nearestEntry(P.sea as readonly SeaEntry[] as never, sp, bpm) as SeaEntry | null)?.technique?.row === row
+      && !nearestEntry(P.conversation, sp, bpm)?.technique && !nearestEntry(P.journey, sp, bpm)?.technique && !derive(sp).drumsOn;
     const bands: Record<string, readonly [number, number]> = {};
     for (const b of BIRDS) {
       const at = (v: number) => plays(asSpell({ ...centre, [b]: v }));
@@ -1074,12 +1080,12 @@ const SEA: Technique = {
   field: 'sea',
   name: 'the sea',
   labelsOf: (row) => ((surfRowOf(row) as unknown as { labels?: Partial<Record<Bird, TechniqueLabel>> } | null)?.labels ?? null),
-  rows: () => ['waves-surf'].filter((r) => !!surfRowOf(r)),
+  rows: () => SURF_ROWS.map((r) => r.id),
   frameOf: (row, style) => seaFrameOf(row, style),
   readings(row, spell, style) {
     const R = surfRowOf(row) as SurfRow | null, f = seaFrameOf(row, style);
     if (!R || !f) return null;
-    const L: BirdLeans = { centre: f.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}) };
+    const L: BirdLeans = { centre: f.centre, by: R.birds.by, ...(R.birds.most ? { most: R.birds.most } : {}), ...(R.birds.ends ? { ends: R.birds.ends } : {}) };
     const factor = (k: string) => leanFactor(L, k, spell), shift = (k: string) => leanShift(L, k, spell);
     // Gleam's one reach at the sea: the shimmer's climb, as the style seasons it (a shimmer's share of its loop pitched up)
     const shiftKnob = VOICE_KNOBS.shimmerPad?.shift;
@@ -1100,12 +1106,44 @@ const SEA: Technique = {
     };
   },
 };
-const TECHNIQUES: readonly Technique[] = Object.freeze([CONVERSATION, SEA]);
+/**
+ * **The hook** (round trance-1, `src/hook.ts`, his rule `labels-name-the-local-role`): its record is the dice's `hook`
+ * (`hook · <riff row> · loop <loop> · pedal <voice>`, `hookWord`), its readings the hook's own (the supersaw's light off Gleam, its
+ * edge off Spark, Veil's lean toward the restless rows about the trance corner), its words, its frame (the hook
+ * table's entry the bands are solved about) and its walls `hook-labels.json`'s.
+ */
+const HOOK_FRAME = (style: Style): ConversationFrame | null => {
+  const F = HOOK_LABELS.frame as unknown as { entry: string; walls: Record<string, readonly [number, number]> };
+  const e = (seaPlaces(style).hook ?? []).find((x) => x.id === F.entry);
+  if (!e) return null;
+  return { centre: Object.fromEntries(BIRDS.map((b) => [b, e.place.birds[b] ?? HOUSE[b]])) as Record<string, number>, bands: F.walls };
+};
+const HOOK: Technique = {
+  field: 'hook',
+  name: 'the hook',
+  labelsOf: (row) => (row === 'hook' ? (HOOK_LABELS.labels as unknown as Partial<Record<Bird, TechniqueLabel>>) : null),
+  rows: () => ['hook'],
+  frameOf: (_row, style) => HOOK_FRAME(style),
+  readings(_row, spell, style) {
+    const e = (seaPlaces(style).hook ?? []).find((x) => x.id === (HOOK_LABELS.frame as { entry: string }).entry) ?? null;
+    const { light, edge } = toneOf(spell);
+    return { light, edge, restless: restlessOf(e, spell) };
+  },
+  rowNumber: (_row, path) => numberAt(HOOK_LABELS, path),
+  words(record) {
+    const parts = record.split(' · ');
+    return { riff: parts[1] ?? '', pedal: (parts.find((x) => x.startsWith('pedal ')) ?? '').slice(6) };
+  },
+};
+/** The techniques with labels, by their lane; read in the lanes' priority order (`techniqueOrder`, the entries' own). */
+const TECHNIQUES_BY_LANE: Readonly<Partial<Record<TechniqueLane, Technique>>> = Object.freeze({ conversation: CONVERSATION, sea: SEA, hook: HOOK });
 
 /** The technique a theme's program carries, read off its record, with labels of its own; none where it carries none. */
-export function techniqueOf(t: Pick<LabelTheme, 'dice'>): { tech: Technique; row: string; record: string } | null {
+export function techniqueOf(t: Pick<LabelTheme, 'dice'>, places?: StylePlaces | null): { tech: Technique; row: string; record: string } | null {
   const d = t.dice || {};
-  for (const tech of TECHNIQUES) {
+  for (const lane of places ? techniqueOrder(places) : TECHNIQUE_LANES) {
+    const tech = TECHNIQUES_BY_LANE[lane];
+    if (!tech) continue;
     const rec = d[tech.field];
     if (typeof rec !== 'string' || !rec) continue;
     const row = rec.split(' · ')[0];
@@ -1179,7 +1217,7 @@ export function techniqueBandsOf(tech: Technique, row: string, bird: Bird, style
 interface Overlay { tech: Technique; row: string; record: string; label: TechniqueLabel; bands: TechniqueBand[]; bird: Bird; style: Style; words: Record<string, string>; facts: ProgramFacts | null }
 /** A cell's technique words, where the theme's program carries a technique that labels this control; else null. */
 function overlayOf(bird: Bird, t: LabelTheme, style: Style): Overlay | null {
-  const at = techniqueOf(t);
+  const at = techniqueOf(t, seaPlaces(style));
   if (!at) return null;
   const label = at.tech.labelsOf(at.row)?.[bird];
   if (!label) return null;
@@ -1241,7 +1279,7 @@ export function techniqueLines(): Array<{ bird: Bird; where: string; says: strin
     out.push({ bird, where, says: x.says, short: x.short });
     for (const [k, w] of Object.entries(x.without ?? {})) if (w) out.push({ bird, where: `${where} without ${k}`, says: w.says, short: w.short });
   };
-  for (const tech of TECHNIQUES) for (const row of tech.rows()) for (const [bird, label] of Object.entries(tech.labelsOf(row) ?? {}) as Array<[Bird, TechniqueLabel]>) {
+  for (const tech of Object.values(TECHNIQUES_BY_LANE)) for (const row of tech.rows()) for (const [bird, label] of Object.entries(tech.labelsOf(row) ?? {}) as Array<[Bird, TechniqueLabel]>) {
     if (!(BIRDS as readonly string[]).includes(bird) || !Array.isArray(label?.bands)) continue;   // the block's own note
     for (const b of label.bands) {
       push(bird, `${row} ${b.word}`, b);
@@ -1253,4 +1291,4 @@ export function techniqueLines(): Array<{ bird: Bird; where: string; says: strin
   return out;
 }
 /** The techniques with labels, for the check and the memo. */
-export const TECHNIQUE_LIST: readonly Technique[] = TECHNIQUES;
+export const TECHNIQUE_LIST: readonly Technique[] = Object.freeze(TECHNIQUE_LANES.flatMap((l) => (TECHNIQUES_BY_LANE[l] ? [TECHNIQUES_BY_LANE[l]!] : [])));

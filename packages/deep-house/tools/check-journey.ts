@@ -184,20 +184,28 @@ test('the journey is one line of the place: taken out, PSY plays the composer\'s
  * Ember dragged to its ends both ways, and a slow theme (Ember 0.10) dragged the same way (the bright end, Zephyr and
  * Gleam at one, is a theme bells-birds moved: 3a0626df0fbc70d6 on 4055c89b).
  * PLAN-AMBIENT §2.4's are the conversation's check's. BELLS's four since zones-pilot-2 (the bowl's level by register,
- * check-conversation's TILE) and the turns' (seed 4), and the place's trim since zones-pilot-3.
+ * check-conversation's TILE) and the turns' (seed 4), and the place's trim since zones-pilot-3. All nine re-pinned in
+ * round length-after to `local` fb344631, where round length-2's lengths moved every one and nothing else did
+ (his word 10-28: *"The length around is great. I listen all my featured vibe and drive songs, and they all got a good shape, so we
+ * can merge it now"*). The house theme and its two drags re-pinned to `local` after the September-studies merge, where the
+ * piano moved them (its bus, its chords and touch; the hats, the pad's dip, the bass's role and the trim following the
+ * keys) and nothing else did (his words 10-28: *"the ensembles are good for now"*; *"once piano rounds are back just accept it to unblock the next round"*).
+ * The four BELLS rows re-pinned in round v24-bugs for the bells' hand the soft woodblock alone (round v24-bugs, his ear 10-29: "the woodblock is the only matching percussion ... all other claps are distracting"): the hand's strikes alone moved.
+ * One re-pinned to `local` after round chillstep-ends's tail rule and phrase seam (his word 10-30: "Those are actually fine. We can accept them and merge"): the forms' outros and seams alone moved.
+ * Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did.
  */
 const OUTSIDE: Record<string, string> = {
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9683b597a7dc7378',
-  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'f104b8cae402eedc',
-  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '1825a40f3f4c7fe7',
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '401d3474e265e505',
+  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '3439642f654051da',
+  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '55ccae884e71dc58',
   // a library turn at the bells' tile, which the zone plays as the conversation (zones-pilot; check-conversation's TURNED)
-  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '6ec6d7e3071c99ab',
-  'seed=3&v=2': 'aed3f3640846ec08',
-  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '1cc27d70e922da52',
-  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': 'daf3ef2d7e1827e5',
-  'seed=2&v=2&spell=em:0.10,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '18af3c36234e4304',
+  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9e8fb2b8e36b2837',
+  'seed=3&v=2': '124cf62780688dd5', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '008b281137b7950d', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': 'e45b66f5c3d57717', // piano-tone: the new piano
+  'seed=2&v=2&spell=em:0.10,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '1a688dd439b4bc81',
   // outside the bells' box (Spark 0), where every lane BELLS lists read BELLS's entry on local: the tables less the zone's since zones-pilot
-  'seed=2&v=2&spell=em:0.10,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:0.30,sp:0.00,lo:0.00': '8737122b17a7edd7',
+  'seed=2&v=2&spell=em:0.10,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:0.30,sp:0.00,lo:0.00': '2b205e3751b1850c',
 };
 
 test('the harmony entry that draws its own mode plays only inside its journey\'s region: where the harmony is PSY\'s and the journey is not, the theme plays the house\'s walk in the key die\'s mode', (ctx) => {
@@ -213,12 +221,12 @@ test('the harmony entry that draws its own mode plays only inside its journey\'s
   for (let i = 0; i < 20000; i++) {
     const sp: Record<string, number> = {}; for (const b of BIRDS) sp[b] = r(); sp.ember *= 0.18;
     const bpm = 44 + sp.ember / 0.18 * 20;
-    if (nearestEntry(H, sp as any, bpm) !== psyH || nearestEntry(J, sp as any, bpm)?.journey) continue;
+    if (nearestEntry(H, sp as any, bpm) !== psyH || nearestEntry(J, sp as any, bpm)?.technique) continue;
     if (nearestEntry(J, sp as any, bpm)?.id === 'no-journey-at-waves') atWaves++; else outside++;
     const spell = parseSpell(Object.entries(sp).map(([k, v]) => `${k.slice(0, 2)}:${v.toFixed(4)}`).join(','))!;
     const t = quiet(() => planTheme('1', 1, { strategy: 'house-v2', spell }));
     // read again at the tempo the theme drew: the cell is the plan's
-    if (nearestEntry(H, spell, t.bpm) !== psyH || nearestEntry(J, spell, t.bpm)?.journey) continue;
+    if (nearestEntry(H, spell, t.bpm) !== psyH || nearestEntry(J, spell, t.bpm)?.technique) continue;
     tested++;
     assert.equal(t.journey, undefined);
     assert.ok(['minor', 'dorian'].includes(t.key.scaleName), `a place's mode without its journey: ${t.key.scaleName}`);

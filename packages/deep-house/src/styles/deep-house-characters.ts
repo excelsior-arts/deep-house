@@ -36,6 +36,10 @@ export const characters: SoundCharacters = {
       params: { sustainLevel: [.72,.72,.72], partialDecay: [.16,.16,.16],
         unisonCents: [1.8,1.8,1.8], hammerLevel: [.12,.12,.12], harmonicBody: [1,1,1] },
       beats: { decayFast: [.85,.85,.85], ring: [7,7,7] },
+      // 10-28, his ear on the piano: "chord notes not all at the same strike", soft notes softer; and "chords should be
+      // more pronounced as it's more notes": a chord lands at least .85 of the phrase's strongest accent, uncurved; and
+      // then "now chord is a bit too loud comparing to mix": beside single notes a chord 2 dB over the typical one
+      touch: { rollMs: 14, timingMs: 6, velocityCurve: 1.3, chordFloor: .85, chordOverDb: 2 },
     },
     hummed: sung(2.4,.72,1.35,[.95,.95],.018,1400),
     rounded: sung(1.7,.9,1.15,[1,1],.025,2000),
@@ -50,6 +54,7 @@ export const characters: SoundCharacters = {
       params: { sustainLevel: [.68,.68,.68], partialDecay: [.18,.18,.18],
         unisonCents: [1.8,1.8,1.8], hammerLevel: [.18,.18,.18], harmonicBody: [1,1,1] },
       beats: { decayFast: [.65,.65,.65], ring: [3,3,3] },
+      touch: { rollMs: 14, timingMs: 6, velocityCurve: 1.3, chordFloor: .85, chordOverDb: 2 },
     },
     steady: {
       requires: ['attack','release','open','motion','fadeCurve'],

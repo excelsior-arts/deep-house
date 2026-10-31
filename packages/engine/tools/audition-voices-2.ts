@@ -127,6 +127,8 @@ export const SCENES_2: VoiceScene[] = [
   { id: 'bowlRim', voice: 'bowlRim', pattern: 'gesture', root: 45, dur: 6, role: 'figure' },
   { id: 'tanpura', voice: 'tanpura', pattern: 'melody', root: 47, dur: 2.5, role: 'melody' },
   { id: 'chantOm', voice: 'chantOm', pattern: 'gesture', root: 47, dur: 7.5, role: 'sustained' },
+  // ...and trance-1's gritty supersaw (10-28), on the leads' line and register, a short note as a riff plays it
+  { id: 'supersawGrit', voice: 'supersawGrit', pattern: 'melody', root: 67, dur: 0.22, role: 'melody' },
 ];
 
 /** This table's rows: the sixteen round K4 added, then the later rows above, in order. */

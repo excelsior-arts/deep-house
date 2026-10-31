@@ -7,6 +7,15 @@
 //   node tools/feature.ts "<link>" --name "Drive" --at 1         its name in the tab, and its place (1 is the first run's)
 //   node tools/feature.ts --remove <id>                          take an entry out
 //   node tools/feature.ts --list                                 the table as it stands
+//   node tools/feature.ts --renew "Deep House backup.deephouse"  every entry again from his own playlist it is kept
+//                                                                from (`featured-sources.json`), and what changed
+//
+// **Renewing is the usual way** (his word 10-27: "I will keep the original playlists in my storage as likely over time
+// I will update them (new tracks, replace track, change order), so the operation of renewing featured playlists tracks
+// is not the one in the lifetime situation"): he keeps each featured playlist's original in his library and backs the
+// library up; `--renew` reads the backup, finds each original by its id (a rename of it is fine), and writes the entry
+// again in his order, keeping the entry's id and name. A track that comes without a label keeps the one the entry had
+// for the same link, so a name given here is never lost to an original that lacks it.
 //
 // An entry is the playlist's id (its share link's; so sharing it again after an edit replaces it), its name, its track
 // links as the page writes them (each naming its engine) and their labels. A track this edition cannot play is refused.
@@ -23,6 +32,8 @@ import type { Featured, FeaturedFile } from '../src/featured.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const TABLE = path.join(HERE, '..', 'src', 'featured.json');
+/** Each featured entry's original in his library, by id: `{ sources: { <entry id>: <his playlist's id> } }`. */
+export const SOURCES = path.join(HERE, 'featured-sources.json');
 
 /** A refusal, in words: the command line says it and stops. */
 const fail = (why: string): never => { throw new Error(why); };
@@ -77,6 +88,44 @@ export function withEntry(table: FeaturedFile, e: Featured, opts: { replace?: st
   return { ...table, playlists: rest };
 }
 
+/**
+ * **The table renewed from a backup of his library**: each entry with an original there is written again from it (its
+ * tracks and their order, his labels; a track he left unlabelled keeps the entry's label for that link), its id and
+ * name kept. Says, per entry, what changed; an entry whose original is not in the backup is left as it was.
+ */
+export function renewed(table: FeaturedFile, backup: string, sources: Record<string, string>): { table: FeaturedFile; said: string[] } {
+  const r = readDeephouseFile(backup);
+  if (r.error !== undefined) fail(r.error);
+  const said: string[] = [];
+  const playlists = table.playlists.map((f) => {
+    const from = sources[f.id];
+    const p = from ? r.doc!.playlists.find((x) => x.id === from && x.removed === undefined) : undefined;
+    if (!p) { said.push(`${f.name}: ${from ? `its original (${from}) is not in the backup, left as it was` : 'no original named in featured-sources.json, left as it was'}`); return f; }
+    const had = new Map(f.links.map((l, i) => [l, f.labels?.[i] ?? '']));
+    const links: string[] = [], labels: string[] = [];
+    for (const [i, t] of tracksOf(p).entries()) {
+      const n = normaliseLink(t.link);
+      if (!n.ok) fail(`${f.name}, track ${i + 1} (${t.link}) does not play in this edition: ${n.why}`);
+      if (links.includes(n.link)) continue;
+      links.push(n.link);
+      labels.push(t.label?.trim() || had.get(n.link) || '');
+    }
+    if (!links.length) fail(`${f.name}: its original ${p.name ?? ''} holds no tracks`);
+    const added = links.filter((l) => !had.has(l)), gone = f.links.filter((l) => !links.includes(l));
+    const kept = links.filter((l) => had.has(l)), was = f.links.filter((l) => links.includes(l));
+    const named = links.filter((l, i) => had.has(l) && (had.get(l) ?? '') !== labels[i]);
+    const parts = [
+      added.length && `${added.length} added (${added.map((l) => labels[links.indexOf(l)] || l).join(', ')})`,
+      gone.length && `${gone.length} taken out (${gone.map((l) => f.labels?.[f.links.indexOf(l)] || l).join(', ')})`,
+      kept.join('\n') !== was.join('\n') && 'the order changed',
+      named.length && `${named.length} renamed (${named.map((l) => `${had.get(l) || '—'} → ${labels[links.indexOf(l)] || '—'}`).join(', ')})`,
+    ].filter(Boolean);
+    said.push(`${f.name}: ${parts.length ? parts.join('; ') : 'unchanged'} (${links.length} tracks)`);
+    return { id: f.id, name: f.name, links, ...(labels.some(Boolean) ? { labels } : {}) };
+  });
+  return { table: { ...table, playlists }, said };
+}
+
 export const writeTable = (t: FeaturedFile): void => fs.writeFileSync(TABLE, `${JSON.stringify(t, null, 2)}\n`);
 
 function main(): void {
@@ -85,6 +134,15 @@ function main(): void {
   const table = JSON.parse(fs.readFileSync(TABLE, 'utf8')) as FeaturedFile;
   if (argv.includes('--list')) {
     for (const [i, f] of table.playlists.entries()) console.log(`${i + 1}. ${f.name} (${f.id}): ${f.links.length} tracks${i === 0 ? ', the first run\'s' : ''}`);
+    return;
+  }
+  const renew = flag('--renew');
+  if (renew !== undefined) {
+    const sources = (JSON.parse(fs.readFileSync(SOURCES, 'utf8')) as { sources: Record<string, string> }).sources;
+    const r = renewed(table, fs.readFileSync(renew, 'utf8'), sources);
+    writeTable(r.table);
+    for (const line of r.said) console.log(line);
+    looseLinks(r.table);
     return;
   }
   const remove = flag('--remove');
@@ -106,7 +164,11 @@ function main(): void {
   const placed = next.playlists.findIndex((f) => f.id === (replace ?? e.id));
   const entry = next.playlists[placed];
   console.log(`${was.has(entry.id) ? 'replaced' : 'added'} ${entry.name} (${entry.id}) at ${placed + 1} of ${next.playlists.length}: ${entry.links.length} tracks`);
-  // what the release lock will ask for: the links the digest does not hold yet
+  looseLinks(next);
+}
+
+/** What the release lock will ask for: the links the digest does not hold yet. */
+function looseLinks(next: FeaturedFile): void {
   const digest = JSON.parse(fs.readFileSync(path.join(HERE, 'link-digest.json'), 'utf8')) as { rows: Array<{ link: string; themes?: number }> };
   const held = new Set(digest.rows.filter((r) => !r.themes).map((r) => r.link));
   const loose = [...new Set(next.playlists.flatMap((f) => f.links))].filter((l) => !held.has(l));

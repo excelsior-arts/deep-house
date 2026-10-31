@@ -1,5 +1,6 @@
 // Playback admission is narrower than storage. Never interpret a local scope
 // as a whole-track wish merely because the schema can preserve it.
+import { ensembleTrack } from './ensemble.ts';
 import { linkValue } from './link-table.ts';
 import { placementProblems } from './recipe-placement.ts';
 import type { Recipe } from './recipe.ts';
@@ -60,7 +61,7 @@ function refuseUnperformed(recipe: Recipe): void {
   if (not.length) throw new Error(`Recipe ${recipe.id}: a ${recipe.scope} row plays ${PERFORMED[recipe.scope as 'section' | 'treatment'].join(', ')} and cannot audition ${not.join('; ')}`);
 }
 
-export function recipeRequest(recipe?: Recipe | null, accompaniment: Accompaniment = 'base'):
+export function recipeRequest(recipe?: Recipe | null, accompaniment: Accompaniment = 'base', reach = 0):
   { track: Recipe | null; motif: MotifFamily | null; pin: PartPin | null; treatment: Recipe | null; section: Recipe | null } {
   const empty = { track: null, motif: null, pin: null, treatment: null, section: null };
   if (!recipe) return empty;
@@ -83,6 +84,11 @@ export function recipeRequest(recipe?: Recipe | null, accompaniment: Accompanime
       throw new Error(`Recipe ${recipe.id}: ${recipe.applies} treatments are not played yet (PLAN-TREATMENTS)`);
     refuseUnperformed(recipe);
     return { ...empty, treatment: recipe };
+  }
+  // an ensemble plays as the track request its block lays (`src/ensemble.ts`): roles together, nothing overlaid
+  if (recipe.scope === 'ensemble') {
+    if (accompaniment === 'auto') throw new Error(`Recipe ${recipe.id}: an ensemble is the theme's roles together and takes no automatic overlays`);
+    return { ...empty, track: ensembleTrack(recipe, reach) };
   }
   if (recipe.scope === 'track') {
     if (accompaniment === 'auto') throw new Error(`Recipe ${recipe.id}: a complete arrangement cannot receive automatic overlays; extract a part first`);

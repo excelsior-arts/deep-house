@@ -311,10 +311,13 @@ test('GA5: Ember is a tempo — a monotone curve from 46 to 176 BPM, the seed pu
   }
   // 0.25 -> 0.30 is far since round K40 notched the centre (75 -> 90 on the
   // curve's steepest stretch, where the two notches are three apart); the
-  // hand steps Ember by the notch since K40 and a notch is always near (below).
-  // Restated in the merge round, Reconcile 1.
-  assert.deepEqual(far, ['0.15', '0.25']);
-  for (const c of [50, 100, 140, 170]) assert.ok(['drift', 'near'].includes(seamTempo(c, c + 5).kind), `${c} -> ${c + 5}`);
+  // hand steps Ember by the notch since K40, and from 85 BPM up a notch is
+  // near (below). Restated in the merge round, Reconcile 1, and in round
+  // pl-clock: past 6 % a seam is two clocks, so the slow curve's wide steps
+  // (0.10 to 0.25) and two steps of two notches at the top are.
+  assert.deepEqual(far, ['0.1', '0.15', '0.2', '0.25', '0.9', '0.95']);
+  for (const c of [85, 90, 100, 140, 170]) assert.ok(['drift', 'near'].includes(seamTempo(c, c + 5).kind), `${c} -> ${c + 5}`);
+  assert.equal(seamTempo(50, 55).kind, 'split', 'five BPM at 50 is a tenth: two clocks');
 });
 
 test('GA5: no dead zone — at every Ember from 0 to 1, with the other birds at the house, every turn draws a row (the nearest it can place); the house\'s own rows are nearest at the default birds', async () => {
@@ -366,12 +369,15 @@ test('GA4: the held mid part, the percussion loop, the lazy kit, the break ghost
     let on = 0, eligible = 0;
     for (let seed = 1; seed <= 20; seed++) for (let n = 0; n < 3; n++) {
       const t = planTheme(seed, n, { strategy: 'house-v2', spell: { ...HOUSE, ...pull }, library: [] });
+      // (10-28: a theme a place gave to an ensemble is the ensemble's roles whole, as a library turn's is: no family is drawn)
+      if (t.dice.ensemble) continue;
       const tr = trace(t);
       if (tr.selected[fam]) { on++; eligible++; continue; }
       const why = tr.skipped.find((x: any) => x.family === fam)?.reason ?? '';
       if (why === 'chance') assert.fail(`${fam} ${seed}#${n}: drawn by a coin`);
       if (why !== 'compatibility') eligible++;
-      assert.ok(why === 'compatibility' || why === 'scene' || /reserved|occupied|budget/.test(why), `${fam} ${seed}#${n} (${where}): skipped for ${why}`);
+      // (trance-1: where the hook plays, the figure is the hook's and a figure family is withheld by the place)
+      assert.ok(why === 'compatibility' || why === 'scene' || /reserved|occupied|budget/.test(why) || (why === 'place' && !!t.dice.hook), `${fam} ${seed}#${n} (${where}): skipped for ${why}`);
     }
     assert.ok(on >= 10, `${fam}: ${on} of 60 themes under its key carry it`);
     for (const [name, spell] of [['the house', HOUSE], ['27191', bench]] as const)
@@ -414,7 +420,8 @@ test('GA6: away from the house the chords walk their place\'s cycle, the section
     ['fast broken', { ember: 0.95, spark: 0.85, zephyr: 0.70, root: 0.60, veil: 0.60 }, t => t.progression.chords.length >= 2 && t.progression.changeEvery >= 4],
     ['deep still', { ember: 0.72, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }, t => t.progression.chords.length === 1],
     ['bright four', { ember: 0.70, spark: 0.40, zephyr: 0.60, root: 0.60, tide: 0.45 }, t => t.progression.chords.length === 2 && t.progression.loopBars === 4],
-    ['high four', { ember: 0.88, root: 0.60, zephyr: 0.50, veil: 0.60 }, t => t.progression.chords.length === 4 && t.arrangement.sections.filter(s => s.kind === 'build').length >= 1],
+    // (trance-2: the hook's loop chords, played in its runs, are listed beside the place's own four)
+    ['high four', { ember: 0.88, root: 0.60, zephyr: 0.50, veil: 0.60 }, t => t.progression.chords.filter(c => !c.loop).length === 4 && t.arrangement.sections.filter(s => s.kind === 'build').length >= 1],
     ['floating', { ember: 0.10, tide: 0.85, zephyr: 0.90, root: 0.50, veil: 0.30, loom: 0.80, spark: 0 }, t => t.progression.changeEvery === 4],
   ];
   for (const [name, birds, holds] of cases) {
@@ -441,8 +448,10 @@ test('GA6: the mids and highs — a held lead over the high four, a climbing plu
   for (const [fam, birds] of where) {
     let on = 0;
     for (let seed = 1; seed <= 12; seed++) for (let n = 0; n < 3; n++) {
-      const tr = trace(planTheme(seed, n, { strategy: 'house-v2', spell: { ...HOUSE, ...birds }, library: [] }));
-      if (tr.selected[fam]) on++;
+      const t = planTheme(seed, n, { strategy: 'house-v2', spell: { ...HOUSE, ...birds }, library: [] }), tr = trace(t);
+      // (trance-1: the high four's lead is the hook since, chopped chords on the gritty supersaw: the held
+      // lead's family withheld where the hook plays is the place's line all the same)
+      if (tr.selected[fam] || (fam === 'lead-line' && t.dice.hook && tr.skipped.find((x: any) => x.family === fam)?.reason === 'place')) on++;
       else assert.notEqual(tr.skipped.find((x: any) => x.family === fam)?.reason, 'chance', `${fam}: a coin`);
     }
     assert.ok(on >= 8, `${fam}: ${on} of 36`);
@@ -466,7 +475,9 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
   const own: Record<string, string[]> = { 'fast broken': ['reeseDeep', 'kickTight', 'snareDry', 'reeseBass', 'kickPunchHigh', 'snareCrack', 'snareGhost', 'hatShut', 'hatSoft',
     'pianoClose', 'pianoConcert', 'fmEpSoft', 'fmEpGlass', 'pianoFelt', 'keysSuitcase', 'keysTineDark', 'airBed',
     // since liquid-ambient (10-11) its weather family's four rows (`AMBIENT_VOICES`)
-    'weatherWind', 'weatherUpperAir', 'weatherRain', 'weatherRumble'] };
+    'weatherWind', 'weatherUpperAir', 'weatherRain', 'weatherRumble'],
+    // trance-1: the high four's hook, chopped chords on the gritty supersaw (the hook table, `src/hook.ts`)
+    'high four': ['supersawGrit'] };
   const where: Array<[string, object, string]> = [
     ['fast broken', { ember: 0.95, spark: 0.85, zephyr: 0.70, root: 0.60, veil: 0.60 }, 'reeseSub'],
     ['broken drive', { ember: 0.72, spark: 0.70, tide: 0.45, zephyr: 0.65 }, 'reeseDriven'],

@@ -1,0 +1,58 @@
+{
+ "schema": 1,
+ "kind": "arrangement-arcs",
+ "round": "engine-data",
+ "revision": 2,
+ "note": "The arc rules (src/arc.ts): where a signature part plays over a track's form, as a producer of its genre places it: withheld, teased, exposed in runs, then the peak (his rule, 10-28). A part names a rule by id (the hook row's `arc`). `sections`, by the section's kind: `tease` bars at the track's start; `end` a run at the section's end after `groove` bars of it; `from` a run from that share of the section, on the `step` grid; `continues` the run reaching into it; `into` the kind joins only straight into a run; `short` the kind joins only where the part's share would fall under `share`'s bottom without it. Runs cut in and out; every run of `breakFrom` bars or more ends in `breakBars` of the part alone, unless it runs into a kind of `noBreakInto`; the runs are shaped so none is longer than the last (the peak): a run a main's end opens is shortened from its front (a longer groove first), any other from its end (a hard cut, the section's groove going on, no break of the part alone); and shortened from the first while the share of the track is over `share`'s top. `knobs`: any quantity ramped from the first run to the peak (the runs between in step), with its value in the tease; the part reads them in its own units.",
+ "units": {
+  "says": "bars are the theme's written grid; `from` a share of the section; `share` a share of the track; a knob is the part's own unit (the hook's two are dB)"
+ },
+ "rows": [
+  {
+   "id": "saw-runs",
+   "says": "the trance hook: a shallow tease in the intro, runs at the mains' ends after a groove, the drop's whole, a build only into a drop and only where the share would fall short, an outro the run reaches; the chop's depth and the level ramped to the peak",
+   "sections": {
+    "intro": {
+     "tease": 4
+    },
+    "main": {
+     "end": true,
+     "groove": 8
+    },
+    "drop": {
+     "from": 0
+    },
+    "outro": {
+     "continues": true
+    },
+    "build": {
+     "from": 0.5,
+     "into": true,
+     "short": true
+    }
+   },
+   "step": 4,
+   "breakBars": 4,
+   "breakFrom": 8,
+   "noBreakInto": [
+    "breakdown"
+   ],
+   "share": [
+    0.5,
+    0.6
+   ],
+   "knobs": {
+    "floorDb": {
+     "tease": -4,
+     "first": -10,
+     "peak": -20
+    },
+    "levelDb": {
+     "tease": -2,
+     "first": 0,
+     "peak": 1
+    }
+   }
+  }
+ ]
+}

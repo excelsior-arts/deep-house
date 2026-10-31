@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "supersawGrit",
+  "revision": 4,
+  "topology": "supersaw-grit",
+  "parameters": {
+    "trim": 0.7,
+    "attack": 0.008,
+    "decay": 0.35,
+    "sustain": 0.8,
+    "release": 0.09,
+    "detune": 0.24,
+    "lightDetune": 1.6,
+    "centre": 1.15,
+    "spread": 0.95,
+    "cutoffHz": 6000,
+    "envMult": 1.6,
+    "envTime": 0.12,
+    "resonanceDb": 2,
+    "hpHz": 140,
+    "topHz": 7000,
+    "drive": 2.6,
+    "crushBits": 7,
+    "crushMix": 0.18,
+    "noise": 0.03,
+    "octaveMix": 0.45,
+    "lightOpen": 1.8,
+    "lightTop": 1.6,
+    "lightLevel": 1.3,
+    "lightDrive": 0.45,
+    "edgeDrive": 0.8
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "melodic",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "supersawGrit": {
+        "family": "harmonic",
+        "struck": true,
+        "hold": 0.85,
+        "brightnessHz": 6000,
+        "loudnessDb": -9.1
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "trance-1",
+    "module": "supersaw-grit.ts",
+    "note": "A supersaw played short: seven saws on the classic uneven detune curve, wide, struck, a filter envelope on every strike, its corner open in the kilohertz and its top past 7 kHz; gritty by distortion and never by a closed filter (a drive, a crush mixed in, a breath of noise). The composer's light (Gleam's upper part) cleans it (the crush leaves, the drive eases) and opens the corner and the top further; its edge (Spark) drives it harder, sharpens the strike and lays one saw an octave over the note at a low blend. A gate chops one held note into strikes.",
+    "notes": {
+      "detune": "The outer pair's offset, a fraction of a semitone. The seven sit on an uneven curve: the inner ones near the note, the outer ones far and beating fastest. 0.24 at the dark end, source 10's partials measured ±24 cents (trance-2); `lightDetune` widens it to 0.38 at a full light.",
+      "crushMix": "The lo-fi grain: a staircase of 2^crushBits levels, mixed in under the dry drive. Gone at a full light.",
+      "topHz": "The band's top after the grit, 8 kHz at the dark end: the crush's steps rounded off, the saw's buzz kept. The light opens it to 12.8 kHz.",
+      "loudnessDb": "Declared 0.95 dB over the fixture's -10.05 (the voice suite's tolerance is a decibel): the trim model read the hook 1-2 LU quieter than it plays at the trance corner (the loudness windows of Hard Trance and Trance seeds 1, 2, 5 at -11.3 to -10.9 LUFS against the -13 target, trance-1 round 2), so the trim reads it as it sounds.",
+      "hold": "0.85: the gate's chord and the held chord sound to the bar line (one note a tone a bar), the riff's notes legato; read by the loudness model."
+    }
+  }
+}

@@ -1,8 +1,13 @@
-// The four locks in one hand, for the merge round.
+// The locks in one hand, for the merge round.
 //
-//   node tools/bless.ts                          check all four; say what moved, with counts, and whether 27191 did
-//   node tools/bless.ts --reason "<why>"         re-bless both strategies' sections and the link digest,
-//                                                update the alias hashes, copy the golden snapshot
+//   node tools/bless.ts                          check them all; say what moved, with counts, and whether 27191 did
+//   node tools/bless.ts --reason "<why>"         re-bless both strategies' sections, the link digest and the sound
+//                                                rows it plays, update the alias hashes, copy the golden snapshot
+//
+// **The sound rows** (release-gates, 10-29): the link digest hashes a program, which names a sound row only by its
+// id, so a row's own numbers moved under three featured tracks with every lock reading "nothing moved" (the wobble
+// bass's corner, 460 to 1800 Hz). `tools/sound-rows.json` holds a hash of every row the digest's links play, and
+// the check names a moved row with the featured tracks that play it.
 //
 // Eugene, 2026-10-01: a feature is built and reviewed without the locks; they
 // run once, here, when the approved branches are merged. The check costs
@@ -27,6 +32,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { saved, verify, BENCHMARK_SEED, blessRefusal, lastCut, openWindow, sinceCut, featuredUnfrozen } from './link-digest.ts';
 import { FEATURED } from '../src/featured.ts';
+import * as soundRows from './sound-rows.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -85,6 +91,14 @@ function check(): number {
     : `link digest: ${d.rows} rows unmoved`);
   say(bench.length ? `27191: MOVED (${bench.length} rows) — Eugene listens before this lands` : '27191: unmoved');
   if (d.moved.length) moved++;
+  // **the sound rows the digest plays** (release-gates, 10-29): each row's numbers, as the engine reads them
+  if (!fs.existsSync(soundRows.FILE)) { say('sound rows: no lock yet (a bless writes tools/sound-rows.json)'); moved++; }
+  else {
+    const s = soundRows.verify();
+    say(s.moved.length ? `sound rows: ${s.moved.length} moved\n${s.moved.slice(0, 12).map((l) => `  ${l}`).join('\n')}`
+      : `sound rows: ${s.rows} rows unmoved, ${s.featured} of them in featured tracks`);
+    if (s.moved.length) moved++;
+  }
   // **the featured playlists' lock** (featured, 10-23): every featured link is a frozen row of the digest; one that is
   // not yet (a curated playlist just written by tools/feature.ts) is named, and blessed at merge
   const links = new Set(FEATURED.flatMap((f) => f.links)).size;
@@ -104,7 +118,7 @@ function check(): number {
 }
 
 /** The committed files a bless writes, kept to be put back whole where a step refuses. */
-const WRITTEN = ['golden-digest.json', 'program-digest.json', 'fixtures/programs.json', 'link-digest.json', 'link-aliases.json'].map((f) => path.join(HERE, f));
+const WRITTEN = ['golden-digest.json', 'program-digest.json', 'fixtures/programs.json', 'link-digest.json', 'sound-rows.json', 'link-aliases.json'].map((f) => path.join(HERE, f));
 
 function bless(reason: string): void {
   // **All or nothing** (the review of 10-08, A4): the digest's refusal is asked first, before any file is written —
@@ -118,7 +132,7 @@ function bless(reason: string): void {
   const putBack = () => { for (const [f, body] of kept) { if (body) fs.writeFileSync(f, body); else fs.rmSync(f, { force: true }); } };
   const steps: (readonly [string, readonly string[]])[] = [];
   for (const [, plans, programs, args] of LOCKS) steps.push([plans, ['--bless', ...args]], [programs, ['--bless', ...args]]);
-  steps.push(['fixtures/programs.ts', ['--bless']], ['link-digest.ts', ['--bless', '--reason', reason]]);
+  steps.push(['fixtures/programs.ts', ['--bless']], ['link-digest.ts', ['--bless', '--reason', reason]], ['sound-rows.ts', ['--bless', '--reason', reason]]);
   for (const [file, args] of steps) {
     const r = run(file, ...args);
     if (!r.ok) { putBack(); say(`${file} refused, and every lock was put back as it was:\n${r.out}`); process.exit(1); }

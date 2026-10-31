@@ -10,8 +10,8 @@ test('R34: the palette biases the lead-in and never gates it: a dry or tight the
   // Eugene, 09-24: "if there is space for improvement, go do it." Before, a
   // dry or tight palette had no riser at all (0 of 277 of their returns at the
   // house). Now a full return that brings back five rhythm layers or more
-  // rises there a step quieter; three or four keep the swell and impact or
-  // the fall; and a theme with no rise on it plans as it did.
+  // rises there a step quieter; three or four keep the swell and impact (the
+  // fall is no lead-in since v24-bugs); and a theme with no rise on it plans as it did.
   let loud = 0, loudRisen = 0, modest = 0, modestRisen = 0;
   const quiet: number[] = [];
   for (let seed = 1; seed <= 120; seed++) for (let n = 0; n < 4; n++) {
@@ -155,8 +155,9 @@ test('a struck phrase is stated once for its figure group however many of the gr
     themes++; notes += played.length;
   }
   // Measured 09-24: 14 themes with a struck part in seeds 1-20, 2467 keys notes;
-  // 1873 since round S4 shortened house-v2's themes by a fifth.
-  assert.ok(themes >= 10 && notes > 1500, `${themes} themes, ${notes} notes`);
+  // 1873 since round S4 shortened house-v2's themes by a fifth; 1170 since round
+  // length-2 put the grooves at 3-4 minutes (his word 10-27: "We should aim for 3-4mins here").
+  assert.ok(themes >= 10 && notes > 1000, `${themes} themes, ${notes} notes`);
 });
 
 // Round S1 of the composer, house-v2's `swellIn` (Eugene, 09-25: "the pad kicks
@@ -177,17 +178,20 @@ test('S1: the spell sets the swell\'s span by the tempo family, and a driving or
 // 104 bars since L1 gave it its minutes, and its second breakdown no longer
 // takes the pad, so the pad return that swells is theme 6's, at bar 36; theme
 // 3's drop, at bar 52, still keeps its step.
-test('S1: the benchmark\'s pad return (theme 3\'s, at 16:00 before round S4 shortened the theme, bar 172 at 13:52 after it, bar 144 since round S19 cut the mains; theme 6\'s at bar 36 since round L1, its first breakdown, at 32, since round L2) swells over eight bars; a drop keeps its step', () => {
+test('S1: the benchmark\'s pad return (theme 3\'s, at 16:00 before round S4 shortened the theme, bar 172 at 13:52 after it, bar 144 since round S19 cut the mains; theme 6\'s at bar 36 since round L1, its first breakdown, at 32, since round L2, at 28 since round length-2) swells over eight bars; a drop keeps its step', () => {
   const bench = { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const entriesOf = (t: Plan) => swellsOf({ style, spell: bench, barSeconds: t.barSeconds, bars: t.bars, arrangement: t.arrangement, timeline: t.timeline, events: t.events, lanes: style.lanes });
   // Restated in round L2 by the rule, since the bars move with Loom: theme 3's
   // drop (at 52 since L1, 56 since L2) keeps its step, and theme 6's pad
   // return is its first breakdown (at 36 since L1, 32 since L2).
+  // Since round length-2 (his word 10-27: "for ambient ... let's aim 9-10") theme 3
+  // is 120 bars with two drops, the pad entering on the second (at 68); every
+  // drop the pad enters on keeps its step.
   const three = planTheme('27191', 2, { strategy: 'house-v2', spell: bench });
-  const dropBar = three.arrangement.sections.find(x => x.kind === 'drop')!.startBar;
-  const drop = entriesOf(three).find(e => e.bar === dropBar && e.layer === 'pad')!;
-  assert.equal(drop.span, 0);
-  assert.match(drop.sectionVerdict, /drop/);
+  const dropBars = three.arrangement.sections.filter(x => x.kind === 'drop').map(x => x.startBar);
+  const drops = entriesOf(three).filter(e => dropBars.includes(e.bar) && e.layer === 'pad');
+  assert.deepEqual(drops.map(e => e.bar), [68]);
+  for (const drop of drops) { assert.equal(drop.span, 0); assert.match(drop.sectionVerdict, /drop/); }
   const t = planTheme('27191', 5, { strategy: 'house-v2', spell: bench });
   const entries = entriesOf(t);
   const at = (bar: number) => entries.find(e => e.bar === bar && e.layer === 'pad')!;
@@ -255,7 +259,7 @@ test('S1: over seeds and spells, a swell is a held layer\'s, never at a drop or 
 // Restated in the merge round of L1 (Reconcile 1): the theme is 104 bars since
 // L1, its second high-pass opens the main at 60 (88 before), and the second
 // breakdown, at 84 (144 before), is past the seam's floor and takes no pad.
-test('S2: the benchmark\'s theme 3 opens two sections with a high-pass, closes none (its vibes are a bright struck keys) and leaves its last breakdown (bar 92 since round L2; 172 before round S19, 144 before round L1, 84 before L2) to the seam', () => {
+test('S2: the benchmark\'s theme 3 opens two sections with a high-pass, closes none (its vibes are a bright struck keys) and leaves its last breakdown (bar 108 since round length-2, 92 since round L2; 172 before round S19, 144 before round L1, 84 before L2) to the seam', () => {
   const bench = { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const t = planTheme('27191', 2, { strategy: 'house-v2', spell: bench });
   const input = { style, spell: bench, barSeconds: t.barSeconds, bars: t.bars, arrangement: t.arrangement, timeline: t.timeline, events: t.events, lanes: style.lanes };
@@ -264,8 +268,13 @@ test('S2: the benchmark\'s theme 3 opens two sections with a high-pass, closes n
   // since L2): the two high-passes open its first breakdown and its second
   // main (36 and 60 since L1, 40 and 64 since L2), and its last breakdown (84
   // since L1, 92 since L2) is at the seam's floor (0.82 of 112, 92).
+  // Since round length-2 (120 bars; his word 10-27: "for ambient ... let's aim
+  // 9-10") the two open its first and second breakdowns (20 and 52: the second
+  // main, at 36, swells its pad in), and its last breakdown (108) is past the
+  // floor (0.82 of 120, 98).
   const kinds = (k: string) => t.arrangement.sections.filter(x => x.kind === k);
-  assert.deepEqual(moves.filter(m => m.laid).map(m => `${m.kind}@${m.bar}+${m.bars}`), [`entry@${kinds('breakdown')[0].startBar}+8`, `entry@${kinds('main')[1].startBar}+8`]);
+  assert.deepEqual(moves.filter(m => m.laid).map(m => `${m.kind}@${m.bar}+${m.bars}`), [`entry@${kinds('breakdown')[0].startBar}+8`, `entry@${kinds('breakdown')[1].startBar}+8`]);
+  assert.deepEqual(kinds('breakdown').map(x => x.startBar), [20, 52, 108]);
   assert.match(moves.find(m => m.kind === 'entry' && m.line === kinds('breakdown').at(-1)!.startBar)!.sectionVerdict, /seam/);
   assert.ok(moves.filter(m => m.stage === 'lp').every(m => !m.laid && (/vibes/.test(m.cast) || /seam/.test(m.sectionVerdict))));
   const p = programOf(t);

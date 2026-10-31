@@ -125,7 +125,7 @@ export function drawBirdGlyph(parent: Element, bird: string, R: number, marks: G
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('d', scaled(m.d, S));
     if (m.fill === 'ink') {
-      p.setAttribute('fill', 'url(#gold)');
+      p.setAttribute('fill', 'url(#goldLive)');
       p.setAttribute('stroke', 'none');
     } else {
       p.setAttribute('class', 'ln thin');

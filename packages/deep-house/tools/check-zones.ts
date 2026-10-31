@@ -87,9 +87,13 @@ const margin = (z: Zone, s: Spell) => Math.max(0, ...(Object.entries(z.address) 
 }));
 
 /** The link digest's v2 spells, and the protected spells PLAN-AMBIENT §2.4 and the zones plan keep (seed 6's golden, the Ambient tile, seed 6 at the Dubstep spell). */
-const DIGEST = (JSON.parse(fs.readFileSync(new URL('./link-digest.json', import.meta.url), 'utf8')).rows as Array<{ link: string; strategy: string }>)
-  .filter((r) => r.strategy === 'house-v2').map((r) => new URLSearchParams(r.link));
-const digestSpells = DIGEST.map((q) => ({ seed: q.get('seed') ?? '1', n: Math.max(0, Number(q.get('theme') ?? 1) - 1), spell: full(parseSpell(q.get('spell') ?? '') ?? {}) }));
+// **The featured tracks are his choice inside the zones' world** (10-27: his curated playlists, made in the app as it
+// plays today; Star Chimes and Eclipse are BELLS's own): the digest holds what each plays, so they are probes like any
+// row but no anchor a zone must keep out of, and no shipped spell the zones were laid around
+const DIGEST_ROWS = (JSON.parse(fs.readFileSync(new URL('./link-digest.json', import.meta.url), 'utf8')).rows as Array<{ link: string; strategy: string; group: string }>)
+  .filter((r) => r.strategy === 'house-v2');
+const DIGEST = DIGEST_ROWS.map((r) => new URLSearchParams(r.link));
+const digestSpells = DIGEST.map((q, i) => ({ seed: q.get('seed') ?? '1', n: Math.max(0, Number(q.get('theme') ?? 1) - 1), spell: full(parseSpell(q.get('spell') ?? '') ?? {}), featured: DIGEST_ROWS[i].group === 'featured' }));
 const PROTECTED: Spell[] = [
   full({ ember: 0, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, spark: 0.10, loom: 0.80 }),
   full({ ember: 0.10, tide: 0.85, zephyr: 0.90, root: 0.50, veil: 0.30, spark: 0, loom: 0.80 }),
@@ -98,7 +102,7 @@ const PROTECTED: Spell[] = [
 ];
 /** The planned ambient styles' reserved spells (PLAN-AMBIENT §3): a zone that would hold one is refused before it lands. */
 const RESERVED: Record<string, Partial<Spell>> = {
-  bowls: { ember: 0.02, tide: 0.95, zephyr: 0.50, root: 0.30, gleam: 0.80, veil: 0.05, spark: 0, loom: 1.0 },
+  bowls: { ember: 0.02, tide: 0.95, zephyr: 0.50, root: 0.40, gleam: 0.80, veil: 0, spark: 0, loom: 1.0 },
   om: { ember: 0.02, tide: 0.90, zephyr: 0.10, root: 1.0, gleam: 0.75, veil: 0.05, spark: 0, loom: 1.0 },
   waves: { ember: 0.05, tide: 0.85, zephyr: 0.75, root: 0.55, gleam: 0.50, veil: 0.60, spark: 0.10, loom: 0.95 },
   psy: { ember: 0.08, tide: 0.90, zephyr: 0.65, root: 0.60, gleam: 0.35, veil: 0.90, spark: 0.55, loom: 0.70 },
@@ -179,7 +183,7 @@ test('1. the zones are admitted, their boxes never overlap, and no anchor stands
   assert.notEqual(holds(keptP, keptFile, `${kLane} kept`), kLane, 'the fixtures ran on the kept lane');
   // the anchors
   const anchors: Array<[string, Spell]> = [
-    ...digestSpells.map((d, i) => [`digest ${i} (${DIGEST[i].toString()})`, d.spell] as [string, Spell]),
+    ...digestSpells.flatMap((d, i) => (d.featured ? [] : [[`digest ${i} (${DIGEST[i].toString()})`, d.spell] as [string, Spell]])),
     ...PROTECTED.map((s, i) => [`protected ${i}`, s] as [string, Spell]),
     ...CELLS.filter(Boolean).map((p) => [`tile ${p!.label}`, full(presetSpell(p!))] as [string, Spell]),
     ...TUNED_STYLES.map((p) => [`tuned ${p.of}/${p.label}`, full(presetSpell(p))] as [string, Spell]),
@@ -196,7 +200,7 @@ test('1. the zones are admitted, their boxes never overlap, and no anchor stands
 /** The probes outside every box: the digest's spells, the protected, a uniform sample, the shell, the ambient anchors dragged. */
 function outsideProbes(): Array<{ seed: string; n: number; spell: Spell; kind: string }> {
   const out: Array<{ seed: string; n: number; spell: Spell; kind: string }> = [];
-  for (const d of digestSpells) out.push({ ...d, kind: 'digest' });
+  for (const d of digestSpells) out.push({ seed: d.seed, n: d.n, spell: d.spell, kind: d.featured ? 'featured' : 'digest' });
   PROTECTED.forEach((s, i) => out.push({ seed: String(1 + i), n: 0, spell: s, kind: 'protected' }));
   const r = rng(31);
   for (let i = 0; i < 60; i++) out.push({ seed: String(1 + (i % 12)), n: i % 3, spell: onRing(Object.fromEntries(BIRDS.map((b) => [b, b === 'ember' ? r() * 0.18 : r()])) as Spell), kind: 'drumless' });
@@ -217,7 +221,8 @@ test('2-3. outside every box: the legacy read alone, the program the tables less
     assert.ok(reads && reads.length > 0, `${p.kind} ${p.seed}#${p.n}: no read trace`);
     assert.deepEqual(reads!.filter((r) => r.how !== 'legacy' || r.zone !== null).map((r) => `${r.lane}:${r.how}`), [], `${p.kind}: a zone read outside every box`);
     assert.ok(!zoneRead(on), `${p.kind} ${JSON.stringify(p.spell)}: a zone's entry read outside its box`);
-    assert.equal(on.conversation, undefined, `${p.kind} ${JSON.stringify(p.spell)}: a conversation outside the zone`);
+    // (BOWLS's bowls are a legacy place's own, outside every box: ambient-bowls; no zone's conversation plays here)
+    assert.ok(!on.conversation || !ZONES.some((z) => z.rows.conversation === on.conversation!.row), `${p.kind} ${JSON.stringify(p.spell)}: a zone's conversation outside the zone`);
     assert.equal(hashOf(on), hashOf(legacy), `${p.kind} ${JSON.stringify(p.spell)}: not the legacy tables' program`);
     if (zoneRead(off)) { readZone++; kinds[p.kind] = (kinds[p.kind] ?? 0) + 1; continue; }
     assert.equal(hashOf(on), hashOf(off), `${p.kind} ${JSON.stringify(p.spell)}: moved, where the style with no zones read none of a zone's entries`);

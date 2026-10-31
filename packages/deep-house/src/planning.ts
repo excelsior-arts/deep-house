@@ -12,7 +12,7 @@
 // worker's own requests never do), and the style is the strategy's own
 // unless a caller states one.
 
-import { planTheme as planThemeOf } from './set-plan.ts';
+import { planTheme as planThemeOf, themeTempo as themeTempoOf } from './set-plan.ts';
 import type { MixOptions, SetTrack } from './set-plan.ts';
 import { accompanimentFor } from './recipe-request.ts';
 import { developmentFor } from './development.ts';
@@ -26,3 +26,7 @@ import { strategyById } from './strategies/index.ts';
  */
 export const planTheme = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): SetTrack =>
   planThemeOf(masterSeed, n, { ...opts, accompaniment: accompanimentFor(opts), development: developmentFor(opts), style: opts.style || strategyById(opts.strategy).style });
+
+/** **Theme n's tempo without composing it** (round pl-clock, a playlist's clock): the tempo `planTheme` would plan it at. */
+export const themeTempo = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): { bpm: number; free: boolean } =>
+  themeTempoOf(masterSeed, n, { ...opts, accompaniment: accompanimentFor(opts), development: developmentFor(opts), style: opts.style || strategyById(opts.strategy).style });

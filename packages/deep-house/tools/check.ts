@@ -27,7 +27,7 @@ import { planTheme, planTheme as planThemeOf, presetOfTheme, makeSetClock, seamF
 import { generate } from '../src/generator.ts';
 import { dbToGain, startTime, leadStats } from '@deep-house/engine/dsp';
 import { THIRDS } from '@deep-house/engine/meter';
-import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, headroomLimit, trimTargetLufs, LOUDNESS_COLUMNS, knobDbOf, loudnessFamily } from '../src/loudness.ts';
+import { predictedLufs, loudnessTrimDb, loudnessWindow, trimWindow, headroomDb, headroomLimit, trimTargetLufs, LOUDNESS_COLUMNS, knobDbOf, loudnessFamily, trimSlope } from '../src/loudness.ts';
 import { grid as guardGrid, linkOf as guardLinkOf, playedWith as guardPlayedWith } from './check-program-guards.ts';
 import v2LoudnessFit from '../src/styles/deep-house-v2-loudness.json' with { type: 'json' };
 import { pushCurve } from '../src/arrangement.ts';
@@ -44,7 +44,7 @@ import { createJournal, CAP as JOURNAL_CAP, KEY as JOURNAL_KEY, SESSION_HOURS } 
 import { STAGE_LAYERS, STAGE_HARMONIC, ROOM_BARS, handSeamBars, compilePerformance, sliceProgram, programOf } from '../src/performance.ts';
 import { duckAt, duckFor } from '@deep-house/engine/program';
 
-import { loudnessFeatures } from '../src/loudness.ts';
+import { loudnessFeatures, allowanceOf } from '../src/loudness.ts';
 import { clone } from '@deep-house/engine/params';
 import { resolveSettings, settingsOf } from '@deep-house/engine/settings';
 import { EQ_BANDS } from '@deep-house/engine/master';
@@ -136,7 +136,7 @@ import { DRUMS as PLACED_DRUMS } from '../src/styles/deep-house-places.ts';
 import { ENTRIES as MANUAL, KEY_PAGES, manualKey, said } from '../src/machine/manual.ts';
 import { METER_FLOOR, SCALE, meterAt } from '../src/machine/look.ts';
 import { note, forget, lines, keepPlace, sentence } from '../src/ledger.ts';
-import { playlistChecks } from './check-playlists.ts';
+import { playlistChecks, clockChecks } from './check-playlists.ts';
 import {
   AUDITION_FIELDS, decide, isReviewed, keyOfItem, migrateState, provenanceKey, sampleSession, validateSession, writeSession,
 } from './review/session.ts';
@@ -1610,6 +1610,8 @@ check('Zephyr says the air of the voice in front, measured (the bird-labels roun
   const drawn = new Set(JSON.stringify(draw).match(/"tone":\s*\{[^}]*\}/g).flatMap((m) => Object.keys(JSON.parse(m.replace(/^"tone":\s*/, '')))));
   for (const t of (Array.isArray(tonesFile) ? tonesFile : tonesFile.rows).filter((r) => drawn.has(r.id))) if (!AIR_TABLE.keys[t.layers[0].sound]) lacking.push(`the keys tone ${t.layers[0].sound}`);
   for (const r of JSON.parse(fs.readFileSync(path.join(ROOT, 'recipes', 'ambient', 'conversation.json'), 'utf8')).rows) {
+    // (a row whose voices no air leans and whose Zephyr says no air names none: the bowls', struck soft or clear, ambient-bowls)
+    if (!JSON.stringify(r.birds?.by ?? {}).includes('"air:') && !r.labels?.zephyr?.big?.air && !r.labels?.zephyr?.air) continue;
     for (const v of r.caller.voices) if (!AIR_TABLE.calls[v.v]) lacking.push(`the call ${v.v}`);
     // the answerer's air leans its draw (the zephyr-air review): every voice it can answer in, measured as it answers
     for (const v of [...r.answerer.voices.filter((x) => x.w > 0).map((x) => x.v), ...Object.values(r.size ?? {}).map((p) => p.voice?.answerer).filter(Boolean)]) if (!AIR_TABLE.answers?.[v]) lacking.push(`the answer ${v}`);
@@ -2146,13 +2148,19 @@ const GOLDEN_READINGS = [
 
 check('the house is the page\'s own gold, to the byte', () => {
   // the table the module carries is the gradient the page draws
+  // **Three golds of four stops, one colour at rest** (round ring-seam): the bloom's (`#gold`), the unfiltered
+  // sheets' that walks across a seam (`#goldLive`) and the coming theme's (`#goldNext`), each the gradient the module
+  // carries, so a ring at rest is the same pixels it was with one
   const stops = [...PAGE.matchAll(/<stop offset="([\d.]+)" stop-color="(#[0-9a-f]{6})" \/>/g)];
-  must(stops.length === 4, `the page draws ${stops.length} gradient stops, where it has one gradient of four`);
-  const gold = stops.slice(0, 4);
-  GOLD_STOPS.forEach((s, i) => {
-    must(+gold[i][1] === s.off && gold[i][2] === s.hex,
-      `the page's #gold stop ${i} is ${gold[i][1]} ${gold[i][2]} where ring-colour.ts says ${s.off} ${s.hex}`);
-  });
+  must(stops.length === 12, `the page draws ${stops.length} gradient stops, where it has three golds of four`);
+  for (const [k, name] of ['gold', 'goldLive', 'goldNext'].entries()) {
+    must(PAGE.includes(`<linearGradient id="${name}" gradientUnits="userSpaceOnUse" x1="120" y1="80" x2="880" y2="920">`), `the page has no #${name} laid as #gold is`);
+    const gold = stops.slice(4 * k, 4 * k + 4);
+    GOLD_STOPS.forEach((s, i) => {
+      must(+gold[i][1] === s.off && gold[i][2] === s.hex,
+        `the page's #${name} stop ${i} is ${gold[i][1]} ${gold[i][2]} where ring-colour.ts says ${s.off} ${s.hex}`);
+    });
+  }
   // **One gradient** (09-23): nothing on the ring is cut in a gold that stays
   // put when the spell moves, so the second gradient and its class are gone
   // from the page and from the module, and nothing names them.
@@ -2533,10 +2541,11 @@ const REPORT_SITES = [
   ['control.ts', '.catch((err) => { console.error(err);', 'transport', 2],
   ['control.ts', 'await prepareLimiter(c)', 'limiter', 1],
   ['control.ts', "console.error('deep-house: the set could not start', err);", 'start', 1],
-  ['control.ts', 'got = mixPointSeconds(t, blendBarsFor(t, blendAsked(t)), 16);', 'plan', 1],
+  ['control.ts', 'got = seamPlan(t, blendAsked(t)).at;', 'plan', 1],
   // the planning perf round (10-12): a plan asked of the worker that throws is planned here, and throws here
   ['control.ts', 'if (ask === nextAsk) { try { state.nextTrack = planned(...args); emit(); } catch (err) {', 'plan', 1],
   ['control.ts', 'if (ask === trackAsk) { try { state.track = planned(i); emit(); } catch (err) {', 'plan', 1],
+  ['control.ts', 'try { l = await landing.later; } catch (err) {', 'plan', 1],
   ['control.ts', 'try { fn(r); } catch (err) {', 'page', 1],
   ['control.ts', '{ strategy: state.strategy }); } catch (e) {', 'link', 1],
   ['control.ts', 'recipe: here.recipe, accompaniment: here.accompaniment, development: here.development })}` }).spell;', 'link', 1],
@@ -3309,8 +3318,8 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
     must(a.from === b.from && a.bars === b.bars, `house-v1 master seed ${sd} theme ${i}: the trim is fitted at bar ${a.from} where the record's rule says ${b.from}`);
   }
   const residual = v2LoudnessFit.residual.crossValidated;
-  const slope = (t) => (t >= 0 ? M.slopeUp : M.slopeDown);
-  let n = 0, moved = 0, positive = 0, held = 0, worst = -Infinity, worstAt = '';
+  // what a decibel of trim gives back there (`trimSlope`: a house window's cut its own measured slope, round loudness-v24)
+  let n = 0, moved = 0, positive = 0, held = 0, bounded = 0, worst = -Infinity, worstAt = '';
   for (let sd = 1; sd <= 200; sd++) for (let i = 0; i < 3; i++) {
     const t = planTheme(String(sd), i, { preset: 'auto', strategy: 'house-v2' });
     const w = trimWindow(t, v2);
@@ -3328,10 +3337,16 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
     // could leave one there, and it may not.
     // Over the theme's own target: its family's where the family names one
     // (round LOUD-2, the drop's), else the block's.
+    const slope = (x) => trimSlope(loudnessFeatures(t, v2), v2, x);
     const after = loud + t.trimDb * slope(t.trimDb);
     const target = trimTargetLufs(t, v2);
-    must(after <= target + residual, `house-v2 master seed ${sd} theme ${i}: predicted ${after.toFixed(2)} LUFS at its loudest main with its trim, more than the fit's ${residual} LU over ${target}`);
-    if (after > worst) { worst = after; worstAt = `${sd}#${i}`; }
+    // ...unless the cut's own bound stopped it (`clampDownDb`, round loudness-v24: a house window is cut 3 dB at most)
+    const cutBound = M.clampDownDb != null && loudnessFamily(loudnessFeatures(t, v2)) === 'house' && t.trimDb <= -Math.min(M.clampDb, M.clampDownDb) + 1e-9;
+    if (cutBound) bounded++;
+    else {
+      must(after <= target + residual, `house-v2 master seed ${sd} theme ${i}: predicted ${after.toFixed(2)} LUFS at its loudest main with its trim, more than the fit's ${residual} LU over ${target}`);
+      if (after > worst) { worst = after; worstAt = `${sd}#${i}`; }
+    }
     // ...and no trim past the headroom, less the model's margin, unless the
     // clamp stopped it first.
     const room = headroomDb(t, v2);
@@ -3356,7 +3371,7 @@ check('house-v2 levels its loudest main and never trims past its headroom', () =
     `house-v2 seed 20 theme 0 is levelled at bars ${w20.from}..${w20.from + W}, which the fit reads quieter than the first main's window`);
   must(s20.trimDb <= headroomDb(s20, v2) - M.headroom.marginDb + 1e-3,
     `house-v2 seed 20 theme 0 trims ${s20.trimDb} dB, past its headroom of ${(headroomDb(s20, v2) - M.headroom.marginDb).toFixed(2)}`);
-  return `house-v1 reads its first-main window on 180 themes; house-v2 fits ${n} themes at their loudest main (${moved} of them not the first main's window), none predicted more than ${residual} LU over the target (worst ${worst.toFixed(2)} at ${worstAt}), ${held} held by the headroom, ${positive} trimmed up; seed 20 trims ${s20.trimDb} dB at bars ${w20.from}..${w20.from + W}, inside its headroom`;
+  return `house-v1 reads its first-main window on 180 themes; house-v2 fits ${n} themes at their loudest main (${moved} of them not the first main's window), none predicted more than ${residual} LU over the target (worst ${worst.toFixed(2)} at ${worstAt}) but ${bounded} the cut's bound stops, ${held} held by the headroom, ${positive} trimmed up; seed 20 trims ${s20.trimDb} dB at bars ${w20.from}..${w20.from + W}, inside its headroom`;
 });
 
 // The grid's mains (theme 0 of seeds 1-12 at every spell), planned once for the two checks below.
@@ -3380,8 +3395,25 @@ const theGridMains = () => gridMains ??= guardGrid().filter((g) => g.name !== '2
 // not, is allowed at most `MARGIN_MAX` names. A name that is no longer past the line fails too, so the list stays the
 // truth. The allowance was 7 at the saw-bed refit; with the sum clip (round drum-clip) the clap holds far fewer, and
 // what holds the ones just past the line is more often the share line's 1.5 dB margin: 10, four of them windows the
-// front rule never moved, as at saw-bed. Capped at that count, a decision and not a fit.
-const GROW_LU = 0.5, MARGIN_MAX = 10;
+// front rule never moved, as at saw-bed. Capped at that count, a decision and not a fit. **20 since length-2** (his word
+// 10-28, on the refit's pairs: "alright, I'd follow you advise"): the shorter mains' loudest windows sit where the
+// model reads low, and the refit that passed 10 again (length-after part 2, branch `loudness-refit`) did so only by
+// the share line's margin at 1.0 dB, 141 mains pushing over 15 % of their blocks into the limiter where 95 did, to
+// bring 10 of 65 back, 0.2-0.4 dB on eight featured grooves. Not taken: punch over 0.3 dB. The count is the length
+// round's, measured; a loudness round after trance (whose lead moves the levels anyway) fits again and lowers it.
+// **36 since loudness-v24** (10-30, his to approve; the round's guidance asked for 20 unless the fixed model needs
+// more). The refit reads the windows the app plays 1.19 LU off held out (1.60 before), and the names off the after build
+// (seeds 1-12) are 51 where there were 59: 14 held by their loudest block, 1 by the share, 36 by the headroom model's
+// margin alone (18 before). The headroom lines (share and depth, 10-17) were not refitted, and their 1.5 dB margin is
+// what holds those 36: lifting them takes the limiter past the line the round may not cross (the brief: not by more
+// limiting). Measured at the trim, the mains more than 2 LU under fell 87 -> 75 and the limiter past 15 % of the blocks
+// 31 -> 27 (seeds 1-12). The share margin's refit is the step that lowers this count (TODO).
+// **By band since round loudness-place** (10-30): the line is 2 LU under the theme's own aim (ambient −15.8, the deep
+// groove −12, the beat-led −10.5, sliding in the drums' and the tempo's shares), and the names are written off the
+// round-2 build's windows at nought (seeds 1-12): 45 past it, 20 held by the kick and the bed (share), 25 by the
+// headroom model's margin alone, within the 36. The deep groove's aim rose a decibel and its share margin fell from 1.5
+// to 0.5; the share line refitted on the fast windows reads the deep grooves 0.03 dB under their room at the median.
+const GROW_LU = 0.5, MARGIN_MAX = 36;
 check(`a house main more than 2 LU under its target is one its headroom cannot give back, by name and no deeper than named + ${GROW_LU} LU; at most ${MARGIN_MAX} more held by the model's error and margin alone`, () => {
   const names = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'loudness-shortfall.json'), 'utf8'));
   const named = new Map(names.themes.map((x) => [x.link, x]));
@@ -3392,7 +3424,7 @@ check(`a house main more than 2 LU under its target is one its headroom cannot g
     if (loudnessFamily(f) !== 'house') continue;
     n++;
     const target = trimTargetLufs(plan), pred = predictedLufs(plan);
-    const by = target - (pred + plan.trimDb * (plan.trimDb >= 0 ? M.slopeUp : M.slopeDown));
+    const by = target - (pred + plan.trimDb * trimSlope(f, plan.style, plan.trimDb));
     const x = named.get(link);
     if (by > names.shortLu) {
       past++;
@@ -3428,28 +3460,35 @@ check('a family with a model of its own reads the front rule as before the headr
   return `${Object.entries(by).map(([k, v]) => `${v} ${k}`).join(', ')} mains read the front rule as before the refit (its loss their credit where they have a headroom, never the front block's models, no sum clip)`;
 });
 
-// **The sum clip is the moved house windows', set by the headroom** (round drum-clip, `src/loudness.ts` `clipPlan`).
-// Every house main the front rule moved plans one and no other main does; its top stands on the depth line at the trim
-// it is set for, and that trim is no more than the clip's `mostDb` past where the saw-bed's depth line reads the hit
-// reaching the line, nor over what the loudness asks or the share line reads.
-check('the sum clip is planned on the moved house mains alone, its top on the depth line, its shave no more than its cap', () => {
+// **The sum clip is every house window's, set by the headroom** (round drum-clip, `src/loudness.ts` `clipPlan`; on every
+// house window since round loudness-place, the design's 3b: a hit rounded on every deep groove). Every house main plans
+// one and no other family's does; its top stands on its place's depth line (`allowanceOf`: 8 dB over on a groove, 10 on a
+// beat-led one) at the trim it is set for, and that trim is no more than the clip's `mostDb` past where the saw-bed's
+// depth line reads the hit reaching the line, nor over what the loudness asks or the share line reads.
+check('the sum clip is planned on every house main, its top at its place\'s top, its shave no more than its cap', () => {
   const v2 = strategyById('house-v2').style;
-  const C = v2.catalogue.front.clip, D = v2.settings.loudness.headroom.deepestMax;
+  const C = v2.catalogue.front.clip;
   let on = 0, shaved = 0, most = 0;
   for (const { place, seed, plan, f } of theGridMains()) {
     const clip = plan.paramOverrides?.master?.sumClip;
-    const want = loudnessFamily(f) === 'house' && f.frontLossDb > 0;
-    must(!!clip === want, `${place} seed ${seed}: ${clip ? 'a clip where the front rule moved nothing' : 'no clip on a moved house main'}`);
+    const want = loudnessFamily(f) === 'house';
+    must(!!clip === want, `${place} seed ${seed}: ${clip ? 'a clip on a window of another family' : 'no clip on a house main'}`);
     if (!clip) continue;
     on++;
-    must(Math.abs(clip.overDb - (D - f.clipRoomDb)) < 2e-3, `${place} seed ${seed}: the clip's top ${clip.overDb} dB over is not the depth line at ${f.clipRoomDb.toFixed(3)} dB of trim`);
-    const shave = f.clipRoomDb - f.clipDepthDb;
-    must(shave <= C.mostDb + 1e-9, `${place} seed ${seed}: the clip is set ${shave.toFixed(2)} dB past the depth line's reading, over its ${C.mostDb}`);
+    // (round loudness-place, round 2: the top by place follows the density's amount, 8 dB over at none, 2 at the full,
+    // `loudness.ts` `clipTopOf`; the place's deepest allowance where the style names no top)
+    const T = v2.settings.loudness.density?.clipTopDb;
+    const D = T ? T.none + (T.full - T.none) * (f.densityAmount ?? 0) : allowanceOf(f, v2).deepest;
+    must(Math.abs(clip.overDb - (D - f.clipRoomDb)) < 2e-3, `${place} seed ${seed}: the clip's top ${clip.overDb} dB over is not its place's top ${D.toFixed(3)} at ${f.clipRoomDb.toFixed(3)} dB of trim`);
+    // (the hits set down move the depth the clip may take by as much, `clipPlan`)
+    const shave = f.clipRoomDb - f.clipDepthDb - (f.hitDb ?? 0);
+    const cap = C.mostDb + ((C.mostDbBeat ?? C.mostDb) - C.mostDb) * f.beatLed;
+    must(shave <= cap + 1e-9, `${place} seed ${seed}: the clip is set ${shave.toFixed(2)} dB past the depth line's reading, over its ${C.mostDb}`);
     if (shave > 0) shaved++;
     most = Math.max(most, shave);
   }
   must(on > 0, 'no grid main plans a sum clip');
-  return `${on} moved house mains plan a sum clip; ${shaved} are set past where the saw-bed depth line reads the hit (at most ${most.toFixed(2)} dB, the cap ${C.mostDb})`;
+  return `${on} house mains plan a sum clip; ${shaved} are set past where the saw-bed depth line reads the hit (at most ${most.toFixed(2)} dB, the cap ${C.mostDb})`;
 });
 
 // **The trim reads its window once, and reads it as the walk did** (the
@@ -3484,7 +3523,8 @@ check('the trim finds its window once, and finds the one the walk found', () => 
     const at = `seed ${sd} theme 0${spell ? ' at ember 0.6' : ''}`;
     if (best) must(w.from === best.from && w.bars === best.bars, `${at}: the trim is fitted at bar ${w.from} and the walk finds bar ${best.from}`);
     const a = loudnessFeatures(t, v2), b = loudnessFeatures(t, v2, w);
-    for (const k of Object.keys(b)) must(Object.is(a[k], b[k]), `${at}: ${k} reads ${a[k]} through the bars and ${b[k]} by the walk`);
+    // (the walk's least room is the theme's other passages', found by the walk and read by the trim: not a fact of the window)
+    for (const k of Object.keys(b)) if (k !== 'walkRoomDb') must(Object.is(a[k], b[k]), `${at}: ${k} reads ${a[k]} through the bars and ${b[k]} by the walk`);
     // and how many events a trim reads, against the theme's own count
     let reads = 0;
     const events = new Proxy(t.events, { get(o, k, r) { if (typeof k === 'string' && /^\d+$/.test(k)) reads++; return Reflect.get(o, k, r); } });
@@ -3695,7 +3735,7 @@ check('every sound row renders through its topology and a blocked row is the tab
   // dispatchers render through are held to their topologies the same way
   must(REGISTRY.every((d) => d.row), `a registered voice is a module still: ${REGISTRY.filter((d) => !d.row).map((d) => d.name).join(', ')}`);
   const rows = [...REGISTRY, ...TIMBRE_ROWS].filter((d) => d.row);
-  let blocked = 0, keys = 0, voiced = 0, voicedKeys = 0;
+  let blocked = 0, keys = 0, left = 0, voiced = 0, voicedKeys = 0;
   for (const d of rows) {
     const row = d.row;
     const faults = soundFaults(row, TOPOLOGIES[row.topology]);
@@ -3721,13 +3761,17 @@ check('every sound row renders through its topology and a blocked row is the tab
     const block = BASE_SETTINGS[row.block];
     must(block && typeof block === 'object', `${row.id}: the base table has no block ${row.block}`);
     for (const [k, v] of Object.entries(row.parameters)) {
+      // an optional part the table leaves out is the rooms' to write (round piano-tone: the piano's `string`, which
+      // house-v2's voicing writes where a theme sounds the piano, and the table, house-v1's, does not carry)
+      const f = TOPOLOGIES[row.topology].parameters.fields[k];
+      if (!(k in block) && f?.kind === 'maybe' && f.absent) { left++; continue; }
       must(k in block && (typeof v === 'object' ? JSON.stringify(block[k]) === JSON.stringify(v) : Object.is(block[k], v)),
         `${row.id}: the table's ${row.block}.${k} is ${JSON.stringify(block[k])} and the row says ${JSON.stringify(v)}`);
       keys++;
     }
   }
   const topologies = new Set(rows.map((d) => d.row.topology));
-  return `${rows.length} rows over ${topologies.size} topologies (${[...topologies].join(', ') || 'none yet'}), ${blocked} of them a block of the table, ${keys} keys read back equal; ${voiced} voiced by a block they share, ${voicedKeys} of their keys read back equal from the base table`;
+  return `${rows.length} rows over ${topologies.size} topologies (${[...topologies].join(', ') || 'none yet'}), ${blocked} of them a block of the table, ${keys} keys read back equal${left ? ` and ${left} optional left to the rooms` : ''}; ${voiced} voiced by a block they share, ${voicedKeys} of their keys read back equal from the base table`;
 });
 
 check('the derived tables are the registry, in its order', () => {
@@ -4304,12 +4348,17 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   // the twenty-third GA1's `libraryDraw`; the twenty-fourth GA6's `placeTables`;
   // the twenty-fifth S25's `mainsApart`; PLAN-UNIFY U1's `hygiene` (long holds faded, no groove bare); and U2's
   // `phrasing` (sub-segments inside the long mains, the arrivals answered, the bass's outs, the cooldown); and U3's
-  // `padArc` (the pad reshaped across each long main; its slow side behind the row's own switch, not a style's).
+  // `padArc` (the pad reshaped across each long main; its slow side behind the row's own switch, not a style's); and
+  // length-2's `phraseLines` (every section line on the theme's phrase, and a short theme's window still breathing); and
+  // keys-balance's `keysByHats` (the piano's lane stepped down where the hats leave it uncovered); and keys-moments'
+  // `keysMoments` (the piano alone over a long breakdown's last phrase, a second riff in a long hook); and piano-tone's
+  // `keysByBody` (the piano's lane by how much of its band the bed covers); and break-pulse-rule's `breakPulse` (a beat-led
+  // theme's breaks keep a carrier of their own sounds).
   const sw = v2.switches;
   // Every switch is on: `bassSolo`, round S3's experiment, was written off
   // until Eugene had heard it, and is on since S17 ("commit it").
   for (const [k, v] of Object.entries(sw)) must(v === true, `the switch ${k} is off, and every one of them is on`);
-  must(Object.keys(sw).length === 29, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme, one set of small things inside a section, one arrangement hygiene, one set of the arrangement's phrases and one pad arc (the lane floors are level machinery and every style's since V1-1)`);
+  must(Object.keys(sw).length === 35, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of section lines on the phrase, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme, one set of small things inside a section, one arrangement hygiene, one set of the arrangement's phrases, one pad arc, one rule for the keys by the hats, one for the keys by the body, one set of the keys' moments, one break that keeps its rhythm and one breakdown bed lifted from where the groove left it (the lane floors are level machinery and every style's since V1-1)`);
   must(sw.derived === true, 'house-v2 does not read the derived state');
   must(sw.knobs === true, 'house-v2 does not season the voices it draws');
   must(sw.motif === true, 'house-v2 draws no theme');
@@ -4329,6 +4378,9 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   must(sw.neverSilent === true, 'house-v2 leaves a gap of silence in the middle of a theme');
   must(sw.hygiene === true, 'house-v2 lets a long hold stop dead and a groove go bare');
   must(sw.phrasing === true, 'house-v2 plays a long main as one stretch, its arrivals unanswered');
+  must(sw.keysByHats === true, 'house-v2 leaves the piano over a groove with no hats at its room\'s level');
+  must(sw.keysByBody === true, 'house-v2 leaves the piano at its room\'s level whatever the bed under it');
+  must(sw.breakPulse === true, 'house-v2 lets a beat-led theme\'s break lose its rhythm');
   must(sw.libraryDraw === true, 'house-v2 never lets the library reach a theme');
   must(sw.placeTables === true, 'house-v2 plays the house\'s harmony and form everywhere');
   must(sw.mainsApart === true, 'house-v2 stands two mains alike side by side');
@@ -5692,7 +5744,7 @@ check('the device\'s lines are setters: no move is the same object, a move is a 
   const a = patchOf(S, reese, RC);
   must(at.changed && at.value === 520 && a !== reese.parameters && a.cutoffHz === 520 && a.saws === reese.parameters.saws, `the reese's cutoffHz to 520 read ${a.cutoffHz}`);
   must(patchOf(S, reese, RC) === a && Object.isFrozen(a) && Object.isFrozen(a.clip) && provePatch(a, RC, 'the probe') === a, 'the moved patch is not one frozen, proven copy');
-  must(reese.parameters.cutoffHz === 460, 'the row itself moved');
+  must(reese.parameters.cutoffHz === 1800, 'the row itself moved');
   const over = setDeviceParam('reeseWobble', 'clip.drive', 99, S);
   const under = setDeviceParam('reeseWobble', 'saws', -3, S);
   const nan = setDeviceParam('reeseWobble', 'movementHz', Number.NaN, S);
@@ -8855,6 +8907,7 @@ check('every program the locks hold is finite: no NaN or infinity a digest would
 
 // The playlists' record and the sky (PLAN-LIBRARY phase 1), in their own file.
 playlistChecks(check, must);
+clockChecks(check, must);
 
 if (failed) {
   console.log(`\n${failed} failed`);

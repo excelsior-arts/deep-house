@@ -38,6 +38,19 @@ export function airOctaves(id: string, role: AirRole): number | null {
   return null;
 }
 
+/** A voice's measured descriptors: the centroid, the energy over 1.5 kHz (dB), the flatness 1-8 kHz. */
+export interface AirMeasured { hz: number; over1500: number; flat: number }
+const FRONT: readonly AirTable[] = ['keys', 'held', 'calls'];
+/**
+ * **A voice's measured air, wherever it was measured in front** (the code review of 10-29): the keys' table, else the
+ * held voices', else the calls', as the labels read a voice's air (`bird-labels.ts` `airHz`); null where none measured
+ * it. A voice heard only held (the wordless vocal, the shimmer pad) or only as a call is measured, never unmeasured.
+ */
+export function airMeasured(id: string): AirMeasured | null {
+  for (const t of FRONT) { const e = (TABLE as unknown as Record<AirTable, Record<string, AirMeasured>>)[t]?.[id]; if (e) return e; }
+  return null;
+}
+
 /** A role's reading of a voice's air, for the draws below. */
 export const voiceAir = (role: AirRole | ((v: string) => AirRole)) => (v: string): number | null => airOctaves(v, typeof role === 'function' ? role(v) : role);
 
@@ -125,7 +138,7 @@ export function airDraw<T>(rng: Rng, centre: ReadonlyArray<{ v: T; w: number }>,
  * **Where Zephyr's centre stands** (the place tables' `air`): the places a draw was tuned at, each its Zephyr the centre
  * the air leans about, and the house's own among them.
  */
-export interface AirCentre { id: string; place: { birds: Readonly<Partial<Record<string, number>>>; tempo: readonly [number, number] } }
+export interface AirCentre { id: string; place: { birds: Readonly<Partial<Record<string, number>>>; tempo: readonly [number, number]; radius?: number } }
 
 /**
  * How near two places' distances must stand before their centres blend (bird units): over it the nearer place's Zephyr

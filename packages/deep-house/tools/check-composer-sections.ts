@@ -480,11 +480,17 @@ test('S19: house-v2 cuts every theme to 0.85 of its drawn length off the mains f
   // 0.85, on the four-bar grid, and cut back to it. So the uncut theme is the
   // same seed drawn at that length and never cut, which is a stated length
   // (`themeBars`, never cut); its tempo, key and cast are the cut one's.
-  const uncutOf = (seed: number, n: number, heard: number) => planTheme(seed, n, { style, preset: 'auto', themeBars: Math.ceil(heard / 0.85 / 4) * 4 });
+  // Restated in round length-after: since round length-2 (his word 10-27: "it doesn't always account for segment length
+  // before break") every section line is then put on the phrase (`onPhraseLines`), each length on its own, so a stub
+  // goes to the outro and a break rounds to its nearer phrase differently at the two lengths. The cut is S19's with the
+  // lines off, and the lines keep the length the cut heard.
+  const cutStyle = { ...style, switches: { ...(style.switches as Record<string, boolean>), phraseLines: false } } as typeof style;
+  const uncutOf = (seed: number, n: number, heard: number) => planTheme(seed, n, { style: cutStyle, preset: 'auto', themeBars: Math.ceil(heard / 0.85 / 4) * 4 });
   const kinds = (t: Plan) => { const o: Record<string, number> = {}; for (const x of t.arrangement.sections) o[x.kind] = (o[x.kind] || 0) + x.bars; return o; };
   let before = 0, after = 0, mains = 0;
   for (let seed = 1; seed <= 20; seed++) for (let n = 0; n < 3; n++) {
-    const b = planTheme(seed, n, { style, preset: 'auto' }), a = uncutOf(seed, n, b.bars);
+    const b = planTheme(seed, n, { style: cutStyle, preset: 'auto' }), a = uncutOf(seed, n, b.bars);
+    assert.equal(planTheme(seed, n, { style, preset: 'auto' }).bars, b.bars, `${seed}#${n}: the phrase lines moved the length`);
     assert.ok(b.bars >= 44 && b.bars <= 176 && b.bars % 4 === 0, `${seed}#${n}: ${b.bars} bars`);
     for (const k of ['bpm', 'key', 'preset'] as const) assert.deepEqual(b[k], a[k], `${seed}#${n}: the ${k} moved`);
     const ka = kinds(a), kb = kinds(b);
@@ -501,7 +507,7 @@ test('S19: house-v2 cuts every theme to 0.85 of its drawn length off the mains f
   assert.ok(after / before > 0.83 && after / before < 0.87, `${before} -> ${after} bars (${(after / before).toFixed(3)})`);
   assert.ok(mains / (before - after) >= 0.8, `the mains carried ${mains} of ${before - after} bars`);
   const bench = planTheme('27191', 2, { strategy: 'house-v2', spell: { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 } });
-  assert.equal(bench.bars, 112, 'the benchmark\'s theme 3: 192 bars before S19, 164 after it, 104 since L1, 112 since L2\'s Loom');
+  assert.equal(bench.bars, 120, 'the benchmark\'s theme 3: 192 bars before S19, 164 after it, 104 since L1, 112 since L2\'s Loom, 120 since length-2\'s 9-10 minutes');
 
 });
 
@@ -564,11 +570,13 @@ test('S25: a main after a main of its own texture gets a breakdown at its floor 
     if (S.some((x, i) => i > 0 && x.kind === 'main' && S[i - 1].kind === 'main' && tex(x) === tex(S[i - 1]))) touching.push(`die ${k}: ${S.map(x => `${x.kind}:${tex(x)} ${x.bars}`).join(', ')}`);
   }
   assert.deepEqual(touching, [], 'a main beside a main of its own texture');
-  // 27191's third theme has no two mains alike side by side: its open main is the drawn one, 24 bars at 76, and its solo 84-99 (6:46-8:04)
+  // 27191's third theme has no two mains alike side by side: its open main is the drawn one, 24 bars at 76, and its solo 84-99 (6:46-8:04);
+  // since round length-2 (his word 10-27: "for ambient ... let's aim 9-10") the theme is 120 bars (9:41), the open main 32 bars at 76
+  // and the solo its last sixteen, 92-107 (7:25-8:43)
   const bench = { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const three = planTheme('27191', 2, { strategy: 'house-v2', spell: bench });
   const solo = three.events.filter(e => e.layer === 'bass' && e.p.knobs && e.p.knobs.brightnessHz).map(e => e.bar!);
-  assert.deepEqual([Math.min(...solo), Math.max(...solo)], [84, 99]);
+  assert.deepEqual([Math.min(...solo), Math.max(...solo)], [92, 107]);
 });
 
 // Round S21 (Eugene on ?seed=41475&v=2&theme=3&t=88: "completely empty interval
@@ -589,20 +597,26 @@ test('S21: no theme has two bars of silence past its intro\'s first phrase and b
   };
   // Measured 09-26: 22 themes at the house and 20 under the ambient spell had one before.
   const beforeHouse = gapped(off, HOUSE), beforeAmbient = gapped(off, bench);
-  assert.ok(beforeHouse.length >= 15 && beforeAmbient.length >= 15, `${beforeHouse.length} and ${beforeAmbient.length} themes with a gap with the rule off`);
+  // (10-28: the ringing keys' phrases ring under a pedal and close a gap or two of their own: 14 and 36 then; keys-room,
+  // 10-29: the ringing keys stay in the breakdown, so the gaps the rule was written for close at the house: 5 and 36)
+  assert.ok(beforeHouse.length >= 4 && beforeAmbient.length >= 15, `${beforeHouse.length} and ${beforeAmbient.length} themes with a gap with the rule off`);
   assert.deepEqual(gapped(style, HOUSE), [], 'a gap at the house');
   assert.deepEqual(gapped(style, bench), [], 'a gap under the ambient spell');
   const t = planTheme('41475', 2, { strategy: 'house-v2' });
   const before = planTheme('41475', 2, { style: off, preset: 'auto' });
   // Bars 37-43 until round L1 gave the theme its minutes (156 bars) and moved
   // its breakdown to bar 40, and 41-47 since (restated in the merge round,
-  // Reconcile 1).
-  assert.deepEqual(silentRuns(programOf(before).events as any, before.arrangement.sections, before.bars, before.barSeconds), [[41, 7]]);
-  const pads = t.events.filter(e => e.layer === 'pad' && e.bar! >= 41 && e.bar! < 48);
-  assert.ok(pads.length > 0 && t.timeline[42].layers.includes('pad'), 'the breakdown takes no bed');
+  // Reconcile 1); 45-51 since round length-2 put the grooves at 3-4 minutes
+  // (104 bars, the breakdown at 44; his word 10-27: "We should aim for 3-4mins here"); 37-43 since chillstep-ends gave
+  // its four-bar outro a phrase off the first main (the breakdown at 36; his word 10-29: "both chillstep songs in Drive
+  // playlist were chopped in the end after we reduced length").
+  const [gap] = [[37, 7]];
+  assert.deepEqual(silentRuns(programOf(before).events as any, before.arrangement.sections, before.bars, before.barSeconds), [gap]);
+  const pads = t.events.filter(e => e.layer === 'pad' && e.bar! >= gap[0] && e.bar! < gap[0] + gap[1]);
+  assert.ok(pads.length > 0 && t.timeline[gap[0] + 1].layers.includes('pad'), 'the breakdown takes no bed');
   // and nothing else of the theme moved: the rule only adds, and only inside the gap
   const key = (e: any) => `${e.layer}|${e.voice}|${e.t}|${e.p.midi}`;
   const had = new Set(before.events.map(key));
-  assert.ok(t.events.filter(e => !had.has(key(e))).every(e => e.layer === 'pad' && e.bar! >= 41 && e.bar! < 48));
+  assert.ok(t.events.filter(e => !had.has(key(e))).every(e => e.layer === 'pad' && e.bar! >= gap[0] && e.bar! < gap[0] + gap[1]));
   assert.ok(!('switches' in v1));
 });

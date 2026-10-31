@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PART_LIBRARY, LIBRARY, PATTERN_LIBRARY, TRACK_LIBRARY, CANDIDATE_LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY, PINNABLE, recipeById,
+import { PART_LIBRARY, LIBRARY, PATTERN_LIBRARY, TRACK_LIBRARY, CANDIDATE_LIBRARY, STUDY_LIBRARY, ENSEMBLE_LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY, PINNABLE, recipeById,
   TREATMENT_LIBRARY, TREATMENT_CANDIDATES, SECTION_LIBRARY, SEAM_CANDIDATES } from '../src/recipes.ts';
 import { weightOf } from '../src/recipe.ts';
 // the house's own six: the section rows at a weight, which the grammar is read off (`grammarFromRows`)
@@ -245,9 +245,10 @@ test('the form rows (round DNB-6) are track rows with a form in whole blocks, na
   const named = new Set(FORM.flatMap(e => (e.rows ?? []).map(x => x.v)));
   assert.deepEqual([...named].sort(), FORM_LIBRARY.map(r => r.id).filter(id => !['dnb/form-classic', 'dnb/form-two-drop', 'dnb/form-rolling'].includes(id)).sort());
   // the benchmark's theme draws two returns, its lengths drawn (a 32-bar intro, a 16-bar opening), and lays its first drop on bar 48, its second on 176
+  // (308 bars), on 112 since round length-2 put the grooves at 3-4 minutes (180 bars; his word 10-27: "We should aim for 3-4mins here")
   const t = planTheme(1, 0, { strategy: 'house-v2', spell: parseSpell('em:0.95,ti:0.45,ze:0.60,ro:0.75,ve:0.60,sp:0.85,lo:0.85') });
   assert.equal(t.dice.form, 'dnb/form-two-return');
-  assert.deepEqual(t.arrangement.sections.filter(s => s.kind === 'drop').map(s => s.startBar), [48, 176]);
+  assert.deepEqual(t.arrangement.sections.filter(s => s.kind === 'drop').map(s => s.startBar), [48, 112]);
   const bad = { ...FORM_LIBRARY[0], form: { ...FORM_LIBRARY[0].form, bars: [32] } };
   assert.ok(validate(bad, vocab).some(m => /form\.bars/.test(m)));
 });
@@ -256,9 +257,11 @@ test('the genre rows parse, name a family of the genre keys, are current, weigh 
   assert.ok(PATTERN_LIBRARY.length >= 6);
   assert.deepEqual(LIBRARY.map(r => r.id), SHIPPED, 'the shipped library moved');
   assert.deepEqual(PINNABLE.map(r => r.id), [...SHIPPED, ...PATTERN_LIBRARY.map(r => r.id), ...TRACK_LIBRARY.map(r => r.id), ...CANDIDATE_LIBRARY.map(r => r.id),
-    ...TREATMENT_LIBRARY.map(r => r.id), ...TREATMENT_CANDIDATES.map(r => r.id), ...SECTION_LIBRARY.map(r => r.id), ...SEAM_CANDIDATES.map(r => r.id)]);
+    ...STUDY_LIBRARY.map(r => r.id), ...ENSEMBLE_LIBRARY.map(r => r.id), ...TREATMENT_LIBRARY.map(r => r.id), ...TREATMENT_CANDIDATES.map(r => r.id), ...SECTION_LIBRARY.map(r => r.id), ...SEAM_CANDIDATES.map(r => r.id)]);
   // DNB-1's mined candidates not yet admitted are pinnable and weigh nought, so no draw reaches them.
   assert.ok(CANDIDATE_LIBRARY.every(r => r.weight === 0 && r.origin === 'mined'), 'a candidate weighs more than nought');
+  // the two accepted arrangements are whole themes at nought: pinned to be heard, never drawn
+  assert.ok(STUDY_LIBRARY.every(r => r.weight === 0 && r.scope === 'track'), 'a study row weighs more than nought');
   assert.equal(new Set(PINNABLE.map(r => r.id)).size, PINNABLE.length, 'an id is used twice across the two libraries');
   assert.ok(CLAIMED.length > 0, 'genres.json claims no rows');
   const vocab = vocabularyOf(style, registry), bias = biasFor(HOUSE, style);
@@ -454,7 +457,11 @@ test('the section rows: the house\'s six reproduce its grammar one per kind, the
   assert.deepEqual(mined.map(r => r.id), ['dnb/dnb-intro', 'dnb/dnb-main', 'dnb/dnb-breakdown', 'dnb/dnb-outro']);
   assert.deepEqual(SECTION_LIBRARY.filter(r => !HOUSE_SECTIONS.includes(r) && !mined.includes(r)).map(r => r.id), authored);
   for (const r of mined) { assert.equal(r.weight, 0, `${r.id} weighs more than nought`); assert.equal(r.origin, 'mined'); }
-  const preferring = SECTIONS.filter(e => Object.keys(e.prefers).length);
+  // (trance-1: the trance corner's three places prefer the authored exposed breakdown, a held pad alone; a row of no mined
+  // origin. trance-2: at the corner's places only, so the high four keeps its hats in the breakdown)
+  const exposing = SECTIONS.filter(e => Object.keys(e.prefers).length && Object.keys(e.prefers).every(id => authored.includes(id) || HOUSE_SECTIONS.some(r => r.id === id)));
+  assert.deepEqual(exposing.map(e => e.id), ['exposed-breakdowns-corner', 'exposed-breakdowns-dark', 'exposed-breakdowns-bright']);
+  const preferring = SECTIONS.filter(e => Object.keys(e.prefers).length && !exposing.includes(e));
   assert.equal(preferring.length, 2);
   for (const e of preferring) assert.deepEqual(Object.keys(e.prefers).sort(), mined.map(r => r.id).sort());
   assert.ok(SECTIONS.length > preferring.length, 'every other place keeps the rows\' own weights');

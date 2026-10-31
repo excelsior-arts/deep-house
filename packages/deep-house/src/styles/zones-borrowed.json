@@ -316,7 +316,26 @@
       70
      ]
     }
-   }
+   },
+   "hook": {
+    "id": "no-hook-8",
+    "place": {
+     "birds": {
+      "ember": 0.1,
+      "tide": 0.85,
+      "zephyr": 0.9,
+      "root": 0.5,
+      "veil": 0.3,
+      "loom": 0.8,
+      "spark": 0
+     },
+     "tempo": [
+      40,
+      70
+     ]
+    }
+   },
+   "ensemble": null
   }
  }
 }

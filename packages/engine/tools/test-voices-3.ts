@@ -256,11 +256,14 @@ const CLAIMS: Claim[] = [
   // --- the wobble reese (rounds DUB-1..4) -------------------------------------
   //
   // The deep half-time place's line: the sine carries the low end and the saws
-  // sweep over it (corner 380 Hz, 0.82 deep, 2 dB of resonance, a light clip in
-  // front). Read on A1 (MIDI 33, 55 Hz). MEASURED in Chromium at 48 kHz when
-  // the thresholds were written (10-04): 55.0 Hz; 99.9 % of the energy under
-  // 80 Hz (the sine at 2.5 over saws at 1.2 behind the corner); 0.02 % of it in
-  // 300-900 Hz, swinging 30 dB over a four-second note as the corner sweeps.
+  // sweep over it (corner 1800 Hz since 10-29, 0.82 deep, so about 320 Hz to
+  // 3.3 kHz; 2 dB of resonance, a light clip in front). Read on A1 (MIDI 33,
+  // 55 Hz). MEASURED in Chromium at 48 kHz when the thresholds were written
+  // (10-04): 55.0 Hz; 99.9 % of the energy under 80 Hz (the sine at 2.5 over
+  // saws at 1.2 behind the corner). The sweep's band, moved with the corner
+  // (10-29, round reese-cutoff): 0.02 % of the energy in 600-2400 Hz, swinging
+  // 17 dB over a four-second note (at 380 Hz it was 300-900 Hz, 0.02 %, 30 dB;
+  // opened, that band sits under the corner and swings 7 dB).
   {
     voice: 'reeseWobble', what: 'its pitch is the note: A1 read at 55 Hz',
     note: { midi: 33, dur: 2 },
@@ -272,10 +275,10 @@ const CLAIMS: Claim[] = [
     holds: (r) => [r.bandShare > 0.5, `${(r.bandShare * 100).toFixed(1)} % of the energy in 40-80 Hz`],
   },
   {
-    voice: 'reeseWobble', what: 'and the wobble is over it: the 300-900 Hz band holds a share of a held note and swings over it as the corner sweeps',
-    note: { midi: 33, dur: 4, band: [300, 900] },
+    voice: 'reeseWobble', what: 'and the wobble is over it: the 600-2400 Hz band holds a share of a held note and swings over it as the corner sweeps',
+    note: { midi: 33, dur: 4, band: [600, 2400] },
     holds: (r) => [r.bandShare > 0.0001 && r.bandSwingDb > 10,
-      `${(r.bandShare * 100).toFixed(3)} % of the energy in 300-900 Hz, swinging ${f1(r.bandSwingDb)} dB over 200 ms frames`],
+      `${(r.bandShare * 100).toFixed(3)} % of the energy in 600-2400 Hz, swinging ${f1(r.bandSwingDb)} dB over 200 ms frames`],
   },
   // --- the 303 line ---------------------------------------------------------
   {

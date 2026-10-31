@@ -390,7 +390,8 @@ export function linkWrite(state: LinkState, base = '', opts: { explicit?: boolea
   if (opts.explicit || !absent || absent.recipe !== recipe) q.set('recipe', recipe ?? 'none');
   for (const [name, value] of [['accompaniment', state.accompaniment ?? 'base'], ['development', state.development ?? 'base']] as const)
     if (opts.explicit || !absent || absent[name] !== value) q.set(name, value);
-  for (const [k, v] of linkQuery(base)) if (!SOUND.includes(k) && k !== 'bar' && k !== 't') q.append(k, v);
+  // a context row (`in`) is read once at the open and never on the address the page keeps (round pl-link)
+  for (const [k, v] of linkQuery(base)) if (!SOUND.includes(k) && k !== 'bar' && k !== 't' && ROW[k]?.class !== 'context') q.append(k, v);
   return plain(q);
 }
 

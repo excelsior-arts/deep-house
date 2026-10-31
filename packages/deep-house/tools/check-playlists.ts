@@ -4,12 +4,16 @@
 import { fileURLToPath } from 'node:url';
 import { linkRead, linkWrite } from '../src/link.ts';
 import { linkOfPlace } from '../src/control.ts';
-import { recipesFor } from '../src/mix.ts';
+import { recipesFor, planTheme, programOf } from '../src/mix.ts';
+import { STRATEGIES } from '../src/strategies/index.ts';
+import { PLACE_LANES, readPlace, rowOf, zoneOf } from '../src/places.ts';
+import { BIRDS, HOUSE, asSpell, derive } from '../src/spell.ts';
 import {
   readLibrary, mergeLibraries, normaliseLink, sameSound, saveTrack, createPlaylist, addToPlaylist, removeTrack, renamePlaylist, setLabel,
   writePlaylistFile, writeBackupFile, readDeephouseFile, backupSummary, keepBothName, playlistOf, tracksOf, stamp, emptyLibrary,
 } from '../src/playlists.ts';
-import { skyOfLink, genreOf, colourOf, SKY_PLACES } from '../src/sky.ts';
+import { skyOfLink, genreOf, colourOf, SKY_PLACES, SKY_DOTS, SKY_REGIONS, STEER_BIRDS, DOTS_PER_STAR, genreOfSpell, tempoOf, timeOf } from '../src/sky.ts';
+import { listTempo, listPull, foldTo, LIST_PULL } from '../src/performance.ts';
 import { stepIndex, indexOfSound, seamDue, placeWords, playMark } from '../src/playlist-play.ts';
 import { replaceLink, saveTarget, removePlaylist, playlistFileSummary, openPlaylistFile } from '../src/playlists.ts';
 import { GOLD_STOPS, BASE } from '../src/ring-colour.ts';
@@ -21,7 +25,7 @@ import { restore, replaceLibrary, BEFORE_SWITCH_KEY } from '../src/playlists.ts'
 import { rankBetween, inOrder, movePlaylist, byRecent, moveTrack } from '../src/playlists.ts';
 import * as shipped from './fixtures/playlists-2.3.1.ts';
 import { shellStore } from '../src/shell-library.ts';
-import { FEATURED, FEATURED_WORD, featuredById, featuredTracks, copyOfFeatured } from '../src/featured.ts';
+import { FEATURED, FEATURED_WORD, featuredById, featuredTracks, copyOfFeatured, trackShareLink, featKey, featOf, featuredPlace } from '../src/featured.ts';
 import { entryOf, withEntry } from './feature.ts';
 import { featuredUnfrozen, featuredRows, saved as digestSaved } from './link-digest.ts';
 
@@ -95,6 +99,23 @@ export function playlistChecks(check, must) {
     try { entryOf('?' + L('list=Bad', 'v=9', 'play=6')); } catch (err) { refused = err.message; }
     must(/does not play/.test(refused), `a track this edition can't play was not refused (${refused})`);
     return 'id, name, links and labels from the link; same id replaced in place; --at 1 first; --replace keeps the id; an unplayable track refused';
+  });
+  check('a track\'s Copy link names its Featured playlist only there (round pl-link): alone and from one of yours the plain track link; from a Featured list the link and its in, which opens on that place', () => {
+    const base = 'https://deephouse.audio/';
+    const f = FEATURED[1], i = 1, track = `${base}?${f.links[i]}`;
+    const alone = trackShareLink(track, undefined), saved = trackShareLink(track, null), mine = trackShareLink(track, 'Mine');
+    must(alone === track && saved === track && mine === track, `a track alone or in one of yours copied ${alone} ${saved} ${mine}`);
+    const feat = trackShareLink(track, featKey(f.id));
+    must(feat === `${track}&in=${f.id.replace(/-/g, '')}`, `from ${f.name} it copied ${feat}`);
+    const at = featuredPlace(new URL(feat).search);
+    must(!!at && at.featured.id === f.id && at.index === i, `it opens on ${at ? `${at.featured.name} ${at.index + 1}` : 'nothing'}`);
+    // the time link carries it too; a sound the list doesn't hold (a bird pulled since) copies none
+    const timed = trackShareLink(`${track}&t=83`, featKey(f.id));
+    must(new URL(timed).searchParams.get('t') === '83' && featuredPlace(new URL(timed).search)?.index === i, `the time link copied ${timed}`);
+    const pulled = `${base}?${L('seed=92970', 'v=2', 'spell=em:0.80')}`;
+    must(trackShareLink(pulled, featKey(f.id)) === pulled, 'a sound the list doesn\'t hold was copied with in');
+    must(featOf(featKey(f.id)) === f && featOf(null) === undefined && featOf('Mine') === undefined, 'the page\'s featured names do not read');
+    return `alone, Saved and Mine: ${track}; ${f.name} ${i + 1}: ${feat}`;
   });
   check('the share circle copies a clean link: the track\'s own rows on the page\'s base, out and the view and the rest left behind, the same sound as the address', () => {
     const address = '?' + L('seed=6', 'v=2', 'theme=2', 'spell=em:0.20', 'out=silent', 'view=machine', 'lock=engine', 't=40');
@@ -671,9 +692,214 @@ export function playlistChecks(check, must) {
     const gap = (a, b) => Math.hypot(at(a).x - at(b).x, at(a).y - at(b).y);
     must(gap('Drone', 'Ambient') < gap('Drone', 'Deep House') / 3, `Drone stands ${gap('Drone', 'Ambient').toFixed(3)} from Ambient, ${gap('Drone', 'Deep House').toFixed(3)} from the house`);
     must(gap('Chillstep', 'Dub Techno') < 0.2, `Chillstep stands ${gap('Chillstep', 'Dub Techno').toFixed(3)} from Dub Techno`);
+    // (trance-1: Trance's own spell measured, and its two neighbours beside it, Uplifting Trance and Hard Trance)
     const lit = SKY_PLACES.filter((p) => p.lit).map((p) => p.name);
-    must(lit.join() === 'Deep House,Tech House,Techno,Ambient,Downtempo,Trip Hop,Drone,Psybient,Bells,Waves,Liquid,Dub Techno,Chillstep,Trance,Breaks & Big Beat', `the lit stars are ${lit.join(', ')}`);
+    must(lit.join() === 'Deep House,Tech House,Techno,Ambient,Downtempo,Trip Hop,Dark Ambient,Ambient Dub,Drone,Psybient,Bells,Waves,Bowls,Liquid,Dub Techno,Chillstep,Trance,Uplifting Trance,Hard Trance,Breaks & Big Beat', `the lit stars are ${lit.join(', ')}`);
     return `${pin.length} positions pinned, genres ${pin.map((p) => p[3]).join(', ')}, the house ${colourOf(A)}; ${lit.length} lit stars, Drone by Ambient, Chillstep by Dub Techno`;
+  });
+  check('a track\'s genre is the star whose place it plays (genres-by-music, 10-29): every lit star reads itself, and the featured tracks read their words', () => {
+    // the words the rule gives (genres-by-music), in each playlist's order: Ambient 7, inside the bells' zone, Bells and no
+    // longer Trip Hop (his word 10-28); Drive 1 the Breaks place's tables; Drive 4 and 7 the trance and the dub techno
+    // places they play; Drive 3 the tech house tables under a saw hook; Vibe 6 the slow place's harmony over the drone's floor
+    const WORDS = {
+      Vibe: ['Deep House', 'Liquid', 'Deep House', 'Drone', 'Deep House', 'Drone', 'Deep House', 'Downtempo', 'Liquid', 'Ambient Dub', 'Ambient Dub', 'Chillstep'],
+      Drive: ['Breaks & Big Beat', 'Tech House', 'Tech House', 'Hard Trance', 'Chillstep', 'Chillstep', 'Dub Techno', 'Deep House'],
+      Ambient: ['Dark Ambient', 'Waves', 'Drone', 'Waves', 'Dark Ambient', 'Bells', 'Bells', 'Drone', 'Downtempo', 'Waves', 'Waves'],
+    };
+    const lit = SKY_PLACES.filter((p) => p.lit);
+    for (const p of lit) must(genreOfSpell(p.spell) === p, `the ${p.name} star reads ${genreOfSpell(p.spell).name}`);
+    let n = 0;
+    for (const f of FEATURED) {
+      const want = WORDS[f.name];
+      must(!!want && want.length === f.links.length, `${f.name}: ${f.links.length} tracks, ${want?.length ?? 0} words pinned`);
+      f.links.forEach((link, i) => { n++; must(genreOf(link).name === want[i], `${f.name} ${i + 1} (${f.labels?.[i] ?? link}) reads ${genreOf(link).name}, pinned ${want[i]}`); });
+    }
+    return `${lit.length} lit stars read themselves; ${n} featured tracks read their words`;
+  });
+  check('the sky\'s dots (his idea 10-28): four round every lit star, frozen; each its star\'s genre and place, a steering bird or two off it, clear of the stars, the open rings and the other dots, and playing other than its star', () => {
+    // **frozen** (round sky-dots): each dot as the birds it moves off its star. A dot must not move between releases;
+    // a star added later (the trance round's) gets its own four by the same rules and is checked below, not here; the
+    // Trance star's four of round 1 left with its tuning (trance-1: its spell moved from its rows' region to its own)
+    const FROZEN = [
+      ['house/deep-house#1', 'lo:0.28'],
+      ['house/deep-house#2', 'ro:0.85,gl:0.22'],
+      ['house/deep-house#3', 'ti:0.32,gl:0.58'],
+      ['house/deep-house#4', 'gl:0.11'],
+      ['house/tech-house#1', 'ze:0.74'],
+      ['house/tech-house#2', 'ro:0.90'],
+      ['house/tech-house#3', 'ti:0.69,ro:0.44'],
+      ['house/tech-house#4', 'ze:0.34,lo:0.40'],
+      ['techno#1', 'ti:0.68,ro:0.89'],
+      ['techno#2', 'ti:0.69,gl:0.06'],
+      ['techno#3', 'ti:0.41,ro:0.28'],
+      ['techno#4', 'ze:0.25'],
+      ['ambient-and-downtempo/ambient#1', 'lo:0.51'],
+      ['ambient-and-downtempo/ambient#2', 'ze:0.70,ro:0.25'],
+      ['ambient-and-downtempo/ambient#3', 'lo:0.68'],
+      ['ambient-and-downtempo/ambient#4', 'ro:0.32,lo:0.48'],
+      ['ambient-and-downtempo/downtempo#1', 'ze:0.18,ro:0.39'],
+      ['ambient-and-downtempo/downtempo#2', 'ro:0.30,gl:0.53'],
+      ['ambient-and-downtempo/downtempo#3', 'ze:0.60,lo:0.44'],
+      ['ambient-and-downtempo/downtempo#4', 'ze:0.19'],
+      ['ambient-and-downtempo/trip-hop#1', 'ro:0.66,gl:0.35'],
+      ['ambient-and-downtempo/trip-hop#2', 'ze:0.60'],
+      ['ambient-and-downtempo/trip-hop#3', 'ti:0.39'],
+      ['ambient-and-downtempo/trip-hop#4', 'ti:0.40,gl:0.01'],
+      ['ambient-and-downtempo/dark-ambient#1', 'ti:0.98,gl:0.64'],
+      ['ambient-and-downtempo/dark-ambient#2', 'ze:0.23'],
+      ['ambient-and-downtempo/dark-ambient#3', 'ze:0.20,lo:0.37'],
+      ['ambient-and-downtempo/dark-ambient#4', 'gl:0.67'],
+      ['ambient-and-downtempo/ambient-dub#1', 'ze:0.46'],
+      ['ambient-and-downtempo/ambient-dub#2', 'ze:0.45,lo:0.70'],
+      ['ambient-and-downtempo/ambient-dub#3', 'gl:0.51'],
+      ['ambient-and-downtempo/ambient-dub#4', 'ti:0.83'],
+      ['ambient-and-downtempo/drone#1', 'ti:0.83,lo:0.54'],
+      ['ambient-and-downtempo/drone#2', 'gl:0.29,lo:0.95'],
+      ['ambient-and-downtempo/drone#3', 'ze:0.54,gl:0.27'],
+      ['ambient-and-downtempo/drone#4', 'ro:0.93'],
+      ['ambient-and-downtempo/psybient#1', 'ti:0.63'],
+      ['ambient-and-downtempo/psybient#2', 'lo:0.97'],
+      ['ambient-and-downtempo/psybient#3', 'gl:0.50,lo:0.56'],
+      ['ambient-and-downtempo/psybient#4', 'ze:0.87,lo:0.46'],
+      ['ambient-and-downtempo/bells#1', 'ro:0.42,gl:0.59'],
+      ['ambient-and-downtempo/bells#2', 'gl:0.94,lo:0.74'],
+      ['ambient-and-downtempo/bells#3', 'ti:0.46,gl:0.59'],
+      ['ambient-and-downtempo/bells#4', 'ro:0.39,lo:0.59'],
+      ['ambient-and-downtempo/waves#1', 'ze:0.48,lo:0.78'],
+      ['ambient-and-downtempo/waves#2', 'ze:0.99'],
+      ['ambient-and-downtempo/waves#3', 'gl:0.24,lo:0.69'],
+      ['ambient-and-downtempo/waves#4', 'ro:0.81,lo:0.65'],
+      ['ambient-and-downtempo/bowls#1', 'ti:0.79,gl:0.54'],
+      ['ambient-and-downtempo/bowls#2', 'ti:0.77,ro:0.54'],
+      ['ambient-and-downtempo/bowls#3', 'ti:0.70,ro:0.70'],
+      ['ambient-and-downtempo/bowls#4', 'ro:0.54,gl:0.57'],
+      ['dnb-and-dub/liquid#1', 'ti:0.21'],
+      ['dnb-and-dub/liquid#2', 'ze:0.36'],
+      ['dnb-and-dub/liquid#3', 'ro:0.59'],
+      ['dnb-and-dub/liquid#4', 'gl:0.59'],
+      ['dnb-and-dub/dub-techno#1', 'ze:0.38,gl:0.52'],
+      ['dnb-and-dub/dub-techno#2', 'gl:0.15'],
+      ['dnb-and-dub/dub-techno#3', 'ze:0.53,ro:0.67'],
+      ['dnb-and-dub/dub-techno#4', 'ze:0.08,gl:0.22'],
+      ['dnb-and-dub/chillstep#1', 'ti:0.73,gl:0.20'],
+      ['dnb-and-dub/chillstep#2', 'ro:0.98,lo:0.57'],
+      ['dnb-and-dub/chillstep#3', 'ti:0.71,gl:0.62'],
+      ['dnb-and-dub/chillstep#4', 'ro:0.66,lo:0.53'],
+      ['breaks-and-big-beat#1', 'ti:0.30,ro:0.45'],
+      ['breaks-and-big-beat#2', 'ro:0.43,gl:0.15'],
+      ['breaks-and-big-beat#3', 'ti:0.25,lo:0.38'],
+      ['breaks-and-big-beat#4', 'ze:0.47,ro:0.95'],
+    ];
+    const SHORT = { em: 'ember', ti: 'tide', ze: 'zephyr', ro: 'root', gl: 'gleam', ve: 'veil', sp: 'spark', lo: 'loom' };
+    const lit = SKY_PLACES.filter((p) => p.lit);
+    const star = (id) => lit.find((p) => p.id === id);
+    const v = (s, b) => s[b] ?? HOUSE[b];
+    let frozen = 0;
+    for (const [id, moved] of FROZEN) {
+      const st = star(id.replace(/#\d$/, ''));
+      if (!st) continue;
+      const want = { ...st.spell, ...Object.fromEntries(moved.split(',').map((x) => x.split(':')).map(([b, n]) => [SHORT[b], +n])) };
+      const got = SKY_DOTS.find((d) => d.id === id);
+      must(!!got, `the dot ${id} is gone`);
+      must(BIRDS.every((b) => Math.abs(v(got.spell, b) - v(want, b)) < 1e-9), `the dot ${id} moved: ${JSON.stringify(got.spell)}, frozen ${JSON.stringify(want)}`);
+      frozen++;
+    }
+    // the rules, read here again from the composer's own tables, for every dot (a new star's too)
+    const P = STRATEGIES['house-v2'].style.places;
+    const reading = (s) => { const f = asSpell({ ...HOUSE, ...s }); const z = zoneOf(P, f); const bpm = derive(f).tempoCentre; return [z?.id ?? '-', ...PLACE_LANES.map((l) => rowOf(readPlace(P, l, f, bpm, z)))].join('|'); };
+    // what plays: the first theme of seeds 1 and 2 (one seed alone can draw the same at two spells: a bird the dice of that
+    // theme do not read)
+    const hash = (spell) => ['1', '2'].map((seed) => JSON.stringify(programOf(planTheme(seed, 0, { strategy: 'house-v2', spell })).events)).join('\n');
+    let near = Infinity, nearDot = Infinity, nearRing = Infinity;
+    const rings = SKY_REGIONS.flatMap((r) => r.rings);
+    for (const st of lit) {
+      const ds = SKY_DOTS.filter((d) => d.star === st.id);
+      must(ds.length === DOTS_PER_STAR, `${st.name} has ${ds.length} dots`);
+      const own = reading(st.spell), heard = hash(asSpell({ ...HOUSE, ...st.spell }));
+      for (const d of ds) {
+        const moved = BIRDS.filter((b) => Math.abs(v(d.spell, b) - v(st.spell, b)) > 1e-9);
+        must(moved.length >= 1 && moved.length <= 2 && moved.every((b) => STEER_BIRDS.includes(b)), `${d.id} moves ${moved.join(', ')}`);
+        must(moved.every((b) => Math.abs(v(d.spell, b) * 100 - Math.round(v(d.spell, b) * 100)) < 1e-6), `${d.id} is not on a link's two decimals`);
+        must(genreOfSpell(d.spell) === st, `${d.id} reads ${genreOfSpell(d.spell).name}`);
+        must(reading(d.spell) === own, `${d.id} plays another place than ${st.name}`);
+        must(hash(asSpell({ ...HOUSE, ...d.spell })) !== heard, `${d.id} plays seeds 1 and 2 exactly as ${st.name} does`);
+        // one settled dot stands under a star tuned after it (Waves 3 by Dark Ambient, 0.011: his word 10-28 kept both, the
+        // dot exactly as round 1 made it and the star at its approved spell); it shows from the zoom that parts them
+        for (const o of lit) if (!(d.id === 'ambient-and-downtempo/waves#3' && o.name === 'Dark Ambient')) near = Math.min(near, Math.hypot(o.point.x - d.point.x, o.point.y - d.point.y));
+        for (const o of SKY_DOTS) if (o !== d) nearDot = Math.min(nearDot, Math.hypot(o.point.x - d.point.x, o.point.y - d.point.y));
+        for (const g of rings) nearRing = Math.min(nearRing, Math.hypot(g.at.x - d.point.x, g.at.y - d.point.y));
+      }
+    }
+    must(near >= 0.03 - 1e-9 && nearDot >= 0.024 - 1e-9 && nearRing >= 0.028 - 1e-9, `a dot stands ${near.toFixed(3)} from a star, ${nearDot.toFixed(3)} from another dot, ${nearRing.toFixed(3)} from an open ring`);
+    return `${SKY_DOTS.length} dots round ${lit.length} lit stars, ${frozen} as frozen; every one its star's genre and place, another program than its star's on seed 1 or 2; the nearest ${near.toFixed(3)} from a star, ${nearDot.toFixed(3)} from a dot and ${nearRing.toFixed(3)} from an open ring`;
+  });
+}
+
+// --- a playlist's clock (round pl-clock) --------------------------------------
+export function clockChecks(check, must) {
+  check('a playlist\'s tempo: each track folded by 1, 2 or 4 to the list\'s centre, the mean in log tempo of those within 8 %, an outlier left out and never dragging it, the same in any order (round pl-clock)', () => {
+    const said = [];
+    const near = (a, b, why) => must(a != null && Math.abs(a - b) <= 0.05 + 1e-9, `${why}: ${a} where ${b}`);
+    // a Drum & Bass list with a 50 BPM track: the centre is the list's, the 50 an outlier (folded to 200, 15 % off)
+    const dnb = [174, 172, 175, 170, 174, 50];
+    const L1 = listTempo(dnb);
+    const mean = (xs) => Math.round(Math.exp(xs.reduce((s, x) => s + Math.log(x), 0) / xs.length) * 10) / 10;
+    near(L1, mean([174, 172, 175, 170, 174]), 'the Drum & Bass list');
+    must(listPull(50, L1) === null, `the 50 BPM track is pulled to ${listPull(50, L1)}`);
+    must(listPull(170, L1) === L1 && listPull(175, L1) === L1, 'a Drum & Bass track is not pulled');
+    said.push(`DnB ${L1} (50 left out)`);
+    // a house list with a half-time track: the 61 folds to 122 and plays at half the list's
+    const house = [122, 124, 121, 61, 123];
+    const L2 = listTempo(house);
+    near(L2, mean([122, 124, 121, 122, 123]), 'the house list with a half-time track');
+    must(Math.abs(listPull(61, L2) - L2 / 2) < 1e-9, `the half-time track plays at ${listPull(61, L2)}, not half of ${L2}`);
+    said.push(`house ${L2} (61 at ${listPull(61, L2)})`);
+    // a list mostly at half time: the centre is where most of its tracks are without a fold
+    const L3 = listTempo([87, 86, 88, 174, 172]);
+    must(L3 > 80 && L3 < 95, `the half-time list's tempo is ${L3}`);
+    must(Math.abs(listPull(174, L3) - 2 * L3) < 1e-9, 'a double-time track does not play at twice the list\'s');
+    said.push(`half-time ${L3}`);
+    // two camps: the larger wins, the other plays at its own
+    const L4 = listTempo([104, 105, 103, 104, 126, 128]);
+    near(L4, mean([104, 105, 103, 104]), 'two camps');
+    must(listPull(126, L4) === null && listPull(128, L4) === null, 'the smaller camp is pulled');
+    said.push(`camps ${L4}`);
+    // stable for the list: every order and a few shuffles
+    for (const xs of [dnb, house, [104, 105, 103, 104, 126, 128]]) {
+      const want = listTempo(xs);
+      for (let k = 0; k < 24; k++) {
+        const ys = xs.slice();
+        for (let i = ys.length - 1; i > 0; i--) { const j = (i * 7 + k * 13) % (i + 1); [ys[i], ys[j]] = [ys[j], ys[i]]; }
+        must(listTempo(ys) === want, `${ys} reads ${listTempo(ys)}, not ${want}`);
+      }
+    }
+    // nothing to read: no list; one track: its own
+    must(listTempo([]) === null && listTempo([118.3]) === 118.3, 'an empty or a one-track list');
+    // the pull's edge: 8 % either way, folded
+    must(listPull(120 * 1.079, 120) === 120 && listPull(120 * 1.081, 120) === null && listPull(120 / 1.079, 120) === 120, 'the pull is not 8 %');
+    must(foldTo(50, 174).fold === 4 && LIST_PULL === 0.08, 'the fold');
+    return said.join('; ');
+  });
+
+  check('a track\'s tempo read from its dice (tempoOf) is the tempo its plan plays (timeOf), on the featured playlists and the link digest\'s track rows, at a fraction of a plan\'s cost (round pl-clock)', () => {
+    const links = [...new Set([...FEATURED.flatMap((f) => featuredTracks(f).map((t) => t.link)), ...digestSaved().rows.filter((r) => !r.themes).map((r) => r.link)])];
+    let n = 0, cheap = 0, dear = 0, skipped = 0;
+    for (const link of links) {
+      if (!normaliseLink(link).ok) continue;
+      let t0 = performance.now();
+      const fast = tempoOf(link);
+      cheap += performance.now() - t0;
+      t0 = performance.now();
+      const slow = timeOf(link);
+      dear += performance.now() - t0;
+      // (a link whose plan throws here — a mode this edition plans only as a page — has no time to read against)
+      if (!slow) { skipped++; continue; }
+      must(fast && !fast.free && fast.bpm === slow.bpm, `${link}: the dice say ${fast?.bpm}, the plan ${slow.bpm}`);
+      n++;
+    }
+    must(n > 100, `only ${n} links read`);
+    must(cheap < dear / 5, `the dice cost ${cheap.toFixed(0)} ms against the plans' ${dear.toFixed(0)}`);
+    return `${n} links the same (${skipped} with no plan here), the dice ${cheap.toFixed(0)} ms, the plans ${dear.toFixed(0)} ms`;
   });
 }
 
@@ -683,5 +909,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     try { console.log(`ok    ${name}: ${fn()}`); } catch (e) { failed++; console.log(`FAIL  ${name}: ${e.message}`); }
   };
   playlistChecks(check, (cond, why) => { if (!cond) throw new Error(why); });
+  clockChecks(check, (cond, why) => { if (!cond) throw new Error(why); });
   if (failed) process.exit(1);
 }

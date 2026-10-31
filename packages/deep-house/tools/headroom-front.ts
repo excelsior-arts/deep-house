@@ -11,6 +11,8 @@
 //       held-out figure is nested: five outer folds by seed (seed mod 5), the selection and the fit run again on the
 //       other four and scored on the fold's seeds alone; `--split 30` scores seeds 31 and up by a selection and fit on
 //       seeds up to 30 instead
+//   node tools/headroom-front.ts --measure ... --places "ring gleam,ring gleam+root" --out <file>
+//       only those places of the grid, into a file of their own
 //   node tools/headroom-front.ts --report [--names --from 1 --to 12]
 //       today's trims against what was measured: the limiter's share and depth at each trim (a trim moves every block
 //       ahead of the limiter by itself), how far under its target each theme sits, by the model and with its measured
@@ -27,7 +29,12 @@ import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { grid, linkOf, playedWith } from './check-program-guards.ts';
-import { loudnessFeatures, loudnessFamily, trimWindow, trimTargetLufs, predictedLufs, headroomDb, headroomLimit } from '../src/loudness.ts';
+import { FAMILIES, familyPreset, subPreset, presetSpell } from '../src/genres/genre-table.ts';
+import type { Spell } from '../src/spell.ts';
+import { FEATURED } from '../src/featured.ts';
+import { linkRead, linkWrite } from '../src/link.ts';
+import { beatOfTrack, allowanceOf, loudnessFeatures, loudnessFamily, trimWindow, trimTargetLufs, predictedLufs, headroomDb, headroomLimit, trimSlope } from '../src/loudness.ts';
+import { TIMBRES, levelKeyOfRole } from '@deep-house/engine/voices';
 import { fit } from './loudness-fit.ts';
 import { playwright, launchOptions, bodyOf, renice } from '@deep-house/engine/harness';
 
@@ -48,18 +55,57 @@ export const SHORT_LU = 2;
 const ABOUT_LU = 0.5;
 const quiet = <T,>(fn: () => T): T => { const k = [console.log, console.info, console.warn]; console.log = console.info = console.warn = () => {}; try { return fn(); } finally { [console.log, console.info, console.warn] = k; } };
 
-type Row = { link: string; place: string; seed: string; from: number; bars: number; blocks: number[]; lufs: number };
+type Row = { link: string; place: string; seed: string; theme?: number; solo?: string; atTrim?: number; walk?: string; from: number; bars: number; blocks: number[]; lufs: number };
+
+// `--families house,drumless`: the families of the trim's window a source keeps (the house's alone by default; round
+// loudness-place reads the ambient's swells too)
+const FAMS = (arg('families') ?? 'house').split(',');
+// `--only-beat`: only the themes reading more than nought on the beat-led reading (the density by place moved them)
+const keeps = (plan: any) => FAMS.includes(loudnessFamily(loudnessFeatures(plan, plan.style))) && (!has('only-beat') || beatOfTrack(plan).value > 0);
+
+/**
+ * **The trance tiles, every theme of a set's first three** (`--extra trance`, round loudness-v24): the Trance tile is a
+ * grid place at theme 0 alone, and its two tuned neighbours (Hard Trance, Uplifting Trance) are not grid places at all,
+ * so a fit with the saw's runs in it reads them here, by the genre table's own spells.
+ */
+export function tranceTiles(): { name: string; spell: Partial<Spell> }[] {
+  const f = FAMILIES.find((x) => x.label === 'Trance');
+  if (!f) throw new Error('the genre table names no Trance family');
+  return [familyPreset(f), ...f.subs.filter((x) => x.tuned && x.spell).map((x) => subPreset(f, x))].map((p) => ({ name: `tile ${p.label}`, spell: presetSpell(p) }));
+}
 
 /** The grid's house mains, planned: the link, the window, the plan. */
 function houseMains(from: number, to: number) {
-  const out: { link: string; place: string; seed: string; plan: any }[] = [];
-  for (const g of grid()) {
-    if (g.name === '27191 ambient') continue;
-    for (let s = from; s <= to; s++) {
-      const link = linkOf(String(s), g.spell, 0);
+  const out: { link: string; place: string; seed: string; theme: number; plan: any }[] = [];
+  // `--places a,b`: only those grid places (a window or two re-measured where one round moved them)
+  const places = arg('places') ? arg('places')!.split(',') : null;
+  // `--extra trance`: the trance tiles' themes 0-2 in place of the grid (`tranceTiles`)
+  const extra = arg('extra');
+  if (extra && extra !== 'trance' && extra !== 'featured') throw new Error(`--extra ${extra}: trance or featured`);
+  // `--extra featured`: the featured tracks (`src/featured.json`, the benchmark), each from its own theme and the five
+  // after it, the seeds the links name (`--from`/`--to` are not read)
+  if (extra === 'featured') {
+    for (const pl of FEATURED) pl.links.forEach((at, i) => {
+      const read = quiet(() => linkRead(`?${at}`)).link;
+      for (let n = 0; n < +arg('featured-themes', '6')!; n++) {
+        const link = linkWrite({ ...read, theme: (read.theme ?? 0) + n });
+        const { plan } = quiet(() => playedWith(link));
+        if (!keeps(plan)) continue;
+        out.push({ link, place: `${pl.name} - ${pl.labels?.[i] ?? i}`, seed: String(read.seed), theme: (read.theme ?? 0) + n, plan });
+      }
+    });
+    return out;
+  }
+  const spells = extra ? tranceTiles().map((t) => ({ ...t, themes: [0, 1, 2] }))
+    // `--themes 1,2`: the grid's places at those themes of each seed's set, where theme 0 alone is the gate's
+    : grid().filter((g) => g.name !== '27191 ambient').map((g) => ({ name: g.name, spell: g.spell, themes: (arg('themes') ?? '0').split(',').map(Number) }));
+  for (const g of spells) {
+    if (places && !places.includes(g.name)) continue;
+    for (let s = from; s <= to; s++) for (const n of g.themes) {
+      const link = linkOf(String(s), g.spell, n);
       const { plan } = quiet(() => playedWith(link));
-      if (loudnessFamily(loudnessFeatures(plan, plan.style)) !== 'house') continue;
-      out.push({ link, place: g.name, seed: String(s), plan });
+      if (!keeps(plan)) continue;
+      out.push({ link, place: g.name, seed: String(s), theme: n, plan });
     }
   }
   return out;
@@ -71,11 +117,18 @@ const RENDER = async (job: any) => {
   const meter = await import('/tools/meter.ts' as any);
   const d = (window as any).deepHouse;
   const cast = d.recipesFor({ masterSeed: job.seed, strategy: 'house-v2', search: job.spell ? `?spell=${job.spell}` : '' });
-  const track = d.planTheme(job.seed, 0, { masterSeed: job.seed, preset: 'auto', strategy: 'house-v2', spell: cast.spell, recipe: cast.track });
+  const track = d.planTheme(job.seed, job.theme ?? 0, { masterSeed: job.seed, preset: 'auto', strategy: 'house-v2', spell: cast.spell, recipe: cast.track });
   const bs = track.barSeconds, sr = 48000;
   const tp = Math.max(0, job.from - 2) * bs, t0 = job.from * bs, t1 = (job.from + job.bars) * bs;
-  const cut = d.sliceProgram(d.programOf(track), { from: tp, to: t1, tail: 1.5 });
-  const slice = { ...cut, trimDb: 0, themeGain: 1 };
+  // `--solo <layer>`: that layer alone through the whole graph (the voices' loudness facts, `--facts`)
+  const cut = d.sliceProgram(d.programOf(track), { from: tp, to: t1, tail: 1.5, layers: job.solo ? [job.solo] : null });
+  // `--at-trim`: the window at the trim the app plays it at (the landed loudness, and the limiter's blocks there)
+  const trimDb = job.atTrim ? (track.trimDb ?? 0) : 0;
+  // (a glue that follows the trim, the density by place's, round loudness-place: its threshold where the app plays it
+  // against the theme, at the trim this render plays, so a render at nought hears the glue as the app does)
+  const bc = cut.settings.master.busComp;
+  const glue = bc && Number.isFinite(bc.followsTrim) ? { ...bc, threshold: bc.threshold - bc.followsTrim + trimDb } : bc;
+  const slice = { ...cut, settings: glue === bc ? cut.settings : { ...cut.settings, master: { ...cut.settings.master, busComp: glue } }, trimDb, themeGain: Math.pow(10, trimDb / 20) };
   class Quad extends OfflineAudioContext { constructor(_c: number, f: number, s: number) { super(4, f, s); } }
   const buf = await d.renderProgram(slice, { sampleRate: sr, OfflineCtx: Quad, onGraph: (g: any) => {
     const c = g.nodes.chain, ctx = c.ctx as BaseAudioContext;
@@ -100,7 +153,31 @@ async function measure() {
   const site = path.resolve(arg('site', path.join(ROOT, 'docs'))!);
   const port = +arg('port', '6998')!, pages = +arg('pages', '6')!;
   const mains = houseMains(+arg('from', '1')!, +arg('to', '40')!);
-  const jobs = mains.map((m) => { const w = trimWindow(m.plan, m.plan.style); return { link: m.link, place: m.place, seed: m.seed, spell: new URLSearchParams(m.link).get('spell'), from: w.from, bars: w.bars, trim: m.plan.trimDb }; });
+  // `--solo <layer>` with `--timbre a,b`: only the windows whose dice drew one of those timbres for the layer's role
+  const solo = arg('solo'), timbres = arg('timbre') ? arg('timbre')!.split(',') : null;
+  const drew = (m: { plan: any }) => !timbres || timbres.includes(solo === 'pad' ? m.plan.dice?.padTimbre : m.plan.dice?.stabTimbre);
+  // `--skip a.json,b.json`: windows those files already rendered (the same link at the same bar) are not rendered again
+  const already = new Set((arg('skip') ?? '').split(',').filter(Boolean).flatMap((f) => (JSON.parse(fs.readFileSync(path.resolve(f), 'utf8')) as { rows: Row[] }).rows.filter((r) => !r.solo).map((r) => `${r.link}@${r.from}`)));
+  // `--walk [--stride 4]`: in place of the trim's window, the theme's other passages the window walk reads (round
+  // loudness-place, `loudness.ts` `walked`): every `stride`-th window of its drops and breakdowns, and of every section
+  // of a theme with few drums; each row names its section's kind (`walk`)
+  const stride = +arg('stride', '4')!;
+  const walkOf = (m: { plan: any }) => {
+    const plan = m.plan, bars = plan.style.loudness.windowBars, at = trimWindow(plan, plan.style).from;
+    const all = loudnessFeatures(plan, plan.style).drumsShare < 0.5;
+    const out: { from: number; bars: number; kind: string }[] = [];
+    for (const s of plan.arrangement?.sections ?? []) {
+      if (s.bars < bars || (!all && !['drop', 'breakdown'].includes(s.kind))) continue;
+      for (let from = Math.max(2, s.startBar); from + bars <= Math.min(plan.bars, s.startBar + s.bars); from += stride) if (from !== at) out.push({ from, bars, kind: s.kind });
+    }
+    return out;
+  };
+  const jobs = mains.filter(drew).flatMap((m) => {
+    const base = { link: m.link, place: m.place, seed: m.seed, theme: m.theme, spell: new URLSearchParams(m.link).get('spell'), trim: m.plan.trimDb, solo, atTrim: has('at-trim') };
+    if (has('walk')) return walkOf(m).filter((w) => !already.has(`${m.link}@${w.from}`)).map((w) => ({ ...base, from: w.from, bars: w.bars, walk: w.kind }));
+    const w = trimWindow(m.plan, m.plan.style);
+    return already.has(`${m.link}@${w.from}`) ? [] : [{ ...base, from: w.from, bars: w.bars }];
+  });
   const server = http.createServer((req, res) => {
     const name = decodeURIComponent(new URL(req.url!, `http://127.0.0.1:${port}`).pathname);
     const file = name.startsWith('/tools/') ? path.join(METER, name.slice(7)) : path.join(site, name === '/' ? '/index.html' : name);
@@ -132,7 +209,7 @@ async function measure() {
       const j = jobs[i];
       const r = await page.evaluate(RENDER, j);
       if (r.planTrim !== j.trim) throw new Error(`${j.link}: the page planned a trim of ${r.planTrim} and node ${j.trim}: the site is not this tree`);
-      rows[i] = { link: j.link, place: j.place, seed: j.seed, from: j.from, bars: j.bars, blocks: r.blocks, lufs: r.lufs };
+      rows[i] = { link: j.link, place: j.place, seed: j.seed, ...(j.theme ? { theme: j.theme } : {}), ...(j.solo ? { solo: j.solo } : {}), ...((j as { walk?: string }).walk ? { walk: (j as { walk?: string }).walk } : {}), ...(j.atTrim ? { atTrim: j.trim } : {}), from: j.from, bars: j.bars, blocks: r.blocks, lufs: r.lufs };
       since++;
       process.stdout.write(`\r  ${++done}/${jobs.length}   `);
     }
@@ -163,11 +240,12 @@ function readRows() {
     if (w.from !== r.from) throw new Error(`${r.link}: the trim is fitted at bar ${w.from} and was measured at ${r.from}: measure again`);
     const f = loudnessFeatures(plan, style);
     const target = trimTargetLufs(plan, style), pred = predictedLufs(plan, style), need = target - pred;
-    const s = (need >= 0 ? M.slopeUp : M.slopeDown) || 1;
+    const s = trimSlope(f, style, need);
     return { ...r, f, plan, target, pred, need, s, trim: plan.trimDb as number, m: measured(r), room: headroomDb(plan, style), limit: headroomLimit(plan, style), marginDb: M.headroom.marginDb, clampDb: M.clampDb };
   });
 }
-const shortOf = (r: { target: number; pred: number }, trim: number, M: { slopeUp: number; slopeDown: number }) => r.target - (r.pred + trim * (trim >= 0 ? M.slopeUp : M.slopeDown));
+// (the house mains: a cut through the house's own measured slope where the block holds one, `trimSlope`)
+const shortOf = (r: { target: number; pred: number }, trim: number, M: { slopeUp: number; slopeDown: number; houseSlopeDown?: number }) => r.target - (r.pred + trim * (trim >= 0 ? M.slopeUp : M.houseSlopeDown ?? M.slopeDown));
 
 function doFit() {
   const rows = readRows().filter((r) => r.f.frontLossDb > 0);
@@ -214,6 +292,7 @@ function report() {
   const rows = readRows();
   const M = rows[0].plan.style.settings.loudness;
   const line = (label: string, rs: typeof rows) => {
+    if (!rs.length) { console.log(`${label}: none`); return; }
     const act = rs.map((r) => activeAt(r.m.blocks, r.trim)), deep = rs.map((r) => r.m.blocks[r.m.blocks.length - 1] + r.trim);
     const sh = rs.map((r) => shortOf(r, r.trim, M));
     console.log(`${label} (${rs.length}): under target by more than 2 LU ${sh.filter((x) => x > 2).length}, 3 LU ${sh.filter((x) => x > 3).length}; limiter blocks over p50 ${quantile(act, 0.5).toFixed(1)} % p90 ${quantile(act, 0.9).toFixed(1)} %, past ${SHARE} % ${act.filter((x) => x > SHARE).length}, past ${SHARE_LINE} % ${act.filter((x) => x > SHARE_LINE).length}; deepest p50 ${quantile(deep, 0.5).toFixed(1)} p90 ${quantile(deep, 0.9).toFixed(1)} dB, past ${DEPTH_LINE} dB ${deep.filter((x) => x > DEPTH_LINE).length}`);
@@ -252,7 +331,197 @@ function report() {
   }
 }
 
+/** Measured rows (`--rows a.json,b.json`, else `--out`'s), each planned again by today's tree and read at the bars it was rendered at. */
+function rowsAt() {
+  // (a file may be named `file:deep` or `file:beat`: only its rows of themes reading nought, or more, on the beat-led
+  // reading, round loudness-place: the density by place moves the beat-led windows, so an older render of them is not
+  // the sound the app plays)
+  const files = (arg('rows') ?? OUT).split(',').map((f) => { const m = /^(.*):(deep|beat)$/.exec(f); return m ? { file: path.resolve(m[1]), only: m[2] } : { file: path.resolve(f), only: null }; });
+  // a window two files both measured (the Trance tile's first theme is a grid place and a trance tile) is read once
+  const seen = new Set<string>();
+  // `--weight featured=3`: the rows of a file whose name holds the word count that many times in the fit (the featured
+  // tracks are the benchmark, and 90 windows among 1774 teach the selection little)
+  const [wName, wTimes] = (arg('weight') ?? '=1').split('=');
+  const key = (r: Row) => `${r.solo ?? ''}|${r.walk ? r.from : ''}|${r.link}`;
+  return files.flatMap(({ file, only }) => (JSON.parse(fs.readFileSync(file, 'utf8')) as { rows: Row[] }).rows.filter((r) => !seen.has(key(r))).flatMap((r) => {
+    const { plan } = quiet(() => playedWith(r.link));
+    // (a row the file's filter leaves out is not counted as read: another file may hold it)
+    if (only && (beatOfTrack(plan).value > 0) !== (only === 'beat')) return [];
+    if (seen.has(key(r))) return [];
+    seen.add(key(r));
+    const w = { from: r.from, bars: r.bars };
+    const row = { r, plan, w, f: loudnessFeatures(plan, plan.style, w) };
+    return wName && path.basename(file).includes(wName) ? Array(+wTimes).fill(row) : [row];
+  }));
+}
+const median = (xs: number[]) => quantile(xs, 0.5);
+const rms = (xs: number[]) => Math.sqrt(xs.reduce((a, v) => a + v * v, 0) / Math.max(1, xs.length));
+
+/**
+ * **A voice's loudness fact as the house plays it** (`--facts`, round loudness-v24): windows rendered with one layer
+ * alone (`--measure --solo keys --timbre piano`), each its integrated loudness less the level its room gave the role
+ * there (the lane's level with the floors keyed to the bed, as `loudnessFeatures` reads it), the median over the
+ * windows: what `tools/loudness-fit.ts --timbres` measured for the registry's facts (`TIMBRES`, "the family alone in an
+ * eight-bar main groove, less the level its room gave it"), on the grid's own windows and casts.
+ */
+function facts() {
+  const by = new Map<string, { own: number; energy: number; place: string }[]>();
+  for (const { r, plan, f } of rowsAt()) {
+    if (!r.solo || !Number.isFinite(r.lufs) || r.lufs < -60) continue;
+    const timbre = r.solo === 'pad' ? plan.dice?.padTimbre : (plan.dice?.keysLevelledAs ?? plan.dice?.stabTimbre);
+    const key = levelKeyOfRole(r.solo, timbre);
+    const level = key === 'piano' ? f.lvPiano : key === 'pad' ? f.lvPad : f.lvKeys;
+    const g = by.get(timbre) ?? by.set(timbre, []).get(timbre)!;
+    // ...and on the energy's footing: less how much of the window the notes fill at the gain and velocity they were
+    // written at (`harmonicEnergyDb` reads the fill itself, so a fact read with it in counts the notes' gain twice)
+    const fill = r.solo === 'keys' ? f.frontPeakKeys - f.lvKeys : f.frontPeakPad - f.lvPad;
+    g.push({ own: r.lufs - level, energy: r.lufs - level - fill, place: r.place });
+  }
+  for (const [timbre, g] of by) {
+    const xs = g.map((x) => x.own), es = g.map((x) => x.energy);
+    console.log(`${timbre}: n ${xs.length}, median ${median(xs).toFixed(2)} dB, quartiles ${quantile(xs, 0.25).toFixed(2)} .. ${quantile(xs, 0.75).toFixed(2)}; on the energy's footing ${median(es).toFixed(2)} (${quantile(es, 0.25).toFixed(2)} .. ${quantile(es, 0.75).toFixed(2)}); declared ${TIMBRES[timbre]?.loudnessDb}`);
+  }
+}
+
+/**
+ * **The house's loudness model refitted on the grid's own windows** (`--fit-main`, round loudness-v24). The model was
+ * fitted on 120 windows of the house alone (10-04), before the front rule, the sum clip, the places' casts and the
+ * trance corner's saw; the grid's measurement is every house main the app plays at 31 places (theme 0 of seeds 1-40),
+ * rendered at nought, and `--extra trance` adds the trance tiles' first three themes. Read as the model reads a window:
+ * the notes as written before the front rule, so what the rule took off comes back through the master's slope
+ * (`lufsAfter`), and the fitted loudness is the measured one plus that. The same selection as every other fit
+ * (`fit` of tools/loudness-fit.ts), held out by seed (seed mod 5, the selection and the fit run again on the other
+ * four). `--write` puts the intercept, the coefficients, the centres and the residual into the style's JSON and
+ * leaves every other number of the block (the slopes, the headroom lines, the clip's depth, the families) as it was.
+ */
+function fitMain() {
+  const block = JSON.parse(fs.readFileSync(BLOCK, 'utf8'));
+  const slopeDown = block.slopeDown;
+  // (a window counted more than once by `--weight` keeps one fold in the selection's own folds, `fold`: its copies
+  // split across them would score it on itself)
+  const ids = new Map<object, number>();
+  const rows = rowsAt().filter(({ r, f }) => !r.solo && !r.walk && r.atTrim == null && Number.isFinite(r.lufs) && loudnessFamily(f) === 'house').map((x) => {
+    const { r, plan, w, f } = x;
+    const fold = ids.get(x) ?? ids.set(x, ids.size).get(x)!;
+    return { ...f, seed: +r.seed, place: r.place, featured: /^(Vibe|Drive|Ambient) - /.test(r.place), fold, lufs: r.lufs, y: r.lufs + (f.frontLossDb || 0) * slopeDown, was: predictedLufs(plan, plan.style, w) };
+  });
+  const err = rows.map((x) => x.was - x.lufs);
+  // `--dump <file>`: each window's measured loudness beside what the blessed model reads, for a comparison of two blocks
+  if (arg('dump')) fs.writeFileSync(path.resolve(arg('dump')!), JSON.stringify(rows.map((x) => ({ place: x.place, seed: x.seed, lufs: x.lufs, was: x.was }))) + '\n');
+  console.log(`${rows.length} house windows; the blessed model reads them ${rms(err).toFixed(3)} LU rms off (mean ${(err.reduce((a, v) => a + v, 0) / err.length).toFixed(2)}, worst ${Math.max(...err.map(Math.abs)).toFixed(2)})`);
+  const byPlace = new Map<string, number[]>();
+  rows.forEach((x, i) => (byPlace.get(x.place) ?? byPlace.set(x.place, []).get(x.place)!).push(err[i]));
+  for (const [k, e] of [...byPlace].sort((a, b) => median(a[1]) - median(b[1]))) console.log(`  ${k.padEnd(24)} n ${String(e.length).padStart(3)}  model - measured median ${median(e).toFixed(2)}`);
+  const gain = +arg('gain', '0.005')!;
+  const m = fit(rows, { max: +arg('max', '16')!, gain, y: 'y', outer: (x: { seed: number }) => x.seed % 5 });
+  console.log(`refit (${m.names.length}): ${m.names.join(', ')}; R2 ${m.r2}, in-sample ${m.rmse} LU, held out by seed ${m.cv} LU (worst ${m.cvWorst}; the selection's own folds ${m.cvSelection})`);
+  for (const n of m.names) console.log(`  ${n.padEnd(20)} ${m.coef[n] >= 0 ? '+' : ''}${m.coef[n].toFixed(4)}  centre ${m.centre[n]}`);
+  // the featured windows' own figures (the benchmark), each window once however often `--weight` counts it
+  const once = (pick: (x: (typeof rows)[number]) => boolean, e: number[]) => { const seen = new Set<number>(); return rows.flatMap((x, i) => (pick(x) && !seen.has(x.fold) && seen.add(x.fold) ? [e[i]] : [])); };
+  for (const [label, pick] of [['featured', (x: { featured: boolean }) => x.featured], ['the rest', (x: { featured: boolean }) => !x.featured]] as const) {
+    const ins = once(pick, m.errors.inSample), out = once(pick, m.errors.heldOut).filter(Number.isFinite);
+    if (ins.length) console.log(`  ${label}: ${ins.length} windows, in-sample ${rms(ins).toFixed(3)} LU, held out by seed ${out.length ? rms(out).toFixed(3) : '-'} LU`);
+  }
+  if (arg('errors')) fs.writeFileSync(path.resolve(arg('errors')!), JSON.stringify(rows.flatMap((x, i) => (i && rows[i - 1].fold === x.fold ? [] : [{ place: x.place, seed: x.seed, lufs: x.lufs, inSample: +m.errors.inSample[i].toFixed(3), heldOut: +m.errors.heldOut[i].toFixed(3) }]))) + '\n');
+  if (!has('write')) return;
+  const files = (arg('rows') ?? OUT).split(',');
+  block.measuredAt = JSON.parse(fs.readFileSync(path.resolve(files[0]), 'utf8')).measuredAt;
+  const windows = new Set(rows.map((x) => x.fold)).size;
+  block.sample = { ...block.sample, grid: { windows, seeds: [+arg('from', '1')!, +arg('to', '40')!], files: files.map((f) => path.basename(f)), heldOut: 'by seed, seed mod 5', selection: { gainLu: gain, max: +arg('max', '16')!, ...(arg('without') ? { without: arg('without')!.split(',') } : {}) }, ...(arg('weight') ? { weights: Object.fromEntries([arg('weight')!.split('=').map((v, i) => (i ? +v : v))]), rowsWithWeights: rows.length } : {}) } };
+  block.residual = { r2: m.r2, inSample: m.rmse, crossValidated: m.cv, worstHeldOut: m.cvWorst, selectionCv: m.cvSelection, n: m.n };
+  block.intercept = m.intercept;
+  block.coef = m.coef;
+  block.centre = m.centre;
+  // `--block-out <file>`: the refitted block into that file, the style's own left as it is (candidates side by side)
+  const to = arg('block-out') ? path.resolve(arg('block-out')!) : BLOCK;
+  fs.writeFileSync(to, JSON.stringify(block, null, 2) + '\n');
+  console.log(`wrote the house's intercept, coefficients and centres into ${path.relative(ROOT, to)}`);
+}
+
+/**
+ * **What a decibel of trim gives back** (`--slopes`, round loudness-v24): the same windows rendered at nought (`--rows`)
+ * and at the trim the app plays (`--at`, renders of `--measure --at-trim`), the loudness moved against the trim, through
+ * the origin, each way (a limiter is one-sided). `--write` puts the two into the style's JSON (`slopeUp`, `slopeDown`).
+ */
+function slopes() {
+  const load = (files: string | null) => (files ?? '').split(',').filter(Boolean).flatMap((f) => (JSON.parse(fs.readFileSync(path.resolve(f), 'utf8')) as { rows: Row[] }).rows);
+  const nought = new Map<string, Row>();
+  for (const r of load(arg('rows'))) if (!r.solo && r.atTrim == null && !nought.has(`${r.link}@${r.from}`)) nought.set(`${r.link}@${r.from}`, r);
+  const pts: { t: number; moved: number }[] = [];
+  for (const r of load(arg('at'))) {
+    const n = nought.get(`${r.link}@${r.from}`);
+    if (!n || r.atTrim == null || Math.abs(r.atTrim) < 0.3) continue;
+    pts.push({ t: r.atTrim, moved: r.lufs - n.lufs });
+  }
+  const reg = (g: typeof pts) => {
+    const s = g.reduce((a, p) => a + p.t * p.moved, 0) / g.reduce((a, p) => a + p.t * p.t, 0);
+    return { s: +s.toFixed(4), n: g.length, rms: +Math.sqrt(g.reduce((a, p) => a + (p.moved - s * p.t) ** 2, 0) / g.length).toFixed(3) };
+  };
+  const up = reg(pts.filter((p) => p.t > 0)), down = reg(pts.filter((p) => p.t < 0));
+  console.log(`up ${up.s} (${up.n} windows, ${up.rms} LU off the line); down ${down.s} (${down.n}, ${down.rms})`);
+  if (!has('write')) return;
+  const block = JSON.parse(fs.readFileSync(BLOCK, 'utf8'));
+  block.slopeUp = up.s;
+  block.slopeDown = down.s;
+  block.slopes = { note: 'Measured by tools/headroom-front.ts --slopes (round loudness-v24): the windows rendered at nought and at the trim the app plays, the loudness moved against the trim through the origin, each way. The 10-04 ones (0.6638 up, 0.5002 down) were read before the front rule and the sum clip.', measuredAt: new Date().toISOString().slice(0, 10), up, down };
+  fs.writeFileSync(BLOCK, JSON.stringify(block, null, 2) + '\n');
+  console.log(`wrote slopeUp and slopeDown into ${path.relative(ROOT, BLOCK)}`);
+}
+
+/**
+ * **The share and depth lines refitted on every house window, at each window's own allowance** (`--fit-lines`, round
+ * loudness-place). The lines of round saw-bed were fitted on the windows the front rule moved, at one allowance (15 %
+ * of the blocks, the loudest 8 dB over), and with the base model read the fast grooves 1-6 dB short of the room they
+ * have. Here: every house window of `--rows` rendered at nought on the build that plays the density and the sum clip
+ * by place; the share line's room read at the share the window's place allows (`allowanceOf`: 15 % on a deep groove,
+ * 25 % on a beat-led one, sliding), the depth line's at its 8 dB footing (the allowance's depth is added where it is
+ * read, `headroomOf`); the selection as every fit's, held out by seed. The margins by band (`--margin-groove`,
+ * `--margin-beat`) are decisions, read against each band's own held-out error. `--write` puts both lines into the
+ * style's JSON (`headroom.front`).
+ */
+function fitLines() {
+  const ids = new Map<object, number>();
+  const rows = rowsAt().filter(({ r, f }) => !r.solo && !r.walk && r.atTrim == null && loudnessFamily(f) === 'house').map((x) => {
+    const { r, plan, f } = x;
+    const A = allowanceOf(f, plan.style);
+    const b = [...r.blocks].sort((p, q) => p - q), n = b.length;
+    const fold = ids.get(x) ?? ids.set(x, ids.size).get(x)!;
+    return { ...f, seed: +r.seed, place: r.place, fold, featured: /^(Vibe|Drive|Ambient) - /.test(r.place), share: -b[Math.min(n - 1, Math.floor((n * (100 - A.share)) / 100))], depth: DEPTH - b[n - 1] };
+  });
+  const gain = +arg('gain', '0.03')!, max = +arg('max', '12')!;
+  const outer = (x: { seed: number }) => x.seed % 5;
+  const share = fit(rows, { max, y: 'share', gain, outer, clip: has('clip-columns') });
+  const depth = has('depth') ? fit(rows, { max, y: 'depth', gain, outer, clip: true }) : null;
+  const once = (pick: (x: (typeof rows)[number]) => boolean, e: number[]) => { const seen = new Set<number>(); return rows.flatMap((x, i) => (pick(x) && !seen.has(x.fold) && seen.add(x.fold) ? [e[i]] : [])); };
+  console.log(`${new Set(rows.map((x) => x.fold)).size} house windows (${rows.length} with weights)`);
+  console.log(`share (${share.names.length}): ${share.names.join(', ')}; R2 ${share.r2}, in-sample ${share.rmse} dB, held out ${share.cv} dB`);
+  for (const [label, pick] of [['deep groove (b < 0.5)', (x: any) => x.beatLed < 0.5], ['beat-led (b >= 0.75)', (x: any) => x.beatLed >= 0.75], ['featured', (x: any) => x.featured]] as const) {
+    const e = once(pick, share.errors.heldOut).filter(Number.isFinite);
+    const m = [...e].sort((p, q) => p - q);
+    if (e.length) console.log(`  ${label}: ${e.length} windows, held out ${rms(e).toFixed(2)} dB, the line less the room: median ${median(m).toFixed(2)}, p10 ${quantile(m, 0.1).toFixed(2)}, p90 ${quantile(m, 0.9).toFixed(2)}`);
+  }
+  if (depth) console.log(`depth (${depth.names.length}): ${depth.names.join(', ')}; R2 ${depth.r2}, held out ${depth.cv} dB`);
+  if (!has('write')) { console.log(JSON.stringify({ intercept: share.intercept, coef: share.coef, centre: share.centre })); return; }
+  const block = JSON.parse(fs.readFileSync(BLOCK, 'utf8'));
+  const was = block.headroom.front;
+  const model = (m: any, marginDb: number) => ({ marginDb, residual: { r2: m.r2, inSample: m.rmse, crossValidated: m.cv, worstHeldOut: m.cvWorst, selectionCv: m.cvSelection, n: m.n }, intercept: m.intercept, coef: m.coef, centre: m.centre });
+  block.headroom.front = {
+    ...was,
+    note: 'Written by tools/headroom-front.ts --fit-lines (round loudness-place): every house window the app plays (the grid\'s mains of seeds ' + arg('from', '1') + '-' + arg('to', '12') + ', the trance tiles, the featured tracks\' first six themes, counted ' + (arg('weight') ?? 'once') + '), rendered at nought on the build with the density and the sum clip by place; the share line\'s room at each window\'s own allowance (15 % of the 10 ms blocks on a deep groove, 25 % on a beat-led one, sliding with the reading), the depth line at its 8 dB footing (the allowance\'s depth added where it is read). ' + (depth ? '' : 'The depth line as round drum-clip fitted it.'),
+    measuredAt: new Date().toISOString().slice(0, 10),
+    sample: { windows: new Set(rows.map((x) => x.fold)).size, files: (arg('rows') ?? '').split(',').map((f) => path.basename(f)) },
+    share: model(share, +arg('share-margin', String(was.share.marginDb))!),
+    ...(depth ? { depth: model(depth, was.depth.marginDb) } : {}),
+  };
+  fs.writeFileSync(BLOCK, JSON.stringify(block, null, 2) + '\n');
+  console.log(`wrote headroom.front.share${depth ? ' and depth' : ''} into ${path.relative(ROOT, BLOCK)}`);
+}
+
 if (has('measure')) await measure();
+else if (has('fit-lines')) fitLines();
+else if (has('slopes')) slopes();
+else if (has('fit-main')) fitMain();
+else if (has('facts')) facts();
 else if (has('fit')) doFit();
 else if (has('report')) report();
-else console.log('one of --measure, --fit, --report');
+else console.log('one of --measure, --fit, --fit-main, --facts, --report');

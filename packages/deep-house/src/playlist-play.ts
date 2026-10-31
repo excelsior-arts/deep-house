@@ -25,7 +25,8 @@ export function indexOfSound(links: readonly string[], link: string, hint = -1):
 
 /**
  * **How far ahead of the record's own seam the next track is asked for**, in seconds: the cast then hands over on
- * the record's next line, where the set's own seam would have begun. A tick reads it once a second, so it is more
+ * the record's own seam line, where the set's own seam would have begun (`atSeam`, chillstep-ends 10-29; it took the
+ * next bar line after the ask before, and cut the record's last phrase). A tick reads it once a second, so it is more
  * than a tick and less than the shortest phrase.
  */
 export const SEAM_LEAD_S = 6;

@@ -1,4 +1,5 @@
 import { placementProblems, type RecipePlacement } from './recipe-placement.ts';
+import { ensembleProblems } from './ensemble.ts';
 import { motifWants, bassFigureProblems, struckFigureProblems } from './parts/validation.ts';
 export { bassFigureProblems, struckFigureProblems } from './parts/validation.ts';
 // A recipe, in code: the row `notes/plans/PLAN-RECIPES.md` specifies, the rules
@@ -49,8 +50,8 @@ import { textureProblems, toneProblems } from './parts/texture.ts';
  * scope yet* — since the run of 09-20, and the bass contour is the
  * best-separating feature it has measured. This is the answer to that.
  */
-export type Scope = 'track' | 'section' | 'layer' | 'seam' | 'treatment' | 'motif';
-export const SCOPES: readonly Scope[] = Object.freeze(['track', 'section', 'layer', 'seam', 'treatment', 'motif'] as const);
+export type Scope = 'track' | 'section' | 'layer' | 'seam' | 'treatment' | 'motif' | 'ensemble';
+export const SCOPES: readonly Scope[] = Object.freeze(['track', 'section', 'layer', 'seam', 'treatment', 'motif', 'ensemble'] as const);
 
 /** Where a row came from. */
 export type Origin = 'golden' | 'mined' | 'listener';
@@ -454,6 +455,11 @@ export function validate(recipe: any, vocab: Vocabulary): string[] {
   if (recipe.picked !== undefined && typeof recipe.picked !== 'boolean') say('picked is not true or false');
 
   // --- what it applies to ---
+  // an ensemble (10-28, `src/ensemble.ts`) is a whole theme's roles held together: a track's wants and its own block
+  if (recipe.scope === 'ensemble') {
+    if (recipe.applies != null) say('an ensemble applies to the whole theme and names nothing');
+    ensembleProblems(recipe.ensemble).forEach(say);
+  } else if (recipe.ensemble !== undefined) say(`a ${recipe.scope} recipe carries no ensemble block`);
   if (recipe.scope === 'track') {
     if (recipe.applies != null) say('a track recipe applies to the whole theme and names nothing');
   } else if (recipe.applies == null) {

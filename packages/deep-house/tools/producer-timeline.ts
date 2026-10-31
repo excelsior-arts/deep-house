@@ -16,7 +16,8 @@ console.log = keep;
 const bs = t.barSeconds, S = t.passage, ev = t.events as any[];
 const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const nn = (m: number) => `${names[((Math.round(m) % 12) + 12) % 12]}${Math.floor(Math.round(m) / 12) - 1}`;
-const chordAt = (b: number) => { let c = ''; for (const s of t.progression.states) if (s.bar <= b) c = s.chord.label; return c; };
+// a theme with a keys plan reads its states; any other theme its timeline's chord
+const chordAt = (b: number) => { if (!Array.isArray(t.progression?.states)) return t.timeline?.[b]?.chord ?? ''; let c = ''; for (const s of t.progression.states) if (s.bar <= b) c = s.chord.label; return c; };
 const tl = new Map<number, any>((S?.timeline ?? []).map((r: any) => [r.bar, r]));
 const plans = S?.phrases ?? [];
 const sectionAt = (b: number) => t.arrangement.sections.find((s: any) => b >= s.startBar && b < s.startBar + s.bars)?.kind;
@@ -25,13 +26,16 @@ for (let p = 0; p < t.bars; p += 8) {
   const q = Math.min(t.bars, p + 8);
   const inP = (e: any) => e.bar >= p && e.bar < q;
   const pl = plans.find((x: any) => x.from <= p && x.to > p);
-  const L = t.keys.landings.filter((l: any) => l.bar >= p && l.bar < q).map((l: any) => `${l.bar} ${t.keys.chords[l.chord].symbol}${l.change ? '' : ' (restrike)'}`);
+  const L = (t.keys?.landings ?? []).filter((l: any) => l.bar >= p && l.bar < q).map((l: any) => `${l.bar} ${t.keys.chords[l.chord].symbol}${l.change ? '' : ' (restrike)'}`);
   const voice = ev.filter((e: any) => inP(e) && (e.part === 'study-soloist' || e.part === 'study-phrase')).map((e: any) => e.label).filter((x: any, i: number, a: any[]) => a.indexOf(x) === i);
   const vnotes = ev.filter((e: any) => inP(e) && (e.part === 'study-soloist' || e.part === 'study-phrase')).map((e: any) => {
     const pc = e.p.pitchCurve as number[] | undefined; const ms = [e.p.midi];
     if (pc) for (let i = 3; i < pc.length; i += 2) { const m = e.p.midi + Math.round(pc[i] / 100); if (Math.abs(pc[i] - pc[i - 2]) > 50 && m !== ms[ms.length - 1]) ms.push(m); }
     return `${e.bar}:${(e.step >> 2) + 1}${['', 'e', '&', 'a'][e.step & 3]} ${ms.map(nn).join(' ')}`; });
   const keys = ev.filter((e: any) => inP(e) && e.role === 'sparse-keys' && e.part !== 'study-phrase').map((e: any) => e.label ?? 'UNLABELLED').filter((x: any, i: number, a: any[]) => a.indexOf(x) === i);
+  // the keys lane's own parts (a composition's ringing keys, a stab mask): the voice and the bars it strikes, with how many notes
+  const struck = ev.filter((e: any) => inP(e) && e.layer === 'keys' && !e.role);
+  if (struck.length) keys.push(`${[...new Set(struck.map((e: any) => e.voice))].join('/')} on ${[...new Set(struck.map((e: any) => e.bar))].join(',')} (${struck.length} notes)`);
   const pad = ev.filter((e: any) => inP(e) && e.layer === 'pad' && e.part !== 'study-soloist').map((e: any) => e.label ?? `pad ${e.part ?? ''}`).filter((x: any, i: number, a: any[]) => a.indexOf(x) === i);
   const fx = ev.filter((e: any) => inP(e) && (e.layer === 'fx')).map((e: any) => `${e.voice}@${e.bar}${e.p.returns ? '→hall' : ''}`).filter((x: any, i: number, a: any[]) => a.indexOf(x) === i);
   const perc = ev.filter((e: any) => inP(e) && e.layer === 'shaker');

@@ -26,6 +26,10 @@ export interface RhythmPart {
    * of sounds the part admits, `prefer` the one it was written on.
    */
   prefer?: Properties;
+  /** The part's name inside an ensemble: its hits carry it (`EventMeta.ensemble`), for the ensemble's check. */
+  as?: string;
+  /** Whose bars the cell counts: the theme's (none) or the section's (`'section'`, an ensemble's breath). */
+  clock?: 'section';
 }
 export interface Properties { struck?: boolean; holdMin?: number; holdMax?: number; brightnessMin?: number; brightnessMax?: number }
 /** Whether a declared timbre lies inside a property window; an empty window admits anything. */
@@ -76,7 +80,9 @@ export function rhythmProblems(value: any): string[] {
     parts.forEach((p, i) => {
       const here = `${at}[${i}]`;
       if (!object(p)) { bad.push(`${here}: not a part`); return; }
-      if (Object.keys(p).some(k => !['bars', 'steps', 'accents', 'families', 'properties', 'prefer', 'feel', 'character', 'strokes', 'pickup'].includes(k))) bad.push(`${here}: unknown part field`);
+      if (Object.keys(p).some(k => !['bars', 'steps', 'accents', 'families', 'properties', 'prefer', 'feel', 'character', 'strokes', 'pickup', 'as', 'clock'].includes(k))) bad.push(`${here}: unknown part field`);
+      if (p.clock !== undefined && p.clock !== 'section') bad.push(`${here}: clock is the section's, or the theme's (none)`);
+      if (p.as !== undefined && (typeof p.as !== 'string' || !/^[a-z][a-z-]{0,30}$/.test(p.as))) bad.push(`${here}: as is a short lower-case name`);
       bad.push(...preferProblems(p.properties, p.prefer, `${here}.prefer`));
       if (p.pickup !== undefined) {
         if (!object(p.pickup) || Object.keys(p.pickup).some(k=>!['bars','steps','accents','strokes'].includes(k))

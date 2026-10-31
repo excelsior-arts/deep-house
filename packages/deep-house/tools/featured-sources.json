@@ -1,0 +1,8 @@
+{
+  "note": "Each featured playlist's original in his own library, by id: tools/feature.ts --renew reads a backup of his library and writes each entry again from its original (his word 10-27: he keeps the originals and updates them over time).",
+  "sources": {
+    "136e4bbf-46ff-4b83-8a36-226ebadad29c": "a0e2d724-9c06-4935-9a32-ed573dcfcfcc",
+    "313baca7-8b32-4381-ab91-94c7630433de": "0d7bd5fd-38bd-4c34-a157-2d5a295cdf5a",
+    "b0263c6b-7b04-4e19-9bba-bbb1dd582432": "500696ce-e9a2-43cc-9f51-5a1fc7fd84ab"
+  }
+}

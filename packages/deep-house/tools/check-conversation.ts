@@ -35,7 +35,7 @@ const quiet = <T>(fn: () => T): T => {
   try { return fn(); } finally { [console.log, console.info, console.warn] = keep; }
 };
 const SEEDS = Array.from({ length: 12 }, (_, i) => String(i + 1));
-const ROW = CONVERSATION_ROWS[0];
+const ROW = CONVERSATION_ROWS.find((r) => r.id === 'bells-in-conversation')!;
 const PARTS = new Set(['conversation-ground', 'conversation-call', 'conversation-answer', 'conversation-punctuation', 'conversation-pulse']);
 /** the zone the conversation plays in (PLAN-ZONES §5), and BELLS's own birds, every bird named: the leans' centre */
 const ZONE = PLACES.zones!.find((z) => z.rows.conversation)!;
@@ -46,7 +46,8 @@ type Ev = { t: number; voice: string; layer: string; role?: string; part?: strin
 
 test('the conversation row is admitted: voices that exist, a pentatonic of the scale, registers of an octave, rests and chances in range', () => {
   assert.deepEqual(conversationRowsFaults((v) => !!BY_NAME[v]), []);
-  assert.equal(CONVERSATION_ROWS.length, 1);
+  // the bells' row and the bowls' (ambient-bowls, `tools/check-bowls.ts` holds the second)
+  assert.deepEqual(CONVERSATION_ROWS.map((r) => r.id), ['bells-in-conversation', 'bowls-breathing']);
   assert.deepEqual(ROW.scale, [0, 2, 3, 4, 6], 'the key\'s pentatonic: the relative major\'s, from the minor or the dorian');
 });
 
@@ -270,21 +271,27 @@ test('the conversation is one line of the place: taken out, BELLS plays the lane
 /**
  * PLAN-AMBIENT §2.4, the first 16 hex digits of each whole program (`themeHash`, `tools/link-digest.ts`) as `local`
  * 61188d14 planned it: the slow spells the plan protects that no link-digest row holds. 27191's five themes are the
- * digest's own rows (`benchmark`) and are checked there.
+ * digest's own rows (`benchmark`) and are checked there. Re-pinned in round length-after to `local` fb344631, where
+ * round length-2's lengths moved all twelve and nothing else did (his word 10-28: *"The length around is great. I listen all my featured vibe and drive songs, and they all got a good shape, so we
+ * can merge it now"*). Three (seed 6's theme 2, seeds 3 and 7 of the tile) re-pinned to `local` after the September-studies
+ * merge, where the piano's bus moved them and nothing else did (his words 10-28: *"the ensembles are good for now"*; *"once piano rounds are back just accept it to unblock the next round"*).
  */
+// All re-pinned in round loudness-v24 (10-30, not blessed, his to approve): the house's loudness model refitted, and its
+// coefficients sit in every program's settings; with that block left out, a program moved only where its trim or sum clip did (13 of
+// the 127 pinned plans, house mains and pulls; tmp/lab/pins.ts of the round).
 const PROTECTED: Record<string, string> = {
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'ac2d3751bae2c637',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': 'e99faaf857921c8a',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': 'eedeff81be8aeab9',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '6ea0e00d4737bbaf',
-  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c0945e862529d1b4',
-  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '4682ff1b1a1ff5a4',
-  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'f6af92c14db90357',
-  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '1e5f019bb457a527',
-  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'd221f7fbc952eab1',
-  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '30971008cdc343e3',
-  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '980302f9d500c15a',
-  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '3ececc1aa87bb93d',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'db003cff5f51b938',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': '870b897800990792', // piano-tone: the new piano
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': '786f0f4be12e5a7f',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '61c82458b1ec8d37',
+  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '66b5ce9c64996692',
+  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '11f20507cbc43405',
+  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c73795ad1370643c', // piano-tone: the new piano
+  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b3b1b073d28fdbda',
+  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b021d93ad012095c',
+  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '8e3e80c9c4485fdf',
+  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '5f6734f79119cfbc', // piano-tone: the new piano
+  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'ba5cf2c4acb96e90',
 };
 
 test('the protected slow spells (seed 6\'s golden, the Ambient tile) lay no conversation and play the programs they played', () => {
@@ -302,52 +309,63 @@ test('the protected slow spells (seed 6\'s golden, the Ambient tile) lay no conv
  * octave up to F#3, `dbTo` 54, so a key that puts the bowl at the top of its register no longer stands two LU over the place; every own
  * theme strikes one there), and the place's trim re-set in zones-pilot-3 (0.693 -> 0.105 dB, the programs otherwise
  * unmoved). Every lean is about the tile, so at the tile every one of them is nought (or one) and nothing moves.
+ * Re-pinned in round length-after to `local` fb344631, where round length-2's struck length (5-6 minutes, his word 10-28:
+ * *"for them 5-6 minute range was just right"*) moved all 24 and nothing else did. Re-pinned in round v24-bugs for
+ * the bells' hand the soft woodblock alone (round v24-bugs, his ear 10-29: "the woodblock is the only matching percussion ... all other claps are distracting"): the 16 whose hand was the frame drum or the soft shaker,
+ * the hand's strikes the only events that moved (same seconds, the woodblock's voice and level).
+ * Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did.
  */
+// All re-pinned in round loudness-v24 (10-30, not blessed, his to approve): the house's loudness model refitted, and its
+// coefficients sit in every program's settings; with that block left out, a program moved only where its trim or sum clip did (13 of
+// the 127 pinned plans, house mains and pulls; tmp/lab/pins.ts of the round).
 const TILE: Record<string, string> = {
-  '1&v=2/1': '9683b597a7dc7378',
-  '1&v=2/2': '11df61158b58b2e2',
-  '2&v=2/1': 'f104b8cae402eedc',
-  '2&v=2/3': '67b08b043aeeca7e',
-  '3&v=2/1': '1825a40f3f4c7fe7',
-  '3&v=2/2': '723af669d4f24e7a',
-  '4&v=2/2': '480007ef46ef53df',
-  '4&v=2/3': 'e3b4297e702fa240',
-  '5&v=2/1': '881a3f56dc04c9c1',
-  '5&v=2/2': 'ad89a8f5052d25c1',
-  '6&v=2/2': '52a6f609ab2f9ee1',
-  '6&v=2/3': 'ef6c21d22278a7a8',
-  '7&v=2/1': '5b18f39a3b7fc1fc',
-  '7&v=2/3': '46f373560b0c137b',
-  '8&v=2/2': '9c4646f20f0f39e5',
-  '8&v=2/3': '590861414b069557',
-  '9&v=2/1': 'f1ad1bcf595a69f3',
-  '9&v=2/3': 'b3292cac3e401c58',
-  '10&v=2/1': '1925035ab75799b8',
-  '10&v=2/3': '4ad50b47105146cc',
-  '11&v=2/2': 'aa5a8e57b8fab246',
-  '11&v=2/3': 'f9537b74c0d2ef0f',
-  '12&v=2/2': 'b2902d07b23927e2',
-  '12&v=2/3': 'ddb7d983065d9d1f',
+  '1&v=2/1': '401d3474e265e505',
+  '1&v=2/2': 'd6cc6e996ede2c4b',
+  '2&v=2/1': '3439642f654051da',
+  '2&v=2/3': '15467b625d036746',
+  '3&v=2/1': '55ccae884e71dc58',
+  '3&v=2/2': '0b17517573c777f5',
+  '4&v=2/2': '7bc5a8f406529238',
+  '4&v=2/3': 'ee2ac14be9ab5c84',
+  '5&v=2/1': '1571b72101c30ea7',
+  '5&v=2/2': '91d671de49738595',
+  '6&v=2/2': 'd5365c36fc1feaa8',
+  '6&v=2/3': '4afa45a481eca5f7',
+  '7&v=2/1': 'f52b3a28895f39fe',
+  '7&v=2/3': 'f3b1cf016625624a',
+  '8&v=2/2': '01b9aff9000bd39a',
+  '8&v=2/3': '87f90fb09f03931d',
+  '9&v=2/1': '3bedc1a590c8e704',
+  '9&v=2/3': 'f6504ace2aa5b930',
+  '10&v=2/1': '51303190d85d1bd0',
+  '10&v=2/3': '453185a39990c780',
+  '11&v=2/2': '08feb4d5f13af7e1',
+  '11&v=2/3': 'bd6ca04717927081',
+  '12&v=2/2': '5d5d901a236c4b1b',
+  '12&v=2/3': '86fb49dc0b34dc2d',
 };
 /**
  * **The tile's twelve library turns, now the conversation** (PLAN-ZONES §4-§5: the zone's library list is empty, so a
  * turn inside it is not taken): each was a synth-pad row on `local` a0651532 (the slow chords nine times, the pedal
  * swell three), and is the zone's own theme since the zones pilot, its program's first 16 hex digits as zones-pilot-2
- * plans it (the bowl's level by register), re-pinned in zones-pilot-3 for the place's trim alone (0.693 -> 0.105 dB).
+ * plans it (the bowl's level by register), re-pinned in zones-pilot-3 for the place's trim alone (0.693 -> 0.105 dB),
+ * and in round length-after to `local` fb344631, where round length-2's struck length moved all twelve and nothing else
+ * did (his word 10-28: *"for them 5-6 minute range was just right"*). Re-pinned in round v24-bugs for
+ * the bells' hand the soft woodblock alone (round v24-bugs, his ear 10-29: "the woodblock is the only matching percussion ... all other claps are distracting"): the 9 whose hand was the frame drum or the soft shaker, nothing else moved.
  */
 const TURNED: Record<string, string> = {
-  '1&v=2/3': '46ae2fd74f9ae318',
-  '2&v=2/2': '0c8ca494aa41652a',
-  '3&v=2/3': 'f58af49ec734f3e7',
-  '4&v=2/1': '6ec6d7e3071c99ab',
-  '5&v=2/3': '81f2fab0ceac6843',
-  '6&v=2/1': '6cf2e8fa9af13b4b',
-  '7&v=2/2': '5112e91ef9afce26',
-  '8&v=2/1': '0ce5d1084fbd6d76',
-  '9&v=2/2': '794fd47208cba44b',
-  '10&v=2/2': '12f9024ceed6b520',
-  '11&v=2/1': '09681453e9f8fd7d',
-  '12&v=2/1': 'df6baff0cb1bab07',
+  '1&v=2/3': '29fd0ff6c99d6e22',
+  '2&v=2/2': '5767d708b32d958f',
+  '3&v=2/3': '84e227e70174378a',
+  '4&v=2/1': '9e8fb2b8e36b2837',
+  '5&v=2/3': '5cf8b117005d25d5',
+  '6&v=2/1': '19b503d4d57d4368',
+  '7&v=2/2': '9602dd71479bdda4',
+  '8&v=2/1': 'f6a8933d25596d0a',
+  '9&v=2/2': 'bcf4ccc2c0a57a30',
+  '10&v=2/2': 'ce9be1842ec160d1',
+  '11&v=2/1': '5bf0b0cd53a3f0fa',
+  '12&v=2/1': 'ba40fe764f21e818',
 };
 
 test('at the tile every lean is nought, the 24 own themes play the programs they played, and the 12 turns the conversation', () => {
@@ -465,16 +483,18 @@ test('outside the zone nothing of BELLS is read: no row of its place, none of it
   const atBells = (spell: ReturnType<typeof parseSpell>) => inZone(ZONE, { ...HOUSE, ...spell! });
   const digest = JSON.parse(fs.readFileSync(new URL('./link-digest.json', import.meta.url), 'utf8')).rows.map((r: { link: string }) => r.link) as string[];
   const spellStr = (o: Record<string, number>) => BIRDS.map((b) => `${b.slice(0, 2)}:${o[b].toFixed(2)}`).join(',');
-  const others = (PLACES.conversation as any[]).filter((e) => !e.conversation).map((e) => Object.fromEntries(BIRDS.map((b) => [b, e.place.birds[b] ?? HOUSE[b]])));
+  const others = (PLACES.conversation as any[]).filter((e) => !e.technique).map((e) => Object.fromEntries(BIRDS.map((b) => [b, e.place.birds[b] ?? HOUSE[b]])));
   const probes = [...digest, ...Object.keys(PROTECTED), `seed=1&v=2&spell=${spellStr(HOUSE as any)}`,
     ...[HOUSE, ...others].flatMap((o: any) => BIRDS.flatMap((b) => [0, 1].map((v) => `seed=1&v=2&spell=${spellStr({ ...o, [b]: v })}`)))];
-  let nought = 0, reach = 0;
+  let nought = 0, reach = 0, bowls = 0;
   for (const link of probes) {
     const read = new URLSearchParams(link);
     const { plan } = quiet(() => played(link));
     if (!plan.events) continue;
     const spell = parseSpell(read.get('spell') ?? spellStr(HOUSE as any));
     if (atBells(spell)) { reach++; continue; }
+    // (where BOWLS's conversation plays, the bowls are its own: `tools/check-bowls.ts` holds where that is)
+    if (plan.conversation?.row === 'bowls-breathing') { bowls++; continue; }
     nought++;
     assert.equal(plan.conversation, undefined, `${link}: a conversation`);
     const ev = programOf(plan).events as unknown as Ev[];
@@ -482,6 +502,6 @@ test('outside the zone nothing of BELLS is read: no row of its place, none of it
     // where the journey is PSY's, they are its own and not BELLS's
     assert.ok(!ev.some((e) => PARTS.has(e.part ?? '') || (BELLS_ONLY.has(e.voice) && !(e.part === 'journey-pulse' && plan.journey))), `${link}: BELLS's own voices or parts`);
   }
-  ctx.diagnostic(`${probes.length} probes: ${nought} outside the zone, nothing of BELLS read; ${reach} inside it`);
+  ctx.diagnostic(`${probes.length} probes: ${nought} outside the zone, nothing of BELLS read; ${reach} inside it; ${bowls} BOWLS's own`);
   assert.ok(nought >= 300, `only ${nought} probes outside the zone (${reach} inside it)`);
 });

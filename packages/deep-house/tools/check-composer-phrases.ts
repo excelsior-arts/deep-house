@@ -42,11 +42,12 @@ test('R16: a kick dropout never silences a section\'s first bar under house-v2; 
   assert.equal((style.switches as Record<string, boolean>).sectionEdges, true);
   assert.ok(!('switches' in v1));
   // 17#1's drop (at bar 68 before round S19 cut its first main to 32 bars, at
-  // 52 since, and at 64 since round L1 gave the theme its minutes, 116 bars)
-  // entered with no kick for four bars.
+  // 52 since, at 64 since round L1 gave the theme its minutes, 116 bars, and at
+  // 44 since round length-2 put the grooves at 3-4 minutes, 88 bars; his word
+  // 10-27: "We should aim for 3-4mins here") entered with no kick for four bars.
   const t = planTheme(17, 1, v2);
   const drop = t.arrangement.sections.find(s => s.kind === 'drop')!;
-  assert.equal(drop.startBar, 64);
+  assert.equal(drop.startBar, 44);
   for (let b = drop.startBar; b < drop.startBar + 4; b++) assert.ok(t.events.some(e => e.voice === 'kick' && e.bar === b), `17#1: no kick at bar ${b} of the drop`);
 });
 
@@ -102,9 +103,13 @@ test('R16, R38: a theme with a grid counts its phrases from each section\'s star
   // since round S19 cut its main it is 68 bars and hands over in the breakdown at 56.
   // Restated in round L2 by the rule: its length is Loom's (72 bars since
   // L2's 1.3), and it hands over inside its last breakdown, at or over the floor.
+  // Since round length-2 (his word 10-27: "for ambient ... let's aim 9-10") it
+  // is 112 bars and ends on an outro (bars 100-111) where it ended on its build,
+  // its last breakdown (76-87) under the floor: it hands over inside the outro.
   const bench = planTheme(27191, 3, { strategy: 'house-v2', spell: { ...HOUSE, ember: .14, gleam: 0, veil: .34, spark: 0, loom: .81 } });
   const handOver = seamPlan(bench, blendAsked(bench)).bar;
-  assert.equal(layersAtBar(bench.arrangement, handOver).section, bench.arrangement.sections.filter(x => x.kind === 'breakdown').at(-1));
+  assert.equal(layersAtBar(bench.arrangement, handOver).section, bench.arrangement.sections.at(-1));
+  assert.equal(bench.arrangement.sections.at(-1)!.kind, 'outro');
   assert.ok(handOver >= bench.bars * style.set.seamFloor, `the hand-over at ${handOver} of ${bench.bars}`);
   // The switch is house-v2's; the record carries none.
   assert.equal((style.switches as Record<string, boolean>).sectionPhrases, true);
@@ -140,6 +145,8 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
       if (r.kind === 'riser' || r.kind === 'swell-long') { risen++; if (r.contrast < 1) found.push(`${where}: a partial return at the house rises`); }
       if (r.kind === 'swell-long') { long++; if (Math.abs(r.rise!.p.dur! - bars * t.barSeconds) > 1e-6) found.push(`${where}: a long swell of the wrong length`); }
       if (i && r.kind !== 'none' && r.kind === rs[i - 1].kind) found.push(`${where}: two returns running led in by the same ${r.kind}`);
+      // a falling sweep never leads into a return (v24-bugs, his ear 10-29 on Drive - Fog Bank: "Wind slush not fitting")
+      if (r.kind === 'fall') found.push(`${where}: a fall leads into the return at bar ${r.line}`);
       if (i === 0 && !forward && t.dice.fxPalette && ['open', 'deep'].includes(String(t.dice.fxPalette))) {
         first++;
         if (r.kind === 'riser' || r.kind === 'swell-long') firstRisen++;
@@ -153,7 +160,9 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
     });
   }
   assert.deepEqual(found.slice(0, 12), [], `${found.length}: ${found.slice(0, 12).join('; ')}`);
-  assert.ok(returns > 400 && risen > returns / 5 && long > 20, `${returns} returns, ${risen} risen, ${long} long swells`);
+  // (over 400 returns before round length-2 put the grooves at 3-4 minutes, his word 10-27: "We should aim for 3-4mins
+  // here"; 391 since, the shorter themes laying fewer sections)
+  assert.ok(returns > 350 && risen > returns / 5 && long > 20, `${returns} returns, ${risen} risen, ${long} long swells`);
   // A first return on a palette that has a rise rises unless the spacing
   // between sections' moments holds it back.
   assert.ok(firstRisen > first * .8, `${firstRisen} of ${first} first returns rise`);

@@ -6,6 +6,7 @@ import type { Lane } from '@deep-house/engine/style';
 import type { NoteParams } from '@deep-house/engine/voices/descriptor';
 import type { Settings } from '@deep-house/engine/settings';
 import Rng from './rng.ts';
+import { PartRefused } from './refused.ts';
 import type { Seed } from './rng.ts';
 import { scaleWeighted, type Bias } from './spell.ts';
 import { switchOn, layerOf, type FigureGroup } from './lanes.ts';
@@ -20,6 +21,7 @@ import { layersAtBar, type makeArrangement } from './arrangement.ts';
 import { variationSpan, type ShapePolicy } from './development-shape.ts';
 import * as P from './patterns.ts';
 import type { BarContext, EventMeta } from './generator.ts';
+import type { MomentNote } from './keys-moments.ts';
 
 export type PlayedMotif = { family: MotifFamily; motif: Motif; register: Register; returns: number; bars: number };
 
@@ -66,7 +68,7 @@ const rollBassPart = (): PlayedMotif | null => {
   if (parts.bassMotif) {
     const bassLanes = style.lanes.filter(l => l.role === 'bassline');
     if (!switchOn(style, 'motif') || !bassLanes.length || bassLanes.every(l => l.gate && silent.includes(l.gate))) {
-      throw new Error('recipe bass family has no enabled bass motif lane');
+      throw new PartRefused('recipe bass family has no enabled bass motif lane');
     }
     const family: MotifFamily = { id: `${originFor('bassline')}/bass`, name: 'bass phrase family', register: 'bass', weight: 1, box: parts.bassMotif, note: 'Generated from a musical family, not a transcribed score.' };
     const r = dice(`${streamFor('bassline')}-bass`);
@@ -153,6 +155,12 @@ export interface MotifPerformer {
   tremolo: boolean;
   fx: { delay: number };
   stabWet: number;
+  /**
+   * **The keys' moment** (keys-moments, `src/keys-moments.ts`): a bar of the solo or of the second riff the plan gave
+   * the theme's lead, its notes at the keys' own level, or null. A solo plays where the section sits the theme out (it is the
+   * theme's notes, not the theme, so the theme's return is still an event); a riff plays in place of the statement.
+   */
+  moment?: (c: BarContext) => { notes: readonly MomentNote[] } | null;
 }
 
 /** One bar of a theme's statement, on the lanes of the register that states it. */
@@ -161,6 +169,16 @@ export function performMotif(ctx: MotifPerformer, MOTIF: PlayedMotif, g: FigureG
     bassChanges, ownFigure, pianoHall, pianoDelay, stabTimbre, tremolo, fx, stabWet } = ctx;
   const PI = S.piano;
     if (!MOTIF) return;
+    const m = MOTIF.register !== 'bass' && ownFigure ? ctx.moment?.(c) : null;
+    if (m) {
+      for (const lane of g.lanes.filter((l) => laneOn(l, c.layers))) {
+        const voice = voiceOf(lane);
+        for (const n of m.notes) n.midi.forEach((midi, k) => push(voice, at(c.bar, n.step) + n.ms / 1000 + k * 0.012,
+          { midi, dur: Math.max(0.12, n.beats * beat), vel: n.vel ?? 0.62 + 0.24 * n.accent, hall: pianoHall, delay: pianoDelay },
+          { bar: c.bar, step: n.step, layer: layerOf(voice), note: noteName(midi) }));
+      }
+      return;
+    }
     const place = placementOf(c.section.kind);
     if (!place.plays) return;
     // The lead lane keeps the gate it always had: a theme over a harmonic
@@ -220,7 +238,7 @@ export function performMotif(ctx: MotifPerformer, MOTIF: PlayedMotif, g: FigureG
           // turns a neighbour above the register ceiling into an octave drop.
           const intervals = shaped.degrees.map(d => scaleNote(progression.root, progression.scale, c.chord.degree + d) - home);
           const base = placeInRegister(P.bassNote(c.chord, { step: 0, interval: 0 }, S), intervals, S.register.subLow, S.register.subCeiling);
-          if (base === null) throw new Error('recipe bass family does not fit the bass register');
+          if (base === null) throw new PartRefused('recipe bass family does not fit the bass register');
           phrase = { midis: notes.map(n => base + n.semitones), seconds: notes.map(n => {
             const start = at(c.bar, n.step);
             // Sounding lengths are continuous musical durations, not onset

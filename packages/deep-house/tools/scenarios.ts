@@ -42,7 +42,8 @@ import { planTheme } from '../src/mix.ts';
 import { ringColour, mixHex, typeInk } from '../src/ring-colour.ts';
 import { HOUSE, BIRD_CODE } from '../src/spell.ts';
 // the Map tab's places, for the sky's rows (genres-sky, 10-20)
-import { SKY_PLACES } from '../src/sky.ts';
+import { SKY_PLACES, SKY_DOTS } from '../src/sky.ts';
+import { linkSameSound } from '../src/link.ts';
 // a library written before the page opens, for the seam rows (the review of 10-21)
 import { emptyLibrary, saveTrack, addToPlaylist } from '../src/playlists.ts';
 // the featured playlists' table, for the first run's rows and the section's (featured, 10-23)
@@ -281,6 +282,8 @@ export const AREAS = {
 // hand-over it armed, the tempo the grid counts at when the arriving theme's
 // first note sounds, how many of its beats the grid carries, when the readout's
 // tempo is the arriving theme's own, and what `settleIn` promised at the ask.
+// `atLine` is the grid's tempo a hair before the blend's first instant: the
+// record's own unless something rode it there (nothing has since pl-clock).
 // With `kicks`, every kick the set fires is timed, off the voice registry both
 // engines look a voice up in at fire time.
 const SEAM_TEMPO = `
@@ -314,7 +317,7 @@ const SEAM_TEMPO = `
     const per = record.perBeat ?? 1;
     const out = {
       // the arriving theme's beats to one of the outgoing theme's, on the grid
-      from, own: 60 / record.program.beat, per: per / (first.perBeat ?? 1), firstNote: heard(cut.at + 1e-3, per), ridden,
+      from, own: 60 / record.program.beat, per: per / (first.perBeat ?? 1), firstNote: heard(cut.at + 1e-3, per), ridden, atLine: heard(cut.at - 0.05, first.perBeat ?? 1),
       askToSeam: cut.at - t0, crossover: cut.end - cut.at, swap: cut.swapAt - t0, end: cut.end - t0,
       said: said - t0, reached: reached < 0 ? null : reached - t0, bar: 240 / (60 / record.program.beat),
       kicks: fired.map((t) => +(t - t0).toFixed(3)).sort((a, b) => a - b),
@@ -736,13 +739,16 @@ export const SCENARIOS = [
     // Read on the record's own buses, tapped as the machine view taps them:
     // the bass (the sub bus) and the chord (the melodic and keys buses) each
     // above −60 dBFS within one beat of the record going on again, three
-    // pauses and plays at three needles of the drop.
+    // pauses and plays at three needles of the drop. Since round length-2 (his
+    // word 10-28: "The length around is great") the drop's last bars resolve
+    // into the break, the bass leaving from 2:41 (161 s), so the needles stand
+    // from 150 s, inside the drop and before its cooldown.
     deadline: 120000,
-    query: 'seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=158',
+    query: 'seed=6&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&t=150',
     page: body(`
       const dh = window.deepHouse;
       await started();
-      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 158.3, 20000);
+      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 150.3, 20000);
       const beat = ctl.mix.record.program.beat;
       const loud = (b) => b ? b.peak : -120;
       const tries = [];
@@ -2418,34 +2424,61 @@ export const SCENARIOS = [
   },
 
   {
-    name: 'a near tempo move blends beat-matched on the outgoing grid and glides a bar a percent after it, and the wait says so',
+    name: 'a tempo move within 6 % blends beat-matched on the outgoing grid and glides a bar a percent after it, one past 6 % hands over on two clocks and is never ridden, and the wait says so',
     area: 'seam',
-    // The fault pass of 09-24, the seam's tempo rule, near: a cast from seed 19
-    // (96 BPM) to seed 1 (104) is 8.3 %. The arriving theme's first note is on
-    // the outgoing grid, the grid glides after the blend over nine bars and not
-    // sixteen, and `settleIn` at the ask names when the readout's tempo is the
-    // arriving theme's own.
-    deadline: 240000,
+    // The fault pass of 09-24, the seam's tempo rule, restated for round
+    // pl-clock (10-26: the glide holds only within 6 %, `TEMPO_GLIDE`; past it
+    // there is no ride and no glide, two clocks). Until pl-clock this row cast
+    // seed 19 (96 BPM) to seed 1 (104), 8.3 %, now past the band.
+    // **Near:** a cast from seed 19 (96) to seed 7 (99), 3.1 %, the pair
+    // check-transport's near row plays: the arriving theme's first note is on
+    // the outgoing grid, the grid glides after the blend over four bars, and
+    // `settleIn` at the ask names when the readout's tempo is the arriving
+    // theme's own.
+    // **Past the band** (the far ride's row folded in, 10-26: Ember 49 → 126 on
+    // 27191 was ridden first and is two clocks now, which check-transport's
+    // "a far jump is two clocks: 49 → 126 BPM and back" holds on that very
+    // pair): then Ember to 0.7 on seed 7, 99 → 124, 25 %. Nothing rides: the grid
+    // is still the record's own tempo a hair before the blend, the arriving
+    // theme sounds at its own tempo from its first note, the readout says it at
+    // the swap, and `settleIn` said when.
+    deadline: 400000,
     query: 'v=2&seed=19',
     page: body(SEAM_TEMPO + `
       await started();
       await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 12000);
-      const r = await measureSeam(() => ctl.setSeed('1'));
+      const near = await measureSeam(() => ctl.setSeed('7'));
+      await sleep(1500);
+      const far = await measureSeam(() => ctl.setSpell({ ember: 0.7 }));
       ctl.stop();
-      return r;
+      return { near, far };
     `),
     judge: (r) => {
-      if (r.noSeam) return { ok: false, why: 'the cast armed no hand-over' };
-      const glide = r.reached - r.end;
-      const bars = Math.ceil((r.own / r.from - 1) * 100 - 1e-9);
-      const ok = Math.abs(r.firstNote - r.from) < 0.1 && r.per === 1 && r.reached != null
-        && Math.abs(glide - bars * r.bar) < r.bar && Math.abs(r.said - r.reached) < r.bar;
+      const { near: n, far: f } = r;
+      if (n.noSeam) return { ok: false, why: 'the cast armed no hand-over' };
+      if (f.noSeam) return { ok: false, why: 'the pull armed no hand-over' };
+      const bad = [];
+      const off = (x) => Math.abs(x.own / x.from - 1);
+      // near
+      const glide = n.reached - n.end;
+      const bars = Math.ceil((n.own / n.from - 1) * 100 - 1e-9);
+      if (!(off(n) > 0.01 && off(n) <= 0.06)) bad.push(`near: ${n.from.toFixed(1)} → ${n.own.toFixed(1)} is not a move inside the band`);
+      if (Math.abs(n.firstNote - n.from) >= 0.1 || n.per !== 1) bad.push(`near: the arriving theme's first note at ${n.firstNote.toFixed(2)} BPM (${n.per}:1), not on the outgoing ${n.from.toFixed(2)}`);
+      if (n.reached == null || Math.abs(glide - bars * n.bar) >= n.bar) bad.push(`near: the glide after the blend took ${n.reached == null ? 'forever' : glide.toFixed(1) + ' s'} where ${bars} bars are ${(bars * n.bar).toFixed(1)}`);
+      if (n.reached == null || Math.abs(n.said - n.reached) >= n.bar) bad.push(`near: settleIn said ${n.said.toFixed(1)} s, heard at ${n.reached}`);
+      // past the band
+      if (!(off(f) > 0.06)) bad.push(`far: ${f.from.toFixed(1)} → ${f.own.toFixed(1)} is not past the band`);
+      if (Math.abs(f.atLine - f.from) >= 0.05) bad.push(`far: the grid read ${f.atLine.toFixed(2)} BPM just before the blend, not the record's own ${f.from.toFixed(2)}: ridden`);
+      if (Math.abs(f.firstNote - f.own) >= 0.05 || f.per !== 1) bad.push(`far: the arriving theme's first note at ${f.firstNote.toFixed(2)} BPM (${f.per}:1), not its own ${f.own.toFixed(2)}`);
+      if (f.reached == null || Math.abs(f.reached - f.swap) >= 0.5) bad.push(`far: on its tempo at ${f.reached} s with the swap at ${f.swap.toFixed(1)}`);
+      if (f.reached == null || Math.abs(f.said - f.reached) >= 1) bad.push(`far: settleIn said ${f.said.toFixed(1)} s, heard at ${f.reached}`);
       return {
-        ok,
-        why: `${r.from.toFixed(1)} → ${r.own.toFixed(1)}: the arriving theme's first note at ${r.firstNote.toFixed(2)} BPM (${r.per}:1); `
-          + `the glide after the blend took ${glide.toFixed(1)} s where ${bars} bars are ${(bars * r.bar).toFixed(1)}; settleIn said ${r.said.toFixed(1)} s, heard at ${r.reached}`,
-        note: `${r.from.toFixed(1)} → ${r.own.toFixed(1)} BPM: blended on the outgoing grid from ${r.askToSeam.toFixed(1)} s over ${r.crossover.toFixed(1)} s, `
-          + `glided ${bars} bars (${glide.toFixed(1)} s) after it, on its own tempo ${r.reached.toFixed(1)} s after the ask, which settleIn said at ${r.said.toFixed(1)}`,
+        ok: !bad.length,
+        why: bad[0],
+        note: `${n.from.toFixed(1)} → ${n.own.toFixed(1)} BPM: blended on the outgoing grid from ${n.askToSeam.toFixed(1)} s over ${n.crossover.toFixed(1)} s, `
+          + `glided ${bars} bars (${glide.toFixed(1)} s) after it, on its own tempo ${n.reached.toFixed(1)} s after the ask, which settleIn said at ${n.said.toFixed(1)}; `
+          + `${f.from.toFixed(1)} → ${f.own.toFixed(1)} BPM on two clocks: the grid at ${f.atLine.toFixed(1)} up to the blend (never ridden), the arriving theme's first note at its own ${f.firstNote.toFixed(1)}, `
+          + `the readout on it at the swap, ${f.reached.toFixed(1)} s, as settleIn said (${f.said.toFixed(1)})`,
       };
     },
   },
@@ -2515,37 +2548,9 @@ export const SCENARIOS = [
     }),
   },
 
-  {
-    name: 'a far tempo jump rides the outgoing theme to the new tempo first and blends there: Ember 49 → 126 BPM, the arriving theme never off its own tempo',
-    area: 'seam',
-    // The fault pass of 09-24, far, Eugene's own: *"Ember 50 → 120 … the start
-    // of a new song at ~100, then about a minute to ramp to 120"*. Seed 27191:
-    // Ember at nought is a drone at 49 BPM, at 0.7 a drummed theme at 126. The
-    // grid is ridden to 126 over the bars before the blend, the blend begins at
-    // 126 and the arriving theme's first note is at 126, and the readout says
-    // 126 at the swap, which is when settleIn said it would.
-    deadline: 300000,
-    query: 'v=2&seed=27191&spell=ember:0',
-    page: body(SEAM_TEMPO + `
-      await started();
-      await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 12000);
-      const r = await measureSeam(() => ctl.setSpell({ ember: 0.7 }));
-      ctl.stop();
-      return r;
-    `),
-    judge: (r) => {
-      if (r.noSeam) return { ok: false, why: 'the pull armed no hand-over' };
-      const ok = Math.abs(r.firstNote - r.own) < 0.05 && r.ridden != null && Math.abs(r.ridden - r.from) > 30
-        && r.reached != null && Math.abs(r.reached - r.swap) < 0.5 && Math.abs(r.said - r.reached) < 1;
-      return {
-        ok,
-        why: `${r.from.toFixed(1)} → ${r.own.toFixed(1)}: the grid read ${r.ridden} as the blend began, the arriving theme's first note at ${r.firstNote.toFixed(2)} BPM; `
-          + `on its tempo at ${r.reached} s with the swap at ${r.swap.toFixed(1)}; settleIn said ${r.said.toFixed(1)}`,
-        note: `${r.from.toFixed(1)} → ${r.own.toFixed(1)} BPM: ridden to ${r.ridden} before the blend, which began ${r.askToSeam.toFixed(1)} s after the ask at the arriving theme's own `
-          + `${r.firstNote.toFixed(1)}; the readout said ${r.own.toFixed(1)} at the swap, ${r.reached.toFixed(1)} s, as settleIn said at the ask (${r.said.toFixed(1)})`,
-      };
-    },
-  },
+  // (The far ride's row, "a far tempo jump rides the outgoing theme to the new tempo first and blends there:
+  // Ember 49 → 126 BPM", is folded into the 6 % row above, 10-26: since round pl-clock nothing rides, a far
+  // jump is two clocks, and check-transport's "a far jump is two clocks: 49 → 126 BPM and back" holds its pair.)
 
   {
     name: 'a drummed theme arriving over a drone brings its kick from its first bar, and a drone arriving under a drummed theme leaves it its kick to the end',
@@ -3229,7 +3234,16 @@ export const SCENARIOS = [
       // deck laid out from a stated position, which is a start the offline
       // schedule can be asked for exactly.
       const from = Math.round(ctl.mix.state.themeSeconds * 0.35);
-      ctl.mix.seek(from);
+      // **The window opens where the seek lands, not where it is asked**
+      // (live-offline, 10-29). A seek waits for its landing's voices to be
+      // prepared (about 45 ms here), and the deck being left plays on through
+      // that wait, as it should: the record does not stop while its landing is
+      // built. A kick or a hat of that deck fired in those milliseconds was
+      // counted as the landing's first event, about half the runs on this Mac
+      // and on 10-28's build alike. The landing itself fires nothing until its
+      // first fill (\`startDeck\`), so the list cleared on the landing's own
+      // turn holds the fresh deck's notes and nothing else.
+      const landed = await bounded(ctl.mix.seek(from), 6000);
       fired.length = 0;
       // The late count is the page's, and the start above is already on it:
       // what matters here is whether a note was moved *while this window was
@@ -3267,7 +3281,7 @@ export const SCENARIOS = [
         if (live[i].voice !== offline[i].voice) { wrong = { i, live: live[i].voice, offline: offline[i].voice }; break; }
         worst = Math.max(worst, Math.abs((live[i].time - t0) - (offline[i].at - a0)));
       }
-      return { n, offline: offline.length, wrong, worst, from,
+      return { landed, n, offline: offline.length, wrong, worst, from,
         late: dh.late.count - lateBefore, seed, index,
         firstVoice: n ? live[0].voice : null, lastVoice: n ? live[n - 1].voice : null };
     `),
@@ -3277,8 +3291,9 @@ export const SCENARIOS = [
       // through an exponential while the render's is an offset.
       const ms = r.worst * 1000;
       return {
-        ok: r.n > 40 && !r.wrong && r.n <= r.offline && ms < 1 && !r.late,
-        why: r.wrong
+        ok: r.landed != null && r.n > 40 && !r.wrong && r.n <= r.offline && ms < 1 && !r.late,
+        why: r.landed == null ? `the seek to ${r.from} s did not land in six seconds`
+          : r.wrong
           ? `event ${r.wrong.i} was a ${r.wrong.live} live and a ${r.wrong.offline} offline`
           : r.n <= 40 ? `only ${r.n} events were played in nine seconds`
           : r.n > r.offline ? `the deck played ${r.n} events and the render is given ${r.offline}`
@@ -3675,8 +3690,9 @@ export const SCENARIOS = [
       const gold = list(r.was.gold) === list(V1) && list(r.gold) === list(V1);
       const derived = r.was.colour && r.was.colour.hex === '#f2c14e' && list(r.was.colour.stops) === list(V1);
       const type = r.type === 'rgb(242, 193, 78)';
-      // one gradient since 09-23: the transport strokes the same one the line work does
-      const split = r.action === 'url("#gold")' && r.line === 'url("#gold")';
+      // one gradient since 09-23, and since ring-seam one colour in two: the transport, inside the bloom, strokes the
+      // bloom's gold and the cells' line work the live gold, which walks across a seam; at rest they are one to the byte
+      const split = r.action === 'url("#gold")' && r.line === 'url("#goldLive")';
       return {
         ok: gold && derived && type && split && !r.where && r.spell === null,
         why: `spell ${JSON.stringify(r.spell)}; #gold ${list(r.gold)}; derived ${r.was.colour && r.was.colour.hex} `
@@ -3981,7 +3997,7 @@ export const SCENARIOS = [
     query: 'seed=5',
     page: body(SECOND_PAGE + `
       try {
-        localStorage.setItem(STORE, JSON.stringify({ seed: '4242', themeIndex: 1, seconds: 3, bar: 1, preset: 'auto', at: new Date().toISOString() }));
+        localStorage.setItem('deephouse.played-at', String(Date.now())), localStorage.setItem(STORE, JSON.stringify({ seed: '4242', themeIndex: 1, seconds: 3, bar: 1, preset: 'auto', at: new Date().toISOString() }));
         localStorage.removeItem(JOURNAL);
       } catch (e) {}
       return { there: await secondPage('?out=silent') };
@@ -4008,7 +4024,7 @@ export const SCENARIOS = [
     // `auto`. Both paths of restore: a stored link, and a store from before it.
     query: 'seed=5',
     page: body(SECOND_PAGE + `
-      const put = (o) => { try { localStorage.setItem(STORE, JSON.stringify({ ...o, at: new Date().toISOString() })); localStorage.removeItem(JOURNAL); } catch (e) {} };
+      const put = (o) => { try { localStorage.setItem('deephouse.played-at', String(Date.now())), localStorage.setItem(STORE, JSON.stringify({ ...o, at: new Date().toISOString() })); localStorage.removeItem(JOURNAL); } catch (e) {} };
       put({ seed: '27191', themeIndex: 4, seconds: 3, bar: 1, preset: 'growl', strategy: 'house-v2', link: 'seed=27191&v=2&theme=5' });
       const linked = await secondPage('?out=silent');
       put({ seed: '4242', themeIndex: 1, seconds: 3, bar: 1, preset: 'sub' });
@@ -4034,7 +4050,7 @@ export const SCENARIOS = [
     query: 'seed=5',
     page: body(SECOND_PAGE + `
       try {
-        localStorage.setItem(STORE, JSON.stringify({ seed: '638342086', themeIndex: 2, seconds: 3, bar: 1, preset: 'auto', strategy: 'house-v2',
+        localStorage.setItem('deephouse.played-at', String(Date.now())), localStorage.setItem(STORE, JSON.stringify({ seed: '638342086', themeIndex: 2, seconds: 3, bar: 1, preset: 'auto', strategy: 'house-v2',
           link: 'seed=638342086&v=2&theme=3&spell=ember:0.60,tide:0.30&recipe=house/hand-rolling&accompaniment=auto&development=shaped', at: new Date().toISOString() }));
         localStorage.removeItem(JOURNAL);
       } catch (e) {}
@@ -4062,7 +4078,7 @@ export const SCENARIOS = [
     query: 'seed=5',
     page: body(SECOND_PAGE + `
       try {
-        localStorage.setItem(STORE, JSON.stringify({ seed: '33', themeIndex: 4, seconds: 42, bar: 20, preset: 'auto', strategy: 'house-v2',
+        localStorage.setItem('deephouse.played-at', String(Date.now())), localStorage.setItem(STORE, JSON.stringify({ seed: '33', themeIndex: 4, seconds: 42, bar: 20, preset: 'auto', strategy: 'house-v2',
           link: 'seed=33&v=2&theme=5', at: new Date().toISOString() }));
         localStorage.removeItem(JOURNAL);
       } catch (e) {}
@@ -4088,7 +4104,7 @@ export const SCENARIOS = [
     page: body(SECOND_PAGE + `
       const put = () => {
         try {
-          localStorage.setItem(STORE, JSON.stringify({ seed: '638342086', themeIndex: 1, seconds: 30, bar: 12, preset: 'auto', strategy: 'house-v2',
+          localStorage.setItem('deephouse.played-at', String(Date.now())), localStorage.setItem(STORE, JSON.stringify({ seed: '638342086', themeIndex: 1, seconds: 30, bar: 12, preset: 'auto', strategy: 'house-v2',
             link: 'seed=638342086&v=2&theme=2&spell=ember:0.60', at: new Date().toISOString() }));
           localStorage.removeItem(JOURNAL);
         } catch (e) {}
@@ -4188,6 +4204,7 @@ export const SCENARIOS = [
         spell: ctl.readout().spell,
         colour: window.ring.colour(),
         gold: stops('gold'),
+        live: stops('goldLive'),
         fixed: document.querySelectorAll('#goldFixed').length,
         type: getComputedStyle(document.querySelector('#starWords text')).fill,
         action: getComputedStyle(document.querySelector('#actions .ln')).stroke,
@@ -4199,8 +4216,9 @@ export const SCENARIOS = [
       const list = (a) => (a || []).join(' ');
       const rgb = (hex) => { const n = parseInt(hex.slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
       const asked = r.spell && Math.abs(r.spell.ember - 0.85) < 1e-9;
-      const tinted = r.colour && r.colour.hex === want.hex && list(r.gold) === list(want.stops);
-      const whole = r.fixed === 0 && r.action === 'url("#gold")' && r.dot === 'url(#gold)';
+      // (the live gold, ring-seam's, wears the same four at rest)
+      const tinted = r.colour && r.colour.hex === want.hex && list(r.gold) === list(want.stops) && list(r.live) === list(want.stops);
+      const whole = r.fixed === 0 && r.action === 'url("#gold")' && r.dot === 'url(#goldLive)';
       const type = r.type === rgb(want.type);
       const moved = r.cursor !== '#ffeec0';
       return {
@@ -5912,13 +5930,15 @@ export const SCENARIOS = [
     // Eugene, 09-20: *"the ring pulse is not in sync with the BPM"*. Two
     // separate questions, and this asks both.
     //
-    // **Is the flash on the beat?** The four dots are drawn off `beatInBar`,
-    // which is the position in *grid* beats — `deckThemeTime` counts the set's
-    // own clock and divides by the theme's beat — so the dot turns over on the
-    // grid and not on a wall clock. What is measured is the dot the page
-    // actually drew against the beat the transport says at the same instant,
-    // sampled on the page's own frames, at the house's 104 and at the 169 a
-    // pull on Ember asks for.
+    // **Is the flash on the beat?** The five dots are drawn off the ring's own
+    // count of `bar` and `beatInBar`, which are the position in *grid* beats —
+    // `deckThemeTime` counts the set's own clock and divides by the theme's
+    // beat — so the dot turns over on the grid and not on a wall clock. What is
+    // measured is the dot the page actually drew against the beat the
+    // transport says at the same instant, sampled on the page's own frames, at
+    // the house's 104 and at the 169 a pull on Ember asks for: each turnover
+    // is one gap clockwise as the transport moves one beat on, and the dot
+    // blinks on the bar's first beat and on no other (beat-five, 10-26).
     //
     // **And does the number agree with it?** The set keeps one grid: through a
     // seam both decks are on the outgoing theme's tempo and then the grid
@@ -5934,14 +5954,7 @@ export const SCENARIOS = [
       // The dot the ring drew, and the beat the transport says, on every frame:
       // a turnover is where they are compared, and the first one seen is the
       // state the watch began in rather than a turnover.
-      const dots = () => {
-        for (const g of document.querySelectorAll('#innerLive g')) {
-          const c = [...g.children];
-          if (c.length === 4 && c.every((n) => n.tagName === 'circle')
-            && c[0].getAttribute('r') === '3' && c[1].getAttribute('r') === '2.2') return c;
-        }
-        return [];
-      };
+      const dots = () => [...document.querySelectorAll('#beatDots circle')].slice(0, 5);
       const watchBeats = (ms) => new Promise((done) => {
         const out = [];
         const t0 = performance.now();
@@ -5953,6 +5966,7 @@ export const SCENARIOS = [
             const first = lit < 0;
             lit = on;
             if (!first) out.push({ t: +(performance.now() - t0).toFixed(2), drew: on, says: r.beatInBar,
+              n: window.ring.motion().beat, blink: window.ring.motion().blink,
               phase: +r.beatPhase.toFixed(4), beat: +r.beat.toFixed(5), sec: +r.seconds.toFixed(4) });
           }
           if (performance.now() - t0 < ms) requestAnimationFrame(tick); else done(out);
@@ -6016,9 +6030,13 @@ export const SCENARIOS = [
         const sorted = [...late].sort((x, y) => x - y);
         const clock = (b[b.length - 1].sec - b[0].sec) * 1000 / (b[b.length - 1].t - b[0].t);
         const wall = beats ? 60000 / ((edge[edge.length - 1] - edge[0]) / beats) : 0;
+        // the dot drawn is the ring's count, five gaps round; a turnover is one
+        // gap on as the transport is one beat on; the blink is the bar's first beat's
+        const agree = b.filter((x, i) => x.drew === x.n % 5 && (x.blink > 0) === (x.says === 0)
+          && (i === 0 || (x.n === b[i - 1].n + 1 && x.says === (b[i - 1].says + 1) % 4))).length;
         return {
           n: b.length,
-          agree: b.filter((x) => x.drew === x.says).length,
+          agree,
           bpm: +(wall / clock).toFixed(2),
           wall: +wall.toFixed(2),
           clock: +clock.toFixed(3),
@@ -6124,7 +6142,7 @@ export const SCENARIOS = [
       const BIRDS = { ember: 'bpm', gleam: 'key', spark: 'figures', root: 'preset' };
       const cells = () => [...document.querySelectorAll('#starCells g.cell')];
       const cellOf = (b) => cells().find((g) => g.getAttribute('data-id') === BIRDS[b]);
-      const drawn = (g) => [...g.querySelectorAll('path:not(.fill)')].filter((p) => p.getAttribute('fill') !== 'url(#gold)').map((p) => p.getAttribute('d')).join(';');
+      const drawn = (g) => [...g.querySelectorAll('path:not(.fill)')].filter((p) => !['url(#gold)', 'url(#goldLive)'].includes(p.getAttribute('fill'))).map((p) => p.getAttribute('d')).join(';');
       const pulled = new Set(Object.values(BIRDS));
       const others = () => cells().filter((g) => !pulled.has(g.getAttribute('data-id'))).map(drawn).join('|');
       await frame();
@@ -6201,7 +6219,7 @@ export const SCENARIOS = [
         ember: all(of('bpm')),
         gleam: all(of('key')),
         root: { R: +root.querySelector('circle').getAttribute('r'),
-          d: [...root.querySelectorAll('path:not(.fill)')].filter((p) => p.getAttribute('fill') !== 'url(#gold)').map((p) => p.getAttribute('d')).join(';') },
+          d: [...root.querySelectorAll('path:not(.fill)')].filter((p) => !['url(#gold)', 'url(#goldLive)'].includes(p.getAttribute('fill'))).map((p) => p.getAttribute('d')).join(';') },
       };
     `),
     judge: (r) => {
@@ -7157,7 +7175,7 @@ SCENARIOS.push({
   page: body(HAND + `
     const knot = (i) => document.querySelectorAll('#starCells g.cell')[i].firstChild;
     const drawings = (i) => [...knot(i).children].filter((n) => n.tagName === 'g')
-      .map((g) => ({ d: [...g.querySelectorAll('path')].filter((p) => p.getAttribute('fill') !== 'url(#gold)').map((p) => p.getAttribute('d')).join(';'),
+      .map((g) => ({ d: [...g.querySelectorAll('path')].filter((p) => !['url(#gold)', 'url(#goldLive)'].includes(p.getAttribute('fill'))).map((p) => p.getAttribute('d')).join(';'),
         op: +(g.getAttribute('opacity') ?? 1) }));
     // the glyph's own groups, and not the wait's fill a bird the move changes draws (round K12c)
     const sum = (i) => [...knot(i).querySelectorAll(':scope > g path')].reduce((a, p) => a + (p.getAttribute('d') || '').length, 0);
@@ -9575,7 +9593,9 @@ SCENARIOS.push({
             const h = block.querySelector('h2'), eh = engine.querySelector('h2');
             const keys = [...block.querySelectorAll('.record-tools button')].map((b) => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), over: b.scrollWidth > b.clientWidth + 1, text: b.textContent.trim() }; });
             Object.assign(res, { title: h.textContent.trim(), titleH: Math.round(h.getBoundingClientRect().height), engineH: Math.round(eh.getBoundingClientRect().height),
-              above: slot.nextElementSibling === engine && block.getBoundingClientRect().bottom <= engine.getBoundingClientRect().top + 1,
+              // above ENGINE in its stack: only the desk's own blocks between (DRAW, round D1; SCENES, round D3)
+              between: (() => { const out = []; for (let n = slot.nextElementSibling; n && n !== engine; n = n.nextElementSibling) out.push(n.getAttribute('data-slot') || n.className); return out; })(),
+              above: block.getBoundingClientRect().bottom <= engine.getBoundingClientRect().top + 1,
               sameColumn: !!block.closest('.pane.side'), keys });
           }
           window.ring.machine.close(); ctl.stop();
@@ -9588,12 +9608,13 @@ SCENARIOS.push({
   judge: (r) => {
     const d = r.desktop, p = r.phone;
     if (!d.block && !p.block) return { ok: d.slot && d.slotEmpty && !d.handle && p.slotEmpty, why: JSON.stringify(r), note: 'this build is the release tier: the slot above ENGINE is empty and there is no capture handle' };
-    const good = (x) => x.block && x.title.toLowerCase() === 'capture' && x.titleH === x.engineH && x.above && x.sameColumn && x.keys.length === 2
+    // re-pinned (release-gates, 10-29): DRAW (D1) and SCENES (D3) stand between CAPTURE and ENGINE by view.tsx's own slots
+    const good = (x) => x.block && x.title.toLowerCase() === 'capture' && x.titleH === x.engineH && x.above && x.between.join() === 'draw,scenes' && x.sameColumn && x.keys.length === 2
       && x.keys.every((k) => !k.over && k.h === x.keys[0].h && k.h <= 32) && Math.abs(x.keys[0].w - x.keys[1].w) <= 1;
     return {
       ok: good(d) && good(p),
       why: `desktop ${JSON.stringify(d)}; phone ${JSON.stringify(p)}`,
-      note: `CAPTURE stands directly above ENGINE in the left column, its header ${d.titleH} px as ENGINE's is, its keys "${d.keys.map((k) => k.text).join('" and "')}" ${d.keys[0].w} × ${d.keys[0].h} at 1440 and ${p.keys[0].w} × ${p.keys[0].h} on a phone, each on one line`,
+      note: `CAPTURE stands above ENGINE in the left column, DRAW and SCENES between them, its header ${d.titleH} px as ENGINE's is, its keys "${d.keys.map((k) => k.text).join('" and "')}" ${d.keys[0].w} × ${d.keys[0].h} at 1440 and ${p.keys[0].w} × ${p.keys[0].h} on a phone, each on one line`,
     };
   },
 });
@@ -10486,8 +10507,11 @@ SCENARIOS.push({
 // **Copy at m:ss** (M16, Eugene: *"add another button Copy Link with time"*;
 // since 10-21 the share circle's second item, menu-fit): its label is the
 // theme's time, live; pressed by a key, it copies the track's link with `t`
-// (K32's `withTime`) — the same sound rows as the address, `t` within a second
-// of the readout — the address never carries `t`, the item reads Copied, the
+// (K32's `withTime`) — the same sound rows as the address, `t` the whole second
+// the item read when it was pressed: a second the transport passed between the
+// moment before the press and the readout after it, so `t` is never ahead of the
+// time, at most a second behind the press (`withTime` floors, as the label
+// does) — the address never carries `t`, the item reads Copied, the
 // ledger says "link copied at m:ss", and the menu closes with the focus on the
 // circle. At 390, 1440 and 2560.
 SCENARIOS.push({
@@ -10512,6 +10536,10 @@ SCENARIOS.push({
         if (browser !== 'chromium') await p.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }));
         await p.evaluate(() => { window.__copied = null; document.addEventListener('copy', () => { window.__copied = String(window.getSelection()) || (document.activeElement && document.activeElement.value) || ''; }, true); document.querySelector('.shareMenu [data-share="at"]').focus(); });
         const before = await p.evaluate(() => location.href);
+        // the transport's second just before the press: the copy is the label's whole second, floored, so up to a
+        // second behind the press and never ahead of the readout after it (until 10-26 the row held it within a
+        // second of a readout taken 250 ms after the press, which a press late in a second fails by design)
+        const pressedAt = await p.evaluate(() => { const r = window.ring.control.readout(); return r ? r.seconds : null; });
         await p.keyboard.press('Enter');
         await p.waitForTimeout(250);
         const after = await p.evaluate(async () => {
@@ -10526,7 +10554,7 @@ SCENARIOS.push({
         await p.evaluate(body(OPEN_VIEW + 'return 1;'));
         const lines = await p.evaluate(() => window.ring.machine.snapshot().ledger.slice(-4).map((e) => e.what));
         await p.evaluate(() => { window.ring.machine.close(); window.ring.control.stop(); });
-        out[name] = { l0, l1, before, after, later, lines };
+        out[name] = { l0, l1, before, pressedAt, after, later, lines };
       } finally { await own.close(); }
     }
     return out;
@@ -10540,7 +10568,7 @@ SCENARIOS.push({
       const here = new URL(x.before);
       if (!got) { bad.push(`${k}: nothing was copied`); continue; }
       const t = Number(got.searchParams.get('t'));
-      if (!got.searchParams.has('t') || Math.abs(t - x.after.seconds) > 1) bad.push(`${k}: t=${got.searchParams.get('t')} against the readout's ${x.after.seconds}`);
+      if (!got.searchParams.has('t') || !Number.isInteger(t) || t < Math.floor(x.pressedAt) || t > x.after.seconds) bad.push(`${k}: t=${got.searchParams.get('t')} against the readout's ${x.pressedAt} before the press and ${x.after.seconds} after it`);
       for (const row of ['seed', 'v', 'theme', 'spell']) if ((got.searchParams.get(row) || '') !== (here.searchParams.get(row) || '')) bad.push(`${k}: the copied ${row} is "${got.searchParams.get(row)}", the address's "${here.searchParams.get(row)}"`);
       if (got.searchParams.has('view') || got.searchParams.has('out')) bad.push(`${k}: the copied link carries the view or out`);
       if (/[?&]t=/.test(x.after.url) || x.after.url !== x.before) bad.push(`${k}: the address became ${x.after.url}`);
@@ -10550,7 +10578,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `${r.browser}: at 1440, 2560 and on a phone the share circle's second item runs with the time ("${r['1440'].l0}" → "${r['1440'].l1}"); pressed by a key it copied the track's link with t within a second of the readout (${r['1440'].after.clip}), the same seed, engine, theme and spell as the address, no view, no out and no t in the address, read Copied, closed with the focus on the circle, and wrote "link copied at m:ss"`,
+      note: `${r.browser}: at 1440, 2560 and on a phone the share circle's second item runs with the time ("${r['1440'].l0}" → "${r['1440'].l1}"); pressed by a key it copied the track's link with t the second it was pressed at (${r['1440'].after.clip}, pressed at ${r['1440'].pressedAt.toFixed(2)} s), the same seed, engine, theme and spell as the address, no view, no out and no t in the address, read Copied, closed with the focus on the circle, and wrote "link copied at m:ss"`,
     };
   },
 });
@@ -12617,6 +12645,160 @@ SCENARIOS.push({
   },
 });
 
+// **A pause inside a pull is a frame like any other** (pause-smooth, 10-26;
+// his word: *"ring should render smooth"*). A pause keeps a pull's landing
+// (the fault pass of 09-24), and it used to plan that landing on the page's
+// thread whenever the planner's worker had not answered yet, and then the
+// theme the ring draws of it: a long task of 55-68 ms at the pause, three or
+// four frames of the ring skipped. Now the landing is kept by its place and
+// settled when the worker answers, and a Play waits on that same answer.
+// Twice on one page: a pull and a pause 10 ms later, its landing still in
+// flight; then another bird, paused once the pull's hand-over is armed (the
+// worker has answered). Each time: no long task through the pause and a Play
+// a second later; the play is the pulled theme under the asked spell, to the
+// byte, at the second the rule maps the record's into it (`sameFormTime`),
+// and the address is the one the pull wrote, unchanged. And the ring, sampled
+// at every animation frame across the pull, the pause and the play: the page
+// misses no more than two 60 Hz frames anywhere (alone it misses none; 942b9186
+// missed three or four at the pause, 58-67 ms), and no step of the star's
+// turn in one of the ring's own frames is larger than its own per-frame step
+// (its pace in the frames around it, over the ring's frame and half of one
+// more, and one unit of the 0.01° it is drawn to).
+SCENARIOS.push({
+  name: 'a pause inside a pull makes no long task: its landing comes from the planner\'s worker, a play a second later resumes it at its second, and the ring keeps every frame',
+  area: 'transport',
+  // a long task is the page's own fifty milliseconds: measured with the machine to itself (`serial`, as the row above)
+  serial: true,
+  deadline: 120000,
+  query: 'v=2&seed=1',
+  page: body(`
+    const dh = window.deepHouse;
+    const lt = [];
+    let phase = 'start';
+    const longtasks = typeof PerformanceObserver !== 'undefined' && (PerformanceObserver.supportedEntryTypes || []).includes('longtask');
+    const po = longtasks ? new PerformanceObserver((l) => { for (const e of l.getEntries()) lt.push({ phase, ms: Math.round(e.duration) }); }) : null;
+    if (po) po.observe({ type: 'longtask' });
+    const sig = (t) => JSON.stringify(t.dice) + '|' + t.bars + '|' + t.bpm + '|' + t.events.length;
+    const spellKey = (s) => JSON.stringify(Object.entries(s || {}).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => [k, +(+v).toFixed(6)]));
+    // the ring at every frame: the star's turn as drawn
+    let frames = null;
+    const sample = (ts) => { if (!frames) return; frames.push({ ts, phase, star: window.ring.turn().star, drawn: (window.ring.timings() || { frames: 0 }).frames }); requestAnimationFrame(sample); };
+    await started();
+    await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 2, 12000);
+    await sleep(2500);
+    const runs = [];
+    for (const [variant, bird, value] of [['in flight', 0, 0.3], ['answered', 2, 0.9]]) {
+      if (!ctl.mix) { await started(); await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000); }
+      await sleep(1500);
+      const m = ctl.mix;
+      if (!m) { runs.push({ variant, noSet: true }); continue; }
+      // the landing the pause reads, as it reads it
+      const desc = Object.getOwnPropertyDescriptor(m, 'pendingLanding');
+      let kept = null;
+      Object.defineProperty(m, 'pendingLanding', { configurable: true, get() { kept = desc.get.call(m); return kept; } });
+      frames = [];
+      window.ring.resetTimings();
+      requestAnimationFrame(sample);
+      await sleep(400);
+      phase = 'pull';
+      const pulledAt = performance.now();
+      window.ring.pull(bird, value);
+      const armed = variant === 'in flight' ? (await sleep(10), false) : await waitFor(() => ctl.state.cut && ctl.state.cut.kind === 'spell', 8000);
+      const rec = m.record.track;
+      const asked = m.spellAsked;
+      phase = 'pause';
+      const pauseIn = Math.round(performance.now() - pulledAt);
+      const urlPulled = location.search;
+      // the record's second, read in the pause's own task: the stop reads it again a line later
+      const t = m.state.elapsed;
+      ctl.stop();
+      const landing = kept ? { index: kept.index, from: kept.from, inFlight: kept.later === undefined ? null : !!kept.later } : null;
+      const settled = kept && kept.later ? await bounded(kept.later, 8000) : landing;
+      await sleep(1000);
+      const paused = { index: ctl.state.themeIndex, position: ctl.state.position, url: location.search, sig: sig(ctl.readout().track) };
+      phase = 'play';
+      await started();
+      const mm = ctl.mix;
+      // the asked birds, each at the value asked (the set's spell names the rest at the seed's own)
+      await sleep(300);
+      // the second the record was laid from: where it is now, less the context's time since
+      const played = mm && mm.record ? { index: mm.record.track.index, elapsed: mm.state.elapsed - (ctl.state.ctx.currentTime - mm.record.laidFrom), sig: sig(mm.record.track), spell: spellKey(mm.spell),
+        under: Object.entries(asked || {}).every(([k, v]) => Math.abs((mm.spell || {})[k] - v) < 1e-6), url: location.search } : null;
+      await sleep(1200);
+      const drawn = frames;
+      frames = null;
+      phase = 'between';
+      // the second the rule gives: the record's, mapped into theme it planned under the asked spell
+      const plan = dh.planTheme('1', rec.index, { strategy: 'house-v2', spell: asked });
+      runs.push({
+        variant, bird, value, armed, pauseIn, landing, settled, t, paused, played,
+        record: rec.index, asked: spellKey(asked), urlPulled, want: { sig: sig(plan), from: dh.sameFormTime(rec, plan, t) },
+        frames: drawn,
+      });
+    }
+    ctl.stop();
+    if (po) po.disconnect();
+    return { longtasks, lt, runs };
+  `),
+  judge: (r) => {
+    const LONG = 50;
+    const FRAME = 1000 / 60;
+    const bad = [];
+    const long = r.lt.filter((x) => x.ms > LONG && (x.phase === 'pause' || x.phase === 'play'));
+    if (long.length) bad.push(`a long task of ${long[0].ms} ms at the ${long[0].phase} (${long.map((x) => x.phase + ' ' + x.ms).join(', ')})`);
+    const smooth = [];
+    for (const x of r.runs) {
+      const v = x.variant;
+      if (x.noSet) { bad.push(`${v}: no set was playing`); continue; }
+      if (!x.landing) { bad.push(`${v}: the pause kept no landing for the pull`); continue; }
+      if (v === 'in flight' && x.landing.inFlight === false) bad.push(`in flight: the worker had answered ${x.pauseIn} ms after the pull, so the pause did not find the landing in flight`);
+      if (v === 'answered' && (!x.armed || x.landing.inFlight === true)) bad.push(`answered: the pull ${x.armed ? 'was armed' : 'never armed'} and the pause found its landing ${x.landing.inFlight ? 'in flight' : 'made'}`);
+      if (!x.settled) { bad.push(`${v}: the landing never settled`); continue; }
+      if (x.settled.index !== x.record) bad.push(`${v}: the landing went to theme ${x.settled.index + 1}, not the record's ${x.record + 1}, in place`);
+      if (Math.abs(x.settled.from - x.want.from) > 0.05) bad.push(`${v}: the landing kept ${x.settled.from.toFixed(3)} s where the rule maps the record's ${x.t.toFixed(3)} s to ${x.want.from.toFixed(3)} s`);
+      if (x.paused.index !== x.settled.index || Math.abs(x.paused.position - x.settled.from) > 1e-6) bad.push(`${v}: paused, the set stood at theme ${x.paused.index + 1}, ${x.paused.position.toFixed(3)} s, not the landing's ${x.settled.index + 1}, ${x.settled.from.toFixed(3)} s`);
+      if (x.paused.sig !== x.want.sig) bad.push(`${v}: the paused ring read another plan than the pulled theme under the asked spell`);
+      if (!x.played) { bad.push(`${v}: the play never started`); continue; }
+      if (x.played.index !== x.settled.index || x.played.sig !== x.want.sig || !x.played.under) bad.push(`${v}: the play is theme ${x.played.index + 1} under ${x.played.spell} (asked ${x.asked}), ${x.played.sig === x.want.sig ? 'the' : 'not the'} pulled plan`);
+      if (Math.abs(x.played.elapsed - x.settled.from) > 0.02) bad.push(`${v}: the play started at ${x.played.elapsed.toFixed(3)} s, not the landing's ${x.settled.from.toFixed(3)} s`);
+      if (x.urlPulled !== x.paused.url || x.urlPulled !== x.played.url) bad.push(`${v}: the address was "${x.urlPulled}" at the pause, "${x.paused.url}" paused and "${x.played.url}" playing`);
+      // the ring's frames, the pull to a second and a half of play: the page's own (every animation frame) and the
+      // ones the ring drew (it draws at the loop's pace, 30 a second at rest, the screen's while something moves)
+      const f = x.frames.filter((s) => s.phase === 'pull' || s.phase === 'pause' || s.phase === 'play');
+      let gap = 0, at = '';
+      for (let i = 1; i < f.length; i++) if (f[i].ts - f[i - 1].ts > gap) { gap = f[i].ts - f[i - 1].ts; at = f[i].phase; }
+      const d = f.filter((s, i) => i > 0 && s.drawn > f[i - 1].drawn);
+      const dt = d.slice(1).map((s, i) => s.ts - d[i].ts).sort((p, q) => p - q);
+      const pace = dt.length ? dt[Math.floor(dt.length / 2)] : FRAME;
+      // the star's own step in one of the ring's frames where it is: its rate over the three drawn frames either
+      // side, over the ring's own frame and half of one more (the loop's timer jitters by a few ms), and one unit
+      // of the 0.01° it is drawn to. The sway is laid on the frame's own time (it keeps its phase), so a frame the
+      // page held back is one step as large as the frames it missed: two of the ring's frames or more.
+      let step = 0, worst = null, over = 1e-6;
+      for (let i = 1; i < d.length; i++) {
+        let rate = 0;
+        for (let k = Math.max(1, i - 3); k <= Math.min(d.length - 1, i + 3); k++) {
+          if (k !== i) rate = Math.max(rate, Math.abs(d[k].star - d[k - 1].star) / Math.max(1, d[k].ts - d[k - 1].ts));
+        }
+        const own = rate * pace * 1.5 + 0.01;
+        const st = Math.abs(d[i].star - d[i - 1].star);
+        step = Math.max(step, st);
+        if (st - own > over) { over = st - own; worst = { st, own, phase: d[i].phase, g: d[i].ts - d[i - 1].ts }; }
+      }
+      smooth.push({ v, frames: f.length, drawn: d.length, pace: +pace.toFixed(1), gap: +gap.toFixed(1), at, step: +step.toFixed(3) });
+      if (gap > 3 * FRAME) bad.push(`${v}: the page drew no frame for ${gap.toFixed(1)} ms at the ${at}`);
+      if (worst) bad.push(`${v}: the star stepped ${worst.st.toFixed(3)}° in one of the ring's frames at the ${worst.phase} (${worst.g.toFixed(1)} ms after the one before), past its own ${worst.own.toFixed(3)}°`);
+    }
+    return {
+      ok: !bad.length,
+      why: bad.slice(0, 3).join('; '),
+      note: `${r.longtasks ? `no long task over ${LONG} ms at either pause or play (${r.lt.filter((x) => x.phase === 'pause' || x.phase === 'play').map((x) => x.phase + ' ' + x.ms).join(', ') || 'none at all'})` : 'this engine reports no long tasks'}; `
+        + r.runs.filter((x) => x.settled && x.played).map((x) => `${x.variant} (paused ${x.pauseIn} ms after the pull): theme ${x.settled.index + 1} at ${x.settled.from.toFixed(2)} s, the record's ${x.t.toFixed(2)} s mapped, played from ${x.played.elapsed.toFixed(2)} s on the pulled plan`).join('; ')
+        + '; the ring: ' + smooth.map((s) => `${s.v} ${s.frames} page frames (the longest gap ${s.gap} ms) and ${s.drawn} of the ring's (${s.pace} ms apart), the star's largest step ${s.step}°, none past its own`).join('; '),
+    };
+  },
+});
+
 // **Reduced motion rests the ring's ornament and draws its state** (the
 // reconciled review, R53 and C11). The preference is turned on with the page
 // already open — which is the change listener's case as well as the rule's —
@@ -13334,6 +13516,7 @@ const ownPage = async (page, opts) => {
   const p2 = await ctx.newPage();
   await p2.goto(page.url(), { waitUntil: 'networkidle', timeout: 30000 });
   await p2.waitForFunction(() => window.ring && window.deepHouse, { timeout: 20000 });
+  await p2.waitForFunction(() => !(window.ring.opening && window.ring.opening()), null, { timeout: 8000 }).catch(() => {});
   await p2.waitForTimeout(900);
   return { page: p2, close: () => ctx.close() };
 };
@@ -13695,7 +13878,10 @@ SCENARIOS.push({
       const off = s.find((x, k) => k > 0 && !x.on && s[k - 1].on);
       if (!on.length || !off) { bad.push(`${name}: the fill ran ${on.length} samples and never ended`); continue; }
       if (!on.every((x, k) => k === 0 || x.p >= on[k - 1].p - 1e-4)) bad.push(`${name}: the fill ran backwards or restarted`);
-      const reach = s.find((x) => Math.abs(x.grid - x.bpm) < 0.1 && x.t > on[0].t && s.some((y) => y.t < x.t && Math.abs(y.grid - y.bpm) >= 0.1));
+      // the target is read where the grid and the tempo agree again off where
+      // they began: after a ride (grid first, tempo at the swap) or at a swap
+      // where both move at once (two clocks)
+      const reach = s.find((x) => Math.abs(x.grid - x.bpm) < 0.1 && x.t > on[0].t && Math.abs(x.bpm - s[0].bpm) >= 0.1);
       if (!reach) { bad.push(`${name}: the tempo never reached its target`); continue; }
       if (Math.abs(off.t - reach.t) > reach.bar + 0.2) bad.push(`${name}: the fill ended at ${off.t} s and the tempo read its target at ${reach.t} s`);
       const last = on[on.length - 1];
@@ -13706,15 +13892,19 @@ SCENARIOS.push({
       // fill that stood near full at the seam was drawn to the seam and not to
       // the tempo; a far one — 105 → 170 and back is one — rides the record to
       // the new tempo before the blend, so the tempo is the target at the swap
-      // and the fill ends there, with the grid seen moving before it.
+      // and the fill ends there, with the grid seen moving before it. Since
+      // pl-clock (10-26) a far seam plays on two clocks: no ride, the grid and
+      // the tempo take the target together at the swap, and the fill ends there.
       if (seam && reach.t > seam.t + reach.bar) {
         const at = on.find((x) => x.t >= seam.t);
         if (!at || at.p > 0.8) bad.push(`${name}: at the seam the fill already stood at ${at && at.p}, so it was drawn to the seam and not to the tempo`);
         notes.push(`${name}: ${s[0].grid} → ${s[s.length - 1].bpm} BPM, the seam at ${seam.t} s with the fill at ${at && at.p}, the tempo on target at ${reach.t} s and the fill ended at ${off.t} s`);
       } else if (seam) {
         const rode = s.some((x) => x.t < seam.t && Math.abs(x.grid - s[0].grid) >= 1);
-        if (!rode) bad.push(`${name}: the tempo was the target at the seam, ${seam.t} s, with no ride seen before it`);
-        notes.push(`${name}: ${s[0].grid} → ${s[s.length - 1].bpm} BPM ridden before the seam, the tempo on target at the swap ${reach.t} s and the fill ended at ${off.t} s`);
+        const k = s.indexOf(seam);
+        const swapped = !rode && Math.abs(s[k - 1].grid - s[0].grid) < 0.1 && Math.abs(seam.grid - seam.bpm) < 0.1;
+        if (!rode && !swapped) bad.push(`${name}: the tempo was the target at the seam, ${seam.t} s, with no ride seen before it and the grid not moving with it`);
+        notes.push(`${name}: ${s[0].grid} → ${s[s.length - 1].bpm} BPM ${rode ? 'ridden before the seam' : 'on two clocks, grid and tempo at once'}, the tempo on target at the swap ${reach.t} s and the fill ended at ${off.t} s`);
       }
     }
     return { ok: !bad.length, why: bad[0], note: notes.join('; ') + ' — one sector each, never backwards' };
@@ -14894,10 +15084,10 @@ SCENARIOS.push({
   judge: (r) => {
     const bad = [];
     if (/\ba vibes\b|\ba [aeiou]/i.test(r.aria)) bad.push(`Zephyr is said as "${r.aria}"`);
-    // seed 8 rolls vibes and plays an electric piano (the composition's own
-    // part takes the stab's place): since K30 the words are what plays, and
-    // since the bird-labels round the sentence is its air, on that voice
-    if (!/the air is \w+(, nearly \w+)?, on an electric piano/i.test(r.aria)) bad.push(`Zephyr on seed 8 says "${r.aria}"`);
+    // seed 8 rolls vibes and plays the composition's own part in the stab's place: since K30 the words are what
+    // plays, and since the bird-labels round the sentence is its air, on that voice. The part was the ringing keys'
+    // half notes on an electric piano until 10-28; over a grid it is the ringing chords on the piano since
+    if (!/the air is \w+(, nearly \w+)?, on a piano/i.test(r.aria)) bad.push(`Zephyr on seed 8 says "${r.aria}"`);
     return { ok: !bad.length, why: bad[0], note: `${r.ids.length} keyboards over seeds 1–40 (${r.ids.join(', ')}); Zephyr says "${r.aria}"` };
   },
 });
@@ -15713,9 +15903,9 @@ const aboutRead = (page) => page.evaluate(new Function(ABOUT_READ));
 // the About's lines since 10-20: the App Store listing's, one span each (panel-shell, "After merge")
 const ABOUT_LINES = [
   'A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.',
-  'At its best on three sounds: deep house, the default; liquid drum & bass (turn Ember up); ambient soundscapes (turn Ember down).',
+  'Its best sounds are in the Featured playlists.',
   'A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.',
-  'One link, one track: share it and it plays the same anywhere.',
+  'One link, one track: it plays the same anywhere.',
   'Fully offline. No account. No ads. No tracking.',
 ];
 const ABOUT_SUB = 'An astrolabe for music';
@@ -15727,6 +15917,11 @@ const ABOUT_LINKS = [
 ];
 // the About's error reports switch, flipped through the panel: the gyroscope, the About tab, the switch, the ×
 const ABOUT_FLIP = async (p) => { await p.click('#gyro'); await p.waitForTimeout(200); await p.click('#tabAbout'); await p.waitForTimeout(150); await p.click('#aboutReports'); await p.waitForTimeout(300); await p.click('#panelClose'); await p.waitForTimeout(200); };
+// **The panel shut** (star-keys, 10-22): a close rolls the sheet back into the gyroscope over the zoom's 520 ms, never
+// cut, and the gyroscope is hidden until it lands (index.html, `data-unrolling`); the dialog closes and the focus goes
+// back when it has. A row reads the close there, and only then reaches for the key, as a hand can (a fixed 250 ms
+// read the panel still rolling and focused a hidden key). Bounded: a panel that never shuts is read as it stands.
+const ABOUT_SHUT = (p) => p.waitForFunction(() => { const d = document.getElementById('library'); return !d.open && !document.documentElement.hasAttribute('data-unrolling'); }, null, { timeout: 3000 }).catch(() => {});
 // the About is up: the panel open on its About tab
 const ABOUT_UP = `(() => { const d = document.getElementById('library'); return !!d && d.open && !document.getElementById('libAbout').hidden; })()`;
 
@@ -15751,7 +15946,7 @@ SCENARIOS.push({
         await p.waitForTimeout(250);
         r.byPointer = await aboutRead(p);
         await p.click('#panelClose');
-        await p.waitForTimeout(250);
+        await ABOUT_SHUT(p);
         r.closedByX = await aboutRead(p);
         // the gyroscope, by a key; the About tab by a key; closed by Escape
         await p.focus('#gyro');
@@ -15767,7 +15962,7 @@ SCENARIOS.push({
         await p.waitForTimeout(120);
         r.tabbed = await aboutRead(p);
         await p.keyboard.press('Escape');
-        await p.waitForTimeout(250);
+        await ABOUT_SHUT(p);
         r.closedByEscape = await aboutRead(p);
         // the question at twelve, by a pointer: the panel opens on About; closed by Escape, the focus back on it
         const q = await p.evaluate(() => { const b = document.querySelector('#actions g[data-action="play"]').getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; });
@@ -15775,7 +15970,7 @@ SCENARIOS.push({
         await p.waitForTimeout(250);
         r.byQuestion = await aboutRead(p);
         await p.keyboard.press('Escape');
-        await p.waitForTimeout(250);
+        await ABOUT_SHUT(p);
         r.closedQuestion = await aboutRead(p);
         r.playing = await p.evaluate(() => window.ring.control.playing);
         out[name] = r;
@@ -16312,7 +16507,8 @@ SCENARIOS.push({
   drive: async (page) => {
     const at = new URL(page.url());
     const out = {};
-    for (const [name, t] of [['at 252', 252], ['past the end', 99999]]) {
+    // (152 s: inside seed 1's first theme since length-2 made it 104 bars, 4:00; it was 252 s when the theme ran 152 bars)
+    for (const [name, t] of [['at 152', 152], ['past the end', 99999]]) {
       await page.goto(`${at.origin}${at.pathname}?seed=1&v=2&theme=1&t=${t}&out=silent`, { waitUntil: 'networkidle' });
       await page.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 25000 });
       await page.waitForTimeout(500);
@@ -16337,10 +16533,10 @@ SCENARIOS.push({
   },
   judge: (r) => {
     const bad = [];
-    const a = r['at 252'], p = r['past the end'];
-    const want = Math.floor(252 / a.before.barSeconds);
-    if (Math.abs(a.before.bar - want) > 0 || Math.abs(a.after.bar - want) > 1) bad.push(`t=252 opened at bar ${a.before.bar + 1} and played at ${a.after.bar + 1}, where the bar at 252 s is ${want + 1}`);
-    if (a.before.seconds !== 252 || a.before.copied !== 252) bad.push(`t=252 opened at ${a.before.seconds} s and its copy wrote t=${a.before.copied}`);
+    const a = r['at 152'], p = r['past the end'];
+    const want = Math.floor(152 / a.before.barSeconds);
+    if (Math.abs(a.before.bar - want) > 0 || Math.abs(a.after.bar - want) > 1) bad.push(`t=152 opened at bar ${a.before.bar + 1} and played at ${a.after.bar + 1}, where the bar at 152 s is ${want + 1}`);
+    if (a.before.seconds !== 152 || a.before.copied !== 152) bad.push(`t=152 opened at ${a.before.seconds} s and its copy wrote t=${a.before.copied}`);
     for (const [k, x] of Object.entries(r)) if (/(^|[?&])t=/.test(x.before.search) || /(^|[?&])t=/.test(x.after.search)) bad.push(`${k}: the address kept the time: ${x.after.search}`);
     if (!a.lines.some((l) => /^started at \d+:\d\d/.test(l))) bad.push(`the ledger said nothing of the start (${a.lines.slice(-3).join(' | ')})`);
     const lastBar = Math.max(0, Math.floor(p.before.duration / p.before.barSeconds) - 1);
@@ -16349,7 +16545,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `t=252 opened at bar ${a.before.bar + 1} (${(a.before.bar * a.before.barSeconds).toFixed(1)} s) and played on from there, the ledger saying "${a.lines.find((l) => /^started at/.test(l))}", the address then ${a.after.search}; t=99999 opened at bar ${p.before.bar + 1}, the last phrase line; the view's writer: ${a.writer.replace(/^.*\?/, '')}`,
+      note: `t=152 opened at bar ${a.before.bar + 1} (${(a.before.bar * a.before.barSeconds).toFixed(1)} s) and played on from there, the ledger saying "${a.lines.find((l) => /^started at/.test(l))}", the address then ${a.after.search}; t=99999 opened at bar ${p.before.bar + 1}, the last phrase line; the view's writer: ${a.writer.replace(/^.*\?/, '')}`,
     };
   },
 });
@@ -17010,7 +17206,9 @@ SCENARIOS.push({
   page: body(READ_CELLS),
   judge: (r) => {
     const c = r.cells || {};
-    const want = { root: /^small · small bells · calls$/, veil: /^calm · /, spark: /^moving · .* · hand$/, zephyr: /^bright · small bells · call$/, gleam: /^warm · /, loom: /^long · / };
+    // (Zephyr airy, by the rule: since length-2b the page's theme 1 here is 64 bars, its calls' median strike puts the
+    // small bells' centroid at 1448 Hz, past the bright/airy cut at 1382 Hz; theme 3 reads bright)
+    const want = { root: /^small · small bells · calls$/, veil: /^calm · /, spark: /^moving · .* · hand$/, zephyr: /^airy · small bells · call$/, gleam: /^warm · /, loom: /^long · / };
     const off = Object.entries(want).filter(([b, re]) => !re.test(c[b] || '')).map(([b]) => `${b} reads "${c[b]}"`);
     return {
       ok: !!r.conversation && !off.length,
@@ -17262,7 +17460,7 @@ SCENARIOS.push({
         await p.waitForTimeout(600);
         await skyIn(p);
         out[q] = await p.evaluate(body(SKY + `
-          const lit = [...document.querySelectorAll('#libGenres .skyKey:not(.open)')].map((k) => k.getAttribute('aria-label'));
+          const lit = [...document.querySelectorAll('#libGenres .skyKey:not(.open):not(.dot):not(.point)')].map((k) => k.getAttribute('aria-label'));
           const tuned = {};
           for (const name of lit) {
             const before = location.search;
@@ -17273,6 +17471,14 @@ SCENARIOS.push({
             skyKey('Deep House').click();
             await sleep(80);
           }
+          // a star's dot by its key: under house-v1 it presses nothing, as a star off the house does
+          const dotKey = document.querySelector('#libGenres .skyKey.dot');
+          const beforeDot = location.search;
+          dotKey.click();
+          await sleep(120);
+          const dotAsked = location.search !== beforeDot;
+          skyKey('Deep House').click();
+          await sleep(80);
           const open = [...document.querySelectorAll('#libGenres .skyKey.open')];
           const ring = open[0];
           const before = location.search;
@@ -17284,7 +17490,11 @@ SCENARIOS.push({
           const asked = location.search !== before;
           ring.blur();
           return { lit, tuned, open: open.length, disabled: open.filter((k) => k.getAttribute('aria-disabled') === 'true').length,
-            ringName: ring.getAttribute('aria-label'), byFocus, asked };
+            ringName: ring.getAttribute('aria-label'), byFocus, asked, dotAsked,
+            // colour means pressable, gray means not yet (his word 10-28): what presses nothing here is gray and no Tab stop
+            gray: { stars: document.querySelectorAll('#libGenres .skyStar.inert').length, dots: document.querySelectorAll('#libGenres .skyDot.inert').length,
+              drawnDots: document.querySelectorAll('#libGenres .skyDot').length,
+              stops: [...document.querySelectorAll('#libGenres .skyKey')].filter((k) => k.tabIndex >= 0).map((k) => k.className) } };
         `));
         if (q.startsWith('v=2')) {
           // an open ring by a mouse's hover and by a finger's tap: its name, nothing asked
@@ -17308,6 +17518,11 @@ SCENARIOS.push({
     const bad = [];
     const v1Tuned = Object.entries(v1.tuned).filter(([n, t]) => t && n !== 'Deep House').map(([n]) => n);
     if (v1Tuned.length) bad.push(`under house-v1 ${v1Tuned.join(', ')} pressed and moved the address`);
+    const stops = (x, cls) => x.gray.stops.filter((c) => c === cls).length;
+    if (v1.gray.stars !== v1.lit.length - 1 || v1.gray.dots !== v1.gray.drawnDots || stops(v1, 'skyKey dot') || stops(v1, 'skyKey') !== 1)
+      bad.push(`under house-v1 ${v1.gray.stars} of ${v1.lit.length} stars and ${v1.gray.dots} of ${v1.gray.drawnDots} dots are gray, ${stops(v1, 'skyKey')} star keys and ${stops(v1, 'skyKey dot')} dot keys take Tab`);
+    if (v2.gray.stars || v2.gray.dots || stops(v2, 'skyKey') !== v2.lit.length || stops(v2, 'skyKey open')) bad.push(`under house-v2 ${v2.gray.stars} stars and ${v2.gray.dots} dots are gray, ${stops(v2, 'skyKey open')} open rings take Tab`);
+    if (v1.dotAsked || !v2.dotAsked) bad.push(`a star's dot by its key ${v1.dotAsked ? 'moved the address under house-v1' : 'asked nothing under house-v2'}`);
     const v2Dead = Object.entries(v2.tuned).filter(([, t]) => !t).map(([n]) => n);
     if (v2.lit.length < 12 || v2Dead.length) bad.push(`under house-v2 ${v2.lit.length} lit stars, and ${v2Dead.join(', ') || 'none'} pressed nothing`);
     for (const [k, x] of [['v1', v1], ['v2', v2]]) {
@@ -17320,7 +17535,7 @@ SCENARIOS.push({
     return {
       ok: !bad.length,
       why: bad[0],
-      note: `under house-v1 of ${v1.lit.length} lit stars only Deep House presses; under house-v2 all ${v2.lit.length} move the address; ${v2.open} open rings are disabled keys that ask nothing, and one says "${v2.byHover}" by hover, focus and a press`,
+      note: `under house-v1 of ${v1.lit.length} lit stars only Deep House presses (the other ${v1.gray.stars} and every dot gray, no Tab stop); under house-v2 all ${v2.lit.length} move the address; ${v2.open} open rings are disabled keys that ask nothing, and one says "${v2.byHover}" by hover, focus and a press`,
     };
   },
 });
@@ -17385,6 +17600,170 @@ SCENARIOS.push({
       ok: !bad.length,
       why: bad[0],
       note: `a wheel panned ${moved(r.first, r.wheel).toFixed(0)} px, ctrl and the wheel zoomed ${(r.zoomed.d / r.wheel.d).toFixed(2)}×, a double press ${(r.doubled.d / r.zoomed.d).toFixed(2)}×, recentre came back to the first view, the panel never scrolled; Tab reached ${star ? star.name : '?'} after ${r.keyed.seen.length} stops and Enter pressed it`,
+    };
+  },
+});
+
+// **A star's dots** (round sky-dots; his idea 10-28): four unnamed dots round each lit star, each the star's spell with a
+// steering bird or two moved. A press is a star's press at the dot's spell, marked until the birds leave it; hover and
+// focus say whose it is, faintly ("NEAR BOWLS"); the keyboard and a reader reach them as they reach the stars.
+const dotSpellOf = (label) => { const m = /^Near (.+) (\d)$/.exec(label); const star = m && SKY_PLACES.find((p) => p.lit && p.name === m[1]); const d = star && SKY_DOTS.find((x) => x.star === star.id && x.n === +m[2]); return d ? d.spell : null; };
+const dotMatches = (asked, label) => { const want = dotSpellOf(label); return !!want && Object.keys(HOUSE).every((b) => Math.abs((asked[b] ?? HOUSE[b]) - (want[b] ?? HOUSE[b])) < 0.006); };
+
+SCENARIOS.push({
+  name: 'a star\'s dot pressed asks its own spell with no genre word and carries the pressed mark until a bird is pulled off it; hover and focus say "near" its star, and Tab and Enter reach and press a dot',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 150000,
+  drive: async (page) => {
+    const out = {};
+    for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
+      const own = await ownPage(page, opts);
+      const p = own.page;
+      const tap = async (pt) => { if (name === '390') await p.touchscreen.tap(pt.x, pt.y); else await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(400); };
+      try {
+        await skyIn(p);
+        const r = { before: await skyNow(p), dots: await p.evaluate(() => document.querySelectorAll('#libGenres .skyKey.dot').length) };
+        const pt = await skyPoint(p, 'Near Bowls 1');
+        if (name === '1440') { await p.mouse.move(pt.x, pt.y); await p.waitForTimeout(250); r.hover = (await skyNow(p)).tip; }
+        await tap(pt);
+        r.pressed = await skyNow(p);
+        // a bird pulled off the pressed dot: the mark leaves
+        await p.evaluate(() => { const c = window.ring.control; const s = c.link.read().spell || {}; c.setSpell({ ...s, loom: Math.max(0, (s.loom ?? 0.5) - 0.3) }); });
+        await p.waitForTimeout(900);
+        r.pulled = await skyNow(p);
+        // the keyboard: Tab from the last lit star's key to the first dot, focus says its words, Enter presses it
+        r.keyed = await p.evaluate(body(SKY + `
+          const keys = [...document.querySelectorAll('#libGenres .skyKey')];
+          const first = keys.findIndex((k) => k.classList.contains('dot'));
+          return { order: keys.slice(first - 1, first + 1).map((k) => k.className + ':' + k.getAttribute('aria-label')), label: keys[first].getAttribute('aria-label') };
+        `));
+        await p.evaluate(() => { const keys = [...document.querySelectorAll('#libGenres .skyKey')]; keys[keys.findIndex((k) => k.classList.contains('dot')) - 1].focus(); });
+        await p.keyboard.press('Tab');
+        await p.waitForTimeout(250);
+        r.keyed.focused = await p.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label'));
+        r.keyed.chrome = await p.evaluate(() => /Chrome\//.test(navigator.userAgent));
+        // WebKit on a Mac tabs to no button unless the system says so (the sky's pan row meets it too): there the key is
+        // focused as a reader would, and the order of the keys stands for the Tab
+        if (r.keyed.focused !== r.keyed.label) {
+          await p.evaluate((label) => [...document.querySelectorAll('#libGenres .skyKey.dot')].find((k) => k.getAttribute('aria-label') === label).focus(), r.keyed.label);
+          await p.waitForTimeout(250);
+        }
+        r.keyed.tip = (await skyNow(p)).tip;
+        await p.keyboard.press('Enter');
+        await p.waitForTimeout(400);
+        r.keyed.after = await skyNow(p);
+        out[name] = r;
+      } finally { await own.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const bad = [];
+    for (const [k, x] of Object.entries(r)) {
+      if (x.dots < 4 * 16) bad.push(`${k}: ${x.dots} dot keys`);
+      if (!dotMatches(x.pressed.spell, 'Near Bowls 1') || GENRE_WORD.test(decodeURIComponent(x.pressed.url).replace(/v=\d/, ''))) bad.push(`${k}: Near Bowls 1 pressed asked ${JSON.stringify(x.pressed.spell)} (${x.pressed.url})`);
+      if (x.pressed.pressed.join() !== 'Near Bowls 1') bad.push(`${k}: after the press the pressed mark is on ${x.pressed.pressed.join(', ') || 'nothing'}`);
+      if (x.pulled.pressed.length) bad.push(`${k}: with Loom pulled off, the pressed mark stays on ${x.pulled.pressed.join(', ')}`);
+      if (x.before.playing || x.pressed.playing) bad.push(`${k}: a press started the set`);
+      const label = x.keyed.label, star = /^Near (.+) \d$/.exec(label || '');
+      if (!star || !/^skyKey:/.test(x.keyed.order[0]) || x.keyed.order[1] !== `skyKey dot:${label}`) bad.push(`${k}: the keys after the stars run ${x.keyed.order.join(' → ')}`);
+      else if (x.keyed.chrome && x.keyed.focused !== label) bad.push(`${k}: Tab from the last star reached ${x.keyed.focused}, not the first dot ${label}`);
+      else {
+        if (x.keyed.tip !== `NEAR ${star[1].toUpperCase()}`) bad.push(`${k}: ${label} focused says "${x.keyed.tip}"`);
+        if (!dotMatches(x.keyed.after.spell, label) || x.keyed.after.pressed.join() !== label) bad.push(`${k}: Enter on ${label} asked ${JSON.stringify(x.keyed.after.spell)}, pressed ${x.keyed.after.pressed.join(', ')}`);
+      }
+    }
+    if (r['1440'].hover !== 'NEAR BOWLS') bad.push(`a mouse over Near Bowls 1 says "${r['1440'].hover}"`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `at 1440 (a mouse) and 390 (a finger): ${r['1440'].dots} dot keys; Near Bowls 1 said "${r['1440'].hover}" under the mouse, its press wrote its own spell (${r['1440'].pressed.url}) with the pressed mark, and Loom pulled off took the mark away; Tab from the last star reached ${r['1440'].keyed.focused} (the first dot's key ${r['1440'].keyed.label}), focus said "${r['1440'].keyed.tip}" and Enter pressed it`,
+    };
+  },
+});
+
+// **The Map's playlist** (round sky-dots 2; his word 10-28: *"not permanent dot, but one from the playlist if tracks landed
+// there, so you can press on it or see it selected when track plays, but it might not be there on other playlist"*):
+// the playlist last opened (or the playing one) as points along its dashed line, each in its track's colour; a press plays
+// that track in that playlist as its row does, the playing point is marked, and another playlist replaces them.
+SCENARIOS.push({
+  name: 'the Map\'s playlist: Vibe opened shows its ten tracks as points, the third pressed plays and is marked, and Drive played replaces them with its eight',
+  area: 'library',
+  query: 'v=2&seed=1',
+  deadline: 180000,
+  drive: async (page) => {
+    const out = {};
+    const vibe = FEATURED.find((f) => f.name === 'Vibe'), drive = FEATURED.find((f) => f.name === 'Drive');
+    for (const [name, opts] of [['1440', { viewport: { width: 1440, height: 900 } }], ['390', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }]]) {
+      const own = await ownPage(page, opts);
+      const p = own.page;
+      const tap = async (pt) => { if (name === '390') await p.touchscreen.tap(pt.x, pt.y); else await p.mouse.click(pt.x, pt.y); await p.waitForTimeout(600); };
+      const points = () => p.evaluate(() => ({
+        keys: [...document.querySelectorAll('#libGenres .skyKey.point')].map((k) => k.getAttribute('aria-label')),
+        current: [...document.querySelectorAll('#libGenres .skyKey.point[aria-current]')].map((k) => k.getAttribute('aria-label')),
+        drawn: document.querySelectorAll('#libGenres .skyPoint').length, marks: document.querySelectorAll('#libGenres .skyPointOn').length,
+        saved: document.querySelectorAll('#libGenres svg.sky > circle[opacity="0.5"]').length,
+      }));
+      // a playlist's page opened from the overview (its first row pressed too, where it is to play), then the Map
+      const openList = (title, play) => p.evaluate(body(`
+        if (!document.getElementById('library').open) { document.getElementById('gyro').click(); await sleep(400); }
+        document.getElementById('tabPlaylists').click(); await sleep(250);
+        const back = document.querySelector('#library [data-act="back"]'); if (back) { back.click(); await sleep(250); }
+        const row = [...document.querySelectorAll('#library [data-act="list"]')].find((b) => b.textContent.includes(${JSON.stringify(title)}));
+        if (!row) return false;
+        row.click(); await sleep(300);
+        if (${play ? 'true' : 'false'}) { const t = document.querySelector('#library [data-act="play"][data-i="0"]'); if (t) { t.click(); await sleep(600); } }
+        document.getElementById('tabGenres').click();
+        await waitFor(() => document.querySelectorAll('#libGenres .skyKey').length > 10, 8000);
+        await waitFor(() => !document.documentElement.hasAttribute('data-unrolling'), 5000);
+        await sleep(450);
+        return true;
+      `));
+      try {
+        const r = { opened: await openList('Vibe', false) };
+        r.vibe = await points();
+        // the third track's point, brought into the canvas as the keyboard brings it, then pressed by a hand
+        const third = vibe.labels[2];
+        const pt = await skyPoint(p, third);
+        await tap(pt);
+        r.pressed = { ...(await points()), now: await p.evaluate(() => window.ring.control.linkNow()), playing: await p.evaluate(() => !!(window.ring.control.playing || window.ring.control.state.starting)) };
+        r.thirdLink = vibe.links[2];
+        await p.waitForTimeout(1500);
+        r.later = await points();
+        // a point on a star wins the press (Meteor Shower stands on Chillstep's star): the track plays, the star is not asked
+        // (stopped first: while the set sounds a press waits for the seam, and the address shows the asked birds on the old seed)
+        const onStar = vibe.labels[vibe.links.findIndex((l) => /seed=6&/.test(l) && /em:0\.92/.test(l))];
+        await p.evaluate(() => window.ring.control.stop());
+        await p.waitForTimeout(400);
+        await tap(await skyPoint(p, onStar));
+        r.onStar = { title: onStar, link: vibe.links[vibe.labels.indexOf(onStar)], now: await p.evaluate(() => window.ring.control.linkNow()), pressed: (await skyNow(p)).pressed };
+        // Drive played from its own row: the Map's playlist is Drive's now
+        r.droveOpen = await openList('Drive', true);
+        r.drive = await points();
+        await p.evaluate(() => window.ring.control.stop());
+        out[name] = r;
+      } finally { await own.close(); }
+    }
+    return { out, vibe: vibe.labels, drive: drive.labels };
+  },
+  judge: (x) => {
+    const bad = [];
+    const same = (a, b) => linkSameSound(a, b);
+    for (const [k, r] of Object.entries(x.out)) {
+      if (!r.opened || r.vibe.keys.join() !== x.vibe.join()) bad.push(`${k}: Vibe opened shows the points ${r.vibe.keys.join(', ')}`);
+      if (r.vibe.saved) bad.push(`${k}: ${r.vibe.saved} saved-track dots still drawn`);
+      if (!r.pressed.playing || !same(r.pressed.now, r.thirdLink)) bad.push(`${k}: the third point pressed left ${r.pressed.now} (playing ${r.pressed.playing})`);
+      if (r.pressed.current.join() !== x.vibe[2] && r.later.current.join() !== x.vibe[2]) bad.push(`${k}: the playing point is ${r.later.current.join(', ') || 'none'}, not ${x.vibe[2]}`);
+      if (!r.later.marks) bad.push(`${k}: no point is marked while ${x.vibe[2]} plays`);
+      if (!same(r.onStar.now, r.onStar.link) || r.onStar.pressed.length) bad.push(`${k}: ${r.onStar.title}'s point on Chillstep's star left ${r.onStar.now}, the star marks ${r.onStar.pressed.join(', ')}`);
+      if (!r.droveOpen || r.drive.keys.join() !== x.drive.join() || r.drive.keys.some((t) => x.vibe.includes(t) && !x.drive.includes(t))) bad.push(`${k}: after Drive played the points are ${r.drive.keys.join(', ')}`);
+      if (r.drive.current.join() !== x.drive[0]) bad.push(`${k}: Drive playing marks ${r.drive.current.join(', ') || 'none'}`);
+    }
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `at 1440 (a mouse) and 390 (a finger): Vibe opened drew its ${x.vibe.length} points (${x.out['1440'].vibe.drawn} in the canvas at 1440, ${x.out['390'].vibe.drawn} at 390) and no saved-track dots; ${x.vibe[2]}'s point pressed played it and marked it; ${x.out['1440'].onStar.title}'s point on Chillstep's star played the track, not the star; Drive's first row played and the Map's points became Drive's ${x.drive.length}, ${x.drive[0]} marked`,
     };
   },
 });
@@ -17544,7 +17923,9 @@ SCENARIOS.push({
     const fs2 = await import('node:fs');
     try {
       await p.evaluate(body(LIB + `for (const s of [1, 2]) { ctl.setSeed(s); await sleep(250); await throne(); } await panel(); await pressAct('list'); return 1;`));
+      // Download is an item of the playlist's ⋯ (round pl-link): the menu opened first
       const grab = async (act) => {
+        if (act === 'download') { await p.evaluate(() => document.querySelector('#library [data-act="menu"]').click()); await p.waitForTimeout(150); }
         const [d] = await Promise.all([p.waitForEvent('download', { timeout: 10000 }), p.evaluate((a) => document.querySelector('#library [data-act="' + a + '"]').click(), act)]);
         return { name: d.suggestedFilename(), text: fs2.readFileSync(await d.path(), 'utf8') };
       };
@@ -17711,6 +18092,7 @@ const withLibrary = async (p, links) => {
   await p.evaluate((text) => localStorage.setItem('deephouse.library', text), JSON.stringify(doc));
   await p.reload({ waitUntil: 'networkidle' });
   await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+  await p.waitForFunction(() => !(window.ring.opening && window.ring.opening()), null, { timeout: 8000 }).catch(() => {});
   await p.waitForTimeout(900);
 };
 
@@ -17771,6 +18153,441 @@ SCENARIOS.push({
   },
 });
 
+// **A playlist hands over on the record's own seam** (chillstep-ends, his word 10-29: *"both chillstep songs in Drive
+// playlist were chopped in the end after we reduced length"*). The playlist asks for its next track a few seconds
+// ahead of the record's seam (`SEAM_LEAD_S`), and the hand-over it asks for lands on the record's own line, where
+// the set's seam would have begun: the record's last phrase plays whole. Before, it landed on the next bar line after
+// the ask, about six seconds early, and since length-2 put every section on its phrase that was the end of a drop.
+// Drive - Fog Bank then Drive - Thunderhead, the needle ten seconds before Fog Bank's seam; the blend's first instant
+// is read off the transport, in Fog Bank's own seconds.
+SCENARIOS.push({
+  name: 'a playlist hands its next track over on the record\'s own seam line, never a bar line ahead of it',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 240000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await withLibrary(p, ['seed=34941&v=2&spell=em:0.89,ti:0.20,ze:0.04,ro:0.76,gl:0.22,ve:0.00,sp:0.01', 'seed=27191&v=2&theme=10&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80']);
+      return await p.evaluate(body(LIB + SEAM_PASS + `
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        await playing();
+        await sleep(1500);
+        const seed = String(ctl.state.seed), bs = ctl.state.track.barSeconds, seamAt = ctl.seamAt;
+        ctl.seekTo(Math.max(0, seamAt - 10) / ctl.readout().duration, true);
+        await sleep(600);
+        let asked = null, blend = null, linkInside = null;
+        await waitFor(() => {
+          const s = ctl.state;
+          if (asked === null && s.castTo !== null) asked = s.position;
+          if (blend === null && s.transition > 0) { blend = s.position; linkInside = location.search; }
+          return blend !== null && String(s.seed) === seed;
+        }, 60000);
+        ctl.stop();
+        await sleep(300);
+        return { seed, bs, seamAt, asked, blend, linkInside };
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const early = r.blend == null ? null : (r.seamAt - r.blend) / r.bs;
+    const ok = r.blend != null && early < 0.5 && early > -1;
+    const note = `seed ${r.seed}: the seam at ${r.seamAt.toFixed(1)} s, the next track asked at ${r.asked == null ? '-' : r.asked.toFixed(1)} s, the blend begun at ${r.blend == null ? '-' : r.blend.toFixed(1)} s (${early == null ? '-' : early.toFixed(2)} bars before the seam); the link inside: ${r.linkInside}`;
+    return { ok, why: ok ? undefined : `the hand-over began ${early == null ? 'never' : early.toFixed(2) + ' bars before the record\'s seam'}: ${note}`, note };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a track pressed while another of its playlist plays marks both rows playing through the mix, the one mixing out unmarked once it is gone; a named track\'s name shows its theme and seed on hover and is the lock screen\'s title',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 240000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await withLibrary(p, ['seed=1&v=2', 'seed=2&v=2', 'seed=3&v=2']);
+      await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('deephouse.library')); d.playlists[0].tracks[0].label = 'Morning'; localStorage.setItem('deephouse.library', JSON.stringify(d)); });
+      await p.reload({ waitUntil: 'networkidle' });
+      await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+      await p.waitForTimeout(1500);
+      return await p.evaluate(body(LIB + SEAM_PASS + `
+        // a row counts as marked when it is gold and its icon's three bars are drawn (a height above nought, his report
+        // 10-27: the second icon was there and drew nothing)
+        const marked = () => [...document.querySelectorAll('#library .plTrack.on')].filter((li) => {
+          const bars = [...li.querySelectorAll('svg.plLevel rect')];
+          return bars.length === 3 && bars.every((b) => Number(b.getAttribute('height')) > 0);
+        }).map((li) => +li.dataset.i);
+        await panel();
+        await pressAct('list');
+        const tips = [...document.querySelectorAll('#library .plTrack .plName')].map((n) => n.getAttribute('title'));
+        await pressAct('play', '[data-i="0"]');
+        await playing();
+        await sleep(2000);
+        const before = marked();
+        const lock = () => { const m = navigator.mediaSession && navigator.mediaSession.metadata; return m ? m.title + ' / ' + m.album : null; };
+        const nowNamed = lock();
+        const from = place();
+        await pressAct('play', '[data-i="1"]');
+        const seen = [];
+        let both = 0, crossed = false;
+        const done = await waitFor(() => {
+          const m = marked(), t = ctl.state.transition;
+          if (m.length === 2) both++;
+          if (t > 0) crossed = true;
+          const key = m.join(',') + (t > 0 ? ' x' : '');
+          if (seen[seen.length - 1] !== key) seen.push(key);
+          return place() !== from && t === 0 && ctl.state.castTo === null;
+        }, 120000);
+        await sleep(2500);
+        const after = marked();
+        const nowPlain = lock();
+        // and at the playlist's own seam: the record run to its mix point, the next track mixed in by the list
+        const seamFrom = place();
+        ctl.seekTo(Math.max(0, ctl.seamAt - 8) / ctl.readout().duration, true);
+        const atSeam = [];
+        let seamBoth = 0;
+        const seamDone = await waitFor(() => {
+          const m = marked(), t = ctl.state.transition;
+          if (m.length === 2) seamBoth++;
+          const key = m.join(',') + (t > 0 ? ' x' : '');
+          if (atSeam[atSeam.length - 1] !== key) atSeam.push(key);
+          return place() !== seamFrom && t === 0 && ctl.state.castTo === null;
+        }, 120000);
+        await sleep(2500);
+        const seamAfter = marked();
+        ctl.stop();
+        await sleep(400);
+        return { tips, before, both, crossed, done, seen, after, seamBoth, seamDone, atSeam, seamAfter, nowNamed, nowPlain };
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    if (r.tips[0] !== 'Theme I · seed 1' || r.tips[1] !== null || r.tips[2] !== null) bad.push(`the hover's words ${JSON.stringify(r.tips)}`);
+    if (r.before.join() !== '0') bad.push(`before the press the marks were ${JSON.stringify(r.before)}`);
+    if (!r.done) bad.push('the pressed track never arrived');
+    else if (!r.both) bad.push(`no moment had both rows marked: ${r.seen.join(' → ')}`);
+    else if (r.after.join() !== '1') bad.push(`after the mix the marks were ${JSON.stringify(r.after)}`);
+    // the lock screen: a named track says its name, its playlist the album line; an unnamed one its theme
+    if (r.nowNamed !== 'Morning / Saved' || r.nowPlain !== 'Theme I / Saved') bad.push(`the lock screen said ${JSON.stringify(r.nowNamed)} then ${JSON.stringify(r.nowPlain)}`);
+    if (!r.seamDone) bad.push('at the seam the next track never arrived');
+    else if (!r.seamBoth) bad.push(`at the seam no moment had both rows marked: ${r.atSeam.join(' → ')}`);
+    else if (r.seamAfter.join() !== '2') bad.push(`after the seam the marks were ${JSON.stringify(r.seamAfter)}`);
+    return { ok: !bad.length, why: bad[0], note: `pressed: ${r.seen.join(' → ')}, after ${JSON.stringify(r.after)}; at the seam: ${r.atSeam.join(' → ')}, after ${JSON.stringify(r.seamAfter)}` };
+  },
+});
+
+// **The Apple app's shell, stood in** (round mac-nowplaying, his report 10-27: the Mac app was no longer macOS's Now
+// Playing app, and the play key did not pause it). The app's script (apple/Sources/ShellScript.swift) sets
+// `window.deepHouseShell` and watches the transport: it tells the app what plays (`now`, the media session's title
+// and album line) and whether it plays (`playing`), which the Mac's Now Playing and its keys are made of; the keys
+// come back as `deepHouseShell.act`. Here that script's half is stood in, recording what it would post, so the page's
+// side of the contract is held: a named track's name and its playlist, and a play state in step with the transport
+// through the keys' pause and play. (That the script itself runs is the app's build check, check-shell-script.sh.)
+const SHELL_STANDIN = `(() => {
+  const sent = [];
+  Object.defineProperty(window, '__shellSent', { value: sent });
+  const post = (m) => { const c = window.ring && window.ring.control; sent.push({ ...m, transport: !!(c && c.state.playing) }); };
+  const shell = { platform: 'macos' };
+  Object.defineProperty(shell, 'act', { enumerable: false, value: (what) => {
+    const c = window.ring && window.ring.control;
+    if (!c) return false;
+    if (what === 'toggle') c.toggle();
+    else if (what === 'play') { if (!c.state.playing && !c.state.starting) c.start(); }
+    else if (what === 'pause') { if (c.state.playing || c.state.starting) c.stop('system'); }
+    else return false;
+    return true;
+  } });
+  const handlers = {};
+  Object.defineProperty(shell, 'send', { enumerable: false, value: (m) => { if (m && typeof m === 'object' && typeof m.ev === 'string') sent.push({ ...m, page: true }); } });
+  Object.defineProperty(shell, 'on', { enumerable: false, value: (kind, fn) => { if (typeof kind === 'string' && typeof fn === 'function') handlers[kind] = fn; } });
+  Object.defineProperty(shell, 'receive', { enumerable: false, value: (m) => { const fn = m && handlers[m.kind]; if (fn) fn(m); return !!fn; } });
+  Object.defineProperty(window, 'deepHouseShell', { value: Object.freeze(shell), enumerable: false });
+  let said = null, saidNow = '';
+  const watch = () => {
+    const c = window.ring && window.ring.control;
+    if (!c || !c.subscribe) return false;
+    c.subscribe((r) => {
+      const m = navigator.mediaSession && navigator.mediaSession.metadata;
+      const now = m ? JSON.stringify([m.title, m.album]) : '';
+      if (m && now !== saidNow) { saidNow = now; post({ ev: 'now', title: m.title, album: m.album }); }
+      const playing = !!(r && r.playing);
+      if (playing === said) return;
+      said = playing;
+      post(playing ? { ev: 'playing', playing } : { ev: 'playing', playing, by: c.stoppedBy === 'system' ? 'system' : 'hand' });
+    });
+    return true;
+  };
+  const wait = () => { if (!watch()) setTimeout(wait, 100); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wait, { once: true });
+  else wait();
+})();`;
+
+SCENARIOS.push({
+  name: 'the app\'s shell hears a named playlist track\'s name and its playlist, and a play state in step with the transport through the media keys\' pause and play',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 120000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await p.addInitScript(SHELL_STANDIN);
+      await withLibrary(p, ['seed=1&v=2', 'seed=2&v=2']);
+      await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('deephouse.library')); d.playlists[0].tracks[0].label = 'Morning'; localStorage.setItem('deephouse.library', JSON.stringify(d)); });
+      await p.reload({ waitUntil: 'networkidle' });
+      await p.waitForFunction(() => window.ring && window.deepHouse, null, { timeout: 20000 });
+      await p.waitForTimeout(1500);
+      return await p.evaluate(body(LIB + SEAM_PASS + `
+        const shell = !!window.deepHouseShell && window.deepHouseShell.platform;
+        const posts = () => window.__shellSent.filter((m) => !m.page).map(({ ev, playing, by, title, album, transport }) => ({ ev, playing, by, title, album, transport }));
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        await playing();
+        await sleep(1500);
+        const started = posts();
+        // the keys: the app's answer to the play key is the shell's act('toggle')
+        window.deepHouseShell.act('toggle');
+        await waitFor(() => !ctl.playing, 10000);
+        await sleep(600);
+        const paused = posts().slice(started.length);
+        const was = posts().length;
+        window.deepHouseShell.act('toggle');
+        await playing();
+        await sleep(600);
+        const resumed = posts().slice(was);
+        ctl.stop();
+        await sleep(400);
+        return { shell, started, paused, resumed };
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const bad = [];
+    const plays = (list) => list.filter((m) => m.ev === 'playing');
+    const now = r.started.filter((m) => m.ev === 'now');
+    if (r.shell !== 'macos') bad.push(`the stand-in shell was not in the page: ${JSON.stringify(r.shell)}`);
+    if (!now.length || now[now.length - 1].title !== 'Morning' || now[now.length - 1].album !== 'Saved') bad.push(`the shell heard "now" as ${JSON.stringify(now)}, not Morning / Saved`);
+    const p0 = plays(r.started), p1 = plays(r.paused), p2 = plays(r.resumed);
+    // the watch's first word is the state it found (stopped, before the press), then the start
+    const out = [...p0, ...p1, ...p2].filter((m) => m.playing !== m.transport);
+    if (out.length) bad.push(`the shell heard a play state the transport did not have: ${JSON.stringify(out)}`);
+    if (!p0.length || p0[p0.length - 1].playing !== true || p0.filter((m) => m.playing).length !== 1) bad.push(`at the start the shell heard ${JSON.stringify(p0)}`);
+    if (p1.length !== 1 || p1[0].playing !== false || p1[0].transport !== false) bad.push(`at the key's pause the shell heard ${JSON.stringify(p1)}`);
+    if (p2.length !== 1 || p2[0].playing !== true || p2[0].transport !== true) bad.push(`at the key's play the shell heard ${JSON.stringify(p2)}`);
+    return { ok: !bad.length, why: bad[0], note: `now ${JSON.stringify(now.map((m) => `${m.title} / ${m.album}`))}; playing ${[...p0, ...p1, ...p2].map((m) => m.playing + (m.by ? ` (${m.by})` : '')).join(' → ')}` };
+  },
+});
+
+// **The output's default, by need** (round mac-nowplaying, control.ts `outMode`): a page takes the media element,
+// which is what a platform knows plays and is willing to sound (Safari's Now Playing on a Mac, a phone's lock screen,
+// a car's browser that mutes a bare context), but in the Mac app, whose shell tells macOS itself. Opened without the
+// suite's `out=silent`, so a start here goes through a gain of zero before every output (as the Debug app's mute).
+const ZERO_OUT = `(() => {
+  const connect = AudioNode.prototype.connect, zero = new WeakMap(), state = { routed: 0 };
+  const isOut = (d) => d instanceof AudioNode && ((typeof AudioDestinationNode !== 'undefined' && d instanceof AudioDestinationNode)
+    || (typeof MediaStreamAudioDestinationNode !== 'undefined' && d instanceof MediaStreamAudioDestinationNode));
+  const gateOf = (d) => { let g = zero.get(d); if (!g) { g = d.context.createGain(); g.gain.value = 0; connect.call(g, d); zero.set(d, g); } return g; };
+  AudioNode.prototype.connect = function (d, ...r) { if (isOut(d)) { state.routed += 1; connect.call(this, gateOf(d), ...r); return d; } return connect.call(this, d, ...r); };
+  Object.defineProperty(window, '__zeroOut', { value: state });
+})();`;
+const SHELL_OF = (platform) => `Object.defineProperty(window, 'deepHouseShell', { value: Object.freeze({ platform: '${platform}' }), enumerable: false });`;
+
+SCENARIOS.push({
+  name: 'the output is a media element by default, and straight out of the context only in the Mac app; the element plays a started set',
+  area: 'transport',
+  query: 'v=2&seed=1',
+  deadline: 90000,
+  drive: async (page) => {
+    const url = new URL(page.url());
+    url.searchParams.delete('out');
+    const out = {};
+    for (const [name, init] of [['browser', ''], ['mac app', SHELL_OF('macos')], ['ios app', SHELL_OF('ios')]]) {
+      const ctx = await page.context().browser().newContext({ viewport: { width: 1200, height: 800 } });
+      try {
+        const p = await ctx.newPage();
+        await p.addInitScript(ZERO_OUT);
+        if (init) await p.addInitScript(init);
+        await p.goto(url.href, { waitUntil: 'networkidle', timeout: 30000 });
+        await p.waitForFunction(() => window.ring && window.ring.control, null, { timeout: 20000 });
+        out[name] = await p.evaluate(() => window.ring.control.out);
+        if (name === 'browser') {
+          // a hand's start, silent behind the gate: the set leaves through a stream that an element plays
+          await p.keyboard.press('Space');
+          await p.waitForFunction(() => window.ring.control.playing && !window.ring.control.state.starting, null, { timeout: 20000 });
+          await p.waitForTimeout(1500);
+          out.played = await p.evaluate(() => {
+            const c = window.ring.control, sink = c.state.sink;
+            return {
+              sink: sink && sink.constructor && sink.constructor.name,
+              stream: !!(sink && sink.stream),
+              routed: window.__zeroOut.routed,
+              session: navigator.mediaSession ? navigator.mediaSession.playbackState : 'absent',
+              playing: c.playing,
+            };
+          });
+          await p.keyboard.press('Space');
+          await p.waitForTimeout(500);
+        }
+      } finally { await ctx.close(); }
+    }
+    return out;
+  },
+  judge: (r) => {
+    const bad = [];
+    if (r.browser !== 'element') bad.push(`a browser's page leaves through ${r.browser}, not the element`);
+    if (r['mac app'] !== 'direct') bad.push(`the Mac app's page leaves through ${r['mac app']}, not direct`);
+    if (r['ios app'] !== 'element') bad.push(`the iOS app's page leaves through ${r['ios app']}, not the element`);
+    const pl = r.played || {};
+    if (!pl.playing || !pl.stream || !(pl.routed > 0)) bad.push(`a started set: ${JSON.stringify(pl)}`);
+    if (pl.session !== 'absent' && pl.session !== 'playing') bad.push(`the media session says ${pl.session} while it plays`);
+    return { ok: !bad.length, why: bad[0], note: `browser ${r.browser}, Mac app ${r['mac app']}, iOS app ${r['ios app']}; started: ${pl.sink}, session ${pl.session}, ${pl.routed} output(s) behind the gate` };
+  },
+});
+
+// **An ambient playlist of eleven** (his file of 10-27): the 27191 tracks under their spells, Theme VII into Theme VIII
+// of the same seed (rows 8 and 9) and Theme V of it into another seed (rows 10 and 11).
+const AMBIENT_ELEVEN = [
+  'seed=28617&v=2&theme=2&spell=em:0.00,ti:1.00,ze:0.00,ro:0.00,gl:1.00,ve:1.00,sp:0.21,lo:1.00',
+  'seed=12919&v=2&spell=em:0.05,ti:0.85,ze:0.33,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95',
+  'seed=27191&v=2&theme=3&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81',
+  'seed=27191&v=2&theme=9&spell=em:0.05,ti:0.85,ze:0.75,ro:0.43,gl:0.25,sp:0.10,lo:0.95',
+  'seed=28617&v=2&theme=24&spell=em:0.00,ti:0.39,ze:0.00,ro:0.00,gl:0.18,ve:1.00,sp:0.00,lo:0.22',
+  'seed=27191&v=2&theme=7&spell=em:0.05,ti:0.46,ze:0.32,ro:0.00,gl:0.78,ve:0.30,sp:0.55',
+  'seed=27191&v=2&theme=7&spell=em:0.05,ti:0.46,ze:0.12,ro:0.65,gl:0.80,ve:0.30,sp:0.55,lo:0.90',
+  'seed=27191&v=2&theme=7&spell=em:0.05,ti:0.85,ze:0.75,ro:0.68,gl:0.50,sp:0.10,lo:0.95',
+  'seed=27191&v=2&theme=8&spell=em:0.05,ti:0.85,ze:0.75,ro:0.43,gl:0.31,sp:0.10,lo:0.95',
+  'seed=27191&v=2&theme=5&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81',
+  'seed=32442&v=2&theme=5&spell=em:0.18,ti:0.75,ze:0.02,ro:0.48,gl:0.18,ve:0.25,sp:0.12,lo:0.42',
+];
+
+SCENARIOS.push({
+  name: 'Space only pauses and plays a playlist through its mix: pressed in the wait and in the crossing, the playlist names the track heard, never steps, and the set plays on from the same track; both rows marked through the mix',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 600000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      await withLibrary(p, AMBIENT_ELEVEN);
+      // the place heard, the playlist's word under the ring and its marked rows, every 150 ms
+      const WATCH = `
+        const listAt = () => { const l = document.getElementById('nowList'); const m = l && !l.hidden && /(\\d+) of (\\d+)/.exec(l.textContent); return m ? +m[1] : null; };
+        const marks = () => [...document.querySelectorAll('#library .plTrack.on, #library .plTrack.current')].map((li) => +li.dataset.i + 1);
+        window.__pl = window.__pl || { log: [] };
+        if (!window.__pl.timer) window.__pl.timer = setInterval(() => {
+          const s = ctl.state, m = s.mix, w = m && m.state && m.state.wait;
+          const settled = !s.starting && !w && !(s.transition > 0) && s.castTo == null;
+          window.__pl.log.push({ t: Math.round(performance.now()), said: listAt(), marks: marks(), place: ctl.placeHeard, pos: +s.position.toFixed(1), playing: ctl.playing, settled, x: s.transition > 0 });
+        }, 150);
+      `;
+      const ev = (src) => p.evaluate(body(LIB + SEAM_PASS + WATCH + src));
+      // a pass: the playlist on row `row`, the record set twelve seconds before its seam, Space pressed `n` times
+      // `when` the step is asked ('wait') or 2 s into the crossing ('cross'); then the next track's arrival
+      const pass = async (row, when, n) => {
+        await ev(`
+          await panel();
+          if (!document.querySelector('#library .plTracks')) await pressAct('list');
+          if (listAt() !== ${row + 1} || !ctl.playing) {
+            const from = place();
+            await pressAct('play', '[data-i="${row}"]');
+            await playing();
+            await waitFor(() => place() !== from && ctl.state.transition === 0 && ctl.state.castTo === null, 90000);
+            await sleep(2500);
+          }
+          // the focus off the row pressed: Space is the page's, as it is in the app, where a click focuses no button
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+          ctl.seekTo(Math.max(0, ctl.seamAt - 12) / ctl.readout().duration, true);
+          await sleep(400);
+          window.__pl.log = [];
+          return 1;
+        `);
+        const r = { row, when, n };
+        if (n) {
+          await p.waitForFunction(([when, next]) => {
+            const c = window.ring.control, l = document.getElementById('nowList');
+            const at = l && !l.hidden && /(\d+) of/.exec(l.textContent);
+            if (when === 'wait') return !!at && +at[1] === next && !(c.state.transition > 0);
+            return c.state.transition > 0;
+          }, [when, row + 2], { timeout: 60000, polling: 50 }).catch(() => {});
+          if (when === 'cross') await p.waitForTimeout(2000);
+          r.before = await p.evaluate(() => ({ place: window.ring.control.placeHeard, pos: window.ring.control.state.position, x: window.ring.control.state.transition }));
+          r.pressedAt = await p.evaluate(() => Math.round(performance.now()));
+          for (let k = 0; k < n; k++) { await p.keyboard.press('Space'); await p.waitForTimeout(250); }
+          // an odd count leaves it paused: Space once more, later, to hear where it plays on from
+          if (n % 2) { await p.waitForTimeout(1200); await p.keyboard.press('Space'); }
+          r.lastAt = await p.evaluate(() => Math.round(performance.now()));
+        }
+        // arrived: the next track heard, its place and its birds, and its hand-over run
+        const q = new URLSearchParams(AMBIENT_ELEVEN[row + 1]);
+        const head = `${q.get('seed')}|${+(q.get('theme') || 1) - 1}|`, tail = `|${q.get('spell') || ''}`;
+        r.arrived = await p.evaluate(body(SEAM_PASS + WATCH + `
+          const next = () => place().startsWith(${JSON.stringify(head)}) && place().endsWith(${JSON.stringify(tail)});
+          return await waitFor(() => listAt() === ${row + 2} && next() && ctl.playing && ctl.state.transition === 0 && ctl.state.castTo === null && !(ctl.state.mix && ctl.state.mix.state.wait), 120000);
+        `));
+        await p.waitForTimeout(2500);
+        r.log = await p.evaluate(() => window.__pl.log.splice(0));
+        return r;
+      };
+      return [
+        await pass(9, null, 0),
+        await pass(7, 'wait', 2),
+        await pass(7, 'cross', 4),
+        await pass(9, 'wait', 3),
+        await pass(9, 'cross', 2),
+      ];
+    } finally { await own.close(); }
+  },
+  judge: (passes) => {
+    const bad = [];
+    // a track's place as `placeHeard` writes it: the seed, the theme counted from nought, the engine, the spell
+    const placeOf = (link) => {
+      const q = new URLSearchParams(link);
+      return `${q.get('seed')}|${(+(q.get('theme') || 1)) - 1}|`;
+    };
+    const spellOf = (link) => new URLSearchParams(link).get('spell') || '';
+    const isTrack = (place, i) => {
+      const link = AMBIENT_ELEVEN[i - 1];
+      return !!link && place.startsWith(placeOf(link)) && place.endsWith(`|${spellOf(link)}`);
+    };
+    const words = [];
+    for (const r of passes) {
+      const tag = `rows ${r.row + 1}→${r.row + 2}${r.n ? `, Space ×${r.n} ${r.when === 'wait' ? 'in the wait' : 'in the crossing'}` : ', no Space'}`;
+      const log = r.log;
+      if (!r.arrived) { bad.push(`${tag}: row ${r.row + 2} never arrived (${JSON.stringify(log[log.length - 1])})`); continue; }
+      // the playlist names the place heard whenever no hand-over is on its way, playing or paused
+      const wrong = log.find((x) => x.settled && !isTrack(x.place, x.said));
+      if (wrong) bad.push(`${tag}: the playlist said ${wrong.said} of 11 while ${wrong.place} was heard, ${wrong.playing ? 'playing' : 'paused'} at ${wrong.pos} s`);
+      // Space never steps: the playlist names only this track and the next
+      const named = [...new Set(log.map((x) => x.said))];
+      if (named.some((i) => i !== r.row + 1 && i !== r.row + 2)) bad.push(`${tag}: the playlist named ${named.join(', ')}`);
+      // nothing heard but the two tracks
+      const heard = [...new Set(log.filter((x) => x.settled).map((x) => x.place))];
+      const stray = heard.filter((pl) => !isTrack(pl, r.row + 1) && !isTrack(pl, r.row + 2));
+      if (stray.length) bad.push(`${tag}: heard ${stray.join(', ')}, neither row ${r.row + 1} nor ${r.row + 2}`);
+      // the set plays on from the same track, at the second it was paused
+      if (r.n) {
+        const on = log.find((x) => x.t > r.lastAt && x.playing);
+        if (!on) bad.push(`${tag}: it never played again after the presses`);
+        else if (on.place !== r.before.place || Math.abs(on.pos - r.before.pos) > 4) bad.push(`${tag}: pressed on ${r.before.place} at ${r.before.pos.toFixed(1)} s, it played on from ${on.place} at ${on.pos} s`);
+      }
+      // both rows marked through the mix
+      const both = log.filter((x) => x.playing && x.marks.length === 2 && x.marks.includes(r.row + 1) && x.marks.includes(r.row + 2)).length;
+      if (!both) bad.push(`${tag}: no moment had rows ${r.row + 1} and ${r.row + 2} both marked`);
+      const last = log[log.length - 1];
+      if (last.marks.join() !== String(r.row + 2)) bad.push(`${tag}: after the mix the marks were ${JSON.stringify(last.marks)}`);
+      words.push(`${tag}: ${named.join(' → ')} of 11, both marked ${(both * 0.15).toFixed(1)} s`);
+    }
+    return { ok: !bad.length, why: bad[0], note: words.join('; ') };
+  },
+});
+
 SCENARIOS.push({
   name: 'a one-track playlist repeats at every seam, and two tracks differing only by their birds each take their seam',
   area: 'library',
@@ -17809,6 +18626,9 @@ SCENARIOS.push({
         await playing();
         const first = heard();
         const a = await pass();
+        // the second track is a track: in from its top, not at the bar the first had reached (his report 10-27)
+        a.at = ctl.state.position;
+        a.seamAt = ctl.seamAt;
         const b = await pass();
         ctl.stop();
         await sleep(400);
@@ -17827,6 +18647,7 @@ SCENARIOS.push({
     const em = (x) => (/em:([\d.]+)/.exec(x.place || '') || [])[1];
     if (sp.first.seed !== '4' || em(sp.first) !== '0.80' || !/1 of 3/.test(sp.first.label || '')) bad.push(`the birds pair, started: ${JSON.stringify(sp.first)}`);
     if (!sp.a.arrived || sp.a.seed !== '4' || sp.a.theme !== 0 || em(sp.a) !== '0.20' || !/2 of 3/.test(sp.a.label || '')) bad.push(`the birds pair, first seam: ${JSON.stringify(sp.a)}`);
+    else if (!(sp.a.at < sp.a.seamAt / 2)) bad.push(`the birds pair: the second track came in at ${sp.a.at.toFixed(1)} s of its ${sp.a.seamAt.toFixed(1)} s to the seam, not from its top`);
     if (!sp.b.arrived || sp.b.seed !== '6' || sp.b.theme !== 0 || !/3 of 3/.test(sp.b.label || '')) bad.push(`the birds pair, second seam: ${JSON.stringify(sp.b)}`);
     return {
       ok: !bad.length,
@@ -17948,6 +18769,8 @@ SCENARIOS.push({
       // the ring's next steps the playlist, still cued; the page closing writes its place down
       await a.evaluate(async () => { window.ring.control.skip(); await new Promise((r) => setTimeout(r, 2500)); });
       out.stepped = await read(a);
+      // played this week (his word 10-30: a bare open comes back to what was played for about a week): the stamp a play writes
+      await a.evaluate(() => localStorage.setItem('deephouse.played-at', String(Date.now())));
       await a.close();
       const b = await ctx.newPage();
       await b.goto(bare, { waitUntil: 'networkidle' });
@@ -17962,6 +18785,7 @@ SCENARIOS.push({
       await c.goto(`${bare}&v=2&seed=812`, { waitUntil: 'networkidle' });
       await featReady(c);
       out.link = await read(c);
+      await c.evaluate(() => localStorage.setItem('deephouse.played-at', String(Date.now())));
       await c.close();
       const d = await ctx2.newPage();
       await d.goto(bare, { waitUntil: 'networkidle' });
@@ -17969,6 +18793,22 @@ SCENARIOS.push({
       out.stored = await read(d);
       await d.close();
     } finally { await ctx2.close(); }
+    // **a week on, or a place stored before the stamp, opens Vibe again** (his word 10-30)
+    for (const [key, stamp] of [['stale', String(Date.now() - 8 * 24 * 3600 * 1000)], ['unstamped', null]]) {
+      const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      try {
+        const e = await ctx3.newPage();
+        await e.goto(`${bare}&v=2&seed=812`, { waitUntil: 'networkidle' });
+        await featReady(e);
+        await e.evaluate((v) => { if (v === null) localStorage.removeItem('deephouse.played-at'); else localStorage.setItem('deephouse.played-at', v); }, stamp);
+        await e.close();
+        const g = await ctx3.newPage();
+        await g.goto(bare, { waitUntil: 'networkidle' });
+        await featReady(g);
+        out[key] = await read(g);
+        await g.close();
+      } finally { await ctx3.close(); }
+    }
     return out;
   },
   judge: (r) => {
@@ -17985,6 +18825,10 @@ SCENARIOS.push({
     if (r.reopened.seed !== two.seed || r.reopened.theme !== two.theme || !named(r.reopened.label, 2)) bad.push(`a reopen is on ${r.reopened.seed} theme ${r.reopened.theme + 1}, "${r.reopened.label}", not where it was left`);
     if (r.link.seed !== '812' || r.link.label) bad.push(`a seed link opened ${r.link.seed} with the line "${r.link.label}"`);
     if (r.stored.seed !== '812' || r.stored.label) bad.push(`a bare open after a link's place was stored opened ${r.stored.seed} with the line "${r.stored.label}"`);
+    for (const key of ['stale', 'unstamped']) {
+      const o = r[key];
+      if (!o || o.seed !== one.seed || o.theme !== one.theme || !named(o.label, 1)) bad.push(`a bare open after a place played ${key === 'stale' ? 'eight days ago' : 'before the stamp'} opened ${o && o.seed} with the line "${o && o.label}", not ${f.name} 1 of ${n}`);
+    }
     return {
       ok: !bad.length,
       why: bad[0],
@@ -18045,6 +18889,8 @@ SCENARIOS.push({
         await sleep(300);
         r.heart = heartOn();
         await panel();
+        // the first run plays a featured playlist, so the panel key opens on its page (his word 10-29): Back to the overview
+        await pressAct('back');
         r.zero = { lead: texts('#libPlaylists .plLead'), split: texts('#libPlaylists .plSplit'), featured: texts('#libPlaylists .plFeatured .plNameText'), own: document.querySelectorAll('#libPlaylists .plLists:not(.plFeatured) .plRow:not(.plNewRow)').length };
         await pressAct('list', '[data-name^="n:\\uE000"]');
         r.page = { title: texts('#libPlaylists .plTitle')[0], drag: document.querySelectorAll('#libPlaylists li[data-drag]').length, download: !!document.querySelector('#libPlaylists [data-act="download"]'), share: !!document.querySelector('#libPlaylists [data-act="share"]'), tracks: document.querySelectorAll('#libPlaylists .plTrack').length };
@@ -18266,7 +19112,7 @@ SCENARIOS.push({
     if (!d.featured.names || d.featured.drag) bad.push(`the featured section reads ${JSON.stringify(d.featured)}`);
     if (d.dragged !== 'Q,R,P,S' || d.draggedRecord !== 'Q,R,P,S' || d.draggedOpened || !/Moved P/.test(d.draggedUndo || '')) bad.push(`a mouse's drag of P below R: rows ${d.dragged}, record ${d.draggedRecord}, ${d.draggedOpened ? 'opened it' : 'shut'}, Undo ${JSON.stringify(d.draggedUndo)}`);
     if (d.intoFeatured !== 'Q,R,P,S' || JSON.stringify(d.featuredAfter) !== JSON.stringify(d.featured)) bad.push(`dragging into or out of the featured section left ${d.intoFeatured} and ${JSON.stringify(d.featuredAfter)}`);
-    if (d.rMenu.filter((x) => x !== 'Open in app').join() !== 'Rename,Move up,Move down,Remove') bad.push(`R's ⋯ offers ${d.rMenu.join(', ')}`);
+    if (d.rMenu.filter((x) => x !== 'Open in app').join() !== 'Rename,Move up,Move down,Download,Remove') bad.push(`R's ⋯ offers ${d.rMenu.join(', ')}`);
     if (d.up !== 'R,Q,P,S' || d.upFocus !== 'menu' || !/Moved R/.test(d.upUndo || '')) bad.push(`Move up on R: ${d.up}, the focus on ${d.upFocus}, Undo ${JSON.stringify(d.upUndo)}`);
     if (d.key !== 'R,P,Q,S' || d.keyFocus !== 'menu' || !/Moved Q/.test(d.keyUndo || '')) bad.push(`Move down on Q by the keyboard: ${d.key}, the focus on ${d.keyFocus}, Undo ${JSON.stringify(d.keyUndo)}`);
     if (d.undone !== 'R,P,Q,S' || d.undoneRecord !== 'R,P,Q,S') bad.push(`Move up on Q and its Undo left ${d.undone} (record ${d.undoneRecord})`);
@@ -18332,6 +19178,176 @@ SCENARIOS.push({
       ok: !bad.length,
       why: bad[0],
       note: Object.entries(r).map(([k, x]) => `${k}: the panel ${x.open.box.w}x${x.open.box.h} at ${x.open.box.x},${x.open.box.y}, the ring ${x.open.tilt.w} px beside it, back to ${x.closed.tilt.w} px where it was`).join('; ') + '; the gyroscope hidden while the panel is open, the set playing throughout',
+    };
+  },
+});
+
+// **The coming theme across a seam, one story** (round ring-seam; Eugene 10-30: *"the ring gets blurry line way too
+// ahead of when mixing starting"*, and *"when the new track starts through the mix, ring has one picture (not blurred)
+// and then couple of seconds later another"*). The needle twelve bars before the transport's own seam, then the set's
+// own clock through the blend, no fake time: nothing of the coming theme until the record's last eight bars before the
+// crossfade; at the blend's first instant it is up; from the swap to the blend's end the layer holds what arrived (its
+// drawing unchanged), only goes out, the band's shade only lifts, and the band is drawn once, at the swap.
+SCENARIOS.push({
+  name: 'the coming theme shows only in the last eight bars before the crossfade, and the swap lands as one picture',
+  area: 'ring',
+  query: 'v=2&seed=1',
+  deadline: 200000,
+  page: body(`
+    await started();
+    await sleep(800);
+    const bs = ctl.readout().barSeconds;
+    const seam0 = ctl.seamAt;
+    ctl.seekTo(Math.max(0, seam0 - 12 * bs) / ctl.readout().duration, true);
+    await sleep(1200);
+    const theme0 = ctl.readout().mix.themeNumber;
+    const tl = document.getElementById('timeline');
+    const rebuilds = [];
+    const mo = new MutationObserver(() => rebuilds.push(performance.now()));
+    mo.observe(tl, { childList: true });
+    const rows = [];
+    let swapMs = -1, endMs = -1;
+    const t0 = performance.now();
+    await waitFor(() => {
+      const r = ctl.readout(), n = window.ring.nextDrawn(), now = performance.now();
+      rows.push({ ms: now, pos: r.seconds, seamAt: r.mix.seamAt, bs: r.barSeconds, theme: r.mix.themeNumber, lead: r.mix.lead, crossing: r.mix.crossing, landing: r.mix.landing, shown: n.shown, sig: n.sig, shade: n.shade });
+      if (swapMs < 0 && r.mix.themeNumber !== theme0) swapMs = now;
+      if (swapMs >= 0 && endMs < 0 && !r.mix.crossing) endMs = now;
+      return endMs >= 0 && now - endMs > 2000;
+    }, 150000, 100);
+    mo.disconnect();
+    ctl.stop();
+    return { rows, swapMs, endMs, rebuilds: rebuilds.filter((ms) => ms >= swapMs - 500).map((ms) => Math.round(ms - swapMs)), t0 };
+  `),
+  judge: (r) => {
+    const bad = [];
+    if (r.swapMs < 0 || r.endMs < 0) return { ok: false, why: `the seam never ${r.swapMs < 0 ? 'swapped' : 'ended'} in the time given` };
+    const pre = r.rows.filter((x) => x.ms < r.swapMs);
+    // before the lead: nothing; the eased value never runs ahead of its reading, so it stays at nought there
+    const early = pre.filter((x) => x.pos < x.seamAt - 8 * x.bs - 0.1 && !x.crossing);
+    const shownEarly = Math.max(0, ...early.map((x) => x.shown));
+    if (!early.length) bad.push('no reading before the eight bars: the needle landed too late');
+    if (shownEarly > 0.005) bad.push(`the coming theme showed at ${shownEarly.toFixed(3)} before the last eight bars`);
+    const first = pre.find((x) => x.crossing > 0);
+    if (!first || first.shown < 0.4) bad.push(`at the crossfade's first instant the coming theme stood at ${first ? first.shown.toFixed(3) : 'nothing'}, not up`);
+    const before = pre[pre.length - 1];
+    const land = r.rows.filter((x) => x.ms >= r.swapMs && x.ms < r.endMs);
+    const sigs = [...new Set(land.map((x) => x.sig))];
+    if (sigs.length !== 1 || sigs[0] !== before.sig) bad.push(`through the landing the layer was drawn ${sigs.length} way(s), ${sigs[0] === before.sig ? 'the first' : 'not'} the one that crossed`);
+    let rise = 0, lift = 0;
+    for (let i = 1; i < land.length; i++) { rise = Math.max(rise, land[i].shown - land[i - 1].shown); lift = Math.max(lift, Math.abs(land[i].shade - land[i - 1].shade)); }
+    if (rise > 0.02) bad.push(`after the swap the layer brightened again by ${rise.toFixed(3)}: a second picture`);
+    if (lift > 0.12) bad.push(`the band's shade stepped by ${lift.toFixed(3)} in a frame through the landing`);
+    const after = r.rows.filter((x) => x.ms > r.endMs + 1200);
+    const left = Math.max(0, ...after.map((x) => x.shown));
+    if (left > 0.02) bad.push(`after the blend the coming layer still stood at ${left.toFixed(3)}`);
+    if (r.rebuilds.length !== 1) bad.push(`the band was drawn ${r.rebuilds.length} times from the swap on (${r.rebuilds.join(', ')} ms)`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `nothing of the coming theme over ${early.length} readings before the last eight bars; up at ${first ? first.shown.toFixed(2) : '?'} as the crossfade began; at the swap the band drawn once and the layer holding what crossed, going out over ${((r.endMs - r.swapMs) / 1000).toFixed(1)} s with the shade lifting, never brighter (largest frame step ${rise.toFixed(3)})`,
+    };
+  },
+});
+
+// **A playlist's two rows through a mix** (round ring-seam; his word 10-30: *"3 bars on the playing track, 2 bars on
+// outro mixing and 1 bar on next track, then 2 and 2 and then 1 and 2 and then 0 to 3"*): the needle ten seconds
+// before the playlist's next track is asked, then the set's own clock. The marks' bars as the page draws them (the
+// bars a row shows, mixing out and coming in), every tenth of a second: the five steps in order, never three on both
+// rows, and once the blend has run the arrived row alone with three.
+SCENARIOS.push({
+  name: 'a playlist\'s two rows step their bars 3-0, 2-1, 2-2, 1-2, 0-3 through the mix, 2-2 on the swap, and the arrived row ends alone with three; the ring\'s colour walks to the next track\'s with no step between frames',
+  area: 'library',
+  query: 'v=2&seed=9',
+  deadline: 240000,
+  drive: async (page) => {
+    const own = await ownPage(page, { viewport: { width: 1440, height: 900 } });
+    const p = own.page;
+    try {
+      // two tracks under birds far apart, so the ring's colour has somewhere to walk (round ring-seam, his eye 10-30)
+      await withLibrary(p, ['seed=1&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80', 'seed=2&v=2&spell=em:0.10,ti:0.20,ze:0.90,ro:0.20,gl:0.90']);
+      return await p.evaluate(body(LIB + SEAM_PASS + `
+        await panel();
+        await pressAct('list');
+        await pressAct('play', '[data-i="0"]');
+        const ok = await playing();
+        await sleep(1200);
+        const bars = () => [...document.querySelectorAll('#library li.plTrack')].map((li) => {
+          const m = li.querySelector('svg.plLevel');
+          if (!m) return null;
+          return { n: [...m.querySelectorAll('rect')].filter((b) => b.style.opacity !== '0').length, mix: m.dataset.mix || '' };
+        });
+        ctl.seekTo(Math.max(0, ctl.seamAt - 16) / ctl.readout().duration, true);
+        await sleep(800);
+        const seen = [];
+        let ended = -1;
+        await waitFor(() => {
+          const b = bars(), t = ctl.state.transition, now = performance.now(), m = ctl.readout().mix;
+          // and the ring: whether the hand-over was taken on the record's own line, and whether it folds at the swap
+          // the ring's colour as it shows: the bloomed gold under its unfiltered copy in the coming gold, and the live gold
+          const stop = (id) => (document.querySelector('#' + id + ' stop:nth-child(2)') || { getAttribute: () => null }).getAttribute('stop-color');
+          const twin = document.querySelector('#outerLive > g.twin');
+          seen.push({ b, t, seed: String(ctl.state.seed), own: !!(m.seam && m.seam.laid && m.seam.own), fold: +(window.ring.motion().castRing || 0),
+            crossing: m.crossing, gold: stop('gold'), next: stop('goldNext'), live: stop('goldLive'), twin: twin ? +(twin.getAttribute('opacity') || 0) : 0 });
+          if (ended < 0 && seen.some((x) => x.t > 0) && !t) ended = now;
+          return ended >= 0 && now - ended > 3000;
+        }, 150000, 100);
+        ctl.stop();
+        return { ok, seen };
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    if (!r.ok) return { ok: false, why: 'the playlist never started' };
+    const STEPS = ['3·0', '2·1', '2·2', '1·2', '0·3'];
+    const bad = [];
+    const order = [];
+    let twoThrees = 0;
+    for (const x of r.seen) {
+      if (x.b.filter((m) => m && m.n === 3).length > 1) twoThrees++;
+      const out = x.b.find((m) => m && m.mix === 'out'), inn = x.b.find((m) => m && m.mix === 'in');
+      if (!out || !inn) continue;
+      const k = STEPS.indexOf(`${out.n}·${inn.n}`);
+      if (k < 0) { bad.push(`a step that is none of the five: ${out.n}·${inn.n}`); continue; }
+      if (order[order.length - 1] !== k) order.push(k);
+    }
+    if (twoThrees) bad.push(`${twoThrees} readings showed three bars on two rows`);
+    if (order.join() !== '0,1,2,3,4') bad.push(`the steps came as ${order.map((k) => STEPS[k]).join(' → ') || 'nothing'}, not 3·0 → 2·1 → 2·2 → 1·2 → 0·3`);
+    const last = r.seen[r.seen.length - 1];
+    // **2·2 on the swap**: the reading where the arrived track is first heard
+    const at = r.seen.findIndex((x) => x.seed !== r.seen[0].seed);
+    const onSwap = at > 0 ? r.seen[at].b : null;
+    const sw = onSwap ? [onSwap.find((m) => m && m.mix === 'out'), onSwap.find((m) => m && m.mix === 'in')] : [];
+    if (!sw[0] || !sw[1] || sw[0].n !== 2 || sw[1].n !== 2) bad.push(`at the swap the rows read ${JSON.stringify(onSwap)}, not 2·2`);
+    // **the colour walks** (his eye 10-30): the band as it shows (the bloomed gold under its copy) and the live gold, each
+    // reading against the one before, in sRGB; and somewhere to walk at all
+    const rgb = (h) => (h && /^#[0-9a-f]{6}$/i.test(h) ? [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16) / 255) : null);
+    const mixed = (a, b, w) => a.map((v, k) => v + (b[k] - v) * w);
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    // (a build before ring-seam has the one gold: the band and the live sheets are it)
+    const shown = r.seen.map((x) => { const g = rgb(x.gold), n = rgb(x.next) ?? g, l = rgb(x.live) ?? g; return g && n && l ? { band: mixed(g, n, x.twin), live: l } : null; });
+    let bandStep = 0, liveStep = 0, where = -1;
+    for (let i = 1; i < shown.length; i++) if (shown[i] && shown[i - 1]) {
+      const b = dist(shown[i].band, shown[i - 1].band), l = dist(shown[i].live, shown[i - 1].live);
+      if (Math.max(b, l) > Math.max(bandStep, liveStep)) where = i;
+      bandStep = Math.max(bandStep, b); liveStep = Math.max(liveStep, l);
+    }
+    const ctx = where > 0 ? JSON.stringify([r.seen[where - 1], r.seen[where]].map((x) => ({ seed: x.seed, t: +x.t.toFixed(3), crossing: x.crossing, gold: x.gold, next: x.next, live: x.live, twin: x.twin }))) : '';
+    const walked = shown[0] && shown[shown.length - 1] ? dist(shown[0].live, shown[shown.length - 1].live) : 0;
+    if (walked < 0.08) bad.push(`the ring's colour moved only ${walked.toFixed(3)} across the seam: the two tracks' birds give it nowhere to walk`);
+    if (Math.max(bandStep, liveStep) > 0.04) bad.push(`the ring's colour stepped by ${Math.max(bandStep, liveStep).toFixed(3)} between two readings (the band ${bandStep.toFixed(3)}, the live sheets ${liveStep.toFixed(3)}): a flip, at reading ${where} of ${r.seen.length}: ${ctx}`);
+    // **a playlist's track taken on the record's own seam line lands as a theme does**: no fold at the swap (on a
+    // build whose playlist asks off the line, a press's, the swap is a cast and this is not asked)
+    const swap = r.seen.findIndex((x) => x.seed !== r.seen[0].seed);
+    const own = swap > 0 && r.seen[swap - 1].own;
+    const folded = swap > 0 && r.seen.slice(swap).some((x) => x.fold > 0.01);
+    if (own && folded) bad.push('the playlist\'s track was taken on the record\'s own seam line, and the ring folded and swept it in at the swap');
+    const marked = last.b.filter(Boolean);
+    if (marked.length !== 1 || marked[0].n !== 3 || marked[0].mix) bad.push(`after the blend the rows read ${JSON.stringify(last.b)}, not the arrived one alone with three`);
+    return {
+      ok: !bad.length,
+      why: bad[0],
+      note: `the rows stepped ${order.map((k) => STEPS[k]).join(' → ')} through the blend into seed ${last.seed}, 2·2 on the swap, never three on both, and the arrived row ended alone with three; the ring's colour walked ${walked.toFixed(2)} with no step over ${Math.max(bandStep, liveStep).toFixed(3)} between readings; the hand-over ${own ? `on the record's own seam line, landing ${folded ? 'with' : 'without'} a fold` : `off the record's own line (a cast: the ring ${folded ? 'folds' : 'does not fold'})`}`,
     };
   },
 });

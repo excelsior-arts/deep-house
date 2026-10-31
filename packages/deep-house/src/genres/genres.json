@@ -45,7 +45,7 @@
     "styles": [
      "Downtempo",
      "Lo-fi",
-     "Chillout"
+     "Dark Ambient"
     ]
    },
    {
@@ -277,14 +277,33 @@
      ]
     },
     {
-     "label": "Chillout",
-     "tuned": false,
-     "about": "Chillout: not tuned yet — plays the family's spell."
+     "label": "Dark Ambient",
+     "spell": {
+      "ember": 0,
+      "tide": 0.71,
+      "zephyr": 0.01,
+      "root": 0.16,
+      "gleam": 0.45,
+      "veil": 0.75,
+      "spark": 0.11,
+      "loom": 0.55
+     },
+     "tuned": true,
+     "about": "Dark Ambient: Ember 0, Tide 0.71, Zephyr 0.01, Root 0.16, Gleam 0.45, Veil 0.75, Spark 0.11, Loom 0.55: no drums, a dark timbre, slow and long, the middle of three drumless featured links (seed 28617 theme 24, seed 32442 theme 5, seed 28617 theme 2) with Ember at nought. The untuned Chillout renamed and tuned 10-28 (\"1 and 2 sounds good\")."
     },
     {
      "label": "Ambient Dub",
-     "tuned": false,
-     "about": "Ambient Dub: not tuned yet — plays the family's spell."
+     "spell": {
+      "ember": 0.43,
+      "tide": 1,
+      "zephyr": 0.16,
+      "gleam": 0.31,
+      "veil": 0.06,
+      "spark": 0.45,
+      "loom": 0.85
+     },
+     "tuned": true,
+     "about": "Ambient Dub: Ember 0.43, Tide 1.00, Zephyr 0.16, Gleam 0.31, Veil 0.06, Spark 0.45, Loom 0.85, the rest at the house: the dub's one chord, very wet, over a broken beat near 100 BPM, the middle of two featured links (seed 97058, seed 1557). Tuned 10-28 (\"1 and 2 sounds good\")."
     },
     {
      "label": "Drone",
@@ -342,6 +361,21 @@
      },
      "tuned": true,
      "about": "Waves: the sea, and the music on its waves, at the WAVES place's birds (round ambient-waves, PLAN-AMBIENT Phase 4; src/styles/deep-house-places.ts)."
+    },
+    {
+     "label": "Bowls",
+     "spell": {
+      "ember": 0.02,
+      "tide": 0.95,
+      "zephyr": 0.5,
+      "root": 0.4,
+      "gleam": 0.8,
+      "veil": 0,
+      "spark": 0,
+      "loom": 1
+     },
+     "tuned": true,
+     "about": "Bowls: singing bowls in slow conversation over a breathing bed, sound healing and shavasana, at the BOWLS place's birds (round ambient-bowls, PLAN-AMBIENT P2; src/styles/deep-house-places.ts)."
     }
    ]
   },
@@ -485,10 +519,19 @@
   },
   {
    "label": "Trance",
-   "spell": {},
-   "reachable": false,
-   "tuned": false,
-   "about": "Trance: 136–140 BPM, a lead over 16–32-bar builds. Not tuned yet, and not reached by the ring's controls: the fast band's top, a lead part and a build rule are the composer's to add first (PLAN-GENRES §2). No spell is measured for it, so it has none, and its keys stay disabled until a genres session tunes it.",
+   "spell": {
+    "ember": 0.83,
+    "spark": 0.42,
+    "gleam": 0.62,
+    "loom": 0.82,
+    "root": 0.62,
+    "zephyr": 0.6,
+    "veil": 0.55,
+    "tide": 0.62
+   },
+   "reachable": true,
+   "tuned": true,
+   "about": "Trance: 135–140 BPM, four on the floor, the gritty supersaw's gate under its riff, long builds and a bare breakdown.",
    "subs": [
     {
      "label": "Progressive Trance",
@@ -497,8 +540,18 @@
     },
     {
      "label": "Uplifting Trance",
-     "tuned": false,
-     "about": "Uplifting Trance: not tuned yet — plays the family's spell."
+     "spell": {
+      "ember": 0.82,
+      "spark": 0.33,
+      "gleam": 0.92,
+      "loom": 0.92,
+      "root": 0.55,
+      "zephyr": 0.72,
+      "veil": 0.45,
+      "tide": 0.78
+     },
+     "tuned": true,
+     "about": "Uplifting Trance: 135–140 BPM, the supersaw opened bright, suspended chords, long and wet."
     },
     {
      "label": "Psytrance",
@@ -522,8 +575,18 @@
     },
     {
      "label": "Hard Trance",
-     "tuned": false,
-     "about": "Hard Trance: not tuned yet — plays the family's spell."
+     "spell": {
+      "ember": 0.86,
+      "spark": 0.43,
+      "gleam": 0.18,
+      "loom": 0.72,
+      "root": 0.72,
+      "zephyr": 0.45,
+      "veil": 0.66,
+      "tide": 0.5
+     },
+     "tuned": true,
+     "about": "Hard Trance: 140–145 BPM, the supersaw at its darkest and most driven, the riff restless over the gate."
     },
     {
      "label": "Dream Trance",

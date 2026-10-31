@@ -14,8 +14,8 @@
 // question is left open and only the ground answers. An answer the last few exchanges already said is said another
 // way; the theme's first answer may come back as its last word. Then a long rest of 10-32 s. The ground gives way to
 // the talk: a strike that would fall inside an exchange moves a breath before its call or after its answer. A hand
-// marks a phrase now and then (a round low woodblock, a frame drum under a muted hand, a soft shaker: a hint, never a
-// strike, some 12 dB under the answer), between the call and the answer or after it, at most once an exchange and
+// marks a phrase now and then (a round low woodblock alone, his ear 10-29: a hint, never a strike, some 12 dB under
+// the answer), between the call and the answer or after it, at most once an exchange and
 // never on a strike. The chapters are the section kinds: the intro and the outro are the
 // ground alone (its last strike some seconds before the end, so it dies out), the grooves the exchanges, the
 // breakdown the answerer alone now and then and sometimes a long silence over the ground.
@@ -163,6 +163,60 @@ export interface ConversationRow {
   hardGain?: number;
   /** the bells' size at its two poles, reached by the `size` knob's lean (-1 small, +1 large; nought the place's own) */
   size?: { small: SizePole; large: SizePole };
+  /**
+   * **A set of bowls** (BOWLS, PLAN-AMBIENT P2, ambient-bowls): the call and the answer each strike one bowl of a set
+   * tuned over the ground's own pitch (the great bowl's), `call` and `answer` its sizes in semitones over it by weight
+   * (the tonic, the fifth and the octave: three sizes of one bowl). The answer strikes another bowl of the set than the
+   * call's, a beat after it (`answerer.afterS`), or none (the kind `open`: a bowl alone); every bowl's level falls by
+   * the ground's own rule by register. Where a row names it, the pitch lists, the contours, the answer's ways, its memory
+   * and the breakdown's walk are not read. Gleam's light leans the set by size (`bowl:<size>`, a factor's log a unit).
+   */
+  bowls?: {
+    /**
+     * the theme's set, drawn once a theme by weight (ambient-bowls round 2, his ear: "they kind of sound similar"):
+     * each its sizes in semitones over the great bowl, the great bowl's own (nought) first; the call strikes one of the
+     * others, the answer another of the set (the great bowl among them). A set whose top would stand over `mostMidi` over
+     * the theme's great bowl is not drawn (every pair beating under 1.5 Hz)
+     */
+    sets: Array<{ id: string; sizes: number[]; w: number }>;
+    mostMidi: number;
+    /** the middle of the sets' sizes (semitones over the great bowl) Gleam's light leans the draw about: a factor an octave over it (engine-data; it had been a number in the code) */
+    middle: number;
+    /** the theme's pace, a factor drawn once a theme on its rests and the ground's gaps: some sessions sparser than others */
+    pace: Range;
+    /** the rim's chance, a factor drawn once a theme */
+    rimMul: Range;
+  };
+  /**
+   * **The wash** (ambient-bowls round 2, his ask: "just bowls without the synth pad in the background"): Tide's lean on
+   * the bed under the bowls (the knob `bed`, nought at the place's own and -1 at Tide's low end): the bed `dbPerUnit` a
+   * unit under its level, and from `offAt` down no bed at all, the bowls alone in their room (its sends and tail kept).
+   * The place's level needs no give-back: its trim windows at nought read the same with the bed and without it
+   * (median −19.4 and −19.1 LUFS over the 24 own themes; the bed under the bus's glue lowers the bowls about as much as
+   * it adds)
+   */
+  wash?: { offAt: number; dbPerUnit: number;
+    /** the bowls lifted as the bed leaves (dB at its cut, linearly from nought at the place's own): alone they are the whole sound */
+    aloneDb?: number };
+  /**
+   * **The rim** (P2b): a stick drawn round a bowl just struck, so it sings under its own ring: `voices` the rim's (its
+   * oscillators counted for the stick's time and the free ring), `chance` an exchange's call is sung (Spark's `rim`
+   * lean on it), `opening` the theme's first ground strike sung for certain (the opening's gesture: strike, then sing),
+   * `afterS` how long after the strike the stick starts, `dur` its time on the rim, `lastS` none starts this near the
+   * end, and never two rims at once (one sings until its ring ends). Never in a chapter of the ground alone but the
+   * opening's.
+   */
+  rim?: { voices: RoleVoice[]; chance: number; opening: boolean; afterS: Range; dur: Range; vel: Range; levelDb: number; reverb: number; delay: number; pan: Range; lastS: number };
+  /**
+   * **The breath** (P2): a gain line over the harmonic sum in theme seconds, a raised cosine from its floor to `db` over
+   * it, its period drawn per theme in `periodS` (Ember's `breath` lean a factor on it), faded in over the first `fadeS`
+   * and out over the last; `steps` knots a period. `onFloor`: the bowls are struck as the room breathes out, a call's
+   * first strike and the ground's on the nearest floor of the breath (never nearer the last strike than the rules
+   * allow), so a strike meets the limiter at the breath's lowest and its ring rises with the in-breath.
+   */
+  breath?: { periodS: Range; db: Range; fadeS: number; steps: number; onFloor: boolean;
+    /** the period's factor (Ember's `breath` lean) from which the ring's words call the breath quick */
+    quickAt?: number };
   birds: { by: BirdLeans['by']; most?: BirdLeans['most']; ends?: BirdLeans['ends'] };
   budget: { fallbacks: string[] };
 }
@@ -190,7 +244,35 @@ export function conversationRowsFaults(voiceExists: (v: string) => boolean = () 
         if (x.hardGain !== undefined && !(finite(x.hardGain) && x.hardGain >= 1 && x.hardGain <= 4)) bad.push(at(`${role}: ${x.v}'s hardGain within 1-4`));
       }
     };
-    voices('ground', r.ground.voices); voices('caller', r.caller.voices); voices('answerer', r.answerer.voices); voices('punctuation', r.punctuation.voices);
+    voices('ground', r.ground.voices); voices('caller', r.caller.voices); voices('answerer', r.answerer.voices);
+    // a row with no hand says so twice: no voice, and a chance of nought
+    if (r.punctuation.chance > 0 || r.punctuation.voices?.length) voices('punctuation', r.punctuation.voices);
+    if (r.bowls) {
+      // a set's sizes: the great bowl first, then whole semitones on a tone the minor and the dorian share (so any key's
+      // set is in its scale), at least two more bowls
+      const SHARED = [0, 2, 3, 5, 7, 10];
+      if (!r.bowls.sets?.length || !r.bowls.sets.some((x) => x.w > 0)) bad.push(at('the bowls draw no set'));
+      if (!(Number.isFinite(r.bowls.middle) && r.bowls.middle > 0)) bad.push(at('the bowls name no middle to lean about'));
+      for (const x of r.bowls.sets ?? [])
+        if (!(x.w >= 0) || x.sizes[0] !== 0 || x.sizes.length < 3 || new Set(x.sizes).size !== x.sizes.length || x.sizes.some((y) => !Number.isInteger(y) || y < 0 || y > 24 || !SHARED.includes(y % 12)))
+          bad.push(at(`the bowls' set ${x.id}: the great bowl first, two more at least, on tones the minor and the dorian share`));
+      if (!(r.bowls.mostMidi >= 40 && r.bowls.mostMidi <= 72) || !range(r.bowls.pace, 0.4, 2) || !range(r.bowls.rimMul, 0, 3)) bad.push(at('the bowls\' mostMidi, pace and rimMul in range'));
+      if (r.caller.notes.some(([n, w]) => n !== 1 && w > 0)) bad.push(at('a call of the bowls is one bowl'));
+      if (r.answerer.kinds.some(([k, w]) => w > 0 && k !== 'echo' && k !== 'open')) bad.push(at('the bowls answer with another bowl (echo) or leave it alone (open)'));
+    }
+    if (r.rim) {
+      const M = r.rim;
+      voices('rim', M.voices);
+      if (!(M.chance >= 0 && M.chance <= 1) || typeof M.opening !== 'boolean' || !range(M.afterS, 0, 10) || !range(M.dur, 1, 30) || !range(M.vel, 0, 1) || !(M.lastS >= 0)) bad.push(at('the rim\'s numbers in range'));
+      if (!finite(M.levelDb) || M.levelDb > 6 || M.levelDb < -30 || !(M.reverb >= 0 && M.reverb <= 1) || !(M.delay >= 0 && M.delay <= 1)) bad.push(at('the rim\'s levelDb from -30 to 6, its sends in [0, 1]'));
+    }
+    if (r.wash && !(r.wash.offAt < 0 && r.wash.offAt >= -1 && r.wash.dbPerUnit >= 0 && r.wash.dbPerUnit <= 30 && (r.wash.aloneDb ?? 0) >= 0 && (r.wash.aloneDb ?? 0) <= 6)) bad.push(at('the wash: offAt in [-1, 0), dbPerUnit 0-30, aloneDb 0-6'));
+    if (r.breath) {
+      const B = r.breath;
+      if (!range(B.periodS, 4, 30) || !range(B.db, 0, 6) || !(B.fadeS >= 0 && B.fadeS <= 60) || !(Number.isInteger(B.steps) && B.steps >= 4 && B.steps <= 32) || typeof B.onFloor !== 'boolean')
+        bad.push(at('the breath: a period of 4-30 s, a depth of 0-6 dB, a fade of 0-60 s, 4-32 knots a period'));
+      if (B.quickAt !== undefined && !(B.quickAt > 0 && B.quickAt < 1)) bad.push(at('the breath\'s quickAt a factor under one'));
+    }
     if (!r.scale.length || r.scale.some((i) => !Number.isInteger(i) || i < 0 || i > 6) || new Set(r.scale).size !== r.scale.length || r.scale[0] !== 0) bad.push(at('the scale is distinct indexes of a seven-note scale, the tonic first'));
     for (const [role, reg] of [['ground', r.ground.register], ['caller', r.caller.register], ['answerer', r.answerer.register]] as const)
       if (!range(reg, 24, 108) || reg[1] - reg[0] < 11) bad.push(at(`${role}'s register is an octave at least, so every degree has a pitch in it`));
@@ -260,7 +342,7 @@ export interface ConversationEvent {
   t: number;
   bar: number;
   step: number;
-  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse';
+  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse' | 'conversation-rim';
   p: { midi?: number; vel: number; dur: number; gain: number; reverb: number; delay: number; panPath: number; hardness?: number };
 }
 
@@ -291,7 +373,48 @@ export interface ConversationSummary {
   silences: number;
   /** the cast's units against the catalogue's ceiling, and the strikes the oscillators' ceiling refused */
   budget: { ceiling: number; before: number; after: number; fallback: string[]; oscillatorsMost: number; refused: number };
+  /** the rim's strokes, where the row has a rim (P2b) */
+  rims?: number;
+  /** the breath the theme was laid under, where the row breathes (P2): its period, its depth over its floor and its first floor (s) */
+  breath?: { periodS: number; db: number; phaseS: number };
+  /** the bowls' set the theme drew, its great bowl (MIDI), its pace and its rim's factor (round 2) */
+  bowls?: { set: string; great: number; pace: number; rim: number };
   says: string;
+}
+
+/**
+ * **The breath as laid** (P2): the period and the depth a theme draws (off a stream of its own), its first floor, the
+ * knots of its gain line (a factor over the harmonic sum: one at its floor, `db` over it at its crest, faded in over the
+ * first `fadeS` and out over the last), and the floor nearest a second.
+ */
+export interface BreathLine { periodS: number; db: number; phaseS: number; knots: Array<{ t: number; f: number }>; floorNear: (t: number) => number }
+/**
+ * **The wash as a spell plays it** (round 2): the bed's move under the bowls (dB) and whether it plays at all; nought
+ * and on at the place's own Tide, and wherever a row names no wash.
+ */
+export function washOf(R: ConversationRow, spell: Spell, centre: Readonly<Record<string, number>>, bands?: BirdLeans['bands']): { lean: number; db: number; off: boolean } {
+  const W = R.wash;
+  if (!W) return { lean: 0, db: 0, off: false };
+  const lean = Math.max(-1, Math.min(0, conversationLeans(R, spell, centre, bands).shift('bed')));
+  const off = lean <= W.offAt + 1e-9;
+  return { lean: +lean.toFixed(4), db: off ? 0 : +(W.dbPerUnit * lean).toFixed(3), off };
+}
+export function breathOf(R: ConversationRow, seed: string, end: number, periodF = 1): BreathLine | null {
+  const B = R.breath;
+  if (!B || !(end > 0)) return null;
+  const r = new Rng(`${seed}::conversation:breath`);
+  const periodS = +(lerp(r, B.periodS) * periodF).toFixed(4);
+  const db = +lerp(r, B.db).toFixed(3);
+  const phaseS = +(r.next() * periodS).toFixed(4);
+  const depth = (t: number) => (B.fadeS > 0 ? Math.max(0, Math.min(1, t / B.fadeS, (end - t) / B.fadeS)) : 1);
+  const step = periodS / B.steps;
+  const knots: Array<{ t: number; f: number }> = [];
+  for (let k = 0; ; k++) {
+    const t = Math.min(end, k * step);
+    knots.push({ t: +t.toFixed(4), f: +dbToGain(db * depth(t) * (0.5 - 0.5 * Math.cos((2 * Math.PI * (t - phaseS)) / periodS))).toFixed(5) });
+    if (t >= end) break;
+  }
+  return { periodS, db, phaseS, knots, floorNear: (t) => phaseS + Math.round((t - phaseS) / periodS) * periodS };
 }
 
 export interface ConversationInput {
@@ -435,12 +558,18 @@ export function conversationLeans(R: ConversationRow, spell: Spell, centre: Read
  * where nobody talks. Laid the other way round, the ground was a clock (three 44 s rings struck as the oldest died:
  * a strike every 15 s, give or take three, in every theme) and the talk stepped round it.
  */
-export function planConversation(I: ConversationInput): { events: ConversationEvent[]; summary: ConversationSummary } | null {
+export function planConversation(I: ConversationInput): { events: ConversationEvent[]; summary: ConversationSummary; breath: BreathLine | null } | null {
   const R = I.row;
   const LN = conversationLeans(R, I.spell, I.centre, I.bands);
   const { factor, shift } = LN;
   const end = I.bars * I.barSeconds;
   const s16 = I.barSeconds / 16;
+  // **the breath** (P2): its line once a theme, and the floor a strike is struck on as the room breathes out (the
+  // nearest, never before `from`)
+  const BR = breathOf(R, I.seed, end, factor('breath'));
+  const onFloor = !!(BR && R.breath!.onFloor);
+  const floorOf = (t: number, from: number) => { if (!onFloor) return t; let f = BR!.floorNear(t); while (f < from - 1e-9) f += BR!.periodS; return f; };
+  const BW = R.bowls;
   /** the grid a strike asked at a second is laid on (Ember's: the sixteenth, the eighth or the beat), before its lateness */
   const gridOf = (t: number) => { const q = s16 * LN.unit; return Math.ceil(t / q - 1e-9) * LN.unit; };
 
@@ -466,7 +595,7 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     if (V?.caller && uc < LN.reach && V.caller !== ground && V.caller !== answerer) caller = V.caller;
     if (V?.answerer && ua < LN.reach && V.answerer !== ground && V.answerer !== caller) answerer = V.answerer;
   }
-  let punct: string | null = voiceOf(rv, R.punctuation.voices, () => 1);
+  let punct: string | null = R.punctuation.voices.some((x) => x.w > 0) ? voiceOf(rv, R.punctuation.voices, () => 1) : null;
   const fallback: string[] = [];
   const cost = () => I.unitsOf([ground, caller, answerer, ...(punct ? [punct] : [])]) + I.besides;
   const before = cost();
@@ -489,7 +618,9 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   const footingDb = I.roomKeysDb != null && Number.isFinite(I.roomKeysDb) ? R.keysDb - I.roomKeysDb : 0;
   // Veil's busier count, a lighter touch on every strike of the bells (nothing on the sparser side, nothing at the tile)
   const countDb = LN.touchDb;
-  const voiceDb = (role: RoleVoice[], v: string) => (role.find((x) => x.v === v)?.db ?? 0) + R.mixDb + footingDb + countDb;
+  // the wash's lift (round 2): as the bed leaves, the bowls stand up by `aloneDb` at its cut, nought at the place's own
+  const washLift = R.wash?.aloneDb ? R.wash.aloneDb * Math.min(1, Math.max(0, Math.max(-1, Math.min(0, shift('bed'))) / R.wash.offAt)) : 0;
+  const voiceDb = (role: RoleVoice[], v: string) => (role.find((x) => x.v === v)?.db ?? 0) + R.mixDb + footingDb + countDb + washLift;
   /** the octaves a voice sounds its role's pitches at (a great bell's hum under where the call is written) */
   const octOf = (role: RoleVoice[], v: string) => 12 * (role.find((x) => x.v === v)?.oct ?? 0);
   // Tide's width between the caller and the answerer: their pan ranges widened or drawn in about the middle, never
@@ -554,6 +685,30 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
 
   // --- the exchanges, the breakdown's line ---
   const callerP = pitches(LN.registers.caller), answerP = pitches(LN.registers.answerer);
+  /** a bowl's level by register (the ground's rule: its upper notes read louder on the keys' floor, so a player leans off them) */
+  const byRegDb = (midi: number) => R.ground.dbByOctave ? R.ground.dbByOctave * Math.max(0, Math.min(midi, R.ground.dbTo ?? Infinity) - (R.ground.dbFrom ?? 0)) / 12 : 0;
+  /** the set of bowls' great bowl: the ground's tonic nearest its register's middle, as the ground strikes it */
+  const greatMidi = (() => {
+    const reg = LN.registers.ground, mid = (reg[0] + reg[1]) / 2;
+    return pitches(reg).filter((x) => x.degree === 0).sort((a, b) => Math.abs(a.midi - mid) - Math.abs(b.midi - mid))[0]?.midi ?? Math.round(mid);
+  })();
+  // **the theme's set and pace** (round 2), once a theme off a stream of their own: a set whose top fits under the
+  // beating line over this theme's great bowl, the pace on its rests and the ground's gaps, the rim's chance
+  const rbw = new Rng(`${I.seed}::conversation:bowls`);
+  const fitsSets = BW ? BW.sets.filter((x) => x.w > 0 && greatMidi + Math.max(...x.sizes) <= BW.mostMidi) : [];
+  const SET = BW ? (fitsSets.length ? rbw.weighted(fitsSets.map((x) => ({ v: x, w: x.w }))) : BW.sets[0]) : null;
+  const paceF = BW ? +lerp(rbw, BW.pace).toFixed(4) : 1;
+  const rimF = BW ? +lerp(rbw, BW.rimMul).toFixed(4) : 1;
+  /**
+   * a bowl of the set by its leaned weights, never one of `except`: Gleam's `light` a factor an octave over the row's
+   * `middle` (the small bowls toward one, the great bowl toward nought), and a bird's `bowl:<size>` its own (Root's great bowl)
+   */
+  const bowlOf = (r: Rng, sizes: readonly number[], except: readonly number[] = []) => {
+    const live = sizes.filter((x) => !except.includes(x)).map((x) => ({ v: x, w: factor(`bowl:${x}`) * factor('light') ** ((x - BW!.middle) / BW!.middle) }));
+    return live.length ? r.weighted(live) : null;
+  };
+  /** the calls the rim may sing under: each exchange's first strike, its pitch */
+  const sung: Array<{ t: number; midi: number }> = [];
   const answerMid = (LN.registers.answerer[0] + LN.registers.answerer[1]) / 2;
   const targetW = (degree: number) => (R.caller.targets[String(degree)] ?? 0) * factor(`target:${degree}`);
   const callDbOf = (v: string) => R.caller.levelDb + voiceDb(R.caller.voices, v) + I.layerDbOf(v);
@@ -561,7 +716,7 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   const punctDb = punct ? R.punctuation.levelDb + voiceDb(R.punctuation.voices, punct) + I.layerDbOf(punct) : 0;
   /** the call's touch by register: a struck voice's top is its loudest and brightest, so a player leans off it */
   const callVelAt = (midi: number) => Math.max(0.1, 1 + R.caller.velByOctave * Math.max(0, midi - R.caller.velFrom) / 12);
-  const restF = LN.restF;
+  const restF = LN.restF * paceF;
   const gapF = Math.exp(LN.sizeAt('gaps')), afterF = Math.exp(LN.sizeAt('after'));
   const notesW: Pairs<number> = R.caller.notes.map(([n, w]) => [n, w * LN.notesF(n)]);
   const handChance = Math.min(1, R.punctuation.chance * factor('punctuation') * LN.handF);
@@ -642,6 +797,8 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     // the exchanges: a call, a breath, an answer (or none), a hand now and then, a long rest
     const rx = new Rng(`${I.seed}::conversation:exchange:${si}`);
     let t = s0 + lerp(rx, R.exchange.entryS);
+    // the breath's floor a call is struck on is never before this (the section's start, a wait's second, half a rest)
+    let floorFrom = s0;
     /** an exchange's own draws, off its own stream: how many notes, their gaps, the breath before the answer */
     const drawsOf = (r: Rng) => {
       const count = weighted(r, notesW);
@@ -654,8 +811,38 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
       const { count, gaps, callLen, afterS } = drawsOf(rn);
       const kind: AnswerKind = weighted(rn, R.answerer.kinds);
       const rest = lerp(rn, R.exchange.restS) * restF;
+      t = floorOf(t, floorFrom);
       // room for the call, the breath and the answer before the section's end
       if (t + callLen + afterS + callLen * R.answerer.gapMul > s1 - R.exchange.endS) break;
+      if (BW) {
+        // **a set of bowls** (P2): one bowl struck, and another a beat after it or none; then a long rest
+        const size = bowlOf(rn, SET!.sizes.slice(1));
+        if (size == null) break;
+        const callVel = lerp(rn, R.caller.vel);
+        const midi = greatMidi + size;
+        const h = hardened(+callVel.toFixed(3), +dbToGain(callDb + byRegDb(midi)).toFixed(5), R.caller.voices, callerNow);
+        const e = strike(callerNow, t, 'conversation-call', rn, { midi: midi + callOct, vel: h.vel, dur: ring(callerNow, h.vel, R.caller.dur, rn), gain: h.gain, ...(h.hardness ? { hardness: h.hardness } : {}),
+          reverb: send(R.caller.reverb), delay: R.caller.delay, pan: pan(rn, callPan) });
+        // a bowl with no room waits two seconds for the rings to fall, onto the next floor
+        if (!e) { if (t + 2 < s1 - R.exchange.endS) { floorFrom = t + 2; t += 2; n--; waiting = true; continue; } waiting = false; break; }
+        waiting = false;
+        exchanges++;
+        sung.push({ t: e.t, midi });
+        let answerEnd = e.t, kindLaid: AnswerKind = 'open';
+        const other = kind === 'open' ? null : bowlOf(rn, SET!.sizes, [size]);
+        if (other != null) {
+          const am = greatMidi + other;
+          const ah = hardened(+(callVel * R.answerer.velMul).toFixed(3), +dbToGain(answerDb + byRegDb(am)).toFixed(5), R.answerer.voices, answererNow);
+          const a = strike(answererNow, e.t + afterS, 'conversation-answer', rn, { midi: am + answerOct, vel: ah.vel, dur: ring(answererNow, ah.vel, R.answerer.dur, rn), gain: ah.gain,
+            ...(ah.hardness ? { hardness: ah.hardness } : {}), reverb: send(R.answerer.reverb), delay: R.answerer.delay, pan: pan(rn, answerPan) });
+          if (a) { answerEnd = a.t; kindLaid = 'echo'; }
+        }
+        answers[kindLaid]++;
+        spans.push([e.t, answerEnd]);
+        t = answerEnd + rest;
+        floorFrom = answerEnd + rest * 0.5;
+        continue;
+      }
       // the section's last exchange: the next one's own draws find no room after this one's rest (it closes)
       const closing = t + span({ callLen, afterS }) + rest + span(drawsOf(new Rng(`${I.seed}::conversation:note:${si}:${n + 1}`))) > s1 - R.exchange.endS;
       // the call: a chord tone of the chord that holds, then the contour the targets lean toward; never started where
@@ -812,10 +999,14 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     let tried = -Infinity;
     // the last strike `lastS` before the end, once it is on its grid and late
     const last = end - R.ground.lastS - s16 * LN.unit - lateMost;
+    // the breath's floor a strike is struck on (P2), past the last strike's `apartS`, a refused strike and a ring's wait;
+    // the theme's first strike opens it where it is
+    let floorFrom = -Infinity;
     while (t < last) {
+      if (onFloor && groundOn.length) t = floorOf(t, Math.max(floorFrom, prev + apartS, tried + 0.5));
       // no more than `ringsMost` of its rings at once: the strike waits for the oldest to end
       const ringing = groundEnds.filter((x) => x > t).sort((a, b) => a - b);
-      if (ringing.length >= LN.ringsMost) { t = ringing[ringing.length - LN.ringsMost] + 0.05; continue; }
+      if (ringing.length >= LN.ringsMost) { t = ringing[ringing.length - LN.ringsMost] + 0.05; floorFrom = t; continue; }
       // the talk's turn: a strike inside an exchange gives way to its nearer edge, a breath before the call or after
       // the answer; after only while the last ring still holds the room, before only where the rings leave it room.
       // Read where the strike would be laid (its grid step and its lateness, `clearOfTalk`): a second just clear of
@@ -851,7 +1042,35 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
       // the next strike inside this one's ring, never closer than `apartS`; closer where nobody talks; Veil's count and
       // the bells' size on its gap
       const pace = R.ground.pace[R.chapters[kindAt(e.t)] ?? 'exchanges'] ?? 1;
-      t = e.t + Math.max(apartS, Math.min(lerp(rg, R.ground.everyS) * pace * LN.groundF, groundRing * R.ground.ringShare));
+      t = e.t + Math.max(apartS, Math.min(lerp(rg, R.ground.everyS) * pace * LN.groundF * paceF, groundRing * R.ground.ringShare));
+    }
+  }
+
+  // --- the rim (P2b): a stick drawn round a bowl just struck, sparingly; the opening's great bowl sung for certain ---
+  let rims = 0;
+  const RM = R.rim;
+  if (RM && RM.voices.some((x) => x.w > 0)) {
+    const rimVoice = voiceOf(new Rng(`${I.seed}::conversation:rim`), RM.voices, () => 1);
+    if (cast.has(rimVoice) || fits(rimVoice)) {
+      cast.add(rimVoice);
+      const rimDbOf = (midi: number) => RM.levelDb + voiceDb(RM.voices, rimVoice) + I.layerDbOf(rimVoice) + byRegDb(midi);
+      const opening = RM.opening && groundStrikes.length && R.chapters[kindAt(groundStrikes[0].t)] === 'ground' ? [{ t: groundStrikes[0].t, midi: groundStrikes[0].midi, opening: true }] : [];
+      const cands = [...opening, ...sung.map((x) => ({ ...x, opening: false }))];
+      const chance = Math.min(1, RM.chance * factor('rim') * rimF);
+      let freeAt = -Infinity;
+      for (const [i, c] of cands.entries()) {
+        const rr = new Rng(`${I.seed}::conversation:rim:${c.opening ? 'opening' : i - opening.length}`);
+        if (!c.opening && !rr.chance(chance)) continue;
+        const at0 = c.t + lerp(rr, RM.afterS);
+        const dur = +lerp(rr, RM.dur).toFixed(3);
+        const vel = +lerp(rr, RM.vel).toFixed(3);
+        if (at0 < freeAt || at0 + dur > end - RM.lastS) continue;
+        if (!c.opening && (R.chapters[kindAt(at0)] ?? 'exchanges') !== 'exchanges') continue;
+        const e = strike(rimVoice, at0, 'conversation-rim', rr, { midi: c.midi, vel, dur, gain: +dbToGain(rimDbOf(c.midi)).toFixed(5), reverb: send(RM.reverb), delay: RM.delay, pan: pan(rr, RM.pan) });
+        if (!e) continue;
+        rims++;
+        freeAt = e.t + Math.max(dur, ...I.oscillatorsOf(rimVoice, vel, dur));
+      }
     }
   }
 
@@ -882,11 +1101,15 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   events.sort((a, b) => a.t - b.t);
   const voices = { ground, caller, answerer, punctuation: punct };
   const says = `${R.id}: ${ground} ground, ${caller} calls, ${answerer} answers${punct ? `, ${punct} marks` : ''}; ${exchanges} exchanges (${Object.entries(answers).filter(([, n]) => n).map(([k, n]) => `${k} ${n}`).join(', ')}${returns ? `, ${returns} return` : ''}), ${hands} hands, ${groundOn.length} ground strikes`
-    + (handovers.length ? `; handed to ${handovers.join(', ')}` : '') + (pulses ? `; ${pulses} heartbeats` : '');
+    + (handovers.length ? `; handed to ${handovers.join(', ')}` : '') + (pulses ? `; ${pulses} heartbeats` : '')
+    + (SET ? `; the ${SET.id} set over ${greatMidi}, pace ${paceF.toFixed(2)}` : '') + (RM ? `; ${rims} rims` : '') + (BR ? `; breathing every ${BR.periodS.toFixed(1)} s, ${BR.db.toFixed(1)} dB` : '');
   return {
     events,
     summary: { row: R.id, voices, handovers, size: +LN.size.toFixed(3), pulse: pulses, count: +LN.count.toFixed(4), tail: +LN.tail.toFixed(4), breathS: +(R.answerer.afterS[1] * afterF).toFixed(3), exchanges, answers, returns, recalled, punctuation: hands, ground: groundOn.length, breakdownNotes, silences,
-      budget: { ceiling: I.ceiling, before, after: I.unitsOf(cast) + I.besides, fallback, oscillatorsMost: R.oscillatorsMost, refused }, says },
+      budget: { ceiling: I.ceiling, before, after: I.unitsOf(cast) + I.besides, fallback, oscillatorsMost: R.oscillatorsMost, refused },
+      ...(RM ? { rims } : {}), ...(BR ? { breath: { periodS: BR.periodS, db: BR.db, phaseS: BR.phaseS } } : {}),
+      ...(SET ? { bowls: { set: SET.id, great: greatMidi, pace: paceF, rim: rimF } } : {}), says },
+    breath: BR,
   };
 }
 

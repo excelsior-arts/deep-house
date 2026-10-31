@@ -172,7 +172,8 @@ export function makeArrangement(
   fitBars: number | null = null,
   cutRule: CutRule | null = null,
   windowBars: number = SECTION_TIME.windowBars,
-  mains = false
+  mains = false,
+  phrase = 0
 ): Arrangement {
   const orders = corpus.sectionOrders.filter((o) => o.length >= 2);
   // A draw off a list with something in it, which the filter above leaves: the
@@ -184,29 +185,53 @@ export function makeArrangement(
   // The floor is the kind's row's (T2): every kind of the grammar is read off a row that states one.
   const floorOf = (label: string) => (grammar.kinds[grammar.labelToKind[label] || 'main'] as Partial<RowKind> | undefined)?.floor ?? 8;
 
+  // A window as the track lays it: an outro that is not last is a key-segment boundary in the middle of a DJ set, not
+  // a section of this track; it opens on an intro (or a build) and a groove before any break, and it ends on an outro.
+  function shaped(order: string[]): string[] {
+    order = order.filter((l, i) => l !== 'outro' || i === order.length - 1);
+    if (!['intro', 'build'].includes(order[0])) order.unshift('intro');
+    if (order[1] && ['drop', 'breakdown'].includes(order[1])) order.splice(1, 0, 'groove');
+    const endsOpen = order[order.length - 1] !== 'outro';
+    if (totalBars >= 96 && endsOpen) order.push('outro');
+    if (totalBars < 96 && endsOpen && shortOutro > 0) order.push('outro');
+    return order;
+  }
+
   // One window of the drawn run, laid: its sections, their lengths off the
   // measured distributions, scaled to the length asked, settled and cut.
   function layWindow(order: string[], wantSections: number): { order: string[]; bars: number[]; fits: boolean } {
     if (order.length > wantSections) {
       // Start the window on a groove, so the track does not open on the far side
       // of a breakdown that never happened.
-      const grooveStarts = order
-        .map((l, i) => (l === 'groove' && i <= order.length - wantSections ? i : -1))
-        .filter((i) => i >= 0);
+      const startsOf = (n: number) => order.map((l, i) => (l === 'groove' && i <= order.length - n ? i : -1)).filter((i) => i >= 0);
+      let grooveStarts = startsOf(wantSections);
+      // **A short theme still breathes** (round length-2, with `phraseLines`): a shorter track lays fewer sections,
+      // and a window of the mined run could hold no breakdown, or end on a build whose drop it left out. The window
+      // holds a breakdown with a drop or a groove after it and never ends on a build, where the run offers one at
+      // the sections asked or at one more (the length is the length: the sections are shorter for it).
+      // (and, on a phrase grid, only where the window's sections fit the length whole: each between the intro and the
+      // outro at its floor in whole phrases, as the lines will lay it; a theme too short for the window, as a stated
+      // length can be, keeps its length and the plainer window. Round length-after, where 32 bars asked laid 44)
+      if (phrase) {
+        const floorsFit = (w: readonly string[]) => phrase <= 4 || shaped([...w]).reduce((a, l, i, o) =>
+          a + (i === 0 || i === o.length - 1 ? floorOf(l) : Math.max(phrase, Math.ceil(floorOf(l) / phrase) * phrase)), 0) <= totalBars;
+        const breathes = (w: readonly string[]) => {
+          const b = w.indexOf('breakdown');
+          return b >= 0 && w.slice(b + 1).some((l) => l === 'drop' || l === 'groove') && w[w.length - 1] !== 'build' && floorsFit(w);
+        };
+        for (let n = wantSections; n <= Math.min(order.length, wantSections + 1); n++) {
+          const ok = startsOf(n).filter((i) => breathes(order.slice(i, i + n)));
+          if (ok.length) { grooveStarts = ok; wantSections = n; break; }
+        }
+      }
       const start = grooveStarts.length
         ? rng.pickWeighted(grooveStarts)!
         : rng.int(0, order.length - wantSections + 1);
       order = order.slice(start, start + wantSections);
     }
-    // An outro that is not last is a key-segment boundary in the middle of a
-    // DJ set, not a section of this track.
-    order = order.filter((l, i) => l !== 'outro' || i === order.length - 1);
-    if (!['intro', 'build'].includes(order[0])) order.unshift('intro');
-    if (order[1] && ['drop', 'breakdown'].includes(order[1])) order.splice(1, 0, 'groove');
-    const endsOpen = order[order.length - 1] !== 'outro';
-    if (totalBars >= 96 && endsOpen) order.push('outro');
+    const endsOpen = order.filter((l, i) => l !== 'outro' || i === order.length - 1).at(-1) !== 'outro';
+    order = shaped(order);
     const shortEnd = totalBars < 96 && endsOpen && shortOutro > 0;
-    if (shortEnd) order.push('outro');
 
     const dist = corpus.sectionBars;
     const raw = order.map((label) => {
@@ -300,6 +325,7 @@ export function makeArrangement(
     if (fitBars != null && fitBars < bars.reduce((a, b) => a + b, 0)) cutMainsFirst(order, bars, bars.reduce((a, b) => a + b, 0) - fitBars, cutRule);
     const rolls = order.map((_, i) => i);
     if (mains) mainsApart(order, bars, rolls, cutRule, order.length);
+    if (phrase) onPhraseLines(order, bars, phrase, floorOf, shortOutroOf(bars, shortOutro), shortOutro);
     return sectionsFrom(order.map((label, i) => ({ kind: grammar.labelToKind[label] || 'main', bars: bars[i], roll: rolls[i] })), grammar, silent);
   }
   let want = Math.max(2, Math.min(drawn.length, Math.round(totalBars / windowBars)));
@@ -310,7 +336,94 @@ export function makeArrangement(
   // (house-v2's `mainsApart`) keeps with its main when it parts two alike.
   const rolls = order.map((_, i) => i);
   if (mains) mainsApart(order, bars, rolls, cutRule, order.length);
+  if (phrase) onPhraseLines(order, bars, phrase, floorOf, shortOutroOf(bars, shortOutro), shortOutro);
   return sectionsFrom(order.map((label, i) => ({ kind: grammar.labelToKind[label] || 'main', bars: bars[i], roll: rolls[i] })), grammar, silent);
+}
+
+/** The outro a theme of these bars keeps under the phrase lines: the short theme's (R38), under 96 bars; else none. */
+const shortOutroOf = (bars: readonly number[], shortOutro: number): number => (shortOutro > 0 && bars.reduce((a, b) => a + b, 0) < 96 ? shortOutro : 0);
+
+/**
+ * **Every section line on the phrase** (round length-2, house-v2's `phraseLines`; his word 10-27: *"our sub segments
+ * are not aligned … it doesn't always account for segment length before break and many times i observed a build up
+ * abruptly stops with break"*). The form was laid and cut on the four-bar grid while every phrase device counts the
+ * theme's phrase (`src/musical-time.ts`: eight bars at the house, sixteen at a half-time 140), so a main of 36 bars
+ * ended on a four-bar stub: the phrase's own ending (a breath, the crest) came four bars early and the break cut the
+ * stub. Now every section between the intro and the outro is whole phrases:
+ *
+ *   1. a main gives its stub back (rounds down), never under its floor or a phrase; a breakdown, a build or a drop
+ *      rounds to the nearer phrase, a half phrase up (the breaks keep their bars: S19's "mains first");
+ *   2. what that moved goes back to the mains a whole phrase at a time (to the shortest, the earlier of two), or comes
+ *      off the longest above its floor, so the length heard stays;
+ *   3. what is left under a phrase goes to the outro (else the intro, else the last section), whose far side is the
+ *      track's end or the first section's own phrase. A short theme's outro (R38, `outroLeast`) is never taken under
+ *      its phrase by it: a main gives a whole phrase first and the outro takes the rest (round length-after: twelve
+ *      themes under 96 bars over seeds 1-100 had ended on a four-bar outro, their seam with nowhere to land). At
+ *      every length an outro left under `tailLeast` (the same eight bars) takes a phrase off the longest main
+ *      (chillstep-ends).
+ *
+ * No die: the same form is always put on its phrases the same way. Written in place; the order never changes.
+ */
+export function onPhraseLines(order: readonly string[], bars: number[], phrase: number, floorOf: (label: string) => number, outroLeast = 0, tailLeast = 0): void {
+  if (!(phrase > 4)) return;
+  const total = bars.reduce((a, b) => a + b, 0);
+  // (the last section ends the track: no line after it, and it takes what is left where there is no outro)
+  const inner = order.map((l, i) => (l !== 'intro' && l !== 'outro' && i < order.length - 1 ? i : -1)).filter((i) => i >= 0);
+  // the mains give and take; a form with none (a form of drops and breakdowns in blocks) its inner sections
+  const mains = inner.some((i) => order[i] === 'groove') ? inner.filter((i) => order[i] === 'groove') : inner;
+  const least = (i: number) => Math.max(phrase, Math.ceil(floorOf(order[i]) / phrase) * phrase);
+  const rounded: number[] = [];
+  for (const i of inner) {
+    const r = bars[i] % phrase;
+    if (!r) continue;
+    const down = bars[i] - r, up = down + phrase;
+    bars[i] = order[i] === 'groove' ? (down >= least(i) ? down : up) : (down >= phrase && r < phrase / 2 ? down : up);
+    if (bars[i] === up && order[i] !== 'groove' && down >= phrase) rounded.push(i);
+  }
+  let diff = total - bars.reduce((a, b) => a + b, 0);
+  for (let guard = 0; Math.abs(diff) >= phrase && mains.length && guard < 64; guard++) {
+    if (diff > 0) {
+      const i = mains.reduce((a, b) => (bars[b] < bars[a] ? b : a));
+      bars[i] += phrase; diff -= phrase;
+    } else {
+      const can = mains.filter((i) => bars[i] - phrase >= least(i));
+      if (!can.length) break;
+      const i = can.reduce((a, b) => (bars[b] >= bars[a] ? b : a));
+      bars[i] -= phrase; diff += phrase;
+    }
+  }
+  const out = order.lastIndexOf('outro'), intro = order.indexOf('intro');
+  if (diff) settle();
+  // (and every theme's outro ends on a phrase of tail (chillstep-ends, his word 10-29: *"both chillstep songs in Drive
+  // playlist were chopped in the end after we reduced length"*): where the drawn outro is under `tailLeast`, the
+  // seam there had two bars to blend in and the record ran out under it, 109 of 2,520 grooves; a whole phrase comes
+  // off as R38's does (the longest main above its floor, else a break rounded up, the latest, else the longest inner
+  // section above its floor and a phrase) and goes to the outro, so the length heard stays)
+  if (tailLeast > 0 && out === order.length - 1 && bars[out] < tailLeast) {
+    const can = mains.filter((i) => bars[i] - phrase >= least(i));
+    const longest = (xs: number[]) => xs.reduce((a, b) => (bars[b] >= bars[a] ? b : a));
+    const rest = inner.filter((i) => bars[i] - phrase >= least(i));
+    const i = can.length ? longest(can) : rounded.length ? rounded[rounded.length - 1] : rest.length ? longest(rest) : -1;
+    if (i >= 0) { bars[i] -= phrase; bars[out] += phrase; }
+  }
+  // what is left under a phrase, settled into the outro, else the intro, else the last section
+  function settle(): void {
+    // (a short theme's outro keeps its phrase (R38): where the stub would take it under, a whole phrase comes off first,
+    // the outro taking what is left over: off the longest main above its floor, else a break that was rounded up keeps
+    // its lower phrase, the latest, else the longest inner section above its floor and a phrase)
+    if (outroLeast > 0 && out >= 0 && diff < 0 && bars[out] + diff < outroLeast) {
+      const can = mains.filter((i) => bars[i] - phrase >= least(i));
+      const longest = (xs: number[]) => xs.reduce((a, b) => (bars[b] >= bars[a] ? b : a));
+      const rest = inner.filter((i) => bars[i] - phrase >= least(i));
+      const i = can.length ? longest(can) : rounded.length ? rounded[rounded.length - 1] : rest.length ? longest(rest) : -1;
+      if (i >= 0) { bars[i] -= phrase; diff += phrase; }
+    }
+    const absorb = () => [out, intro, order.length - 1].find((i) => i >= 0 && bars[i] + diff >= 4);
+    // (where nothing can take a stub off, a break that was rounded up keeps its lower phrase instead, the latest first)
+    if (absorb() == null && diff < 0 && rounded.length) { const i = rounded[rounded.length - 1]; bars[i] -= phrase; diff += phrase; }
+    const at = absorb();
+    if (at != null) bars[at] += diff;
+  }
 }
 
 /**

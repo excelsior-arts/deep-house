@@ -621,7 +621,8 @@ function crossVal(rows, y, names, cand, folds = 5) {
   let ss = 0, n = 0, worst = 0;
   for (let f = 0; f < folds; f++) {
     const trR = [], trY = [], teR = [], teY = [];
-    rows.forEach((r, i) => { if (i % folds === f) { teR.push(r); teY.push(y[i]); } else { trR.push(r); trY.push(y[i]); } });
+    // (a row may name its fold, `fold`: the copies of a window a weighted fit counts more than once share one)
+    rows.forEach((r, i) => { if ((r.fold ?? i) % folds === f) { teR.push(r); teY.push(y[i]); } else { trR.push(r); trY.push(y[i]); } });
     const w = solve(design(trR, names, cand), trY);
     if (!w) return { rmse: Infinity, worst: Infinity };
     const X = design(teR, names, cand);
@@ -676,6 +677,10 @@ export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey
   const res = rmse(rows, y, names, cand, w);
   const r2 = 1 - (res * res * rows.length) / sst;
   let held = null;
+  // each row's error, in-sample and held out (signed, the model less the row), for a reading of a part of the rows
+  const Xall = design(rows, names, cand);
+  const inErr = rows.map((r, i) => Xall[i].reduce((a, x, j) => a + x * w[j], 0) - y[i]);
+  const heldErr = new Array(rows.length).fill(NaN);
   if (outer) {
     const keys = [...new Set(rows.map(outer).filter((k) => k != null))];
     let ss = 0, n = 0, worst = 0;
@@ -689,6 +694,7 @@ export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey
       te.forEach((r, i) => {
         let p = 0;
         for (let j = 0; j < wk.length; j++) p += X[i][j] * wk[j];
+        heldErr[rows.indexOf(r)] = p - r[yKey];
         const e = Math.abs(p - r[yKey]);
         ss += e * e; n++;
         if (e > worst) worst = e;
@@ -707,6 +713,7 @@ export function fit(rows, { max = 16, gain = 0.005, instruments = false, y: yKey
     cvWorst: +(held ?? best).worst.toFixed(4),
     ...(held ? { cvSelection: +best.rmse.toFixed(4), heldOutRows: held.n, heldOutFolds: held.folds } : {}),
     n: rows.length,
+    errors: { inSample: inErr, heldOut: heldErr },
   };
 }
 

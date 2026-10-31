@@ -16,6 +16,8 @@ import stabSirenRow from '../../recipes/genres/bigbeat/stab-siren.json' with { t
 import echoChordRow from '../../recipes/genres/dub/dub-techno-chord.json' with { type: 'json' };
 import slowChordsRow from '../../recipes/genres/ambient/slow-chords.json' with { type: 'json' };
 import type { PulseTexture } from '../parts/texture.ts';
+import ringingChordsRow from '../../recipes/parts/ringing-chords.json' with { type: 'json' };
+import softPhraseRow from '../../recipes/parts/soft-phrase.json' with { type: 'json' };
 
 export const controls: Record<string, BirdResponse> = {
   // Loom since round S9: a long form draws the bass figure (and so its pedal)
@@ -47,6 +49,15 @@ export const controls: Record<string, BirdResponse> = {
   // gate, so the bounds keep both scenes reachable at every spell — at the
   // ambient centre nine in ten, at the opposite pull one in ten.
   drone: { home: .5, slopes: { tide: .9, veil: -.7, loom: .5 }, bounds: [.1, .9] },
+  // **The ringing keys' three phrases** (10-28, his picks of four sketches over Vibe - Aurora: the ringing
+  // chords, the soft piano going from notes to a chord, and the line answered by the chords). The chords were
+  // approved at the house's own spell, so the house hears them as often as the line; Veil, the harmony's
+  // restlessness, is what moves between them: a steady Veil holds still chords, a shifting one a moving line.
+  // Zephyr and Spark lean the line the way the conversation it came from sat (Zephyr .53, Spark .38 against
+  // the house's .38 and .28); Loom, a long form, lets the line be answered.
+  keysChords: { home: .5, slopes: { veil: -.8, tide: .3 }, bounds: [.05, 1] },
+  keysPhrase: { home: .5, slopes: { veil: .8, zephyr: .4, spark: .4 }, bounds: [.05, 1] },
+  keysAnswer: { home: .35, slopes: { loom: .5, veil: .2 }, bounds: [.05, 1] },
 };
 const fourFloor = { drums: true, kits: ['fourFloor'] };
 /**
@@ -73,11 +84,12 @@ const ornament: StruckFigure = {
   strength: [.25, .34], entry: { beats: [8.5, 9.5] }, spacing: { bars: [4, 4] }, behavior: 'phrase',
 };
 // Focus listening: sparse, ringing keyboard notes instead of a repeated
-// short chord stab. The same request is available to recipes. A two/four-beat
-// lattice survives every section; this ostinato never diminishes into a run.
-// The window is a family of ringing keyboards (the piano, the rhodes, the
-// glass keys); the piano it was written on is the preferred profile, so it
-// stays the likely draw without being the only instrument that can answer.
+// short chord stab. A two/four-beat lattice survives every section; this
+// ostinato never diminishes into a run. The window is a family of ringing
+// keyboards (the piano, the rhodes, the glass keys); the piano it was written
+// on is the preferred profile. With no grid (10-28) these single struck tones
+// are the bowls over a drone the ambient benchmark is made of, and stay its
+// keys; over a grid the family plays the phrases below.
 const ringingKeys = (beats: 2 | 4): StruckFigure => ({
   follows: 'harmony', articulation: 'struck', register: 'mid', families: ['keyboard'],
   properties: { struck: true, holdMin: .25, holdMax: .4, brightnessMin: 1500, brightnessMax: 4000 },
@@ -88,6 +100,8 @@ const ringingKeys = (beats: 2 | 4): StruckFigure => ({
   strength: [.62, .74], entry: { beats: [0, 0] }, spacing: { bars: [beats, beats] },
   duration: { beats: [beats, beats] }, behavior: 'ostinato',
 });
+/** The parts of the two accepted arrangements, one row each (`recipes/parts/`). */
+const ringingChords = figureOf(ringingChordsRow), softPhrase = figureOf(softPhraseRow);
 const pulse: PulseTexture = {
   follows: 'harmony', articulation: 'pulse', register: 'mid', families: ['keyboard'],
   properties: { struck: true, holdMin: .05, holdMax: .12, brightnessMin: 2000, brightnessMax: 8000 },
@@ -205,11 +219,11 @@ const brightStab: StruckFigure = {
  * where the birds and the tempo stand near the rows — not only on a library
  * turn. Each is named for what it plays; each window is birds and tempo.
  */
-const figureOf = (row: unknown, i = 0): StruckFigure => {
+function figureOf(row: unknown, i = 0): StruckFigure {
   const f = (row as { wants: { figures: { figure: StruckFigure | StruckFigure[] } } }).wants.figures.figure;
   return Array.isArray(f) ? f[i] : f;
-};
-/** A sustained line over the chords (a lead that holds). */
+}
+/** The saw held over the chords: a two-note chord every four bars, its top moving through the harmony. */
 const leadLine = figureOf(anthemRow);
 /** A sixteenth pluck climbing the chord. */
 const arpLine = figureOf(arpRow);
@@ -317,15 +331,34 @@ const families: PartFamily[] = [
   // the presence Eugene approved: the share of house themes the part played on
   // when it stood in for every ep stab (48 of seeds 1-200), now drawn over
   // every eligible theme; the fast learned figures still take precedence.
+  //
+  //
+  // **What they play over a grid** (10-28): the approved ringing chords, the soft piano's note-to-chord line,
+  // or the line answered by the chords, as the birds lean (`keysChords`, `keysPhrase`, `keysAnswer`). Until
+  // then the family played one piano note a bar on the downbeat (`whole-notes`, or `half-notes` with
+  // movement), its four-bar cell eight times over: the chords with their chords and their phrase taken out.
+  // Every note rings under a pedal (`pedal`), so each holds the chord as the whole notes did and the texture
+  // they make is the one it was. Wet (the figure's spacious room), as a drone's keys are. With no grid the
+  // single tones stay (the benchmark's bowls), drawn among themselves exactly as before.
   { id: 'ringing-keys', chance: .24, excludes: ['figure'], variants: [
-    { id: 'half-notes', weight: 'movement', request: { struckFigures: [ringingKeys(2)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
-    { id: 'whole-notes', weight: 1, request: { struckFigures: [ringingKeys(4)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+    { id: 'half-notes', weight: 'movement', when: { drums: false }, request: { struckFigures: [ringingKeys(2)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+    { id: 'whole-notes', weight: 1, when: { drums: false }, request: { struckFigures: [ringingKeys(4)], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+    // A sparse phrase beside the immersed pulse (one more sparse part each, where the single tones were ostinatos and
+    // counted as none), so the family plays where it played.
+    { id: 'ringing-chords', weight: 'keysChords', when: { drums: true }, allowance: { sparseUpper: 1 }, request: { struckFigures: [ringingChords], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+    { id: 'soft-phrase', weight: 'keysPhrase', when: { drums: true }, allowance: { sparseUpper: 1 }, request: { struckFigures: [softPhrase], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
+    // two parts written to share the figure's space: the line and the chords that answer it
+    { id: 'phrase-and-chords', weight: 'keysAnswer', when: { drums: true }, allowance: { sparseUpper: 2 },
+      request: { struckFigures: [softPhrase, ringingChords], ambience: { figure: 'spacious' }, presence: { figure: 'supporting', sustained: 'background' } } },
   ] },
   // **GA6's mids and highs**, before GA4's fills so a place's own line wins
   // the figure's space and GA4's held chord and stab fill it where none does.
   // Rules inside their windows (chance 1), claiming by the figure's space.
   { id: 'lead-line', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 133 } }, variants: [
-    { id: 'held-lead', weight: 1, request: { struckFigures: [leadLine], ambience: { figure: 'spacious' } } },
+    // the saw held as the harmony's bed, a two-note chord every four bars (v24-bugs, his pick 10-29: "held: the supersaw
+    // holds the chord, a two-note chord every 4 bars - works"): a phrase now and not an ostinato, so it counts as a sparse
+    // part; the allowance keeps it where the looped line it replaces was drawn
+    { id: 'held-lead', weight: 1, allowance: { sparseUpper: 1 }, request: { struckFigures: [leadLine], ambience: { figure: 'spacious' } } },
   ] },
   { id: 'arp-line', chance: 1, when: { drums: true, kits: ['fourFloor'], bpm: { above: 115, atMost: 133 }, controls: { air: { min: .55 } } }, variants: [
     { id: 'climbing-pluck', weight: 1, request: { struckFigures: [arpLine], ambience: { figure: 'intimate' } } },
@@ -423,6 +456,6 @@ export const composition: CompositionPolicy = {
   // (centre 100) there is no floor. What each lane plays on it is the lane's
   // (`Lane.floor`, house-v2's lane table).
   scene: { forward: 'drone', always: [['drone', 'body']], realWorld: { holdBelow: .5, sparseSeconds: 1.5, ringCovers: .75 },
-    floor: { centreBelow: 95, kits: ['fourFloor'] } },
+    floor: { centreBelow: 95, kits: ['fourFloor'] }, clearOfBed: [1], oneTone: 'top' },
   families,
 };

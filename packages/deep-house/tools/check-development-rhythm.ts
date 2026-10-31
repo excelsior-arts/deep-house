@@ -107,7 +107,8 @@ test('the separate chord recipe uses soft complete voicings and the ringing char
   for(const seed of [4,6,18,71]){
     const t=planTheme(seed,0,{...opts,recipe:chords,development:'percussion'});
     const notes=t.events.filter(e=>e.part===chords.id),groups=new Map<number,typeof notes>();
-    for(const e of notes)groups.set(e.t,[...(groups.get(e.t)??[]),e]);
+    // a chord by where it is struck in the bar: the player's touch rolls its notes a few milliseconds apart (10-28)
+    for(const e of notes)groups.set(e.bar!*16+e.step!,[...(groups.get(e.bar!*16+e.step!)??[]),e]);
     assert.ok(groups.size>0);assert.ok([...groups.values()].every(g=>g.length===3));
     assert.ok(notes.every(e=>e.articulation==='struck'&&e.treatment==='none'&&e.p.ring>=3&&e.p.vel<.7));
     assert.ok(notes.every(e=>e.p.midi>=48&&e.p.midi<=96));
@@ -146,7 +147,8 @@ test('the statement fold keeps a ringing phrase in one octave across its chord c
     const t=planTheme(seed,0,{...opts,style:folded,recipe:chords});
     const notes=t.events.filter(e=>e.part===chords.id);
     assert.ok(notes.length>0&&notes.every(e=>e.p.midi>=low&&e.p.midi<=high));
-    const tops=[...new Map(notes.map(e=>[e.t,notes.filter(n=>n.t===e.t).reduce((a,b)=>a.p.midi>=b.p.midi?a:b)])).values()];
+    const at=(e:typeof notes[number])=>e.bar!*16+e.step!;
+    const tops=[...new Map(notes.map(e=>[at(e),notes.filter(n=>at(n)===at(e)).reduce((a,b)=>a.p.midi>=b.p.midi?a:b)])).values()];
     const statement=(bar:number)=>{const s=t.arrangement.sections.find(x=>bar>=x.startBar&&bar<x.startBar+x.bars)!;
       return `${s.index}:${Math.floor((bar-s.startBar)/chords.wants!.figures.figure.spacing.bars[0])}`;};
     for(let i=1;i<tops.length;i++) if(statement(tops[i-1].bar!)===statement(tops[i].bar!)){

@@ -3,7 +3,7 @@ import { lanesAtTempo, withdrawnAtTempo, type LaneTheme } from './lanes.ts';
 // interpreter, bird names, named family or taste constants belong here.
 import type { Style } from '@deep-house/engine/style';
 import { biasFor, type Bias } from './spell.ts';
-import type { CompositionPolicy, Conditions, ControlValue, PartUsage, PartPin, Scene, ScenePolicy, Texture, TextureBed, TexturePolicy } from './composition-policy.ts';
+import { TEXTURES, type CompositionPolicy, type Conditions, type ControlValue, type PartUsage, type PartPin, type Scene, type ScenePolicy, type Texture, type TextureBed, type TexturePolicy } from './composition-policy.ts';
 import { resolveParts } from './parts/resolve.ts';
 import { emptyParts, type MusicalParts, type PartRequest } from './parts/types.ts';
 import { charactersOf, type SoundCharacters } from './parts/sound.ts';
@@ -54,7 +54,8 @@ export function textureOf(request: Holding, bed: TextureBed | undefined, policy:
     ...(request.tone?.bassline && policy.heldBodies.includes(request.tone.bassline) ? ['body'] : []),
     ...(bed && bed.bedHold >= policy.bedHold ? ['bed'] : []),
     ...(bed?.leadHolds ? ['lead'] : []),
-    ...(request.struckFigures?.some(f => (f.duration?.beats[0] ?? 0) >= policy.heldBeats) ? ['chords'] : []),
+    // a part whose notes ring under a pedal for `heldBeats` holds the chord as a long note does
+    ...(request.struckFigures?.some(f => Math.max(f.duration?.beats[0] ?? 0, f.pedal?.beats ?? 0) >= policy.heldBeats) ? ['chords'] : []),
   ];
   return { is: held.length >= policy.sustainedFrom ? 'sustained' : 'air', held };
 }
@@ -131,7 +132,8 @@ export function pacesOf(request: PartRequest, bpm: number, characters?: SoundCha
     ...(request.struckFigures || []).map((f): Pace => {
       const gap = bar / Math.max(...f.motif.density);
       return { struck: f.properties?.struck === true, pitched: true, hold: f.properties?.holdMax, gap,
-        ring: f.duration ? Math.min(...f.duration.beats) * beat : struckRing(gap) };
+        // a note under a pedal rings until the pedal lifts (`PitchedFigure.pedal`)
+        ring: Math.max(f.duration ? Math.min(...f.duration.beats) * beat : struckRing(gap), (f.pedal?.beats ?? 0) * beat) };
     }),
     ...(request.texture ? [{ struck: request.texture.properties?.struck === true, pitched: true, hold: request.texture.properties?.holdMax,
       gap: Math.min(...request.texture.spacing.bars) * bar, ring: Math.min(...request.texture.duration.beats) * beat }] : []),
@@ -212,6 +214,8 @@ function validatePolicy(policy: CompositionPolicy, bias: Bias): void {
   if (sc?.always && (!Array.isArray(sc.always) || sc.always.some(set => !Array.isArray(set) || !set.length || set.some(w => typeof w !== 'string'))))
     throw new Error('composition: a scene\'s always-forward sets are non-empty lists of held words');
   const validateWhen = (when: Conditions | undefined) => {
+    if (when?.textures && (!Array.isArray(when.textures) || !when.textures.length || when.textures.some(t => !(TEXTURES as readonly string[]).includes(t))))
+      throw new Error('composition: a textures condition is a non-empty list of textures');
     if (when?.bpm && (Object.values(when.bpm).some(v => !Number.isFinite(v) || v <= 0)
       || (when.bpm.above !== undefined && when.bpm.atMost !== undefined && when.bpm.above >= when.bpm.atMost)))
       throw new Error('composition: invalid bpm condition');
@@ -229,6 +233,9 @@ function validatePolicy(policy: CompositionPolicy, bias: Bias): void {
     for (const variant of family.variants) {
       if (!variant.id || variants.has(variant.id)) throw new Error(`composition: duplicate/empty variant ${family.id}`);
       variants.add(variant.id); valueOf(variant.weight, bias); validateWhen(variant.when);
+      if (variant.when?.textures) throw new Error(`composition: ${family.id}/${variant.id}: a texture is a family's condition, not a variant's`);
+      if (variant.allowance && Object.entries(variant.allowance).some(([k, n]) => !(k in policy.limits) || !Number.isInteger(n) || n! < 0))
+        throw new Error(`composition: ${family.id}/${variant.id}: an allowance is a whole count over a named limit`);
       if (variant.source) validateSource(variant.source, variant.request);
     }
   }
@@ -327,7 +334,10 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
     for (const key of Object.keys(pin?.usage || {}) as Array<keyof PartUsage>) usage[key] += pin!.usage![key]!;
     return usage;
   };
-  const overBudget = (usage: PartUsage) => (Object.keys(usage) as Array<keyof PartUsage>).some(key => usage[key] > policy.limits[key]);
+  // A variant's `allowance` (two parts written to share one space, as a line and the chords that answer it) widens
+  // the budget for that candidate alone; every other candidate is held to the policy's limits as before.
+  const overBudget = (usage: PartUsage, allowance?: Partial<PartUsage>) =>
+    (Object.keys(usage) as Array<keyof PartUsage>).some(key => usage[key] > policy.limits[key] + (allowance?.[key] ?? 0));
   let start: { request: PartRequest; parts: MusicalParts } = { request: {}, parts: emptyParts() };
   if (pin) {
     if (pin.source) {
@@ -358,7 +368,10 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
   // last, where the family would otherwise be picked, so every family the
   // redraw left out anyway is traced as it always was.
   type Drawn = { selected: Record<string, string>; skipped: Composition['trace']['skipped'] };
-  const draw = (withdrawn: SceneContext | null, first?: Drawn) => {
+  // `texture`: the composition's texture once it has been read. A family whose conditions name textures
+  // (`Conditions.textures`) is drawn only then, after the families that make the texture: so it never moves
+  // the texture, and a style none of whose families names one draws exactly as before.
+  const draw = (withdrawn: SceneContext | null, first?: Drawn, texture?: Texture) => {
     const selected: Record<string, string> = {}, skipped: Composition['trace']['skipped'] = [];
     const recipes: NonNullable<Composition['trace']['recipes']> = [];
     let request: PartRequest = start.request, parts = start.parts;
@@ -367,6 +380,7 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
       if (!permitted(family.when, bias, density, bpm)) { skip('compatibility'); continue; }
       // A family the place withholds (round DNB-3, `SupportEntry.withhold`): its own stream is not read.
       if (withheld?.has(family.id)) { skip('place'); continue; }
+      if (family.when?.textures && (!texture || !family.when.textures.includes(texture))) { skip('texture'); continue; }
       if (family.requires?.some(id => !selected[id]) || family.excludes?.some(id => selected[id])) { skip('compatibility'); continue; }
       if (withdrawn && family.variants.every(v => asksRealWorld(v.request, withdrawn))) { skip('scene'); continue; }
       const rng = new Rng(`${seed}::parts:${policy.version}:${family.id}`);
@@ -394,7 +408,7 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
         const resolved = resolveParts(merged, style, [], 'composition');
         if (resolved.errors.length) { rejected.push(...resolved.errors); continue; }
         const usage = usageOf(resolved.parts);
-        if (overBudget(usage)) { rejected.push('part budget'); continue; }
+        if (overBudget(usage, variant.allowance)) { rejected.push('part budget'); continue; }
         candidates.push({ v: { id: variant.id, request: merged, parts: resolved.parts, source: variant.source }, w: weight });
       }
       if (!candidates.length) { skip([...new Set(rejected)].join('; ') || 'no eligible variant'); continue; }
@@ -405,8 +419,10 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
     }
     return { selected, skipped, recipes, request, parts };
   };
-  const whole = draw(null);
-  const texture = policy.texture ? textureOf(whole.request, bed, policy.texture) : undefined;
+  const first = draw(null);
+  const texture = policy.texture ? textureOf(first.request, bed, policy.texture) : undefined;
+  const textured = !!texture && policy.families.some(f => f.when?.textures);
+  const whole = textured ? draw(null, undefined, texture!.is) : first;
   let scene: Scene | undefined;
   if (texture && policy.scene) {
     const forward = new Rng(`${seed}::scene:${policy.version}`).chance(Math.max(0, Math.min(1, valueOf(policy.scene.forward, bias))));
@@ -426,7 +442,7 @@ export function composeParts(styleIn: Style, seed: Seed, bias: Bias, density: st
   const floor = scene === 'drone-forward' && !!fl && bias.derived.drumsOn
     && fl.kits.includes(bias.derived.kit) && bias.derived.tempoCentre < fl.centreBelow;
   const drawn = scene === 'drone-forward'
-    ? draw({ policy: policy.scene!, bpm, drumsOn: bias.derived.drumsOn, characters: charactersOf(style) }, whole) : whole;
+    ? draw({ policy: policy.scene!, bpm, drumsOn: bias.derived.drumsOn, characters: charactersOf(style) }, whole, texture?.is) : whole;
   const { selected, skipped, recipes } = drawn;
   // The drone behind: the sustained role at the background presence, over
   // whatever the draw or the pin asked of it.

@@ -126,12 +126,12 @@ function newer<T>(here: T, there: T, change: (x: T) => number, alive: (x: T) => 
 
 // --- links ------------------------------------------------------------------
 
-/** The rows a saved link never keeps: the view, the bypass rows, the private desk (`solo`, `mute`), a playlist link's and the bar. */
+/** The rows a saved link never keeps: the view, the bypass rows, the private desk (`solo`, `mute`), a playlist link's, a context row (`in`) and the bar. */
 const dropped = (name: string) => {
   const row = ROW[name];
   if (!row) return false;
   if (name === 'reach') return false;
-  return row.class === 'view' || row.class === 'bypass' || row.class === 'private' || row.class === 'list' || name === 'bar';
+  return row.class === 'view' || row.class === 'bypass' || row.class === 'private' || row.class === 'list' || row.class === 'context' || name === 'bar';
 };
 
 /** A number in one form (`0.50` and `0.5` are `0.5`); anything else as given. */

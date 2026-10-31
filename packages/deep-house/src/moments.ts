@@ -16,9 +16,11 @@
 //                the keys' strikes, and the drum-led builds into the drops and returns as heard (`track.passage.builds`)
 //   development  the phrase development's moves (`track.development.answers`)
 //   sea          the sea's shape where a place lays one (`track.sea`, `src/surf.ts`): a crest along each wave that swells
-//                over half the sea's full size (so a set's large waves run together and a lull or a calm is bare), a turn
+//                over the row's `display.crest` (so a set's large waves run together and a lull or a calm is bare), a turn
 //                at each set's line (the chord moves there), a struck tick at each bell on a break, and a stroke across
 //                both tracks at a great wave; all at the seconds they play, so the marks are as irregular as the sea
+//   keys         the keys' moments where the plan gave one (`src/keys-moments.ts`): the piano alone over a long breakdown's
+//                last phrase, a second riff in a long stretch of the hook, each a span of the keys' own mark
 //   conversation the struck voices' conversation where a place lays one (`track.conversation`, `src/slow-conversation.ts`,
 //                read off its strikes): each exchange a pair of strokes across the low track, the call's and its
 //                answer's (the breath between them the gap), a call left open (no answer, only the ground's) a stroke
@@ -31,9 +33,10 @@ import { subMarksOf, SUB_STYLE, type SubMarkKind } from './ring-subsections.ts';
 import { END_EMPTIES, type End } from './passage.ts';
 import type { ProducerMarks } from './producer.ts';
 import { timbrePhrase } from './bird-labels.ts';
+import { surfRowOf } from './surf.ts';
 
 /** Where a moment was written. */
-export type MomentSource = 'phrasing' | 'house' | 'glue' | 'arc' | 'producer' | 'development' | 'sea' | 'conversation';
+export type MomentSource = 'phrasing' | 'house' | 'glue' | 'arc' | 'producer' | 'development' | 'sea' | 'conversation' | 'keys';
 /**
  * One moment: its mark kind, its bars (`to` exclusive; a stroke at a line has `to` equal to `from`), its words, and its
  * source. A bar emptied from a sixteenth to its line, and a build of a beat or two, stand at their real length: `from`
@@ -103,12 +106,14 @@ export interface MomentsInput {
    * the sea (`SurfSummary` in `src/surf.ts`, its anchors): each wave's swell start, crest and end in seconds, its size,
    * its set and what it is (`peak`, `great`); each set's line in seconds; the bells' onsets in seconds; a bar's seconds
    */
-  sea?: { waveList: ReadonlyArray<readonly [number, number, number, number, number, string, ...unknown[]]>; setLines: readonly number[]; bells?: readonly number[]; barSeconds: number } | null;
+  sea?: { row: string; waveList: ReadonlyArray<readonly [number, number, number, number, number, string, ...unknown[]]>; setLines: readonly number[]; bells?: readonly number[]; barSeconds: number } | null;
   /**
    * the conversation's calls and answers as struck (seconds, the part, the voice, the note), a bar's seconds and the
    * longest breath before an answer it was laid with (`ConversationSummary.breathS`)
    */
   conversation?: { strikes: ReadonlyArray<ConversationStrike>; barSeconds: number; breathS?: number } | null;
+  /** the keys' moments as they played (`src/keys-moments.ts`): a solo, a second riff, each at its bars */
+  keys?: ReadonlyArray<{ kind: 'solo' | 'riff'; from: number; to: number; label: string }> | null;
 }
 
 /** One of the conversation's strikes as the ring reads it. */
@@ -141,8 +146,6 @@ export function exchangesOf(strikes: ReadonlyArray<ConversationStrike>, breathS:
 /** The longest breath a conversation's marks read where its summary carries none: the row's own (`answerer.afterS`, 3-8 s). */
 const BREATH_S = 8;
 
-/** A wave the ring draws a crest along: one that swells over half the sea's full size (`sizeMost` 1.5 at most; 0.75). */
-export const SEA_CREST_SIZE = 0.75;
 
 /**
  * The theme's moments, in bar order, each clipped to the theme and each once (a kind at a bar). The producer's groove
@@ -168,6 +171,7 @@ export function momentsOf(I: MomentsInput): Moment[] {
   for (const h of I.phrasing?.hats ?? []) add('turn', h.bar + h.from / 16, h.bar + h.from / 16, h.label, 'phrasing', true);
   for (const s of I.house ?? []) { const k = HOUSE_KIND[s.kind]; if (k) add(k, s.startBar, s.startBar + s.bars, s.label, 'house'); }
   for (const r of I.risers ?? []) add('lead-in', r.from, r.to, r.label ?? 'a riser into the line', 'glue');
+  for (const k of I.keys ?? []) add('featured', k.from, k.to, k.label, 'keys');
   for (const a of I.padArc?.arcs ?? []) if (a.crest && a.crest.length === 2) add('crest', a.crest[0], a.crest[1], `the pad arc's crest ${a.crest[0]}-${a.crest[1] - 1}`, 'arc');
   const P = I.passage?.marks;
   if (P) {
@@ -193,8 +197,10 @@ export function momentsOf(I: MomentsInput): Moment[] {
     const bar = (t: number) => t / S.barSeconds;
     const f = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
     S.setLines.forEach((t, k) => { if (k > 0) add('turn', bar(t), bar(t), `set ${k + 1} from ${f(t)}: the chord moves with the sea`, 'sea', true); });
+    // a crest along every wave of the row's `display.crest` size or over (the numbers are the surf row's, engine-data)
+    const crestFrom = surfRowOf(S.row)!.display.crest;
     for (const [t0, crest, until, size, , what] of S.waveList) {
-      if (size >= SEA_CREST_SIZE) add('crest', bar(t0), bar(until), `a wave of ${size.toFixed(2)} cresting at ${f(crest)}`, 'sea', true);
+      if (size >= crestFrom) add('crest', bar(t0), bar(until), `a wave of ${size.toFixed(2)} cresting at ${f(crest)}`, 'sea', true);
       if (what === 'great') add('answer', bar(crest), bar(crest), `a great wave cresting at ${f(crest)}`, 'sea', true);
     }
     for (const t of S.bells ?? []) add('keys', bar(t), bar(t), `the bell on the break at ${f(t)}`, 'sea', true);
@@ -239,7 +245,7 @@ export function momentsOf(I: MomentsInput): Moment[] {
 function unhidden(ms: Moment[]): Moment[] {
   const answered = new Set(ms.filter((m) => m.kind === 'answer').map((m) => m.from));
   const fills = ms.filter((m) => m.kind === 'fill');
-  return ms.filter((m) => m.by === 'house' || m.by === 'phrasing' || m.by === 'glue' || m.by === 'arc'
+  return ms.filter((m) => m.by === 'house' || m.by === 'phrasing' || m.by === 'glue' || m.by === 'arc' || m.by === 'keys'
     || !((m.kind === 'turn' || m.kind === 'keys') && answered.has(m.from)) && !(m.kind === 'turn' && fills.some((f) => f.from <= m.from && f.to > m.from)));
 }
 

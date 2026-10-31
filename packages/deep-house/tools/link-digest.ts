@@ -209,12 +209,24 @@ export function played(link: string, themeOverride?: number) {
   return { read, seed, request, plan };
 }
 
+/**
+ * **`played`, once per link in a process**, for the digest's own lines and the sound-row lock (`tools/sound-rows.ts`),
+ * which read the same plans and only read them (the compiler mutates nothing; `programOf` keeps a program by its
+ * plan). `played` itself stays fresh for the checks that take a plan of their own.
+ */
+const PLAYED = new Map<string, ReturnType<typeof played>>();
+export function playedOnce(link: string): ReturnType<typeof played> {
+  let got = PLAYED.get(link);
+  if (!got) PLAYED.set(link, got = played(link));
+  return got;
+}
+
 /** A playlist link's line: what its reader makes of it, and one hash over what each track plays. */
 function listLine(row: GridRow) {
   const r = readPlaylistLink(row.link);
   if (!r.list) throw new Error(`link digest: ${row.link} does not read as a playlist link: ${r.error}`);
   const tracks = r.list.tracks.map((t) => t.link);
-  const hashes = tracks.map((link) => themeHash(played(link).plan));
+  const hashes = tracks.map((link) => themeHash(playedOnce(link).plan));
   return { group: row.group, link: row.link, name: r.list.name, id: r.list.id, labels: r.list.tracks.map((t) => t.label ?? ''), tracks, hash: sha(hashes.join(',')) };
 }
 
@@ -224,7 +236,7 @@ export function lineOf(row: GridRow) {
   return trackLine(row);
 }
 function trackLine(row: GridRow) {
-  const { read, seed, request, plan } = played(row.link);
+  const { read, seed, request, plan } = playedOnce(row.link);
   const refused = read.problems.map((p) => p.param);
   const head = { group: row.group, link: row.link, ...(refused.length ? { refused } : {}) };
   if (row.themes) {
@@ -301,7 +313,7 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  * (`shipped rows moved since the cut: N`), and the round note names them.
  *
  * The window is the cut's and no other's: it opens only while the last cut is
- * `cut` (master 3a1ce49, the v2.2.3 cut; the v2.2.2 cut's window, 10-16, the v2.2.1 cut's, 10-15, the v2.2.0 cut's, 10-12 to 10-15, the v2.1.0 cut's, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
+ * `cut` (master a413042, the v2.3.2 cut; the v2.2.3 cut's window, 10-17 to 10-24, the v2.2.2 cut's, 10-16, the v2.2.1 cut's, 10-15, the v2.2.0 cut's, 10-12 to 10-15, the v2.1.0 cut's, 10-11 to 10-12, and the v2.0.0 cut's, 09-27 to 10-11, closed with theirs). The next cut ships its own digest and closes it by
  * itself; this statement is then removed. A shipped row dropped from the grid
  * is refused inside the window as outside.
  *
@@ -314,9 +326,9 @@ export function lastCut(ref = 'refs/heads/master'): Saved | null {
  */
 export interface FreezeWindow { cut: string; since: string; reason: string }
 export const WINDOW: FreezeWindow = Object.freeze({
-  cut: '3a1ce4989248e99ef5582f71d378d17c88a6690e',
-  since: '2026-10-17',
-  reason: 'Eugene, 10-17, after the v2.2.3 cut: "basically goal it to keep existing cool mixes while adding more variety and approaches to ambient domain" and "fine to work on hats too" (each sound-moving round heard as A/B pairs before it merges); 10-16, after the v2.2.2 cut: "what\'s up with conga pans? we can work on it" and "would be good to mark DnB moments" (each sound-moving round heard as A/B pairs before it merges); 10-13, on the rounds after the v2.2.1 cut: "it should go to next release with addition of more breaks" (U2d/U2e, the fast places\' drops, the front voice\'s level, the hand drums, each with its A/B pairs heard before it merges); and 10-12: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes"; 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". A link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
+  cut: 'a413042a130d2a60ed0e0f3def3d10926388f75d',
+  since: '2026-10-28',
+  reason: 'Eugene, 10-28, after the v2.3.2 cut, merging round length-2, which gives every groove 3-4 minutes and so moves every shipped link\'s form: "The length around is great. I listen all my featured vibe and drive songs, and they all got a good shape, so we can merge it now"; 10-27: "changes are fine, but of course we should listen A/B and approve consciously". Earlier, 10-17, after the v2.2.3 cut: "basically goal it to keep existing cool mixes while adding more variety and approaches to ambient domain" and "fine to work on hats too" (each sound-moving round heard as A/B pairs before it merges); 10-16, after the v2.2.2 cut: "what\'s up with conga pans? we can work on it" and "would be good to mark DnB moments" (each sound-moving round heard as A/B pairs before it merges); 10-13, on the rounds after the v2.2.1 cut: "it should go to next release with addition of more breaks" (U2d/U2e, the fast places\' drops, the front voice\'s level, the hand drums, each with its A/B pairs heard before it merges); and 10-12: "it\'s ok for slight adjustment, ideally to have A/B to hear before/after of most significant changes"; 10-11: "we likely will have to settle things, with potential sacrifices with known golden tracks". A link promises the settings, not the byte; v3 is only for a new engine. Both strategies alike, house-v1 a composing preset',
 });
 /** The window, where the last cut is the one it was stated for; null outside it. */
 export function openWindow(ref = 'refs/heads/master'): FreezeWindow | null {

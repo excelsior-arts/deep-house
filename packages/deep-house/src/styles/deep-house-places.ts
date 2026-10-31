@@ -9,9 +9,11 @@
 // the entries are named for what they are musically.
 import { HOUSE_PLACE, drumsKnobFaults } from '../places.ts';
 import type { Zone, PlaceEntry, PlaceLane } from '../places.ts';
-import { HOUSE, DRUMS_ON_ABOVE, BREAKS_ABOVE, type Spell } from '../spell.ts';
+import { BIRDS, HOUSE, DRUMS_ON_ABOVE, BREAKS_ABOVE, type Spell } from '../spell.ts';
 import BORROWED from './zones-borrowed.json' with { type: 'json' };
-import type { BirdLeans, Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
+import { HOOK_ROWS } from '../hook.ts';
+import { ARC_RULES } from '../arc.ts';
+import type { BirdLeans, HookEntry, EnsembleEntry, SeaEntry, Place, HarmonyEntry, FormEntry, TreatmentEntry, BassEntry, LaneSoundEntry, EqEntry, BassDriveEntry, BedEntry, GrainEntry, DrumGrainEntry, StylePlaces,
   DrumsEntry, SubSectionsEntry, SectionsEntry, GlueSoundEntry, RolesEntry, SupportEntry, BreaksEntry, KeysEntry, DevelopmentEntry, AmbientVoicesEntry, ConversationEntry, JourneyEntry } from '../places.ts';
 import type { WalkEntry } from '../walk.ts';
 import type { TimeEntry } from '../musical-time.ts';
@@ -49,6 +51,32 @@ const DRIVING_FOUR = place({ ember: 0.75, root: 0.60, zephyr: 0.50, veil: 0.60 }
 const BRIGHT_FOUR = place({ ember: 0.70, spark: 0.40, zephyr: 0.60, root: 0.60, tide: 0.45 }, [118, 130]);
 /** A driving four at the high tempo. */
 const HIGH_FOUR = place({ ember: 0.88, root: 0.60, zephyr: 0.50, veil: 0.60 }, [134, 146]);
+/**
+ * **The trance corner** (round trance-1, 10-28): the Trance tile's own birds, and its two neighbours under the family, the
+ * dark and gritty one (Gleam down, Spark at the four's edge, Veil restless) and the bright and uplifting one (Gleam up,
+ * Tide and Loom long). Measured, not guessed (the round's note): each plays the high four's rows in every lane but the
+ * hook's, its tempo centre in the four's top band, its kit four on the floor.
+ */
+const SAW_CORNER = place({ ember: 0.83, spark: 0.42, gleam: 0.62, loom: 0.82, root: 0.62, zephyr: 0.60, veil: 0.55, tide: 0.62 }, [130, 146]);
+const SAW_DARK = place({ ember: 0.86, spark: 0.43, gleam: 0.18, loom: 0.72, root: 0.72, zephyr: 0.45, veil: 0.66, tide: 0.50 }, [134, 150]);
+const SAW_BRIGHT = place({ ember: 0.82, spark: 0.33, gleam: 0.92, loom: 0.92, root: 0.55, zephyr: 0.72, veil: 0.45, tide: 0.78 }, [130, 146]);
+/**
+ * **The corner claims its neighbourhood only** (round trance-2, his ear 10-28 on Drive - Tailwind, which read the corner
+ * from a whole bird-unit off and lost its organ: *"replacing the voice made it blank and not interesting at all"*): each of
+ * the three tiles' places, as the lanes read it, claims a spell within the hook's own reach of its birds (`radius`), so
+ * every place the corner was added beside keeps what it read before.
+ */
+const CORNER_RADIUS = 0.5;
+const claimed = (p: Place): Place => Object.freeze({ ...p, radius: CORNER_RADIUS });
+const CORNER: ReadonlyArray<readonly [string, Place]> = Object.freeze([['corner', claimed(SAW_CORNER)], ['dark', claimed(SAW_DARK)], ['bright', claimed(SAW_BRIGHT)]] as const);
+/**
+ * The birds the hook's riff rows lean about at a tile (`src/hook.ts`, `pickWeights`): the tile's own, so the tile plays its
+ * own mix (`picks`) and only the positions around it move (the leans themselves are the hook row's, by bird).
+ */
+const hookLeans = (p: Place): BirdLeans => Object.freeze({
+  centre: Object.freeze(Object.fromEntries(BIRDS.map((b) => [b, p.birds[b] ?? HOUSE[b]]))),
+  by: Object.freeze({}),
+});
 /** A free pulse, airy, wet and long. */
 const FLOATING = place({ ember: 0.10, tide: 0.85, zephyr: 0.90, root: 0.50, veil: 0.30, loom: 0.80, spark: 0 }, [40, 70]);
 /**
@@ -107,6 +135,28 @@ const WAVES = place({ ember: 0.05, tide: 0.85, zephyr: 0.75, root: 0.55, gleam: 
  */
 const WAVES_TARGET_LUFS = -17.1;
 const WAVES_MEASURED_LUFS = -17.6;
+/**
+ * Still, wet, long, light, no break: sound healing and shavasana, a set of bowls in slow conversation over a breathing
+ * bed (PLAN-AMBIENT P2, ambient-bowls). The plan's spell moved by Veil to nought (nothing changes: lying still) and Root
+ * to 0.40 (the bowls a step off the thin end), which takes it off the journey's restless far corner: at the plan's own
+ * spell it stood 1.153 from the featured Moon Tide (Veil 1.00, PSY's journey, 1.199), and the conversation's table
+ * would have handed that track to the bowls; here it stands 1.223. It is named in one table only, the conversation's,
+ * and its harmony, form and bed ride on its entry, so nothing of it is read where the bowls do not play.
+ */
+const BOWLS = place({ ember: 0.02, tide: 0.95, zephyr: 0.50, root: 0.40, gleam: 0.80, veil: 0.00, spark: 0, loom: 1.0 }, [40, 70]);
+/**
+ * BOWLS's level (round 2, offline and silent): its trim windows read −21.0 LUFS at nought (the median of the 24 own
+ * themes of seeds 1-12, themes 1-3; −24.5 to −18.9), so the trim stands at the drumless family's ceiling (+2 dB) and the
+ * whole themes play −18.6 LUFS median (−21.0 to −17.5), the deepest limiting 3.0 dB; the bowls alone −18.8 (−19.6 to
+ * −17.5), 1.0 dB at the deepest.
+ */
+const BOWLS_TARGET_LUFS = -18.6;
+const BOWLS_MEASURED_LUFS = -21.0;
+/** BOWLS's form: an opening of the great bowl alone, a long middle of the bowls' conversation, a close of the great bowl dying out. */
+const BOWLS_FORM = Object.freeze({
+  orders: [['intro', 'groove', 'outro']],
+  sectionBars: Object.freeze({ intro: { p25: 3, p75: 5, median: 4 }, groove: { p25: 70, p75: 90, median: 80 }, outro: { p25: 8, p75: 12, median: 10 } }),
+});
 /** The Liquid key's own spell (the Drum & Bass tile's liquid centre), read by the riff, form and development tables. */
 const LIQUID_KEY = { ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.60, spark: 0.85, loom: 0.85 };
 /** The liquid centre as a place (liquid-space, 10-11). */
@@ -355,6 +405,13 @@ export const BASS_SOUND: readonly BassEntry[] = Object.freeze([
 export const LANE_SOUND: readonly LaneSoundEntry[] = Object.freeze([
   { id: 'shimmer-bed', place: FLOATING, lane: 'pad', sound: 'shimmer' },
   { id: 'wide-held-saw', place: HIGH_FOUR, lane: 'pad', sound: 'supersaw' },
+  // the held saw in front voiced as one line at the corner (trance-1, his ear 10-28: the top fell an octave and a voice left
+  // every fourth chord): four voices on every chord and the root under them, the top led by step inside G4-C5; the corner's
+  // own row, so the high four's neighbours keep their held saw as it was (trance-2)
+  // ...and under the runs' level (trance-2, the whole Trance track measured: the held saw alone at -11.8 LUFS in the grooves and
+  // -11.2 in the breakdowns against the chopped saw's -13.5 in the peak run, so the peak was the quietest part of the track):
+  // six decibels down, the grooves and the breakdown under the runs as source 10's are
+  ...CORNER.map(([tag, at]) => ({ id: `wide-held-saw-voiced-${tag}`, place: at, lane: 'pad' as const, sound: 'supersaw', voicing: { voices: 4, top: [67, 72] as const, root: true, levelDb: -6 } })),
   { id: 'organ-on-the-stab', place: BRIGHT_FOUR, lane: 'stab', sound: 'struck-organ' },
   // The rest keep the lanes' own draw (see BASS_SOUND).
   ...[FAST_BROKEN, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR]
@@ -832,9 +889,11 @@ export const DRUM_GRAIN_HOUSE: DrumGrainEntry = Object.freeze({ id: 'drums-grain
 // doubled part of the low fundamental, then faded it away; the repeat lost
 // about 4.6 dB of weight. Keep the build/transition pushes, and give the line
 // a steady place level with less backbeat competition (definition round, 10-08).
+// Round loudness-place (his word 10-30, the design's third decision): no level of its own; its aim is the place
+// function's beat-led line (`loudness.ts` `targetOf`, −10.5 where the place asked −9 and landed −12.5).
 // `bassDb` and `limiterReleaseMs` are knobs since the liquid knobs (10-07), `push.dropLevel` since
 // the liquid desk (10-08): ranges declared in `DRUMS_KNOBS` (`places.ts`), these numbers their defaults.
-const FAST_DRUMS = { kit: 'dnb/kit-liquid-two-step', bassBodyDb: 0, push: { dropLevel: 0 }, clip: { driveDb: 0, knee: 0.6, curve: 2, mix: { driveDb: 2, knee: 0.7, curve: 2, makeupDb: 6.2 }}, sends: { reverbToneHz: 10000, roomCorr: 0.3, roomHighHz: 14000, roomLowHz: 200 }, backbeatDb: -2, kickDb: 8, bassDb: 5, kickDecay: 1, limiterReleaseMs: 90, ghostDb: -2, hatsDb: -2.5, targetLufs: -9, measuredLufs: -15.22, liftDrums: { breakdown: { kick: -18, backbeat: -18, offbeat: -18 }, intro: { backbeat: -6, offbeat: -10 } }, busComp: { threshold: -6, knee: 6, ratio: 2, attack: 0.01, release: 0.08 }, throws: { everyBars: 8, chance: 0.5, delay: 0.45, reverb: 0.3 },
+const FAST_DRUMS = { kit: 'dnb/kit-liquid-two-step', bassBodyDb: 0, push: { dropLevel: 0 }, clip: { driveDb: 0, knee: 0.6, curve: 2, mix: { driveDb: 2, knee: 0.7, curve: 2, makeupDb: 6.2 }}, sends: { reverbToneHz: 10000, roomCorr: 0.3, roomHighHz: 14000, roomLowHz: 200 }, backbeatDb: -2, kickDb: 8, bassDb: 5, kickDecay: 1, limiterReleaseMs: 90, ghostDb: -2, hatsDb: -2.5, measuredLufs: -15.22, liftDrums: { breakdown: { kick: -18, backbeat: -18, offbeat: -18 }, intro: { backbeat: -6, offbeat: -10 } }, busComp: { threshold: -6, knee: 6, ratio: 2, attack: 0.01, release: 0.08 }, throws: { everyBars: 8, chance: 0.5, delay: 0.45, reverb: 0.3 },
  bassComp: { threshold: -24, knee: 6, ratio: 1.4, attack: 0.03, release: 0.15 },
   duck: { lowDepthDb: -3, minimumAt: 0.02, firstLeg: 0.12, recoverBy: 0.25 },
   // the backbeat whatever the house's draw put on it (PLAN-UNIFY U1, the fast-place birds' bug 3: the clap and the rim,
@@ -957,6 +1016,10 @@ export const SECTIONS: readonly SectionsEntry[] = Object.freeze([
   { id: 'the-mix-s-sections-deep', place: FAST_BROKEN_DEEP, prefers: THE_MIX_S_SECTIONS },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
     .map((place, i) => ({ id: `own-sections-${i + 1}`, place, prefers: Object.freeze({}) })),
+  // the corner's breakdown exposes the hook (trance-1): the kick, the hats and the bass out, the held layer and the figure
+  // alone (the exposed breakdown's row, weight nought everywhere else), so the riff stands without drums; at the corner's
+  // three places only, so the high four keeps its hats in the breakdown (trance-2: Drive - Comet Tail)
+  ...CORNER.map(([tag, at]) => ({ id: `exposed-breakdowns-${tag}`, place: at, prefers: Object.freeze({ 'dnb/dnb-exposed': 1, 'sections/breakdown': 0 }) })),
 ] as SectionsEntry[]);
 
 /**
@@ -1221,14 +1284,27 @@ export const AMBIENT_VOICES: readonly AmbientVoicesEntry[] = Object.freeze([
   { id: 'details-and-weather-broken', place: LIQUID_BROKEN, ambient: LIQUID_AMBIENT },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
     .map((place, i) => ({ id: `no-details-or-weather-${i + 1}`, place })),
-  // ambient-waves (PLAN-AMBIENT Phase 4): the sea, a weather alone (`src/surf.ts`, `recipes/ambient/surf.json`): the
-  // pad's chord blooming on its crests, a bell on its breaks and the bass on its undertows, in place of the held pad,
-  // the sub and the keys' figure, and the chords moving with its sets; BELLS lays none, and says so (it stands nearer
-  // WAVES than FLOATING does)
-  { id: 'the-sea-at-waves', place: WAVES, weather: Object.freeze({ row: 'waves-surf', needs: Object.freeze(['no-kit'] as const), holdOff: Object.freeze(['sustained', 'bassline', 'figure']),
-    level: Object.freeze({ targetLufs: WAVES_TARGET_LUFS, measuredLufs: WAVES_MEASURED_LUFS }) }) },
+  { id: 'no-details-or-weather-at-waves', place: WAVES },
   { id: 'no-details-or-weather-at-bells', place: BELLS },
 ] as AmbientVoicesEntry[]);
+
+/**
+ * **The sea by place** (ambient-waves, PLAN-AMBIENT Phase 4; `src/surf.ts`, `recipes/ambient/surf.json`): at WAVES a
+ * weather alone, the pad's chord blooming on its crests, a bell on its breaks and the bass on its undertows, in place of
+ * the held pad, the sub and the keys' figure, and the chords moving with its sets; it needs no kit (no drums derived),
+ * and a sea refused plans the theme again as if the place laid none. Its own lane since engine-data (it rode on the
+ * ambient voices' table), listing the same places in the same order, so its nearest is to the bit what it was; BELLS
+ * lays none, and says so (it stands nearer WAVES than FLOATING does).
+ */
+export const SEA: readonly SeaEntry[] = Object.freeze([
+  ...[FAST_BROKEN, FAST_BROKEN_DEEP, LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN,
+    BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
+    .map((place, i) => ({ id: `no-sea-${i + 1}`, place })),
+  { id: 'the-sea-at-waves', place: WAVES, technique: Object.freeze({ kind: 'sea', row: 'waves-surf', priority: 3, foreground: true, noiseGlue: false, refused: 'without',
+    needs: Object.freeze(['no-kit'] as const), silences: Object.freeze(['sustained', 'bassline', 'figure']),
+    level: Object.freeze({ targetLufs: WAVES_TARGET_LUFS, measuredLufs: WAVES_MEASURED_LUFS }) }) },
+  { id: 'no-sea-at-bells', place: BELLS },
+] as SeaEntry[]);
 
 /**
  * **Time by place** (PLAN-UNIFY §2.2, `src/musical-time.ts`): where the kit plays half-time, the pulse is felt at
@@ -1262,8 +1338,17 @@ export const TIME: readonly TimeEntry[] = Object.freeze([
  */
 export const CONVERSATION: readonly ConversationEntry[] = Object.freeze([
   { id: 'bells-in-conversation', place: BELLS,
-    conversation: Object.freeze({ row: 'bells-in-conversation', holdOff: Object.freeze(['sustained', 'bassline', 'figure']),
-      level: Object.freeze({ targetLufs: BELLS_TARGET_LUFS, measuredLufs: BELLS_MEASURED_LUFS }) }) },
+    technique: Object.freeze({ kind: 'conversation', row: 'bells-in-conversation', priority: 1, foreground: true, noiseGlue: false, length: 'struck',
+      silences: Object.freeze(['sustained', 'bassline', 'figure']), level: Object.freeze({ targetLufs: BELLS_TARGET_LUFS, measuredLufs: BELLS_MEASURED_LUFS }) }) },
+  // ambient-bowls (PLAN-AMBIENT P2): the bowls over a held bed of strings and a pedal, breathing; the sub and the keys'
+  // figure held off, the held layer kept (its bed the entry's own: strings or the strings' swell, no synth under bowls)
+  { id: 'bowls-breathing', place: BOWLS,
+    technique: Object.freeze({ kind: 'conversation', row: 'bowls-breathing', priority: 1, foreground: true, noiseGlue: false, length: 'struck',
+      silences: Object.freeze(['bassline', 'figure']), level: Object.freeze({ targetLufs: BOWLS_TARGET_LUFS, measuredLufs: BOWLS_MEASURED_LUFS }),
+      // round 2 (his ear: "they kind of sound similar"): a pedal on the tonic most themes, and in some a slow sway to
+      // the fourth or the sixth and back, a chord every eight bars (some 40 s, the cycles' longest loop), voiced in sevenths
+      harmony: Object.freeze({ cycles: Object.freeze([{ degrees: [0], every: 16, loop: 16, voicing: 'sevenths', w: 3 },
+        { degrees: [0, 3], every: 8, loop: 16, voicing: 'sevenths', w: 1 }, { degrees: [0, 5], every: 8, loop: 16, voicing: 'sevenths', w: 1 }]) }), form: BOWLS_FORM, bed: Object.freeze({ strings: 2, swell: 1 }), bedDb: -15, needs: Object.freeze(['no-kit'] as const) }) },
   ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE,
     LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
     .map((place, i) => ({ id: `no-conversation-${i + 1}`, place })),
@@ -1307,7 +1392,7 @@ const JOURNEY_TREATMENTS = Object.freeze({ phaser: 4, breath: 3, 'fx:autoPan': 4
 // nought, 4.9 dB into the limiter there) a lift is a decibel more of limiter, and the quietest peak measured is -15.1.
 const JOURNEY_LEVEL = Object.freeze({ targetLufs: -15, trimMostDb: 0 });
 export const JOURNEY: readonly JourneyEntry[] = Object.freeze([
-  { id: 'long-filter-journey', place: PSY, journey: Object.freeze({ row: 'long-filter-journey', form: JOURNEY_ARC, treatments: JOURNEY_TREATMENTS, level: JOURNEY_LEVEL }) },
+  { id: 'long-filter-journey', place: PSY, technique: Object.freeze({ kind: 'journey', row: 'long-filter-journey', priority: 2, foreground: true, form: JOURNEY_ARC, treatments: JOURNEY_TREATMENTS, level: JOURNEY_LEVEL }) },
   ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE, BELLS,
     LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
     .map((place, i) => ({ id: `no-journey-${i + 1}`, place })),
@@ -1333,6 +1418,8 @@ export const AIR: readonly PlaceEntry[] = Object.freeze([
   { id: 'deep-half', place: DEEP_HALF },
   { id: 'deep-still-drumless', place: place({ ember: 0, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }, [40, 70]) },
   { id: 'high-four-open', place: place({ ember: 0.88, root: 0.60, zephyr: 0.60, veil: 0.60, tide: 0.70 }, [134, 146]) },
+  // trance-1: the Trance tile, at its own Zephyr
+  { id: 'saw-corner', place: claimed(SAW_CORNER) },
   { id: 'driving-four', place: DRIVING_FOUR },
   { id: 'broken-driving', place: BROKEN_DRIVING },
   { id: 'slow-wet', place: SLOW_WET },
@@ -1343,6 +1430,47 @@ export const AIR: readonly PlaceEntry[] = Object.freeze([
   { id: 'psy', place: PSY },
   { id: 'waves', place: WAVES },
 ].map((e) => Object.freeze(e)));
+
+/**
+ * **The hook by place** (round trance-1, `src/hook.ts`; his five riff rows and source 10's arc, trance-2): chopped chords
+ * on the struck, gritty supersaw. At the trance corner's three tiles and the high four every theme of the composer's own
+ * plays it (a rule), none past 0.5 from the entry's birds at reach 0 (`radius`; the reach dial widens it, `src/place-zone.ts`);
+ * which of the riff's rows is the tile's mix (`picks`) leaned by the birds about it. The bright four of the house's family
+ * reads the hook row's zone about the house (its share grows only as Pulse, Gleam or Spark rise past the house), as the
+ * house's own place does; every other fast or slow place plays none (a share of nought), so
+ * the hook is zoned toward the trance corner and never reaches the drumless, the slow side, the dub or the techno four.
+ */
+/** A tile's hook: the hook row, whole within the corner's radius (the reach dial widens it), its own mix of the riff's rows leaned about the tile. */
+const hookAt = (place: Place, picks: Readonly<Record<string, number>>) => Object.freeze({ kind: 'hook' as const, row: 'supersaw-hook', priority: 5, foreground: false,
+  zone: Object.freeze({ share: 1, radius: CORNER_RADIUS }), leans: hookLeans(place), picks: Object.freeze(picks) });
+export const HOOK: readonly HookEntry[] = Object.freeze([
+  // each tile's own mix of his five picks (trance-2): Trance the gallop and the dark one, Hard Trance the dark gallop,
+  // Uplifting Trance the bright one; the birds lean it about the tile (Gleam, Loom and Tide, Veil and Spark)
+  { id: 'saw-corner', place: SAW_CORNER, technique: hookAt(SAW_CORNER, { gallop: 0.25, 'gated-chords': 0.15, 'gallop-dark': 0.4, 'gallop-sparse': 0.15, 'gallop-bright': 0.05 }) },
+  { id: 'saw-corner-dark', place: SAW_DARK, technique: hookAt(SAW_DARK, { 'gallop-dark': 0.55, gallop: 0.2, 'gated-chords': 0.1, 'gallop-sparse': 0.1, 'gallop-bright': 0.02 }) },
+  { id: 'saw-corner-bright', place: SAW_BRIGHT, technique: hookAt(SAW_BRIGHT, { 'gallop-bright': 0.45, 'gallop-sparse': 0.3, gallop: 0.15, 'gated-chords': 0.1 }) },
+  { id: 'the-high-four', place: HIGH_FOUR, technique: hookAt(HIGH_FOUR, { gallop: 0.3, 'gated-chords': 0.3, 'gallop-dark': 0.25, 'gallop-sparse': 0.15 }) },
+  // the house's own share (the hook row's zone about the house) where the table reads the bright four
+  { id: 'bright-four-home-zone', place: BRIGHT_FOUR, technique: Object.freeze({ kind: 'hook' as const, row: 'supersaw-hook', priority: 5, foreground: false, zone: Object.freeze({ share: 0 }), house: true }) },
+  ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, FLOATING, HELD_DRONE]
+    .map((place, i) => ({ id: `no-hook-${i + 1}`, place })),
+].map((e) => Object.freeze(e)) as HookEntry[]);
+
+/**
+ * **The ensembles by place** (10-28, `src/ensemble.ts`): each at its study's measured birds (the spell its arrangement
+ * was approved under) and the tempo window its salt survives, claiming its own neighbourhood only (`radius`); a third
+ * of the composer's own themes there play it, the rest what the place plays without it. The conversation's place
+ * stands 0.23 from the house's, so its neighbourhood is the narrower (0.2): the bright stab's window, 0.27 off, stays
+ * the composer's.
+ */
+export const ENSEMBLE: readonly EnsembleEntry[] = Object.freeze([
+  { id: 'the-conversation', place: Object.freeze({ birds: Object.freeze({ ember: 0.394, tide: 0.6, zephyr: 0.53, root: 0.76, gleam: 0.4, veil: 0.58, spark: 0.38, loom: 0.578 }),
+    tempo: Object.freeze([96, 112] as [number, number]), radius: 0.2 }),
+    technique: Object.freeze({ kind: 'ensemble', row: 'ensembles/the-conversation', priority: 4, foreground: false, zone: Object.freeze({ share: 0.35, radius: 0.2 }), refused: 'theme' }) },
+  { id: 'body-and-distance', place: Object.freeze({ birds: Object.freeze({ ember: 0.394, tide: 0.558, zephyr: 0.7, root: 0.3, gleam: 0.7, veil: 0.7, spark: 0.16, loom: 0.3 }),
+    tempo: Object.freeze([98, 112] as [number, number]), radius: 0.3 }),
+    technique: Object.freeze({ kind: 'ensemble', row: 'ensembles/body-and-distance', priority: 4, foreground: false, zone: Object.freeze({ share: 0.35, radius: 0.3 }), refused: 'theme' }) },
+].map((e) => Object.freeze(e)) as EnsembleEntry[]);
 
 /**
  * **The zones** (PLAN-ZONES §3; the pilot, §5, 10-18): a few birds take a theme into one, every lane then plays the
@@ -1365,7 +1493,7 @@ export const ZONES: readonly Zone[] = Object.freeze([
     centre: Object.freeze({ ...HOUSE, ...BELLS.birds }) as Spell,
     rows: Object.freeze({ harmony: 'slow-drift-under-bells', form: 'bells-chapters', eq: 'bells-keep-their-floor', bed: 'bells-keep-their-floor',
       grain: 'bells-take-no-grain', support: 'bells-alone', conversation: 'bells-in-conversation', journey: 'no-journey-12',
-      ambientVoices: 'no-details-or-weather-at-bells' }),
+      ambientVoices: 'no-details-or-weather-at-bells', sea: 'no-sea-at-bells' }),
     borrow: BORROWED.zones['struck-in-conversation'] as unknown as Partial<Record<PlaceLane, PlaceEntry | null>>,
     // in the lanes' words: the calls and the answers the figure, the bowl the held ground and the low end (the three the
     // conversation holds off), its floor the texture; the kit's four left free (Z7 reads it)
@@ -1374,7 +1502,23 @@ export const ZONES: readonly Zone[] = Object.freeze([
   }),
 ]);
 
-export const places: StylePlaces = Object.freeze({ harmony: HARMONY, form: FORM, treatments: TREATMENTS, bassSound: BASS_SOUND, laneSound: LANE_SOUND, sounds: SOUNDS, eq: EQ, bassDrive: BASS_DRIVE, bassDriveHouse: BASS_DRIVE_HOUSE, bed: BED, bedHouse: BED_HOUSE, grain: GRAIN, grainHouse: GRAIN_HOUSE, drumGrain: DRUM_GRAIN, drumGrainHouse: DRUM_GRAIN_HOUSE,
-  drums: DRUMS, breaks: BREAKS, subSections: SUBSECTIONS, subSectionsHouse: THE_HOUSE_SUBSECTIONS, sections: SECTIONS, glueSound: GLUE_SOUND, walk: WALK, roles: ROLES, glide: GLIDE,
-  riff: RIFF, support: SUPPORT, keys: KEYS, development: DEVELOPMENT, ambientVoices: AMBIENT_VOICES, time: TIME, conversation: CONVERSATION,
-  journey: JOURNEY, air: AIR, zones: ZONES });
+/**
+ * **The trance corner reads the high four's rows** (round trance-1): each lane's entry at the high four, again at each of
+ * the three tiles (the same row, so the tiles play the four's program in every lane but the hook's, and the neighbourhood
+ * their controls steer in stays inside it rather than half-way to the bright four, which stands as near). Claimed within
+ * the corner's radius only (trance-2), and a lane with its own entry at the corner (the voiced held saw, the exposed
+ * breakdown) keeps it.
+ */
+function cornered<T extends PlaceEntry>(table: readonly T[]): readonly T[] {
+  if (table.some((e) => CORNER.some(([, at]) => e.place === at))) return table;
+  const four = table.filter((e) => e.place === HIGH_FOUR);
+  return four.length ? Object.freeze([...table, ...four.flatMap((e) => CORNER.map(([tag, at]) => Object.freeze({ ...e, id: `${e.id}-${tag}`, place: at })))]) : table;
+}
+
+export const places: StylePlaces = Object.freeze({ harmony: cornered(HARMONY), form: cornered(FORM), treatments: cornered(TREATMENTS), bassSound: cornered(BASS_SOUND),
+  laneSound: cornered(LANE_SOUND), sounds: SOUNDS, eq: cornered(EQ), bassDrive: cornered(BASS_DRIVE), bassDriveHouse: BASS_DRIVE_HOUSE, bed: cornered(BED), bedHouse: BED_HOUSE,
+  grain: cornered(GRAIN), grainHouse: GRAIN_HOUSE, drumGrain: cornered(DRUM_GRAIN), drumGrainHouse: DRUM_GRAIN_HOUSE,
+  drums: cornered(DRUMS), breaks: cornered(BREAKS), subSections: cornered(SUBSECTIONS), subSectionsHouse: THE_HOUSE_SUBSECTIONS, sections: cornered(SECTIONS),
+  glueSound: cornered(GLUE_SOUND), walk: cornered(WALK), roles: cornered(ROLES), glide: cornered(GLIDE),
+  riff: cornered(RIFF), support: cornered(SUPPORT), keys: cornered(KEYS), development: cornered(DEVELOPMENT), ambientVoices: cornered(AMBIENT_VOICES), time: cornered(TIME),
+  conversation: cornered(CONVERSATION), journey: cornered(JOURNEY), sea: cornered(SEA), air: AIR, zones: ZONES, hook: HOOK, hookRows: HOOK_ROWS, arcRows: ARC_RULES, ensemble: ENSEMBLE });

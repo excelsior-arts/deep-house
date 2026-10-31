@@ -1155,10 +1155,11 @@ export function airAtOf(spell: Spell, style: Style): AirAt | null {
   const centres = (style as { places?: { air?: readonly AirCentre[] } }).places?.air;
   if (!centres?.length || !(style as { layers?: unknown }).layers) return null;
   const bpm = emberTempo(spell.ember, spell.spark, true);
+  // a place with a radius (a tile's own: round trance-2) blends in only within it
   const centre = airBlend([HOUSE_AIR, ...centres.map((c) => c.place)].map((p) => {
     const zephyr = p.birds.zephyr ?? HOUSE.zephyr;
-    return { d: placeDistanceOf(p.birds, p.tempo, { ...spell, zephyr }, bpm), zephyr };
-  }));
+    return { d: placeDistanceOf(p.birds, p.tempo, { ...spell, zephyr }, bpm), zephyr, radius: p.radius };
+  }).filter((x) => x.radius === undefined || x.d <= x.radius));
   return centre === spell.zephyr ? null : { centre, off: spell.zephyr - centre };
 }
 

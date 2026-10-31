@@ -59,6 +59,13 @@ export interface PlanAnswer {
  * here; so does an ask that cannot be resolved (an unknown mode throws here,
  * as the plan itself would). The two modes are resolved here, off this
  * thread's address, because the worker's address is its own script's.
+ *
+ * **The page's own handles never cross** (merge-fix, 10-26): the destination
+ * and the tick's watch (`onTick`, audio-slack 10-23) are the set's, not the
+ * plan's. `onTick` is a function, and a function in the ask made the worker's
+ * `postMessage` throw (`DataCloneError`), so from 10-23 every landing a hand
+ * asked for and every plan made ahead was planned on the page's thread again:
+ * a pull's long task of 52-60 ms.
  */
 export function askOf(seed: string | number, index: number, opts: Partial<MixOptions>, bypass: Bypass | null = null, program = false): PlanAsk | null {
   const own = strategyById(opts.strategy).style;
@@ -70,7 +77,7 @@ export function askOf(seed: string | number, index: number, opts: Partial<MixOpt
   } catch (e) {
     return null;
   }
-  const { style: _style, destination: _destination, ...rest } = opts;
+  const { style: _style, destination: _destination, onTick: _onTick, ...rest } = opts;
   return { seed, index, opts: { ...rest, accompaniment, development }, bypass, program };
 }
 

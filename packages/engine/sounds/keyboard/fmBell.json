@@ -66,7 +66,10 @@
         "unit": "ratio",
         "min": 0.5,
         "max": 1.5,
-        "default": 1
+        "default": 1,
+        "tilt": {
+          "index": 2
+        }
       }
     },
     "timbres": {

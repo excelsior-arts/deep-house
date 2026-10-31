@@ -1,0 +1,191 @@
+{
+  "about": "The riff's options for the hook (src/phrase.ts, src/hook.ts; his five picks of trance-2, 10-28): chopped chords, each row a bar's chop (`patterns`: a level a sixteenth, or `steps` with each slice's length in sixteenths, `lens`) and the cells that use them (`order`, each `cellBars` long, its chord's top the chord tone nearest the cell's `top`). The chord is held a bar, or to the beat it changes on; `gate.tones` the chord's first tones (or its tones by index), `gate.voices` how many under the top, a slice shut `open`'s share of itself or a fixed `gap` share of a sixteenth before its end. `filter` the row's corner factor. `gate.color`: a colour the hook's loop adds to its first chord (`add9`), the rest triads. The chords are the hook's loop's (`recipes/arrangement/hook.json`, `loops`) in a run, the theme's elsewhere.",
+  "rows": [
+    {
+      "id": "gated-chords",
+      "about": "No melody: the chord held and chopped in sixteenths, three-three-two accents and a pickup at the turn; the top of the chord moves by step from chord to chord, so the changes carry the tune; the last bar a run of sixteenths into the next phrase.",
+      "cellBars": 2,
+      "order": [
+        "one",
+        "two",
+        "three",
+        "two",
+        "one",
+        "two",
+        "three",
+        "turn"
+      ],
+      "vel": 0.62,
+      "filter": 0.95,
+      "gate": {
+        "voices": 4,
+        "open": 0.8,
+        "tones": 3
+      },
+      "patterns": {
+        "a": [1, 0.4, 0, 1, 0.4, 0, 1, 0, 1, 0.4, 0, 1, 0.4, 0, 1, 0.55],
+        "b": [1, 0, 0.5, 1, 0, 0.5, 1, 0, 0.85, 0, 0.6, 0.85, 0.6, 0, 1, 1],
+        "run": [1, 0.5, 0.8, 0.5, 1, 0.55, 0.85, 0.6, 1, 0.6, 0.9, 0.65, 1, 0.7, 1, 0.85]
+      },
+      "cells": {
+        "one": {
+          "top": 71,
+          "gate": [
+            "a",
+            "b"
+          ]
+        },
+        "two": {
+          "top": 69,
+          "gate": [
+            "a",
+            "b"
+          ]
+        },
+        "three": {
+          "top": 67,
+          "gate": [
+            "a",
+            "b"
+          ]
+        },
+        "turn": {
+          "top": 69,
+          "gate": [
+            "a",
+            "run"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gallop",
+      "about": "The reference's chop as measured (source 10): every beat a sixteenth, a sixteenth and an eighth, each slice shut a constant ~0.4 of a sixteenth before its end, the first one under the kick's duck; the chord wide, six voices over two octaves, its top held near E5-F#5 and moving by step; the filter open throughout.",
+      "cellBars": 2,
+      "order": [
+        "one"
+      ],
+      "vel": 0.6,
+      "filter": 1,
+      "gate": {
+        "voices": 6,
+        "open": 0.8,
+        "tones": 3,
+        "gap": 0.4
+      },
+      "patterns": {
+        "gallop": {
+          "steps": [0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0],
+          "lens": [1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0]
+        }
+      },
+      "cells": {
+        "one": {
+          "top": 77,
+          "gate": [
+            "gallop",
+            "gallop"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gallop-dark",
+      "about": "The measured chop, darker and driven: the chord's root and fifth only (fifths, three voices) low in the middle, the filter half shut, the edge up; its slices as long as the gallop's (a shorter one chattered, harsh when dry: his ear 10-28).",
+      "cellBars": 2,
+      "order": [
+        "one"
+      ],
+      "vel": 0.65,
+      "filter": 0.55,
+      "gate": {
+        "voices": 3,
+        "open": 0.8,
+        "tones": [0, 2],
+        "gap": 0.42
+      },
+      "patterns": {
+        "gallop": {
+          "steps": [0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0],
+          "lens": [1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0]
+        }
+      },
+      "cells": {
+        "one": {
+          "top": 64,
+          "gate": [
+            "gallop",
+            "gallop"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gallop-bright",
+      "about": "The measured chop, brighter and open: five voices high, the loop's first chord coloured with its ninth, the slices longer (a narrow gap), the filter wide open, the light up.",
+      "cellBars": 2,
+      "order": [
+        "one"
+      ],
+      "vel": 0.55,
+      "filter": 1.15,
+      "gate": {
+        "voices": 5,
+        "open": 0.8,
+        "tones": 4,
+        "gap": 0.28,
+        "color": "add9"
+      },
+      "patterns": {
+        "gallop": {
+          "steps": [0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0, 0.95, 0.9, 1, 0],
+          "lens": [1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0]
+        }
+      },
+      "cells": {
+        "one": {
+          "top": 79,
+          "gate": [
+            "gallop",
+            "gallop"
+          ]
+        }
+      }
+    },
+    {
+      "id": "gallop-sparse",
+      "about": "The measured chop, sparser: only the off-beat eighths for three beats and the whole gallop on the fourth, then a bar of off-beat eighths alone; four voices, the top near E5.",
+      "cellBars": 2,
+      "order": [
+        "one"
+      ],
+      "vel": 0.65,
+      "filter": 1,
+      "gate": {
+        "voices": 4,
+        "open": 0.8,
+        "tones": 3,
+        "gap": 0.4
+      },
+      "patterns": {
+        "pickup": {
+          "steps": [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0.9, 1, 0],
+          "lens": [1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0]
+        },
+        "offbeats": {
+          "steps": [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+          "lens": [1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0]
+        }
+      },
+      "cells": {
+        "one": {
+          "top": 76,
+          "gate": [
+            "pickup",
+            "offbeats"
+          ]
+        }
+      }
+    }
+  ]
+}

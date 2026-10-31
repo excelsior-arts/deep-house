@@ -109,7 +109,8 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
       const part = pickup?.part ?? (moving ? rhythmCell(moving,phase!,seed,c.section.index,
         Math.floor((c.bar-c.section.startBar)/rhythmPolicy!.phraseBars)) : rhythm.find(r => r.lane.id === lane.id)!.part);
       if (c.handsThrough && !part.strokes) continue;
-      const offset = pickup?.offset ?? (part.strokes ? handCellBar(part.bars, c.bar - c.section.startBar, c.section.bars) : c.bar % part.bars) * STEPS_PER_BAR;
+      const offset = pickup?.offset ?? (part.strokes ? handCellBar(part.bars, c.bar - c.section.startBar, c.section.bars)
+        : (part.clock === 'section' ? c.bar - c.section.startBar : c.bar) % part.bars) * STEPS_PER_BAR;
       const r = new Rng(`${seed}::${lane.id}:${c.bar}`);
       const voice = voiceOf(lane);
       if (lane.role === 'kick' && !c.kickThisBar) continue;
@@ -133,7 +134,7 @@ export function recipeRhythmSource({ seed, S, rhythm, rhythmMotion, rhythmPolicy
           ...(placed ? { pan: placed.pan } : {}),
           ...trim,
           ...(sound ? { ...sound.params, gain:(trim.gain ?? 1)*dbToGain(sound.gainDb + (character!.levelDb ?? 0)) } : {}),
-        }, { bar: c.bar, step, layer: layerOf(voice), ...(pinned?.role === lane.role ? { part: pinned.id } : selectedRecipeFor(lane.role) ? { part: selectedRecipeFor(lane.role)!.id } : {}), ...placed?.tags });
+        }, { bar: c.bar, step, layer: layerOf(voice), ...(pinned?.role === lane.role ? { part: pinned.id } : selectedRecipeFor(lane.role) ? { part: selectedRecipeFor(lane.role)!.id } : {}), ...(part.as ? { ensemble: part.as } : {}), ...placed?.tags });
       });
     }
   };

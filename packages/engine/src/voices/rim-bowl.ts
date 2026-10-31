@@ -280,6 +280,15 @@ export function holdRim(row: SoundRow): HoldRenderer {
  * The rimmed bowl's topology (`sounds/keyboard/bowlRim.json`): the struck bowl's modes, fed by a stick on the rim.
  * Its held entry is `holdRim(row)`.
  */
+/**
+ * The oscillators one strike runs, each for its seconds: a sine a mode for the stick's time (never under its rise) and
+ * the free ring; every source stops at the note's end and 20 ms (`stop(end + 0.02)` above), its noise a buffer, no
+ * oscillator. A planner's cast budget reads it (`voiceLives`, `index.ts`).
+ */
+export function rimBowlLives(P: { partials: readonly unknown[]; attack?: number; ring?: number }, dur: number): number[] {
+  return Array(P.partials.length).fill(Math.max(P.attack ?? 0.5, dur) + (P.ring ?? 0) + 0.004 + 0.02);
+}
+
 export const RIM_BOWL: Topology = {
   id: 'rim-bowl',
   cost: 'dear',

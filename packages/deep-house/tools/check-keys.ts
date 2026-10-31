@@ -177,3 +177,25 @@ test('live: the part\'s space is built once for a theme, every bus shares it, an
   for (const d of live) if (d.program.settings.partSpace) assert.ok(d.graph.hasPartSpace());
   mix.stop();
 });
+
+// round piano-tone: the keys by the body (`keysByBody`, `src/hat-scene.ts`): a groove whose scene leaves the piano's band
+// open steps the lane down by the row's slope of the excess, never past its most; a covered groove keeps its level; a
+// section without the kick holds the groove's step; and on his two themes of Vibe - Aurora the plan does what he heard
+test('the keys by the body: open steps down, covered holds, a breakdown holds its groove, his Aurora themes read apart', async () => {
+  const { keysByBody, KEYS_BY_BODY } = await import('../src/hat-scene.ts');
+  const R = KEYS_BY_BODY!;
+  assert.ok(R && R.most > 0 && R.lift >= 0 && R.slope > 0, 'house-v2 carries no keys-by-body row');
+  const sections = [{ kind: 'main', startBar: 0, bars: 8 }, { kind: 'breakdown', startBar: 8, bars: 8 }, { kind: 'main', startBar: 16, bars: 8 }];
+  const kickAt = (b: number) => b < 8 || b >= 16;
+  const strikes = (over: number, from: number) => Array.from({ length: 8 }, (_, i) => ({ bar: from + i, db: 0, bed: -over }));
+  const open = keysByBody({ sections, kickAt, strikes: [...strikes(R.over + 20, 0), ...strikes(R.over + 20, 8), ...strikes(R.over - 5, 16)] }, R);
+  assert.equal(open[0].db, -R.most, 'a wide-open groove does not step the most');
+  assert.equal(open[1].over, null, 'a section without the kick was read');
+  assert.equal(open[1].db, open[0].db, 'a breakdown does not hold its groove\'s step');
+  assert.equal(open[2].db, 0, 'a covered groove moved');
+  const half = keysByBody({ sections: [sections[0]], kickAt, strikes: strikes(R.over + 2, 0) }, R);
+  assert.equal(half[0].db, -Math.round(2 * R.slope * 2) / 2, 'the step is not the slope of the excess in half decibels');
+  const aurora = (theme: number) => (plan('68599', 'ti:0.17,ze:0.32,gl:0.16,ve:1.00,sp:0.10,lo:0.34', theme, APP) as { keysByBody?: Array<{ db: number; over: number | null }> }).keysByBody ?? [];
+  assert.ok(aurora(0).every((s) => s.db === 0), 'Vibe - Aurora\'s first theme (his reference) moved');
+  assert.ok(aurora(1).some((s) => s.db <= -2), 'Vibe - Aurora\'s second theme (heard too loud, open) did not come down');
+});

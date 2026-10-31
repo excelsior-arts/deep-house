@@ -2,7 +2,7 @@
  "schema": 1,
  "kind": "ambient-surf",
  "round": "ambient-waves",
- "revision": 3,
+ "revision": 4,
  "note": "The sea as a weather (PLAN-AMBIENT Phase 4): one wave at a time, made of the weather's own noises. A swell rises over 3-7.5 s (the wind's band, from under its level and dark, opening as it comes), crests (the upper air: a high band opens and breaks), and falls into the undertow over 4-9 s (the dark air closing, a low rumble under it). The sea is irregular, as a real one is: its surface is a sum, a narrow band of swell about a peak period drawn once a theme (8-14 s), sometimes a cross swell from another storm, and a local wind chop; each wave's period, rise, fall and height are the sum's, the sets and the lulls are its interference, a chop's crest breaks a wave early now and then, and where the crests line up a great wave comes. No wave is on the beat. The sea's size follows the theme: a calm, a swell, a calm. The music enters on the wave: the pad's chord blooms with each crest (from as far under its level as the wave is large) and falls with the undertow; a bell sounds on the break of a set's peak and of a great wave; the bass moves on the undertow and is let go in the next swell's rise, so the low end breathes with the sea, and on a set's last wave it slides to the next set's root, so the harmony moves with the sets, not the bars. The sea is a surface under the music and never a riser: every wave ends, and the trough between two is nearly still. Levels are row numbers, his to move; the birds lean the row about the place's own (the one lean).",
  "rows": [
   {
@@ -33,6 +33,12 @@
    },
    "arc": [[0, 0.3], [0.12, 0.4], [0.42, 0.95], [0.6, 1], [0.86, 0.45], [1, 0.25]],
    "sizeMost": 1.5,
+   "display": {
+    "says": "what the ring draws of the sea (src/control.ts, src/moments.ts): a lane the sea lays is inked by the sea's height in the bar, faint under `calm`, full from `swell` (the largest wave's size there); a crest is drawn along every wave of `crest` size or over",
+    "calm": 0.45,
+    "swell": 0.9,
+    "crest": 0.75
+   },
    "sea": {"sizeDb": 8, "levelDb": 10},
    "swell": {"db": -6, "vel": 0.7, "midi": 40, "reverb": 0.35, "fromDb": [-8, -18], "oct": 1.3},
    "surf": {"db": -6, "vel": 0.7, "midi": 84, "reverb": 0.3, "leadS": 0.9, "durS": [0.8, 1.8], "lpMul": [1, 0.45], "least": 0.35, "earlyLonger": 1.4},
@@ -78,14 +84,15 @@
     "outro": {"bloom": true, "bell": "none", "bass": false}
    },
    "birds": {
-    "says": "about the place's own birds: Tide the sea's size and distance (larger and farther, the sends up and the spray's top duller; smaller, nearer and drier down, and the bloom, nearer, a little louder: a calm sea is quieter in motion and never inaudible); Root the undertow's weight (the rumble louder and longer; the bass a little down, since Root's own seasoning makes the sub's body heavier, so the weight is the body's and not the level's); Veil the sea state (rougher up: the period shorter, the swell's band broader so the periods scatter more, the chop stronger, a cross swell more often; calmer down: a long clean groundswell); Zephyr the surf's brightness (the spray louder and its top more open); and what Tide and Veil take from the sea, measured (`measuredDb`: where the theme's trim windows measure at nought against the place's own, dB a unit of the bird, fitted on the paired windows of the 24 own themes at six pulls, the bloom's nearness in: Tide 2.1, Veil 2.3, each pull within 0.2 dB), so the trim follows them and a calm sea is quieter in motion, never inaudible",
+    "says": "about the place's own birds: Tide the sea's size and distance (larger and farther, the sends up and the spray's top duller; smaller, nearer and drier down, and the bloom, nearer, a little louder: a calm sea is quieter in motion and never inaudible); Root the undertow's weight (the rumble louder and longer; the bass a little down, since Root's own seasoning makes the sub's body heavier, so the weight is the body's and not the level's); Veil the sea state (rougher up: the period shorter, the swell's band broader so the periods scatter more, the chop stronger, a cross swell more often; calmer down: a long clean groundswell); Zephyr the surf's brightness (the spray louder and its top more open); and what Tide and Veil take from the sea, measured (`measuredDb` Tide's, `measuredStateDb` Veil's: where the theme's trim windows measure at nought against the place's own, in dB, which the trim gives back one for one; each reached at the bird's own ends (`ends`), since a sea measures less over the place than under it: fitted on the paired windows of the 24 own themes at seven pulls (ambient-waves-4), Tide 2.2 dB a unit down and 2.5 up, Veil 2.4 down and 0.3 up, 1.5 dB at most; the pulls measured -0.47 and -0.41 (Tide 0.55, Veil 0.35), -1.42 (both, where the trim's clamp holds), +0.34 (Tide 1), 0.00 and +0.30 (Veil 0.85, 1.00), +0.64 (Tide 1 and Veil 1), each fitted within 0.2 dB but the calm pull, under its clamp; Veil's top end is the least worst fit and not the least squares (ambient-waves-5: +0.24 overshot Veil 0.85, which measures 0.00, and seed 1 at Veil 0.90 played 0.36 dB under the place as a whole theme; +0.12 holds every window within 0.2 dB and every corner rendered whole within 0.3 dB of the place), so the trim follows them and a calm sea is quieter in motion, never inaudible",
     "by": {
-     "tide": {"size": 0.8, "seaDb": 6, "send": 0.4, "surfBright": -0.8, "bloomDb": -5, "measuredDb": 2.1},
+     "tide": {"size": 0.8, "seaDb": 6, "send": 0.4, "surfBright": -0.8, "bloomDb": -5, "measuredDb": 1},
      "root": {"undertowDb": 10, "undertowLong": 0.6, "bassDb": -4},
-     "veil": {"period": -0.6, "spread": 1.2, "chop": 1.6, "cross": 1.5, "measuredDb": 2.3},
+     "veil": {"period": -0.6, "spread": 1.2, "chop": 1.6, "cross": 1.5, "measuredStateDb": 1},
      "zephyr": {"surfDb": 8, "surfBright": 1}
     },
-    "most": {"seaDb": 4, "undertowDb": 3, "bassDb": 1.5, "surfDb": 5, "bloomDb": 1.5}
+    "most": {"seaDb": 4, "undertowDb": 3, "bassDb": 1.5, "surfDb": 5, "bloomDb": 1.5, "measuredDb": 1.5, "measuredStateDb": 1.5},
+    "ends": {"measuredDb": [-1.87, 0.375], "measuredStateDb": [-1.44, 0.12]}
    },
    "labels": {
     "note": "What each control's cell says where a theme lays the sea (ambient-waves-3, his rule that a control's words say what it steers where it plays), in the conversation's labels' shape (src/bird-labels.ts, `TechniqueLabel`): `big.reads` is a reading of the sea's own leans about the place's birds (`chop` the wind chop's share of the swell's height, `size` the waves' size factor, `shine` the shimmer's climb as the style seasons it, `spray` the spray's level), `air` the bloom's voice whose measured air the subtitle and the locked reading say (Zephyr: at the sea Zephyr biases the spray, its level and its top, and the big word is the spray's; the bloom's air is not Zephyr's there, measured as the sea plays it: the wave pad 1255-1266 Hz and the shimmer pad 2196-2287 Hz from Zephyr 0.06 to 1 with the spray in, and the spray itself, noise, 2735-3390 Hz, over the air scale's top cut, so no word of the six moves with Zephyr at the sea; ambient-waves-4). A cut is never a number typed here: `mid` is halfway in the reading from the place's own value to the wall, and a wall is where the sea still plays along that control from the tile. `sub` and `lockedSays` are the locked reading, filled from the record (`{period}`, `{periodSays}`, `{bloom}`, `{bloomWord}`); `without` says what a line or the block says where a fact of the program is false (`shimmer`: the bloom is the wave pad, which Gleam does not reach). Read only where the theme's program lays the sea: a library turn at WAVES reads the general words. Tide has two bands at the sea (ambient-waves-4): above the place the waves grow only to 1.13 of its size at Tide 1, so a third band there (Tide 0.93-1.00, sizes 1.06-1.13) said 'big' where nothing a listener could tell apart from the 'full' band changed; 'full' runs to the wall, its high lean from the place up ('full and far').",

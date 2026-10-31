@@ -168,8 +168,10 @@ for (const [name, spell] of Object.entries(SPELLS)) for (const seed of SEEDS) {
     const { from, to } = t.passage.window;
     const bs = t.barSeconds;
     const before = off(seed, spell);
-    // outside the window the planners' events, and every line but the returns', as they were
-    const outside = (x: any) => x.events.filter((e: any) => e.t < from * bs - 1e-6 || e.t >= to * bs - 1e-6).map(key).sort();
+    // outside the window the planners' events, and every line but the returns', as they were; a break's carrier aside
+    // (round break-pulse-rule): the break rule reads the drop the break builds into, which may stand inside the window,
+    // so the carrier is the break rule's to answer for (`tools/check-break-pulse.ts`), not the passage's
+    const outside = (x: any) => x.events.filter((e: any) => (e.t < from * bs - 1e-6 || e.t >= to * bs - 1e-6) && !String(e.by ?? '').startsWith('break-pulse/')).map(key).sort();
     assert.deepEqual(outside(t), outside(before), 'an event outside the window moved');
     const prog = programOf(t), was = programOf(before);
     const lines = (p: any) => p.automation.filter((l: any) => !l.param.startsWith('returns.')).map((l: any) => JSON.stringify(l));
@@ -196,7 +198,7 @@ for (const [name, spell] of Object.entries(SPELLS)) for (const seed of SEEDS) {
       const drums = t.events.some((e: any) => ['kick', 'clap', 'hats'].includes(e.layer) && e.bar >= l.bar - 1 && e.bar <= l.bar);
       if (!drums) continue;
       const near = t.events.some((e: any) => ['crash', 'swell'].includes(e.voice) && Math.abs(e.t - l.bar * bs) < bs * 0.6)
-        || [tl.get(l.bar - 1)?.drums, tl.get(l.bar)?.drums].some((x: any) => x && /fill|roll|crash|hatsBreathe|openEnding|snarePickup|ghostAnswer|reverseCymbal|T \(|H \(/.test(x));
+        || [tl.get(l.bar - 1)?.drums, tl.get(l.bar)?.drums].some((x: any) => x && /fill|roll|crash|hatsBreathe|openEnding|snarePickup|ghostAnswer|reverseCymbal|T \(|H \(/i.test(x));
       assert.ok(near, `the drums ignore the landing at ${l.bar}`);
     }
     // the cast, the returns counted
@@ -215,7 +217,15 @@ for (const [name, spell] of Object.entries(SPELLS)) for (const seed of SEEDS) {
 }
 
 test('track A: the passage as the research manual writes it', () => {
-  const t = plan('1', SPELLS.A);
+  // The manual's passage runs 72 bars from the drop, over the main that follows it. Since round length-2 put the
+  // grooves at 3-4 minutes (his word 10-27: "We should aim for 3-4mins here") seed 1's theme is 180 bars, its main
+  // 64-79, and the producer clips the passage at the break at 80 by its rule ("a form whose break comes sooner clips
+  // it there, and the grammar arranges the break"). The manual's text is held at the length it was written at, 308
+  // bars (its form then, bar for bar).
+  const shipped = plan('1', SPELLS.A);
+  assert.deepEqual(shipped.arrangement.sections.filter((s: any) => s.kind === 'main' || s.kind === 'breakdown').slice(0, 2).map((s: any) => s.startBar), [64, 80]);
+  const t = quiet(() => planTheme('1', 0, { strategy: 'house-v2', style: V2, spell: parseSpell(SPELLS.A)!, themeBars: 308 })) as any;
+  assert.equal(t.bars, 308);
   const drop = t.arrangement.sections.find((s: any) => s.kind === 'drop').startBar;
   assert.equal(drop, 48);
   const bs = t.barSeconds, s16 = bs / 16;

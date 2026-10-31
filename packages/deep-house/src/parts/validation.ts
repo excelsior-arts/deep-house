@@ -78,13 +78,48 @@ export function struckFigureProblems(value: any): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [`${at} must be an object`];
   const bad: string[] = [];
   if (value.follows !== 'harmony' || !['struck', 'sustained'].includes(value.articulation) || value.register !== 'mid') bad.push(`${at}: expected a struck or sustained mid-register phrase following harmony`);
-  if (Object.keys(value).some(k => !['follows', 'articulation', 'register', 'families', 'properties', 'prefer', 'motif', 'strength', 'entry', 'spacing', 'behavior', 'duration', 'envelope', 'voicings', 'phrasing', 'rests', 'support'].includes(k))) bad.push(`${at}: unknown instruction`);
+  if (Object.keys(value).some(k => !['follows', 'articulation', 'register', 'families', 'properties', 'prefer', 'motif', 'strength', 'entry', 'spacing', 'behavior', 'duration', 'envelope', 'voicings', 'phrasing', 'rests', 'support', 'pedal', 'landing', 'vary', 'as', 'range', 'leaves', 'near', 'home', 'drift', 'stays'].includes(k))) bad.push(`${at}: unknown instruction`);
+  if (value.stays !== undefined) {
+    const st = value.stays, th = st?.thin;
+    if (!st || typeof st !== 'object' || Array.isArray(st) || Object.keys(st).some((k: string) => !['back', 'thin', 'solo'].includes(k)) || (st.solo !== undefined && st.solo !== true)
+      || (st.back !== undefined && !(Number.isInteger(st.back) && st.back >= 4 && st.back <= 16 && st.back % 4 === 0))
+      || (th !== undefined && (!th || typeof th !== 'object' || Object.keys(th).some((k: string) => !['sections', 'keep', 'level'].includes(k))
+        || !Array.isArray(th.sections) || !th.sections.length || th.sections.some((k: any) => typeof k !== 'string')
+        || !['ends', 'chords'].includes(th.keep) || !(th.level > 0 && th.level <= 1) || !value.motif?.paths)))
+      bad.push(`${at}.stays: back in whole four-bar groups (4-16), and a thin statement: section kinds, ends or chords kept, a level in (0,1], on a part with paths; solo true or absent`);
+  }
+  if (value.drift !== undefined && !(Number.isInteger(value.drift) && value.drift >= 0 && value.drift <= 12)) bad.push(`${at}.drift: semitones, 0 to 12`);
+  if (value.home !== undefined && (!Array.isArray(value.home) || value.home.length !== 2 || value.home.some((n: any) => !Number.isInteger(n) || n < 24 || n > 108)
+    || value.home[1] - value.home[0] !== 11)) bad.push(`${at}.home: an octave of MIDI notes (11 apart)`);
+  if (value.near !== undefined && (!value.near || (value.near.voice !== undefined && typeof value.near.voice !== 'string') || (value.near.max !== undefined && !(value.near.max >= 0)) || !(value.near.falloff > 0)
+    || Object.keys(value.near).some((k: string) => !['voice', 'max', 'falloff'].includes(k)))) bad.push(`${at}.near: a source voice, a largest distance and a falloff`);
+  if (value.leaves !== undefined && (!Array.isArray(value.leaves) || value.leaves.some((k: any) => typeof k !== 'string'))) bad.push(`${at}.leaves: section kinds`);
+  if (value.range !== undefined && (!Array.isArray(value.range) || value.range.length !== 2 || value.range.some((n: any) => !Number.isInteger(n) || n < 24 || n > 108)
+    || value.range[1] - value.range[0] < 24)) bad.push(`${at}.range: a MIDI register of two octaves or more inside 24-108`);
+  if (value.landing !== undefined && (!Array.isArray(value.landing) || !value.landing.length || value.landing.length > 5
+    || value.landing.some((d: any, i: number) => !Number.isInteger(d) || d < -14 || d > 14 || (i > 0 && d <= value.landing[i - 1]))
+    || !value.phrasing)) bad.push(`${at}.landing: an ordered chord shape of one to five scale degrees, on a phrased part`);
+  if (value.vary !== undefined) {
+    const v = value.vary;
+    if (!v || typeof v !== 'object' || Object.keys(v).some(k => !['shift', 'invert', 'shared'].includes(k)) || (v.shared !== undefined && typeof v.shared !== 'boolean') || !Array.isArray(v.shift) || v.shift.length !== 2
+      || v.shift.some((n: any) => !Number.isInteger(n) || Math.abs(n) > 7) || v.shift[0] > v.shift[1]
+      || (v.invert !== undefined && !(v.invert >= 0 && v.invert <= 1)) || !value.motif?.paths)
+      bad.push(`${at}.vary: a shift of whole scale degrees within 7, an invert chance in 0..1, on a part with paths`);
+  }
+  if (value.as !== undefined && (typeof value.as !== 'string' || !/^[a-z][a-z-]{0,30}$/.test(value.as))) bad.push(`${at}.as: a short lower-case name`);
+  if (value.pedal !== undefined) {
+    const p = value.pedal;
+    if (!p || typeof p !== 'object' || Array.isArray(p) || Object.keys(p).some(k => !['beats', 'landingBeats'].includes(k))
+      || !Number.isFinite(p.beats) || p.beats < 1 || p.beats > 16
+      || (p.landingBeats !== undefined && (!Number.isFinite(p.landingBeats) || p.landingBeats < 1 || p.landingBeats > 16)))
+      bad.push(`${at}.pedal: a pedal of 1-16 beats, and a landing of 1-16 beats where one is given`);
+  }
   if (value.support !== undefined && (!value.support || typeof value.support !== 'object' || Array.isArray(value.support)
     || Object.keys(value.support).length !== 1 || value.support.sustained !== 'separate'))
     bad.push(`${at}.support: use sustained: separate`);
   if (value.rests !== undefined) {
     const r = value.rests;
-    if (!r || typeof r !== 'object' || Object.keys(r).some(k=>!['bars','beats'].includes(k))
+    if (!r || typeof r !== 'object' || Object.keys(r).some(k=>!['bars','beats','clock'].includes(k)) || (r.clock !== undefined && r.clock !== 'section')
       || !Number.isInteger(r.bars) || r.bars < 1 || r.bars > 16
       || !Array.isArray(r.beats) || !r.beats.length || r.beats.length > 16
       || r.beats.some((w:any,i:number)=>!Array.isArray(w)||w.length!==2

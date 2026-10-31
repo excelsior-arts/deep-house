@@ -27,7 +27,9 @@ export type SubMarkKind = 'breakdown-lite' | 'half-time' | 'filtered' | 'drop-ou
   // dnb-marks (`src/moments.ts`): a chord the keys strike (the producer's touches, suspensions, colours, shells)
   | 'keys'
   // ambient-waves-3 (`src/moments.ts`): a call and its answer, the conversation's exchange
-  | 'exchange';
+  | 'exchange'
+  // keys-moments (`src/moments.ts`): the keys featured for a stretch (the piano alone in a breakdown, a second riff)
+  | 'featured';
 
 /** One mark: its kind, its bars (`to` exclusive; an answer is the line at `from`, `to` the same bar) and its line. */
 export interface SubMark { kind: SubMarkKind; from: number; to: number; label: string }
@@ -79,6 +81,9 @@ export const SUB_STYLE: Readonly<Record<SubMarkKind, SubStyle>> = Object.freeze(
   // ambient-waves-3: the conversation's exchange, the call's stroke and its answer's across the low track, nothing
   // between: the breath between them is the gap
   exchange: { track: 'low', shape: 'pair', w: 1.2, dash: null, op: 0.55 },
+  // keys-moments: the keys featured for a stretch (the piano alone over a breakdown's last phrase, a second riff): a
+  // long dash on the low track, the keys' own track beside their strokes
+  featured: { track: 'low', shape: 'span', w: 1.6, dash: '8 4', op: 0.6 },
 });
 
 /** The phrasing as the track carries it (a structural read: the plan may come off a worker as plain data). */

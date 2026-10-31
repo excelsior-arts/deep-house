@@ -1,6 +1,6 @@
 {
-  "note": "Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it. Except, by hand and carried over from the blessed file: families.drop.targetLufs -11.5 (round LOUD-2: a family's own target in place of the block's).",
-  "measuredAt": "2026-10-04",
+  "note": "Written by tools/loudness-fit.ts --bless. Every number here came off a render; nothing in it was reasoned, which is why it is JSON beside the style and not a table inside it. Except, by hand and carried over from the blessed file: families.drop.targetLufs -11.5 (round LOUD-2: a family's own target in place of the block's). The house's intercept, coefficients and centres since round loudness-v24 (10-29): refitted by tools/headroom-front.ts --fit-main on the windows the app plays (sample.grid: the grid's house mains, theme 0 of seeds 1-40 at 31 places; themes 1-2 of seeds 1-8; the three trance tiles' themes 0-2 of seeds 1-20; the featured tracks' first six themes), rendered at nought and read as the notes were written before the front rule, the featured windows counted three times (--weight featured=3: they are the benchmark), a column taken only where it buys more than 0.01 LU held out; the plain knob sum and the room's keys and pad levels with their bed steps folded in left out of the pool (--without knobDb,lvKeys,lvPad: the seasoning as the window hears it, knobHeard, and the room's levels apart from the steps, lvPadRoom and floorPiano, read what they misread). The slopes, the headroom lines, the clip's depth and the families are the earlier fits'. measured.trims: the renders' own trims (tools/headroom-front.ts --settle).",
+  "measuredAt": "2026-10-29",
   "strategy": "house-v2",
   "sample": {
     "seeds": [
@@ -42,48 +42,84 @@
         "themes": 5,
         "n": 5
       }
-    ]
+    ],
+    "grid": {
+      "windows": 1782,
+      "seeds": [
+        1,
+        40
+      ],
+      "files": [
+        "hf-before.json",
+        "hf-themes-before.json",
+        "hf-trance-before.json",
+        "hf-featured-v24-before.json",
+        "hf-formerfeat-before.json"
+      ],
+      "heldOut": "by seed, seed mod 5",
+      "selection": {
+        "gainLu": 0.01,
+        "max": 16,
+        "without": [
+          "knobDb",
+          "lvKeys",
+          "lvPad"
+        ]
+      },
+      "weights": {
+        "featured": 3
+      },
+      "rowsWithWeights": 1956
+    }
   },
   "residual": {
-    "r2": 0.8181,
-    "inSample": 0.7528,
-    "crossValidated": 0.8317,
-    "worstHeldOut": 2.3114
+    "r2": 0.6465,
+    "inSample": 1.1102,
+    "crossValidated": 1.1937,
+    "worstHeldOut": 5.384,
+    "selectionCv": 1.1378,
+    "n": 1956
   },
   "targetLufs": -13,
   "clampDb": 6,
   "slopeUp": 0.6638,
   "slopeDown": 0.5002,
-  "intercept": -13.36424,
+  "intercept": -13.20883,
   "coef": {
-    "harmonicEnergyDb": 0.09258,
-    "rateKeys": 0.03216,
-    "harmonicHold": 3.93427,
-    "wetHarmonic": -2.99783,
-    "gainPad": 0.2134,
-    "rateBass": -0.2039,
-    "lvPad": 0.72223,
-    "loopBars": 0.35149,
-    "shareKeys": 1.52194,
-    "themeBars": 0.00777,
-    "wetKeys": 1.02628,
-    "wetPad": 1.34103,
-    "voicingElevenths": 0.30222
+    "harmonicEnergyDb": 0.07869,
+    "knobHeard": 0.85762,
+    "rateHarmonic": 0.07523,
+    "harmonicHold": 2.48057,
+    "lvSub": 0.23478,
+    "sidechainLowDb": 0.60236,
+    "wetPad": 1.05284,
+    "gainPad": 0.13203,
+    "floorPiano": 0.43292,
+    "harmonicRoles": 0.95158,
+    "lvPadRoom": 0.44398,
+    "loopBars": 0.20122,
+    "velKeys": 1.25368,
+    "velBass": 1.84641,
+    "densityAmount": 1.792,
+    "padStruckBeat": -1.816
   },
   "centre": {
-    "harmonicEnergyDb": -14.664398,
-    "rateKeys": 6.954167,
-    "harmonicHold": 0.458391,
-    "wetHarmonic": 0.539548,
-    "gainPad": -1.425,
-    "rateBass": 3.440625,
-    "lvPad": -7.22425,
-    "loopBars": 5.9,
-    "shareKeys": 0.961458,
-    "themeBars": 115.1,
-    "wetKeys": 0.574904,
-    "wetPad": 0.445741,
-    "voicingElevenths": 0
+    "harmonicEnergyDb": -16.924818,
+    "knobHeard": 0.255376,
+    "rateHarmonic": 6.902671,
+    "harmonicHold": 0.541816,
+    "lvSub": -16.869632,
+    "sidechainLowDb": -7.894172,
+    "wetPad": 0.465415,
+    "gainPad": -1.534816,
+    "floorPiano": -0.338328,
+    "harmonicRoles": 1.734663,
+    "lvPadRoom": -7.000905,
+    "loopBars": 6.781186,
+    "velKeys": 0.441717,
+    "velBass": 0.750051,
+    "densityAmount": 0,
+    "padStruckBeat": 0
   },
   "headroom": {
     "activeMax": 15,
@@ -124,14 +160,17 @@
       "loopBars": 5.9
     },
     "front": {
-      "note": "Written by tools/headroom-front.ts --fit --write: the grid's moved house mains rendered at nought, the share line (15 % of the 10 ms blocks) and the depth line (the loudest block 8 dB over) fitted apart, each with its margin; each window rendered with the sum clip its plan sets (round drum-clip), so the depth line reads the room the clip leaves. The share line as the block held it (--only depth).",
-      "measuredAt": "2026-10-17",
+      "note": "Written by tools/headroom-front.ts --fit-lines (round loudness-place, round 2, 10-30): every house window the app plays (the grid's mains of seeds 1-12 and the beat-led ones of 13-40, the trance tiles' themes 0-2 of seeds 1-20, the featured tracks' first six themes, counted featured=3), rendered at nought on the round-2 build (the density by place, the clip's top by place, the glue at the threshold it plays at); the share line's room at each window's own allowance (15 % of the 10 ms blocks on a deep groove, 25 % on a beat-led one, sliding with the reading). Held out 1.70 dB; the line less the measured room at the median: deep groove -0.10 dB (281 windows), beat-led -0.01 (545). The clip's own columns (clipRoom, clipHeld), which the round-1 line read, are left out: they are the trim the line itself plans, and refitted with them three times the line did not settle (1.62, 1.76, 1.76 dB held out, its columns changing each time). The margin by band: 0.5 dB on the deep groove (1.5 until round 2: the round-1 line reads this build's deep grooves 0.95 dB roomier than they are at the median, so its 1.5 dB left 0.55; the refitted line reads them unbiased, -0.03 at the median over the 281, rms 1.45, and 0.5 keeps the deep groove's limiter where round 1 measured it, 5 of 54 featured windows past 15 %, none past 35 %), 0.75 on the beat-led (marginBeatDb; 0.25 in round 1: the refitted line over-reads one beat-led window in ten by 2 dB or more, p90 1.99, and Drive - Cloudburst's window by 1.8, its limiter past the never-happen line at 0.25). The depth line as round drum-clip fitted it, read only where no clip is planned at its top by place (src/loudness.ts headroomOf).",
+      "measuredAt": "2026-10-31",
       "sample": {
-        "windows": 971,
-        "seeds": [
-          1,
-          40
-        ]
+        "windows": 828,
+        "files": [
+          "hf-n-g-featured.json",
+          "hf-n-g-gridbeat.json",
+          "hf-n-g-grid.json",
+          "hf-n-g-trance.json"
+        ],
+        "seeds": "the grid at seeds 1-12 (every house main), 13-40 (the beat-led ones)"
       },
       "selection": {
         "gainDb": 0.03,
@@ -139,38 +178,31 @@
       },
       "blendDb": 0.5,
       "share": {
-        "marginDb": 1.5,
+        "marginDb": 0.5,
         "residual": {
-          "r2": 0.651,
-          "inSample": 1.2907,
-          "crossValidated": 1.386,
-          "worstHeldOut": 5.5393,
-          "selectionCv": 1.3018,
-          "n": 971
+          "r2": 0.5636,
+          "inSample": 1.597,
+          "crossValidated": 1.7016,
+          "worstHeldOut": 7.7302,
+          "selectionCv": 1.6166,
+          "n": 1008
         },
-        "intercept": 2.46728,
+        "intercept": 2.28506,
         "coef": {
-          "bpm": -0.05454,
-          "harmonicEnergyDb": -0.12571,
-          "chords": -0.32621,
-          "wetKeys": 0.63716,
-          "voicingElevenths": -0.79041,
-          "knobDb": -0.20406,
-          "ratePad": -0.11168,
-          "gainPad": -0.12873,
-          "wetPad": -1.04615
+          "knobDb": -0.37797,
+          "ratePad": -0.16377,
+          "gainPad": -0.1647,
+          "harmonicEnergyDb": -0.09516,
+          "harmonicHold": -2.32205
         },
         "centre": {
-          "bpm": 113.968074,
-          "harmonicEnergyDb": -15.567611,
-          "chords": 2.345005,
-          "wetKeys": 0.5958,
-          "voicingElevenths": 0,
-          "knobDb": 0.552564,
-          "ratePad": 2.110067,
-          "gainPad": -1.175072,
-          "wetPad": 0.583744
-        }
+          "knobDb": -0.323074,
+          "ratePad": 1.797247,
+          "gainPad": -1.797127,
+          "harmonicEnergyDb": -17.758832,
+          "harmonicHold": 0.59836
+        },
+        "marginBeatDb": 0.75
       },
       "depth": {
         "marginDb": 0,
@@ -276,11 +308,15 @@
           "loopBars": 5.230769,
           "harmonicRoles": 1.830769,
           "delayPad": 0.101906
+        },
+        "shift": {
+          "ambient": -0.35,
+          "groove": -0.64,
+          "beat": -1.01
         }
       }
     },
     "drop": {
-      "targetLufs": -11.5,
       "sample": {
         "from": [
           "dubstep"
@@ -334,8 +370,43 @@
           "velBass": 0.755117,
           "shareKick": 0.970833,
           "knobDb": 3.367863
+        },
+        "shift": {
+          "beat": 0.47
         }
       }
     }
+  },
+  "timbres": {
+    "piano": {
+      "loudnessDb": -8.76
+    },
+    "supersawGrit": {
+      "loudnessDb": -6.09
+    }
+  },
+  "timbresNote": "Measured by tools/headroom-front.ts --measure --solo keys --timbre ... then --facts (round loudness-v24, 10-29): each voice alone in the windows the grid's house mains (seeds 1-12, theme 0) and the trance tiles (seeds 1-6, themes 0-2) are trimmed for, its integrated loudness less the level its room gave the role there, the median (the piano 70 windows, the saw 76). Read by the model in place of the registry's facts (house-v2's piano is the string; the registry's -16.9 is house-v1's six partials; the saw's -9.1 is the voice gate's fixture). The method on the same windows reads the registry's own measured keys near their declared numbers (ep -8.1 against -8.5, pluck -13.5 against -12.6, brightPiano -10.6 against -12, fmGlass -10.2 against -12).",
+  "slopes": {
+    "note": "Measured by tools/headroom-front.ts --slopes (round loudness-v24, 10-30): the house windows the app plays, rendered at nought and at the trim it plays them at on the after build (the featured tracks' first six themes, the trance tiles' themes 0-2 of seeds 1-20, the grid's mains of seeds 1-12), the loudness moved against the trim through the origin, each way. A cut gives 0.614 LU a decibel (150 windows, 0.27 LU off the line; the before build's own pairs read 0.58), where the 10-04 slope read 0.50 and every cut went a fifth past its target: taken for a house window's cut (houseSlopeDown). slopeDown stays 0.5002 for what was fitted with it and was not measured here: the front rule's loss in the model (read through the trim's slope the fit was 1.17 -> 1.25 LU held out: what the rule takes off the keys and the pad is not a trim of the whole mix) and the other families' trims. A lift gives 0.533 (215 windows), where 0.664 is written: kept, because what a lift does not give is the limiter's, and trimming further to make it up buys loudness with limiting (the round's brief: not by more limiting).",
+    "measuredAt": "2026-10-30",
+    "up": {
+      "s": 0.5327,
+      "n": 215,
+      "rms": 0.247
+    },
+    "down": {
+      "s": 0.614,
+      "n": 150,
+      "rms": 0.269
+    },
+    "was": {
+      "up": 0.6638,
+      "down": 0.5002
+    }
+  },
+  "houseSlopeDown": 0.614,
+  "familiesShiftNote": "headroom.shift (round loudness-place): what a family's headroom model, fitted at 15 % of the blocks and 8 dB, gains at a place's own allowance, by the same line in the drums' and beat-led readings as the aim. drumless: the median of the measured room less the model's reading (its margin in) over the window walk's drumless windows of the featured tracks' first two themes at nought (tools/headroom-front.ts --measure --walk; the ambient's own windows at 5 % and 3 dB, 195; the deep grooves' breakdowns at 15 % and 8 dB, 55; the beat-led ones' at 25 % and 10 dB, 74). drop: the Dubstep place's 60 windows of round LOUD-1 read at 20 % and 10 dB (their quantiles stop at 80), a floor for the 25 % line.",
+  "beatLed": {
+    "note": "Round loudness-place, round 2 (10-30): the beat-led column (0.98 LU, round 1) replaced by two: the density's amount by place (densityAmount, src/loudness.ts densityAmountOf: 0 on the ambient, 0.55-0.65 on the deep groove, 1 on the beat-led), 1.792 LU at the full amount, the deep groove at 0.6 reading +1.1 (the density by place made every drummed window louder at nought); and a struck voice in the pad's role on a beat-led groove (padStruckBeat: the pad's share where its timbre is struck, times the beat-led reading), -1.816 LU (a Rhodes bed decays under its long notes before the next hit, and the timbre's loudness reads it louder than it plays: Drive - Static Charge and Drive - Tailwind were over-read 2-4 LU). Fitted on the residual of the round-2 build's 828 house windows at nought, featured counted three times; held out by seed (seed mod 5): 1.10 LU over all, 1.06 on the deep groove, 1.11 on the beat-led (round 1's beat-led column: 1.19 deep, 1.12 beat-led; the density alone 1.12 / 1.07 / 1.15); the featured beat-led windows 2.02 -> 1.69."
   }
 }

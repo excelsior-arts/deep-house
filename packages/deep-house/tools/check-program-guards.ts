@@ -43,6 +43,12 @@
 //     everything, a chord cut with the groove out);
 //   - **salient**: nothing salient (a section line, an arrival, a fill, an effect's gesture, the macro filter's move, a
 //     phrase entering, a layer coming or going) for longer than 60 s, Veil shortening it to 45 s;
+//   - **seam** (round length-2, his word 10-27: *"many times i observed a build up abruptly stops with break"*): at a
+//     section line into a break (a breakdown, or an outro that takes the kick away), a rising gesture that lands on it
+//     or runs across it (a build of the arrangement's phrases or the producer's: a roll, a stutter, a whoosh, a
+//     reverse, everything but a full stop; a hat move that lifts; a riser or an up-sweep; a reverse swell longer than
+//     a bar; the low-pass opening more than an octave over the last two bars); a section ending on a stub of the
+//     theme's phrase (the change comes before the phrase is out); a build section shorter than a phrase;
 //   - **cost**: a cast over the phone's 220 units; events a minute over the phone's budget.
 //
 // Beside them, **the ring's liveliness** (U2e, `tools/liveliness.ts`): marks a minute, the longest unmarked stretch
@@ -124,8 +130,8 @@ export const playedAt = (link: string) => playedWith(link).plan;
 
 // ----- the guards -----
 
-export type Guard = 'unlabelled' | 'landing' | 'hole' | 'thin' | 'empty' | 'stop' | 'drone' | 'register' | 'density' | 'front' | 'salient' | 'cost';
-export const GUARDS: readonly Guard[] = ['unlabelled', 'landing', 'hole', 'thin', 'empty', 'stop', 'drone', 'register', 'density', 'front', 'salient', 'cost'];
+export type Guard = 'unlabelled' | 'landing' | 'hole' | 'thin' | 'empty' | 'stop' | 'drone' | 'register' | 'density' | 'front' | 'salient' | 'seam' | 'cost';
+export const GUARDS: readonly Guard[] = ['unlabelled', 'landing', 'hole', 'thin', 'empty', 'stop', 'drone', 'register', 'density', 'front', 'salient', 'seam', 'cost'];
 /** One finding: the guard, the bar it starts at, how bad (in the guard's own measure), what it is, and the part it fired on. */
 export interface Finding { guard: Guard; bar: number; weight: number; says: string; part: string }
 
@@ -505,12 +511,76 @@ export function guards(plan: Theme, spell: Partial<Spell> = HOUSE): Finding[] {
     find('salient', b, marks[i] - marks[i - 1], `${(marks[i] - marks[i - 1]).toFixed(0)} s with nothing salient from bar ${b} (no section line, arrival, fill, gesture, phrase or layer change; the deadline ${deadline.toFixed(0)} s)`, 'arrangement');
   }
 
+  // seam: what rises into a break, and a section ending on a stub of its phrase (round length-2)
+  for (const f of seamFindings(plan)) find('seam', f.bar, 1, f.kind === 'rise' ? `${f.what} rising into the ${f.into} at ${f.bar}` : f.what, f.kind === 'rise' ? 'arrangement' : 'form');
+
   // cost: the cast against the phone's ceiling, the events a minute against its budget
   const cast = castOf(prog);
   if (cast.total > LIMITS.castUnits) find('cost', 0, cast.total - LIMITS.castUnits, `the cast is ${cast.total} units (voices ${cast.voices}, space ${cast.space}), over ${LIMITS.castUnits}`, 'cast');
   const perMin = prog.events.length / (Math.max(1, bars * bs) / 60);
   if (perMin > LIMITS.eventsPerMinute) find('cost', 0, perMin / LIMITS.eventsPerMinute, `${perMin.toFixed(0)} events a minute, over ${LIMITS.eventsPerMinute}`, 'events');
   return out.sort((a, b) => a.bar - b.bar);
+}
+
+// ----- the seams (round length-2) -----
+
+/** The gestures of the arrangement's and the producer's builds that do not rise. */
+const NOT_RISING = new Set(['full-stop']);
+/** The glue's voices that rise into their arrival, written by their start (`t` + `dur` arrives). */
+const RISERS = new Set(['riser', 'sweepUp']);
+
+export interface SeamFinding { kind: 'rise' | 'stub' | 'short-build'; bar: number; into: string; what: string }
+
+/**
+ * **Is a line a break**: the energy drops there. A breakdown, or a section whose first bar takes the kick away from the
+ * bar before (an outro that strips the groove); an outro that keeps the kick is a groove going on, and a drumless
+ * theme's breakdown is its break.
+ */
+export function intoBreak(p: any, i: number): boolean {
+  const s = p.arrangement.sections[i];
+  if (s.kind === 'breakdown') return true;
+  if (s.kind !== 'outro') return false;
+  const tl = p.timeline ?? [];
+  const kick = (b: number) => !!tl[b]?.layers?.some((l: string) => /kick/i.test(l));
+  return kick(s.startBar - 1) && !kick(s.startBar);
+}
+
+/** **The seams' findings** of one planned theme. */
+export function seamFindings(p: any): SeamFinding[] {
+  const out: SeamFinding[] = [];
+  const S = p.arrangement?.sections ?? [];
+  const bs = p.barSeconds;
+  const phrase = Math.round((p.phraseMap?.time?.phraseS ?? 8 * bs) / bs);
+  const lp = p.automation?.macroFilter ?? [];
+  const lpAt = (bar: number) => { const t = bar * bs; let v = lp.length ? lp[0].value : 0; for (let k = 0; k < lp.length; k++) { if (lp[k].t > t) { const a = lp[k - 1]; if (!a) return lp[k].value; return a.value * Math.pow(lp[k].value / a.value, (t - a.t) / Math.max(1e-9, lp[k].t - a.t)); } v = lp[k].value; } return v; };
+  for (let i = 1; i < S.length; i++) {
+    const s = S[i], L = s.startBar, into = s.kind;
+    if (intoBreak(p, i)) {
+      const seen = new Set<string>();
+      const add = (what: string) => { if (!seen.has(what)) { seen.add(what); out.push({ kind: 'rise', bar: L, into, what }); } };
+      for (const b of p.phrasing?.builds ?? []) if (b.line === L && !NOT_RISING.has(b.kind)) add(`build ${b.kind}`);
+      for (const b of p.passage?.builds ?? []) if (b.line === L && !NOT_RISING.has(b.kind)) add(`producer ${b.kind}`);
+      for (const h of p.phrasing?.hats ?? []) if (h.line === L && h.vector === 'up') add(`hats ${h.kind}`);
+      for (const e of p.events ?? []) {
+        const dur = e.p?.dur ?? 0;
+        // a riser or an up-sweep arriving within a beat of the line or running across it; a reverse swell longer than a
+        // bar arriving on it (a bar's swell into the line's stroke is the stroke's own lead, not a build)
+        const [start, end] = RISERS.has(e.voice) ? [e.t, e.t + dur] : e.voice === 'swell' && dur > bs * 1.01 ? [e.t - dur, e.t] : [NaN, NaN];
+        if (!(start / bs < L - 0.25)) continue;
+        if (Math.abs(end / bs - L) <= 0.25 || end / bs > L + 0.25) add(`${e.voice}`);
+      }
+      // the arrangement's low-pass opening into the line: more than an octave over its last two bars
+      if (lp.length && lpAt(L - 0.06) > 2 * lpAt(L - 2)) add('the low-pass opening');
+    }
+    // the phrase before the line: its last phrase whole
+    const prev = S[i - 1];
+    if (prev.kind !== 'intro') {
+      const last = (p.phraseMap?.phrases ?? []).filter((x: any) => x.to === L).pop();
+      if (last && last.to - last.from < phrase && prev.bars >= phrase) out.push({ kind: 'stub', bar: L, into, what: `${prev.kind} ends on a ${last.to - last.from}-bar phrase (${last.from}-${last.to - 1}) of ${phrase}` });
+    }
+    if (s.kind === 'build' && s.bars < phrase) out.push({ kind: 'short-build', bar: L, into, what: `a ${s.bars}-bar build` });
+  }
+  return out;
 }
 
 /** Runs of consecutive bars. */
@@ -659,7 +729,7 @@ function main() {
     liveliness?: { line: string } } : null;
   const names = [...new Set(rows.map((r) => r.spell))];
   const w = Math.max(...names.map((n) => n.length));
-  const short: Record<Guard, string> = { unlabelled: 'unlab', landing: 'land', hole: 'hole', thin: 'thin', empty: 'empty', stop: 'stop', drone: 'drone', register: 'reg', density: 'dens', front: 'front', salient: 'salnt', cost: 'cost' };
+  const short: Record<Guard, string> = { unlabelled: 'unlab', landing: 'land', hole: 'hole', thin: 'thin', empty: 'empty', stop: 'stop', drone: 'drone', register: 'reg', density: 'dens', front: 'front', salient: 'salnt', seam: 'seam', cost: 'cost' };
   console.log(`${'spell'.padEnd(w)}  ${GUARDS.map((g) => short[g].padStart(6)).join('')}   bpm      phrase  plan ms (median/max)`);
   const perSpell: Record<string, Record<string, number>> = {};
   for (const n of names) {

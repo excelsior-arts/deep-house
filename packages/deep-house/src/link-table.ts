@@ -30,8 +30,12 @@ import type { Development } from './development.ts';
  *   `list`    a playlist shared as a link (PLAN-LIBRARY §3, `src/playlist-link.ts`): its name, its tracks, their
  *             labels and its id, beside the `v` its tracks share. Read once as the page opens, the playlist saved,
  *             and taken off the address, which then holds the first track's link; never on a track's link.
+ *   `context`  where a track's link was copied from, beside its sound (round pl-link: `in`, the Featured playlist it
+ *             played in). Not a sound row: the track plays the same with it or without it, so no digest row and no
+ *             `linkSameSound` reads it. Read once as the page opens and taken off the address; never on a saved track,
+ *             a playlist's link or the address the page keeps (`normaliseLink`, `linkWrite`).
  */
-export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private' | 'list';
+export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private' | 'list' | 'context';
 
 /** One parameter the page reads. */
 export interface LinkRow {
@@ -58,7 +62,7 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   // K32 (Eugene: "a link with the time"): a start position, not a sound row
   { name: 't', class: 'place', absent: 'the start of the theme', written: 'only by the time link (`linkWithTime`, the machine view\'s key): integer seconds into the theme, never on the canonical link, a digest row or the address the page keeps — read once at the open, the set starting on that second (a time past where the theme plays at its last phrase line), so a copy made there writes the same `t` back, and dropped from the address at once, so a reload plays from the top' },
   { name: 'lock', class: 'view', absent: 'the engine switch is free', written: 'never; `lock=engine` is kept as given' },
-  { name: 'view', class: 'view', absent: 'the ring', written: '`view=machine` while the machine view is open, removed when it closes (K21); a stored place carries it' },
+  { name: 'view', class: 'view', absent: 'the ring', written: '`view=machine` while the machine view is open, removed when it closes (K21); a stored place carries it. `view=tv` is the Apple app\'s TV page (round tv-scene, `tv-mode.ts`): the ring alone, told what to draw by the phone\'s page, never sounding or storing; written only on that page\'s own address, and never stored' },
   { name: 'out', class: 'view', absent: 'a media element on an Apple phone, straight out elsewhere', written: 'never; kept as given' },
   { name: 'latency', class: 'view', absent: 'the playback hint', written: 'never; kept as given' },
   // star-keys round 3 (prototype only): which of the icon variants the ring's love key and the panel's scroll draw
@@ -74,6 +78,9 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'play', class: 'list', absent: 'no playlist link', written: 'only by Share on a playlist: the tracks, `~` between, each `seed-theme-birds;row:value@v`' },
   { name: 'names', class: 'list', absent: 'no labels', written: 'only by Share on a playlist, always: the labels, `~` between, empty for none' },
   { name: 'id', class: 'list', absent: 'a new playlist (its name with " 2" where taken)', written: 'only by Share on a playlist, last: the UUID without its dashes' },
+  // round pl-link (his word 10-26): a track copied while it played in a Featured playlist names that playlist, so the
+  // page opened on it plays the track in the list and the list's next after it (`featured.ts`, `featuredPlace`)
+  { name: 'in', class: 'context', absent: 'the track alone: the seed\'s own next theme follows it', written: 'only by a track\'s Copy link (the share circle\'s Copy link and Copy at m:ss, a row\'s Copy link) while that track is in a Featured playlist it plays in or is shown in, last: the playlist\'s id from `featured.json`, a UUID without its dashes; read once as the page opens and taken off the address; an id this edition lacks, or a list without that track, plays the plain track' },
   { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
   // round audio-slack: a check's render made to fall behind, for the slowdown watch (`src/render-stress.ts`)
   { name: 'stress', class: 'view', absent: 'no stress', written: 'never; kept as given, read once as the context is made; never on a shared link' },

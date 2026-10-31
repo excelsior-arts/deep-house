@@ -16,6 +16,14 @@ export interface PulseTexture {
   entry: { beats: [number, number] };
   duration: { beats: [number, number] };
   ambience: 'distant' | 'immersed';
+  /** layers whose onsets the pulse keeps clear of, moving to the next free eighth of its bar */
+  clearOf?: string[];
+  /** near its source voice (`PitchedFigure.near`) */
+  near?: { voice?: string; max?: number; falloff: number };
+  /** the octave its note folds into, in place of the style's pulse register (`PitchedFigure.home`) */
+  home?: [number, number];
+  /** semitones its register may drift with the figures', the same scale steps (`PitchedFigure.drift`) */
+  drift?: number;
 }
 
 export function textureProblems(value: any): string[] {
@@ -23,7 +31,9 @@ export function textureProblems(value: any): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [`${at}: expected one pulse part`];
   const bad: string[] = [];
   if (value.follows !== 'harmony' || value.articulation !== 'pulse' || value.register !== 'mid' || !['distant', 'immersed'].includes(value.ambience)) bad.push(`${at}: use a mid-register harmonic pulse in distant or immersed space`);
-  if (Object.keys(value).some(k => !['follows', 'articulation', 'register', 'families', 'properties', 'strength', 'spacing', 'entry', 'duration', 'ambience'].includes(k))) bad.push(`${at}: unknown instruction`);
+  if (Object.keys(value).some(k => !['follows', 'articulation', 'register', 'families', 'properties', 'strength', 'spacing', 'entry', 'duration', 'ambience', 'clearOf', 'near', 'home', 'drift'].includes(k))) bad.push(`${at}: unknown instruction`);
+  if (value.drift !== undefined && !(Number.isInteger(value.drift) && value.drift >= 0 && value.drift <= 12)) bad.push(`${at}.drift: semitones, 0 to 12`);
+  if (value.clearOf !== undefined && (!Array.isArray(value.clearOf) || value.clearOf.some((l: any) => typeof l !== 'string'))) bad.push(`${at}.clearOf: a list of layers`);
   rhythmProblems({ sixteenth: [{ bars: 1, steps: [0], accents: [1], families: value.families, properties: value.properties }] }).forEach(m => bad.push(m.replace('wants.rhythm.sixteenth[0]', at)));
   const span = (v: any, name: string, lo: number, hi: number, integer = false) => {
     if (!Array.isArray(v) || v.length !== 2 || v.some(x => !Number.isFinite(x) || x < lo || x > hi || (integer && !Number.isInteger(x))) || v[0] > v[1]) bad.push(`${at}.${name}: invalid range`);

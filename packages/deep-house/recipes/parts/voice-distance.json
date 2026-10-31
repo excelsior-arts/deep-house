@@ -1,0 +1,11 @@
+{
+ "schema": 1,
+ "kind": "parts-voice-distance",
+ "round": "engine-data",
+ "revision": 1,
+ "note": "How far a voice stands from another, as a listener hears a swap (src/parts/figure.ts, voiceDistance; his ear 10-28: a darker swap was liked, a harsher one not): an ensemble's role, or any part near a source voice, keeps the voices whose distance is inside its tolerance. Each descriptor is the catalogue's own: the measured air at the onsets (src/voice-air.json: `hz` the centroid, read in octaves; `over1500` the energy over 1.5 kHz in dB, read in steps of `per`; `flat` the noise's flatness, read in steps of `per`) and the declared sustain (`hold`, in octaves of hold + `floor`). Each weighs `up` where the swapped voice is brighter, harder, noisier or longer than the source and `down` where it is darker, softer or shorter: brighter weighs more than darker.",
+ "air": { "up": 2, "down": 0.5 },
+ "top": { "per": 10, "up": 2, "down": 0.25 },
+ "noise": { "per": 0.02, "up": 1, "down": 0 },
+ "hold": { "floor": 0.05, "up": 0.5, "down": 0.5 }
+}

@@ -227,7 +227,9 @@ export function clashes(row: Recipe, span: { startBar: number; bars: number }, o
  * @param rows the treatment rows the draw sees, in the library's order
  */
 export function planSubSections(seed: string | number, arrangement: Arrangement, rates: SubRates,
-  { drums, broken, pinned = false, spell = null, bpm }: { drums: boolean; broken: boolean; pinned?: boolean; spell?: Spell | null; bpm?: number },
+  { drums, broken, pinned = false, spell = null, bpm, gives = {} }: { drums: boolean; broken: boolean; pinned?: boolean; spell?: Spell | null; bpm?: number;
+    /** the bars before a section's line by which a switch-up gives back a role it takes out (`PitchedFigure.stays.back`) */
+    gives?: Readonly<Record<string, number>> },
   allRows: readonly Recipe[]): SubSection[] {
   if (!drums) return [];
   // The rows in the running where the theme is: a row's box and tempo (round M1).
@@ -290,7 +292,15 @@ export function planSubSections(seed: string | number, arrangement: Arrangement,
     const fits = figures.filter((row) => !row.place?.bars || row.place.bars.includes(len));
     if (!fits.length) continue;
     const row = draw(r, fits, pinned)!;
-    out.push(sub('switch-up', row, at, len));
+    // **A switch-up gives the colour back** (keys-room, 10-29, his ear: *"piano is gone from 0:30 until 1:50"*): a row
+    // that takes out a role whose part carries the chords' colour (`gives`, the part's `stays.back`) ends that many
+    // bars before its section's line, so the part's return — the idiom's lift — is heard inside the section and is not
+    // lost into the section after it. The draws above are made as they always were; only the span's end moves, and a
+    // span left under a four-bar group is not played.
+    const back = Math.max(0, ...(row.figure?.layers?.off ?? []).map((role) => gives[role] ?? 0));
+    const bars = Math.min(len, s.startBar + s.bars - back - at);
+    if (bars < 4) continue;
+    out.push(sub('switch-up', row, at, bars));
     // The turnaround at the phrase before the switch, where the place says so
     // (round M1): a four-bar group's last bar, inside the section, not a bar
     // another small thing already took.

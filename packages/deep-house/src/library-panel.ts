@@ -27,354 +27,15 @@
 // of the same `data-tab`), so a third tab is a button and a section in
 // index.html and nothing here.
 import { reducedMotion, smallWindow, coarsePointer, pageViewport } from './motion.ts';
-import { shellKeyboard, onShellKeyboard, shellFold, onShellFold, shellChrome, onShellChrome, type ShellFold } from './shell-library.ts';
+import { shellKeyboard, onShellKeyboard, shellFold, shellMid, onShellFold, shellChrome, onShellChrome, onShellDrag, shellNameBack, type ShellFold } from './shell-library.ts';
 import { bezier } from './gyro-glyph.ts';
 import { scrollDrawing, SCROLLS, SCROLL_PICK, type ScrollDetail } from './scroll-glyph.ts';
 import { linkRaw } from './link-table.ts';
+import { balanced, NARROW, PL_PAD, PL_PAD_FULL, NAME_TALL, ringPlace, LINE_TOP, LINE_H, NAME_CAP, NAME_WIDTH, shellLayout, type PanelMode, type Box, type ShellLayout, type NameCorner } from './shell-layout.ts';
+export { ringPlace, shellLayout, type PanelMode, type Box, type ShellLayout, type NameCorner } from './shell-layout.ts';
 
 /** Which of the scrolls the key draws: `?scroll=N` on the prototype (star-keys round 3), else the pick. */
 const SCROLL_VARIANT = (() => { const v = Number(linkRaw('scroll')); return v >= 1 && v <= SCROLLS.length ? v : SCROLL_PICK; })();
-
-export type PanelMode = 'land' | 'port' | 'mini';
-
-/** The gyroscope's touch square, a small window's, where it stands in the gap past the ring, and the edge. */
-// 40 % larger than the first 44 / 30 (his word 10-21: "we need to see it 40% bigger as it's tiny with realistic lines")
-const GYRO = 62;
-const GYRO_MINI = 28;   // the mini player's square is small: a size down again (his word 10-21)
-const GYRO_OUT = 0.6;
-const EDGE = 12;
-/** The panel's gutter from the window's edge, roomy and compact, and in a small window. */
-const GUTTER = 24;
-const GUTTER_COMPACT = 10;
-const GUTTER_MINI = 6;
-/** A panel wider than this stands centred in its 2/5. */
-const PANEL_MAX_W = 680;
-/** The side panel beside the ring: this share of the ring's square in height and of its room in width (his word 10-21). */
-const LAND_SCALE = 0.8;
-/**
- * **One rule for the panel at every window size** (iphone-duo round 2, his word 10-23: "these overlaps are clearly
- * bugs, the panel position was not optimal in some scenarios based on window size"). Swept over browser and Mac
- * windows 600 to 1600 wide, iPad with Split View, phones both ways and the Duo (notes/rounds/iphone-duo.md):
- *
- * - **The panel is never narrower than its head needs**: `PANEL_NEED` roomy and `PANEL_NEED_COMPACT` on a phone, the
- *   tabs clear of the fold and a playlist's head (back, sky, title, three keys) inside the edge at the smallest type
- *   (`panelType`). Where today's share (`LAND_SCALE` of two fifths) is narrower, **the ring gives up size first**: the
- *   panel takes the width it needs and the ring is centred in what is left.
- * - **Beside the ring when the window is wide and the ring keeps at least `SIDE_RING_SHARE` of the width** with the
- *   panel at that width, or when the panel under it would be shorter than `UNDER_MIN_H`; otherwise under it. This replaces the 300 px floor (his iPhone, 10-20), which sent a short
- *   landscape screen (the Duo closed and turned, 678 x 466; an SE turned; an iPhone's app turned, 750 x 381 inside
- *   its notch) under the ring, where its panel showed one row.
- * - **As tall as its width asks**: at least `PANEL_ASPECT` of its width, within the window's gutters, so a panel
- *   made wider is not left a short strip in the middle; where its share already is taller (a desktop), unchanged.
- */
-/**
- * **The ring's visible rim inside its square** (round 3, his word 10-23: "padding between ring and panel and panel and
- * window edge does not seem uniform"): the lanes' outer labels ("1:00", "OUT") stand 1.2 to 1.8 % of the side in from
- * the square on the side where a track draws one, and up to 4.6 % where it draws none (measured over seeds 1, 3, 8, 9
- * and 27191). The gutters are measured from the labels' ring, the rim's outermost place, so they read equal to the eye
- * and never move with the track.
- */
-const RING_INK = 0.015;
-/** Beside the ring, no gutter is narrower than this share of the window's width (and the gutter's own minimum). */
-const GUTTER_SHARE = 0.04;
-const PANEL_NEED = 360;
-const PANEL_NEED_COMPACT = 280;
-const SIDE_RING_SHARE = 0.4;
-const PANEL_ASPECT = 1.4;
-/** A panel under the ring shorter than this shows a row or two: beside the ring instead, wherever the window is wide. */
-const UNDER_MIN_H = 240;
-/** A compact panel narrower than this sets a track's place under its name (index.html, `data-narrow`). */
-const NARROW = 340;
-/** The ring's square, as index.html says it: 0.94 of the shorter side, at most 960. */
-const ringSide = (w: number, h: number) => Math.min(0.94 * Math.min(w, h), 960);
-
-export interface Box { x: number; y: number; w: number; h: number }
-export interface ShellLayout {
-  mode: PanelMode;
-  compact: boolean;
-  gyro: Box;
-  panel: Box;
-  /** The stage's transform while the panel is open: a move and a scale about the ring's centre. */
-  ring: { dx: number; dy: number; k: number };
-  /** The ring at rest: its square's side, and its centre's move from the window's middle (`ringPlace`; `dx` the fold's). */
-  stage: { side: number; dx: number; dy: number };
-  /** Beside the ring: the three gutters, edge to rim, rim to panel, panel to edge (round 3), all one. */
-  gutters?: [number, number, number];
-  /** The wordmark in its corner: its font size and its ink's box (duo-fold). */
-  name?: Box & { fs: number };
-}
-
-/**
- * **The ring keeps under the wordmark** (inapp-layout, his word 10-22 from X's in-app browser: "ring is not center
- * and logo seem to overlap … make it proportional"). An app's browser shows the page short — X's sheet takes the
- * foot of the screen and its page runs under the status bar, so the wordmark stands lower — and the ring, sized by
- * the width and centred in the window, ran its top under the wordmark. Where the wordmark stands over the ring (a
- * phone held upright; `nameFoot`, its foot, else 0), the ring is as large as the space under it allows and centred
- * in that space, whichever way gives the larger ring: above the key's slot, the key under it as everywhere upright,
- * or down to the window's foot with the key in its corner, the ring's circle clear of it. A window with room keeps
- * the ring in its own middle as before, untouched to the pixel; between the two the ring eases across `RING_EASE`
- * px of clearance, so a sheet dragged never makes it jump.
- */
-/** Kept between the wordmark's foot and the ring's ink, between the ring and the window's foot, and round the key. */
-const RING_CLEAR = 10;
-/** How far the ring's ink stands above its square, as a share of the side (the throne's top is 0.018). */
-const RING_REACH = 0.02;
-/** The clearance over which the ring eases from the window's middle to the middle of the space under the wordmark. */
-const RING_EASE = 48;
-export function ringPlace(w: number, h: number, nameFoot = 0): { side: number; cy: number } {
-  const s0 = ringSide(w, h);
-  if (!(nameFoot > 0)) return { side: s0, cy: h / 2 };
-  const top = nameFoot + RING_CLEAR;
-  // how clear of the wordmark the ring stands in the window's middle, as it always has
-  const clear = h / 2 - s0 / 2 - RING_REACH * s0 - top;
-  if (clear >= RING_EASE) return { side: s0, cy: h / 2 };
-  // the highest and lowest the ring's centre may stand, for a side `s`: its ink (the square and its reach above)
-  // under the wordmark, and over the key's slot, or over the window's foot and clear of the key in its corner
-  const lo = (s: number) => top + s / 2 + RING_REACH * s;
-  const slot = GYRO + 2 * EDGE;
-  const dx = Math.max(0, w / 2 - GYRO - EDGE);
-  const hiBelow = (s: number) => h - slot - s / 2;
-  const hiCorner = (s: number) => Math.min(h - RING_CLEAR - s / 2,
-    s / 2 + RING_CLEAR > dx ? h - GYRO - EDGE - Math.sqrt((s / 2 + RING_CLEAR) ** 2 - dx * dx) : Infinity);
-  const largest = (hi: (s: number) => number) => {
-    if (lo(s0) <= hi(s0)) return s0;
-    let a = 0, b = s0;
-    for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (lo(m) <= hi(m)) a = m; else b = m; }
-    return a;
-  };
-  const sBelow = largest(hiBelow), sCorner = largest(hiCorner);
-  const below = sBelow >= sCorner - 1;
-  const side = below ? sBelow : sCorner;
-  const centred = (lo(side) + (below ? hiBelow : hiCorner)(side)) / 2;
-  const t = Math.min(1, 1 - clear / RING_EASE);
-  return { side: s0 + t * (side - s0), cy: h / 2 + t * (centred - h / 2) };
-}
-
-/**
- * **The fold is the layout's axis** (round duo-fold, his word 10-23 on the iPhone Duo: "if we consider due is a perfect
- * wold in half, would it make sense to respect it, so when ring only is shown make sure it's right in the fold center,
- * and when panel is opened, make sure ring is on the left side and pape on the right. Because ring going through fold,
- * looks like Dali bent watch"). Where the shell says a crease runs across the page (`shellFold`, the Duo's inner
- * display, the window spanning it), the page is two halves:
- *
- * - **The ring alone stands centred on the fold,** as large as it is elsewhere, smaller only where an edge (or, upright,
- *   the wordmark over it) is nearer the fold than its half.
- * - **The panel open: the ring wholly in one half, the paper wholly in the other.** A vertical fold (held as a book):
- *   ring left, paper right; a horizontal one: ring top, paper bottom. In each half round 3's one gutter: the ring
- *   centred in its half, as large as the half allows with every gutter at least `GUTTER_SHARE` of the long side; the
- *   paper fills its half inside the same gutter, from the fold, the edges and the far side alike. A paper half too
- *   narrow for a roomy head takes the compact one; too narrow for that, today's layout stands.
- * - Opening moves the ring from the fold into its half with the open panel's own move (one transform, never cut) and
- *   closing brings it back.
- */
-const FOLD_MIN = 1;
-/** The fold, if it cuts the viewport with room on both sides. */
-const foldIn = (w: number, h: number, f: ShellFold | null): ShellFold | null =>
-  f && f.at > FOLD_MIN && f.at < (f.axis === 'v' ? w : h) - FOLD_MIN ? f : null;
-/** The ring alone on the fold: its side and centre. */
-function ringOnFold(w: number, h: number, f: ShellFold, nameFoot: number): { side: number; cx: number; cy: number } {
-  const r = ringPlace(w, h, nameFoot);
-  if (f.axis === 'v') return { side: Math.min(r.side, 0.94 * 2 * Math.min(f.at, w - f.at)), cx: f.at, cy: r.cy };
-  let side = Math.min(ringSide(w, h), 0.94 * 2 * Math.min(f.at, h - f.at));
-  // upright, its ink stays under the wordmark over it
-  if (nameFoot > 0) side = Math.min(side, (f.at - nameFoot - RING_CLEAR) / (0.5 + RING_REACH));
-  return { side: Math.max(0, side), cx: w / 2, cy: f.at };
-}
-/** The open layout on the fold: the ring in its half, the paper in the other; null where the paper's half is too narrow. */
-function openOnFold(w: number, h: number, f: ShellFold, small: boolean, base: boolean): { compact: boolean; s2: number; cx: number; cy: number; panel: Box; g: number } | null {
-  const vertical = f.axis === 'v';
-  const long = vertical ? w : h, across = vertical ? h : w;
-  const a = f.at, b = long - f.at;
-  for (const compact of base ? [true] : [false, true]) {
-    const m = small ? GUTTER_MINI : compact ? GUTTER_COMPACT : GUTTER;
-    const gMin = Math.max(m, GUTTER_SHARE * long);
-    const s2 = Math.max(0, Math.min(ringSide(Infinity, across), (a - 2 * gMin) / (1 - 2 * RING_INK), (across - 2 * gMin) / (1 - 2 * RING_INK)));
-    const g = (a - s2 * (1 - 2 * RING_INK)) / 2;
-    const paperW = (vertical ? b : across) - 2 * g;
-    if (paperW < (compact ? PANEL_NEED_COMPACT : PANEL_NEED)) continue;
-    const panel: Box = vertical ? { x: a + g, y: g, w: b - 2 * g, h: across - 2 * g } : { x: g, y: a + g, w: across - 2 * g, h: b - 2 * g };
-    return { compact, s2, cx: vertical ? a / 2 : w / 2, cy: vertical ? h / 2 : a / 2, panel, g };
-  }
-  return null;
-}
-
-/**
- * **The ring keeps room for its line, clear of its readout** (duo-fold, his word 10-23 on the Mac: "ring is closer to
- * the bottom, and playlist name is uncomfortable close to the window edge"; and his 640 × 450 window, where the line
- * lay over the ring's "5:00" and its readout). The line under the ring (`#nowList`, the playlist that plays) stands
- * `LINE_TOP` of the ring's square under its centre, under the position readout's orbit (measured at 0.518 to 0.52 of
- * the side, its text's foot; the clock labels stand at 0.49), and `LINE_H` tall. Wherever the ring is as large as
- * the height allows, its block (the square's top, down to the line's foot) keeps a margin at both ends: at rest 0.03
- * of the shorter side, as the square always had; beside the open panel round 3's gutter, measured from the labels'
- * ring. The ring first rises in its window as far as it may, then gives up size; where there is room, nothing moves.
- * The room is kept whether a playlist plays or not, so the ring never moves when one starts.
- */
-const LINE_TOP = 0.53;
-const LINE_H = 2 + 26;
-/**
- * **The wordmark always shows, in the top-left corner** (duo-fold, his word 10-23: "maybe we should make it all simple,
- * always logo with scaling, like it used to be … it was a big size so why logo wasn't there?"): round 2 put it away
- * wherever the open ring's circle reached it, so his larger windows lost it while the small ones, whose ring stands
- * under it, kept it. Now it is never put away (the upright phone keeps its own rule: centred over the ring, and gone
- * under an open panel). Its size is today's (`clamp(24px, 4.4vmin, 32px)`) where the ring leaves it room, and smaller
- * down to `NAME_FLOOR` where the ring would reach it, by the window's shape alone: measured against the ring at rest
- * and against the ring beside or over the open panel, so opening the panel never changes it. Only where the floor
- * still meets the ring (a phone or the Duo turned, a short window) does the ring give way, a little smaller about its
- * own centre. The ring's reach is its circle at `RING_REACH`: the clock labels and the throne stand at 0.49 to 0.505
- * of the side, but the position readout orbits at 0.52 and passes the corner once a track.
- */
-const NAME_FLOOR = 18;
-/**
- * **The mark keeps its proportion to the ring** (duo-fold, his word 10-23 on the sheet: "one screenshot has logo
- * clearly too large", the 640 × 450 Mac window, where today's 24 px floor made it 27 % of the window and as large as
- * the panel's head): its width is at most this share of the ring's square at rest, as it stands in his 1336 × 871
- * window (225 px against a 742 px ring), between `NAME_FLOOR` and today's size.
- */
-const NAME_RING = 0.31;
-/** Kept between the wordmark and the ring's reach. */
-const NAME_CLEAR = 6;
-/** The mark's cap height in its font size, and its width to its cap height (index.html `#name img`, wordmark.svg). */
-const NAME_CAP = 0.786;
-const NAME_WIDTH = 14415 / 1610;
-/** The wordmark's corner: its ink's left and cap line at font size `fs` are `left + ax·fs` and `top + ay·fs`. */
-export interface NameCorner { left: number; top: number; ax: number; ay: number; fs: number }
-const nameBox = (c: NameCorner, fs: number): Box => {
-  const ch = NAME_CAP * fs;
-  return { x: c.left + c.ax * fs, y: c.top + c.ay * fs, w: ch * NAME_WIDTH, h: ch };
-};
-/** Whether a ring of square `side` about (cx, cy) keeps clear of box `b` by NAME_CLEAR. */
-function clearOfName(b: Box, cx: number, cy: number, side: number): boolean {
-  const nx = Math.max(b.x - NAME_CLEAR, Math.min(cx, b.x + b.w + NAME_CLEAR));
-  const ny = Math.max(b.y - NAME_CLEAR, Math.min(cy, b.y + b.h + NAME_CLEAR));
-  return Math.hypot(nx - cx, ny - cy) >= side * (0.5 + RING_REACH);
-}
-/** The largest side up to `s` whose ring about (cx, cy) keeps clear of `b`. */
-function sideClearOf(b: Box, cx: number, cy: number, s: number): number {
-  if (clearOfName(b, cx, cy, s)) return s;
-  let lo = 0, hi = s;
-  for (let k = 0; k < 30; k++) { const mid = (lo + hi) / 2; if (clearOfName(b, cx, cy, mid)) lo = mid; else hi = mid; }
-  return lo;
-}
-
-/**
- * Where everything stands in a `w` × `h` viewport: pure arithmetic, so a
- * check can read it without a page. `fold`, the crease across it (duo-fold); `name`, the wordmark's corner where it
- * stands in one (not upright on a phone, not in a small window).
- */
-export function shellLayout(w: number, h: number, small: boolean, wide: boolean = w > h, nameFoot = 0, sides: readonly [number, number] = [0, 0], fold: ShellFold | null = null, name: NameCorner | null = null): ShellLayout {
-  const f = small ? null : foldIn(w, h, fold);
-  const placed = f ? ringOnFold(w, h, f, nameFoot) : { ...ringPlace(w, h, small ? 0 : nameFoot), cx: w / 2 };
-  let s = placed.side, cy = placed.cy;
-  const cx0 = placed.cx;
-  // the ring's line under it (`LINE_TOP`): the ring rises, then shrinks, to keep it inside the margin; not in a small
-  // window (its line has its own place) nor where the wordmark stands over the ring (the phone upright, `ringPlace`)
-  if (!small && !(nameFoot > 0)) {
-    const mg = 0.03 * Math.min(w, h);
-    if (f?.axis === 'h') s = Math.min(s, (h - mg - LINE_H - cy) / LINE_TOP);
-    else {
-      s = Math.min(s, (h - 2 * mg - LINE_H) / (0.5 + LINE_TOP));
-      cy = Math.min(cy, h - mg - LINE_TOP * s - LINE_H);
-    }
-  }
-  const base = small || w < 700 || h < 500;
-  const onFold = f ? openOnFold(w, h, f, small, base) : null;
-  const compact = onFold ? onFold.compact : base;
-  const m0 = compact ? GUTTER_COMPACT : GUTTER;
-  const need = compact ? PANEL_NEED_COMPACT : PANEL_NEED;
-  // beside the ring: today's share where it is wide enough; where not, the width the head needs, and the ring takes
-  // what is left of the room before the panel (`side`); beside only while the ring keeps its share of the window
-  const share = LAND_SCALE * (0.4 * w - m0);
-  const sideW = Math.min(Math.max(share, need), PANEL_MAX_W);
-  const side = share >= need ? 0.6 * w : w - sideW - (0.4 * w - share);
-  const mode: PanelMode = small ? 'mini' : onFold && f ? (f.axis === 'v' ? 'land' : 'port')
-    : wide && (side >= SIDE_RING_SHARE * w || 0.4 * h - m0 < UNDER_MIN_H) ? 'land' : 'port';
-  const m = small ? GUTTER_MINI : compact ? GUTTER_COMPACT : GUTTER;
-  const fit = (x0: number, room: number) => {
-    const pw = Math.min(room, PANEL_MAX_W);
-    return { x: x0 + (room - pw) / 2, w: pw };
-  };
-  // the open ring and the panel, by the mode; `shrink` gives the ring a smaller side where the wordmark needs it
-  type Open = { s2: number; cx: number; cy: number; panel: Box; gutters?: [number, number, number]; shrink: (s2: number) => { s2: number; cx: number; cy: number; gutters?: [number, number, number] } };
-  let open: Open;
-  if (mode === 'mini') {
-    open = { s2: s, cx: cx0, cy, panel: { x: m, y: m, w: w - 2 * m, h: h - 2 * m }, shrink: (s2) => ({ s2, cx: cx0, cy }) };
-  } else if (onFold) {
-    const { s2, cx, cy: cy2, panel, g } = onFold;
-    open = { s2, cx, cy: cy2, panel, gutters: [g, g, g], shrink: (t) => ({ s2: t, cx, cy: cy2, gutters: [g, g, g] }) };
-  } else if (mode === 'land') {
-    // a little smaller than the ring's square (his word 10-21: "too large, unless users have that many playlists"):
-    // LAND_SCALE of its height, centred on the window's middle, and as much narrower; never under what its width asks
-    const ph = Math.min(h - 2 * m, Math.max(LAND_SCALE * ringSide(0.6 * w, h), share >= need ? 0 : PANEL_ASPECT * sideW));
-    // the ring at the size the rule gives it (its share of the width, or what the panel's width leaves), and the
-    // panel at its width; then **three equal gutters** (round 3): the window's edge (a notch's or a band's inset
-    // counts as the edge) to the ring's visible rim, the rim to the panel, the panel to the far edge
-    // the ring as large as the window's height allows, or as the width allows with every gutter at least
-    // `GUTTER_SHARE` of the width; what is left over goes to the gutters, evenly
-    const pw = share >= need ? Math.min(share, PANEL_MAX_W) : sideW;
-    const room = w - sides[0] - sides[1];
-    const gMin = Math.max(m, GUTTER_SHARE * w);
-    // and up and down (duo-fold): the labels' ring to the top, the line's foot to the foot, each at least the gutter;
-    // the ring in the window's middle where that holds, else risen to it, else smaller (`LINE_TOP`)
-    const lineK = LINE_H / s;
-    let s2 = Math.max(0, Math.min(ringSide(Infinity, h), (room - pw - 3 * gMin) / (1 - 2 * RING_INK)));
-    // up and down, a phone's or a short window's own gutter (compact): round 3's would cost its ring a fifth
-    const gv = compact ? m : gMin;
-    s2 = Math.min(s2, Math.max(0, (h - 2 * gv) / (0.5 - RING_INK + LINE_TOP + lineK)));
-    const at = (t: number) => {
-      const seen = t * (1 - 2 * RING_INK);
-      const g = (room - pw - seen) / 3;
-      const cyT = Math.min(h / 2, h - gv - (LINE_TOP + lineK) * t);
-      return { s2: t, cx: sides[0] + g + seen / 2, cy: cyT, gutters: [g, g, g] as [number, number, number] };
-    };
-    const a = at(s2);
-    open = { ...a, panel: { x: sides[0] + 2 * a.gutters[0] + s2 * (1 - 2 * RING_INK), y: (h - ph) / 2, w: pw, h: ph }, shrink: at };
-  } else {
-    const s2 = ringSide(w, 0.6 * h);
-    // under the ring on a desktop, no wider than four fifths of the ring's square, as beside it (his word 10-21), and
-    // never narrower than its head needs; a phone (compact) keeps the whole width its thumb needs
-    const room = compact ? w - 2 * m : Math.min(w - 2 * m, Math.max(LAND_SCALE * s2, need));
-    const { x, w: pw } = fit((w - room) / 2, room);
-    open = { s2, cx: w / 2, cy: 0.3 * h, panel: { x, y: 0.6 * h, w: pw, h: 0.4 * h - m }, shrink: (t) => ({ s2: t, cx: w / 2, cy: 0.3 * h }) };
-  }
-  // the wordmark in its corner (above): as large as it may be against both rings, and where even the floor meets one,
-  // that ring a little smaller
-  let nameOut: ShellLayout['name'];
-  if (name && mode !== 'mini') {
-    const ok = (fs: number) => { const b = nameBox(name, fs); return clearOfName(b, cx0, cy, s) && clearOfName(b, open.cx, open.cy, open.s2); };
-    // in proportion to the ring at rest (the window's shape, never the panel), capped at today's size
-    let fs = Math.min(name.fs, Math.max(NAME_FLOOR, (NAME_RING * s) / (NAME_CAP * NAME_WIDTH)));
-    if (!ok(fs)) {
-      let lo = Math.min(NAME_FLOOR, fs), hi = fs;
-      for (let k = 0; k < 30; k++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; }
-      fs = lo;
-      const b = nameBox(name, fs);
-      s = sideClearOf(b, cx0, cy, s);
-      if (!clearOfName(b, open.cx, open.cy, open.s2)) {
-        let lo2 = 0, hi2 = open.s2;
-        for (let k = 0; k < 30; k++) { const mid = (lo2 + hi2) / 2; const o = open.shrink(mid); if (clearOfName(b, o.cx, o.cy, o.s2)) lo2 = mid; else hi2 = mid; }
-        const o = open.shrink(lo2);
-        open = { ...open, ...o };
-        if (mode === 'land' && !onFold && o.gutters) open.panel = { ...open.panel, x: sides[0] + 2 * o.gutters[0] + o.s2 * (1 - 2 * RING_INK) };
-      }
-    }
-    nameOut = { fs, ...nameBox(name, fs) };
-  }
-  const stage = { side: s, dx: cx0 - w / 2, dy: cy - h / 2 };
-  const g = small ? GYRO_MINI : GYRO;
-  const corner = (e: number): Box => ({ x: w - g - e, y: h - g - e, w: g, h: g });
-  let gyro: Box;
-  if (mode === 'mini') gyro = corner(GUTTER_MINI);
-  else if (mode === 'land') {
-    // in the gap between the ring and the window's edge, 3/5 of the way out from the ring (his word 10-20)
-    const right = cx0 + s / 2;
-    gyro = w - right >= g + 2 * EDGE ? { x: right + GYRO_OUT * (w - right) - g / 2, y: h / 2 - g / 2, w: g, h: g } : corner(EDGE);
-  } else {
-    const below = cy + s / 2;
-    gyro = h - below >= g + 2 * EDGE ? { x: w / 2 - g / 2, y: below + GYRO_OUT * (h - below) - g / 2, w: g, h: g } : corner(EDGE);
-  }
-  const ring = mode === 'mini' ? { dx: 0, dy: 0, k: 1 } : { dx: open.cx - cx0, dy: open.cy - cy, k: open.s2 / s };
-  return { mode, compact, gyro, panel: open.panel, ring, stage, ...(open.gutters && mode !== 'mini' ? { gutters: open.gutters } : {}), ...(nameOut ? { name: nameOut } : {}) };
-}
 
 export interface PanelDeps {
   /** Today's machine view, as the gear opened it. */
@@ -400,6 +61,8 @@ function viewport() {
 }
 
 const px = (v: number) => `${v.toFixed(2)}px`;
+/** A move by (x, y) px after a scale by `k` about the stage's centre, as one CSS matrix. */
+const stageMatrix = (k: number, x: number, y: number): string => `matrix(${k.toFixed(4)}, 0, 0, ${k.toFixed(4)}, ${x.toFixed(2)}, ${y.toFixed(2)})`;
 function place(el: HTMLElement, b: Box, left: number, top: number) {
   el.style.left = px(left + b.x);
   el.style.top = px(top + b.y);
@@ -487,10 +150,13 @@ function release(): void {
   window.dispatchEvent(new Event('resize'));
 }
 
+/** The ring's square as the last layout laid it, at rest and its open move (`layShell`), and the viewport's size. */
+let ringLaid: RingLaid | null = null;
 /**
  * **What the Mac's mini player must not take for a move** (his report 10-21): it drags the window by a press on the
  * black outside the ring's circle, where the gyroscope stands and the open panel's × and keys are. The page says
  * where its keys are and whether the panel is up, and the shell leaves those presses to the page (MiniPlayer.swift).
+ * It says where the ring stands too, for the size it is laid at (mac-shell-resize, PageHost.swift).
  */
 function tellShellKeys(): void {
   const s = (window as { deepHouseShell?: { send?: (m: unknown) => void } }).deepHouseShell;
@@ -501,7 +167,61 @@ function tellShellKeys(): void {
     const r = el?.getBoundingClientRect();
     if (r && r.width) keys.push([r.left, r.top, r.width, r.height]);
   }
-  s.send({ ev: 'page-keys', panel: !!sheet?.open, keys });
+  // and where the ring stands for the size the page is laid at (`ringLaid`): the Mac's window keeps the ring there
+  // while WebKit's picture catches up with a resize (PageHost.swift)
+  const ring = ringLaid && ringSaid(ringLaid);
+  s.send({ ev: 'page-keys', panel: !!sheet?.open, keys, ...(ring ? { ring } : {}) });
+}
+type RingLaid = { w: number; h: number; cx: number; cy: number; side: number; dx: number; dy: number; k: number; panel: Box; name: Box | null; over: boolean; mode: PanelMode };
+/**
+ * The ring's square as it stands on the screen, in the page's points: at rest, or moved by the open panel (1 at [5]);
+ * then the open panel's box (panel-resize: the Mac's window carries the ring and the paper together through a drag),
+ * and the wordmark's ink box in its corner (the window keeps it there), each [x, y, w, h] and zeros where there is none.
+ */
+function ringSaid(r: RingLaid): number[] {
+  const open = root.dataset.panel != null && root.dataset.view !== 'machine';
+  const box = (b: Box | null) => (b ? [b.x, b.y, b.w, b.h] : [0, 0, 0, 0]);
+  // the wordmark over the ring goes while the panel is open, under it or beside it (index.html; panel-fit)
+  const name = r.over && open && r.mode !== 'mini' ? null : r.name;
+  return [...(open ? [r.w, r.h, r.cx + r.dx, r.cy + r.dy, r.side * r.k, 1] : [r.w, r.h, r.cx, r.cy, r.side, 0]),
+    ...box(open ? r.panel : null), ...box(name)].map((x) => Math.round(x * 100) / 100);
+}
+/**
+ * The ring laid at `w` × `h`; the wordmark in its corner (`l.name`), or, `over` (a window narrow and upright), centred
+ * over the ring at its stylesheet size (index.html `NAME_OVER`), or none (a small window).
+ */
+function ringOf(w: number, h: number, l: ShellLayout, panel: Box, over: boolean, small: boolean): RingLaid {
+  let name: Box | null = l.name ? { x: l.name.x, y: l.name.y, w: l.name.w, h: l.name.h } : null;
+  if (!name && over && !small) {
+    const fs = l.nameFs ?? Math.max(24, Math.min(0.044 * Math.min(w, h), 32)), ch = NAME_CAP * fs, iw = ch * NAME_WIDTH;
+    name = { x: w / 2 - iw / 2, y: 16 + safeInsets()[2] + 0.254 * fs, w: iw, h: ch };
+  }
+  return { w, h, cx: w / 2 + l.stage.dx, cy: h / 2 + l.stage.dy, side: l.stage.side, ...l.ring, panel, name, over, mode: l.mode };
+}
+/**
+ * **Where the ring would stand were the page laid out at `w` × `h`** (mac-shell-resize): the Mac's window holds the
+ * page at its size through a hand's resize and shows its picture scaled onto the window's (PageHost.swift), asking
+ * this at each new size so the ring stands where the page will lay it. `layShell`'s own rule, with what it reads off
+ * the page (a small window, the wordmark upright over the ring or in its corner) taken for that size.
+ */
+function ringAt(w: number, h: number): number[] {
+  const v = viewport();
+  const small = !coarsePointer.on && w <= 600 && h <= 600 && w / h >= 0.8 && w / h <= 1.25;
+  const over = w <= 699 && h >= w;
+  const corner = small || over ? null : nameCornerAt(v, Math.min(w, h));
+  const l = shellLayout(w, h, small, w > h, over ? nameFoot(v.top) : 0, sideInsets(), foldNow(v), corner, !coarsePointer.on, null, endInsets(v));
+  return ringSaid(ringOf(w, h, l, whole(l.panel), over, small));
+}
+{
+  const s = (window as { deepHouseShell?: { send?: (m: unknown) => void; on?: (kind: string, fn: (m: Record<string, unknown>) => void) => void } }).deepHouseShell;
+  if (s && typeof s.on === 'function' && typeof s.send === 'function') {
+    const send = s.send;
+    s.on('ring-at', (m) => {
+      const w = Number(m.w), h = Number(m.h);
+      // (a Debug tour's question, `judge`, is answered as such: the shell keeps it apart from what it steers by)
+      if (w >= 1 && h >= 1) send({ ev: 'ring-at', ring: ringAt(w, h), ...(m.judge ? { judge: true } : {}) });
+    });
+  }
 }
 // love is laid by the ring after the shell's own layout: say again once it has stood
 window.addEventListener('resize', () => requestAnimationFrame(() => requestAnimationFrame(tellShellKeys)));
@@ -515,12 +235,14 @@ export function layShell(): void {
   if (typing) return;
   const v = viewport();
   if (v.zoomed) return;   // a pinch is the reader looking closer and moves nothing
-  const l = shellLayout(v.w, v.h, smallWindow.on, wideNow(v.w, v.h), nameFoot(v.top), sideInsets(), foldNow(v), nameCorner(v));
+  const l = shellLayout(v.w, v.h, smallWindow.on, wideNow(v.w, v.h), nameFoot(v.top), sideInsets(), foldNow(v), nameCorner(v), !coarsePointer.on, midNow(v), endInsets(v));
   placeName(l);
   if (gyroEl) place(gyroEl, l.gyro, v.left, v.top);
   const panel = whole({ ...l.panel, x: l.panel.x + v.left, y: l.panel.y + v.top });
   laid = { gyro: { ...l.gyro, x: l.gyro.x + v.left, y: l.gyro.y + v.top }, panel };
+  ringLaid = ringOf(v.w, v.h, l, whole(l.panel), typeof matchMedia === 'function' && matchMedia(NAME_OVER).matches, smallWindow.on);
   tellShellKeys();
+  nameBack();
   const detail: ScrollDetail = l.mode === 'mini' ? 'mini' : 'key';
   if (detail !== gyroDetail || !gyroG?.childElementCount) { gyroDetail = detail; drawGyro(); }
   if (sheet) {
@@ -529,6 +251,9 @@ export function layShell(): void {
     const k = l.mode === 'mini' ? 1 : panelType(panel.w, l.compact);
     if (k < 1) sheet.style.setProperty('--pk', k.toFixed(3)); else sheet.style.removeProperty('--pk');
     if (l.compact && l.mode !== 'mini' && panel.w < NARROW) sheet.dataset.narrow = ''; else delete sheet.dataset.narrow;
+    // the Playlists tab's side padding in a compact panel (index.html `--pl-pad`): a phone's, wider with the panel
+    const pad = PL_PAD * (1 + Math.max(0, Math.min(1, (panel.w - NARROW) / (PL_PAD_FULL - NARROW))));
+    if (l.compact && l.mode !== 'mini') sheet.style.setProperty('--pl-pad', px(pad)); else sheet.style.removeProperty('--pl-pad');
   }
   // **a turn lands in one frame** (round 4): where the panel's mode or the window's shape changes, the ring's and the
   // panel's eases are held for the frame the new layout lands in (`data-turning`, index.html), so the ring does not
@@ -549,15 +274,16 @@ export function layShell(): void {
   laidShape = shape;
   root.dataset.panelMode = l.mode;
   nowYields(v.h, l);
-  root.style.setProperty('--open-dx', px(l.ring.dx));
-  root.style.setProperty('--open-dy', px(l.ring.dy));
-  root.style.setProperty('--open-k', l.ring.k.toFixed(4));
   // the ring at rest, where the wordmark makes it give way (`ringPlace`); nothing said where it does not, so the
   // stylesheet's own square and middle stand as they always have
   const full = Math.min(0.94 * Math.min(v.w, v.h), 960);
   if (l.stage.side < full - 0.01) root.style.setProperty('--ring-fit', px(l.stage.side)); else root.style.removeProperty('--ring-fit');
   if (Math.abs(l.stage.dy) > 0.01) root.style.setProperty('--ring-dy', px(l.stage.dy)); else root.style.removeProperty('--ring-dy');
-  if (Math.abs(l.stage.dx) > 0.01) root.style.setProperty('--ring-dx', px(l.stage.dx)); else root.style.removeProperty('--ring-dx');
+  // the stage's move at rest and with the panel open, each one matrix (index.html, panel-motion): the open one is the
+  // rest's move, then the panel's move and scale about the ring's centre
+  const rx = Math.abs(l.stage.dx) > 0.01 ? l.stage.dx : 0, ry = Math.abs(l.stage.dy) > 0.01 ? l.stage.dy : 0;
+  if (rx || ry) root.style.setProperty('--ring-m', stageMatrix(1, rx, ry)); else root.style.removeProperty('--ring-m');
+  root.style.setProperty('--open-m', stageMatrix(l.ring.k, rx + l.ring.dx, ry + l.ring.dy));
   const folded = foldNow(v);
   // what the page laid round (the shell's tours read it): the fold's axis, while one cuts the page
   if (folded && l.mode !== 'mini') root.dataset.fold = folded.axis; else delete root.dataset.fold;
@@ -571,19 +297,47 @@ export function layShell(): void {
  */
 const NAME_STEP = 16;
 function nameCorner(v: { left: number; top: number }): NameCorner | null {
-  if (smallWindow.on || !nameImg || typeof matchMedia !== 'function' || matchMedia(NAME_OVER).matches) return null;
-  const vmin = Math.min(root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight);
+  if (smallWindow.on || typeof matchMedia !== 'function' || matchMedia(NAME_OVER).matches) return null;
+  return nameCornerAt(v, Math.min(root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight));
+}
+/** The wordmark's corner in a window whose shorter side is `vmin`, neither small nor upright. */
+function nameCornerAt(v: { left: number; top: number }, vmin: number): NameCorner | null {
+  if (!nameImg) return null;
   const fs = Math.max(24, Math.min(0.044 * vmin, 32));
   const c = shellChrome();
   if (c) return { left: c.left - v.left, top: c.foot + NAME_STEP - v.top, ax: 0, ay: 0, fs };
   const [l, , t] = safeInsets();
   return { left: 20 + l - v.left, top: 16 + t - v.top, ax: 0.082, ay: 0.254, fs };
 }
+/**
+ * **The wordmark is the window's through a drag of its edge** (panel-resize): the Mac app shows its own in the
+ * corner from the press, and the page's is put away (`data-name-away`, index.html) until its first layout at the size
+ * the hand let go at, which says so (`nameBackAt`).
+ */
+let nameBackAt: { w: number; h: number } | null = null;
+onShellDrag((d) => {
+  if (d.on) { nameBackAt = null; root.dataset.nameAway = ''; return; }
+  nameBackAt = { w: d.w, h: d.h };
+  nameBack();
+});
+function nameBack(): void {
+  if (!nameBackAt) return;
+  const v = viewport();
+  if (Math.abs(v.w - nameBackAt.w) > 0.5 || Math.abs(v.h - nameBackAt.h) > 0.5) return;
+  delete root.dataset.nameAway;
+  // said once the frame that shows it has gone out, so the window's own goes no sooner (a frame with both, in the
+  // same place, rather than one with neither)
+  const { w, h } = nameBackAt;
+  requestAnimationFrame(() => requestAnimationFrame(() => shellNameBack(w, h)));
+  nameBackAt = null;
+}
 /** The wordmark at the size and place `shellLayout` gave it: nothing said where it is today's. */
 function placeName(l: ShellLayout): void {
   const n = l.name;
-  const fs0 = n ? Math.max(24, Math.min(0.044 * Math.min(root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight), 32)) : 0;
-  if (n && n.fs < fs0 - 0.01) root.style.setProperty('--name-fs', px(n.fs)); else root.style.removeProperty('--name-fs');
+  // in its corner, or over the ring where the ring keeps the screen's middle (`ringPlace`, duo-balance)
+  const fs = n ? n.fs : l.nameFs;
+  const fs0 = fs != null ? Math.max(24, Math.min(0.044 * Math.min(root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight), 32)) : 0;
+  if (fs != null && fs < fs0 - 0.01) root.style.setProperty('--name-fs', px(fs)); else root.style.removeProperty('--name-fs');
   if (n) root.dataset.nameCorner = ''; else delete root.dataset.nameCorner;
   const c = n ? shellChrome() : null;
   if (n && c) {
@@ -601,6 +355,11 @@ function placeName(l: ShellLayout): void {
 function foldNow(v: { left: number; top: number }): ShellFold | null {
   const f = shellFold();
   return f ? { axis: f.axis, at: f.at - (f.axis === 'v' ? v.left : v.top) } : null;
+}
+/** Where the screen's middle falls down the visible area, as the shell says (duo-balance); null in a browser. */
+function midNow(v: { top: number }): number | null {
+  const m = shellMid();
+  return m ? m[1] - v.top : null;
 }
 
 /**
@@ -645,22 +404,29 @@ function nowYields(h: number, l: ShellLayout): void {
   if (nowAway) root.dataset.nowAway = ''; else delete root.dataset.nowAway;
 }
 
-/** The safe area's insets (a notch turned sideways in a browser): left, right and top, read off a probe styled with `env()`. */
+/** The safe area's insets (a notch turned sideways in a browser): left, right, top and foot, read off a probe styled with `env()`. */
 let insetProbe: HTMLDivElement | null = null;
-function safeInsets(): [number, number, number] {
+function safeInsets(): [number, number, number, number] {
   if (!insetProbe) {
     insetProbe = document.createElement('div');
     insetProbe.setAttribute('aria-hidden', 'true');
     insetProbe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;'
-      + 'padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-top:env(safe-area-inset-top,0px)';
+      + 'padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-top:env(safe-area-inset-top,0px);'
+      + 'padding-bottom:env(safe-area-inset-bottom,0px)';
     document.body.appendChild(insetProbe);
   }
   const cs = getComputedStyle(insetProbe);
-  return [parseFloat(cs.paddingLeft) || 0, parseFloat(cs.paddingRight) || 0, parseFloat(cs.paddingTop) || 0];
+  return [parseFloat(cs.paddingLeft) || 0, parseFloat(cs.paddingRight) || 0, parseFloat(cs.paddingTop) || 0, parseFloat(cs.paddingBottom) || 0];
 }
 function sideInsets(): [number, number] {
   const [l, r] = safeInsets();
   return [l, r];
+}
+/** The safe insets at the top and the foot, in the visible area (duo-land: a short landscape's paper keeps inside them). */
+function endInsets(v: { top: number; h: number }): [number, number] {
+  const [, , t, b] = safeInsets();
+  const below = (window.innerHeight || v.h) - v.top - v.h;
+  return [Math.max(0, t - v.top), Math.max(0, b - below)];
 }
 
 /**
@@ -673,10 +439,20 @@ const nameImg = document.querySelector<HTMLImageElement>('#name img');
 function nameFoot(top: number): number {
   if (!nameImg || typeof matchMedia !== 'function' || !matchMedia(NAME_OVER).matches) return 0;
   const r = nameImg.getBoundingClientRect();
-  return r.height > 0 ? r.bottom - top : 0;
+  if (!(r.height > 0)) return 0;
+  // at the stylesheet's size: where the layout made the mark smaller (`--name-fs`), its foot as it would stand unmade
+  if (!root.style.getPropertyValue('--name-fs')) return r.bottom - top;
+  const fsNow = r.height / NAME_CAP;
+  const fs0 = Math.max(24, Math.min(0.044 * Math.min(root.clientWidth || window.innerWidth, root.clientHeight || window.innerHeight), 32));
+  return r.bottom - top + NAME_TALL * (fs0 - fsNow);
 }
 
 export const libraryOpen = (): boolean => !!sheet && sheet.open && !closing;
+/**
+ * **The panel opening or closing** (panel-motion): the zoom's frames run (`rollStep`). The ring draws at the screen's
+ * rate meanwhile (`moving`, ring.ts), and the playlists' times wait for it to land (playlists-ui.ts).
+ */
+export const libraryRolling = (): boolean => rollRaf !== 0;
 
 /**
  * **The last tab the hand chose** (his word 10-22: "remember the last tab on paper in local storage so if i use map i
@@ -685,6 +461,13 @@ export const libraryOpen = (): boolean => !!sheet && sheet.open && !closing;
 const TAB_KEY = 'deephouse.panel.tab';
 const lastTab = (): string => { try { return localStorage.getItem(TAB_KEY) || 'playlists'; } catch (e) { return 'playlists'; } };
 const keepTab = (name: string): void => { try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* storage blocked */ } };
+/**
+ * **The panel key while a playlist plays** (his word 10-29: "when i am playing playlist when pressing panel icon it
+ * should open on the playlist scrolled to current playing track, unless last mode was map"): the playing playlist's
+ * page, its track in sight (playlists-ui.ts); the Map where the Map was last. Nothing playing, the last tab.
+ */
+let showPlaying: () => boolean = () => false;
+export const onPanelKey = (fn: () => boolean): void => { showPlaying = fn; };
 
 /** Show a tab by its name; an unknown name shows the first. */
 function showTab(name: string): void {
@@ -737,6 +520,7 @@ export function closeLibrary(quiet = false): void {
   closeQuiet = quiet;
   delete root.dataset.panel;
   delete root.dataset.panelAway;
+  tellShellKeys();
   // a field closed with the panel lets go of the layout with it
   if (typing) { clearTimeout(releaseTimer); release(); }
   unroll(0);
@@ -900,28 +684,59 @@ const X_MIN = 16;
 const X_TOUCH = 44;
 /** The crease's alpha on the open panel (round 6, his word 10-22: "a fair hair line in the paper center as in the icon"). */
 const CREASE_ALPHA = 0.12;
+/**
+ * **The open sheet's lines, quieter** (panel-fit, his word 10-26: "it still grabs attention from ring ui, so maybe we
+ * mute it a bit, maybe 30-40% off"): its outline, turned corner and crease at this share of their ink (index.html
+ * `--sheet-k`). The zoom's frame eases from the key's weight, 1, to this as it grows.
+ */
+const SHEET_QUIET = 0.65;
 const n1 = (v: number) => v.toFixed(1);
 /**
- * **The paper's corners** (round 7, his word 10-22: "something is not right with paper corners"): a sheet's corners
- * are nearly square, so a radius of 1.5 px, where it was 5.
+ * **The paper's corners, round as the ring** (his word 10-30: "can we make open panel corner more round? i think all
+ * our UI is of ring, so need to follow that"; then "let's try 8-10px after all to match icon style", and of 8, 10 and
+ * 16 drawn, "let's do 8px"): true quarter circles of 8 px, where round 7 (his word 10-22: "something is not right with paper corners") had them nearly square
+ * at 1.5.
  */
-const SHEET_R = 1.5;
+const SHEET_R = 8;
 /**
- * **The sheet's outline**, `w` by `h` px with its top right corner cut at `c` and its other corners rounded by `r`,
- * `i` px in from the box (half the line, so the whole line stands inside the box).
+ * **The sheet's outline**, `w` by `h` px with its top right corner folded away at `c` and its other corners rounded by
+ * `r`, `i` px in from the box (half the line, so the whole line stands inside the box). The crease is straight and
+ * meets the top and the side at a point, as a paper's fold does (his word 10-30: "the fold edges should be straight
+ * like normal paper fold, imagine a square with rounded corners where you fold the corner").
  */
 export function sheetEdge(w: number, h: number, c: number, i = 0, r = SHEET_R): string {
+  const a = `A${n1(r)} ${n1(r)} 0 0 1 `;
   return `M${n1(i + r)} ${n1(i)}L${n1(w - c + i)} ${n1(i)}L${n1(w - i)} ${n1(c - i)}L${n1(w - i)} ${n1(h - i - r)}`
-    + `Q${n1(w - i)} ${n1(h - i)} ${n1(w - i - r)} ${n1(h - i)}L${n1(i + r)} ${n1(h - i)}Q${n1(i)} ${n1(h - i)} ${n1(i)} ${n1(h - i - r)}`
-    + `L${n1(i)} ${n1(i + r)}Q${n1(i)} ${n1(i)} ${n1(i + r)} ${n1(i)}Z`;
+    + `${a}${n1(w - i - r)} ${n1(h - i)}L${n1(i + r)} ${n1(h - i)}${a}${n1(i)} ${n1(h - i - r)}`
+    + `L${n1(i)} ${n1(i + r)}${a}${n1(i + r)} ${n1(i)}Z`;
 }
 /**
- * The turned-down corner: the cut-off triangle folded over the sheet, its point at (w − c, c). Its corners are the
- * outline's own, `i` in (round 7), so its crease is the outline's diagonal, the same one line, and its legs stand on
- * half pixels as the outline's sides do, crisp on a whole-pixel panel.
+ * The turned-down corner: the cut-off corner folded over the sheet, the paper's own corner mirrored in the crease, so
+ * its legs are straight and its tip, at (w − c, c), is rounded as the paper's corners are (`f`, the same radius). Its
+ * legs start where the crease meets the outline (`i` in, round 7), standing on half pixels as the outline's sides do,
+ * crisp on a whole-pixel panel; its third side is the crease, the outline's own diagonal, the same one line.
  */
-export const sheetFlap = (w: number, c: number, i = 0.5): string =>
-  `M${n1(w - c + i)} ${n1(i)}L${n1(w - c + i)} ${n1(c - i)}L${n1(w - i)} ${n1(c - i)}Z`;
+export function sheetFlap(w: number, c: number, i = 0.5, f = SHEET_R): string {
+  f = foldTip(c, f);
+  const x = w - c + i, y = c - i;
+  return `M${n1(x)} ${n1(i)}L${n1(x)} ${n1(y - f)}A${n1(f)} ${n1(f)} 0 0 0 ${n1(x + f)} ${n1(y)}L${n1(w - i)} ${n1(y)}Z`;
+}
+/** The fold's tip on a leg of `c`: the paper's corner, never more than half the leg so the legs keep a straight run. */
+const foldTip = (c: number, f: number): number => Math.max(0, Math.min(f, c / 2));
+/**
+ * **The ×'s place in the rounded fold** (his word 10-30: "there is a shift"): how far in from both legs, at the centre
+ * of the largest circle the fold holds. With a sharp tip that is the triangle's incircle; a tip rounded past it pushes
+ * the circle out toward the crease. Along the fold's bisector, `t` from the tip: the room to the crease is `D − t`, to
+ * the rounded tip `f − (f√2 − t)`, to a leg past it `t / √2`.
+ */
+export function foldCentre(c: number, i = 0.5, f = SHEET_R): number {
+  f = foldTip(c, f);
+  const D = (c - 2 * i) / Math.SQRT2;
+  const room = (t: number) => Math.min(D - t, t < f * Math.SQRT2 ? f - (f * Math.SQRT2 - t) : t / Math.SQRT2);
+  let best = 0, at = 0;
+  for (let k = 0; k <= 200; k++) { const t = (D * k) / 200; const r = room(t); if (r > best) { best = r; at = t; } }
+  return at / Math.SQRT2;
+}
 
 /**
  * **The open panel as the sheet**: its ground, line and turned corner, the faint crease down its middle, and where
@@ -941,7 +756,8 @@ function paintSheet(): void {
   const c = cornerLeg();
   // the × at the corner triangle's own centre (its incircle's): a leg's (2 − √2) / 2 in from both legs
   const ri = (c * (2 - Math.SQRT2)) / 2;
-  const xx = w - c + ri, xy = c - ri;
+  const at = foldCentre(c, 0.5);
+  const xx = w - c + 0.5 + at, xy = c - 0.5 - at;
   const d = Math.max(X_MIN, Math.floor(2 * ri));
   const reach = coarsePointer.on ? Math.max(d, X_TOUCH) : d;
   const svg = sheet.querySelector('.sheetEdge');
@@ -1015,16 +831,19 @@ function paintRoll(): void {
   f.style.width = `${n1(w)}px`;
   f.style.height = `${n1(h)}px`;
   f.style.transform = `rotate(${(-6 * (1 - s)).toFixed(2)}deg)`;
+  // its line and the corner's light from the key's weight to the open sheet's quieter one, there by full size
+  f.style.setProperty('--sheet-k', lerp(1, SHEET_QUIET, s).toFixed(3));
   const svg = f.firstElementChild as SVGSVGElement;
   svg.setAttribute('viewBox', `0 0 ${n1(w)} ${n1(h)}`);
+  // the corners and the fold's tip, the same paper corner, grow from the key's near-square glyph to the sheet's
   svg.querySelector('.edge')?.setAttribute('d', sheetEdge(w, h, c, 0.5, lerp(1, SHEET_R, s)));
-  svg.querySelector('.flap')?.setAttribute('d', sheetFlap(w, c));
+  svg.querySelector('.flap')?.setAttribute('d', sheetFlap(w, c, 0.5, lerp(1, SHEET_R, s)));
   // the crease down the middle carries into the open panel's faint hairline (round 6): from the key's weight to the
   // panel's, handed over to the panel's own as its content fades in (the two summing to the one line)
   const crease = svg.querySelector('.crease');
   crease?.setAttribute('d', `M${n1(w / 2)} 0.5L${n1(w / 2)} ${n1(h - 0.5)}`);
   const fadeIn = clamp01((p - FULL) / (1 - FULL));
-  crease?.setAttribute('opacity', (lerp(0.7, CREASE_ALPHA / 0.55, s) * (1 - fadeIn)).toFixed(3));
+  crease?.setAttribute('opacity', (lerp(0.7, (SHEET_QUIET * CREASE_ALPHA) / 0.55, s) * (1 - fadeIn)).toFixed(3));
 }
 
 /** Wire the keys once; ring.ts hands over what lives there. */
@@ -1032,7 +851,10 @@ export function startLibrary(d: PanelDeps): void {
   deps = d;
   layShell();
   if (gyroEl) {
-    gyroEl.addEventListener('click', () => openLibrary(lastTab(), gyroEl));
+    gyroEl.addEventListener('click', () => {
+      const tab = lastTab();
+      if (tab === 'genres' || !showPlaying()) openLibrary(tab, gyroEl);
+    });
     gyroEl.addEventListener('animationend', () => gyroEl.classList.remove('blink'));
     gyroEl.addEventListener('pointerenter', gyroHover);
     gyroEl.addEventListener('pointerleave', gyroLeave);

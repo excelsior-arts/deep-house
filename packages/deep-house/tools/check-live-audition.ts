@@ -83,7 +83,11 @@ test('a voice the plan gave a lane plays that lane: the liquid sine on the bassl
   const spell={...HOUSE,ember:.95,tide:.45,zephyr:.6,root:.75,veil:.6,spark:.85,loom:.85};
   const t=planTheme('1',0,{strategy:'house-v2',spell});
   assert.deepEqual(t.sound.lanes?.bassline,['reeseSub']);
-  const rows=lanesOfTheme({track:t,bar:82} as any);
+  // bar 82 and the open hat from 112 were bars of its first main (64-143) until round length-2 put the grooves at 3-4
+  // minutes (his word 10-27: "We should aim for 3-4mins here"): 64-79 since, so the bars are read off it
+  const main=t.arrangement.sections.find(s=>s.kind==='main')!;
+  assert.deepEqual([main.startBar,main.bars],[64,16]);
+  const rows=lanesOfTheme({track:t,bar:main.startBar+2} as any);
   assert.deepEqual(rows.find(r=>r.id==='bassline')?.playing,['reeseSub']);
   assert.equal(rows.find(r=>r.id==='reeseSub'),undefined);
   assert.equal(rows.filter(r=>r.playing.includes('reeseSub')).length,1);
@@ -96,7 +100,7 @@ test('a voice the plan gave a lane plays that lane: the liquid sine on the bassl
   assert.ok(rows.find(r=>r.id==='backbeat')!.playing.includes('snareGhost'));
   for(const v of ['hatShut','hatSoft','snareGhost'])assert.equal(rows.filter(r=>r.playing.includes(v)).length,1,`${v} on one strip`);
   // a bar of the first main passage where the arrangement plays the kit's open hat (a straight-top lift has none)
-  const openBar=t.events.find((e:any)=>e.voice==='hatOpen'&&e.bar>=112)!.bar;
+  const openBar=t.events.find((e:any)=>e.voice==='hatOpen'&&e.bar>=main.startBar+4&&e.bar<main.startBar+main.bars)!.bar;
   assert.ok(lanesOfTheme({track:t,bar:openBar} as any).find(r=>r.id==='offbeatOpen')!.firing>0,'the kit\'s open hat fires on the open hat\'s lane');
   assert.equal(rows.find(r=>r.id===r.playing[0]&&r.playing.length===1&&r.family!=null&&['hatShut','hatSoft','snareGhost'].includes(r.id)),undefined,'no loose kit strip');
   const house=planTheme('1',0,{strategy:'house-v2'});

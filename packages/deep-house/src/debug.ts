@@ -6,7 +6,7 @@ import { generate } from './generator.ts';
 import { mergeParams } from '@deep-house/engine/params';
 import { settingsOf } from '@deep-house/engine/settings';
 import { renderProgram } from '@deep-house/engine/scheduler';
-import { compilePerformance, sliceProgram, programOf } from './performance.ts';
+import { compilePerformance, sliceProgram, programOf, sameFormTime } from './performance.ts';
 import { planHere } from './plan-ask.ts';
 import { planOffThread } from './plan-off-thread.ts';
 import { schedule, firstEvent, offsetGrid } from '@deep-house/engine/schedule';
@@ -73,6 +73,9 @@ export function installDebug(control: Control) {
     // the browser that runs them (`tools/plan-perf.ts --identity`).
     planHere,
     planOffThread,
+    // where a pull in place enters the plan it asked (`sameFormTime`): the second a pause keeps of a pull's
+    // landing, read by a scenario against the transport's own (pause-smooth, 10-26)
+    sameFormTime,
     programOfPlan: programOf,
     generationOf: (strategy: string) => strategyById(strategy).generation,
     recipesFor,

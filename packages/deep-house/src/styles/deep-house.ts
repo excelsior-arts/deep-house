@@ -75,6 +75,8 @@
 //      rest: turning it on moves every theme after an organ.
 
 import { INSTRUMENTS } from '@deep-house/engine/params';
+import { LENGTH_ROWS } from './deep-house-length.ts';
+import type { LengthKnobs } from '../length.ts';
 import { CORPUS } from '../corpus.ts';
 import { SECTION_LIBRARY } from '../recipes.ts';
 import { grammarFromRows } from '../sections.ts';
@@ -1359,6 +1361,8 @@ export const style = {
   lanes,
   stage,
   set,
+  // the length rows (`deep-house-length.ts`): the page's set rolls minutes under this strategy too (engine-data)
+  length: LENGTH_ROWS,
   figures,
   loudness,
   catalogue,
@@ -1371,6 +1375,6 @@ export const style = {
   // style where that is true, and it is true because nothing here was reasoned:
   // `tools/imprint/signatures.ts` wrote every number and can write them again.
   signatures,
-} satisfies Style;
+} satisfies Style & { length: LengthKnobs };
 
 export default style;

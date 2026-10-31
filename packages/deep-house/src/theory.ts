@@ -344,6 +344,8 @@ export interface Chord {
    * chord's own root); absent, the line's own rule decides.
    */
   bassPc?: number;
+  /** a chord of the hook's loop, played in its runs (trance-2, `loopChordAt`), listed beside the theme's own */
+  loop?: boolean;
 }
 
 export interface Progression {
@@ -498,6 +500,26 @@ export function chordAtBar(progression: Progression, bar: number): Chord {
 }
 
 // Fold a MIDI note into a register window without changing its pitch class.
+/**
+ * **A held chord voiced for a front part** (round trance-1; his ear 10-28 on Hard Trance seed 2: "at this moment the tune
+ * drops a bit", the held saw's top falling an octave and its stack losing a voice every fourth chord): the same number of
+ * voices on every chord, a close stack down from a top inside the band `top` (MIDI, inclusive), the top the chord tone
+ * nearest the last chord's top, so it leads by step and never falls an octave. `pcs` are the chord's pitch classes; `root`,
+ * where given, is laid under the stack as one voice more on every chord.
+ */
+export function voiceHeld(pcs: readonly number[], voices: number, top: readonly [number, number], lastTop: number | null, root: number | null = null): number[] {
+  const set = [...new Set(pcs.map((p) => ((p % 12) + 12) % 12))];
+  const want = lastTop ?? (top[0] + top[1]) / 2;
+  let best: number | null = null;
+  for (let m = top[0]; m <= top[1]; m++) if (set.includes(m % 12) && (best == null || Math.abs(m - want) < Math.abs(best - want) - 1e-9)) best = m;
+  const out = [best ?? top[1]];
+  let m = out[0];
+  while (out.length < voices) { m--; while (!set.includes(((m % 12) + 12) % 12)) m--; out.unshift(m); }
+  // ...and, where asked, the chord's root under the stack (within its octave below the lowest voice): one more voice, always
+  if (root != null) { let r = out[0] - 1; while (((r % 12) + 12) % 12 !== ((root % 12) + 12) % 12) r--; out.unshift(r); }
+  return out;
+}
+
 export function foldTo(midi: number, low: number, high: number): number {
   let m = midi;
   while (m < low) m += 12;

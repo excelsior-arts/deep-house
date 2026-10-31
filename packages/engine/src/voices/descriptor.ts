@@ -268,6 +268,12 @@ export interface ControlSpec {
   min: number;
   max: number;
   default: number | null;
+  /**
+   * a strike's hardness: how far its tilt throws each of the voice's things, by the topology's own names (a mallet's
+   * `partials`, `head` and `noise`; the FM bell's `index`; engine-data, 10-28: the amounts had been numbers in the
+   * topologies). A name the row leaves out reads the topology's documented default.
+   */
+  tilt?: Readonly<Record<string, number>>;
 }
 /**
  * `level` is a gain on something inside the voice; `switch` is 0 or 1 (a value
@@ -320,6 +326,12 @@ export function withControls(p: NoteParams, controls: Controls): NoteParams {
  * where the row does not declare the control (a struck row that never asked for it plays its own sound whatever a note
  * carries); the ratio is taken into the declared range first (`noteControl`).
  */
+/** How far a strike's tilt throws one of the voice's things: the row's `hardness.tilt` amount by name, else the topology's own default. */
+export function tiltAmount(controls: Controls | undefined, name: string, fallback: number): number {
+  const v = controls?.hardness?.tilt?.[name];
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
 export function strikeTilt(p: NoteParams | undefined, controls: Controls | undefined, soft = 0.6): number {
   const hardness = controls ? noteControl(p, controls, 'hardness') : undefined;
   if (hardness === undefined || hardness === 1 || !(hardness > 0)) return 0;
@@ -354,6 +366,8 @@ export function controlFaults(d: any): string[] {
     if (!Number.isFinite(s.min) || !Number.isFinite(s.max) || !(s.min < s.max)) bad.push(`${name}: ${k} runs from ${s.min} to ${s.max}`);
     if (s.default !== null && (!Number.isFinite(s.default) || s.default < s.min || s.default > s.max))
       bad.push(`${name}: ${k} defaults to ${s.default}, outside its own ${s.min} to ${s.max}`);
+    if (s.tilt !== undefined && (typeof s.tilt !== 'object' || Array.isArray(s.tilt) || Object.values(s.tilt).some((v) => typeof v !== 'number' || !Number.isFinite(v) || v < 0)))
+      bad.push(`${name}: ${k}'s tilt is not a table of amounts`);
     if (s.unit === 'switch' && (s.min !== 0 || s.max !== 1)) bad.push(`${name}: ${k} is a switch and runs from ${s.min} to ${s.max}`);
   }
   return bad;

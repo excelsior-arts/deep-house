@@ -41,6 +41,14 @@
 // row holds it at rest. The string model, the cache, the prewarm and the
 // holders are this topology's and are untouched; each event a preparation is
 // handed resolves its patch through its own row (`patchOf`).
+//
+// **The string** (round piano-tone, 10-29): where the room carries the row's
+// `string`, the note's strings are the deep house keys of `piano-string.ts` —
+// a stiff string over a wooden body, struck by felt — in place of the six
+// partials and their band of hammer hiss. House-v2 writes it into every room
+// that sounds the piano; a room without one (house-v1, the instruments table,
+// the catalogue's other grands) plays everything below as it always did. The
+// cache, the prewarm, the holders and the note at play are the same for both.
 
 import { midiToHz, route, panner, noiseSource, MIN_RELEASE, startTime, GAIN_FLOOR } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
@@ -51,10 +59,11 @@ import { withControls } from './descriptor.ts';
 import { offline, MAX_JOBS } from './render-cache.ts';
 import type { Controls, NoteParams, PrepareOptions, VoiceRenderer } from './descriptor.ts';
 import type { PianoGrain } from './grain.ts';
+import { stringNote, feltHammer, type PianoString } from './piano-string.ts';
 import { patchOf } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';
 import type { PatchOf } from './schema.ts';
-import { contract, inUnit, num, CENTS, HZ, LEVEL, SECONDS, UNIT, WAIT } from './schema.ts';
+import { contract, inUnit, int, list, num, optional, table, CENTS, DB, HZ, LEVEL, Q, SECONDS, UNIT, WAIT } from './schema.ts';
 
 /**
  * What the piano's row carries (`schema.ts`): every number of the settings'
@@ -85,10 +94,50 @@ const PARAMETERS = contract({
   spread: inUnit(num(0, 1), 'ratio'),
   /** the dry note is quiet; the hall is the instrument */
   dryLevel: LEVEL,
+  /**
+   * **The string, the board and the felt** (round piano-tone, `piano-string.ts`): the deep house keys. Absent (or
+   * null), the six-partial string with its band of hammer hiss, as every piano played before it: the piano row
+   * carries it, and a room plays it where the room writes it (house-v2's piano voicing, only where a theme sounds
+   * the piano), so the instruments table, house-v1 and every theme without a piano carry the block they always did.
+   */
+  string: optional(table({
+    /** how many partials a string may have: a bank of oscillators per string, rendered offline */
+    partials: inUnit(int(1, 24), 'count'),
+    /** how far up the spectrum the strike reaches, against 0.7-4.5 kHz on velocity */
+    reach: inUnit(num(0.05, 4), 'x'),
+    /** where the hammer strikes, as a share of the string's length: its comb's notches */
+    strike: inUnit(num(0.02, 0.5), 'ratio'),
+    /** how deep those notches are */
+    comb: UNIT,
+    /** the string's inharmonicity at middle C */
+    stiffness: num(0, 0.01),
+    /** the string against the room's `partialLevel` */
+    level: LEVEL,
+    /** the level by register, decibels at MIDI notes in rising order, straight lines between */
+    register: list(table({ midi: num(0, 127), db: DB }), 0, 16),
+    /** the board's wooden modes, in order */
+    body: list(table({ hz: HZ, db: DB, q: Q }), 0, 8),
+    /** the board's knock against velocity */
+    knock: LEVEL,
+    knockHz: HZ,
+    felt: table({
+      hz: HZ,
+      /** hertz of the corner per hertz of the note */
+      track: num(0, 8),
+      top: HZ,
+      /** against the room's `hammerLevel` */
+      level: LEVEL,
+      decay: inUnit(num(0.002, 0.2), 'seconds'),
+    }),
+  })),
+}, (p) => {
+  // the register's points rise: a line between two of them is read from the lower note to the higher
+  const r = p.string?.register ?? [];
+  return r.some((x, i) => i > 0 && !(x.midi > r[i - 1].midi)) ? ['string.register is not in rising order of its notes'] : [];
 });
 
 /** The piano's numbers, as the room voices them (and a place's grain beside them): every number a string, a hammer and a note is made of. */
-type PianoSettings = PatchOf<typeof PARAMETERS.fields> & { harmonicBody?: number; grain?: PianoGrain };
+type PianoSettings = Omit<PatchOf<typeof PARAMETERS.fields>, 'string'> & { string?: PianoString | null; harmonicBody?: number; grain?: PianoGrain };
 
 // Per-note sound controls let a sustained piano phrase and short chord stabs
 // share this instrument without revoicing the entire theme. Omission retains
@@ -103,7 +152,8 @@ const SETTINGS_CONTROLS = ['sustainLevel', 'decayFast', 'partialDecay', 'unisonC
 export function pianoNoteSettings(p: NoteParams, base: PianoSettings, controls: Controls): PianoSettings {
   const q = withControls(p, controls);
   const entries = SETTINGS_CONTROLS.filter((key) => q[key] !== undefined);
-  const G = base.grain;
+  // (the string's felt and board are its own: it reads no grain, `piano-string.ts`)
+  const G = base.string ? undefined : base.grain;
   if (!entries.length && !G) return base;
   const overrides: Record<string, number> = {};
   for (const key of entries) overrides[key] = q[key];
@@ -123,7 +173,17 @@ export function pianoNoteSettings(p: NoteParams, base: PianoSettings, controls: 
 /** Every input read by the rendered string body, shared by prewarm and play. */
 export function pianoStringKey(midi: number, vel: number, life: number, P: PianoSettings): string {
   const legacy = `${midi}:${vel}:${life}:${P.unisonCents}:${P.unisonLevel}:${P.attack}:${P.stretchCents}:${P.partialDecay}:${P.partialLevel}`;
+  // the string reads no stretch and no body of the second and third partials: the board is its body
+  if (P.string) return `${midi}:${vel}:${life}:${P.unisonCents}:${P.unisonLevel}:${P.attack}:${P.partialDecay}:${P.partialLevel}:string:${stringId(P.string)}`;
   return P.harmonicBody ? `${legacy}:body:${P.harmonicBody}` : legacy;
+}
+
+// A string's numbers, as a word for the cache key: written once per object (a room's block is one object a theme).
+const stringIds = new WeakMap<object, string>();
+function stringId(S: PianoString): string {
+  let id = stringIds.get(S);
+  if (id === undefined) { id = JSON.stringify(S); stringIds.set(S, id); }
+  return id;
 }
 
 /** One context's rendered strings, or the promise of one while it is in the air. */
@@ -261,7 +321,8 @@ function renderStrings(ctx: BaseAudioContext, hz: number, vel: number, life: num
     began = true;
     liveJobs += 1;
     if (liveJobs > peakJobs) peakJobs = liveJobs;
-    strings(off, off.destination, 0, hz, vel, life, P);
+    if (P.string) stringNote(off, off.destination, 0, hz, vel, life, P.attack, P, P.string);
+    else strings(off, off.destination, 0, hz, vel, life, P);
   }, defer).finally(() => { if (began) liveJobs -= 1; });
 }
 
@@ -689,7 +750,9 @@ function piano(room: PianoSettings, controls: Controls, ctx: BaseAudioContext, o
   hp.connect(pan);
   pan.connect(g);
 
-  // The hammer.
+  // The hammer: the string's felt where the room plays the string, else the band of hiss.
+  if (P.string) feltHammer(ctx, lp, time, hz, vel, P.hammerLevel, P.string.felt);
+  else {
   const hamDur = 0.045;
   const ham = noiseSource(ctx, time, hamDur + 0.02);
   const hamBp = ctx.createBiquadFilter();
@@ -706,6 +769,7 @@ function piano(room: PianoSettings, controls: Controls, ctx: BaseAudioContext, o
   ham.connect(hamBp);
   hamBp.connect(hamG);
   hamG.connect(lp);
+  }
 
   // The strings: two per note a few cents apart, six stretched partials each,
   // every partial on its own decay — rendered once per pitch, velocity tenth
@@ -718,6 +782,8 @@ function piano(room: PianoSettings, controls: Controls, ctx: BaseAudioContext, o
     src.connect(lp);
     src.start(time);
     src.stop(time + a + lifeQ + MIN_RELEASE + 0.02);
+  } else if (P.string) {
+    stringNote(ctx, lp, time, hz, vel, life, P.attack, P, P.string);
   } else {
     strings(ctx, lp, time, hz, vel, life, P);
   }

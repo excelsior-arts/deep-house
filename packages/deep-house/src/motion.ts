@@ -10,6 +10,7 @@
 // up again, from where the drawing stands, the moment it goes.
 
 import { report } from './ledger.ts';
+import { TV_VIEW } from './tv-mode.ts';
 
 /** A media fact: what it is now, and a way to hear when it changes. */
 export interface MediaFact {
@@ -47,7 +48,8 @@ function fact(query: string): MediaFact {
 /** `prefers-reduced-motion: reduce` — the ring's decorative motion rests; state still draws. */
 export const reducedMotion: MediaFact = fact('(prefers-reduced-motion: reduce)');
 /** `pointer: coarse` — a finger, rather than a pointer that can rest on a thing. */
-export const coarsePointer: MediaFact = fact('(pointer: coarse)');
+// (the TV's page is a screen nobody touches, laid out and drawn as a desktop's: tv-mode.ts)
+export const coarsePointer: MediaFact = fact(TV_VIEW ? 'not all' : '(pointer: coarse)');
 /**
  * **The small window** (round apple-mini-2): a viewport no more than 600 CSS px
  * either way and near square (4:5 to 5:4) — the Mac app's mini player (a
@@ -73,7 +75,7 @@ export const smallWindow: MediaFact = fact(SMALL_WINDOW);
  * thumb's (index.html says the same query).
  */
 export const PHONE_SIZE = '(pointer: coarse) and (max-width: 699px), (pointer: coarse) and (max-height: 499px)';
-export const phoneSize: MediaFact = fact(PHONE_SIZE);
+export const phoneSize: MediaFact = fact(TV_VIEW ? 'not all' : PHONE_SIZE);
 
 /**
  * **The viewport as the page lays itself out in it, read one way everywhere** (iphone-duo round 4, his iPhone Air in

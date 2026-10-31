@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "recipe",
   "id": "trance/supersaw-anthem",
-  "revision": 1,
+  "revision": 2,
   "name": "The supersaw anthem",
   "scope": "track",
   "applies": null,
@@ -167,95 +167,75 @@
           "brightnessMin": 2400
         },
         "motif": {
-          "contour": "wave",
+          "contour": "arch",
           "intervals": {
             "steps": [
-              0.75,
-              0.75
+              0.666,
+              0.667
             ],
             "leaps": [
-              0.25,
-              0.25
+              0.333,
+              0.334
             ]
           },
           "cell": {
             "beats": [
-              16,
-              16
+              64,
+              64
             ]
           },
           "onGrid": [
-            0.888,
-            0.889
+            1,
+            1
           ],
           "range": {
             "semitones": [
-              8,
-              8
+              5,
+              5
             ]
           },
           "density": [
-            2.25,
-            2.25
+            0.25,
+            0.25
           ],
           "returns": {
             "bars": [
-              4,
-              4
+              16,
+              16
             ]
           },
           "paths": [
             {
               "degrees": [
-                0,
-                2,
                 4,
-                5,
-                4,
-                3,
-                2,
-                1,
-                2
+                6,
+                7,
+                6
               ],
               "beats": [
-                1.5,
-                1.5,
-                3,
-                1,
-                1,
-                2,
-                2,
-                2,
-                2
+                16,
+                16,
+                16,
+                16
               ],
               "holds": [
-                1.25,
-                1.25,
-                2.75,
-                0.75,
-                0.75,
-                1.75,
-                1.75,
-                1.75,
-                1.75
+                15.5,
+                15.5,
+                15.5,
+                15.5
               ],
               "accents": [
                 0.85,
-                0.9,
-                1,
-                0.9,
                 0.85,
-                0.85,
-                0.8,
-                0.8,
-                0.9
+                0.9,
+                0.85
               ]
             }
           ]
         },
         "strength": [
-          0.6,
-          0.7
+          0.5,
+          0.5
         ],
         "entry": {
           "beats": [
@@ -265,17 +245,39 @@
         },
         "spacing": {
           "bars": [
-            4,
-            4
+            16,
+            16
           ]
         },
-        "behavior": "ostinato",
+        "behavior": "phrase",
         "duration": {
           "beats": [
-            0.75,
-            2.75
+            15.5,
+            15.5
           ]
-        }
+        },
+        "voicings": [
+          [
+            -2,
+            0
+          ],
+          [
+            -4,
+            0
+          ],
+          [
+            -3,
+            0
+          ],
+          [
+            -3,
+            0
+          ]
+        ],
+        "range": [
+          52,
+          76
+        ]
       }
     },
     "presence": {
@@ -315,9 +317,9 @@
     "breakdown"
   ],
   "provenance": {
-    "pattern": "uplifting trance: a four-bar anthem line on a bright sawtooth lead \u2014 long notes climbing to the fifth and falling back through the scale \u2014 over four on the floor and the offbeat bass",
+    "pattern": "uplifting trance: the stacked sawtooth held as the harmony's bed, a two-note chord every four bars, over four on the floor and the offbeat bass",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Four bars of lead: a dotted climb (root, third, fifth) held over the bar, a step past it and down through the scale to rest on the third \u2014 the shape of a trance hook, not any one tune. The lead is the stacked, detuned supersaw \u2014 in this kitchen an ensemble (a pad) and not a keyboard, because the sustained player draws only bed-capable voices and the saw lead is declared a keyboard that does not sustain as a bed. With the offbeat bass under it.",
+    "note": "Sixteen bars of held saw: a two-note chord of the chord's tones every four bars, its top climbing from the fifth to the seventh and the octave and back to the seventh (the fifth over the third, the seventh over the third, the octave over the fifth, the seventh over the fourth), each held to the next, its top no higher than E5 (the held chord folds an octave down in a key that would carry it over: a bed, not a lead). The supersaw is a pad here, a bed under the track, not a line over it: the four-bar anthem line it played before (a climb to the fifth and down the scale, looped unchanged) was his ear's \"imperative horn like motif ... pretty bad\" (10-29), and the held chord his pick (\"held: the supersaw holds the chord, a two-note chord every 4 bars - works\"). In this kitchen the stacked, detuned supersaw is an ensemble (a pad) and not a keyboard, because the sustained player draws only bed-capable voices. With the offbeat bass under it.",
     "standing": {
       "reaches": true,
       "eventRateZ": -0.9,

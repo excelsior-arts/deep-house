@@ -17,7 +17,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { liveStandin } from '@deep-house/engine/standin';
-import { schedule, firstEvent, offsetGrid, visitAt } from '@deep-house/engine/schedule';
+import { schedule, firstEvent, offsetGrid, visitAt, holedBy } from '@deep-house/engine/schedule';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import { TICK_MS } from '@deep-house/engine/clock';
 import { planTheme, programOf, createMix } from '../src/mix.ts';
@@ -25,8 +25,8 @@ import { VOICES } from '@deep-house/engine/voices';
 import { makeDeck, pourDeck, deckContextTime, holdsOnGrid } from '@deep-house/engine/deck';
 import { makeV1Master } from '@deep-house/engine/graph';
 import { layOut } from '../src/set-plan.ts';
-import { seamTempo, playsKick, sameFormTime } from '../src/performance.ts';
-import { seamCurves, setOptions } from '../src/set-plan.ts';
+import { seamTempo, playsKick, sameFormTime, seamPlan, blendAsked, listPull, SPLIT_SWAP_BARS, beatLed } from '../src/performance.ts';
+import { seamCurves, setOptions, splitSwap, tailSeconds, leadFor, swapAfterBars } from '../src/set-plan.ts';
 import { STRATEGIES } from '../src/strategies/index.ts';
 import { outputClipWriter, lines as ledgerLines, isReported, CLIP_EPISODE_MS } from '../src/ledger.ts';
 
@@ -119,8 +119,10 @@ test('every anticipatory event is reached by the live pump at or before its onse
   // swell into a structural arrival the drums play into, where the cast admits
   // the glue's noises and no gesture already arrives there (never out of the
   // intro): one more, two.
-  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 2 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
-  assert.equal(n, 14);
+  // Round length-2's forms (the grooves 3-4 minutes, every section line on the phrase; his word 10-27: "We should aim
+  // for 3-4mins here") put one more return where a reverse swell leads in: three.
+  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 3 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
+  assert.equal(n, 15);
   assert.ok(worst <= 1e-9, `an anticipatory event was reached ${worst.toFixed(3)} s after its onset`);
 });
 
@@ -230,6 +232,8 @@ function curvesOnGrid(deck: any, after: number): { worst: number; points: number
   let worst = 0, points = 0;
   for (const line of deck.program.automation) {
     const param = deck.param(line.param) as any;
+    // (a parameter the stand-in hands through a wrapper that records nothing — a theme's melodic sum on some seeds — is not read)
+    if (!param || !Array.isArray(param.events)) continue;
     const want = line.points.map((p: any) => ({ t: deck.grid.at(p.t), v: p.value })).filter((p: any) => p.t > after).sort((a: any, b: any) => a.t - b.t);
     const got = timeline(param).filter((e: any) => e[0] !== 'set' && e[2] > after).sort((a: any, b: any) => a[2] - b[2]);
     assert.equal(got.length, want.length, `${line.param}: ${got.length} points on the parameter past ${after.toFixed(2)} s where the curve has ${want.length}`);
@@ -238,12 +242,12 @@ function curvesOnGrid(deck: any, after: number): { worst: number; points: number
   return { worst, points };
 }
 
-test('a cast from 96 to 104 BPM glides after the blend, and the filter, the melodic gain, the push and the echoes follow the glide (R2)', async () => {
-  // A near move (8 %): blended on the outgoing grid, then glided after the
+test('a cast from 96 to 99 BPM glides after the blend, and the filter, the push and the echoes follow the glide (R2)', async () => {
+  // A near move (3 %, inside round pl-clock's 6 %): blended on the outgoing grid, then glided after the
   // blend — the one kind of seam whose glide runs under the arriving deck.
   const { ctx, mix } = await aSet('19', 'house-v2');
   const bpm0 = 60 / mix.state.beatSeconds;
-  const asked = await mix.cast('1');
+  const asked = await mix.cast('12');
   assert.ok(asked, 'the cast armed no hand-over');
   await until(ctx, () => mix.state.transition > 0, 30);
   await until(ctx, () => mix.state.transition === 0, 90);
@@ -252,7 +256,7 @@ test('a cast from 96 to 104 BPM glides after the blend, and the filter, the melo
   await play(ctx, 2);
   const { worst, points } = curvesOnGrid(record, glideFrom + 1);
   const bpm1 = 60 / record.program.beat;
-  assert.ok(bpm1 - bpm0 > 7, `the cast went from ${bpm0.toFixed(1)} to ${bpm1.toFixed(1)} BPM, not the near move this is about`);
+  assert.ok(bpm1 - bpm0 > 2.5 && bpm1 / bpm0 < 1.04, `the cast went from ${bpm0.toFixed(1)} to ${bpm1.toFixed(1)} BPM, not the near move this is about`);
   assert.ok(points > 10, `only ${points} curve points to compare`);
   assert.ok(worst < 1e-6, `a curve point is ${worst.toFixed(3)} s off the grid the notes are on`);
   const echo = timeline(record.param('echo.time'));
@@ -264,38 +268,86 @@ test('a cast from 96 to 104 BPM glides after the blend, and the filter, the melo
   mix.stop();
 });
 
-test('a pull from 104 to 169 BPM rides the record to 169 before the blend, its curves and echoes with it, and the arriving theme is built at its own tempo (R2, the seam\'s tempo rule)', async () => {
+/** Every voice's notes as they are fired, by the parameter object a program handed them; `restore` puts the voices back. */
+function hookVoices() {
+  const fired: { time: number; p: unknown }[] = [];
+  const real: Record<string, any> = {};
+  for (const name of Object.keys(VOICES)) {
+    real[name] = (VOICES as any)[name];
+    (VOICES as any)[name] = (c: any, out: any, time: number, p: any, st: any, at?: number) => { fired.push({ time, p }); return real[name](c, out, time, p, st, at); };
+  }
+  return { fired, restore: () => { for (const name of Object.keys(real)) (VOICES as any)[name] = real[name]; } };
+}
+/** A deck's notes among those fired: when each sounded, and its event in the program. */
+function notesOf(fired: { time: number; p: unknown }[], d: any): { t: number; e: any }[] {
+  const ev = new Map<unknown, any>();
+  for (const e of d.program.events) if (!ev.has(e.p)) ev.set(e.p, e);
+  return fired.filter((f) => ev.has(f.p)).map((f) => ({ t: f.time, e: ev.get(f.p) })).sort((a, b) => a.t - b.t);
+}
+/** The worst slip of a run of notes against their onsets at `rate` context seconds a theme second. */
+function slipAt(run: { t: number; e: any }[], rate: number): number {
+  let worst = 0;
+  for (let i = 1; i < run.length; i++) worst = Math.max(worst, Math.abs((run[i].t - run[0].t) - (run[i].e.onset - run[0].e.onset) * rate));
+  return worst;
+}
+
+test('a pull from 104 to 164 BPM is two clocks (round pl-clock; his word 10-26): the record is held off the grid at its own tempo where the blend begins, the grid jumps under it to the arriving theme\'s own, each deck plays its own seconds through the blend, and the grooves change hands whole at the swap, never two kicks or two hat grids at once', async () => {
+  const v = hookVoices();
   const { ctx, mix } = await aSet('1', 'house-v2');
-  const bpm0 = 60 / mix.state.beatSeconds;
-  const outgoing = mix.record!;
-  const asked = await mix.setSpell({ ember: 1 });
-  assert.ok(asked, 'the pull armed no hand-over');
-  // the ride: the glide on the clock that begins at the line and ends where the blend begins
-  const ride = outgoing.clock.segments.find((g) => Number.isFinite(g.beats) && Math.abs(g.spb1 - g.spb0) > 1e-12 && g.t0 >= ctx.currentTime - 1e-6);
-  assert.ok(ride && Math.abs(outgoing.clock.timeAt(ride.b0 + ride.beats) - asked.at) < 1e-6, 'the grid is not ridden to the blend\'s start');
-  await play(ctx, 1);
-  // the record's own curves, re-laid for the ride from its first instant
-  const { worst, points } = curvesOnGrid(outgoing, ride!.t0 + 1e-3);
-  assert.ok(points > 10, `only ${points} curve points to compare`);
-  assert.ok(worst < 1e-6, `a curve point of the record is ${worst.toFixed(3)} s off the grid it is riding`);
-  // through the swap: the arriving theme is the record, at its own tempo
-  await until(ctx, () => mix.record !== outgoing, 120);
-  const record = mix.record!;
-  const bpm1 = 60 / record.program.beat;
-  assert.ok(bpm1 - bpm0 > 50, `the pull went from ${bpm0.toFixed(1)} to ${bpm1.toFixed(1)} BPM, not across the range this is about`);
-  const echo = timeline(outgoing.param('echo.time'));
-  const last = echo[echo.length - 1];
-  const dotted = outgoing.settings.sends.delayDotted;
-  assert.ok(last && Math.abs(last[1] - dotted * record.program.beat) < 1e-9,
-    `the record's delay is left at ${last ? last[1] : 'its build'} s where a dotted eighth at ${bpm1.toFixed(1)} BPM is ${(dotted * record.program.beat).toFixed(4)} s`);
-  assert.ok(Math.abs(record.graph.beat - record.program.beat) < 1e-9,
-    `the arriving theme was built on a beat of ${record.graph.beat} s, not its own ${record.program.beat}`);
-  mix.stop();
+  try {
+    await play(ctx, 20);
+    const A: any = mix.record;
+    const p: any = await mix.setSpell({ ember: 1 });
+    assert.ok(p && p.at && p.swapAt && p.end, 'the pull armed no hand-over');
+    let B: any = null, beforeSwap = 0, curves: { worst: number; points: number } | null = null;
+    while (ctx.currentTime < p.end + 2) {
+      await play(ctx, 0.25);
+      B = B ?? mix.arriving;
+      // through the blend, before the swap, the record is heard at its own tempo
+      if (ctx.currentTime > p.at + 0.1 && ctx.currentTime < p.swapAt - 0.1) {
+        beforeSwap++;
+        assert.ok(Math.abs(60 / mix.state.beatSeconds - A.program.bpm) < 1e-9, `the record is heard at ${(60 / mix.state.beatSeconds).toFixed(2)} BPM inside the blend`);
+      }
+      if (!curves && ctx.currentTime > p.swapAt) curves = curvesOnGrid(A, p.at + 1e-3);
+    }
+    assert.ok(beforeSwap > 4 && B, 'the blend was never seen');
+    assert.ok(A.held && Math.abs(A.held.at - p.at) < 1e-9 && Math.abs(A.held.rate - 1) < 1e-9, `the record is held at ${JSON.stringify(A.held)}, not at the blend's first instant at its own tempo`);
+    assert.equal(B.perBeat ?? 1, 1);
+    const h = heardOn(B);
+    for (let k = 0; k <= 16; k++) { const t = p.at + 0.01 + (k / 16) * (p.end - p.at - 0.02); assert.ok(Math.abs(h(t) - B.program.bpm) < 1e-9, `the arriving theme heard at ${h(t).toFixed(2)} BPM ${(t - p.at).toFixed(1)} s into the blend`); }
+    assert.ok(Math.abs(B.graph.beat - B.program.beat) < 1e-9, `the arriving theme was built on a beat of ${B.graph.beat} s, not its own ${B.program.beat}`);
+    // the record's curves stay where they were laid: the jump moved none of them
+    assert.ok(curves && curves.points > 3 && curves.worst < 1e-6, `the record's curves moved under the jump: ${JSON.stringify(curves)}`);
+    const a = notesOf(v.fired, A), b = notesOf(v.fired, B);
+    const of = (run: typeof a, bus: string) => run.filter((x) => x.e.bus === bus);
+    // one groove at a time: the record's to the swap, the arriving theme's from it
+    for (const bus of ['kick', 'drums', 'sub', 'keys']) assert.equal(of(a, bus).filter((x) => x.t >= p.swapAt - 1e-9).length, 0, `the record's ${bus} sounded past the swap`);
+    for (const bus of ['kick', 'drums', 'sub']) assert.equal(of(b, bus).filter((x) => x.t < p.swapAt - 1e-6).length, 0, `the arriving theme's ${bus} sounded before the swap`);
+    // (round mix-voices) the house at 104 is a deep place (`beatLed` nought): its drums go first, at the blend's first
+    // instant, and the arriving theme's groove lands at the swap; a beat-led record's play into the blend
+    const deep = beatLed(A.track, A.program.bpm).value < 0.5;
+    for (const bus of ['kick', 'drums']) {
+      const lastA = Math.max(...of(a, bus).map((x) => x.t)), firstB = Math.min(...of(b, bus).map((x) => x.t));
+      assert.ok(lastA < p.swapAt && firstB >= p.swapAt - 1e-6 && (deep ? lastA < p.at + 1e-6 : lastA > p.at), `two ${bus} grids: the record's last at ${(lastA - p.at).toFixed(2)} s, the arriving one's first at ${(firstB - p.at).toFixed(2)} s, the swap at ${(p.swapAt - p.at).toFixed(2)} s`);
+    }
+    assert.ok(of(b, 'melodic').concat(of(b, 'keys')).some((x) => x.t < p.swapAt), 'the arriving theme brought nothing in before the swap');
+    // each on its own clock: the record's notes past the blend's start at its own seconds, the arriving theme's at its own
+    const after = a.filter((x) => x.t >= p.at);
+    assert.ok(after.length > 3, `the record sounded only ${after.length} notes into the blend`);
+    assert.ok(slipAt(after, 1) < 1e-9, `the record's notes slipped ${slipAt(after, 1)} s off its own seconds`);
+    assert.ok(b.length > 50 && slipAt(b, 1) < 1e-9, `the arriving theme's ${b.length} notes slipped ${slipAt(b, 1)} s`);
+    // the hand-over's shape: the arriving phrase line or half of it, four bars at least (round mix-voices: it was four),
+    // the tail its seconds (no longer than the record's own blend)
+    const leadBars = (p.swapAt - p.at) / B.program.barSeconds;
+    assert.ok(Math.abs(leadBars - Math.round(leadBars)) < 1e-6 && Math.round(leadBars) >= SPLIT_SWAP_BARS, `the swap is ${leadBars.toFixed(2)} arriving bars in`);
+    const tail = tailSeconds(null, STRATEGIES['house-v2'].style).blendSeconds;
+    assert.ok(p.end - p.at <= tail + B.program.barSeconds / 2 + 1e-9 && p.end - p.at >= 16, `the blend is ${(p.end - p.at).toFixed(1)} s against a ${tail.toFixed(1)} s tail`);
+  } finally { v.restore(); mix.stop(); }
 });
 
 // --- the seam's tempo rule: near, half and double, far ---------------------------
 
-test('the seam\'s tempo rule: a drift glides sixteen bars, a near move a bar a percent, a half or double one is counted two to one, a far one is ridden first', () => {
+test('the seam\'s tempo rule (round pl-clock): a drift glides sixteen bars, a near move within 6 % a bar a percent, a half or double one within 6 % is counted two to one, and anything else is two clocks, never ridden', () => {
   const o = { tempoGlideBars: 16 };
   const at = (a: number, b: number) => seamTempo(a, b, o);
   // drift: the set's own, at every tempo family (a tenth of a BPM a minute over a 145-bar theme)
@@ -303,32 +355,33 @@ test('the seam\'s tempo rule: a drift glides sixteen bars, a near move a bar a p
     const step = Math.ceil(145 * 0.1 * 10 / bpm) / 10 + 0.1;
     assert.deepEqual(at(bpm, bpm + step), { kind: 'drift', ratio: (bpm + step) / bpm, perBeat: 1, ride: 0, glide: 16 }, `${bpm} → ${bpm + step}`);
   }
-  // near: a bar a percent, never past sixteen, and no ride
-  assert.equal(at(104, 108.16).glide, 4, 'a 4 % nudge glides four bars');
-  assert.equal(at(104, 112).glide, 8, '104 → 112 glides eight');
-  assert.equal(at(104, 122).glide, 16, '104 → 122 (17 %) glides sixteen, the most');
-  for (const [a, b] of [[104, 112], [112, 104], [104, 88.5], [104, 122.5]]) {
+  // near: a bar a percent, within 6 % either way, the same share at every tempo (one Ember notch from 85 BPM up)
+  assert.equal(at(104, 107.5).glide, 4, 'a 3.4 % nudge glides four bars');
+  assert.equal(at(104, 106).glide, 2, '104 → 106 glides two');
+  for (const [a, b] of [[104, 107.5], [107.5, 104], [104, 100.5], [87, 92], [174, 184], [120, 127], [127, 120], [95, 100], [100, 105], [85, 90]]) {
     const r = at(a, b);
     assert.equal(r.kind, 'near', `${a} → ${b}`);
     assert.equal(r.ride, 0); assert.equal(r.perBeat, 1);
   }
-  // half and double: the doubled or halved ratio within 8 %, what is left a near glide
+  // half and double: the doubled or halved ratio within 6 %, what is left a near glide
   assert.deepEqual(at(104, 208), { kind: 'double', ratio: 2, perBeat: 2, ride: 0, glide: 16 });
   assert.deepEqual(at(104, 52), { kind: 'half', ratio: 0.5, perBeat: 0.5, ride: 0, glide: 16 });
-  assert.equal(at(54.3, 104.1).kind, 'double');
-  assert.equal(at(54.3, 104.1).glide, 5, '54.3 → 104.1 leaves 4.1 % to glide');
-  assert.equal(at(104.1, 54.3).kind, 'half');
-  // far: ridden first, eight bars an octave, four at least, sixteen at most
-  for (const [a, b, ride] of [[49.3, 126.1, 11], [126.1, 49.3, 11], [104.1, 169.1, 6], [104, 124, 4], [101.1, 126.1, 4], [49, 300, 16]]) {
+  assert.equal(at(51.5, 104.1).kind, 'double');
+  assert.equal(at(51.5, 104.1).glide, 2, '51.5 → 104.1 leaves 1.1 % to glide');
+  assert.equal(at(104.1, 51.5).kind, 'half');
+  // two clocks: past 6 %, straight or folded, nothing rides and nothing glides
+  for (const [a, b] of [[49.3, 126.1], [126.1, 49.3], [104.1, 169.1], [104, 124], [101.1, 126.1], [49, 300], [96, 104], [104, 111], [87, 93], [174, 185], [120, 128], [80, 85], [56, 104.1], [104.1, 56]]) {
     const r = at(a, b);
-    assert.equal(r.kind, 'far', `${a} → ${b} is ${r.kind}`);
-    assert.equal(r.ride, ride, `${a} → ${b} rides ${r.ride} bars`);
-    assert.equal(r.glide, 0); assert.equal(r.perBeat, 1);
+    assert.deepEqual(r, { kind: 'split', ratio: b / a, perBeat: 1, ride: 0, glide: 0 }, `${a} → ${b} is ${r.kind}`);
   }
-  // the bands meet: every ratio is exactly one of them, and the glide never grows past its ceiling
+  // the bands meet: every ratio is exactly one of them, nothing is ever ridden, and the glide never grows past its ceiling
   for (let r = 0.3; r < 3.5; r += 0.001) {
     const x = at(100, 100 * r);
-    assert.ok(x.glide <= 16 && x.ride <= 16 && (x.ride === 0 || x.glide === 0), `${r.toFixed(3)}: ${JSON.stringify(x)}`);
+    const off = (v: number) => Math.max(v, 1 / v) - 1;
+    // (a ratio on a band's very edge is either, by a hair of rounding)
+    if ([r, r / 2, r * 2].some((v) => Math.abs(off(v) - 0.06) < 1e-9 || Math.abs(off(v) - 0.01) < 1e-9)) continue;
+    const glides = off(r) <= 0.06 + 1e-12 || off(r / 2) <= 0.06 + 1e-12 || off(r * 2) <= 0.06 + 1e-12;
+    assert.ok(x.ride === 0 && x.glide <= 16 && (x.kind === 'split') === !glides, `${r.toFixed(3)}: ${JSON.stringify(x)}`);
   }
 });
 
@@ -357,7 +410,7 @@ async function tempoSeam(seed: string, spell: any, move: (mix: any) => Promise<a
   return { from: at0, own, firstNote, perBeat: record.perBeat ?? 1, blendIn: p.at - t0, blend: p.end - p.at, swap: p.swapAt, said, reached, t0 };
 }
 
-test('a far jump is ridden before the blend: 49 → 126 BPM and back, the arriving theme sounds at its own tempo from its first note, and settleIn says when', async () => {
+test('a far jump is two clocks: 49 → 126 BPM and back, the arriving theme sounds at its own tempo from its first note, the tempo is heard at the swap, and settleIn says when (round pl-clock; it was ridden)', async () => {
   for (const [spell, to] of [[{ ember: 0 }, { ember: 0.7 }], [{ ember: 0.7 }, { ember: 0 }]]) {
     const r = await tempoSeam('27191', spell, (m) => m.setSpell(to));
     assert.ok(Math.abs(r.firstNote - r.own) < 1e-6, `${r.from.toFixed(1)} → ${r.own.toFixed(1)}: the arriving theme's first note is at ${r.firstNote.toFixed(2)} BPM`);
@@ -366,11 +419,11 @@ test('a far jump is ridden before the blend: 49 → 126 BPM and back, the arrivi
   }
 });
 
-test('a near move blends beat-matched on the outgoing grid and glides a bar a percent after: 96 → 104 BPM in nine bars, and settleIn says when', async () => {
-  const r = await tempoSeam('19', null, (m) => m.cast('1'));
+test('a near move blends beat-matched on the outgoing grid and glides a bar a percent after: 96 → 99 BPM in four bars, and settleIn says when', async () => {
+  const r = await tempoSeam('19', null, (m) => m.cast('7'));
   assert.ok(Math.abs(r.firstNote - r.from) < 0.05, `the arriving theme's first note is at ${r.firstNote.toFixed(2)} BPM, not the outgoing ${r.from.toFixed(2)}`);
   const bars = seamTempo(r.from, r.own).glide;
-  assert.equal(bars, 9);
+  assert.equal(bars, 4);
   const barS = 240 / ((r.from + r.own) / 2);
   const glideS = r.reached - (r.t0 + r.blendIn + r.blend);
   assert.ok(Math.abs(glideS - bars * barS) < 2, `the glide took ${glideS.toFixed(1)} s where ${bars} bars at about ${((r.from + r.own) / 2).toFixed(1)} BPM is ${(bars * barS).toFixed(1)} s`);
@@ -378,7 +431,7 @@ test('a near move blends beat-matched on the outgoing grid and glides a bar a pe
 });
 
 // Since GA5 Ember is a curve (`TEMPO_CURVE`): 0.40 is 104 and 0.14 is 54 on seed 1,
-// the pair the rule was written on (a half with four percent left to glide).
+// the pair the rule was written on (a half with 3.8 % left to glide, inside round pl-clock's 6 %).
 test('a half or double move is counted two to one on the shared grid: 104 → 54 and 54 → 104 BPM, no glide in the blend and what is left glided after', async () => {
   for (const [spell, to, per] of [[{ ember: 0.4 }, { ember: 0.14 }, 0.5], [{ ember: 0.14 }, { ember: 0.4 }, 2]] as const) {
     const r = await tempoSeam('1', spell, (m) => m.setSpell(to));
@@ -406,21 +459,27 @@ test('a drummed theme after a drone enters on its kick, and a drone after a drum
 });
 // --- a held note through a ride ------------------------------------------------
 
-test('a held note ends on its beat of the grid through a far ride: 126 → 49 on 27191\'s spell, the breakdown\'s pad covers bars 20 to 24 as the plan wrote it', () => {
+test('a held note ends on its beat of the grid through a glide: 126 ridden toward 49 on 27191\'s spell, the breakdown\'s pad covers bars 20 to 24 as the plan wrote it', () => {
   // The fault pass of 09-24: the ride slows the outgoing theme from 126 to 49
   // through its breakdown, and a note's length was a count of seconds fixed at
   // its onset — the pad at bar 20, four bars at 126 (7.61 s), covered two of
   // the stretched bars and left the breakdown silent before the drone entered.
+  // Since round pl-clock that seam is two clocks and nothing rides it, so the
+  // ride is laid here by hand, on the bars it was laid on: what is held is the
+  // grid's law for any lean of it (a near glide is the same law, a percent).
   const BENCH = { ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const style = STRATEGIES['house-v2'].style;
-  const o = { strategy: 'house-v2', themeBars: 32 } as any;
   // the composer's own themes (the library's turn held out of reach, GA5): 27191's theme 2 is a turn
   // ...and the house's own form (GA6's place tables off): the breakdown's pad is the house form's
   const houseForm = { ...style, switches: { ...(style.switches as Record<string, boolean>), placeTables: false } };
   const A = quiet(() => planTheme('27191', 1, { themeBars: 32, style: houseForm, preset: 'auto', spell: { ...BENCH, ember: 0.7 }, library: [] } as any));
   const B = quiet(() => planTheme('27191', 2, { themeBars: 32, style: houseForm, preset: 'auto', spell: BENCH, library: [] } as any));
-  const L = layOut([A, B], { ...setOptions(style, {}), style });
-  assert.ok(seamTempo(A.bpm, B.bpm).kind === 'far', `${A.bpm} → ${B.bpm} is not a far move`);
+  assert.equal(seamTempo(A.bpm, B.bpm).kind, 'split', `${A.bpm} → ${B.bpm} is not two clocks`);
+  const line = seamPlan(A, blendAsked(A), { boundaryBars: 16 }).at;
+  const ride = 11 * A.barSeconds;
+  const clock = makeSetClock(A.beat, 0);
+  clock.glide(clock.beatAt(line - ride), B.beat, ride / A.beat);
+  const L = { clock, starts: [0], perBeats: [1], startBeats: [0], seams: [{ at: clock.timeAt(line / A.beat) }] };
   const ctx: any = liveStandin();
   const program = programOf(A);
   const fired: { voice: string; time: number; dur: number; onset: number }[] = [];
@@ -526,6 +585,12 @@ test('a pull on its way names where it is taking the set until it lands, from th
   const asked = mix.pendingLanding;
   assert.ok(asked && asked.index === 0 && Math.abs((asked.spell as any).zephyr - 0.19) < 1e-9 && Math.abs(asked.from - mix.state.elapsed) < 1e-6,
     `at the ask the pull names ${JSON.stringify(asked)}, not theme 1 under zephyr 0.19 at the record's ${mix.state.elapsed.toFixed(2)} s`);
+  // **its plan not made yet, it is kept by its place and settled later** (pause-smooth, 10-26): read at the ask,
+  // nothing is planned in the reading; the landing settles, off the reading's task, where the plan puts it
+  assert.ok(asked!.later, 'a landing whose plan was not made yet was settled in the reading, so the reading planned it');
+  const settled = await asked!.later!;
+  assert.ok(settled.index === 0 && Math.abs(settled.from - asked!.from) < 1e-6,
+    `the kept landing settled to ${JSON.stringify(settled)}, not theme 1 at the record's ${asked!.from.toFixed(2)} s (zephyr keeps the form)`);
   const p = await t;
   assert.ok(p && p.at, 'the pull armed no hand-over');
   await until(ctx, () => mix.state.transition > 0, 60);
@@ -543,83 +608,79 @@ test('a pull on its way names where it is taking the set until it lands, from th
   cast.mix.stop();
 });
 
-// --- a second ask inside a ride ------------------------------------------------------
+// --- a second ask inside a hand-over on two clocks (round pl-clock) ----------------------
 
 /**
- * A far move and a second ask while its ride is running, played on the
- * stand-in: every quarter second from the first ask to past the swap, the
- * loudest fader of the decks up (the record, the one arriving, the one playing
- * out) — the hole Eugene heard is every one of them near nought — and then
- * the tempo at the swap, the plan playing, and what settleIn said at the
- * second ask against when the tempo was heard.
+ * A far move and a second ask, played on the stand-in: the second ask before the blend begins (the record goes back on
+ * the grid and the second ask lays its own hand-over from there) or inside the blend before the swap (it joins it, on
+ * two clocks). Every quarter second from the first ask to past the landing, the loudest fader of the decks up — the
+ * hole Eugene heard once inside a ride is every one of them near nought — and the record's notes against its own
+ * seconds, the plan that lands, and its tempo.
  */
-async function rideAndAsk(seed: string, spell: Record<string, number>, first: Record<string, number>, second: Record<string, number>) {
+async function splitAndAsk(seed: string, spell: Record<string, number>, first: Record<string, number>, second: Record<string, number>, inside: boolean) {
+  const v = hookVoices();
   const { ctx, mix } = await aSet(seed, 'house-v2', { spell });
-  await play(ctx, 6);
-  const outgoing = mix.record!;
-  const t0 = ctx.currentTime;
-  const faders = new Set<any>([outgoing]);
-  const sample: { t: number; up: number; bpm: number }[] = [];
-  const look = () => {
-    for (const d of [mix.record, mix.playingOut, (mix as any).arriving]) if (d) faders.add(d);
-    let up = 0;
-    for (const d of faders) { const l = d.lineOf && d.lineOf('fader.gain'); if (l && !d.graph.disposed) up = Math.max(up, l.at(ctx.currentTime)); }
-    sample.push({ t: ctx.currentTime - t0, up, bpm: 60 / (mix.record!.clock.spbAt(mix.record!.clock.beatAt(ctx.currentTime))) });
-  };
-  const p1 = mix.setSpell({ ...mix.spell, ...first });
-  const a = await p1;
-  assert.ok(a && a.at, 'the first ask armed no hand-over');
-  // once the ride is under way: the grid has left the tempo it started at by a percent
-  const bpm0 = 60 / mix.state.beatSeconds;
-  for (let k = 0; k < 800 && Math.abs(60 / mix.state.beatSeconds - bpm0) < bpm0 * 0.01; k++) { await play(ctx, 0.25); look(); }
-  assert.ok(mix.state.transition === 0 && Math.abs(60 / mix.state.beatSeconds - bpm0) >= bpm0 * 0.01, 'the ride never got under way before its blend');
-  const asked = { ...mix.spell, ...first, ...second };
-  const p2 = mix.setSpell(asked);
-  await play(ctx, 0.05);
-  const said = ctx.currentTime + mix.state.settleIn;
-  const b = await p2;
-  let reached = -1, landed: any = null;
-  const until2 = ctx.currentTime + 400;
-  while (ctx.currentTime < until2) {
-    await play(ctx, 0.25); look();
-    const r = mix.record!;
-    if (r !== outgoing && !landed) landed = { t: ctx.currentTime, track: r.track };
-    if (landed && sameAsked(mix.spell, asked) && Math.abs(60 / mix.state.beatSeconds - 60 / r.program.beat) < 0.05) { reached = ctx.currentTime; break; }
-  }
-  for (let k = 0; k < 8; k++) { await play(ctx, 0.25); look(); }
-  const r = mix.record!;
-  const want = planTheme(seed, r.track.index, { strategy: 'house-v2', spell: asked } as any);
-  const out = { sample, secondAt: said - mix.state.settleIn, second: b, said, reached, landedPlan: r.track, want, bpmNow: 60 / mix.state.beatSeconds, own: 60 / r.program.beat, t0 };
-  mix.stop();
-  return out;
+  try {
+    await play(ctx, 6);
+    const outgoing: any = mix.record!;
+    const t0 = ctx.currentTime;
+    const faders = new Set<any>([outgoing]);
+    const sample: { t: number; up: number }[] = [];
+    const look = () => {
+      for (const d of [mix.record, mix.playingOut, (mix as any).arriving]) if (d) faders.add(d);
+      let up = 0;
+      for (const d of faders) { const l = d.lineOf && d.lineOf('fader.gain'); if (l && !d.graph.disposed) up = Math.max(up, l.at(ctx.currentTime)); }
+      sample.push({ t: ctx.currentTime - t0, up });
+    };
+    const a: any = await mix.setSpell({ ...mix.spell, ...first });
+    assert.ok(a && a.at, 'the first ask armed no hand-over');
+    assert.ok(outgoing.held && Math.abs(outgoing.held.at - a.at) < 1e-9, 'the first ask is not a hand-over on two clocks');
+    if (inside) { while (ctx.currentTime < a.at + 1) { await play(ctx, 0.25); look(); } assert.ok(ctx.currentTime < a.swapAt, 'past the swap already'); }
+    else { await play(ctx, 0.1); look(); assert.ok(ctx.currentTime < a.at - 0.5, 'the blend began already'); }
+    const asked = { ...mix.spell, ...first, ...second };
+    const askedAt = ctx.currentTime;
+    const b: any = await mix.setSpell(asked);
+    assert.ok(b && b.at, 'the second ask armed no hand-over');
+    let landed: any = null;
+    const until2 = ctx.currentTime + 400;
+    while (ctx.currentTime < until2) {
+      await play(ctx, 0.25); look();
+      const r = mix.record!;
+      if (r !== outgoing && !landed) landed = r;
+      if (landed && !mix.playingOut && ctx.currentTime > b.end + 1) break;
+    }
+    const r: any = mix.record!;
+    const want = planTheme(seed, r.track.index, { strategy: 'house-v2', spell: asked } as any);
+    const notes = notesOf(v.fired, outgoing).filter((x) => x.t >= askedAt);
+    return { a, b, sample, landed: r, want, outgoing, notes, bpmNow: 60 / mix.state.beatSeconds, own: 60 / r.program.beat };
+  } finally { v.restore(); mix.stop(); }
 }
-const sameAsked = (x: any, y: any) => !!x && Object.keys(y).every((k) => Math.abs((x[k] ?? 0) - y[k]) < 1e-9);
 const sig = (t: any) => JSON.stringify(t.dice) + '|' + t.bars + '|' + t.bpm + '|' + t.events.length;
+const sameAsked = (x: any, y: any) => !!x && Object.keys(y).every((k) => Math.abs((x[k] ?? 0) - y[k]) < 1e-9);
 
 // Since GA5 Ember is a curve: 0.30 is 88 and 0.55 is 111 on 51757, a far move (1.26, neither near nor double).
-test('a second ask inside a far ride keeps the ride: 88 → 111 BPM with Loom asked mid-ride, the record never falls silent, the swap is at the target, and the plan is both values', async () => {
-  const r = await rideAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { loom: 1 });
-  const hole = r.sample.filter((x) => x.up < 0.3);
+test('a second ask inside a hand-over on two clocks joins it: 88 → 111 BPM with Loom asked inside the blend, the record plays to the blend\'s laid end on its own clock, nothing falls silent, and the plan is both values (round pl-clock)', async () => {
+  const r = await splitAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { loom: 1 }, true);
+  const hole = r.sample.filter((x) => x.up < 0.3 && x.t < r.b.end - r.a.at);
   assert.equal(hole.length, 0, `the loudest fader fell under 0.3 at ${hole.slice(0, 5).map((x) => `${x.t.toFixed(2)} s (${x.up.toFixed(3)})`).join(', ')}`);
-  assert.ok(r.reached > 0, 'the tempo never reached the landing');
-  // the grid goes on from where the ride had reached: it never leans back down on the way up
-  const grid = r.sample.map((x) => x.bpm);
-  const back = grid.findIndex((v, k) => k > 0 && v < grid[k - 1] - 1e-6);
-  assert.equal(back, -1, `the grid leaned back from ${grid[back - 1]?.toFixed(2)} to ${grid[back]?.toFixed(2)} BPM at ${r.sample[back]?.t.toFixed(2)} s`);
-  assert.equal(sig(r.landedPlan), sig(r.want), 'the plan playing after the swap is not the one for both values');
-  assert.ok(Math.abs(r.said - r.reached) < 1, `settleIn at the second ask said ${(r.said - r.t0).toFixed(1)} s and the tempo was heard at ${(r.reached - r.t0).toFixed(1)} s`);
+  assert.ok(Math.abs(r.b.end - r.a.end) < 1e-6 && Math.abs(r.b.swapAt - r.a.swapAt) < 1e-6, 'the second ask moved the hand-over');
+  assert.ok(r.outgoing.held && r.notes.length > 3 && slipAt(r.notes, r.outgoing.held.rate) < 1e-9, `the record's ${r.notes.length} notes after the ask slipped off its own clock`);
+  assert.equal(sig(r.landed.track), sig(r.want), 'the plan playing after the swap is not the one for both values');
+  assert.ok(Math.abs(r.bpmNow - r.own) < 1e-9, `the plan landed at ${r.bpmNow.toFixed(2)} BPM, not its own ${r.own}`);
 });
 
-test('a second ask inside a far ride down keeps it too, and a second Ember re-aims the ride from the tempo it has reached', async () => {
-  const down = await rideAndAsk('51757', { ember: 0.55, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.3 }, { loom: 1 });
-  assert.equal(down.sample.filter((x) => x.up < 0.3).length, 0, 'a hole in the ride down');
-  assert.equal(sig(down.landedPlan), sig(down.want), 'the ride down landed another plan than both values');
-  assert.ok(Math.abs(down.said - down.reached) < 1, `down: settleIn said ${(down.said - down.t0).toFixed(1)} s, heard at ${(down.reached - down.t0).toFixed(1)} s`);
-  const reaim = await rideAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { ember: 0.75 });
-  assert.equal(reaim.sample.filter((x) => x.up < 0.3).length, 0, 'a hole in the re-aimed ride');
-  assert.equal(sig(reaim.landedPlan), sig(reaim.want), 'the re-aimed ride landed another plan than the second Ember');
-  assert.ok(Math.abs(reaim.own - reaim.want.bpm) < 1e-9 && Math.abs(reaim.bpmNow - reaim.own) < 0.05, `the re-aimed ride landed at ${reaim.bpmNow.toFixed(1)} BPM for ${reaim.want.bpm}`);
-  assert.ok(Math.abs(reaim.said - reaim.reached) < 1, `re-aim: settleIn said ${(reaim.said - reaim.t0).toFixed(1)} s, heard at ${(reaim.reached - reaim.t0).toFixed(1)} s`);
+test('a second Ember inside a hand-over on two clocks keeps both clocks and jumps the grid to the tempo asked now; one asked before the blend begins puts the record back on its own grid and hands over from there (round pl-clock)', async () => {
+  const reaim = await splitAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { ember: 0.75 }, true);
+  assert.equal(reaim.sample.filter((x) => x.up < 0.3 && x.t < reaim.b.end - reaim.a.at).length, 0, 'a hole in the re-aimed hand-over');
+  assert.equal(sig(reaim.landed.track), sig(reaim.want), 'the re-aimed hand-over landed another plan than the second Ember');
+  assert.ok(Math.abs(reaim.own - reaim.want.bpm) < 1e-9 && Math.abs(reaim.bpmNow - reaim.own) < 1e-9, `the re-aimed hand-over landed at ${reaim.bpmNow.toFixed(1)} BPM for ${reaim.want.bpm}`);
+  assert.ok(reaim.notes.length > 3 && slipAt(reaim.notes, reaim.outgoing.held.rate) < 1e-9, 'the record slipped off its own clock');
+  const before = await splitAndAsk('51757', { ember: 0.3, tide: 1, root: 0.81, loom: 0.578 }, { ember: 0.55 }, { ember: 0.75 }, false);
+  assert.equal(before.sample.filter((x) => x.up < 0.3 && x.t < before.b.at - before.a.at).length, 0, 'a hole before the second hand-over');
+  assert.equal(sig(before.landed.track), sig(before.want), 'the second ask before the blend landed another plan');
+  assert.ok(Math.abs(before.bpmNow - before.own) < 1e-9, `it landed at ${before.bpmNow.toFixed(1)} BPM for ${before.own}`);
+  // the record was back on its own grid between the two asks: every note it played at its own seconds
+  assert.ok(before.notes.length > 3 && slipAt(before.notes, 1) < 1e-9, `the record put back on the grid slipped ${slipAt(before.notes, 1)} s`);
 });
 
 // --- a modulation source is never summed into a note ---------------------------------
@@ -1064,25 +1125,27 @@ test('a seek inside a bird\'s hand-over lays the ask again from where it landed,
   e.mix.stop();
 });
 
-test('a seek out of a far ride lands at the theme\'s own tempo at once: 104 ridden toward 169 BPM, scrubbed, and the grid is the record\'s from the landing on (the deep review of 10-08, B12)', async () => {
+test('a seek inside a hand-over on two clocks, before its swap, lands the record on the grid at its own tempo at once: 104 → 164 BPM asked, scrubbed inside the blend, and the grid is the record\'s from the landing on (round pl-clock; the deep review of 10-08, B12)', async () => {
   const { ctx, mix } = await aSet('1', 'house-v2');
   const own = mix.record!.program.beat;
-  await mix.setSpell({ ember: 1 });
-  // into the ride, far enough that the grid has left the record's tempo by a tenth
-  const rode = await until(ctx, () => mix.state.beatSeconds < own * 0.9, 240);
-  assert.ok(rode, `the ride never took the grid a tenth off ${(60 / own).toFixed(1)} BPM`);
-  const riding = 60 / mix.state.beatSeconds;
+  const p: any = await mix.setSpell({ ember: 1 });
+  assert.ok(await until(ctx, () => ctx.currentTime > p.at + 1, 240), 'the blend never began');
+  assert.ok(ctx.currentTime < p.swapAt && (mix.record as any).held, 'the record is not held inside the blend');
   const target = Math.max(10, mix.state.elapsed - 30);
   const landed = await mix.seek(target);
   assert.equal(landed, target);
   await play(ctx, 0.5);
-  const record = mix.record!;
-  const grid = record.clock.spbAt(record.clock.beatAt(ctx.currentTime)) / (record.perBeat ?? 1);
-  const later = record.clock.spbAt(record.clock.beatAt(ctx.currentTime + 4)) / (record.perBeat ?? 1);
+  const record: any = mix.record!;
+  const now = ctx.currentTime;
+  const grid = record.clock.spbAt(record.clock.beatAt(now)) / (record.perBeat ?? 1);
+  const { deckThemeTime } = await import('@deep-house/engine/deck');
+  const ran = deckThemeTime(record, now + 4) - deckThemeTime(record, now);
   mix.stop();
-  assert.ok(Math.abs(grid - record.program.beat) < 1e-9,
-    `half a second after the seek the grid runs at ${(60 / grid).toFixed(2)} BPM (the ride had reached ${riding.toFixed(1)}), not the theme's own ${(60 / record.program.beat).toFixed(2)}`);
-  assert.ok(Math.abs(later - record.program.beat) < 1e-9, `four seconds on the grid is at ${(60 / later).toFixed(2)} BPM: it is still gliding home`);
+  // the seek lays the pull again from where it landed (the deep review of 10-08): held again only from its next line
+  assert.ok(!record.held || record.held.at > now, 'the sought record is off the grid at the landing');
+  assert.ok(Math.abs(record.program.beat - own) < 1e-12, 'the seek landed on another theme');
+  assert.ok(Math.abs(grid - own) < 1e-9, `half a second after the seek the grid runs at ${(60 / grid).toFixed(2)} BPM, not the theme's own ${(60 / own).toFixed(2)}`);
+  assert.ok(Math.abs(ran - 4) < 1e-9, `the record ran ${ran.toFixed(4)} s of its own in four seconds: off its own tempo`);
 });
 
 test('a pull or a cast overtaken by a seek inside its preparation leaves no plan and no wait behind: the record\'s own seam brings its own next theme (the deep review of 10-08, F2, F7)', async () => {
@@ -1178,8 +1241,10 @@ test('live play is the locked program through a swap and a seek on five link row
   const seen: string[] = [];
   let left = 0;
   for (const [seed, spell] of rows) {
-    const { ctx, mix } = await nearItsSeam(seed, 2, { spell });
-    assert.ok(await until(ctx, () => mix.state.themeIndex === 1 && !mix.playingOut, 90), `${seed} ${k(spell)} never reached its theme 2`);
+    const { ctx, mix, seam, first } = await nearItsSeam(seed, 2, { spell });
+    // (90 s held every blend until round length-2's lengths gave the benchmark's first theme an 18-bar blend at 49 BPM,
+    // 88 s, where it drew 10: the wait is the seam's own blend and half a minute more, 90 s at the least)
+    assert.ok(await until(ctx, () => mix.state.themeIndex === 1 && !mix.playingOut, Math.max(90, seam.bars * first.barSeconds + 30)), `${seed} ${k(spell)} never reached its theme 2`);
     const swapped = off(mix.record!);
     await mix.seek(30);
     const sought = off(mix.record!);
@@ -1677,4 +1742,213 @@ test('the free tail, played: a pull out of the free tile into the house; its dru
     const calls = heard.filter((h) => h.bus === 'keys' && h.at >= p.at && h.at < half).length;
     assert.ok(calls > 5, `only ${calls} calls between the blend's start and halfway: the tail did not keep the free side present`);
   } finally { s.done(); }
+});
+
+// --- two clocks for a far seam, and a playlist's clock (round pl-clock) -----------------------
+//
+// His word 10-26: "when we mix with speed up / down clock it sounds pretty bad. We have second clock already for
+// mixing, we should use it most of the time". A metered seam glides only within 6 % (straight or folded 2:1); past it
+// the record is held off the grid where the blend begins (`holdOffGrid`, `Deck.held`) and the grid jumps under it to
+// the arriving theme's tempo, as out of a free record. And a playlist's clock: while a playlist plays, the tracks it
+// pulls (within 8 %, folded) play at the list's tempo, the rest at their own, on two clocks.
+
+test('a seam on two clocks, laid out: 104 → 164 BPM, the record held where the blend begins and the grid jumped under it, the tail in seconds on the arriving bar, the swap on the arriving phrase line (four bars at least; round mix-voices), and one groove at a time: the record\'s beat, bass and calls to the swap, the arriving theme\'s beat and bass from it (round pl-clock)', () => {
+  const style: any = STRATEGIES['house-v2'].style;
+  const o: any = setOptions(style, {});
+  const A: any = quiet(() => planTheme('1', 0, { strategy: 'house-v2' } as any));
+  const B: any = quiet(() => planTheme('1', 1, { strategy: 'house-v2', spell: { ember: 1 } } as any));
+  assert.equal(seamTempo(A.bpm, B.bpm).kind, 'split');
+  const L = layOut([A, B], { ...o, style });
+  const s: any = L.seams[0];
+  assert.ok(s.split && L.helds[0] && !L.helds[1], 'the seam is not laid on two clocks');
+  const h = L.helds[0]!;
+  assert.ok(Math.abs(h.at - s.at) < 1e-9 && Math.abs(h.rate - 1) < 1e-9 && Math.abs(h.from - s.bar * A.barSeconds) < 1e-9, `the record is held at ${JSON.stringify(h)}`);
+  // the grid: the record's tempo to the blend, the arriving theme's from its first instant, and nothing leaning after
+  const spb = (t: number) => L.clock.spbAt(L.clock.beatAt(t));
+  assert.ok(Math.abs(spb(s.at - 0.01) - A.beat) < 1e-12 && Math.abs(spb(s.at + 0.01) - B.beat) < 1e-12 && Math.abs(spb(s.end + 60) - B.beat) < 1e-12, 'the grid is not the record\'s and then the arriving theme\'s');
+  assert.equal(L.perBeats[1], 1);
+  // the tail: the record's birds' seconds on the arriving bar, no longer than its own blend; the swap four bars in
+  const tail = tailSeconds(null, style);
+  const ownBlend = seamPlan(A, blendAsked(A), { boundaryBars: o.boundaryBars, style }).bars * A.barSeconds;
+  assert.ok(Math.abs(s.end - s.at - Math.min(tail.blendSeconds, ownBlend)) <= B.barSeconds / 2 + 1e-9, `the blend is ${(s.end - s.at).toFixed(2)} s for a ${tail.blendSeconds.toFixed(2)} s tail`);
+  // the swap: on the arriving phrase line (round mix-voices, `leadFor`), never sooner than the four bars it was
+  const lead = leadFor(A, B, h.from, 1 / h.rate, s.bars, s.barSeconds, swapAfterBars(s.bars, splitSwap(o)), o);
+  assert.ok(Math.abs(s.barSeconds - B.barSeconds) < 1e-12 && Math.abs(s.swapAt - s.at - lead * B.barSeconds) < 1e-9, `the swap is ${((s.swapAt - s.at) / B.barSeconds).toFixed(2)} arriving bars in, not the lead's ${lead}`);
+  assert.ok(lead >= Math.min(SPLIT_SWAP_BARS, Math.floor(s.bars / 2)) && s.bars - lead >= 2, `the lead is ${lead} of ${s.bars} bars`);
+  assert.ok(Math.abs(s.split.ringS - tail.ringSeconds) < 1e-9);
+  // what the seam writes, read against both decks' own events
+  const m: any = { at: s.at, bars: s.bars, barSeconds: s.barSeconds, swapAt: s.swapAt, filterMove: B.filterMove, outgoingBar: A.barSeconds,
+    swapInFrom: h.from + (s.swapAt - s.at) / h.rate, swapInTo: s.swapAt - s.at, sumGain: 1, fromKick: true, toKick: true, fromKey: A.key, toKey: B.key };
+  const os = splitSwap(o);
+  const plain = seamCurves(m, os), w = seamCurves({ ...m, freeTail: { ringS: s.split.ringS, rate: h.rate, beatOut: true } }, os);
+  // the arriving side is a plain seam's but for its percussion, held to the swap
+  const others = (x: any) => JSON.stringify([x.lines.filter((l: any) => l.deck !== 'from'), x.holes.filter((hh: any) => hh.deck !== 'from' && hh.group !== 'bus:drums')]);
+  assert.equal(others(w), others(plain), 'the record leaving on two clocks moved the arriving side');
+  const gaps = (deck: string) => { const g: Record<string, [number, number][]> = {}; for (const x of w.holes) if (x.deck === deck) (g[x.group] ??= []).push(x.gap as [number, number]); return g; };
+  const holedA = holedBy(gaps('from'))!, holedB = holedBy(gaps('to'))!;
+  const atA = (t: number) => (t >= h.from ? h.at + (t - h.from) * h.rate : t);
+  const pa = programOf(A), pb = programOf(B);
+  const soundA = pa.events.filter((e: any) => !holedA(e)), soundB = pb.events.filter((e: any) => !holedB(e));
+  const lastOf = (evs: any[], bus: string, map: (t: number) => number) => Math.max(-Infinity, ...evs.filter((e) => e.bus === bus).map((e) => map(e.t)));
+  // the record's groove plays into the blend where its section at the seam has one: since chillstep-ends a seam
+  // begins on the record's phrase, and seed 1's first theme hands over on its last breakdown's first bar (92, where
+  // the 16-bar line put it four bars before, at 88), so its kick and bass rest from the line and come back for the
+  // outro past the swap, held
+  const rests = (bus: string) => !pa.events.some((e: any) => e.bus === bus && e.t >= s.bar * A.barSeconds && e.t < (s.bar + 1) * A.barSeconds);
+  for (const bus of ['kick', 'drums', 'sub', 'keys']) {
+    const last = lastOf(soundA, bus, atA);
+    assert.ok(last < s.swapAt - 1e-9 && (bus === 'keys' || rests(bus) || last > s.at), `the record's ${bus} sounds to ${(last - s.at).toFixed(2)} s into the blend, the swap at ${(s.swapAt - s.at).toFixed(2)}`);
+  }
+  for (const bus of ['kick', 'drums', 'sub']) {
+    const first = Math.min(...soundB.filter((e: any) => e.bus === bus).map((e: any) => s.at + e.t));
+    assert.ok(first >= s.swapAt - 1e-6, `the arriving ${bus} sounds ${(first - s.at).toFixed(2)} s in, before the swap`);
+  }
+  assert.ok(soundA.some((e: any) => e.t >= h.from && e.bus === 'melodic'), 'nothing of the record is left under the arriving theme');
+  // and a seam inside the 6 % is not two clocks: beat-matched as it always was
+  const C: any = quiet(() => planTheme('4', 0, { strategy: 'house-v2' } as any));
+  const N = layOut([A, C], { ...o, style });
+  assert.ok(!N.seams[0].split && !N.helds[0] && N.perBeats[1] === 1, 'a near seam was laid on two clocks');
+});
+
+test('a playlist\'s clock: a theme it pulls plays at the list\'s tempo and is composed exactly as its own link, one it does not pull plays at its own on two clocks, and a theme already playing keeps the tempo it arrived for (round pl-clock)', async () => {
+  const v = hookVoices();
+  // seed 1 is 104, seed 7 99 and seed 19 96: a list at 106 pulls the first two (1.9 % and 7.1 %) and not the third (10.4 %)
+  assert.equal(listPull(104, 106), 106); assert.equal(listPull(99, 106), 106); assert.equal(listPull(96, 106), null);
+  const { ctx, mix } = await aSet('1', 'house-v2');
+  try {
+    (mix as any).setListClock(106);
+    await play(ctx, 10);
+    assert.ok(Math.abs(60 / mix.state.beatSeconds - 104) < 1e-9 && (mix.state as any).listBpm == null, 'the theme playing before the list moved to its clock');
+    // a pulled track: heard at the list's tempo once its seam lands, its own composition
+    const p1: any = await mix.cast('7');
+    assert.ok(p1 && p1.at, 'the cast armed no hand-over');
+    assert.ok(await until(ctx, () => mix.state.masterSeed === '7' && !mix.playingOut && ctx.currentTime > p1.end + 20, 400), 'the pulled track never landed');
+    const P: any = mix.record!;
+    assert.ok(Math.abs(60 / mix.state.beatSeconds - 106) < 1e-9, `the pulled track is heard at ${(60 / mix.state.beatSeconds).toFixed(2)} BPM, not the list's 106`);
+    assert.equal((mix.state as any).listBpm, 106);
+    const alone: any = quiet(() => planTheme('7', 0, { strategy: 'house-v2' } as any));
+    assert.equal(sig(P.track), sig(alone), 'the pulled track is not composed as its own link');
+    assert.equal(JSON.stringify(P.program.events.map((e: any) => [e.voice, e.t, e.onset])), JSON.stringify(programOf(alone).events.map((e: any) => [e.voice, e.t, e.onset])), 'the pulled track\'s program is not its own link\'s');
+    assert.equal(P.program.bpm, alone.bpm);
+    const since = ctx.currentTime;
+    await play(ctx, 8);
+    const hits = notesOf(v.fired, P).filter((x) => x.t >= since && (x.e.bus === 'kick' || x.e.bus === 'drums'));
+    assert.ok(hits.length > 10 && slipAt(hits, alone.bpm / 106) < 1e-9, `the pulled track's ${hits.length} hits are not its own beats at 106 BPM: slip ${slipAt(hits, alone.bpm / 106)}`);
+    // an outlier: at its own tempo, on two clocks
+    const p2: any = await mix.cast('19');
+    assert.ok(p2 && p2.at, 'the second cast armed no hand-over');
+    assert.ok(await until(ctx, () => ctx.currentTime > p2.at + 0.5, 200));
+    assert.ok(P.held && Math.abs(P.held.at - p2.at) < 1e-9 && Math.abs(60 / (P.program.beat * P.held.rate) - 106) < 1e-9, `the pulled record is not held at the list's tempo: ${JSON.stringify(P.held)}`);
+    assert.ok(await until(ctx, () => mix.record !== P && !mix.playingOut, 200), 'the outlier never landed');
+    assert.ok(Math.abs(60 / mix.state.beatSeconds - 96) < 1e-9 && (mix.state as any).listBpm == null, `the outlier is heard at ${(60 / mix.state.beatSeconds).toFixed(2)} BPM, not its own 96`);
+    // the list let go: a theme playing keeps its clock; the next arrives at its own
+    (mix as any).setListClock(null);
+    assert.ok(Math.abs(60 / mix.state.beatSeconds - 96) < 1e-9);
+  } finally { v.restore(); mix.stop(); }
+});
+
+// --- a hand-over between two tracks (round mix-voices) ----------------------------------------
+//
+// His word 10-30: "our mixing became kind of too abrupt … I almost don't even hear any ahead of time voices"; then "for
+// fast dancing tracks we preserve rhythm on mixing … on other tracks is fine to follow your pitch", and "there's always
+// some notion of rhythm throughout … we can't lose the rhythm when mixing".
+
+test('how beat-led a theme is (round mix-voices): the featured tracks read by their tempo and their drums, never a genre\'s name — Drive\'s floor tracks beat-led, the house at 100 and Ambient deep', async () => {
+  const { played } = await import('./link-digest.ts');
+  const { FEATURED } = await import('../src/featured.ts');
+  const read = (list: string, label: string) => {
+    const f = FEATURED.find((x) => x.name === list)!;
+    return beatLed(quiet(() => played(f.links[f.labels!.indexOf(label)]).plan) as any).value;
+  };
+  for (const l of ['Supercell', 'Static Charge', 'Tailwind', 'Comet Tail', 'Cloudburst']) assert.ok(read('Drive', l) >= 0.75, `Drive - ${l} reads ${read('Drive', l)}`);
+  assert.ok(Math.abs(read('Drive', 'Jet Stream') - 0.781) < 0.01, 'Dub Techno at 124.5 is beat-led, at the lower step');
+  for (const l of ['Slow Burn', "Eli's Ignition"]) assert.equal(read('Drive', l), 0, `Drive - ${l} (101, 111) is deep`);
+  for (const l of ['Pure Gold', 'Aurora', 'Sunrise', 'Deep Dive', 'Drizzle']) assert.equal(read('Vibe', l), 0, `Vibe - ${l} is deep`);
+  for (const l of ['Solar Wind', 'Liquid Gravity', 'Undertow']) assert.ok(read('Vibe', l) >= 0.75, `Vibe - ${l} is beat-led`);
+  for (const l of ['Moon Tide', 'Deep Field', 'Star Chimes', 'Pulsar']) assert.equal(read('Ambient', l), 0, `Ambient - ${l} is deep`);
+});
+
+test('a hand-over between two tracks, written (round mix-voices): the arriving voices heard a bar in and full at the lead\'s middle, their groove at the swap; the record by its way — deep drops its drums and bass first, beat-led keeps a carrier to the swap and lets its weight go at the lead\'s middle — its voices lingering after; unrelated keys cross over a bar into the lead\'s middle', async () => {
+  const { seamShape } = await import('../src/set-plan.ts');
+  const style: any = STRATEGIES['house-v2'].style;
+  const o: any = splitSwap(setOptions(style, {}));
+  const bar = 2, at = 100, lead = 8, bars = 12, swapAt = at + lead * bar;
+  const base: any = { at, bars, barSeconds: bar, swapAt, filterMove: 'open', outgoingBar: 2, atInFrom: 300, swapInFrom: 316, atInTo: 0, swapInTo: 16, sumGain: 1,
+    fromKick: true, toKick: true, freeTail: { ringS: 4, rate: 1, beatOut: true } };
+  const shape = (way: string, carrier: string, related = true): any => ({ way, beatLed: way === 'deep' ? 0 : 1, lead, carrier, related, split: true, voices: true });
+  const hole = (w: any, deck: string, group: string) => w.holes.filter((h: any) => h.deck === deck && h.group === group).map((h: any) => h.gap);
+  const pointsOf = (w: any, deck: string, param: string) => w.lines.find((l: any) => l.deck === deck && l.param === param)?.points;
+  for (const [way, carrier] of [['deep', 'none'], ['lift', 'drums'], ['lift', 'kick'], ['drive', 'drums'], ['drive', 'arriving']]) {
+    const w = seamCurves({ ...base, shape: shape(way, carrier) }, o);
+    const say = `${way}/${carrier}`;
+    // the arriving theme: -6 dB a bar in, full at the lead's middle; its kick and bass at the swap
+    const f = pointsOf(w, 'to', 'fader.gain');
+    assert.ok(Math.abs(f[1].t - (at + bar)) < 1e-9 && Math.abs(20 * Math.log10(f[1].v) + 6) < 1e-9 && f[2].v === 1 && Math.abs(f[2].t - (at + 4 * bar)) < 1e-9, `${say}: the arriving fader ${JSON.stringify(f)}`);
+    assert.deepEqual(hole(w, 'to', o.swapGroup), [[0, 16 - 1e-6]]);
+    assert.deepEqual(hole(w, 'to', o.bassGroup), [[0, 16 - 1e-6]]);
+    // its rhythmic voices from the lead's middle; its top percussion at the swap but where it is the carrier
+    assert.deepEqual(hole(w, 'to', 'bus:keys'), [[0, 8 - 1e-6]]);
+    assert.deepEqual(hole(w, 'to', 'bus:drums'), carrier === 'arriving' ? [] : [[0, 16 - 1e-6]], `${say}: the arriving drums`);
+    // the record: its weight goes at once where deep, over the bar before the lead's middle where beat-led; its kick and top by its way
+    assert.deepEqual(hole(w, 'from', o.bassGroup), [[way === 'deep' ? 300 : 306, Infinity]], `${say}: the record's bass`);
+    const kick = hole(w, 'from', o.swapGroup)[0][0], drums = hole(w, 'from', 'bus:drums')[0][0];
+    if (way === 'deep') assert.ok(kick === 300 && drums === 300, `${say}: the record's drums do not go first`);
+    else if (way === 'lift' && carrier === 'drums') assert.ok(kick === 308 && drums === 316, `${say}: the kick ${kick}, the top ${drums}`);
+    else if (carrier === 'kick') assert.ok(Math.abs(kick - (316 - 0.5)) < 1e-9 && drums === 316, `${say}: the kick carries to a beat before the swap`);
+    else assert.ok(kick === 314 && drums === 316, `${say}: the kick a bar before the swap, the top to it`);
+    // its rhythmic voices leave where the arriving ones come in (two clocks)
+    assert.deepEqual(hole(w, 'from', 'bus:keys'), [[308, Infinity]]);
+    // and its voices linger at full level for half of what is left before the ring, then fall
+    const rf = pointsOf(w, 'from', 'fader.gain');
+    const last = at + bars * bar - 4, hold = swapAt + (last - swapAt) / 2;
+    assert.ok(rf[0].v === 1 && rf[1].v === 1 && Math.abs(rf[1].t - hold) < 1e-9 && Math.abs(20 * Math.log10(rf[2].v) + 24) < 1e-9, `${say}: the record's fader ${JSON.stringify(rf)}`);
+    // no coin's filter on a hand-over: the arriving theme is heard full-band
+    assert.equal(pointsOf(w, 'to', 'hp.frequency'), undefined);
+  }
+  // one clock, beat-led: the record plays on whole, its top under the arriving groove; the arriving top from the first bar
+  const one = seamCurves({ ...base, freeTail: undefined, shape: { ...shape('drive', 'drums'), split: false } }, o);
+  assert.deepEqual(hole(one, 'from', 'bus:drums'), []);
+  assert.deepEqual(hole(one, 'to', 'bus:drums'), []);
+  assert.deepEqual(hole(one, 'from', o.swapGroup), [[314, Infinity]]);
+  // the key rule: unrelated keys hand the harmony over at the lead's middle, the record's filtered as it goes
+  const x = seamCurves({ ...base, shape: shape('drive', 'drums', false) }, o);
+  const fh = pointsOf(x, 'from', 'harmonic.gain'), th = pointsOf(x, 'to', 'harmonic.gain');
+  assert.ok(Math.abs(fh[fh.length - 2].t - (at + 4 * bar)) < 1e-9 && fh[fh.length - 1].v === 0 && Math.abs(th[th.length - 1].t - (at + 4 * bar)) < 1e-9 && th[th.length - 1].v === 1, 'the harmony does not cross at the lead\'s middle');
+  assert.equal(pointsOf(seamCurves({ ...base, shape: shape('drive', 'drums', true) }, o), 'from', 'harmonic.gain'), undefined, 'related keys crossed');
+  // an arriving theme with no voice in the lead crosses nothing before the swap
+  const nv = pointsOf(seamCurves({ ...base, shape: { ...shape('drive', 'drums', false), voices: false } }, o), 'from', 'harmonic.gain');
+  assert.ok(Math.abs(nv[nv.length - 2].t - swapAt) < 1e-9, 'the harmony crossed before the swap with nothing arriving');
+  // deep, unrelated keys: the record's groove leaves where its harmony crosses, not at the first instant
+  const du = seamCurves({ ...base, shape: shape('deep', 'none', false) }, o);
+  assert.deepEqual(hole(du, 'from', 'bus:drums'), [[306, Infinity]], 'deep, unrelated: the drums leave at the cross');
+  // the shape off two plans: the way is the record's, the carrier what it plays in the lead
+  const A: any = quiet(() => planTheme('1', 0, { strategy: 'house-v2' } as any));
+  const B: any = quiet(() => planTheme('1', 1, { strategy: 'house-v2', spell: { ember: 1 } } as any));
+  const s = seamShape({ from: A, to: B, fromBpm: A.bpm, bars: 12, barSeconds: B.barSeconds, split: true, lead: 8, atInFrom: 92 * A.barSeconds, atInTo: 0, fromRate: 1, toRate: 1, o });
+  assert.equal(s.way, 'deep'); assert.equal(s.carrier, 'none');
+  const s2 = seamShape({ from: B, to: A, fromBpm: B.bpm, bars: 12, barSeconds: A.barSeconds, split: true, lead: 8, atInFrom: (B.bars - 16) * B.barSeconds, atInTo: 0, fromRate: 1, toRate: 1, o });
+  assert.equal(s2.way, 'drive', `Ember 1 at ${B.bpm} BPM reads ${s2.beatLed}`);
+});
+
+test('the entry glide (round loudness-place): an arriving track whose aim is more than 2.5 dB from the record\'s enters within 2.5 dB of it and glides to its own over its first phrase after the swap, linear in decibels on its fader; within the cap, or with no aims, it enters as before; the record is never pulled', async () => {
+  const { entryOffsetDb, ENTRY_GLIDE } = await import('../src/set-plan.ts');
+  assert.deepEqual(ENTRY_GLIDE, { capDb: 2.5, bars: 16 });
+  assert.equal(entryOffsetDb(-16, -10.5), -3, 'ambient into a beat-led track: enters 3 dB under its aim');
+  assert.equal(entryOffsetDb(-10.5, -16), 3, 'a beat-led track into ambient: enters 3 dB over its aim');
+  assert.equal(entryOffsetDb(-13, -10.5), 0, 'a step of 2.5 dB is within the cap');
+  assert.equal(entryOffsetDb(null, -10.5), 0);
+  const style: any = STRATEGIES['house-v2'].style;
+  const o: any = splitSwap(setOptions(style, {}));
+  const bar = 2, at = 100, lead = 8, bars = 12, swapAt = at + lead * bar;
+  const base: any = { at, bars, barSeconds: bar, swapAt, filterMove: 'open', outgoingBar: 2, atInFrom: 300, swapInFrom: 316, atInTo: 0, swapInTo: 16, sumGain: 1, fromKick: true, toKick: true,
+    shape: { way: 'drive', beatLed: 1, lead, carrier: 'drums', related: true, split: false, voices: true } };
+  const pointsOf = (w: any, deck: string, param: string) => w.lines.find((l: any) => l.deck === deck && l.param === param)?.points;
+  const plain = seamCurves(base, o), same = seamCurves({ ...base, fromAimLufs: -13, toAimLufs: -11 }, o);
+  assert.deepEqual(pointsOf(same, 'to', 'fader.gain'), pointsOf(plain, 'to', 'fader.gain'), 'within the cap the arriving fader moved');
+  const g = seamCurves({ ...base, fromAimLufs: -16, toAimLufs: -10.5 }, o);
+  const f = pointsOf(g, 'to', 'fader.gain'), top = Math.pow(10, -3 / 20);
+  assert.ok(Math.abs(f[2].v - top) < 1e-9 && Math.abs(f[2].t - (at + 4 * bar)) < 1e-9, `the arriving track full at the cap: ${JSON.stringify(f)}`);
+  const last = f[f.length - 1], held = f[f.length - 2];
+  assert.ok(Math.abs(held.v - top) < 1e-9 && Math.abs(held.t - swapAt) < 1e-9 && last.v === 1 && last.k === 'exp' && Math.abs(last.t - (swapAt + 16 * bar)) < 1e-9, `the glide: ${JSON.stringify(f)}`);
+  assert.deepEqual(pointsOf(g, 'from', 'fader.gain'), pointsOf(plain, 'from', 'fader.gain'), 'the record was pulled toward the arrival');
 });

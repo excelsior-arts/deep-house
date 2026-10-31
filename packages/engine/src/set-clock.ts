@@ -17,11 +17,14 @@
 //
 // How far and when is the composer's seam rule and not the clock's
 // (`seamTempo` in `performance.ts`, the fault pass of 09-24): a drift glides
-// sixteen bars after the blend, a near move a bar a percent, a half or double
-// move is counted two beats of one theme to one of the grid (the deck's
-// `perBeat`) and glides only what is left, and a far jump is a glide *before*
-// the blend, on the outgoing deck alone. The clock has the two moves it always
-// had — `pin` and `glide` — and they are all any of that needs.
+// sixteen bars after the blend, a near move (within 6 %) a bar a percent, a
+// half or double move is counted two beats of one theme to one of the grid (the
+// deck's `perBeat`) and glides only what is left. A far move glides nothing
+// (round pl-clock): the outgoing deck is held off the grid where the blend
+// begins (`holdOffGrid` in `deck.ts`) and the grid jumps under it to the
+// arriving theme's tempo, as out of a free theme below. The clock has the two
+// moves it always had — `pin` and `glide` — and `jump`, and they are all any of
+// that needs.
 //
 // **A free theme is not on it** (PLAN-AMBIENT §4, the second clock, C2). A
 // theme whose program says `clock: 'free'` is counted in its own seconds, by an

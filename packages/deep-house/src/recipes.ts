@@ -138,6 +138,10 @@ import dnbBreakdown from '../recipes/sections/dnb-breakdown.json' with { type: '
 import dnbOutro from '../recipes/sections/dnb-outro.json' with { type: 'json' };
 import dnbBreakdownIntoDrop from '../recipes/seams/breakdown-into-drop.json' with { type: 'json' };
 import dnbDropIntoBreakdown from '../recipes/seams/drop-into-breakdown.json' with { type: 'json' };
+import studyBodyAndDistance from '../recipes/studies/body-and-distance.json' with { type: 'json' };
+import studyTheConversation from '../recipes/studies/the-conversation.json' with { type: 'json' };
+import ensembleTheConversation from '../recipes/ensembles/the-conversation.json' with { type: 'json' };
+import ensembleBodyAndDistance from '../recipes/ensembles/body-and-distance.json' with { type: 'json' };
 
 /**
  * The rows, in the order a listing shows them: the house first, because it is
@@ -418,11 +422,34 @@ export const FORM_LIBRARY: Recipe[] = Object.freeze([
   dnbFormBrokenAir as unknown as Recipe,
 ]) as Recipe[];
 
+/**
+ * **The two accepted arrangements of the reference-learning milestone** (09-20/21),
+ * kept to be heard again: whole themes as they were approved, each a `track`
+ * row at nought, pinnable with the spell they were approved under
+ * (`?v=2&spell=…&recipe=study/body-and-distance`) and drawn by nothing. They
+ * are not a template behind a die: what the draw learns from them are their
+ * parts, promoted one by one through the style's families.
+ */
+export const STUDY_LIBRARY: Recipe[] = Object.freeze([
+  studyBodyAndDistance as unknown as Recipe,
+  studyTheConversation as unknown as Recipe,
+]) as Recipe[];
+
+/**
+ * **The ensembles** (10-28, `src/ensemble.ts`): each accepted arrangement as a technique the engine draws, its roles
+ * arriving together with the relations between them held while the voices, the key, the tempo and the notes vary.
+ * Pinnable with a spell (`?v=2&spell=…&recipe=ensembles/the-conversation`); placed by the birds in a later step.
+ */
+export const ENSEMBLE_LIBRARY: Recipe[] = Object.freeze([
+  ensembleTheConversation as unknown as Recipe,
+  ensembleBodyAndDistance as unknown as Recipe,
+]) as Recipe[];
+
 /** The treatment rows the composer's draw sees: the library and the candidates (the latter at nought, so never drawn). */
 export const TREATMENTS: Recipe[] = Object.freeze([...TREATMENT_LIBRARY, ...TREATMENT_CANDIDATES]) as Recipe[];
 
 /** Every row a link may pin: the shipped library, the patterns, the whole themes, the candidates, then the scoped rows. */
-export const PINNABLE: Recipe[] = Object.freeze([...LIBRARY, ...PATTERN_LIBRARY, ...TRACK_LIBRARY, ...CANDIDATE_LIBRARY,
+export const PINNABLE: Recipe[] = Object.freeze([...LIBRARY, ...PATTERN_LIBRARY, ...TRACK_LIBRARY, ...CANDIDATE_LIBRARY, ...STUDY_LIBRARY, ...ENSEMBLE_LIBRARY,
   ...TREATMENT_LIBRARY, ...TREATMENT_CANDIDATES, ...SECTION_LIBRARY, ...SEAM_CANDIDATES]) as Recipe[];
 
 export const PART_LIBRARY: Recipe[] = LIBRARY.filter(r => r.scope === 'layer');

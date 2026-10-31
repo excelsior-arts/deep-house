@@ -260,9 +260,18 @@ test('a drone-back theme is the airy draw with its pad at the background presenc
   for (const { seed, t, was } of plans) {
     if (sceneOfDice(t.dice) !== 'drone-back') continue;
     themes++;
-    assert.equal(t.events.length, was.events.length, `seed ${seed}`);
-    t.events.forEach((e, i) => {
-      const before = was.events[i];
+    // a chord over the drone that rubbed it (10-28, `ScenePolicy.clearOfBed`): its tones a semitone onto the bed's, or
+    // one let go; read apart, every other event as the airy draw has it
+    const cl = new Set(((t as { clearedOfBed?: string[] }).clearedOfBed ?? []).map((c) => c.split(' ')[0]));
+    const at = (e: { bar: number; step?: number; layer?: string }) => e.layer === 'keys' && cl.has(`${e.bar}:${e.step}`);
+    for (const k of cl) {
+      const now = t.events.filter((e) => at(e) && `${e.bar}:${e.step}` === k), then = was.events.filter((e) => at(e) && `${e.bar}:${e.step}` === k);
+      assert.ok(now.length && now.length <= then.length && now.every((e) => then.some((x) => Math.abs(Number(e.p.midi) - Number(x.p.midi)) <= 1)), `seed ${seed}: the chord at ${k}`);
+    }
+    const events = t.events.filter((e) => !at(e)), wasEvents = was.events.filter((e) => !at(e));
+    assert.equal(events.length, wasEvents.length, `seed ${seed}`);
+    events.forEach((e, i) => {
+      const before = wasEvents[i];
       const db = !e.part && sixteenth.voices!.some(c => c.v === e.voice) && e.layer === 'shaker' ? presenceDb(e.voice, 'drone-back') : 0;
       if (db) {
         under++;
@@ -276,7 +285,7 @@ test('a drone-back theme is the airy draw with its pad at the background presenc
       // at most nine decibels under the style's level, never above what it was
       assert.ok((gain ?? 1) <= (g0 ?? 1) + 1e-12 && (gain ?? 1) >= (g0 ?? 1) * 10 ** (back / 20) - 1e-12, `seed ${seed}: pad gain ${gain} from ${g0}`);
     });
-    assert.ok(t.events.some((e, i) => e.layer === 'pad' && e.p.gain !== was.events[i].p.gain)
+    assert.ok(events.some((e, i) => e.layer === 'pad' && e.p.gain !== wasEvents[i].p.gain)
       || !t.events.some(e => e.layer === 'pad') || JSON.parse(String(t.dice.composition)).selected['ringing-keys'],
       `seed ${seed}: the pad is behind the drone`);
   }
@@ -503,7 +512,9 @@ test("a track row's own hand cell answers the lane's rule (10-13, the afro-house
   const drums = (t: Plan) => t.events.filter(e => e.layer === 'shaker' && BY_NAME[e.voice].family === 'drum');
   const shaker = (t: Plan) => t.events.filter(e => e.layer === 'shaker' && BY_NAME[e.voice].family === 'noise');
   assert.equal(drums(ze).length, 0, 'the bongo leaves the saw pad');
-  assert.ok(shaker(ze).length > 1000, 'the row\'s shaker plays on');
+  // (over 1000 hits until round length-2 put the grooves at 3-4 minutes, his word 10-27: "We should aim for 3-4mins
+  // here"; 872 over its 88 bars since)
+  assert.ok(shaker(ze).length > 700, `the row's shaker plays on (${shaker(ze).length} hits, ${ze.bars} bars)`);
   assert.ok(drums(zg).length > 100 && shaker(zg).length === shaker(ze).length, 'over the rhodes the hand cell stays');
 });
 

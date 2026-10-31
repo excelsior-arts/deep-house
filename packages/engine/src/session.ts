@@ -87,6 +87,12 @@ export interface MixState {
    */
   beatSeconds?: number;
   /**
+   * **The tempo a playlist's clock plays the record at** (round pl-clock), where it is not the record's own: the
+   * list's tempo, or half or double it, for a theme the list pulled; null for a theme on its own tempo. A face that
+   * prints the tempo marks it as the list's.
+   */
+  listBpm?: number | null;
+  /**
    * **How long until the grid counts at the tempo the set is heading for**, in
    * seconds: the rest of a hand-over in flight and the glide it will begin
    * with, or the rest of a glide in flight; nought when the grid is at its
@@ -108,6 +114,18 @@ export interface MixState {
   /** how far through a hand-over, nought to one, and nought when there is none */
   transition: number;
   /**
+   * **The hand-over the transport will take, as it stands** (round ring-seam, 10-30): the one in flight until its
+   * blend ends, else the one asked for and not yet laid, else the record's own seam. A face that counts down to a
+   * seam counts down to this and never to an estimate of its own, so it moves when the transport's line moves (a
+   * seek, a pull, a playlist's ask). A session made before it does not carry it.
+   */
+  seam?: MixSeam | null;
+  /**
+   * **And where the record playing now hands over, in its own seconds** (the readout's position): the hand-over in
+   * flight before its swap, the one asked for, or the record's own seam; after a swap, the arrived record's own.
+   */
+  seamOf?: number | null;
+  /**
    * A hand-over into **another set** is up: since 09-19 a cast is a mix from
    * where the record is into the first theme of a new one rather than a stop
    * and a start, so for the length of that blend the seed above is still the
@@ -126,6 +144,23 @@ export interface MixWait {
   plan: number;
   kind: 'skip' | 'back' | 'cast' | 'spell' | 'engine' | 'seam';
   laid: boolean;
+}
+
+/**
+ * A hand-over's three instants on the context's clock: the blend begins (`at`), the low end changes hands and the
+ * readout turns over (`swapAt`), the blend ends (`end`). `laid`: the transport has built it; otherwise the instants
+ * are where it will be laid as things stand (an own seam not yet reached, an ask whose landing is being built).
+ */
+export interface MixSeam {
+  at: number;
+  swapAt: number;
+  end: number;
+  laid: boolean;
+  /**
+   * the blend begins on the record's own seam line: the set's own seam, or an ask that waited for it (a playlist's
+   * next track at the seam), and not a press that took the next line
+   */
+  own: boolean;
 }
 
 /** What a skip, a back or an arriving seam answers with. */

@@ -54,7 +54,12 @@ export interface BoolField { kind: 'bool' }
 /** A name: a word the patch defines itself, such as the key of a table beside it (a relation says which). */
 export interface NameField { kind: 'name' }
 export interface WordField<W extends string = string> { kind: 'word'; of: readonly W[] }
-export interface MaybeField<F extends Field = Field> { kind: 'maybe'; of: F }
+export interface MaybeField<F extends Field = Field> {
+  kind: 'maybe';
+  of: F;
+  /** it may also be absent: a part one row carries and its siblings and the rooms leave out (`optional`) */
+  absent?: true;
+}
 export interface EitherField<A extends Field = Field, B extends Field = Field> { kind: 'either'; a: A; b: B }
 export interface ListField<F extends Field = Field> { kind: 'list'; of: F; min: number; max: number }
 export interface TableField<T extends Fields = Fields> { kind: 'table'; fields: T }
@@ -109,6 +114,11 @@ export const name = (): NameField => ({ kind: 'name' });
 export const word = <const W extends string>(...of: W[]): WordField<W> => ({ kind: 'word', of });
 /** The field, or `null`: a part of the topology this row does not build. */
 export const maybe = <F extends Field>(of: F): MaybeField<F> => ({ kind: 'maybe', of });
+/**
+ * The field, `null`, or nothing at all: a part one row builds and its siblings do not carry, and that a room writes
+ * only where it wants it (the piano's `string`, round piano-tone), so a block without it is the block it always was.
+ */
+export const optional = <F extends Field>(of: F): MaybeField<F> => ({ kind: 'maybe', of, absent: true });
 /** Either of two fields: a number, or the word naming the room's field that holds it. */
 export const either = <A extends Field, B extends Field>(a: A, b: B): EitherField<A, B> => ({ kind: 'either', a, b });
 /** A list of `min` to `max` (by default exactly `min`) of the field. */
@@ -228,7 +238,7 @@ export function fieldsFaults(v: Readonly<Record<string, unknown>>, fields: Field
   const bad: string[] = [];
   const name = (k: string) => (at ? `${at}.${k}` : k);
   for (const [k, f] of Object.entries(fields)) {
-    if (!(k in v)) { bad.push(`${name(k)} is missing`); continue; }
+    if (!(k in v)) { if (!(f.kind === 'maybe' && f.absent)) bad.push(`${name(k)} is missing`); continue; }
     bad.push(...fieldFaults(v[k], f, name(k)));
   }
   for (const k of Object.keys(v)) if (!(k in fields)) bad.push(`${name(k)} is not a field it has`);

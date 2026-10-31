@@ -163,6 +163,8 @@ import shakerSoftRow from '../../sounds/noise/shakerSoft.json' with { type: 'jso
 import bowlRimRow from '../../sounds/keyboard/bowlRim.json' with { type: 'json' };
 import tanpuraRow from '../../sounds/keyboard/tanpura.json' with { type: 'json' };
 import chantOmRow from '../../sounds/vocal/chantOm.json' with { type: 'json' };
+// trance-1 (10-28): the struck, gritty supersaw the gate and the riff play.
+import supersawGritRow from '../../sounds/keyboard/supersawGrit.json' with { type: 'json' };
 import { holdRim } from './rim-bowl.ts';
 
 export { FAMILIES, ROLES, BUSES, FIELDS, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from './descriptor.ts';
@@ -172,6 +174,30 @@ export { asSound, soundDescriptor, soundFaults, soundLine, patchOf, rowBase, adm
 export type { SoundRow, SoundDescriptor, Topology } from './sound.ts';
 export { TOPOLOGIES } from './topologies.ts';
 export { malletLives } from './mallets.ts';
+import { malletLives } from './mallets.ts';
+import { fmBellLives } from './fm-bell.ts';
+import { rimBowlLives } from './rim-bowl.ts';
+
+/** A row as the two readers below see it: its topology and its parameters. */
+type StruckRow = { topology?: string; parameters?: { partials?: readonly (readonly number[])[]; attack?: number; release?: number; tremoloDepth?: number; ring?: number } };
+/**
+ * **The oscillators one strike of a row runs**, each for its own seconds, by the row's topology (engine-data, 10-28;
+ * the three rules had been written in the composer): the mallet's a sine a partial and the discs' LFO (`malletLives`),
+ * the FM bell's two carriers and two modulators (`fmBellLives`), the rimmed bowl's a sine a mode (`rimBowlLives`); none
+ * for a topology that states none. A planner's cast budget reads it.
+ */
+export function voiceLives(row: StruckRow | undefined, vel: number, dur: number): number[] {
+  const P = row?.parameters;
+  if (row?.topology === 'mallet' && P?.partials?.length) return malletLives({ partials: P.partials, attack: P.attack ?? 0, release: P.release ?? 0, tremoloDepth: P.tremoloDepth ?? 0 }, vel);
+  if (row?.topology === 'fm-bell') return fmBellLives(P ?? {}, dur);
+  if (row?.topology === 'rim-bowl' && P?.partials?.length) return rimBowlLives(P as { partials: readonly unknown[]; attack?: number; ring?: number }, dur);
+  return [];
+}
+/** **How long a struck row rings** at a velocity: a mallet's first partial's decay (longer struck harder) and its release; null where the topology says none. */
+export function voiceRing(row: StruckRow | undefined, vel: number): number | null {
+  const P = row?.topology === 'mallet' ? row.parameters : undefined;
+  return P?.partials?.length ? P.partials[0][1] * (1 + 0.2 * vel) + (P.release ?? 0) : null;
+}
 
 /**
  * A sound row as a registry entry: read off its JSON, held to its topology,
@@ -447,6 +473,8 @@ export const REGISTRY: Descriptor[] = [
   sound(bowlRimRow),
   sound(tanpuraRow),
   sound(chantOmRow),
+  // trance-1 (10-28): the struck, gritty supersaw, named by no lane (`plays: null`): the hook table plays it (`src/hook.ts`)
+  sound(supersawGritRow),
 ];
 
 /**

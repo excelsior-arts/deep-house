@@ -24,8 +24,10 @@ import { chordAtBar } from '../src/theory.ts';
 import { BY_NAME, VOICE_COST_UNITS } from '@deep-house/engine/voices';
 import { CEILING } from '../src/catalogue-v2.ts';
 import { played, themeHash } from './link-digest.ts';
+import { exact } from './program.ts';
+import { createHash } from 'node:crypto';
 import { APP } from './as-played.ts';
-import { withoutTechniques, nearestEntry, type AmbientVoicesEntry, type ConversationEntry } from '../src/places.ts';
+import { withoutTechniques, nearestEntry, type SeaEntry, type ConversationEntry } from '../src/places.ts';
 import { lanesOf } from '../src/control.ts';
 import { marksOf } from '../src/ring-subsections.ts';
 import { livelinessOf } from './liveliness.ts';
@@ -44,6 +46,11 @@ const ON = new Set(['wave-bloom', 'wave-bell', 'wave-bass']);
 const RELEASE: Record<string, number> = Object.fromEntries(Object.values(ROW.sounds).map((v) => [v, Number((BY_NAME[v]?.row as { parameters?: { release?: number } })?.parameters?.release ?? 0)]));
 type Ev = { t: number; voice: string; layer: string; role?: string; part?: string; bar: number | null; step: number | null; p: Record<string, any> };
 type Theme = ReturnType<typeof planTheme>;
+/** a whole program's hash with its level apart (the trim, `trimDb` and `themeGain`): what the sea's lean may move is the level only */
+const levelApart = (plan: Theme): string => {
+  const { trimDb: _t, themeGain: _g, ...rest } = programOf(plan) as unknown as Record<string, unknown>;
+  return createHash('sha256').update(exact({ program: rest, knobs: plan.knobs ?? null, paramOverrides: plan.paramOverrides ?? null })).digest('hex').slice(0, 16);
+};
 
 test('the surf row is admitted: voices that exist, a peak period of 8-14 s, a sea state of a swell, a cross swell and a chop, the arc a calm, a swell and a calm', () => {
   assert.deepEqual(surfRowsFaults((v) => !!BY_NAME[v]), []);
@@ -192,10 +199,16 @@ test('the pulls that stay at WAVES keep the sea and play its leans: Tide its siz
   // the calm floor (ambient-waves-3): Tide down brings the bloom nearer, a little louder, and the trim follows what Tide
   // and Veil take from the sea (where its windows measure), so a calm pull is lifted and a large rough one eased
   assert.ok(gainOf(own(pull('ti', 0.55)), 'wave-bloom') > gainOf(base, 'wave-bloom'), 'Tide down: the bloom no nearer');
-  const measured = (ts: Theme[]) => ts.reduce((a, t) => a + Number((t as { sound?: { measuredLufs?: number } }).sound?.measuredLufs), 0) / ts.length;
+  // (ambient-waves-4: the lean rides beside the place's measured level, `sound.levelDb`, and the trim gives it back one
+  // for one: the trim at a pull is the place's less the lean, but where the clamp holds it)
+  const measured = (ts: Theme[]) => ts.reduce((a, t) => a + Number((t as { sound?: { levelDb?: number } }).sound?.levelDb), 0) / ts.length;
   const calm = own(WAVES.replace('ti:0.85', 'ti:0.55').replace('ve:0.60', 've:0.35')), rough = own(WAVES.replace('ti:0.85', 'ti:1.00').replace('ve:0.60', 've:1.00'));
   assert.ok(measured(calm) < measured(base) && measured(base) < measured(rough), `the sea's measured level ${measured(calm)}, ${measured(base)}, ${measured(rough)} at the calm pull, the place and the rough corner`);
   assert.ok(calm.every((t) => t.trimDb! > base[0].trimDb!) && rough.every((t) => t.trimDb! < base[0].trimDb!), 'the trim does not follow the sea');
+  for (const t of [...calm, ...rough]) {
+    const lean = Number((t as { sound?: { levelDb?: number } }).sound?.levelDb);
+    assert.ok(Math.abs(t.trimDb! - Math.min(2, base[0].trimDb! - lean)) < 0.0015, `seed ${t.seed}: the trim ${t.trimDb} is not the place's ${base[0].trimDb} less the lean ${lean}, one for one`);
+  }
 });
 
 test('the sea is one line of the place: taken out, WAVES plays the lanes it held off', () => {
@@ -215,49 +228,64 @@ test('the sea is one line of the place: taken out, WAVES plays the lanes it held
  * the slow spells PLAN-AMBIENT §2.4 protects that no link-digest row holds (seed 6's golden, the Ambient tile), and a
  * probe of the ring around WAVES where the weather's row is "none" — BELLS's own and two of its pulls, the landscape's
  * ambient centre, the dark corner, the rooted corner, Tide and Loom at one, the birds at their ends on the slow side and
- * at the house's tempo, the house, a fast place, the slow groove, the benchmark's wet pull.
+ * at the house's tempo, the house, a fast place, the slow groove, the benchmark's wet pull. All re-pinned in round
+ * length-after to `local` fb344631, where round length-2's lengths moved every one and nothing else did
+ (his word 10-28: *"The length around is great. I listen all my featured vibe and drive songs, and they all got a good shape, so we
+ * can merge it now"*). Seven re-pinned to `local` after the September-studies merge, where the piano moved them (its bus;
+ * at seed 3's Ember 0.20 its chords too, the pad's dip, the bass's role and the trim following the keys) and nothing else
+ * did (his words 10-28: *"the ensembles are good for now"*; *"once piano rounds are back just accept it to unblock the next round"*).
+ * The six in the bells' box re-pinned in round v24-bugs for the bells' hand the soft woodblock alone (his ear 10-29:
+ * *"the woodblock is the only matching percussion ... all other claps are distracting"*): the hand's strikes alone moved.
+ * Four re-pinned to `local` after round chillstep-ends's tail rule and phrase seam (his word 10-30: "Those are actually fine. We can accept them and merge"): the forms' outros and seams alone moved.
+ * One re-pinned to `local` after round break-pulse-rule (his word 10-30: "all breaks changes approved, you got it right!"): a beat-led break's carrier and the pad hole's cut alone moved.
+ * Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did.
  */
 const PROTECTED: Record<string, string> = {
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'ac2d3751bae2c637',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': 'e99faaf857921c8a',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': 'eedeff81be8aeab9',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '6ea0e00d4737bbaf',
-  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c0945e862529d1b4',
-  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '4682ff1b1a1ff5a4',
-  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'f6af92c14db90357',
-  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '1e5f019bb457a527',
-  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'd221f7fbc952eab1',
-  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '30971008cdc343e3',
-  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '980302f9d500c15a',
-  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '3ececc1aa87bb93d',
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9683b597a7dc7378' /* inside the bells' box, the zone's */,
-  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'f104b8cae402eedc' /* inside the bells' box, the zone's */,
-  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '1825a40f3f4c7fe7' /* inside the bells' box, the zone's */,
-  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '6ec6d7e3071c99ab' /* inside the bells' box, the zone's */,
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.60,sp:0.55,lo:0.90': 'bf434cf2a028b8b2' /* inside the bells' box, the zone's */, // bells-birds: Veil 0.60 lengthens BELLS's rests
-  'seed=2&v=2&spell=em:0.05,ti:0.85,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'a17f44ef11d3be17' /* inside the bells' box, the zone's */, // bells-birds: Tide 0.85 BELLS's send
-  'seed=1&v=2&spell=em:0.08,ti:0.90,ze:0.35,ro:0.55,gl:0.45,ve:0.15,sp:0.10,lo:0.90': '87e02c063f7dee9a',
-  'seed=1&v=2&spell=em:0.05,ti:0.95,ze:0.10,ro:0.30,gl:0.10,ve:0.10,sp:0.00,lo:0.95': '1386ed38d249f23d',
-  'seed=1&v=2&spell=em:0.05,ti:0.90,ze:0.30,ro:1.00,gl:0.30,ve:0.20,sp:0.00,lo:1.00': '1bd180ad3930608a',
-  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.50,ro:0.50,gl:0.50,ve:0.00,sp:0.00,lo:1.00': '4184dfb741bfde21',
-  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': 'c796ea5a88c5775e',
-  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': 'c8e26ea901b8eb44' /* outside the box: the tables less the zone's */, // bells-birds: BELLS's birds at their ends (Root's light bells, Veil and Loom's floor on the rests)
-  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': 'bdbe29329814df6d',
-  'seed=10&v=2': 'fabbe2fe1e2f381d',
-  'seed=1&v=2&spell=em:0.95': 'aa2f6b8cc8f61da2',
-  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': '430109bf855c7191',
-  'seed=1&v=2&spell=em:0.14,ti:0.85,gl:0.00,ve:0.34,sp:0.00,lo:0.81': 'e92b3449d50d5b99',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'db003cff5f51b938',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': '870b897800990792', // piano-tone: the new piano
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': '786f0f4be12e5a7f',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '61c82458b1ec8d37',
+  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '66b5ce9c64996692',
+  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '11f20507cbc43405',
+  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c73795ad1370643c', // piano-tone: the new piano
+  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b3b1b073d28fdbda',
+  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b021d93ad012095c',
+  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '8e3e80c9c4485fdf',
+  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '5f6734f79119cfbc', // piano-tone: the new piano
+  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'ba5cf2c4acb96e90',
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '401d3474e265e505' /* inside the bells' box, the zone's */,
+  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '3439642f654051da' /* inside the bells' box, the zone's */,
+  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '55ccae884e71dc58' /* inside the bells' box, the zone's */,
+  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9e8fb2b8e36b2837' /* inside the bells' box, the zone's */,
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.60,sp:0.55,lo:0.90': '7dfad6250e27e80c' /* inside the bells' box, the zone's */, // bells-birds: Veil 0.60 lengthens BELLS's rests
+  'seed=2&v=2&spell=em:0.05,ti:0.85,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '75612b5fbfebfcea' /* inside the bells' box, the zone's */, // bells-birds: Tide 0.85 BELLS's send
+  'seed=1&v=2&spell=em:0.08,ti:0.90,ze:0.35,ro:0.55,gl:0.45,ve:0.15,sp:0.10,lo:0.90': '876878fe5147cd77',
+  'seed=1&v=2&spell=em:0.05,ti:0.95,ze:0.10,ro:0.30,gl:0.10,ve:0.10,sp:0.00,lo:0.95': 'f36e7098936370cd',
+  'seed=1&v=2&spell=em:0.05,ti:0.90,ze:0.30,ro:1.00,gl:0.30,ve:0.20,sp:0.00,lo:1.00': 'a7c6207a5a155d6b',
+  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.50,ro:0.50,gl:0.50,ve:0.00,sp:0.00,lo:1.00': '646b47bd6a6480f6',
+  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '0973cb02ca9455cb',
+  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': '30edfa506b765d33' /* piano-tone: the new piano; outside the box: the tables less the zone's */, // bells-birds: BELLS's birds at their ends (Root's light bells, Veil and Loom's floor on the rests)
+  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': '859904da7ee482ae',
+  'seed=10&v=2': '20e72b15479b831f',
+  // trance-1: the Ember pull reads the high four, whose every theme now plays the hook; trance-2: the hook one of his five
+  // chopped-chord rows, in runs (source 10's arc) on a loop of two or three chords, and the high four's breakdown its own
+  // again (hats in)
+  'seed=1&v=2&spell=em:0.95': '66ed7a1c902e1e51',
+  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': '0340b339f1e90229',
+  'seed=1&v=2&spell=em:0.14,ti:0.85,gl:0.00,ve:0.34,sp:0.00,lo:0.81': '356b85858cb5ff31',
   // Ember up from WAVES, where the kit comes on and WAVES is still the ambient voices' nearest (the review of 10-18, its
   // first finding): the sea needs no drums (`no-kit`), so these play `local`'s programs (3a90d7b1), the kit and the lanes
-  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '7be4c3d83663a38f',
-  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '9839449db1c9a8e5',
-  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'd1805b75dc59781b',
+  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'e3ad34294fd14e9e', // keys-room and keys-balance: the breakdown's keys, its copied pad gone, single tones under the front drone
+  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '353b6b0542649617',
+  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '31bed5c1df3ef293',
 };
 
 test('where the weather\'s row is "none" the admission moves nothing: the protected spells and the ring around WAVES lay no sea and play the programs they played', () => {
   for (const [link, hash] of Object.entries(PROTECTED)) {
     const { plan } = quiet(() => played(link));
     assert.equal(plan.sea, undefined, `${link}: a sea`);
+    // (the landscape's ambient centre is BOWLS's since ambient-bowls, 10-27: the bowls' own, held by tools/check-bowls.ts)
+    if ((plan as { conversation?: { row: string } }).conversation?.row === 'bowls-breathing') continue;
     assert.equal(themeHash(plan).slice(0, 16), hash, `${link}: its program moved`);
   }
 });
@@ -270,8 +298,8 @@ test('where the weather\'s row is "none" the admission moves nothing: the protec
  * And on the shipped style, every own theme at WAVES and at its pulls that holds those lanes off lays its sea.
  */
 test('a sea refused is no sea: the theme plays the lanes it would have held off, the program with the sea taken out', () => {
-  const P = (APP as unknown as { places: { ambientVoices: AmbientVoicesEntry[] } }).places;
-  const heavy = { ...APP, places: { ...P, ambientVoices: P.ambientVoices.map((e) => e.weather ? { ...e, weather: { ...e.weather, needs: [], holdOff: [] } } : e) } } as typeof APP;
+  const P = (APP as unknown as { places: { sea: SeaEntry[] } }).places;
+  const heavy = { ...APP, places: { ...P, sea: P.sea.map((e) => e.technique ? { ...e, technique: { ...e.technique, needs: [], silences: [] } } : e) } } as typeof APP;
   const spell = parseSpell(WAVES.replace('em:0.05', 'em:0.30'))!;
   for (const seed of ['1', '3', '5']) {
     const t = quiet(() => planTheme(seed, 1, { strategy: 'house-v2', style: heavy, spell }));
@@ -303,15 +331,21 @@ test('where WAVES is nearest in the ambient voices\' table and BELLS in the conv
   // zephyr-air's strike hardness and nothing else)
   const link = 'seed=1&v=2&spell=em:0.06,ti:0.86,ze:0.72,ro:0.28,gl:0.82,ve:0.67,sp:0.36,lo:0.91';
   const spell = parseSpell('em:0.06,ti:0.86,ze:0.72,ro:0.28,gl:0.82,ve:0.67,sp:0.36,lo:0.91')!;
-  const P = (APP as unknown as { places: { ambientVoices: AmbientVoicesEntry[]; conversation: ConversationEntry[] } }).places;
+  const P = (APP as unknown as { places: { sea: SeaEntry[]; conversation: ConversationEntry[] } }).places;
   const { plan } = quiet(() => played(link));
-  assert.equal(nearestEntry(P.ambientVoices, spell, plan.bpm)?.id, 'the-sea-at-waves', 'the spell no longer stands nearest WAVES in the ambient voices\' table');
-  assert.ok(nearestEntry(P.conversation, spell, plan.bpm)?.conversation, 'the spell no longer stands nearest a conversation');
+  assert.equal(nearestEntry(P.sea, spell, plan.bpm)?.id, 'the-sea-at-waves', 'the spell no longer stands nearest WAVES in the sea\'s table');
+  assert.ok(nearestEntry(P.conversation, spell, plan.bpm)?.technique, 'the spell no longer stands nearest a conversation');
   assert.ok(!plan.conversation && plan.sea, 'outside the box: a conversation, or no sea');
-  assert.equal(themeHash(plan).slice(0, 16), '190a66c862d450f6', 'its program moved');
+  // (ambient-waves-5: the sea's lean here, +0.05 dB, given back one for one, moves its trim 0.482 -> 0.703 and nothing
+  // else: the program less its level is rc-ambient's, d6439e956df30a76, the whole 190a66c862d450f6 before; re-pinned in
+  // round length-after to `local` fb344631, where round length-2's lengths moved the three, its trim unmoved, his word
+  // 10-28: "The length around is great ... so we can merge it now")
+  assert.equal(levelApart(plan), '851eb6288a483bc2', 'its program moved');
+  assert.equal(plan.trimDb, 0.703, 'its trim is not the place\'s less the sea\'s lean');
+  assert.equal(themeHash(plan).slice(0, 16), '5e57aa2f70a77416', 'its program moved');
   const inside = quiet(() => played(link.replace('ve:0.67', 've:0.60').replace('sp:0.36', 'sp:0.45'))).plan;
   assert.ok(inside.conversation && !inside.sea, 'inside the box: not the conversation alone');
-  assert.equal(themeHash(inside).slice(0, 16), '70054ac73cb6214e', 'its program moved');
+  assert.equal(themeHash(inside).slice(0, 16), 'b315d1a160c2b60e', 'its program moved');
 });
 
 /**
@@ -329,13 +363,13 @@ test('where WAVES is nearest in the ambient voices\' table and BELLS in the conv
  */
 test('at PSY the journey plays and the sea yields: one foreground, the journey ahead of the sea; from WAVES the sea plays to Veil\'s end', () => {
   const PSY = 'em:0.08,ti:0.90,ze:0.65,ro:0.60,gl:0.35,ve:0.90,sp:0.55,lo:0.70';
-  const P = (APP as unknown as { places: { ambientVoices: AmbientVoicesEntry[] } }).places;
+  const P = (APP as unknown as { places: { sea: SeaEntry[] } }).places;
   let own = 0;
   for (const seed of SEEDS) for (const theme of [1, 2]) {
     const t = at(seed, theme, PSY);
     if (t.drawn) continue;
     own++;
-    assert.equal(nearestEntry(P.ambientVoices, parseSpell(PSY)!, t.bpm)?.id, 'the-sea-at-waves', 'PSY no longer stands nearest WAVES in the ambient voices\' table');
+    assert.equal(nearestEntry(P.sea, parseSpell(PSY)!, t.bpm)?.id, 'the-sea-at-waves', 'PSY no longer stands nearest WAVES in the sea\'s table');
     assert.ok(t.journey && !t.sea, `PSY seed ${seed} theme ${theme}: ${t.journey ? 'a journey' : 'no journey'}, ${t.sea ? 'a sea' : 'no sea'}`);
   }
   assert.ok(own >= 12, `${own} own themes at PSY`);
@@ -385,7 +419,9 @@ test('the ring draws the conversation at BELLS: its strikes ink their lanes by d
     assert.ok(keys.some((v) => v === 0), `BELLS seed ${seed}: the keys lane never rests (the ground inks it)`);
     const marks = marksOf(plan, plan.bars);
     const x = livelinessOf(plan);
-    assert.ok(marks.filter((m) => m.kind === 'exchange').length >= 8, `BELLS seed ${seed}: ${marks.filter((m) => m.kind === 'exchange').length} exchanges marked`);
+    // one exchange marked every 75 s at the least: the 8 of a 9-10 minute theme, and 5 since BELLS runs 5-6 (length-2b)
+    const least = Math.ceil((plan.bars * plan.barSeconds) / 75);
+    assert.ok(marks.filter((m) => m.kind === 'exchange').length >= least, `BELLS seed ${seed}: ${marks.filter((m) => m.kind === 'exchange').length} exchanges marked, under ${least}`);
     // (ambient-waves-4, the review of 10-19) an exchange is a call and its first answer within a breath: none spans a
     // breakdown's edge or reaches past a breath and a call's notes, and the keys lane holds one depth across each
     const breath = (plan.conversation as { breathS: number }).breathS, bar = plan.barSeconds;

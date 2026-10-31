@@ -1,0 +1,103 @@
+{
+ "note": "Written by tools/loudness-render.ts --gate <render> --names (round loudness-place, part 3): the featured tracks whose own theme, rendered whole at the trim the app plays, sits more than 1.5 LU off its band's aim (a groove by its mains and drops, a theme with few drums whole), each at the size it was measured and with what holds it (why, by hand). The featured render gate fails on a track off its aim not named here, on one more than 0.5 LU further off than named, and on a name back within 1.5 LU; the same for a limiter past its never-happen line (limits: 35 % / 12 dB on a groove, 5 % / 3 dB on a theme with few drums, whole) and a breakdown more than 0.5 LU over its groove (breakdowns). A name is the round's open work, never a waiver.",
+ "measuredAt": "2026-10-31",
+ "render": "render-h-featured.json",
+ "tracks": [
+  {
+   "name": "Vibe - Solar Wind",
+   "offLu": -1.56,
+   "why": "the liquid place: its trim is the +6 dB clamp (no headroom reading); its own chain (the mix clip's make-up, its glue) is the last 2 dB, his ear first (round 1: \"before was more relaxed\")"
+  },
+  {
+   "name": "Vibe - Aurora",
+   "offLu": -2.98,
+   "why": "a sparse groove: the share line reads its room 3 dB short (6.4 measured at nought), and the kick, not the body, sets its peak (the hit set down 1.5 dB)"
+  },
+  {
+   "name": "Vibe - Night Side",
+   "offLu": -6,
+   "why": "the arrangement: a kick, a clap and a sparse piano, its bed \u221223.8 LUFS alone; the share line reads its room 9 dB short (13.1 measured); it comes up only with its bed"
+  },
+  {
+   "name": "Vibe - Sunrise",
+   "offLu": -3.79,
+   "why": "a sparse groove as Vibe - Aurora: the share line reads its room 3.4 dB short; the model over-reads it 2 LU"
+  },
+  {
+   "name": "Vibe - Saturn Rings",
+   "offLu": -1.54,
+   "why": "the share line: its trim at the line (room 3.6 measured, 2.4 read)"
+  },
+  {
+   "name": "Vibe - Liquid Gravity",
+   "offLu": -1.69,
+   "why": "the liquid place, as Vibe - Solar Wind"
+  },
+  {
+   "name": "Drive - Static Charge",
+   "offLu": -4.52,
+   "why": "a struck bed (a Rhodes in the pad's role, an organ stab): the clip's shave cap holds the trim at 3.7 dB where its room is 10.7 (the no-clip depth line reads its hit 4.8 dB short); at its room, \u221211.6 with the limiter in 24 % (the sketch): his ear on the clip's depth first"
+  },
+  {
+   "name": "Drive - Tailwind",
+   "offLu": -4.71,
+   "why": "a struck bed (a Rhodes in the pad's role): the share line reads its room 4.9 dB short (9.4 measured); at its room \u221211.3 with the limiter in 22 % (the sketch)"
+  },
+  {
+   "name": "Drive - Comet Tail",
+   "offLu": -1.84,
+   "why": "its groove under the aim and its breakdown over it: the share line reads the breakdown roomier than it is, and the trim stops at the breakdown"
+  },
+  {
+   "name": "Drive - Supercell",
+   "offLu": -1.91,
+   "why": "the drop family (a form with no main): its own model, not refitted this round"
+  },
+  {
+   "name": "Drive - Slow Burn",
+   "offLu": -2.29,
+   "why": "the share line: room 4.8 measured, 3.2 read"
+  },
+  {
+   "name": "Ambient - Glass Ocean",
+   "offLu": 1.55,
+   "why": "the sea: its own level by his ear (the place's measurement), not the aim's; his to retire"
+  },
+  {
+   "name": "Ambient - Mirage",
+   "offLu": -1.97,
+   "why": "its loudest swell sits 2 dB over the rest and the ambient allowance (5 % of the blocks, 3 dB) holds the trim there"
+  },
+  {
+   "name": "Ambient - Eclipse",
+   "offLu": -2.53,
+   "why": "the bells: their own level by his ear, under the ambient aim; his to retire"
+  },
+  {
+   "name": "Ambient - Event Horizon",
+   "offLu": -4.03,
+   "why": "the drumless headroom model reads its windows 5.6 dB short of their room (+0.8 measured, \u22124.8 read); six featured drones are too few to refit it (the drone grid's renders are the next step)"
+  }
+ ],
+ "limits": [
+  {
+   "name": "Ambient - Low Orbit",
+   "share": 0.6,
+   "depth": 3.03,
+   "why": "its own place's level (his ear); its deepest block 0.03 dB past the 3 dB line, 0.6 % of the blocks"
+  },
+  {
+   "name": "Ambient - Deep Field",
+   "share": 5.1,
+   "depth": 5.86,
+   "why": "the benchmark's loudest swell, 2.6 LU over the rest of it (23 % of that swell's blocks on the ceiling): the drumless headroom model reads its swell 2.9 dB roomier than it is; cutting it off the ceiling would take the whole to about \u221217.5, under the ambient line his word forbids; his ear first"
+  }
+ ],
+ "breakdowns": [
+  {
+   "name": "Drive - Comet Tail",
+   "overLu": 2.22,
+   "why": "its breakdown 2.2 LU over its groove with the limiter in 55 % of it: the bed kept where the groove left it took 2.6 dB off the bed, and the passage did not move; what lifts it is not the melodic bus (open: the carrier or the keys)"
+  }
+ ]
+}

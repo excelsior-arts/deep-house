@@ -1,0 +1,621 @@
+{
+ "schema": 1,
+ "kind": "recipe",
+ "id": "ensembles/body-and-distance",
+ "revision": 1,
+ "name": "Body and distance",
+ "scope": "ensemble",
+ "applies": null,
+ "origin": "mined",
+ "interpreter": "v2.25",
+ "birds": {},
+ "weight": 0,
+ "ensemble": {
+  "needs": [
+   "drums",
+   "four-floor"
+  ],
+  "silences": [
+   "sustained"
+  ],
+  "level": {
+   "sub": 6.0,
+   "subCeilingOverBaseDb": 4.0,
+   "keys": -2.0,
+   "clap": -2.0,
+   "hatClosed": -5.0
+  },
+  "form": null,
+  "harmony": {
+   "movement": "pedal"
+  },
+  "bed": null,
+  "tempo": [
+   98,
+   112
+  ],
+  "centre": {
+   "ember": 0.394,
+   "tide": 0.558,
+   "zephyr": 0.7,
+   "root": 0.3,
+   "gleam": 0.7,
+   "veil": 0.7,
+   "spark": 0.16,
+   "loom": 0.3
+  },
+  "tideSends": [
+   0.6,
+   1.6
+  ],
+  "rootSub": [
+   -2,
+   2
+  ],
+  "lean": 3,
+  "reach": {
+   "voice": 2.5,
+   "register": 2
+  },
+  "roles": {
+   "kick": {
+    "layer": "kick"
+   },
+   "bass": {
+    "layer": "bass",
+    "register": 33,
+    "tolerance": {
+     "register": 9
+    }
+   },
+   "ostinato": {
+    "as": "ostinato",
+    "source": "fmBell",
+    "register": 69,
+    "tolerance": {
+     "voice": 6.5,
+     "register": 7
+    }
+   },
+   "phrase": {
+    "as": "phrase",
+    "source": "vibes",
+    "register": 72,
+    "tolerance": {
+     "voice": 2.5,
+     "register": 9
+    }
+   },
+   "pulse": {
+    "role": "texture",
+    "source": "fmBell",
+    "register": 81,
+    "tolerance": {
+     "voice": 6.5,
+     "register": 7
+    }
+   },
+   "hats": {
+    "as": "hats"
+   },
+   "hands": {
+    "as": "hands"
+   },
+   "ghosts": {
+    "as": "ghosts"
+   }
+  },
+  "relations": [
+   {
+    "says": "the bass leads: four to six notes a bar (its box), a fill now and then",
+    "measure": "density",
+    "a": "bass",
+    "range": [
+     3,
+     7
+    ]
+   },
+   {
+    "says": "its syncopation",
+    "measure": "onTheBeat",
+    "a": "bass",
+    "range": [
+     0.1,
+     0.5
+    ]
+   },
+   {
+    "says": "the ostinato: sixteenths",
+    "measure": "density",
+    "a": "ostinato",
+    "range": [
+     15,
+     16.5
+    ]
+   },
+   {
+    "says": "the pulse: one strike every four bars",
+    "measure": "density",
+    "a": "pulse",
+    "range": [
+     0.2,
+     0.3
+    ]
+   },
+   {
+    "says": "the phrase answers once every eight bars",
+    "measure": "density",
+    "a": "phrase",
+    "range": [
+     0.2,
+     1
+    ]
+   },
+   {
+    "says": "the pulse never meets the bass",
+    "measure": "shared",
+    "a": "pulse",
+    "b": "bass",
+    "range": [
+     0,
+     0.05
+    ]
+   },
+   {
+    "says": "the pulse an octave or more over the ostinato",
+    "measure": "over",
+    "a": "pulse",
+    "b": "ostinato",
+    "range": [
+     7,
+     17
+    ]
+   },
+   {
+    "says": "the ostinato three octaves or so over the bass",
+    "measure": "over",
+    "a": "ostinato",
+    "b": "bass",
+    "range": [
+     24,
+     48
+    ]
+   },
+   {
+    "says": "the pulse far: no dry signal",
+    "measure": "dry",
+    "a": "pulse",
+    "range": [
+     0,
+     0.1
+    ]
+   },
+   {
+    "says": "the ostinato in the middle room",
+    "measure": "wet",
+    "a": "ostinato",
+    "range": [
+     0.8,
+     3
+    ]
+   },
+   {
+    "says": "the hands receded",
+    "measure": "wet",
+    "a": "hands",
+    "range": [
+     0.4,
+     2
+    ]
+   },
+   {
+    "says": "the breakdown is the bass's: the ostinato leaves it",
+    "measure": "absentIn",
+    "a": "ostinato",
+    "section": "breakdown",
+    "range": [
+     0,
+     0
+    ]
+   },
+   {
+    "says": "and the pulse",
+    "measure": "absentIn",
+    "a": "pulse",
+    "section": "breakdown",
+    "range": [
+     0,
+     0
+    ]
+   }
+  ],
+  "development": {
+   "breakdown": [
+    "bass",
+    "kick",
+    "hats",
+    "hands",
+    "ghosts"
+   ]
+  }
+ },
+ "wants": {
+  "figures": {
+   "bassline": {
+    "follows": "harmony",
+    "articulation": "legato",
+    "motif": {
+     "contour": "pedal",
+     "intervals": {
+      "steps": [
+       0.5,
+       1
+      ],
+      "leaps": [
+       0,
+       0.5
+      ]
+     },
+     "cell": {
+      "beats": [
+       4,
+       4
+      ]
+     },
+     "onGrid": [
+      0.16,
+      0.35
+     ],
+     "range": {
+      "semitones": [
+       2,
+       5
+      ]
+     },
+     "density": [
+      4,
+      6
+     ],
+     "returns": {
+      "bars": [
+       4,
+       4
+      ]
+     }
+    }
+   },
+   "figure": [
+    {
+     "as": "ostinato",
+     "follows": "harmony",
+     "articulation": "struck",
+     "register": "mid",
+     "families": [
+      "keyboard"
+     ],
+     "properties": {
+      "struck": true,
+      "holdMin": 0.05,
+      "holdMax": 0.4,
+      "brightnessMin": 4000,
+      "brightnessMax": 8000
+     },
+     "prefer": {
+      "holdMin": 0.05,
+      "holdMax": 0.12,
+      "brightnessMin": 4000,
+      "brightnessMax": 7500
+     },
+     "near": {
+      "falloff": 60
+     },
+     "motif": {
+      "contour": "pedal",
+      "intervals": {
+       "steps": [
+        1,
+        1
+       ],
+       "leaps": [
+        0,
+        0
+       ]
+      },
+      "cell": {
+       "beats": [
+        2,
+        2
+       ]
+      },
+      "onGrid": [
+       0.25,
+       0.25
+      ],
+      "range": {
+       "semitones": [
+        2,
+        2
+       ]
+      },
+      "density": [
+       16,
+       16
+      ],
+      "returns": {
+       "bars": [
+        4,
+        4
+       ]
+      }
+     },
+     "strength": [
+      0.22,
+      0.26
+     ],
+     "entry": {
+      "beats": [
+       0,
+       0
+      ]
+     },
+     "spacing": {
+      "bars": [
+       1,
+       1
+      ]
+     },
+     "behavior": "ostinato",
+     "home": [
+      64,
+      75
+     ]
+    },
+    {
+     "as": "phrase",
+     "follows": "harmony",
+     "articulation": "struck",
+     "register": "mid",
+     "families": [
+      "keyboard"
+     ],
+     "properties": {
+      "struck": true,
+      "holdMin": 0.2,
+      "holdMax": 0.45,
+      "brightnessMin": 3500,
+      "brightnessMax": 5200
+     },
+     "prefer": {
+      "holdMin": 0.3,
+      "holdMax": 0.4,
+      "brightnessMin": 3800,
+      "brightnessMax": 4800
+     },
+     "near": {
+      "falloff": 1.5
+     },
+     "motif": {
+      "contour": "arch",
+      "intervals": {
+       "steps": [
+        0.3,
+        1
+       ],
+       "leaps": [
+        0,
+        0.7
+       ]
+      },
+      "cell": {
+       "beats": [
+        2,
+        2
+       ]
+      },
+      "onGrid": [
+       0.2,
+       0.6
+      ],
+      "range": {
+       "semitones": [
+        3,
+        7
+       ]
+      },
+      "density": [
+       8,
+       10
+      ],
+      "returns": {
+       "bars": [
+        8,
+        8
+       ]
+      }
+     },
+     "strength": [
+      0.35,
+      0.4
+     ],
+     "entry": {
+      "beats": [
+       24.5,
+       24.5
+      ]
+     },
+     "spacing": {
+      "bars": [
+       8,
+       8
+      ]
+     },
+     "behavior": "phrase",
+     "home": [
+      64,
+      75
+     ]
+    }
+   ],
+   "texture": {
+    "follows": "harmony",
+    "articulation": "pulse",
+    "register": "mid",
+    "families": [
+     "keyboard"
+    ],
+    "properties": {
+     "struck": true,
+     "holdMin": 0.05,
+     "holdMax": 0.4,
+     "brightnessMin": 4000,
+     "brightnessMax": 8000
+    },
+    "strength": [
+     0.52,
+     0.58
+    ],
+    "spacing": {
+     "bars": [
+      4,
+      4
+     ]
+    },
+    "entry": {
+     "beats": [
+      0.5,
+      0.5
+     ]
+    },
+    "duration": {
+     "beats": [
+      0.5,
+      0.5
+     ]
+    },
+    "ambience": "immersed",
+    "clearOf": [
+     "bass"
+    ],
+    "near": {
+     "falloff": 3
+    },
+    "home": [
+     76,
+     87
+    ]
+   }
+  },
+  "rhythm": {
+   "offbeat": [
+    {
+     "bars": 1,
+     "steps": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14
+     ],
+     "accents": [
+      0.18,
+      0.32,
+      0.16,
+      0.28,
+      0.18,
+      0.32,
+      0.16,
+      0.27
+     ],
+     "families": [
+      "noise"
+     ],
+     "properties": {
+      "struck": true,
+      "holdMax": 0.03,
+      "brightnessMin": 6000
+     },
+     "as": "hats"
+    }
+   ],
+   "sixteenth": [
+    {
+     "bars": 2,
+     "steps": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      30
+     ],
+     "accents": [
+      0.28,
+      0.22,
+      0.25,
+      0.2,
+      0.28,
+      0.22,
+      0.25,
+      0.2,
+      0.12
+     ],
+     "families": [
+      "drum"
+     ],
+     "properties": {
+      "struck": true,
+      "holdMax": 0.03,
+      "brightnessMin": 2000,
+      "brightnessMax": 3500
+     },
+     "as": "hands"
+    },
+    {
+     "bars": 2,
+     "steps": [
+      7,
+      23,
+      31
+     ],
+     "accents": [
+      0.13,
+      0.11,
+      0.09
+     ],
+     "families": [
+      "noise"
+     ],
+     "properties": {
+      "struck": true,
+      "holdMax": 0.01,
+      "brightnessMax": 7000
+     },
+     "as": "ghosts"
+    }
+   ]
+  },
+  "ambience": {
+   "backbeat": "distant",
+   "sixteenth": "distant",
+   "figure": "spacious"
+  },
+  "presence": {
+   "sixteenth": "supporting",
+   "backbeat": "background"
+  },
+  "tone": {
+   "bassline": "full"
+  }
+ },
+ "forbids": [],
+ "provenance": {
+  "basis": "the accepted arrangement of 09-20 (`studies/body-and-distance`), its roles and the relations between them measured on its approved program; the levels its approved render held (a sub-led mix, the hats far under), where later house rules moved them",
+  "varies": "the key and the tempo by seed and birds; the voices inside their windows and near their sources, at about even odds: at reach 0 the ostinato FM bell, FM electric piano, vibes, FM glass (a bright piano from reach 0.5), the phrase vibes or FM electric piano, the pulse the FM bell; the bass's line, the ostinato and the phrase rolled from their boxes; the depths and the pulse's place clear of the bass are the salt"
+ }
+}

@@ -56,6 +56,15 @@ export interface DeckTime {
    */
   zeroAt?: number;
   /**
+   * **A metered deck held off the grid** (round pl-clock, the two clocks of a far seam): from its theme second
+   * `from`, which falls on the context's `at`, its seconds land on the context `rate` to one (context seconds a theme
+   * second: the rate the grid was playing it at when it was held), so the grid can jump to the arriving theme's own
+   * tempo under it and move nothing of it. Before `from` it is read off the grid as ever, so a deck laid out whole
+   * ahead of a render (`renderMix`) keeps its body on the grid and its tail off it. Written by `holdOffGrid`; absent
+   * on every deck no two-clock seam has let go.
+   */
+  held?: OffGrid | null;
+  /**
    * how many of this theme's beats one beat of the set's grid carries: 1, but
    * 2 for a theme brought in at double time over the grid and ½ at half time
    * (`seamTempo` in the composer's `performance.ts`). Absent is 1.
@@ -74,6 +83,27 @@ export function gridBeat(deck: DeckTime): number {
 
 /** **Whether a deck's seconds are its own** (`Program.clock`): a free deck is mapped by offset and never by the grid. */
 export const freeDeck = (deck: { program: { clock?: 'free' } }): boolean => deck.program.clock === 'free';
+
+/** Where a metered deck left the grid (`DeckTime.held`): its theme second, the context instant, and its rate. */
+export interface OffGrid { from: number; at: number; rate: number }
+/** **Whether a deck is off the grid**: free, or a metered deck a two-clock seam has held off it. */
+export const offGrid = (deck: { program: { clock?: 'free' }; held?: OffGrid | null }): boolean => freeDeck(deck) || !!deck.held;
+
+/**
+ * **Hold a metered deck off the grid from `at`** (round pl-clock: a far seam is two clocks, not a ride): its theme
+ * second there and the rate the grid is playing it at there are written down, and from then on its seconds land on the
+ * context at that rate, whatever the grid does. Called before the grid moves; where the grid was standing at that
+ * instant (every far seam: the record's own tempo, long after its glide), every note and curve already laid past `at`
+ * falls where it was laid. A free deck, or one already held, is left as it is.
+ */
+export function holdOffGrid(deck: DeckTime, at: number): OffGrid | null {
+  if (freeDeck(deck)) return null;
+  if (deck.held) return deck.held;
+  const from = deckThemeTime(deck, at);
+  const rate = deck.clock.spbAt(deck.clock.beatAt(at)) / gridBeat(deck);
+  deck.held = { from, at, rate };
+  return deck.held;
+}
 
 /** One theme on a set's grid, with everything it owns. */
 export interface Deck extends DeckTime {
@@ -155,13 +185,21 @@ export interface Deck extends DeckTime {
 // put them (`offsetGrid`), so a seam's grid is never a reason for one of them
 // to move. Its tempo is the nominal one it was planned at, and nothing rides
 // or glides it.
+//
+// **A held deck is an offset from where it was held** (round pl-clock): past its `held.from` it is mapped the way a
+// free deck is, at the rate it was being played at, so the grid jumping to another theme's tempo under it moves none
+// of its notes; before it, the grid as ever.
 export function deckContextTime(deck: DeckTime, themeTime: number): number {
   if (freeDeck(deck)) return (deck.zeroAt ?? 0) + themeTime;
+  const h = deck.held;
+  if (h && themeTime >= h.from) return h.at + (themeTime - h.from) * h.rate;
   return deck.clock.timeAt(deck.startBeat + themeTime / gridBeat(deck));
 }
 
 export function deckThemeTime(deck: DeckTime, contextTime: number): number {
   if (freeDeck(deck)) return contextTime - (deck.zeroAt ?? 0);
+  const h = deck.held;
+  if (h && contextTime >= h.at) return h.from + (contextTime - h.at) / h.rate;
   return (deck.clock.beatAt(contextTime) - deck.startBeat) * gridBeat(deck);
 }
 
@@ -472,8 +510,8 @@ export function holdCurves(deck: Deck): HeldCurves {
  */
 export function relayDeck(ctx: BaseAudioContext, held: HeldCurves, from: number, until: number): void {
   const deck = held.deck;
-  // A free deck's curves are on its own seconds: a grid that moved moved none of them, nor its echoes.
-  if (deck.laidFrom == null || freeDeck(deck)) return;
+  // A free deck's curves are on its own seconds: a grid that moved moved none of them, nor its echoes; nor a held one's.
+  if (deck.laidFrom == null || offGrid(deck)) return;
   const lines = deck.program.automation;
   for (let i = 0; i < lines.length; i++) {
     const after = lines[i].points.map((p) => deckContextTime(deck, p.t));

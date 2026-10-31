@@ -97,11 +97,58 @@ export function job<T>(ctx: BaseAudioContext, render: () => Promise<T>, defer = 
   });
 }
 
+// **Every node of a render is held until the render has settled** (round
+// webkit-offline, 10-30). Apple's WebKit of macOS 27 and Safari 27 (WebCore
+// 22625) kills the page when an offline render ends with a node of its graph
+// about to go: the render thread drops a node it held for a moment, the main
+// thread has the graph's lock (an `ended` event of a source that stopped a
+// moment before the end, a node's script object being collected), so the drop
+// is put off to the end; the end takes the put-off drops in a loop, one of them
+// is a node's last, its disconnection deletes another node of the same loop,
+// and the loop then touches the deleted node: WebKit's own fix (319444@main,
+// 08-19) is not in that build. His Mac app and Safari, seven crashes on 10-30;
+// the system's WebKit and Playwright's, which has the same loop, within a
+// second of rendering the piano's string (10-29: its partials meet in the
+// board's filters and all stop 30 ms before the render's end; the six-partial
+// string, each partial straight to the destination, never did it). A node whose
+// script object is still alive can never be a last drop, so nothing a render
+// makes is let go before its promise settles, which is after the context has
+// torn itself down. The nodes are nothing the render does not hold anyway;
+// they go with the render.
+//
+// So a build makes its nodes through the context's `create…` methods (they
+// are what is held), never with a node's constructor. The whole-track renders
+// (`renderProgram`, `renderMix`) are the lab's and the private tier's, never
+// the page's, and do not hold theirs: a theme's every note would be held.
+function holdNodes(off: OfflineAudioContext): unknown[] {
+  const held: unknown[] = [];
+  const seen = new Set<string>();
+  for (let p = Object.getPrototypeOf(off); p && p !== Object.prototype; p = Object.getPrototypeOf(p)) {
+    for (const name of Object.getOwnPropertyNames(p)) {
+      if (!name.startsWith('create') || seen.has(name)) continue;
+      seen.add(name);
+      const make = (off as unknown as Record<string, unknown>)[name];
+      if (typeof make !== 'function') continue;
+      Object.defineProperty(off, name, {
+        configurable: true,
+        writable: true,
+        value: (...args: unknown[]) => {
+          const made: unknown = make.apply(off, args);
+          held.push(made);
+          return made;
+        },
+      });
+    }
+  }
+  return held;
+}
+
 /**
  * One OfflineAudioContext of `channels` by `length` samples at `ctx`'s rate,
  * built by `build` and rendered, under one permit. **The one place a voice
  * constructs an offline context**, so the count of them (`renderJobs`) is
- * taken where they are made and not where a job is admitted.
+ * taken where they are made and not where a job is admitted. Every node the
+ * build makes is held until the render settles (`holdNodes`).
  */
 export function offline(
   ctx: BaseAudioContext,
@@ -115,6 +162,7 @@ export function offline(
     const off = new (Offline())(channels, length, ctx.sampleRate);
     j.contexts++;
     if (j.contexts > peakContexts) peakContexts = j.contexts;
+    const held = holdNodes(off);
     let done: Promise<AudioBuffer>;
     try {
       build(off);
@@ -123,9 +171,39 @@ export function offline(
       j.contexts--;
       throw e;
     }
-    return done.finally(() => { j.contexts--; });
+    rendering.add(held);
+    // The nodes go when the render has really settled, however long that is;
+    // the permit and the count go at the deadline if it comes first.
+    done.then(() => {}, () => {}).finally(() => { rendering.delete(held); heldPeak = Math.max(heldPeak, held.length); held.length = 0; });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<never>((_, no) => {
+      if (typeof setTimeout === 'function')
+        timer = setTimeout(() => { overdue++; no(new Error(`an offline render did not finish in ${RENDER_DEADLINE} s`)); }, RENDER_DEADLINE * 1000);
+    });
+    late.catch(() => {});
+    return Promise.race([done, late]).finally(() => { clearTimeout(timer); j.contexts--; });
   }, defer);
 }
+
+/**
+ * **No render holds its permit for ever** (round webkit-offline, 10-30). A
+ * render that has not settled `RENDER_DEADLINE` seconds after it started is
+ * failed: its permit goes back, its key is left empty (`cached`), and the voice
+ * builds that note live, the fallback every render already has. A string
+ * renders in milliseconds, so the deadline is only ever met by a render the
+ * browser has lost, and four of those would otherwise stop every later render
+ * on the context and the start that waits for a theme's voices.
+ */
+export const RENDER_DEADLINE = 10;
+let overdue = 0;
+/** How many renders were failed at the deadline, for a gate. */
+export const overdueRenders = (): number => overdue;
+
+/** The nodes of every render in the air, held to its end (`holdNodes`). */
+const rendering = new Set<unknown[]>();
+let heldPeak = 0;
+/** What is held: the renders in the air and the most nodes one render held, for a gate. */
+export const heldNodes = () => ({ renders: rendering.size, peak: heldPeak });
 
 /**
  * What the rationing has done, for a gate: the most permits ever running at

@@ -41,12 +41,12 @@ import { generate, resolveRoom, leadTimbreOfTheme, rollTempo, heldByZone } from 
 import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
-import { loudnessTrimDb, loudnessPlanOf } from './loudness.ts';
+import { loudnessTrimDb, loudnessPlanOf, densityOf } from './loudness.ts';
 import { classicRoles } from './roles.ts';
-import { seamPlan, blendAsked, seamTempo, glideBarsFor, freeSides, freeSeamBars, isFree } from './performance.ts';
+import { seamPlan, blendAsked, seamTempo, glideBarsFor, freeSides, freeSeamBars, isFree, splitSeamBars, listPull, SPLIT_SWAP_BARS, programOf, beatLed, BEAT_LED, BEAT_DRIVE } from './performance.ts';
 import { HOLE_ALL, holeOfBus } from '@deep-house/engine/schedule';
 import { clockAt, freeBlendSeconds, freeRingSeconds, FREE_BPM } from './musical-time.ts';
-import type { StylePlaces } from './places.ts';
+import { lengthMargin, type StylePlaces } from './places.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import type { SetClock } from '@deep-house/engine/set-clock';
 import type { SeamPlan } from '@deep-house/engine/program';
@@ -54,7 +54,7 @@ import type { CurveStep, SeamLine, SeamHole, SeamWrite } from '@deep-house/engin
 import type { Room, Style } from '@deep-house/engine/style';
 import Rng from './rng.ts';
 import { biasFor, tempoInFamily } from './spell.ts';
-import { minutesBand, minutesAt, barsFor } from './length.ts';
+import { minutesBand, minutesAt, barsFor, namedShare, type LengthKnobs } from './length.ts';
 import type { Spell } from './spell.ts';
 import { switchOn } from './lanes.ts';
 import { libraryTurn } from './library-draw.ts';
@@ -536,9 +536,17 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
   let fit: number | null = null;
   if (byMinutes) {
     const P = o.themeBarPercentiles;
-    const band = minutesBand(bias.derived);
+    // the rows are the style's (`length`, engine-data); a row a place's entry names (the struck voices' conversation, the
+    // simplest ambient tone, round length-2b) by its share, read where the place's read stands at the place's address
+    // (`placeBpm`), so a slide off it glides; the row with the largest share where several are named
+    const K = (style as Style & { length?: LengthKnobs }).length;
+    if (!K) throw new Error('set-plan: a style that rolls minutes needs its length rows (`length`)');
+    const places = switchOn(style, 'placeTables') ? (style as Style & { places?: StylePlaces }).places : undefined;
+    const named = places ? Object.keys(K.named).map((row) => ({ row, share: namedShare(lengthMargin(places, row, bias.spell, placeBpm), K) }))
+      .filter((x) => x.share > 0).sort((a, b) => b.share - a.share)[0] ?? null : null;
+    const band = minutesBand(bias.derived, K, named);
     const minutes = minutesAt(band, (ladder - P[0]) / (P[P.length - 1] - P[0]));
-    fit = barsFor(minutes, bpm);
+    fit = barsFor(minutes, bpm, K);
     bars = o.themeTrim ? Math.ceil(fit / o.themeTrim / 4) * 4 : fit;
   }
 
@@ -587,6 +595,28 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     reach: o.reach ?? null,
   };
   return { args, o, r, RANGE };
+}
+
+/**
+ * **Theme n's tempo, without composing it** (round pl-clock): the tempo `generate` is asked for, which is the plan's
+ * own (`planTheme`'s `bpm`), and for a free theme the tempo its place was read at (its address). A playlist reads its
+ * tracks' tempi through this rather than planning each one: a plan is 5 to 90 ms a track, this is the dice before it.
+ */
+export function themeTempo(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style }): { bpm: number; free: boolean } {
+  const { args } = themeAt(masterSeed, n, opts);
+  const a = args as { bpm: number; clock?: 'free'; placeBpm?: number };
+  return a.clock === 'free' ? { bpm: a.placeBpm ?? a.bpm, free: true } : { bpm: a.bpm, free: false };
+}
+
+/**
+ * **The tail a record leaves on two clocks**, in seconds (round pl-clock): the free tail's law (`freeBlendSeconds`,
+ * PLAN-AMBIENT §4.3) read at the record's own birds — Loom's presence, from the blend's start to its last new note,
+ * and Tide's ring after it. A free theme carries the same two numbers on its plan (`blendSeconds`, `ringSeconds`);
+ * a metered one is asked at its seam, so no plan carries a byte more.
+ */
+export function tailSeconds(spell: Partial<Spell> | null | undefined, style: Style): { blendSeconds: number; ringSeconds: number } {
+  const birds = biasFor(spell ?? null, style).spell;
+  return { blendSeconds: freeBlendSeconds(birds.loom, birds.tide), ringSeconds: freeRingSeconds(birds.tide) };
 }
 
 // The whole plan of theme n, pure and cheap: no audio, no context.
@@ -638,12 +668,24 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
   // **The theme's sum clip** (round drum-clip, `loudness.ts` `sumClipOf`) is planned with it, off the same read of the
   // same window (`loudnessPlanOf`), where the front rule moved a house window; beside the plan, in the room it is
   // built with, as the trim is.
-  const { trimDb, sumClip } = loudnessPlanOf(track, style);
+  const { trimDb, sumClip, aimLufs, hitDb } = loudnessPlanOf(track, style);
   track.trimDb = trimDb;
+  // ...and the kick and the clap set down where the loudest hit, not the body, held the trim (round loudness-place, round
+  // 2, `loudness.ts` `clipPlan`): the room's levels as the theme plays them, less the hit's decibels, beside the plan
+  const HIT = style.settings.loudness.density?.hit;
+  if (HIT && hitDb > 0) {
+    const now = (mergeParams(clone(style.base), track.paramOverrides || {}) as { levels: Record<string, number> }).levels;
+    const down = Object.fromEntries(HIT.levels.filter((k) => Number.isFinite(now[k])).map((k) => [k, +(now[k] - hitDb).toFixed(3)]));
+    track.paramOverrides = mergeParams(track.paramOverrides || {}, { levels: down });
+  }
+  if (aimLufs != null) track.aimLufs = aimLufs;
   // ...never over the place's ceiling, where the place states one (round DNB-3: the model does not see the place's lifts).
   const most = track.sound?.trimMostDb;
   if (most != null && track.trimDb > most) track.trimDb = most;
   if (sumClip) track.paramOverrides = mergeParams(track.paramOverrides || {}, { master: { sumClip } });
+  // ...and the density its place asks (round loudness-place, `densityOf`: the beat-led band's drive made upstream)
+  const density = densityOf(track, style);
+  if (density) track.paramOverrides = mergeParams(track.paramOverrides || {}, { master: density });
   // **The trim under the classic roles** (round DUB-1): a theme whose place
   // turned the roles round carries the trim it would have had without them,
   // so `roles=classic` plays the theme as it was, level and all.
@@ -720,6 +762,8 @@ export interface SetSeam {
   end: number;
   /** what the theme wanted before the blend before it was allowed a say */
   natural: SeamPlan;
+  /** a seam on two clocks (`seamTempo`'s `split`): the outgoing theme is held off the grid from `at`, and leaves by its tail */
+  split?: { ringS: number };
 }
 
 /** A whole set, before anything makes a sound. */
@@ -730,6 +774,8 @@ export interface SetPlan {
   startBeats: number[];
   /** each theme's beats to one beat of the grid (`seamTempo`): 1 but at double or half time */
   perBeats: number[];
+  /** where a theme was held off the grid by a two-clock seam out of it (`Deck.held`), or null */
+  helds: ({ from: number; at: number; rate: number } | null)[];
   seams: SetSeam[];
   clock: SetClock;
 }
@@ -741,6 +787,148 @@ export interface SetPlan {
  */
 export const swapAfterBars = (blendBars: number, o: { swapAfterBars: number }) =>
   Math.max(1, Math.min(o.swapAfterBars, Math.floor(blendBars / 2)));
+/** ...and on two clocks, four arriving bars in at the most (`SPLIT_SWAP_BARS`): the outgoing beat has already left */
+export const splitSwap = <O extends { swapAfterBars: number }>(o: O): O => ({ ...o, swapAfterBars: Math.min(o.swapAfterBars, SPLIT_SWAP_BARS) });
+
+/**
+ * **The lead: how long the arriving theme is heard before its groove lands** (round mix-voices, his word 10-30: *"our
+ * mixing became kind of too abrupt. Almost feels like one song quickly plugs to another one. I almost don't even hear
+ * any ahead of time voices"*). A hand-over between two tracks (a playlist's, a hand's, every seam on two clocks)
+ * swaps on the arriving theme's **phrase line**: its first phrase (eight bars at the house, sixteen at half time, four
+ * on the slow side) is heard over the record before its groove lands, halved while it does not fit:
+ *
+ *   - no longer than `LEAD_MOST_S` (a phrase of a slow theme is as long as a listener waits for the next thing);
+ *   - room after it where the record's voices linger (`seamShape`): a third of the blend where the two keys fit, two
+ *     arriving bars where they do not (the record's harmony has gone at the lead's middle by the key rule, so the
+ *     lead may take the blend). A first build left two bars whatever the keys, and over the grid the record's voices
+ *     lingered a second less than before on two clocks;
+ *   - and inside the record: it keeps a bar of its own past the swap, so the groove that carries the lead is there.
+ *
+ * Never shorter than the swap it replaces (`least`: four arriving bars on two clocks, the hand's fourteen seconds),
+ * never the blend's last bar. Pure numbers, so the transport's forecast (`foresee`), the layout (`layOut`) and the
+ * seam (`scheduleTransition`) read one answer.
+ *
+ * @param recordLeftS the record's seconds from the blend's first instant to its end, as heard (context seconds)
+ * @param recordBarS a bar of the record, as heard
+ */
+export const LEAD_MOST_S = 20;
+export function seamLead(bars: number, barSeconds: number, phrase: number, recordLeftS: number, recordBarS: number, least: number, related = false): number {
+  const after = related ? Math.max(2, Math.ceil(bars / 3)) : 2;
+  const fits = (L: number) => L * barSeconds <= LEAD_MOST_S + 1e-9 && bars - L >= after && L * barSeconds <= recordLeftS - recordBarS + 1e-6;
+  let L = Math.max(1, Math.round(phrase));
+  while (L > 1 && !fits(L)) L = Math.floor(L / 2);
+  if (!fits(L) || L < least) L = least;
+  return Math.max(1, Math.min(L, bars - 1));
+}
+/**
+ * **The lead a hand-over between two tracks takes** (`seamLead`), for a record and an arriving plan: the arriving
+ * phrase, inside the blend and inside the record. `foresee` reads it before the decks exist, `layOut` for a seam on two
+ * clocks, `scheduleTransition` once the decks do.
+ *
+ * @param atInRecord the blend's first instant in the record's own seconds
+ * @param recordRate the record's own seconds a context second
+ */
+export function leadFor(record: SetTrack, arriving: SetTrack, atInRecord: number, recordRate: number, bars: number, barSeconds: number, least: number,
+  o: { harmonicCross?: { related: number } } = {}): number {
+  const leftS = (record.bars * record.barSeconds - atInRecord) / recordRate;
+  const lead = seamLead(bars, barSeconds, phraseBarsOf(arriving), leftS, record.barSeconds / recordRate, least, keysFit(record, arriving, o));
+  // a longer lead is for the arriving voices: where its theme strikes no harmonic note in it (an intro of drums alone),
+  // the swap stays where it was (a render: Drive - Cloudburst into Drive - Supercell, whose intro is a kick, only
+  // lost the record's voices to it)
+  const voices = programOf(arriving).events.some((e) => (e.bus === 'melodic' || e.bus === 'keys') && e.t < lead * arriving.barSeconds);
+  return voices ? lead : least;
+}
+/** whether two themes' keys fit (the key rule): `related` notes of seven in common, or no harmonic cross in the style */
+export const keysFit = (a: SetTrack, b: SetTrack, o: { harmonicCross?: { related: number } }): boolean =>
+  !o.harmonicCross || keysShared(a.key, b.key) >= o.harmonicCross.related;
+/** a theme's phrase in its own bars (the phrase map's), eight where it states none */
+export const phraseBarsOf = (t: { phraseMap?: { time?: { phraseBars?: number } } }): number => Math.max(1, Math.round(t.phraseMap?.time?.phraseBars ?? 8));
+
+/**
+ * **How a hand-over between two tracks goes** (round mix-voices). Which of three ways is the record's: how beat-led it
+ * is (`beatLed`) at the tempo it is heard at. The record's, because the rhythm that would stop is the record's: the
+ * arriving groove lands at the swap whatever it is.
+ *
+ *   - **drive** (beat-led from 0.75; his word: *"we can't lose the rhythm when mixing"*): the record's kick and top
+ *     percussion carry the tempo to the swap; its bass, the weight, goes as the arriving voices come in;
+ *   - **lift** (beat-led, 0.5-0.75): its kick goes with the bass and its top percussion carries; where it has none,
+ *     its kick does;
+ *   - **deep** (under 0.5; slow and deep places, ambient): its drums and bass go first, on the blend's first instant
+ *     (a phrase line), like going into its last breakdown; its pads and keys ring, the arriving theme comes in on its
+ *     intro's voices, and its groove lands on its phrase line. A beatless bridge, allowed here, where it has a bed:
+ *     the arriving voices in the lead, with the record's where the keys fit, or two arriving voices where they do not.
+ *     Otherwise a deep record goes the lift way: an intro of drums alone has nothing to bridge on, and with unrelated
+ *     keys the record's harmony crosses out, so the arriving intro stands alone and must be a bed (two voices at least).
+ *
+ * **The carrier** (beat-led ways): what keeps the tempo audible to the swap, where the grooves change hands. The
+ * record's top percussion where it strikes in three bars of four of the lead, else its kick, else (on two clocks: no
+ * other grid is heard) the arriving theme's own top percussion from the first instant.
+ *
+ * **The key rule.** Where the two keys share fewer notes than `related` (six of seven: the same key, a fifth either
+ * way, the same root in the other mode), two beds would clash for the whole lead and linger, so the harmony belongs to
+ * one side at a time: the record's for the lead's first half, the arriving theme's from its middle (`crossAt`), crossed
+ * over the harmonic cross's bars with the record's harmony filtered as it goes, and no linger of the record's harmony
+ * past the swap. Related keys keep both through the lead and the record's lingers.
+ */
+export type SeamWay = 'drive' | 'lift' | 'deep';
+export interface SeamShape {
+  way: SeamWay;
+  /** the record's reading (`beatLed`) at the tempo heard */
+  beatLed: number;
+  /** arriving bars from the blend's first instant to the swap (`seamLead`) */
+  lead: number;
+  /** what keeps the tempo audible before the swap: the record's top percussion or its kick, the arriving theme's top, or nothing (a deep bridge) */
+  carrier: 'drums' | 'kick' | 'arriving' | 'none';
+  /** whether the two keys share `related` notes (the key rule) */
+  related: boolean;
+  /** on two clocks */
+  split: boolean;
+  /** whether the arriving theme strikes a harmonic note in the lead: where it does not, nothing crosses before the swap */
+  voices: boolean;
+}
+type ShapeProgram = { events: ReadonlyArray<{ t: number; bus: string; layer?: string }> };
+export function seamShape(x: {
+  from: SetTrack; to: SetTrack; fromProgram?: ShapeProgram; toProgram?: ShapeProgram;
+  /** the tempo the record is heard at */
+  fromBpm: number; bars: number; barSeconds: number; split: boolean; lead: number;
+  /** the blend's first instant in each theme's own seconds, and each one's own seconds a context second */
+  atInFrom: number; atInTo: number; fromRate: number; toRate: number;
+  o: MixOptions;
+}): SeamShape {
+  const { from, to, lead, barSeconds } = x;
+  const fp = x.fromProgram ?? programOf(from), tp = x.toProgram ?? programOf(to);
+  const leadS = lead * barSeconds;
+  // the record's own bars of the lead, and which of them strike on a bus
+  const fromBar = from.barSeconds;
+  const a0 = x.atInFrom, a1 = x.atInFrom + leadS * x.fromRate;
+  const leadBars = Math.max(1, Math.round((a1 - a0) / fromBar));
+  const barsOn = (bus: string) => {
+    const on = new Set<number>();
+    for (const e of fp.events) if (e.bus === bus && e.t >= a0 - 1e-9 && e.t < a1) on.add(Math.floor((e.t - a0) / fromBar + 1e-9));
+    return on.size / leadBars;
+  };
+  const bedOf = (p: ShapeProgram, t0: number, t1: number) => new Set(p.events.filter((e) => (e.bus === 'melodic' || e.bus === 'keys') && e.t >= t0 - 1e-9 && e.t < t1).map((e) => e.layer)).size;
+  const harmonic = (p: ShapeProgram, t0: number, t1: number) => p.events.some((e) => (e.bus === 'melodic' || e.bus === 'keys') && e.t >= t0 - 1e-9 && e.t < t1);
+  const b0 = x.atInTo, b1 = x.atInTo + leadS * x.toRate;
+  // the bridge is the arriving theme's voices: drums dropped for a record's pads alone are a long breakdown with nothing
+  // arriving in it (a render: Vibe - Pure Gold into Vibe - Solar Wind, whose intro is its drums alone, left 11 s of
+  // Takeoff's pads 8 dB under the flanks); a record whose arriving theme brings no voice keeps its top to the swap
+  const bridge = harmonic(tp, b0, b1);
+  const bl = beatLed(from, x.fromBpm).value;
+  const related = keysFit(from, to, x.o);
+  const drums = barsOn('drums'), kick = barsOn(x.o.swapGroup);
+  let way: SeamWay = bl >= BEAT_DRIVE ? 'drive' : bl >= BEAT_LED ? 'lift' : 'deep';
+  // a beatless bridge needs a bed: the arriving voices, and the record's with them. Where the keys do not fit the
+  // record's harmony crosses out, so the arriving intro must be a bed on its own, two voices (layers) at least, or a
+  // record with drums keeps its top to the swap. Two renders: Vibe - Aurora into Vibe - Night Side, Night Side's intro a
+  // lone pad, sat 8-14 dB under the flanks for seven seconds; Vibe - Deep Dive into Vibe - Drizzle, its intro
+  // keys, pad and effects, bridged at the flanks' level with the limiter idle, where Deep Dive's drums kept on loaded
+  // it in half the lead (0.54 against 0.08)
+  if (way === 'deep' && (!bridge || (!related && Math.max(drums, kick) >= 0.5 && bedOf(tp, b0, b1) < 2))) way = 'lift';
+  const carrier: SeamShape['carrier'] = way === 'deep' ? 'none'
+    : drums >= 0.75 ? 'drums' : kick >= 0.75 ? 'kick' : 'arriving';
+  return { way, beatLed: bl, lead, carrier, related, split: x.split, voices: bridge };
+}
 
 /**
  * The whole of a set from its master seed: every theme, where it starts, and
@@ -754,13 +942,13 @@ export const swapAfterBars = (blendBars: number, o: { swapAfterBars: number }) =
  * and the two were held together by a gate comparing them; they are the same
  * function since round E and there is nothing left to drift.
  */
-export function setLayout(masterSeed: string | number, themes = 3, opts: Partial<MixOptions> & { style: Style }): SetPlan {
+export function setLayout(masterSeed: string | number, themes = 3, opts: Partial<MixOptions> & { style: Style; listBpm?: number | null }): SetPlan {
   const o = setOptions(opts.style, opts);
   const plans: SetTrack[] = [];
   for (let i = 0; i < themes; i++) {
     plans.push(planTheme(String(masterSeed), i, { ...o, themeBars: o.themeBars || undefined }));
   }
-  return layOut(plans, o);
+  return layOut(plans, opts.listBpm != null ? { ...o, listBpm: opts.listBpm } : o);
 }
 
 /**
@@ -773,12 +961,19 @@ export function setLayout(masterSeed: string | number, themes = 3, opts: Partial
  * the outgoing theme to the new tempo over the bars before the seam's line and
  * blends there, so the line `seamPlan` chose is still where the blend begins.
  */
-export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: Style; seams?: ({ bar: number; bars: number } | null)[]; entries?: number[] }): SetPlan {
+export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: Style; seams?: ({ bar: number; bars: number } | null)[]; entries?: number[];
+  listBpm?: number | null; spells?: (Partial<Spell> | null)[] }): SetPlan {
   const o = setOptions(opts.style, opts);
-  const clock = makeSetClock(plans[0].beat, 0);
-  const startBeats = [0];
+  // **The tempo each theme is played at** (round pl-clock): its own, or a playlist's clock where one is stated and
+  // pulls it (`listPull`); a free theme's is its own nominal one. The grid is aimed at this and the plans are untouched.
+  const playBpm = (t: SetTrack): number => (isFree(t) ? t.bpm : listPull(t.bpm, opts.listBpm) ?? t.bpm);
+  const playBeat = (t: SetTrack): number => 60 / playBpm(t);
+  const clock = makeSetClock(playBeat(plans[0]), 0);
+  // (a stated entry of the first theme, a render that opens inside it, is its first bar on the grid before nought)
+  const startBeats = [-(opts.entries?.[0] ?? 0) / plans[0].beat];
   const starts = [0];
   const perBeats = [1];
+  const helds: ({ from: number; at: number; rate: number } | null)[] = plans.map(() => null);
   const seams: SetSeam[] = [];
   // where a free theme's second nought falls (`Deck.zeroAt`): it is counted by offset, never by the grid
   const zeros: number[] = [-(opts.entries?.[0] ?? 0)];
@@ -805,21 +1000,29 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
     // The tempo the outgoing theme is heard at as the seam is reached, and
     // what the rule does with the arriving one's.
     const heard = own ? t.bpm : (60 / clock.spbAt(clock.beatAt(contextTimeAt(p.at)))) * m;
-    const rule = seamTempo(heard, plans[i + 1].bpm, o, freeSides(t, plans[i + 1]));
+    const rule = seamTempo(heard, playBpm(plans[i + 1]), o, freeSides(t, plans[i + 1]));
     // A far jump rides first: the bars before the line, from no earlier than
-    // the blend before it ended, onto the arriving theme's own tempo.
+    // the blend before it ended, onto the arriving theme's own tempo. (No rule
+    // asks for one since round pl-clock: a far seam is two clocks.)
     if (rule.ride > 0) {
       const from = Math.max(themeTimeAt(free), p.at - rule.ride * t.barSeconds);
       const beats = (p.at - from) / g;
-      if (beats > 0) clock.glide(clock.beatAt(contextTimeAt(from)), plans[i + 1].beat * m, beats);
+      if (beats > 0) clock.glide(clock.beatAt(contextTimeAt(from)), playBeat(plans[i + 1]) * m, beats);
     }
     const at = contextTimeAt(p.at);
+    const gridBar = (clock.spbAt(clock.beatAt(at)) * 4) / m;
     // A seam with a free side (`seamTempo`'s `free`): into a free theme the grid is pinned and holds; out of one it
     // jumps to the arriving theme's own tempo where the blend begins, and the blend is the free theme's seconds on
-    // the bar it is counted in (`freeSeamBars`).
+    // the bar it is counted in (`freeSeamBars`). **A seam on two clocks** (`split`, round pl-clock) is the second
+    // case for a metered record: it is held off the grid where the blend begins, at the tempo it is heard at, and the
+    // grid jumps under it; the blend is its own tail's seconds (`tailSeconds`) on the arriving bar.
+    const split = rule.kind === 'split';
+    const tail = split ? tailSeconds(opts.spells?.[i] ?? o.spell, t.style ?? o.style) : null;
     const freeSeam = rule.kind === 'free'
-      ? freeSeamBars(t, plans[i + 1], p.bars, (clock.spbAt(clock.beatAt(at)) * 4) / m) : null;
-    if (freeSeam?.jump) clock.jump(clock.beatAt(at), plans[i + 1].beat);
+      ? freeSeamBars(t, plans[i + 1], p.bars, gridBar)
+      : split ? splitSeamBars(p.bars, gridBar, tail!.blendSeconds, playBeat(plans[i + 1]) * 4) : null;
+    if (split) helds[i] = { from: p.at, at, rate: clock.spbAt(clock.beatAt(at)) / g };
+    if (freeSeam?.jump) clock.jump(clock.beatAt(at), playBeat(plans[i + 1]));
     const barSeconds = freeSeam && freeSeam.jump ? freeSeam.barSeconds : (clock.pin(clock.beatAt(at)) * 4) / m;
     const bars = freeSeam ? freeSeam.bars : p.bars;
     const seamBar = freeSeam ? freeSeam.barSeconds : barSeconds;
@@ -834,11 +1037,14 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
       bars,
       barSeconds: seamBar,
       at,
-      swapAt: at + swapAfterBars(bars, o) * seamBar,
+      // on two clocks a hand-over between two tracks: the arriving phrase line (`leadFor`), as `scheduleTransition` lays it
+      swapAt: at + (split ? leadFor(t, plans[i + 1], p.at, 1 / helds[i]!.rate, bars, seamBar, swapAfterBars(bars, splitSwap(o)), o)
+        : swapAfterBars(bars, o)) * seamBar,
       end,
       natural: seamPlan(t, blendAsked(t), { boundaryBars: o.boundaryBars, style: o.style }),
+      ...(split ? { split: { ringS: tail!.ringSeconds } } : {}),
     });
-    const mIn = rule.kind === 'free' ? 1 : m * rule.perBeat;
+    const mIn = freeSeam?.jump || rule.kind === 'free' ? 1 : m * rule.perBeat;
     // and where the arriving theme enters: its first bar, or a stated second
     // of it (`renderMix`'s `entries`: a move in place)
     startBeats.push(clock.beatAt(at) - (opts.entries?.[i + 1] ?? 0) / (plans[i + 1].beat * mIn));
@@ -847,15 +1053,15 @@ export function layOut(plans: SetTrack[], opts: Partial<MixOptions> & { style: S
     perBeats.push(mIn);
     free = end;
     // A free side glides nothing after the blend: the grid holds where the metered theme left it, or already runs at
-    // the arriving one's own tempo.
-    if (rule.kind === 'free') continue;
+    // the arriving one's own tempo. Nor does a seam on two clocks: the grid is the arriving theme's from its first beat.
+    if (rule.kind === 'free' || split) continue;
     // What is left after the blend, over its own length: sixteen bars for a
     // drift, a bar a percent for a near move, nothing for a far one.
-    const target = plans[i + 1].beat * mIn;
+    const target = playBeat(plans[i + 1]) * mIn;
     const left = clock.spbAt(clock.beatAt(end)) / target;
     clock.glide(clock.beatAt(end), target, Math.max(1, (glideBarsFor(left, o) * 4) / mIn));
   }
-  return { plans, starts, startBeats, perBeats, seams, clock };
+  return { plans, starts, startBeats, perBeats, helds, seams, clock };
 }
 
 // --- what a hand-over writes ------------------------------------------------
@@ -920,7 +1126,18 @@ export interface SeamMoment {
    * `ringS` is its ring, Tide's (`ringSeconds` on the plan). Absent on every seam out of a metered theme, which writes
    * what it always wrote.
    */
-  freeTail?: { ringS: number };
+  freeTail?: { ringS: number; rate?: number; beatOut?: boolean };
+  /**
+   * **A hand-over between two tracks** (round mix-voices, `seamShape`): the way, the lead, the carrier and the key
+   * rule; with the blend's first instant in each deck's own seconds. Absent on the set's own beat-matched seams, which
+   * write what they always wrote.
+   */
+  shape?: SeamShape;
+  atInFrom?: number;
+  atInTo?: number;
+  /** each track's aim (`aimLufs` on the plan, round loudness-place): a hand-over whose step is past the cap glides the arriving one in (`ENTRY_GLIDE`) */
+  fromAimLufs?: number;
+  toAimLufs?: number;
 }
 
 /**
@@ -943,6 +1160,28 @@ export interface SeamMoment {
  */
 export const FREE_TAIL_CURVES = Object.freeze({ swapHz: 6000, lastHz: 1200, goneHz: 500, lastDb: -24 });
 
+/**
+ * **A metered record leaving on two clocks** (round pl-clock; the DJ's rule: never two kicks, or two hat grids, at two
+ * tempi at once). The free tail above, with the grooves changing hands whole: a seam whose decks keep their own clocks
+ * (`seamTempo`'s `split`) is a hand-over and not a beat-matched blend, so one groove plays at a time and the swap is
+ * where it changes hands:
+ *
+ *   at             the arriving theme enters at its own tempo, fading up on its top alone: its percussion (`drums`),
+ *                  kick and bass held for the swap; the record plays on, groove and all, its top starting to close
+ *   swap           four arriving bars in (`SPLIT_SWAP_BARS`): the arriving groove lands whole, and the record's
+ *                  percussion, bass and calls (`keys`) play no new note (its kick a bar before, as on every seam)
+ *   swap .. last   the record's pads' last notes under the arriving groove, its level falling to `lastDb` and its top
+ *                  to `lastHz`
+ *   last .. end    the ring, Tide's
+ *
+ * It was first written with the record's beat leaving at the blend's first instant, and a render said no (seed 4 at
+ * bar 32 into seed 14): a record whose bar is mostly its beat left 8 s at -35 to -45 dB before the arriving kick. The
+ * seconds are the free tail's law at the record's own birds (`tailSeconds`), the same patience a listener has for a
+ * pad under a groove. Written by the free tail's own lines (`freeTail` with `beatOut`); the record's own seconds run at
+ * the rate it was held at (`rate`).
+ */
+
+
 function pointLine() {
   const pts: CurveStep[] = [];
   return {
@@ -959,6 +1198,7 @@ function pointLine() {
  * `tools/program.ts` locks.
  */
 export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
+  if (m.shape) return handOverCurves(m, m.shape, o);
   const { at, bars, barSeconds, swapAt } = m;
   const end = at + bars * barSeconds;
   const lines: SeamLine[] = [];
@@ -1002,6 +1242,8 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
   // downbeat the bass changes hands on is not itself excluded.
   holes.push({ deck: 'to', group: o.bassGroup, gap: [0, m.swapInTo - 1e-6] });
 
+  // (on two clocks the grooves change hands whole at the swap: `beatOut`, below)
+  const beatOut = !!m.freeTail?.beatOut;
   line('from', subGain, pointLine()
     .set(1, at)
     .lin(trim, at + barSeconds)
@@ -1024,7 +1266,11 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
   // drummed themes — every seam inside one set — hole exactly as they did.
   const both = m.fromKick !== false && m.toKick !== false;
   const neither = m.fromKick === false && m.toKick === false;
+  const rate = m.freeTail?.rate ?? 1;
   if (both || neither || m.toKick) holes.push({ deck: 'from', group: o.swapGroup, gap: [m.swapInFrom - m.outgoingBar, Infinity] });
+  // **On two clocks the arriving theme's percussion waits for the swap too** (round pl-clock): the record's groove
+  // plays on to it, so two hat grids at two tempi never sound together; the arriving theme comes in on its top alone
+  if (beatOut) holes.push({ deck: 'to', group: holeOfBus('drums'), gap: [0, m.swapInTo - 1e-6] });
   if (both || neither || m.fromKick) holes.push({ deck: 'to', group: o.swapGroup, gap: [0, m.swapInTo - 1e-6] });
 
   // MEASURED: a filter moves in about half of all mixes, direction a coin
@@ -1044,8 +1290,9 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
     const F = FREE_TAIL_CURVES;
     const ring = Math.max(0, Math.min(m.freeTail.ringS, (end - swapAt) / 2));
     const last = end - ring;
-    // a free deck's seconds are the context's one to one, so its own seconds are the swap's plus the distance
-    const own = (t: number) => m.swapInFrom + (t - swapAt);
+    // a free deck's seconds are the context's one to one, so its own seconds are the swap's plus the distance; a held
+    // metered one's run at the rate it was held at
+    const own = (t: number) => m.swapInFrom + (t - swapAt) / rate;
     line('from', 'lp.frequency', pointLine()
       .set(20000, at)
       .exp(F.swapHz, swapAt)
@@ -1056,8 +1303,15 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
       .exp(Math.pow(10, F.lastDb / 20), last)
       .exp(0.0002, end)
       .lin(0, end + 0.02).pts);
-    holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(swapAt), Infinity] });
-    holes.push({ deck: 'from', group: holeOfBus('keys'), gap: [own((swapAt + last) / 2), Infinity] });
+    if (beatOut) {
+      // the record's groove — its percussion, its bass — and its calls leave as the arriving groove lands
+      holes.push({ deck: 'from', group: o.bassGroup, gap: [own(swapAt), Infinity] });
+      holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(swapAt), Infinity] });
+      holes.push({ deck: 'from', group: holeOfBus('keys'), gap: [own(swapAt), Infinity] });
+    } else {
+      holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(swapAt), Infinity] });
+      holes.push({ deck: 'from', group: holeOfBus('keys'), gap: [own((swapAt + last) / 2), Infinity] });
+    }
     holes.push({ deck: 'from', group: HOLE_ALL, gap: [own(last), Infinity] });
   }
 
@@ -1135,6 +1389,161 @@ export function seamCurves(m: SeamMoment, o: MixOptions): SeamWrite {
     line('from', 'harmonicLp.frequency', pointLine().set(20000, fadeFrom).exp(cross.lpHz, crossFrom > fadeFrom ? crossFrom : swapAt).pts);
   }
 
+  return { at, end, swapAt, bars, lines, holes };
+}
+
+/**
+ * **A hand-over between two tracks, written** (round mix-voices; `seamShape` says which way and why). His word 10-30:
+ * the arriving voices *"heard earlier and more clearly before the swap"*, the leaving ones lingering after it, and in a
+ * beat-led place *"we can't lose the rhythm when mixing"*. Against the curves before it, which a render measured: the
+ * arriving theme rose from -80 dB on an exponential line over four bars (-40 dB halfway, -20 at three quarters), so on
+ * two clocks its voices were near silence until the bar before the swap; the record fell in decibels from the swap.
+ *
+ *   at             the arriving theme rises to `inDb` over its first bar and is full at the lead's middle, on its
+ *                  sustained voices (the melodic bus: pads, pianos, beds) and, on one clock in a beat-led place, its
+ *                  top percussion; its kick and bass wait for the swap. The record: deep, its kick, drums and bass go
+ *                  (a beatless bridge on its voices); on two clocks beat-led, its bass goes (the weight), and at lift
+ *                  its kick too where its top percussion carries; on one clock beat-led it plays on whole, as every
+ *                  beat-matched seam.
+ *   lead's middle  the arriving theme's rhythmic voices (the keys bus: riffs, plucks, calls) come in; on two clocks the
+ *                  record's leave there, so a riff over another tempo's beat runs half a phrase at most, and never two
+ *                  at once. Unrelated keys cross their harmony here (`seamShape`'s key rule).
+ *   swap           on the arriving phrase line (`seamLead`): its groove lands whole; the record's groove has gone (its
+ *                  kick a bar before, or a beat before where the kick alone carried).
+ *   swap .. hold   the record's voices linger at full level, its top at `swapHz` on two clocks: the first half of what
+ *                  is left of the blend before its ring (one clock: before its last two bars)
+ *   hold .. end    and fall as before: to -24 dB and 1.2 kHz, then the ring (two clocks); to 0.55 and closing (one).
+ *
+ * The blend's length is the one it was (the free tail's law on two clocks, the hand's on one: his word 10-18, the tail
+ * "too long"); this is what is heard inside it. The sum's trim is every seam's.
+ */
+export const HANDOVER_CURVES = Object.freeze({ inDb: -6, lingerShare: 0.5 });
+
+/**
+ * **The entry glide** (round loudness-place, the design's fifth decision; his word 10-30: *"playlist could be assembled
+ * wildly, even a mix of ambient, vibe and drive … we need to take this loudness rules accurately"*). Alone, a track
+ * plays at its own aim (a link is a promise), and a playlist's arc is its order's: Ambient → Vibe → Drive rises about
+ * 5 dB over two hours, as a set rises into its dance part. What a listener's knob does not forgive is a step at one
+ * hand-over: so neighbours may differ by at most `capDb` at the flanks of a hand-over, and an arriving track whose aim
+ * is further from the record's than that enters within `capDb` of it and glides to its own aim over its first phrase
+ * after the swap (`bars` of the grid, linear in decibels, on its fader): the DJ's lift into the dance part, and the
+ * settle out of it. The record is never pulled toward the arrival: its ending is the one it was planned with. The
+ * playlist's tempo pull's sibling, and just as small: a glide of 3 dB over 16 bars is not heard as motion.
+ */
+export const ENTRY_GLIDE = Object.freeze({ capDb: 2.5, bars: 16 });
+
+/** The decibels the arriving track enters under (or over) its own aim at a hand-over (`ENTRY_GLIDE`), nought within the cap. */
+export function entryOffsetDb(fromAim: number | null | undefined, toAim: number | null | undefined): number {
+  if (fromAim == null || toAim == null || !Number.isFinite(fromAim) || !Number.isFinite(toAim)) return 0;
+  const step = toAim - fromAim, cap = ENTRY_GLIDE.capDb;
+  return Math.abs(step) > cap ? +(-(step - Math.sign(step) * cap)).toFixed(3) : 0;
+}
+
+function handOverCurves(m: SeamMoment, s: SeamShape, o: MixOptions): SeamWrite {
+  const { at, bars, barSeconds: bar, swapAt } = m;
+  const end = at + bars * bar;
+  const lines: SeamLine[] = [];
+  const holes: SeamHole[] = [];
+  const line = (deck: 'from' | 'to' | 'sum', param: string, points: CurveStep[]) => lines.push({ deck, param, points });
+  const subGain = `buses.${o.bassGroup}.dry.gain`;
+  const deep = s.way === 'deep', two = s.split;
+  // each deck's own seconds at a context instant: straight through the blend's first instant and the swap
+  const ownOf = (t0In: number, t1In: number) => (t: number) => (swapAt > at ? t0In + ((t - at) * (t1In - t0In)) / (swapAt - at) : t1In + (t - swapAt));
+  const own = ownOf(m.atInFrom ?? m.swapInFrom - (swapAt - at), m.swapInFrom);
+  const toOwn = ownOf(m.atInTo ?? 0, m.swapInTo);
+  // the lead's middle, on an arriving bar: the rhythmic voices, and the harmony where the keys do not fit
+  const half = Math.min(swapAt, at + Math.max(1, Math.floor(s.lead / 2)) * bar);
+
+  if (m.sumGain != null) {
+    const sumTrim = Math.pow(10, o.seamSumTrimDb / 20);
+    line('sum', 'gain', pointLine().set(m.sumGain, at).lin(sumTrim, at + bar).set(sumTrim, end - bar).lin(1, end).pts);
+  }
+
+  // the arriving theme: heard from its first bar, full by the lead's middle; where its aim is past the cap from the
+  // record's, full at the record's aim within the cap, and to its own over its first phrase after the swap (`ENTRY_GLIDE`)
+  const enter = entryOffsetDb(m.fromAimLufs, m.toAimLufs), top = Math.pow(10, enter / 20);
+  const inAt = Math.min(at + bar, half);
+  const toFader = pointLine().set(0.0001, at).exp(top * Math.pow(10, HANDOVER_CURVES.inDb / 20), inAt);
+  const full = half > inAt + 1e-6 ? half : inAt + bar / 2;
+  toFader.lin(top, full);
+  if (enter) toFader.set(top, Math.max(full, swapAt)).exp(1, Math.max(full, swapAt) + ENTRY_GLIDE.bars * bar);
+  line('to', 'fader.gain', toFader.pts);
+  // its low end and its kick land at the swap, as on every seam
+  line('to', subGain, pointLine().set(0.0001, at).set(0.0001, swapAt).lin(1, swapAt + bar * 0.25).pts);
+  holes.push({ deck: 'to', group: o.bassGroup, gap: [0, m.swapInTo - 1e-6] });
+  holes.push({ deck: 'to', group: o.swapGroup, gap: [0, m.swapInTo - 1e-6] });
+  // its top percussion: at the swap where another grid is heard or the bridge is beatless, else from the first bar
+  const toDrumsAt = deep || (two && s.carrier !== 'arriving') ? swapAt : at;
+  if (toDrumsAt > at) holes.push({ deck: 'to', group: holeOfBus('drums'), gap: [0, toOwn(toDrumsAt) - 1e-6] });
+  // its rhythmic voices from the lead's middle
+  if (half > at) holes.push({ deck: 'to', group: holeOfBus('keys'), gap: [0, toOwn(half) - 1e-6] });
+
+  // the record's low end: deep, it goes with the drums at the first instant; on two clocks beat-led, the weight goes
+  // over the bar before the lead's middle, where the arriving voices take over; on one clock beat-led it is trimmed to
+  // the swap, as every seam
+  // (deep, where the keys do not fit, the record's groove leaves where its harmony crosses: its drums dropped under its
+  // own voices alone left the lead's first half 8-10 dB under the flanks on Vibe - Aurora into Vibe - Night Side)
+  // (and where the arriving theme brings no voice to the lead, the harmony crosses at the swap, as on every seam)
+  const crossing = !!o.harmonicCross && !s.related;
+  const crossAt = s.voices === false ? swapAt : half;
+  const voicesAt = crossing ? Math.max(at, crossAt - o.harmonicCross!.crossBars * bar) : at;
+  if (deep || two) {
+    const goes = deep ? voicesAt : Math.max(at, half - bar);
+    line('from', subGain, pointLine().set(1, at).set(1, goes).lin(0.0001, goes + bar).pts);
+    holes.push({ deck: 'from', group: o.bassGroup, gap: [own(goes), Infinity] });
+  } else {
+    const trim = Math.pow(10, o.seamSubTrimDb / 20);
+    line('from', subGain, pointLine().set(1, at).lin(trim, at + bar).set(trim, swapAt).lin(0.0001, swapAt + bar * 0.25).pts);
+  }
+  // its kick
+  const kickFrom = deep ? own(voicesAt) : two && s.way === 'lift' && s.carrier === 'drums' ? own(half)
+    : s.carrier === 'kick' ? m.swapInFrom - m.outgoingBar / 4
+    : m.swapInFrom - m.outgoingBar;
+  if (deep || two || m.toKick !== false) holes.push({ deck: 'from', group: o.swapGroup, gap: [kickFrom, Infinity] });
+  // its top percussion: out first where deep; to the swap on two clocks; on under the arriving groove on one
+  if (deep) holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(voicesAt), Infinity] });
+  else if (two) holes.push({ deck: 'from', group: holeOfBus('drums'), gap: [own(swapAt), Infinity] });
+  // its rhythmic voices: on two clocks one side's at a time
+  if (two) holes.push({ deck: 'from', group: holeOfBus('keys'), gap: [own(half), Infinity] });
+
+  // its level and its top: whole to the swap, lingering for a share of what is left, then falling as before
+  const share = HANDOVER_CURVES.lingerShare;
+  if (m.freeTail) {
+    const F = FREE_TAIL_CURVES;
+    const ring = Math.max(0, Math.min(m.freeTail.ringS, (end - swapAt) / 2));
+    const last = end - ring;
+    const hold = swapAt + (last - swapAt) * share;
+    line('from', 'lp.frequency', pointLine().set(20000, at).exp(F.swapHz, swapAt).set(F.swapHz, hold).exp(F.lastHz, last).exp(F.goneHz, end).pts);
+    line('from', 'fader.gain', pointLine().set(1, at).set(1, hold).exp(Math.pow(10, F.lastDb / 20), last).exp(0.0002, end).lin(0, end + 0.02).pts);
+    holes.push({ deck: 'from', group: HOLE_ALL, gap: [own(last), Infinity] });
+  } else {
+    const tailFrom = Math.max(swapAt, end - 2 * bar);
+    const hold = swapAt + (tailFrom - swapAt) * share;
+    const fader = pointLine().set(1, at).set(1, hold);
+    if (tailFrom > hold + 1e-6) fader.lin(0.55, tailFrom);
+    fader.exp(0.0002, end).lin(0, end + 0.02);
+    line('from', 'lp.frequency', pointLine().set(20000, tailFrom).exp(o.outgoingLpHz, end).pts);
+    line('from', 'fader.gain', fader.pts);
+  }
+
+  // the key rule: one side's harmony at a time where the keys do not fit, crossed over the cross's bar into the lead's
+  // middle (the record's whole before it: a render of the hand's longer fade left a 4-5 dB dip in the lead's first half)
+  // (linear in gain over the cross, the two harmonies -3 dB each at its middle: the exponential pair of the record's
+  // seams left both near -40 dB there, a hole of a second or two in a slow theme's long bar, Ambient - Nebula Breath
+  // into Ambient - Pulsar)
+  const cross = o.harmonicCross;
+  if (cross && crossing) {
+    const crossFrom = voicesAt;
+    const fromHarmonic = pointLine().set(1, at);
+    if (crossFrom > at) fromHarmonic.set(1, crossFrom);
+    fromHarmonic.lin(0.0001, crossAt).lin(0, crossAt + 0.02);
+    line('from', 'harmonic.gain', fromHarmonic.pts);
+    const toHarmonic = pointLine().set(0.0001, at);
+    if (crossFrom > at) toHarmonic.set(0.0001, crossFrom);
+    toHarmonic.lin(1, crossAt);
+    line('to', 'harmonic.gain', toHarmonic.pts);
+    line('from', 'harmonicLp.frequency', pointLine().set(20000, crossFrom).exp(cross.lpHz, crossAt).pts);
+  }
   return { at, end, swapAt, bars, lines, holes };
 }
 

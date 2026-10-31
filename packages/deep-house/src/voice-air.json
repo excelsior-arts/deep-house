@@ -660,6 +660,15 @@
     "seed 6's golden, Zephyr 0.20, seed 3 theme 2, midi 65: 407 Hz, -20.4 dB",
     "Downtempo, Zephyr 0.40, seed 1 theme 2, midi 66: 362 Hz, -27.2 dB"
    ]
+  },
+  "supersawGrit": {
+   "hz": 1202,
+   "over1500": -5.8,
+   "flat": 0.041,
+   "at": [
+    "Trance, Zephyr 0.60, seed 1 theme 1, midi 69: 1025 Hz, -6.5 dB",
+    "Techno, Zephyr 0.80, seed 5 theme 3, midi 80: 1411 Hz, -5.0 dB"
+   ]
   }
  },
  "held": {
