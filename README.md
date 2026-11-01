@@ -2,9 +2,9 @@
 
 <p align="center"><a href="https://deephouse.audio/"><img src="public/share.png" alt="Deep House" width="640" /></a></p>
 
-<p align="center"><b>Offline Electronic Music Generator</b> <br/>A music companion. No distracting vocals. No agenda. Just vibes.</p>
+<p align="center"><b>An offline astrolabe for music</b> <br/>A music companion. No distracting vocals. No agenda. Just vibes.</p>
 
-<p align="center"><a href="https://deephouse.audio/"><img src="media/play.png" alt="Play" width="146" /></a></p>
+<p align="center"><a href="https://deephouse.audio/"><img src="media/play.png" alt="Play" width="146" /></a>&nbsp;&nbsp;<a href="https://apps.apple.com/app/id6824689539"><img src="media/app-store-badge.svg" alt="Download on the App Store" width="146" /></a></p>
 
 Its best sounds are in the Featured playlists. One link, one track: it plays the
 same anywhere.

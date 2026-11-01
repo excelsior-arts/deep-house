@@ -68,13 +68,16 @@
 //      `backMid` role is never assigned. The number is kept because it is the
 //      gradient's own shape and a third harmonic lane is exactly what would
 //      need it. Found in round F by the check below, not by reading.
-//   5. **`dice('timbre:again')` draws zero.** The rule that a set never runs
-//      two organ themes back to back is written and is not switched on:
-//      `generate()` takes `avoidOrgan` and no caller passes it, so the second
-//      timbre draw never happens. Kept as it stands for the same reason as the
-//      rest: turning it on moves every theme after an organ.
+//   5. **No second timbre draw.** The record never refused a colour for the
+//      theme before it, and nothing does now: house-v2 refused a second organ
+//      theme running (`dice('timbre:again')`) from K5b until round
+//      sound-properties took the rule out, and house-v1 never asked.
 
 import { INSTRUMENTS } from '@deep-house/engine/params';
+import { ROWS } from '@deep-house/engine/voices';
+
+/** The timbres whose rows bring a figure of their own (`descriptor.ownFigure`): the piano, today. */
+const OWN_FIGURE: string[] = Object.values(ROWS).filter((r) => r.descriptor.ownFigure === true).flatMap((r) => Object.keys(r.descriptor.timbres));
 import { LENGTH_ROWS } from './deep-house-length.ts';
 import type { LengthKnobs } from '../length.ts';
 import { CORPUS } from '../corpus.ts';
@@ -1267,10 +1270,11 @@ export const figures = {
   // attacks in a few tens of milliseconds and holds.
   slowAttack: ['swell'],
   // The timbres that bring a figure of their own instead of playing the stab
-  // grid. One: the piano, which plays an arpeggio or a written melody, takes
-  // the melody role, writes its own line in the dice and goes to its own room
-  // rather than to the stab's send.
-  ownFigure: ['piano'],
+  // grid: the piano, which plays an arpeggio or a written melody, takes the
+  // melody role, writes its own line in the dice and goes to its own room
+  // rather than to the stab's send. Which they are is their rows' word
+  // (`descriptor.ownFigure`, round sound-properties), not a name here.
+  ownFigure: OWN_FIGURE,
 
 };
 
@@ -1311,8 +1315,7 @@ export const catalogue = {
   densityLabel: DENSITY_LABEL,
   /** the mined tables the figure dice draw from, in the order they were mined */
   masks: MASK_TABLES,
-  /** which instrument leads a theme — `dice('timbre')`, weighted, one draw, and
-   * `dice('timbre:again')` when the set refuses a second organ running */
+  /** which instrument leads a theme — `dice('timbre')`, weighted, one draw */
   leadTimbres: base.timbre.lead,
   /** which of those lead from the sustained role rather than the rhythmic one.
    * Not drawn from: an eligibility test, and a membership change moves every

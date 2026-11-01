@@ -177,6 +177,7 @@ export { malletLives } from './mallets.ts';
 import { malletLives } from './mallets.ts';
 import { fmBellLives } from './fm-bell.ts';
 import { rimBowlLives } from './rim-bowl.ts';
+import { chantLives } from './chant.ts';
 
 /** A row as the two readers below see it: its topology and its parameters. */
 type StruckRow = { topology?: string; parameters?: { partials?: readonly (readonly number[])[]; attack?: number; release?: number; tremoloDepth?: number; ring?: number } };
@@ -191,6 +192,7 @@ export function voiceLives(row: StruckRow | undefined, vel: number, dur: number)
   if (row?.topology === 'mallet' && P?.partials?.length) return malletLives({ partials: P.partials, attack: P.attack ?? 0, release: P.release ?? 0, tremoloDepth: P.tremoloDepth ?? 0 }, vel);
   if (row?.topology === 'fm-bell') return fmBellLives(P ?? {}, dur);
   if (row?.topology === 'rim-bowl' && P?.partials?.length) return rimBowlLives(P as { partials: readonly unknown[]; attack?: number; ring?: number }, dur);
+  if (row?.topology === 'chant') return chantLives(P as { throats?: readonly unknown[]; release?: number }, dur);
   return [];
 }
 /** **How long a struck row rings** at a velocity: a mallet's first partial's decay (longer struck harder) and its release; null where the topology says none. */

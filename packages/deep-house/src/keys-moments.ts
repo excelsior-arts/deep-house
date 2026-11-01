@@ -26,7 +26,6 @@ export type SoloCellNote = readonly [number, number, number, number, 's' | 'p' |
 export type RiffCellNote = readonly [number, number, string, number, number];
 
 export interface KeysMomentsRow {
-  voices: readonly string[];
   leans: Record<string, unknown>;
   solo: {
     chance: number; least: number; bars: number; into: readonly string[]; span: number; over: number;
@@ -40,7 +39,7 @@ export interface KeysMomentsRow {
 export function keysMomentsProblems(row: any): string[] {
   const bad: string[] = [];
   const num = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isFinite(x) && x >= lo && x <= hi;
-  if (!row || !Array.isArray(row.voices) || !row.voices.length) bad.push('voices: the voices whose keys take the moments');
+  if (!row) bad.push('no row');
   const S = row?.solo, R = row?.riff;
   if (!S || !num(S.chance, 0, 1) || !num(S.least, 8, 64) || !num(S.bars, 4, 16) || S.bars % 2 || !Array.isArray(S.into) || !num(S.span, 7, 24)
     || !num(S.over, 0, 12) || !num(S.level, 0.1, 2) || !num(S.chordLevel, 0, 1) || !num(S.ringBeats, 0, 8)) bad.push('solo: a chance, a least and a length in bars, the sections it leads into, its register and its levels');

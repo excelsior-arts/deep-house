@@ -51,6 +51,16 @@ const PARAMETERS = contract({
   humLevel: list(LEVEL, 3),
   openHz: HZ,
   humHz: HZ,
+  /** the onset (ambient-om-field, his ear 10-31: "a bit too harsh in the beginning"): the lid stands this low as the
+   * syllable starts and opens to `openHz` over the first half of its attack, so the first vowel comes up out of the mouth's dark and not
+   * at its full top; at or over `openHz` the lid starts open, as it did */
+  onsetHz: HZ,
+  /** the throat's size (his ear 10-31: "maybe use baritone for Om voice"): the room's two vowels' formant centres
+   * times this (under one: a longer tract, a lower and darker voice, not the same voice transposed), and a chest
+   * resonance under the body, a peak of `chestDb` at `chestHz` (nought: none) */
+  formantScale: num(0.7, 1.2),
+  chestHz: HZ,
+  chestDb: num(0, 12),
   humDb: num(-24, 0),
   /** the shares of the note at which the *o* and then the hum are reached */
   roundAt: UNIT,
@@ -131,13 +141,32 @@ function chant(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: number, 
   const lid = ctx.createBiquadFilter();
   lid.type = 'lowpass';
   lid.Q.value = 0.6;
-  walk(lid.frequency, time, tR, tC, C.openHz, Math.max(C.humHz, C.openHz * 0.8), C.humHz);
+  if (C.onsetHz < C.openHz) {
+    // the onset: the lid opening over the first half of the attack (the voice still swelling as the a opens), then
+    // the walk from the open vowel as before
+    const tA = Math.min(time + attack * 0.5, tR - 0.01);
+    lid.frequency.setValueAtTime(C.onsetHz, time);
+    lid.frequency.exponentialRampToValueAtTime(C.openHz, tA);
+    lid.frequency.exponentialRampToValueAtTime(Math.max(C.humHz, C.openHz * 0.8), tR);
+    lid.frequency.exponentialRampToValueAtTime(C.humHz, tC);
+  } else walk(lid.frequency, time, tR, tC, C.openHz, Math.max(C.humHz, C.openHz * 0.8), C.humHz);
   lid.connect(shape);
+  // the chest: a broad peak under the formants, on the whole body (none at nought)
+  let body: AudioNode = lid;
+  if (C.chestDb > 0) {
+    const chest = ctx.createBiquadFilter();
+    chest.type = 'peaking';
+    chest.frequency.value = C.chestHz;
+    chest.Q.value = 0.9;
+    chest.gain.value = C.chestDb;
+    chest.connect(lid);
+    body = chest;
+  }
   const floor = ctx.createBiquadFilter();
   floor.type = 'highpass';
   floor.frequency.value = Math.min(F.hpHz, hz * 0.7);
   floor.Q.value = 0.7;
-  floor.connect(lid);
+  floor.connect(body);
 
   // the source: the throats and the breath
   const src = ctx.createGain();
@@ -194,7 +223,7 @@ function chant(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: number, 
     const bp = ctx.createBiquadFilter();
     bp.type = 'bandpass';
     bp.Q.value = F.q[i];
-    walk(bp.frequency, time, tR, tC, ah[i], oh[i], C.hum[i]);
+    walk(bp.frequency, time, tR, tC, ah[i] * C.formantScale, oh[i] * C.formantScale, C.hum[i]);
     const lvl = ctx.createGain();
     const step = i === 0 ? 1 : 1 - 0.7 * overtone;
     lvl.gain.setValueAtTime(F.formantLevel[i] * step, time);
@@ -233,6 +262,15 @@ function chant(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: number, 
   const tail = insert(ctx, p, g, time, end, settings);
   route(ctx, tail, out, { dry: p.dry ?? C.dry, reverb: p.reverb ?? C.reverb, delay: p.delay ?? C.delay });
   return end;
+}
+
+/**
+ * **The oscillators one syllable runs, each for its own seconds** (ambient-om-field: the conversation's phone ceiling
+ * counts them where a place sings it): a throat each and the one drift, from the note's start through its release; the
+ * breath is a buffer, no oscillator.
+ */
+export function chantLives(P: { throats?: readonly unknown[]; release?: number }, dur: number): number[] {
+  return Array((P.throats?.length ?? 3) + 1).fill(Math.max(2, dur) + (P.release ?? 0) + 0.05);
 }
 
 /**

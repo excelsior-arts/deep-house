@@ -2,7 +2,7 @@
 // the Playlists tab to every listener, even one with nothing saved, and the one a first run starts on (the first).
 //
 // - **The table** is `featured.json`, a row file: each entry a stable `id` (so a copy or a playing place survives a
-//   later edit), a `name`, its `links` (track links as the page writes them, each naming its engine, so a playlist
+//   later edit), a `key` (its short fixed name on a link, `in=vibe`), a `name`, its `links` (track links as the page writes them, each naming its engine, so a playlist
 //   plays on the engine it was chosen on) and, where any track has one, its `labels`. Its order is the order shown.
 //   `tools/feature.ts` writes an entry from a playlist's share link or file.
 // - **Read-only**: a featured playlist is never in the record (`playlists.ts`), so it is never synced or backed up and
@@ -24,6 +24,13 @@ export const FEATURED_WORD = 'Featured';
 
 export interface Featured {
   id: string;
+  /**
+   * **The playlist's name on a link** (his word 10-31: "for our featured list, we should use a hard-coded name as a
+   * constant … they will never change, and they're unique and same in all apps and web apps"): `in=vibe`. Lowercase,
+   * fixed in the table per list, never made from the display name; the `id` stays the page's own handle (the store,
+   * the views) and is never read on a link (`featuredByKey`).
+   */
+  key: string;
   name: string;
   links: readonly string[];
   /** a label per link, `''` for none; absent where no track has one */
@@ -31,8 +38,10 @@ export interface Featured {
 }
 export interface FeaturedFile { note: string; playlists: Featured[] }
 
+/** A key as a link writes it: lowercase letters, digits and dashes, a letter first. */
+export const FEATURED_KEY = /^[a-z][a-z0-9-]*$/;
 const ok = (f: Partial<Featured>): f is Featured =>
-  typeof f.id === 'string' && !!f.id.trim() && typeof f.name === 'string' && !!f.name.trim()
+  typeof f.id === 'string' && !!f.id.trim() && typeof f.key === 'string' && FEATURED_KEY.test(f.key) && typeof f.name === 'string' && !!f.name.trim()
   && Array.isArray(f.links) && f.links.length > 0 && f.links.every((l) => typeof l === 'string' && !!l);
 
 /** **The featured playlists, in the table's order**: an entry that doesn't read (no id, no name, no links) is left out. */
@@ -41,9 +50,17 @@ export const FEATURED: readonly Featured[] = Object.freeze(((ROWS as FeaturedFil
 /** An id as one text: a UUID with or without its dashes, any case, is one id. */
 const idKey = (id: string): string => (/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(id.trim()) ? id.trim().replace(/-/g, '').toLowerCase() : id.trim());
 
-/** The featured playlist with an id (a UUID read with or without its dashes, as a link writes it). */
+/** The featured playlist with an id (a UUID read with or without its dashes): the page's own handle, never a link's. */
 export const featuredById = (id: string | undefined | null, table: readonly Featured[] = FEATURED): Featured | undefined =>
   (id && id.trim() ? table.find((f) => f.id === id) ?? table.find((f) => idKey(f.id) === idKey(id)) : undefined);
+
+/**
+ * **The featured playlist a link's `in` names: by its key only** (`vibe`; his word 10-31: "I don't think any URLs been
+ * shared … so there's no need to backward compatibility right now"). A UUID on `in` names none, and the track plays
+ * alone, as any unknown `in` does.
+ */
+export const featuredByKey = (key: string | undefined | null, table: readonly Featured[] = FEATURED): Featured | undefined =>
+  (key && key.trim() ? table.find((f) => f.key === key.trim().toLowerCase()) : undefined);
 
 /** A featured playlist's tracks as the record writes tracks: its links, each with its label where it has one. */
 export const featuredTracks = (f: Featured): Array<{ link: string; label?: string }> =>
@@ -84,8 +101,8 @@ export function featuredIndex(f: Featured, link: string): number {
 
 /**
  * **A track's link, knowing its featured playlist** (round pl-link): the link (a whole address or its query) with
- * `in=<the playlist's id>` last, the UUID without its dashes, where `f` is given and holds the track (`featuredIndex`);
- * else the link as it is. A track played from one of yours, or alone, passes `undefined`.
+ * `in=<the playlist's key>` last (`in=vibe`; round featured-address, his word 10-31), where `f` is given and holds the
+ * track (`featuredIndex`); else the link as it is. A track played from one of yours, or alone, passes `undefined`.
  */
 export function linkInFeatured(link: string, f: Featured | undefined | null): string {
   if (!f || featuredIndex(f, link) < 0) return link;
@@ -94,7 +111,7 @@ export function linkInFeatured(link: string, f: Featured | undefined | null): st
   const q = linkQuery(query);
   q.delete('in');
   const rest = q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/');
-  return `${head}${rest}${rest ? '&' : ''}in=${encodeURIComponent(idKey(f.id))}`;
+  return `${head}${rest}${rest ? '&' : ''}in=${encodeURIComponent(f.key)}`;
 }
 
 /** **The share circle's and a row's link** for a track playing in, or shown in, the playlist the page names `n`. */
@@ -103,12 +120,12 @@ export const trackShareLink = (link: string, n: string | null | undefined): stri
 /**
  * **A track's link opened in its featured playlist** (round pl-link): the playlist `in` names and where the address's
  * track stands in it (the first place with its sound). `null` where there is no `in`, this edition has no playlist of
- * that id, or the playlist doesn't hold the track: the link then plays as a plain track link, with no notice.
+ * that key, or the playlist doesn't hold the track: the link then plays as a plain track link, with no notice.
  */
 export function featuredPlace(search: string, table: readonly Featured[] = FEATURED): { featured: Featured; index: number } | null {
-  const id = linkRaw('in', search);
-  if (!id) return null;
-  const featured = featuredById(id, table);
+  const key = linkRaw('in', search);
+  if (!key) return null;
+  const featured = featuredByKey(key, table);
   if (!featured) return null;
   const index = featuredIndex(featured, search);
   return index < 0 ? null : { featured, index };

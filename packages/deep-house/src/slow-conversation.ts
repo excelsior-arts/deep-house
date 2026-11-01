@@ -217,6 +217,26 @@ export interface ConversationRow {
   breath?: { periodS: Range; db: Range; fadeS: number; steps: number; onFloor: boolean;
     /** the period's factor (Ember's `breath` lean) from which the ring's words call the breath quick */
     quickAt?: number };
+  /**
+   * **The held drone** (OM, PLAN-AMBIENT P3a, ambient-om-field; his ear 10-31 on the sketches: "generally composition
+   * is great! Balance is alright"): a plucked drone's cycle under the whole theme and a wordless chant over it, the ground's
+   * bowls punctuating far apart. Where a row names it, the conversation's exchanges are the chapters' to give (a row of
+   * the ground alone talks not at all), and these are laid after the ground:
+   *   - `pluck`: one voice, its `cycle` of strings in semitones over Sa (the tonic nearest the middle of `sa`), a string
+   *     a beat apart (the theme's beat, doubled or halved into `beatS`), each ringing `dur`; `vel` a velocity a string of
+   *     the cycle; `buzz` the jawari's depth at the place (a bird's `buzz` lean moves it `buzzBy` a unit, held to
+   *     0-0.95); it plays in the section kinds of `sections`, to `lastS` before the end;
+   *   - `chant`: one voice, on the tonic nearest the middle of `register`, in phrases of `phrase` syllables, each
+   *     `syllableS` long (the `syllable` lean a factor on it) with a breath of `breathS` between, and a rest of `restS`
+   *     between phrases (the `chantRest` lean a factor); in runs of the section kinds of `sections`, from `firstS` into a
+   *     run to `endS` before its end; a syllable starting in a kind of `overtone.sections` sings the overtones by
+   *     `overtone.chance` (the `overtone` lean a factor), `overtone.longer` times as long.
+   */
+  drone?: {
+    pluck: { voices: RoleVoice[]; sa: Range; cycle: number[]; beatS: Range; dur: number; vel: number[]; buzz: number; buzzBy: number; levelDb: number; reverb: number; delay: number; pan: Range; sections: string[]; lastS: number };
+    chant: { voices: RoleVoice[]; register: Range; phrase: Range; syllableS: Range; breathS: Range; restS: Range; firstS: Range; endS: number; vel: Range; levelDb: number; reverb: number; delay: number; pan: Range;
+      sections: string[]; overtone: { sections: string[]; chance: number; longer: number } };
+  };
   birds: { by: BirdLeans['by']; most?: BirdLeans['most']; ends?: BirdLeans['ends'] };
   budget: { fallbacks: string[] };
 }
@@ -265,6 +285,19 @@ export function conversationRowsFaults(voiceExists: (v: string) => boolean = () 
       voices('rim', M.voices);
       if (!(M.chance >= 0 && M.chance <= 1) || typeof M.opening !== 'boolean' || !range(M.afterS, 0, 10) || !range(M.dur, 1, 30) || !range(M.vel, 0, 1) || !(M.lastS >= 0)) bad.push(at('the rim\'s numbers in range'));
       if (!finite(M.levelDb) || M.levelDb > 6 || M.levelDb < -30 || !(M.reverb >= 0 && M.reverb <= 1) || !(M.delay >= 0 && M.delay <= 1)) bad.push(at('the rim\'s levelDb from -30 to 6, its sends in [0, 1]'));
+    }
+    if (r.drone) {
+      const { pluck: T, chant: C } = r.drone;
+      voices('pluck', T.voices); voices('chant', C.voices);
+      if (!range(T.sa, 30, 60) || T.sa[1] - T.sa[0] < 11 || !T.cycle.length || T.cycle.some((x) => !Number.isInteger(x) || Math.abs(x) > 12) || T.vel.length !== T.cycle.length || T.vel.some((v) => !(v > 0 && v <= 1)))
+        bad.push(at('the pluck: Sa\'s register an octave inside MIDI 30-60, its cycle whole semitones within an octave of Sa, a velocity a string'));
+      if (!range(T.beatS, 0.5, 3) || T.beatS[1] < T.beatS[0] * 2 || !(T.dur > 0 && T.dur <= 12) || !(T.buzz >= 0 && T.buzz <= 0.95) || !(Math.abs(T.buzzBy) <= 1) || !(T.lastS >= 0) || !T.sections.length)
+        bad.push(at('the pluck: a beat of 0.5-3 s (a range an octave wide, so any tempo folds into it), a ring of at most 12 s, a buzz of 0-0.95, sections to play in'));
+      if (!range(C.register, 36, 60) || C.register[1] - C.register[0] < 11 || !range(C.phrase, 1, 8) || !range(C.syllableS, 4, 20) || !range(C.breathS, 0.5, 8) || !range(C.restS, 0, 90) || !range(C.firstS, 0, 60) || !(C.endS >= 0) || !range(C.vel, 0, 1) || !C.sections.length)
+        bad.push(at('the chant: an octave of register in MIDI 36-60, phrases of 1-8 syllables of 4-20 s, its breaths, rests and sections'));
+      if (!(C.overtone.chance >= 0 && C.overtone.chance <= 1) || !(C.overtone.longer >= 1 && C.overtone.longer <= 2)) bad.push(at('the chant\'s overtones: a chance in [0, 1], at most twice as long'));
+      for (const [role, x] of [['pluck', T], ['chant', C]] as const)
+        if (!finite(x.levelDb) || x.levelDb > 6 || x.levelDb < -30 || !(x.reverb >= 0 && x.reverb <= 1) || !(x.delay >= 0 && x.delay <= 1)) bad.push(at(`${role}'s levelDb from -30 to 6, its sends in [0, 1]`));
     }
     if (r.wash && !(r.wash.offAt < 0 && r.wash.offAt >= -1 && r.wash.dbPerUnit >= 0 && r.wash.dbPerUnit <= 30 && (r.wash.aloneDb ?? 0) >= 0 && (r.wash.aloneDb ?? 0) <= 6)) bad.push(at('the wash: offAt in [-1, 0), dbPerUnit 0-30, aloneDb 0-6'));
     if (r.breath) {
@@ -342,8 +375,8 @@ export interface ConversationEvent {
   t: number;
   bar: number;
   step: number;
-  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse' | 'conversation-rim';
-  p: { midi?: number; vel: number; dur: number; gain: number; reverb: number; delay: number; panPath: number; hardness?: number };
+  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse' | 'conversation-rim' | 'conversation-pluck' | 'conversation-chant';
+  p: { midi?: number; vel: number; dur: number; gain: number; reverb: number; delay: number; panPath: number; hardness?: number; buzz?: number; overtone?: number };
 }
 
 /** What the plan says of the conversation: its row, its voices, how many of each thing, and what the budget did. */
@@ -377,6 +410,8 @@ export interface ConversationSummary {
   rims?: number;
   /** the breath the theme was laid under, where the row breathes (P2): its period, its depth over its floor and its first floor (s) */
   breath?: { periodS: number; db: number; phaseS: number };
+  /** the held drone, where the row has one: the plucked drone's Sa and strings, its beat and buzz, the chant's note, syllables and overtone syllables */
+  drone?: { pluck: string | null; chant: string | null; sa: number; beatS: number; buzz: number; strings: number; note: number; syllables: number; overtones: number; phrases: number };
   /** the bowls' set the theme drew, its great bowl (MIDI), its pace and its rim's factor (round 2) */
   bowls?: { set: string; great: number; pace: number; rim: number };
   says: string;
@@ -1074,6 +1109,78 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     }
   }
 
+  // --- the held drone (OM): the plucked drone's cycle under the theme, the chant's phrases over it ---
+  let drone: ConversationSummary['drone'] | undefined;
+  const DR = R.drone;
+  if (DR) {
+    const rd = new Rng(`${I.seed}::conversation:drone`);
+    const tv = voiceOf(rd, DR.pluck.voices, () => 1), cv = voiceOf(rd, DR.chant.voices, () => 1);
+    const tanOk = cast.has(tv) || fits(tv);
+    if (tanOk) cast.add(tv);
+    const chantOk = cast.has(cv) || fits(cv);
+    if (chantOk) cast.add(cv);
+    /** the tonic nearest a register's middle */
+    const tonicIn = ([lo, hi]: Range) => {
+      const mid = (lo + hi) / 2;
+      const all: number[] = [];
+      for (let m = Math.ceil(lo); m <= hi; m++) if ((((m - I.key.root) % 12) + 12) % 12 === 0) all.push(m);
+      return all.sort((x, y) => Math.abs(x - mid) - Math.abs(y - mid))[0] ?? Math.round(mid);
+    };
+    const T = DR.pluck, C = DR.chant;
+    const sa = tonicIn(T.sa), note = tonicIn(C.register);
+    let beatS = I.barSeconds / 4;
+    while (beatS < T.beatS[0]) beatS *= 2;
+    while (beatS > T.beatS[1]) beatS /= 2;
+    const buzz = Math.round(Math.max(0, Math.min(0.95, T.buzz + T.buzzBy * shift('buzz'))) * 20) / 20;
+    const tanDb = T.levelDb + voiceDb(T.voices, tv) + I.layerDbOf(tv), chantDb = C.levelDb + voiceDb(C.voices, cv) + I.layerDbOf(cv);
+    let strings = 0, syllables = 0, overtones = 0, phrases = 0;
+    if (tanOk) {
+      const rt = new Rng(`${I.seed}::conversation:pluck`);
+      for (const sec of I.sections) {
+        if (!T.sections.includes(sec.kind)) continue;
+        const from = sec.startBar * I.barSeconds, to = Math.min(end - T.lastS, (sec.startBar + sec.bars) * I.barSeconds);
+        for (let k = 0; from + k * beatS < to - 0.05; k++) {
+          const i = k % T.cycle.length;
+          const e = strike(tv, from + k * beatS, 'conversation-pluck', rt, { midi: sa + T.cycle[i], vel: T.vel[i], dur: T.dur, gain: +dbToGain(tanDb).toFixed(5),
+            reverb: send(T.reverb), delay: T.delay, pan: pan(rt, T.pan), buzz });
+          if (e) strings++;
+        }
+      }
+    }
+    if (chantOk) {
+      const rc = new Rng(`${I.seed}::conversation:chant`);
+      // the runs of sections the chant sings through: a phrase may cross from one into the next
+      const runs: Range[] = [];
+      for (const sec of I.sections) {
+        if (!C.sections.includes(sec.kind)) continue;
+        const a = sec.startBar * I.barSeconds, b = (sec.startBar + sec.bars) * I.barSeconds;
+        const last = runs[runs.length - 1];
+        if (last && Math.abs(last[1] - a) < 1e-6) last[1] = b; else runs.push([a, b]);
+      }
+      const sylF = factor('syllable'), restF2 = factor('chantRest'), overF = factor('overtone');
+      for (const [a, b] of runs) {
+        let t = a + lerp(rc, C.firstS);
+        const stop = Math.min(b, end) - C.endS;
+        while (t < stop) {
+          const n = Math.round(lerp(rc, C.phrase));
+          let sung = 0;
+          for (let k = 0; k < n; k++) {
+            const over = C.overtone.sections.includes(kindAt(t)) && rc.chance(Math.min(1, C.overtone.chance * overF)) ? 1 : 0;
+            const dur = +(lerp(rc, C.syllableS) * sylF * (over ? C.overtone.longer : 1)).toFixed(3);
+            if (t + dur > stop) break;
+            const e = strike(cv, t, 'conversation-chant', rc, { midi: note, vel: +lerp(rc, C.vel).toFixed(3), dur, gain: +dbToGain(chantDb).toFixed(5),
+              reverb: send(C.reverb), delay: C.delay, pan: pan(rc, C.pan), ...(over ? { overtone: 1 } : {}) });
+            if (e) { syllables++; sung++; if (over) overtones++; }
+            t = (e ? e.t : t) + dur + lerp(rc, C.breathS);
+          }
+          if (sung) phrases++;
+          t += lerp(rc, C.restS) * restF2;
+        }
+      }
+    }
+    drone = { pluck: tanOk ? tv : null, chant: chantOk ? cv : null, sa, beatS: +beatS.toFixed(4), buzz, strings, note, syllables, overtones, phrases };
+  }
+
   // --- the heartbeat (Ember's top, where the kit does not play): a soft stroke on each bar's one in the sections that
   // talk; never on a strike ---
   let pulses = 0;
@@ -1102,13 +1209,14 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   const voices = { ground, caller, answerer, punctuation: punct };
   const says = `${R.id}: ${ground} ground, ${caller} calls, ${answerer} answers${punct ? `, ${punct} marks` : ''}; ${exchanges} exchanges (${Object.entries(answers).filter(([, n]) => n).map(([k, n]) => `${k} ${n}`).join(', ')}${returns ? `, ${returns} return` : ''}), ${hands} hands, ${groundOn.length} ground strikes`
     + (handovers.length ? `; handed to ${handovers.join(', ')}` : '') + (pulses ? `; ${pulses} heartbeats` : '')
-    + (SET ? `; the ${SET.id} set over ${greatMidi}, pace ${paceF.toFixed(2)}` : '') + (RM ? `; ${rims} rims` : '') + (BR ? `; breathing every ${BR.periodS.toFixed(1)} s, ${BR.db.toFixed(1)} dB` : '');
+    + (SET ? `; the ${SET.id} set over ${greatMidi}, pace ${paceF.toFixed(2)}` : '') + (RM ? `; ${rims} rims` : '') + (BR ? `; breathing every ${BR.periodS.toFixed(1)} s, ${BR.db.toFixed(1)} dB` : '')
+    + (drone ? `; the drone: ${drone.strings} strings over Sa ${drone.sa} (a beat ${drone.beatS} s, buzz ${drone.buzz}), ${drone.syllables} syllables in ${drone.phrases} phrases on ${drone.note} (${drone.overtones} with overtones)` : '');
   return {
     events,
     summary: { row: R.id, voices, handovers, size: +LN.size.toFixed(3), pulse: pulses, count: +LN.count.toFixed(4), tail: +LN.tail.toFixed(4), breathS: +(R.answerer.afterS[1] * afterF).toFixed(3), exchanges, answers, returns, recalled, punctuation: hands, ground: groundOn.length, breakdownNotes, silences,
       budget: { ceiling: I.ceiling, before, after: I.unitsOf(cast) + I.besides, fallback, oscillatorsMost: R.oscillatorsMost, refused },
       ...(RM ? { rims } : {}), ...(BR ? { breath: { periodS: BR.periodS, db: BR.db, phaseS: BR.phaseS } } : {}),
-      ...(SET ? { bowls: { set: SET.id, great: greatMidi, pace: paceF, rim: rimF } } : {}), says },
+      ...(SET ? { bowls: { set: SET.id, great: greatMidi, pace: paceF, rim: rimF } } : {}), ...(drone ? { drone } : {}), says },
     breath: BR,
   };
 }

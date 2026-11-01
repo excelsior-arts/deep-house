@@ -87,7 +87,8 @@
         "struck": true,
         "hold": 0.3,
         "brightnessHz": 1900,
-        "loudnessDb": -7.3
+        "loudnessDb": -7.3,
+        "underBed": true
       },
       "glass": {
         "family": "harmonic",
@@ -115,7 +116,8 @@
         "struck": true,
         "hold": 0.048,
         "brightnessHz": 2000,
-        "loudnessDb": -12.6
+        "loudnessDb": -12.6,
+        "underBed": true
       }
     },
     "dispatches": [

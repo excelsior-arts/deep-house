@@ -6,7 +6,6 @@
 //   node tools/machine-view.ts --bar 18        a bar with a treatment on a lane
 //   node tools/machine-view.ts --port 7034     a port of its own
 //   node tools/machine-view.ts --site <dir>    photograph a build other than docs/
-//   node tools/machine-view.ts --twice         photograph each size twice and hold the two to one byte (M21)
 //
 // **The sizes, because the canvas is computed from the room it has.** The
 // README's own picture is taken wide enough that nothing is cut — since the
@@ -129,20 +128,21 @@ async function shoot(name, { width, height, scale = 2 }) {
     ctl.seekTo(bar / r.bars, true);
     await new Promise((res) => setTimeout(res, 2500));
     let now = ctl.readout();
-    // **A stated frame** (M21): the set is held at this bar's downbeat — the
-    // transport stopped and set on the downbeat, so what the view reads is the
-    // plan at that bar and not a meter caught mid-frame — and the ring is drawn
-    // there and held, its beat rings, sway, halos and fills with it, so the
-    // picture is the same picture on every run
-    ctl.stop();
-    await new Promise((res) => setTimeout(res, 400));
-    // the bar the picture states, and not the one the set had played on to
-    ctl.seekToBar(bar);
-    await new Promise((res) => setTimeout(res, 800));
-    window.ring.still(true, bar * now.barSeconds);
+    // **Playing, at the stated bar** (his word 10-31: stopped, "all boxes and
+    // meters are inactive so it looks dead"). The set plays into the bar from
+    // the one before it, so the meters hold music; under reduced motion the view
+    // redraws on the bar and on each second (`stateOf`), so the picture is taken
+    // a moment into the bar, after its frame. The ring is held there, its beat
+    // rings, sway, halos and fills with it. The boxes, wires and settings are
+    // the same on every run; the meters are a reading, a decibel or two apart.
+    ctl.seekToBar(bar - 1);
+    const until = Date.now() + 8000;
+    while (ctl.readout().bar < bar && Date.now() < until) await new Promise((res) => setTimeout(res, 50));
+    await new Promise((res) => setTimeout(res, 1100));
+    window.ring.still(true);
     await new Promise((res) => setTimeout(res, 300));
     now = ctl.readout();
-    return { seed: now.seed, theme: now.mix.themeIndex, bar: now.bar + 1, bars: now.bars, bpm: now.bpm, key: now.key, room: now.presetName };
+    return { seed: now.seed, theme: now.mix.themeNumber, bar: now.bar + 1, bars: now.bars, bpm: now.bpm, key: now.key, room: now.presetName };
   }, BAR);
   return { page, ctx, problems: mine, where };
 }
@@ -150,25 +150,7 @@ async function shoot(name, { width, height, scale = 2 }) {
 const written = [];
 let facts = null;
 let where = null;
-// `--twice` (M21): each size photographed twice, from a fresh page each time,
-// and the two pictures held to one byte for byte
-const TWICE = process.argv.includes('--twice');
-const unlike = [];
 for (const size of SIZES) {
-  if (TWICE) {
-    const pics = [];
-    for (let n = 0; n < 2; n++) {
-      const again = await shoot(size.name, { width: size.width, height: size.height });
-      pics.push(await again.page.screenshot({ fullPage: size.full }));
-      problems.push(...again.problems);
-      await again.ctx.close();
-    }
-    const same = pics[0].equals(pics[1]);
-    // the two, kept beside the picture when they differ, for the eye to find where
-    if (!same) { fs.writeFileSync(path.join(OUT, `${size.name}-a.png`), pics[0]); fs.writeFileSync(path.join(OUT, `${size.name}-b.png`), pics[1]); }
-    console.log(`  ${size.width}×${size.height}: two photographs ${same ? 'byte-identical' : 'DIFFER'} (${pics[0].length} and ${pics[1].length} bytes)`);
-    if (!same) unlike.push(size.name);
-  }
   const shot = await shoot(size.name, { width: size.width, height: size.height });
   const canvas = await shot.page.evaluate(() => {
     const svg = document.getElementById('machineDiagram');
@@ -217,10 +199,6 @@ console.log(`the machine view, at seed ${w.seed} theme ${w.theme} bar ${w.bar} o
 console.log(`  ${facts.nodes} boxes, ${facts.edges} wires, ${facts.lanes} lanes, ${facts.ledger} lines in the ledger`);
 console.log(`  the store draws at ${facts.store.fps} a second with ${facts.store.taps} taps attached`);
 for (const f of written) console.log(`  ${path.relative(ROOT, path.join(OUT, f))}  ${kb(f)}`);
-if (unlike.length) {
-  console.error(`\ntwo photographs of one tree differ at ${unlike.join(', ')}`);
-  process.exit(1);
-}
 if (problems.length) {
   console.error(`\n${problems.length} errors on the page:`);
   for (const p of problems.slice(0, 5)) console.error('  ' + p);

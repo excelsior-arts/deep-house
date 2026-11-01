@@ -1,0 +1,78 @@
+{
+ "schema": 1,
+ "kind": "keys-comps",
+ "round": "liquid-keys-2",
+ "revision": 1,
+ "note": "How a landing is struck: the keys lab's three comps (round 2, `progressions` and `comps`), written for the sparse keys. In round 2 a comp played every bar and he heard it as too busy; here a comp is only the landing's own first bars, the chord left to ring after it. `hits` in sixteenths from the landing's downbeat: the first is the strike (both hands, the touch's velocities), the rest touch the same voicing again at `vel` of the strike, each held to where the strike ends; `minGapBars` is the gap to the next landing a comp needs, else the landing is held. An answer (the motif's post notes) never lands within two sixteenths of a touch. A theme draws one comp (`draw.json`), off a stream of its own.",
+ "rows": [
+  {
+   "schema": 1,
+   "kind": "keys-comp",
+   "id": "held",
+   "revision": 1,
+   "name": "Held",
+   "says": "The chord struck once where it lands and left to ring: the liquid keys as they were.",
+   "minGapBars": 1,
+   "hits": [
+    {
+     "bar": 0,
+     "step": 0,
+     "hands": "both",
+     "vel": 1
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-comp",
+   "id": "and-of-two",
+   "revision": 1,
+   "name": "Pushed on the and of two",
+   "says": "The chord on one, and the right hand again, softer, on the and of two: a pushed second touch the delay can carry, then the ring.",
+   "minGapBars": 2,
+   "hits": [
+    {
+     "bar": 0,
+     "step": 0,
+     "hands": "both",
+     "vel": 1
+    },
+    {
+     "bar": 0,
+     "step": 6,
+     "hands": "right",
+     "vel": 0.72
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-comp",
+   "id": "two-bar",
+   "revision": 1,
+   "name": "Two-bar breath",
+   "says": "One bar held, the next struck again a little softer and lifted at the second kick for a soft right-hand touch: the lab's two-bar comp, once, at the landing.",
+   "minGapBars": 4,
+   "hits": [
+    {
+     "bar": 0,
+     "step": 0,
+     "hands": "both",
+     "vel": 1
+    },
+    {
+     "bar": 1,
+     "step": 0,
+     "hands": "both",
+     "vel": 0.82
+    },
+    {
+     "bar": 1,
+     "step": 10,
+     "hands": "right",
+     "vel": 0.62
+    }
+   ]
+  }
+ ]
+}

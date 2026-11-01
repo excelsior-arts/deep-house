@@ -201,11 +201,9 @@ if (dry) {
     // Of the scratch build and not of `docs/`: a dry run reports what *would*
     // ship, and the page it would ship is the one it has just made to one side.
     if (!picture(SHOTS, SCRATCH)) warn.push('the machine view could not be photographed — the README\'s diagram would not be refreshed.');
-    else for (const f of ['machine.svg', 'machine.png']) {
-      const was = path.join(PICTURES_DIR, f);
-      if (!fs.existsSync(was) || !fs.readFileSync(was).equals(fs.readFileSync(path.join(SHOTS, f))))
-        warn.push(`public/${f} is not what the machine view draws — the release would replace it.`);
-    }
+    // a photograph of a set playing (10-31): its meters differ on every run, so the dry run says it was taken and
+    // compares nothing; the release takes it again
+    else console.log('  photographed playing; the release takes it again into public/');
   }
 } else if (process.argv.includes('--keep-pictures')) {
   console.log('· building docs/ with public/machine.{svg,png} as committed: --keep-pictures');

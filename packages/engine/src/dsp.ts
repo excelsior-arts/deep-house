@@ -331,12 +331,15 @@ export function impulseResponse(ctx: BaseAudioContext, seconds = 2.4, decay = 3.
 // this replaced shaped *every* sample, and on a record whose peaks are the
 // bass that is broadband distortion under another name — which is exactly what
 // a listener means by "the bass is clipping".
-export function softClipCurve(drive = 1.4, knee = 0.8, n = 4096): Float32Array<ArrayBuffer> {
-  return curveOf(`clip:${drive}:${knee}:${n}`, () => {
+// `range` (round hat-crackle): the input the curve spans, ±range. A WaveShaper holds its curve's end value past ±1 of
+// its input, so a curve over ±1 hit harder than that is a hard clip there, whatever its shape inside; a caller that
+// scales its input down by `range` (and keeps `n / range` points to the unit) has the same curve out to ±range.
+export function softClipCurve(drive = 1.4, knee = 0.8, n = 4096, range = 1): Float32Array<ArrayBuffer> {
+  return curveOf(`clip:${drive}:${knee}:${n}${range === 1 ? '' : `:${range}`}`, () => {
     const curve = new Float32Array(n);
     const head = 1 - knee;
     for (let i = 0; i < n; i++) {
-      const x = (i / (n - 1)) * 2 - 1;
+      const x = ((i / (n - 1)) * 2 - 1) * range;
       const a = Math.abs(x);
       // Slope exactly 1 at the knee, so there is no seam, and a ceiling of
       // knee + head/drive however hard it is hit.

@@ -71,6 +71,7 @@
     "plays": "keys",
     "mono": false,
     "treat": true,
+    "ownFigure": true,
     "cost": "dear",
     "edge": false,
     "controls": {
@@ -142,6 +143,7 @@
     "round": "sounds-r3",
     "note": "The piano, synthesised and mostly heard as a room: six stretched partials per string and a second string a few cents flat, a band-passed hammer, two stages of decay with the upper partials going first, velocity setting the level and the brightness. It owns the settings' `piano` block (the composer's half — register, the sends' rolls, the arpeggio's chances — sits beside it there), so a room voices it: house-v2's present piano lifts the dry note, the sustain and slows the upper partials.",
     "notes": {
+      "ownFigure": "It brings a figure of its own (an arpeggio or a written melody, in the melody role, to its own room) rather than striking the stab grid, as it has since the record's `figures.ownFigure`; the keys' moments are played by such a lead (round sound-properties).",
       "dryLevel": "The dry note is quiet; the hall is the instrument.",
       "partialDecay": "Per partial index: the top of the note goes first, which is the whole reason the note darkens.",
       "stretchCents": "String stiffness: a couple of cents on the second partial, growing quadratically up the stack.",

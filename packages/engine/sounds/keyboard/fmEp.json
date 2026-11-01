@@ -46,6 +46,7 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "clean": true,
     "cost": "dear",
     "timbres": {
       "fmEp": {
@@ -61,6 +62,9 @@
   },
   "provenance": {
     "round": "sounds-r2",
+    "notes": {
+      "clean": "Plays clean (round bell-noise, his ear 10-13: \"still this annoying HF noise on the bell like voice\"): the edge's copy of its 1:1 body and its tine at 14 times the note is a hiss over its ring, so it builds no strike and takes the bus's clean door where a theme's room writes an edge; its own top stays."
+    },
     "module": "fm-keys.ts",
     "note": "The ratio back on a whole number, which is what makes a pitched electric piano rather than a bell, plus a tine: a short, high, inharmonic second pair that is the hammer on the metal."
   }

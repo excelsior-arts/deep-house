@@ -220,22 +220,14 @@ export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }>
   // Round LIQUID-KEYS: ten soft keyboards for a backdrop and a haze to layer
   // under one, his to pick on the keys lab page (notes/archive/2026-10-liquid/liquid-keys.md);
   // a part admits the picks in a later round.
-  { id: 'pianoUpright', since: '2026-10-10', for: 'a dark upright for held chords under a backdrop' },
   { id: 'pianoWorn', since: '2026-10-10', for: 'a worn small piano for a tape treatment' },
-  { id: 'pianoMellow', since: '2026-10-10', for: 'a mellow bright grand for held chords' },
-  { id: 'keysReed', since: '2026-10-10', for: 'a reed electric piano with an amplifier tremolo' },
   { id: 'malletSoft', since: '2026-10-10', for: 'a soft-mallet vibraphone to layer with a keyboard' },
   { id: 'padHaze', since: '2026-10-10', for: 'a dark haze to layer under a keyboard' },
   // Its second round (10-10): eight more, the same way.
-  { id: 'pianoMute', since: '2026-10-10', for: 'a muted felt upright for held chords' },
   { id: 'pianoCassette', since: '2026-10-10', for: 'an upright for a cassette treatment' },
   { id: 'pianoElectric', since: '2026-10-10', for: 'an electric grand with a pickup zing' },
   { id: 'keysReedAmp', since: '2026-10-10', for: 'a mellow reed electric piano for a small amplifier' },
   { id: 'fmSineLayer', since: '2026-10-10', for: 'a near-pure sine to double a piano' },
-  // ambient-voices (10-18, PLAN-AMBIENT P2b and P3): the voices the Om places will play, registered before their
-  // places land; a place's round admits them (`BY_PLACE`), and until then no list does (the rim left for BOWLS, 10-27).
-  { id: 'tanpura', since: '2026-10-18', for: 'a tanpura string over a jawari bridge, its buzz blooming after each pluck' },
-  { id: 'chantOm', since: '2026-10-18', for: 'a wordless sung drone opening on a, rounding to o and closing to a hum, with an overtone mode' },
 ].map((e) => Object.freeze(e)));
 
 /**
@@ -277,6 +269,12 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'pianoFelt', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a felt-damped grand for held chords under a backdrop' },
   { id: 'keysSuitcase', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a tine electric piano with a stereo tremolo' },
   { id: 'keysTineDark', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a darker tine electric piano with a soft bark' },
+  // liquid-keys-2 (10-29, his word: "all liquid dnb tracks now very similar"): four more of the lab's keyboards the
+  // sparse keys draw at lower weights, his to trim
+  { id: 'pianoUpright', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a dark upright, a quick first fall and two strings beating' },
+  { id: 'pianoMute', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: an upright with its practice felt down, a soft thud and short dark notes' },
+  { id: 'keysReed', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a reed electric piano with an amplifier tremolo' },
+  { id: 'pianoMellow', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a mellow bright grand, clear and never glassy' },
   { id: 'airBed', since: '2026-10-11', for: 'the dark air the fast places lay under their exposed passages, their surface row (liquid-space)' },
   // liquid-ambient (10-11): the weather family the fast places draw one identity of a track (`recipes/ambient/weather.json`)
   { id: 'weatherWind', since: '2026-10-11', for: 'the moving wind the fast places lay in weather spans, its level and centre walked (liquid-ambient)' },
@@ -294,6 +292,9 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'frameDrum', since: '2026-10-17', for: 'a frame drum under a muted hand: the journey\'s soft pulse (ambient-psy); out of the bells\' hand since 10-29 (his ear: the woodblock alone fits)' },
   // ambient-bowls (10-27, PLAN-AMBIENT P2b): the rim of the bowls' conversation (`recipes/ambient/conversation.json`), named by its row's `rim`
   { id: 'bowlRim', since: '2026-10-27', for: 'the rim of the bowls\' conversation: a stick drawn round a bowl just struck, so it sings under its own ring (ambient-bowls)' },
+  // ambient-om-field (10-31, PLAN-AMBIENT P3a): the held drone at OM (`recipes/ambient/conversation.json`, the row's `drone`)
+  { id: 'tanpura', since: '2026-10-31', for: 'the tanpura of the held drone at OM: a string over a jawari bridge, its buzz blooming after each pluck (ambient-om-field)' },
+  { id: 'chantOm', since: '2026-10-31', for: 'the chant of the held drone at OM: a wordless baritone syllable opening on a, rounding to o and closing to a hum, with an overtone mode (ambient-om-field)' },
   { id: 'shakerSoft', since: '2026-10-17', for: 'a soft swish of a shaker, not the record\'s hat-bright one (ambient-bells); named by no row since 10-29 (his ear: the woodblock alone fits the bells)' },
 ].map((e) => Object.freeze(e)));
 

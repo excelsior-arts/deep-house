@@ -59,6 +59,7 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "clean": true,
     "cost": "dear",
     "knobs": {
       "brightnessHz": {
@@ -115,6 +116,7 @@
     "round": "sounds-r3",
     "note": "The glass: the electric piano with the treble up — the modulator at 3.5x with a slower index decay. The patch is its own (what was `KEYBOARD_PRESETS`); the amplifier it plays through is the room's `keys` block, which all five share. Its timbre's loudness is MEASURED (2026-09-17, tools/loudness-fit.ts --timbres): this family alone in an eight-bar main groove, metered, less the level its room gave it, median over the themes that rolled it; it belongs to the instrument and not the room. The other three facts are read off the patch and held to it: struck where it is not an organ, the hold its sustain, the brightness its corner.",
     "notes": {
+      "clean": "Plays clean (round keys-noise, his ear 10-13 on seed 4 at Tide 0.95: \"noise makes it cheap\"): no strike noise, and past the harmonic bus's edge, where a theme's room writes either.",
       "attack": "The envelope is the measured level at 300 ms and at the bar line, turned into an envelope: attack, decay and the sustain fraction.",
       "hpHz": "The keys reach down into the band the kick body tops out in.",
       "tremoloHz": "MEASURED: 27% of tracks carry a 4-7 Hz tremolo; the electric piano family has the highest AM prominence of the sustained families.",

@@ -5,6 +5,8 @@
 //   node tools/feature.ts "Ambient journey.deephouse"            the same from a downloaded playlist file
 //   node tools/feature.ts "<link>" --replace <id>                put it in the place of another entry, keeping that id
 //   node tools/feature.ts "<link>" --name "Drive" --at 1         its name in the tab, and its place (1 is the first run's)
+//   node tools/feature.ts "<link>" --key drive                    its name on a link (`in=drive`): a new entry needs one;
+//                                                                a replaced or renewed entry keeps its own
 //   node tools/feature.ts --remove <id>                          take an entry out
 //   node tools/feature.ts --list                                 the table as it stands
 //   node tools/feature.ts --renew "Deep House backup.deephouse"  every entry again from his own playlist it is kept
@@ -17,7 +19,8 @@
 // again in his order, keeping the entry's id and name. A track that comes without a label keeps the one the entry had
 // for the same link, so a name given here is never lost to an original that lacks it.
 //
-// An entry is the playlist's id (its share link's; so sharing it again after an edit replaces it), its name, its track
+// An entry is the playlist's id (its share link's; so sharing it again after an edit replaces it), its key (the short
+// fixed name a track's link names it by, `in=vibe`, his word 10-31; lowercase, given once and never changed), its name, its track
 // links as the page writes them (each naming its engine) and their labels. A track this edition cannot play is refused.
 // Every featured link is a row of the link digest (`tools/link-digest.ts`, group `featured`): the links the digest
 // does not hold yet are named at the end, and `node tools/bless.ts` reports them until a bless at merge adds them.
@@ -28,6 +31,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { readPlaylistLink } from '../src/playlist-link.ts';
 import { readDeephouseFile, normaliseLink, tracksOf } from '../src/playlists.ts';
+import { FEATURED_KEY } from '../src/featured.ts';
 import type { Featured, FeaturedFile } from '../src/featured.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -68,16 +72,21 @@ export function entryOf(input: string, read: (file: string) => string = (f) => f
     links.push(n.link);
     labels.push(t.label ?? '');
   }
-  return { id: id ?? crypto.randomUUID(), name: name.trim() || 'Featured playlist', links, ...(labels.some(Boolean) ? { labels } : {}) };
+  // the key is the table's, not the playlist's: `withEntry` keeps the entry's own or takes `--key`
+  return { id: id ?? crypto.randomUUID(), key: '', name: name.trim() || 'Featured playlist', links, ...(labels.some(Boolean) ? { labels } : {}) };
 }
 
 /** The table with an entry written in: over the one of `replace` (or of its own id) where it stands, else at `at` or the end. */
-export function withEntry(table: FeaturedFile, e: Featured, opts: { replace?: string; at?: number } = {}): FeaturedFile {
+export function withEntry(table: FeaturedFile, e: Featured, opts: { replace?: string; at?: number; key?: string } = {}): FeaturedFile {
   const lists = [...table.playlists];
   const over = opts.replace ?? e.id;
   const i = lists.findIndex((f) => f.id === over);
   if (opts.replace !== undefined && i < 0) fail(`no entry has the id ${opts.replace}`);
-  const entry: Featured = { ...e, id: i >= 0 ? lists[i].id : e.id };
+  // the key: the one asked, else the entry's own; a new entry without one is refused (it is never made from the name)
+  const key = (opts.key ?? (i >= 0 ? lists[i].key : e.key) ?? '').trim();
+  if (!FEATURED_KEY.test(key)) fail(key ? `the key ${key} is not lowercase letters, digits and dashes, a letter first` : 'a new featured playlist needs --key <its name on a link, e.g. vibe>');
+  if (lists.some((f, k) => k !== i && f.id !== e.id && f.key === key)) fail(`another featured playlist has the key ${key}`);
+  const entry: Featured = { id: i >= 0 ? lists[i].id : e.id, key, name: e.name, links: e.links, ...(e.labels ? { labels: e.labels } : {}) };
   // its own id elsewhere in the table (it was featured before, under another place) goes, so an id is one entry
   const rest = lists.filter((f, k) => k !== i && f.id !== entry.id);
   const where = opts.at !== undefined ? Math.max(0, Math.min(rest.length, opts.at - 1)) : i >= 0 ? Math.min(i, rest.length) : rest.length;
@@ -121,7 +130,7 @@ export function renewed(table: FeaturedFile, backup: string, sources: Record<str
       named.length && `${named.length} renamed (${named.map((l) => `${had.get(l) || '—'} → ${labels[links.indexOf(l)] || '—'}`).join(', ')})`,
     ].filter(Boolean);
     said.push(`${f.name}: ${parts.length ? parts.join('; ') : 'unchanged'} (${links.length} tracks)`);
-    return { id: f.id, name: f.name, links, ...(labels.some(Boolean) ? { labels } : {}) };
+    return { id: f.id, key: f.key, name: f.name, links, ...(labels.some(Boolean) ? { labels } : {}) };
   });
   return { table: { ...table, playlists }, said };
 }
@@ -133,7 +142,7 @@ function main(): void {
   const flag = (name: string): string | undefined => { const i = argv.indexOf(name); if (i < 0) return undefined; const v = argv[i + 1]; argv.splice(i, 2); return v; };
   const table = JSON.parse(fs.readFileSync(TABLE, 'utf8')) as FeaturedFile;
   if (argv.includes('--list')) {
-    for (const [i, f] of table.playlists.entries()) console.log(`${i + 1}. ${f.name} (${f.id}): ${f.links.length} tracks${i === 0 ? ', the first run\'s' : ''}`);
+    for (const [i, f] of table.playlists.entries()) console.log(`${i + 1}. ${f.name} (in=${f.key}, ${f.id}): ${f.links.length} tracks${i === 0 ? ', the first run\'s' : ''}`);
     return;
   }
   const renew = flag('--renew');
@@ -152,14 +161,14 @@ function main(): void {
     console.log(`removed ${remove} from ${path.relative(process.cwd(), TABLE)}`);
     return;
   }
-  const name = flag('--name'), replace = flag('--replace'), at = flag('--at');
+  const name = flag('--name'), replace = flag('--replace'), at = flag('--at'), key = flag('--key');
   const input = argv.find((a) => !a.startsWith('--'));
-  if (!input) { console.error('usage: node tools/feature.ts "<share link>" | <file.deephouse> [--name "<name>"] [--replace <id>] [--at <n>] | --remove <id> | --list'); process.exit(2); }
+  if (!input) { console.error('usage: node tools/feature.ts "<share link>" | <file.deephouse> [--name "<name>"] [--key <key>] [--replace <id>] [--at <n>] | --remove <id> | --list'); process.exit(2); }
   if (at !== undefined && !(Number.isInteger(Number(at)) && Number(at) >= 1)) fail(`--at takes a place from 1 (${at})`);
   const e = entryOf(input);
   if (name !== undefined && name.trim()) e.name = name.trim();
   const was = new Set(table.playlists.map((f) => f.id));
-  const next = withEntry(table, e, { ...(replace !== undefined ? { replace } : {}), ...(at !== undefined ? { at: Number(at) } : {}) });
+  const next = withEntry(table, e, { ...(replace !== undefined ? { replace } : {}), ...(at !== undefined ? { at: Number(at) } : {}), ...(key !== undefined ? { key } : {}) });
   writeTable(next);
   const placed = next.playlists.findIndex((f) => f.id === (replace ?? e.id));
   const entry = next.playlists[placed];

@@ -30,10 +30,12 @@ import type { Development } from './development.ts';
  *   `list`    a playlist shared as a link (PLAN-LIBRARY §3, `src/playlist-link.ts`): its name, its tracks, their
  *             labels and its id, beside the `v` its tracks share. Read once as the page opens, the playlist saved,
  *             and taken off the address, which then holds the first track's link; never on a track's link.
- *   `context`  where a track's link was copied from, beside its sound (round pl-link: `in`, the Featured playlist it
- *             played in). Not a sound row: the track plays the same with it or without it, so no digest row and no
- *             `linkSameSound` reads it. Read once as the page opens and taken off the address; never on a saved track,
- *             a playlist's link or the address the page keeps (`normaliseLink`, `linkWrite`).
+ *   `context`  where a track plays, beside its sound (round pl-link: `in`, the Featured playlist it plays in). Not a
+ *             sound row: the track plays the same with it or without it, so no digest row and no `linkSameSound`
+ *             reads it. On the address only while the track plays in that playlist (round featured-address: the
+ *             address writer's one rule, `withContext` in `control.ts`), so the bar, the browser's Share and Copy
+ *             link give the same thing; never on a saved track, a playlist's link or the stored link
+ *             (`normaliseLink`, `linkWrite`, which drop it).
  */
 export type LinkClass = 'sound' | 'place' | 'view' | 'bypass' | 'private' | 'list' | 'context';
 
@@ -80,7 +82,7 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'id', class: 'list', absent: 'a new playlist (its name with " 2" where taken)', written: 'only by Share on a playlist, last: the UUID without its dashes' },
   // round pl-link (his word 10-26): a track copied while it played in a Featured playlist names that playlist, so the
   // page opened on it plays the track in the list and the list's next after it (`featured.ts`, `featuredPlace`)
-  { name: 'in', class: 'context', absent: 'the track alone: the seed\'s own next theme follows it', written: 'only by a track\'s Copy link (the share circle\'s Copy link and Copy at m:ss, a row\'s Copy link) while that track is in a Featured playlist it plays in or is shown in, last: the playlist\'s id from `featured.json`, a UUID without its dashes; read once as the page opens and taken off the address; an id this edition lacks, or a list without that track, plays the plain track' },
+  { name: 'in', class: 'context', absent: 'the track alone: the seed\'s own next theme follows it', written: 'last, as the playlist\'s key from `featured.json` (`vibe`, `drive`, `ambient`: a constant per list, his word 10-31; its UUID is never written nor read here): on the address while the track plays in a Featured playlist that holds it (a first run, an `in` link opened, a row pressed, a step and the seam\'s hand-over, a reload; round featured-address), and taken off when it leaves the list (the dice, a bird moved, a typed seed, a track played outside it); by a track\'s Copy link (the share circle\'s Copy link and Copy at m:ss, a row\'s Copy link) while that track is in a Featured playlist it plays in or is shown in. Your own playlists never write it (their ids are local). A key this edition lacks (a UUID too), or a list without that track, plays the plain track and comes off the address' },
   { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
   // round audio-slack: a check's render made to fall behind, for the slowdown watch (`src/render-stress.ts`)
   { name: 'stress', class: 'view', absent: 'no stress', written: 'never; kept as given, read once as the context is made; never on a shared link' },

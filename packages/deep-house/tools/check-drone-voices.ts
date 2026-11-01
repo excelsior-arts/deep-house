@@ -15,8 +15,10 @@ import { BY_NAME } from '@deep-house/engine/voices';
 import { played, themeHash } from './link-digest.ts';
 
 const NEW = ['bowlRim', 'tanpura', 'chantOm'];
-/** the two still waiting: the rim left `AWAITING` for BOWLS's row (ambient-bowls, 10-27), named by it alone */
-const WAITING = ['tanpura', 'chantOm'];
+/** none still waiting: the rim left `AWAITING` for BOWLS's row (ambient-bowls, 10-27), the tanpura and the chant for OM's (ambient-om-field, 10-31), each named by its row alone */
+const WAITING: string[] = [];
+/** where each is named: the conversation's rows (BOWLS's rim, OM's drone) and OM's entry, which names its row and not them */
+const ROWS_FILE = 'recipes/ambient/conversation.json';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const quiet = <T>(fn: () => T): T => {
   const keep = [console.log, console.info, console.warn];
@@ -24,13 +26,13 @@ const quiet = <T>(fn: () => T): T => {
   try { return fn(); } finally { [console.log, console.info, console.warn] = keep; }
 };
 
-test('registered, and waiting: in AWAITING, in no place\'s list, named by no file of the app but the labels and that list (the rim: BOWLS\'s, named by its row)', () => {
+test('registered, and each a place\'s: out of AWAITING, in BY_PLACE, named by no file of the app but the labels, that list and the conversation\'s rows (the rim BOWLS\'s, the tanpura and the chant OM\'s)', () => {
   for (const id of NEW) assert.ok(BY_NAME[id], `${id} is not registered`);
   for (const id of WAITING) {
     assert.ok(AWAITING.some((a) => a.id === id), `${id} is not in AWAITING`);
     assert.ok(!BY_PLACE.some((a) => a.id === id), `${id} is admitted by a place`);
   }
-  assert.ok(!AWAITING.some((a) => a.id === 'bowlRim') && BY_PLACE.some((a) => a.id === 'bowlRim'), 'the rim is not BOWLS\'s');
+  for (const id of NEW) assert.ok(!AWAITING.some((a) => a.id === id) && BY_PLACE.some((a) => a.id === id), `${id} is not a place's`);
   const allowed = new Set([path.join(ROOT, 'src', 'catalogue-v2.ts'), path.join(ROOT, 'src', 'bird-labels.json')]);
   const named: string[] = [];
   const walk = (dir: string): void => {
@@ -39,7 +41,7 @@ test('registered, and waiting: in AWAITING, in no place\'s list, named by no fil
       if (d.isDirectory()) walk(p);
       else if (/\.(ts|tsx|json|js)$/.test(d.name) && !allowed.has(p)) {
         const text = fs.readFileSync(p, 'utf8');
-        for (const id of NEW) if (new RegExp(`\\b${id}\\b`).test(text) && !(id === 'bowlRim' && p === path.join(ROOT, 'recipes', 'ambient', 'conversation.json'))) named.push(`${path.relative(ROOT, p)} names ${id}`);
+        for (const id of NEW) if (new RegExp(`\\b${id}\\b`).test(text) && p !== path.join(ROOT, ROWS_FILE)) named.push(`${path.relative(ROOT, p)} names ${id}`);
       }
     }
   };
@@ -50,9 +52,9 @@ test('registered, and waiting: in AWAITING, in no place\'s list, named by no fil
 
 /** The first 16 hex digits of each whole program (`themeHash`) as `local` 79a9443b planned it; the four inside the bells' box as zones-pilot-2 plans them (the zone, the bowl's level by register) and zones-pilot-3 (the place's trim). Re-pinned in round length-after to `local` fb344631, where round length-2's lengths moved all but house-v1's and nothing else did (his word 10-28: "The length around is great ... so we can merge it now"). The Ambient tile's seed 3 re-pinned to `local` after the September-studies merge, where the piano's bus moved it and nothing else did (his words 10-28: "the ensembles are good for now"; "once piano rounds are back just accept it to unblock the next round"). The three in the bells' box re-pinned in round v24-bugs for the bells' hand the soft woodblock alone (his ear 10-29: "the woodblock is the only matching percussion ... all other claps are distracting"): the hand's strikes alone moved. Four re-pinned to `local` after round chillstep-ends's tail rule and phrase seam (his word 10-30: "Those are actually fine. We can accept them and merge"): the forms' outros and seams alone moved. Two re-pinned to `local` after round break-pulse-rule (his word 10-30: "all breaks changes approved, you got it right!"): a beat-led break's carrier and the pad hole's cut alone moved. Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did. */
 const LOCAL: Record<string, string> = {
-  'seed=1&v=2': '5d86c9339442b623',
-  'seed=10&v=2': '20e72b15479b831f',
-  'seed=35&v=2': '6a513c1b011245d0',
+  'seed=1&v=2': 'bb83d6f2eb959338',
+  'seed=10&v=2': 'bf45689d5799b08a',
+  'seed=35&v=2': '0856ece1ebfc3dcc',
   'seed=1&v=1': '41a594173310055a',
   'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '401d3474e265e505',
   'seed=5&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '1571b72101c30ea7',
@@ -62,10 +64,10 @@ const LOCAL: Record<string, string> = {
   'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'db003cff5f51b938',
   'seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&theme=3': '4fa3955f41d4a223',
   'seed=1&v=2&spell=em:0.00,ti:0.00,ze:0.00,ro:0.00,gl:0.00,ve:0.00,sp:0.00,lo:0.00': 'dea569773934f854',
-  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:1.00,gl:1.00,ve:1.00,sp:1.00,lo:1.00': '5656272f312c9fca', // piano-tone: the new piano
+  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:1.00,gl:1.00,ve:1.00,sp:1.00,lo:1.00': '0b527975c10d7824', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
   // inside the bells' box (Ember 0, Spark 1, Veil 0): the zone's conversation since zones-pilot
   'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:1.00,gl:0.00,ve:0.00,sp:1.00,lo:1.00': 'fcdb4d49ec9e40e5',
-  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': 'd693db62626fbef1', // piano-tone: the new piano
+  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': 'e3a59f3dbc688818', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
 };
 
 test('the links plan what they planned on local, and no event of the three', () => {

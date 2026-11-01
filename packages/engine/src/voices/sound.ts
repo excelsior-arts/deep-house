@@ -80,6 +80,24 @@ export interface SoundDescriptor {
   returns?: LazyReturn[];
   /** whether the harmonic bus's edge reads its notes (round HF-NOISE); absent, it does */
   edge?: boolean;
+  /**
+   * a keyboard that plays clean (rounds keys-noise and bell-noise, his ear 10-13: "noise makes it cheap"): no strike
+   * noise, and past the harmonic bus's edge, wherever a theme's room writes either; absent, it plays the room's strike
+   * and edge. A style reads it (house-v2's `cleanKeys`), never the row's name.
+   */
+  clean?: boolean;
+  /**
+   * an instrument that brings a figure of its own (an arpeggio or a written melody, in the melody role, to its own room)
+   * rather than striking the stab grid: the piano, since the record (v1's `figures.ownFigure`). The composer and the
+   * keys' moments read it (round sound-properties), never the row's name; absent, the voice plays the grid.
+   */
+  ownFigure?: boolean;
+  /**
+   * the patch's dark end (round sound-properties, from the reed's of 10-13: "choosing bright or dark shouldn't be to me,
+   * but to birds positions"): parameters of this row as they stand at Zephyr nought, the row's own numbers being its
+   * bright end; a style walks the patch between the two by the birds (house-v2's Zephyr voicing). Absent, one patch.
+   */
+  dark?: Readonly<Record<string, number>>;
   /** a gain over every note's output from its onset (`output-envelope.ts`); absent, none */
   contour?: OutputContour;
   timbres: Record<string, TimbreFacts>;
@@ -280,6 +298,12 @@ export function soundFaults(row: SoundRow, topology: Topology | undefined): stri
   if (d.cost !== undefined && !['cheap', 'mid', 'dear'].includes(d.cost)) say(`${d.cost} is not a cost class`);
   if (d.returns !== undefined) for (const r of d.returns) if (!(LAZY_RETURNS as readonly string[]).includes(r)) say(`${r} is not a lazy return`);
   if (d.edge !== undefined && typeof d.edge !== 'boolean') say('edge is not a boolean');
+  if (d.clean !== undefined && typeof d.clean !== 'boolean') say('clean is not a boolean');
+  if (d.ownFigure !== undefined && typeof d.ownFigure !== 'boolean') say('ownFigure is not a boolean');
+  if (d.dark !== undefined) {
+    if (!isObject(d.dark)) say('dark is not a table');
+    else for (const [k, v] of Object.entries(d.dark)) if (typeof v !== 'number' || typeof row.parameters[k] !== 'number') say(`dark.${k}: a number for a numeric parameter of the row`);
+  }
   if (!isObject(d.timbres)) say('timbres is not a table');
   if (d.contour !== undefined) for (const f of contourFaults(d.contour)) say(f);
   for (const k of ['dispatches', 'mood'] as const) if (!Array.isArray(d[k])) say(`${k} is not a list`);

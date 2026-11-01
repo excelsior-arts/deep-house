@@ -437,8 +437,11 @@ export function linkTimeStart(t: number, barSeconds: number, playable: number): 
   return Math.floor(lastBar / 4) * 4 * barSeconds;
 }
 
-/** The address without one of its rows (the time link's `t` once read): every other row where it stands. */
-export function linkWithout(search: string | null | undefined, name: 't'): string {
+/**
+ * The address without one of its rows (the time link's `t` once read; the context row `in`, which the address writer
+ * puts back only while the track plays in its Featured playlist): every other row where it stands.
+ */
+export function linkWithout(search: string | null | undefined, name: 't' | 'in'): string {
   const q = linkQuery(search);
   q.delete(name);
   return plain(q);

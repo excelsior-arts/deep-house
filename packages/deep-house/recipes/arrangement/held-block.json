@@ -1,0 +1,28 @@
+{
+ "schema": 1,
+ "kind": "arrangement-held-block",
+ "round": "sound-properties",
+ "revision": 1,
+ "note": "A held chord that arrives as a block (his word 10-30: \"rule out annoying organ motifs and approaches\"). Measured over the guards' grid (seeds 1-12, themes 1-3): every held lead plays the same part, one strike a chord, four to five voices, a loop of about nine bars that runs unchanged for about twenty seconds; the strings, the swell, the rhodes and the synth pads do it too. What the organ adds is its sound: it strikes in 9 ms and holds 0.72 at the bar line, where the strings hold 0.52 and every synth pad swells in over half a second or more. Rendered alone in eight bars of a main, the organ's chords stand 2-4 dB under their own top at the bar's end against 6-7 for the strings and the swell, its bars' tops move 2-2.7 dB against 4.4-6.7, and its top voice sits at MIDI 73 at the median against 69-70. So the same chord shape is struck whole and held flat, high, every chord, for the whole main. A voice is a block by its own numbers (`block`: the attack of the row it renders through, the hold `TIMBRES` declares), never by its name. A block's chord is voiced as one line (the held front part's way, `voiceHeld`): `voicing.voices` closed under its top, the top led by step inside `voicing.top`, each phrase of `phraseBars` starting its line from the other half of that band, so a loop's repeats are not the same chord; and it comes in on a swell of `attackBeats`, an organist's pedal rather than a key. Off the slow side (`leastBpm`), and only on the theme's own draw: a place that plays its own pad sound (the high four's held saw, the trance corner's voiced one) keeps it as the place has it. Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "ring",
+   "name": "the held block, voiced as a line",
+   "units": {
+    "says": "what each knob counts",
+    "block.attackMostS": "seconds",
+    "block.holdLeast": "ratio",
+    "leastBpm": "bpm",
+    "phraseBars": "bars",
+    "voicing.voices": "count",
+    "voicing.top": "midi",
+    "attackBeats": "beats"
+   },
+   "block": { "says": "a held timbre is a block where the row it renders through attacks within `attackMostS` and `TIMBRES` declares it still sounding `holdLeast` or more at the bar line", "attackMostS": 0.05, "holdLeast": 0.6 },
+   "leastBpm": 70,
+   "phraseBars": 8,
+   "voicing": { "says": "the chord's voices, closed under its top (`voiceHeld`); the top the nearest chord tone to the last inside `top`, a phrase's first chord reaching for the band's other half; `root` puts the chord's root under them (off: under the band the root falls into the bass's octave)", "voices": 3, "top": [64, 72], "root": false },
+   "attackBeats": 0.35
+  }
+ ]
+}

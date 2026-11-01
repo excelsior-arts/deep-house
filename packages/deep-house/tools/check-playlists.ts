@@ -83,30 +83,38 @@ export function playlistChecks(check, must) {
     must(rows.every((r) => r.group === 'featured' && FEATURED.some((f) => f.links.includes(r.link))), 'a featured row is not a featured link');
     return `${loose.length ? `${loose.length} not yet blessed: ${loose.join(', ')}` : 'every featured link frozen'}; ${rows.length} rows of the featured group beside the grid's`;
   });
-  check('tools/feature.ts: a share link becomes an entry (its id, its name, its links as the page writes them, its labels), written over the entry of its id in place, or at a place asked', () => {
+  check('tools/feature.ts: a share link becomes an entry (its id, its name, its links as the page writes them, its labels), written over the entry of its id in place, or at a place asked; a new one takes its key from --key, a replaced one keeps its own', () => {
     const link = '?' + L('list=Night+test', 'v=2', 'play=27191-3-em14gl0ve34sp0lo81~6~812-2-ze20ve80', 'names=cool+bells~~', 'id=3f9c2a71e8b44d0c9a1e5b7d2c6f8a90');
     const e = entryOf(`https://example.org/deep-house/${link}`);
     must(e.id === '3f9c2a71-e8b4-4d0c-9a1e-5b7d2c6f8a90' && e.name === 'Night test', `the entry is ${e.id} ${e.name}`);
     must(e.links.length === 3 && e.links.every((l) => normaliseLink(l).link === l) && e.labels?.join('|') === 'cool bells||', `the links ${e.links.join(' ')} labels ${e.labels}`);
     const table = { note: '', playlists: FEATURED.map((f) => ({ ...f })) };
-    const added = withEntry(table, e, { at: 1 });
-    must(added.playlists[0].id === e.id && added.playlists.length === FEATURED.length + 1, 'at 1 is not the first run\'s place');
+    let keyless = '', twice = '';
+    try { withEntry(table, e, { at: 1 }); } catch (err) { keyless = err.message; }
+    must(/needs --key/.test(keyless), `a new entry without a key was not refused (${keyless})`);
+    try { withEntry(table, e, { key: FEATURED[0].key }); } catch (err) { twice = err.message; }
+    must(/another featured playlist has the key/.test(twice), `a key taken was not refused (${twice})`);
+    const added = withEntry(table, e, { at: 1, key: 'night' });
+    must(added.playlists[0].id === e.id && added.playlists[0].key === 'night' && added.playlists.length === FEATURED.length + 1, 'at 1 is not the first run\'s place, or its key is not night');
     const again = withEntry(added, { ...e, name: 'Night' });
-    must(again.playlists.length === added.playlists.length && again.playlists[0].name === 'Night', 'the same id again did not replace its entry in place');
+    must(again.playlists.length === added.playlists.length && again.playlists[0].name === 'Night' && again.playlists[0].key === 'night', 'the same id again did not replace its entry in place, keeping its key');
     const over = withEntry(table, e, { replace: FEATURED[1].id });
-    must(over.playlists[1].id === FEATURED[1].id && over.playlists[1].name === 'Night test' && over.playlists.length === FEATURED.length, '--replace did not keep the entry\'s id and place');
+    must(over.playlists[1].id === FEATURED[1].id && over.playlists[1].key === FEATURED[1].key && over.playlists[1].name === 'Night test' && over.playlists.length === FEATURED.length, '--replace did not keep the entry\'s id, key and place');
     let refused = '';
     try { entryOf('?' + L('list=Bad', 'v=9', 'play=6')); } catch (err) { refused = err.message; }
     must(/does not play/.test(refused), `a track this edition can't play was not refused (${refused})`);
-    return 'id, name, links and labels from the link; same id replaced in place; --at 1 first; --replace keeps the id; an unplayable track refused';
+    return 'id, name, links and labels from the link; a new one refused without --key or with a key taken; same id replaced in place, its key kept; --at 1 first; --replace keeps the id and key; an unplayable track refused';
   });
-  check('a track\'s Copy link names its Featured playlist only there (round pl-link): alone and from one of yours the plain track link; from a Featured list the link and its in, which opens on that place', () => {
+  check('a track\'s Copy link names its Featured playlist only there (round pl-link): alone and from one of yours the plain track link; from a Featured list the link and its in (the list\'s key, featured-address), which opens on that place; a UUID on in opens none', () => {
     const base = 'https://deephouse.audio/';
     const f = FEATURED[1], i = 1, track = `${base}?${f.links[i]}`;
     const alone = trackShareLink(track, undefined), saved = trackShareLink(track, null), mine = trackShareLink(track, 'Mine');
     must(alone === track && saved === track && mine === track, `a track alone or in one of yours copied ${alone} ${saved} ${mine}`);
     const feat = trackShareLink(track, featKey(f.id));
-    must(feat === `${track}&in=${f.id.replace(/-/g, '')}`, `from ${f.name} it copied ${feat}`);
+    must(feat === `${track}&in=${f.key}`, `from ${f.name} it copied ${feat}`);
+    // his word 10-31: the key, a constant per list; no UUID on `in` names one (nothing was shared with it)
+    must(FEATURED.map((x) => x.key).join() === 'vibe,drive,ambient', `the keys are ${FEATURED.map((x) => x.key).join()}`);
+    for (const id of [f.id, f.id.replace(/-/g, '')]) must(featuredPlace(`?${f.links[i]}&in=${id}`) === null, `in=${id} opened a playlist`);
     const at = featuredPlace(new URL(feat).search);
     must(!!at && at.featured.id === f.id && at.index === i, `it opens on ${at ? `${at.featured.name} ${at.index + 1}` : 'nothing'}`);
     // the time link carries it too; a sound the list doesn't hold (a bird pulled since) copies none

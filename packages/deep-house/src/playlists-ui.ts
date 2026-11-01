@@ -39,7 +39,7 @@ import { note } from './ledger.ts';
 import { stepIndex, indexOfSound, seamDue, placeWords, playMark } from './playlist-play.ts';
 import { romanNumeral, placeStored } from './control.ts';
 import { linkBare } from './link.ts';
-import { FEATURED, FEATURED_WORD, featuredTracks, copyOfFeatured, featKey, isFeat, featOf, featuredPlace, trackShareLink } from './featured.ts';
+import { FEATURED, FEATURED_WORD, featuredTracks, copyOfFeatured, featKey, isFeat, featOf, featuredPlace, trackShareLink, linkInFeatured } from './featured.ts';
 import type { Control } from './control.ts';
 import { openLibrary, libraryOpen, libraryRolling, gyroSpin, scrollInks, onPanelKey } from './library-panel.ts';
 import { reducedMotion } from './motion.ts';
@@ -1331,11 +1331,12 @@ export function openListLink(): LinkProblem | null {
  * **A track's link that names its Featured playlist** (round pl-link, his word 10-26: "so if users open they land on
  * this track playing in the playlist and next track follows playlist"): `in` names the playlist (`featuredPlace`), and
  * the track is found in it by its sound, the first place where it stands twice. The address becomes that track's link
- * as the playlist holds it, every other row kept (`t`, the view, `out`) and `in` taken off, before the transport reads
- * it; `startPlaylists` makes it the playing playlist, on the list's clock, so the ring's line names it and the seam
- * takes the list's next. The page starts as any link does, cued and waiting for a hand; the panel stays shut, as on a
- * first run's featured start. An id this edition lacks, or a list without the track: `in` comes off and the link plays
- * as a plain track link, with no notice. True where it put a playlist in play.
+ * as the playlist holds it, every other row kept (`t`, the view, `out`) and `in` last (round featured-address: the
+ * address names the playlist while the track plays in it), before the transport reads it; `startPlaylists` makes it
+ * the playing playlist, on the list's clock, so the ring's line names it and the seam takes the list's next. The page
+ * starts as any link does, cued and waiting for a hand; the panel stays shut, as on a first run's featured start. An
+ * id this edition lacks, or a list without the track: `in` comes off and the link plays as a plain track link, with
+ * no notice. True where it put a playlist in play.
  */
 function featuredOpen(): boolean {
   let place: ReturnType<typeof featuredPlace> = null;
@@ -1348,7 +1349,8 @@ function featuredOpen(): boolean {
   const q = ok ? linkQuery(links[place!.index]) : new URLSearchParams();
   if (ok) for (const n of SOUND) rest.delete(n);
   for (const [k, v] of rest) q.append(k, v);
-  const search = q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/');
+  const plain = q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/');
+  const search = ok ? linkInFeatured(plain, place!.featured) : plain;
   try { history.replaceState(null, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`); } catch (e) { return false; }
   if (!ok) return false;
   fromLink = { name, index: place!.index, open: false };
@@ -1358,7 +1360,8 @@ function featuredOpen(): boolean {
 /**
  * **A first run starts on the first featured playlist** (featured, his word 10-23: "never just on bare arena"): a bare
  * address (no sound row) in a browser that keeps no place puts that playlist's first track it can play on the address,
- * the rest of the address kept (the view, `out`), before the transport reads it; `startPlaylists` makes it the playing
+ * the rest of the address kept (the view, `out`) and the playlist's `in` last (round featured-address, his word 10-31:
+ * "think about users hear first song and pass link to friend"), before the transport reads it; `startPlaylists` makes it the playing
  * playlist, so the ring's line names it and the seam takes its next track. The page starts as any link does: cued,
  * waiting for a hand. The panel stays shut. A link, a stored place, or a table with nothing playable leaves it.
  */
@@ -1371,7 +1374,7 @@ function firstRun(): void {
   if (at < 0) return;
   const q = linkQuery(links[at]);
   for (const [k, v] of linkQuery(location.search)) q.append(k, v);
-  const search = q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/');
+  const search = linkInFeatured(q.toString().replace(/%3A/g, ':').replace(/%2C/g, ',').replace(/%2F/g, '/'), f);
   try { history.replaceState(null, '', `${location.pathname}?${search}${location.hash}`); } catch (e) { return; }
   fromLink = { name, index: at, open: false };
 }
@@ -1781,11 +1784,15 @@ export function startPlaylists(d: PlaylistDeps): void {
     if (i >= 0 && listOf(r.name)) playing = { name: r.name, index: i };
   }
   lastRecord = recordKey();
-  d.control.steer({ next: () => step(1, 'skip'), back: () => step(-1, 'back'), leave, place: () => playing && { ...playing }, heard });
+  // the address names the playing Featured playlist (`in`) while its track plays (round featured-address)
+  d.control.steer({ next: () => step(1, 'skip'), back: () => step(-1, 'back'), leave, place: () => playing && { ...playing }, heard,
+    context: (search) => trackShareLink(search, playing?.name) });
   // a reload carries on at the list's clock as well
   syncClock();
-  // the place written down once the steer is there to say it, so a reload resumes in the playlist
+  // the place written down once the steer is there to say it, so a reload resumes in the playlist; a reload put back
+  // in its playlist by the store names it on the address too (`in`, round featured-address)
   if (opened) d.control.remember();
+  else if (playing) d.control.readdress();
   store.subscribe((next) => {
     if (quiet) return;
     // another tab's write or an iCloud merge ends the Undo too: its snapshot predates what arrived

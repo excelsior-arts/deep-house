@@ -31,24 +31,24 @@
    "strategy": "house-v2",
    "masters": {
     "1": [
-     {"index":0,"seed":"1#0","preset":"sub","bpm":104,"bars":104,"events":1762,"hash":"a8b2763a1c5c48fa4ff7fe2c26a40a5adeddb8870f9d64987ff1367e903230b0"},
-     {"index":1,"seed":"1#1","preset":"sub","bpm":104.1,"bars":100,"events":1570,"hash":"22d896a6210dbc84c0d69c894cc4c7ae09bfeb4bd72279ef058a42735dff511e"},
+     {"index":0,"seed":"1#0","preset":"sub","bpm":104,"bars":104,"events":1424,"hash":"9cf557485cd2bc071d188e241120b933c0e5a691ee4dadda2344c62b01ec486c"},
+     {"index":1,"seed":"1#1","preset":"sub","bpm":104.1,"bars":100,"events":1570,"hash":"d9ee9a7396412d678e2604fddb9e6a39f10199e8a161d2f0f70354737f67e364"},
      {"index":2,"seed":"1#2","preset":"growl","bpm":104.3,"bars":80,"events":1217,"hash":"942b1868ae899fe324ca6955516822d9c1b63d2463ed32e22ec3049637c53093"},
-     {"index":3,"seed":"1#3","preset":"growl","bpm":104.4,"bars":84,"events":1649,"hash":"017894895d7b0355bdd71f6e27804a6b807a6925a300f2541f55d688bf77f7da"},
-     {"index":4,"seed":"1#4","preset":"growl","bpm":104.6,"bars":88,"events":2673,"hash":"5858e70703025559fcb6dba1692b29f50d5bb17310b6e336fc0d446bf678d599"},
-     {"index":5,"seed":"1#5","preset":"sub","bpm":104.7,"bars":84,"events":1812,"hash":"e654b5fbd5f1af25d0f49bbbeb3726a213aae2262e31d6c579ee03abeec59542"}
+     {"index":3,"seed":"1#3","preset":"growl","bpm":104.4,"bars":84,"events":1446,"hash":"70a0f8f09a417539b593b14aa35b584c1efe37492c1d772fb840216fdc5ecda0"},
+     {"index":4,"seed":"1#4","preset":"growl","bpm":104.6,"bars":88,"events":2566,"hash":"0322c2f2f1b94c672af60eb71a3690cbe7bdd242aade39a12f593119d3a79906"},
+     {"index":5,"seed":"1#5","preset":"sub","bpm":104.7,"bars":84,"events":1812,"hash":"7aef35117f3b0d52c1590bcd2aefcd78ef767e4671748b49b32ca2d00ee12bbd"}
     ],
     "21323": [
-     {"index":0,"seed":"21323#0","preset":"growl","bpm":100,"bars":84,"events":1701,"hash":"91134bc40a75ae8abbf292ad250b39ee6740b6679bb552c182264613fb7b25fc"},
-     {"index":1,"seed":"21323#1","preset":"growl","bpm":100.1,"bars":88,"events":1738,"hash":"aac155f99a22c48a945653e875de22a002ee6b0f684a1cf86a7eeaccfe66435a"},
-     {"index":2,"seed":"21323#2","preset":"growl","bpm":100.3,"bars":92,"events":2651,"hash":"d3c044442a7c1d98164752da0b01e860354d70c011f020cd5f5b65f2f40dfdb4"},
+     {"index":0,"seed":"21323#0","preset":"growl","bpm":100,"bars":84,"events":1485,"hash":"ab456c252933fb7f0a5157a3f6ee5d1899f220a11312f1c8d22dae59b324a652"},
+     {"index":1,"seed":"21323#1","preset":"growl","bpm":100.1,"bars":88,"events":1166,"hash":"af25fc5af43bacd9c4c37787b83ef4ffadd9a2a1c0fd18c292abf16ba79e03ee"},
+     {"index":2,"seed":"21323#2","preset":"growl","bpm":100.3,"bars":92,"events":2651,"hash":"b15692bec8d852ed5b4ed60bf78bd11159b398e1171a09fbffd4e2cec7211243"},
      {"index":3,"seed":"21323#3","preset":"growl","bpm":100.4,"bars":100,"events":1771,"hash":"6a3d589d40cac19c8b854cbf68d2a8060bc734c3ad0e915d87ed80319306a460"}
     ],
     "92970": [
-     {"index":0,"seed":"92970#0","preset":"growl","bpm":101,"bars":88,"events":1647,"hash":"8c1b8d25622f1e5a297b2533a3e4d01c71044f009ad8b5d9a588eb2d4b6d0f8f"},
+     {"index":0,"seed":"92970#0","preset":"growl","bpm":101,"bars":88,"events":1647,"hash":"84fa31aa715d80b6fd19699e31cce5e82228995a505169e7239d58363a246304"},
      {"index":1,"seed":"92970#1","preset":"sub","bpm":101.1,"bars":80,"events":1298,"hash":"e711d4319d14ae3f370541c08579fa4d7eb160ab263e1adb6253b0d67e32fe33"},
-     {"index":2,"seed":"92970#2","preset":"growl","bpm":101.3,"bars":76,"events":1541,"hash":"eb5023bd6afa4fea996d07b4d8ccc23c6a1d90d6e8417673f48874eaf15bc8d0"},
-     {"index":3,"seed":"92970#3","preset":"growl","bpm":101.4,"bars":76,"events":1381,"hash":"e79cc609458ee478c68ca0400293ba2b376480dbea26ecb1ea4c3fa0b7b4a3fb"}
+     {"index":2,"seed":"92970#2","preset":"growl","bpm":101.3,"bars":76,"events":1541,"hash":"732e55da48d66da8a7b82c2540e4d3dcfd506e3e4443f184241d83e67c876e91"},
+     {"index":3,"seed":"92970#3","preset":"growl","bpm":101.4,"bars":76,"events":1381,"hash":"7b7331bcad27dd250f8d6704897a4ac60ef0d144ffea5ee1724fed68be3780ec"}
     ]
    }
   }

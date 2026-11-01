@@ -265,19 +265,19 @@ const PROTECTED: Record<string, string> = {
   'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.50,ro:0.50,gl:0.50,ve:0.00,sp:0.00,lo:1.00': '646b47bd6a6480f6',
   'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '0973cb02ca9455cb',
   'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': '30edfa506b765d33' /* piano-tone: the new piano; outside the box: the tables less the zone's */, // bells-birds: BELLS's birds at their ends (Root's light bells, Veil and Loom's floor on the rests)
-  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': '859904da7ee482ae',
-  'seed=10&v=2': '20e72b15479b831f',
+  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': '494734ea6685bf6b',
+  'seed=10&v=2': 'bf45689d5799b08a',
   // trance-1: the Ember pull reads the high four, whose every theme now plays the hook; trance-2: the hook one of his five
   // chopped-chord rows, in runs (source 10's arc) on a loop of two or three chords, and the high four's breakdown its own
   // again (hats in)
-  'seed=1&v=2&spell=em:0.95': '66ed7a1c902e1e51',
-  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': '0340b339f1e90229',
+  'seed=1&v=2&spell=em:0.95': '31ef91f8ed0e8e11',
+  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': 'ffc24756d507b3ce',
   'seed=1&v=2&spell=em:0.14,ti:0.85,gl:0.00,ve:0.34,sp:0.00,lo:0.81': '356b85858cb5ff31',
   // Ember up from WAVES, where the kit comes on and WAVES is still the ambient voices' nearest (the review of 10-18, its
   // first finding): the sea needs no drums (`no-kit`), so these play `local`'s programs (3a90d7b1), the kit and the lanes
-  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'e3ad34294fd14e9e', // keys-room and keys-balance: the breakdown's keys, its copied pad gone, single tones under the front drone
-  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '353b6b0542649617',
-  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '31bed5c1df3ef293',
+  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'b1d061f599e30fd3', // keys-room and keys-balance: the breakdown's keys, its copied pad gone, single tones under the front drone
+  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'ad71439fc4fa6398',
+  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '47afb467c1ce0c30',
 };
 
 test('where the weather\'s row is "none" the admission moves nothing: the protected spells and the ring around WAVES lay no sea and play the programs they played', () => {

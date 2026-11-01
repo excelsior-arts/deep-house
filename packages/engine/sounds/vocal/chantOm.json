@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "chantOm",
-  "revision": 1,
+  "revision": 2,
   "topology": "chant",
   "parameters": {
     "throats": [
@@ -13,24 +13,28 @@
     "detuneCents": 9,
     "driftCents": 3,
     "driftHz": 0.06,
-    "sourceTilt": 1.4,
+    "sourceTilt": 1.55,
     "breath": 0.02,
     "hum": [
-      280,
-      1050,
-      2400
+      250,
+      940,
+      2150
     ],
     "humLevel": [
       1,
       0.12,
       0.04
     ],
-    "openHz": 4200,
+    "openHz": 3400,
     "humHz": 700,
+    "onsetHz": 700,
+    "formantScale": 0.86,
+    "chestHz": 170,
+    "chestDb": 3,
     "humDb": -2,
     "roundAt": 0.3,
     "closeAt": 0.62,
-    "attack": 1.6,
+    "attack": 2.6,
     "release": 2.4,
     "overtone": 0,
     "overtoneQ": 40,
@@ -88,14 +92,16 @@
     "mood": []
   },
   "provenance": {
-    "round": "ambient-voices",
+    "round": "ambient-voices; ambient-om-field (revision 2: the onset and the baritone)",
     "module": "chant.ts",
     "note": "A wordless sung drone (PLAN-AMBIENT §3.3): one syllable on a low fundamental, opening on the room's a, rounding to its o by 0.3 of the note and closing to the lips' hum by 0.62, the formants gliding the whole way and the lid closing to 700 Hz. One throat carrying it and two faint ones nine cents apart in all, each drifting a few cents at a sixteenth of a Hz, and no vibrato: it is meant to read as a held rank of voices and never as a person. The overtone mode (a note's control) lays a narrow formant on one harmonic at a time, 6th to 12th and back, 2.4 s on each.",
     "notes": {
       "hum": "The closed m: the first formant at 280 Hz, the upper two nearly gone (0.12, 0.04), so what is left is the fundamental and its first few harmonics through the nose.",
       "overtoneLevel": "The narrow band's gain at overtone 1: a band of Q 40 passes one harmonic, and at 3 it stands 12-20 dB over the harmonics beside it, which step back (the upper two formants to 0.3) while it sings; at 8 the whole syllable rose 9 dB and the band was all there was.",
       "harmonics": "The plan's 5th-12th, as a walk: up from the 6th to the 12th and back down to the 5th. A note may not write its own yet; a planner that wants another walk is a row of its own.",
-      "throats": "Three throats nine cents apart in all, at 0.2, 1 and 0.12 (the lowest-tuned first): one throat carries the voice and two faint ones a few cents either side of it. At equal levels their beating pumped the whole body 10-12 dB (the harmonic standing on a formant beats as deep as the throats' levels allow); at 0.7, 1, 0.5 it still swung 12 dB, at these 5 dB at most (3.5 over nine tenths of the time) against 2.5 for one throat alone, measured on a 20 s syllable. The centre one carries the overtone mode alone, its drift parked while it does."
+      "throats": "Three throats nine cents apart in all, at 0.2, 1 and 0.12 (the lowest-tuned first): one throat carries the voice and two faint ones a few cents either side of it. At equal levels their beating pumped the whole body 10-12 dB (the harmonic standing on a formant beats as deep as the throats' levels allow); at 0.7, 1, 0.5 it still swung 12 dB, at these 5 dB at most (3.5 over nine tenths of the time) against 2.5 for one throat alone, measured on a 20 s syllable. The centre one carries the overtone mode alone, its drift parked while it does.",
+      "onsetHz": "His ear 10-31 on the first sketches: \"a bit too harsh in the beginning\". The lid stands at 700 Hz as the syllable starts and opens to openHz over the first half of the attack (2.6 s, was 1.6), so the a comes up out of the dark; the walk to the o and the hum is as it was. At openHz or over it the lid starts open (revision 1).",
+      "formantScale": "His ear 10-31: \"maybe use baritone for Om voice\". A longer tract: the room's a and o at 0.86 of their centres (the a 620/1070/2180 Hz), the hum's own lower with them (250/940/2150), the source a little darker (sourceTilt 1.55, was 1.4), the lid's top 3.4 kHz (was 4.2), and a chest under the body, a broad peak of 3 dB at 170 Hz (chestHz, chestDb; nought is none). Not the voice transposed: the pitch is the note's; the body is a bigger one. A first try (tilt 1.7, 4 dB, 3 kHz, the lid opening over the whole attack) left the a at a 380 Hz centroid for a moment: the walk heard as a hum throughout."
     }
   }
 }

@@ -35,6 +35,7 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "dark": { "formantHz": 850, "formantDb": 3.5, "lpHz": 3000, "trim": 0.9 },
     "cost": "dear",
     "timbres": {
       "reedOrgan": {
@@ -42,7 +43,8 @@
         "struck": false,
         "hold": 0.8,
         "brightnessHz": 3200,
-        "loudnessDb": -12
+        "loudnessDb": -12,
+        "source": "acoustic"
       }
     },
     "dispatches": [],
@@ -53,6 +55,7 @@
     "module": "keys-2.ts",
     "note": "A reed organ: a sawtooth through a fixed resonance, which is what a metal tongue is, where the catalogue's organ is drawbars, which is a pipe.",
     "notes": {
+      "dark": "The dark end (his ear 10-13 on seed 1: \"it sounds so annoying in this track\"; \"choosing bright or dark shouldn't be to me, but to birds positions\"): the peak at 850 Hz +3.5 dB under 3 kHz, 0.8-2 kHz level with 0.2-0.8 kHz, the trim 0.9 so it reads the loudness its timbre declares; the row's own +7 dB at 1150 Hz under 4.2 kHz is the bright end. Zephyr walks the patch between them (house-v2).",
       "formantHz": "The reed's own body: fixed in hertz, because a metal tongue's resonance does not move with the note. It is what makes the bottom dark and the top nasal. A peaking filter's Q is a real Q.",
       "bellowsHz": "The bellows: somebody's arm, on the level and not on the pitch."
     }

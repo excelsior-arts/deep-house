@@ -43,7 +43,8 @@
         "struck": false,
         "hold": 0.55,
         "brightnessHz": 1500,
-        "loudnessDb": -11.1
+        "loudnessDb": -11.1,
+        "underBed": true
       }
     },
     "dispatches": [],

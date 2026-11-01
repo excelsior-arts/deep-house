@@ -3,6 +3,7 @@
   "playlists": [
     {
       "id": "136e4bbf-46ff-4b83-8a36-226ebadad29c",
+      "key": "vibe",
       "name": "Vibe",
       "links": [
         "seed=40&v=2",
@@ -35,6 +36,7 @@
     },
     {
       "id": "313baca7-8b32-4381-ab91-94c7630433de",
+      "key": "drive",
       "name": "Drive",
       "links": [
         "seed=1&v=2&theme=16&spell=ro:0.53,gl:0.20,sp:1.00",
@@ -59,6 +61,7 @@
     },
     {
       "id": "b0263c6b-7b04-4e19-9bba-bbb1dd582432",
+      "key": "ambient",
       "name": "Ambient",
       "links": [
         "seed=28617&v=2&theme=2&spell=em:0.00,ti:1.00,ze:0.00,ro:0.00,gl:1.00,ve:1.00,sp:0.21,lo:1.00",

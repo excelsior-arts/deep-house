@@ -2,9 +2,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  planTheme, programOf, interpretWants, pushCurve, organTheme, generate, style, settings, v1, HOUSE, biasFor, swellsOf, spellVerdict, sweepsOf, v2, houseTables, leadInStyle, leadInsOf,
+  planTheme, programOf, interpretWants, pushCurve, generate, style, settings, v1, HOUSE, biasFor, swellsOf, spellVerdict, sweepsOf, v2, houseTables, leadInStyle, leadInsOf,
 } from './check-composer-common.ts';
 import type { Arrangement, Section, Plan } from './check-composer-common.ts';
+import { HELD_BLOCK_ROWS, isBlock } from '../src/held-block.ts';
 
 test('R34: the palette biases the lead-in and never gates it: a dry or tight theme rises quietly on a loud return and not on a modest one', () => {
   // Eugene, 09-24: "if there is space for improvement, go do it." Before, a
@@ -92,19 +93,34 @@ test('R111: a drop followed by a breakdown keeps the breakdown\'s mark under hou
   assert.equal(at(record, b), 0);
 });
 
-test('R37: a set never runs two organ themes back to back, and the rule reads the lead each theme really plays', () => {
-  const bias = biasFor(HOUSE, style);
-  const runs: string[] = [], wrong: string[] = [];
-  for (let seed = 1; seed <= 150; seed++) {
-    const leads = [0, 1, 2, 3].map(n => planTheme(seed, n, v2).dice.leadTimbre);
-    for (let n = 0; n < 4; n++) {
-      if ((leads[n] === 'organ') !== organTheme(seed, n, { style, spell: HOUSE, accompaniment: 'base', development: 'base' })) wrong.push(`${seed}#${n}`);
-      if (n && leads[n] === 'organ' && leads[n - 1] === 'organ') runs.push(`${seed}#${n}`);
+test('the held block: a held voice that strikes and holds flat is voiced as a line and swells in, by its numbers and never its name', () => {
+  // Round sound-properties (his word 10-30: "rule out annoying organ motifs and approaches"). The set's old rule, never
+  // two organ themes running, is gone; the block is voiced instead. Every held chord of a block (the organ's, at the
+  // house, seeds 1-60) is three voices a third or more apart with its top in the row's band, opening on a swell; a held
+  // voice that is not a block (the strings, the swell, the synth pads) keeps its own entrance.
+  const row = HELD_BLOCK_ROWS.ring;
+  let blocks = 0, others = 0;
+  for (let seed = 1; seed <= 60; seed++) for (const n of [0, 1, 2]) {
+    const plan = planTheme(seed, n, v2) as unknown as Plan & { bpm: number; dice: { padTimbre: string } };
+    if (plan.bpm < row.leastBpm) continue;
+    const held = plan.events.filter((e: any) => e.layer === 'pad' && e.voice === 'pad' && typeof e.p.midi === 'number' && !e.part && !e.role);
+    const block = isBlock(row, 'pad', plan.dice.padTimbre);
+    const chords = new Map<number, number[]>();
+    for (const e of held as any[]) { const k = Math.round(e.t * 1000); (chords.get(k) ?? chords.set(k, []).get(k)!).push(e.p.midi); }
+    for (const e of held as any[]) {
+      if (block) assert.ok(e.p.attack > 0.1, `${seed}#${n}: a block's chord swells in (${e.p.attack})`);
+      else if (e.p.timbre === 'strings') assert.equal(e.p.attack, undefined, `${seed}#${n}: the strings keep their own entrance`);
+    }
+    if (!block) { others += chords.size; continue; }
+    for (const ms of chords.values()) {
+      const m = [...ms].sort((a, b) => a - b);
+      assert.ok(m.length <= row.voicing.voices, `${seed}#${n}: ${m.length} voices`);
+      assert.ok(m[m.length - 1] >= row.voicing.top[0] && m[m.length - 1] <= row.voicing.top[1], `${seed}#${n}: top ${m[m.length - 1]}`);
+      for (let i = 1; i < m.length; i++) assert.ok(m[i] - m[i - 1] >= 3, `${seed}#${n}: ${m.join(',')} rubs a second`);
+      blocks++;
     }
   }
-  // Measured 09-24: organTheme answered wrongly on 46 of 1200, and 123#1 followed 123#0's organ.
-  assert.deepEqual(runs, [], 'two organ themes running');
-  assert.deepEqual(wrong, [], 'organTheme disagrees with the plan');
+  assert.ok(blocks > 20 && others > 100, `blocks ${blocks}, others ${others}`);
 });
 
 test('R40: a want with a zero bound leans its pool and never zeroes it', () => {

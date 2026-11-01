@@ -771,6 +771,11 @@ export interface PlaylistSteer {
   place(): PlaylistPlace | null;
   /** the track the record is, for the lock screen: its name (`null` unnamed) and its playlist's; `null` outside one */
   heard?(): { title: string | null; list: string } | null;
+  /**
+   * **The address's context** (round featured-address): a search string (no `?`, no `in` on it) with the playing
+   * Featured playlist's `in` last where that playlist holds its track (`trackShareLink`), else as it came.
+   */
+  context?(search: string): string;
 }
 
 /**
@@ -996,18 +1001,33 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
    * and unknown parameter kept where it stands. The spell is the address's own
    * unless the caller hands another (`writeSpellUrl`, `writePlaceSpell` decide
    * it); the recipe and the two modes are the page's, fixed when it opened.
+   * The context row `in` follows the playing Featured playlist (`withContext`);
+   * `sound` false writes that alone, every other row as it stands.
    *
    * Nothing calls this before a hand has acted — a start, a pause, a seek, a
    * skip, a cast, a pull, an engine flip — or the page restored a place a hand
    * left in an earlier visit: a bare link a listener opened and never touched
    * stays bare, and is the page's choice.
    */
-  function writeAddress(edit: { spell?: Partial<Spell> | null; strategy?: string } = {}): void {
+  function writeAddress(edit: { spell?: Partial<Spell> | null; strategy?: string } = {}, sound = true): void {
     try {
-      const search = linkNow(location.search, edit);
+      const search = withContext(sound ? linkNow(location.search, edit) : location.search.replace(/^\?/, ''));
       if (search === location.search.replace(/^\?/, '')) return;
       history.replaceState(null, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
     } catch (e) { /* a page with no history to write on */ report('address', 'the address could not be written', e, {}, addressFlood); }
+  }
+
+  /**
+   * **The address's context row, by one rule** (round featured-address, his word 10-31: "if Link is copied and pasted
+   * it's not part of playlist anymore"): while the track plays in a Featured playlist that holds it, the address
+   * carries that playlist's `in`, last, as the share circle's Copy link writes it; anywhere else none. So the address
+   * bar, the browser's Share and Copy link give a friend the same thing. The playlist's steer says it
+   * (`PlaylistSteer.context`); every write of the address comes through here, so a step, the seam's hand-over, a
+   * leave and a reload each write it with the track, and a sound the list doesn't hold (a bird moved) drops it.
+   */
+  function withContext(search: string): string {
+    const bare = linkWithout(search, 'in');
+    try { return steer?.context ? steer.context(bare) : bare; } catch (e) { report('link', 'the playlist could not be named on the address', e, {}, aBug); return bare; }
   }
 
   /**
@@ -3377,6 +3397,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
     /** Hand the transport a playlist's steer, or take it back (`null`). */
     steer(s: PlaylistSteer | null): void { steer = s; },
+    /** The address's context written again where nothing else moved (a reload put back in its playlist): `withContext`. */
+    readdress(): void { writeAddress({}, false); },
     /** **A playlist's clock** (round pl-clock): the list's tempo while it plays (`listTempo`), or null. */
     listClock(bpm: number | null): void { setListBpm(bpm); },
     get listBpm(): number | null { return listBpm; },

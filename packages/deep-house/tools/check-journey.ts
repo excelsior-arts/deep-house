@@ -200,9 +200,9 @@ const OUTSIDE: Record<string, string> = {
   'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '55ccae884e71dc58',
   // a library turn at the bells' tile, which the zone plays as the conversation (zones-pilot; check-conversation's TURNED)
   'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9e8fb2b8e36b2837',
-  'seed=3&v=2': '124cf62780688dd5', // piano-tone: the new piano
-  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '008b281137b7950d', // piano-tone: the new piano
-  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': 'e45b66f5c3d57717', // piano-tone: the new piano
+  'seed=3&v=2': '9cb9b1aa1cad7cc9', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '4a98552d24b3d18d', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': 'f2ce703f18612815', // piano-tone: the new piano
   'seed=2&v=2&spell=em:0.10,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '1a688dd439b4bc81',
   // outside the bells' box (Spark 0), where every lane BELLS lists read BELLS's entry on local: the tables less the zone's since zones-pilot
   'seed=2&v=2&spell=em:0.10,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:0.30,sp:0.00,lo:0.00': '2b205e3751b1850c',

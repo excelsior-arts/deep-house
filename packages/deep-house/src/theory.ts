@@ -443,6 +443,15 @@ export function makeProgression(
 
   let voicing: number[] | null = null;
   const chords = degrees.map((degree, i) => {
+    // **Open fifths** (ambient-om-field, PLAN-AMBIENT P3a's voicing word): the degree's root, its fifth, the octave and
+    // the fifth over it, no third, folded into the register as any voicing; no die cast (a style the dice never draw:
+    // only a place's cycle names it)
+    if (style === 'fifths') {
+      const r0 = scaleNote(root, scale, degree);
+      const notes = [r0, r0 + 7, r0 + 12, r0 + 19];
+      voicing = voiceLead(voicing, notes, { low: 50, high: 79, center: 64, rootPc: ((r0 % 12) + 12) % 12 });
+      return { degree, size: notes.length, startBar: i * changeEvery, bars: changeEvery, notes, voicing, rootMidi: r0, label: `${chordLabel(root, scale, degree, 3).replace(/m$/, '')}5`, roman: DEGREE_NAMES[degree] };
+    }
     const triad = buildChord(root, scale, degree, 3);
     const isMinor = (triad[1] - triad[0]) % 12 === 3;
     const wantNine =

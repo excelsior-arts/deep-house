@@ -2550,6 +2550,8 @@ const REPORT_SITES = [
   ['control.ts', '{ strategy: state.strategy }); } catch (e) {', 'link', 1],
   ['control.ts', 'recipe: here.recipe, accompaniment: here.accompaniment, development: here.development })}` }).spell;', 'link', 1],
   ['control.ts', 'try { cast = recipesFor({ masterSeed: L.seed, strategy: L.strategy, search }); } catch (e) {', 'link', 1],
+  // round featured-address: the playlist's steer naming its Featured playlist on the address (`withContext`)
+  ['control.ts', 'try { return steer?.context ? steer.context(bare) : bare; } catch (e) {', 'link', 1],
   ['control.ts', '} catch (e) { /* a page with no history to write on */', 'address', 3],
   ['ring.ts', '// A plan that cannot be drawn says nothing rather than taking the ring', 'plan', 1],
   ['ring.ts', 'try { take(plannedReadout(control.planned(about, r.seed, strategy, spell), r, spell)); } catch (e) {', 'plan', 1],
@@ -3479,7 +3481,8 @@ check('the sum clip is planned on every house main, its top at its place\'s top,
     // `loudness.ts` `clipTopOf`; the place's deepest allowance where the style names no top)
     const T = v2.settings.loudness.density?.clipTopDb;
     const D = T ? T.none + (T.full - T.none) * (f.densityAmount ?? 0) : allowanceOf(f, v2).deepest;
-    must(Math.abs(clip.overDb - (D - f.clipRoomDb)) < 2e-3, `${place} seed ${seed}: the clip's top ${clip.overDb} dB over is not its place's top ${D.toFixed(3)} at ${f.clipRoomDb.toFixed(3)} dB of trim`);
+    // (the curve's ceiling `ceilingDb` over that top, round hat-crackle)
+    must(Math.abs(clip.overDb - (D - f.clipRoomDb + (C.ceilingDb ?? 0))) < 2e-3, `${place} seed ${seed}: the clip's ceiling ${clip.overDb} dB over is not its place's top ${D.toFixed(3)} at ${f.clipRoomDb.toFixed(3)} dB of trim, ${C.ceilingDb ?? 0} over`);
     // (the hits set down move the depth the clip may take by as much, `clipPlan`)
     const shave = f.clipRoomDb - f.clipDepthDb - (f.hitDb ?? 0);
     const cap = C.mostDb + ((C.mostDbBeat ?? C.mostDb) - C.mostDb) * f.beatLed;
@@ -4358,7 +4361,7 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   // Every switch is on: `bassSolo`, round S3's experiment, was written off
   // until Eugene had heard it, and is on since S17 ("commit it").
   for (const [k, v] of Object.entries(sw)) must(v === true, `the switch ${k} is off, and every one of them is on`);
-  must(Object.keys(sw).length === 35, `${Object.keys(sw).length} switches, and there are four reachability facts, one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of section lines on the phrase, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme, one set of small things inside a section, one arrangement hygiene, one set of the arrangement's phrases, one pad arc, one rule for the keys by the hats, one for the keys by the body, one set of the keys' moments, one break that keeps its rhythm and one breakdown bed lifted from where the groove left it (the lane floors are level machinery and every style's since V1-1)`);
+  must(Object.keys(sw).length === 36, `${Object.keys(sw).length} switches, and there are three reachability facts (the organ's fourth gone since round sound-properties), one derived state, one set of knobs, one theme, one lead entry, one section's edges, one section's phrases, one set of section lines on the phrase, one set of lead-ins, one entrance swell, one bus sweep, one set of glue fades, one sparse texture, one bass solo, one hat ring, one hat by section, one opening sound, one glue gate, one silence rule, one library draw, one set of place tables, one rule for two mains alike, one master tone by theme, one set of small things inside a section, one arrangement hygiene, one set of the arrangement's phrases, one pad arc, one rule for the keys by the hats, one for the keys by the body, one set of the keys' moments, one break that keeps its rhythm, one breakdown bed lifted from where the groove left it, one held block and one chord stab's shape in front (the lane floors are level machinery and every style's since V1-1)`);
   must(sw.derived === true, 'house-v2 does not read the derived state');
   must(sw.knobs === true, 'house-v2 does not season the voices it draws');
   must(sw.motif === true, 'house-v2 draws no theme');
@@ -4388,9 +4391,8 @@ check('house-v2 is house-v1\'s composing data with the composing switches on, an
   must(sw.subSections === true, 'house-v2 plays every section as one beat from its first bar to its last');
   must(!('laneFloors' in sw), 'house-v2 carries a lane-floors switch, and the lane-level rule is every style\'s');
   must(!('switches' in v1), 'house-v1 carries switches, and the record reads none');
-  // (3) Three of K5b's four take a field off every room, and neither the fourth
-  // nor derive-lite's fifth takes any: `avoidOrgan` is handed to `generate` by
-  // the set, and `derived` is read by `generate` off the spell. So the rooms
+  // (3) Three of K5b's switches take a field off every room, and derive-lite's
+  // takes none: `derived` is read by `generate` off the spell. So the rooms
   // must differ from v1's in exactly the fields the switches own and in no
   // other.
   const OWNED = ['voicingStyle', 'bassMask', 'stabMask', 'hatMask'];

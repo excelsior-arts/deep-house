@@ -26,7 +26,9 @@ const settings = resolveSettings({ base: table as never });
 
 test('the three rows are admitted, measured, and registered after every voice before them', () => {
   const names = REGISTRY.map((d) => d.name);
-  assert.deepEqual(names.slice(-3), NEW, 'registered last, in their order');
+  // after every voice before them, in their order; voices registered since (liquid-keys-2's, 10-31) may follow them
+  const at = names.indexOf(NEW[0]);
+  assert.deepEqual(names.slice(at, at + 3), NEW, 'registered together, in their order');
   for (const id of NEW) {
     const row = ROWS[id];
     assert.deepEqual(soundFaults(row, TOPOLOGIES[row.topology]), [], id);

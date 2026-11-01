@@ -31,7 +31,7 @@ import {
   TREATMENT_ROTA, FLAGGED, liveOf, candidateListsV2, layerTable,
 } from '../catalogue-v2.ts';
 import { REGISTRY as EFFECTS } from '@deep-house/engine/effects';
-import { ROWS } from '@deep-house/engine/voices';
+import { ROWS, TIMBRES, BY_NAME, voicePlaying } from '@deep-house/engine/voices';
 import layerSignatures from '@deep-house/engine/voices/signatures' with { type: 'json' };
 import loudnessFit from './deep-house-v2-loudness.json' with { type: 'json' };
 import type { FrontHeadroom } from '../loudness.ts';
@@ -105,15 +105,17 @@ export type StrategyStyle = Style & {
 // it is on, and the die the room was short-circuiting starts drawing. Three of
 // the four work that way — a voicing, three masks and three sidechain numbers
 // leave the rooms and the base table's own values and the mined tables reach a
-// theme. The fourth has nothing to take off a room: `avoidOrgan` is handed to
-// `generate` by `src/set-plan.ts`, which is the only place that knows what the
-// *previous* theme was, so the rule is "not twice running" and not "never".
+// theme. The fourth, `avoidOrgan` (a set never runs two organ themes, handed to
+// `generate` by the set), is gone since round sound-properties: it refused a
+// colour by its name, and what wore in the organ was the held block, which
+// `heldBlock` voices as a line.
 
 /**
- * house-v2's switches. **The first four are on since K5b**, which is the round
- * the golden opens, and the fifth since derive-lite; each of them carries the
- * one line that says what turning it on buys, and each of the first four was off
- * in K5a with the same wiring underneath.
+ * house-v2's switches. **The first three are on since K5b**, which is the round
+ * the golden opens (its fourth, the organ rule, is gone since round
+ * sound-properties), and `derived` since derive-lite; each of them carries the
+ * one line that says what turning it on buys, and each of K5b's was off in K5a
+ * with the same wiring underneath.
  */
 export const switches = Object.freeze({
   /** `dice('voicing')`: the chord stacking is drawn instead of being the room's
@@ -132,11 +134,6 @@ export const switches = Object.freeze({
    * same floor and the same recovery in every theme of every room is a pump
    * nobody can hear as a decision. */
   sidechainPerRoom: true,
-  /** `dice('timbre:again')`: a second organ theme running is refused — ON
-   * because the organ is the record's rare colour, about one theme in ten, and
-   * two of them back to back is the one place a set sounds like it is repeating
-   * itself. */
-  avoidOrgan: true,
   /**
    * **`derive()` reaches the composer** — derive-lite, 09-19, and the switch
    * that answers the one argument the three outside reviews agreed on: seven of
@@ -452,6 +449,26 @@ export const switches = Object.freeze({
    * house-v1 carries no switches and the record never asks.
    */
   padArc: true,
+  /**
+   * **The held block** (round sound-properties; his word 10-30: *"rule out annoying organ motifs and approaches"*). On,
+   * a held voice that strikes in a moment and holds flat at the bar line — by its row's attack and its declared hold,
+   * never its name — has its chords voiced as one line (three voices over the root, the top led by step in a band that
+   * answers itself phrase by phrase) and swells in over a third of a beat (`src/held-block.ts`,
+   * `recipes/arrangement/held-block.json`), from 70 BPM up, where no place voices the pad itself.
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  heldBlock: true,
+  /**
+   * **The chord stab's shape in front** (round front-stabs; his verdicts 10-31: the chord on beat 1 and beat 2 "sounds
+   * horrible"; the stab removed "sounds good", the voicing walking "fine"). On, from 70 BPM up: a bar the density's cap
+   * cuts to a front-loaded shape is left to the bed, the bass and the drums; a stab that plays walks its chord bar to bar
+   * and strikes its later hits softer (`src/stab-shape.ts`, `recipes/arrangement/stab-shape.json`). The slow side and the
+   * ambients keep their stab (Ambient - Deep Field).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  stabShape: true,
   /**
    * **The keys by the hats** — round keys-balance (his words 10-29: *"balance the volume based on hat loudness as it
    * work in one place but not in another"*). On, the piano's lane steps down by section where its strikes stand over
@@ -1245,7 +1262,11 @@ const PIANO_VOICING = Object.freeze({ dryLevel: .72, spread: .8, hpHz: 160, brig
  * build no strike; the clean door is all they take, and their own top -- the
  * FM's sidebands, the tine, the attack -- stays (`notes/rounds/bell-noise.md`).
  */
-const CLEAN_KEYS = Object.freeze(['keysEp', 'keysGlass', 'keysRhodes', 'fmEp', 'fmGlass']);
+// Which rows those are is the rows' own word (`descriptor.clean`, round sound-properties): the electric piano, the glass
+// and the rhodes keyboards, and the FM electric piano and glass, today. A keyboard that wants to play clean says so on
+// its row; nothing here names one.
+// (by id, so the list a theme names is the same whatever order the registry holds them in)
+const CLEAN_KEYS = Object.freeze(Object.values(ROWS).filter((r) => r.descriptor.clean === true).map((r) => r.id).sort());
 
 /**
  * **The hand voicing** (his ear, 10-13: seed 8's conga "had decent timbre (not
@@ -1321,12 +1342,17 @@ const HAND_PHRASES = Object.freeze(handPhrasesRow as unknown as HandPhrases);
  * house's Zephyr (0.377). Written into a theme's room only where the theme
  * sounds the reed (`voicings`, read by the generator).
  */
-const REED_DARK = Object.freeze({ formantHz: 850, formantDb: 3.5, lpHz: 3000, trim: 0.9 });
-const REED_VOICING = Object.freeze({
-  lean: Object.freeze({ zephyr: 0.5 / HOUSE.zephyr, centre: HOUSE.zephyr }),
-  from: REED_DARK,
-  to: Object.freeze(Object.fromEntries(Object.keys(REED_DARK).map((k) => [k, (base.reedOrgan as Record<string, number>)[k]]))),
-});
+// **Every patch with a dark end** (round sound-properties): the reed's two ends were its own constants here; they are
+// its row's word now (`descriptor.dark`), and any row that declares a dark end is walked the same way, the row's own
+// numbers its bright end (the room's copy of them, where a room voices the row).
+const ZEPHYR_LEAN = Object.freeze({ zephyr: 0.5 / HOUSE.zephyr, centre: HOUSE.zephyr });
+const DARK_PAIRS: Readonly<Record<string, LeanedVoicing>> = Object.freeze(Object.fromEntries(Object.values(ROWS)
+  .filter((r) => r.descriptor.dark && BY_NAME[r.id])
+  .map((r) => [r.id, Object.freeze({
+    lean: ZEPHYR_LEAN,
+    from: Object.freeze({ ...r.descriptor.dark! }),
+    to: Object.freeze(Object.fromEntries(Object.keys(r.descriptor.dark!).map((k) => [k, ((base as Record<string, unknown>)[r.id] as Record<string, number> | undefined)?.[k] ?? (r.parameters[k] as number)]))),
+  })])));
 
 /** Shared foundation with v2's loudness and authored instrument characters. */
 export const baseV2 = Object.freeze({ ...base, master: { ...base.master, ...EQ_V2 }, loudness: loudnessV2, sawLead: smoothSaw, piano: presentPiano, keyboardPatches });
@@ -1347,7 +1373,14 @@ export const settings = resolveSettings({ base: baseV2 });
 // the other 39 lie over the strings, the rhodes, the swell and the organ and
 // keep it. The synth beds are named: the ensembles and the held synth lead
 // that make a pad of oscillators, as `TIMBRES` has them.
-const SYNTH_BEDS = Object.freeze(['supersawPad', 'sawPad', 'wavePad', 'formantPad', 'grainPad', 'shimmerPad', 'supersawLead']);
+// (Which they are is their own word since round sound-properties: a timbre whose facts say it is made of a synth's
+// oscillators, `TIMBRES[t].source`, played by a voice that holds the sustained role. Today the supersaw, saw, wave,
+// formant, grain and shimmer pads and the held supersaw lead.)
+const SYNTH_BEDS: readonly string[] = Object.freeze(Object.keys(TIMBRES).filter((t) => TIMBRES[t].source === 'synth' && !TIMBRES[t].struck
+  && BY_NAME[voicePlaying('pad', t)]?.roles.includes('sustained')));
+// **The far-apart fronts**: an instrument played by hand (`source: 'acoustic'`) that holds rather than strikes (the
+// reed, blown, today), by its own facts and never its name; the two rows below are written for it.
+const APART_FRONTS: readonly string[] = Object.freeze(Object.keys(TIMBRES).filter((t) => TIMBRES[t].source === 'acoustic' && !TIMBRES[t].struck));
 // **The redrawn front's level** (`db`, his ear 10-13 on seed 1's tri lead: "better, still levels a bit off"): the
 // reed's figure is a sixteenth-long strike its 45 ms attack never fully opened, and the voice drawn in its place
 // opens on every one — seed 1's tri lead reads 1.6-1.7 dB over the reed at the same notes. Golden 38's tri lead
@@ -1361,7 +1394,7 @@ const SYNTH_BEDS = Object.freeze(['supersawPad', 'sawPad', 'wavePad', 'formantPa
 // golden 34 2.9). Under a redrawn front the bed plays no hotter than the sub room's -8 on its lane, and the front no
 // hotter than the sub room's -12.5 on the keys' (the growl room's keys are -9.5: seed 24's tri lead stood 5.3-6.6 dB
 // over its drums where 38's stands 1.8-3.2).
-const APART = Object.freeze([Object.freeze({ front: Object.freeze(['reedOrgan']), beds: SYNTH_BEDS, db: -3, bedMostDb: -8, frontMostDb: -12.5 })]);
+const APART = Object.freeze([Object.freeze({ front: APART_FRONTS, beds: SYNTH_BEDS, db: -3, bedMostDb: -8, frontMostDb: -12.5 })]);
 
 // The reed's level (his ear 10-13, round 3). `frontDb`: in the mains the reed stood 1.5 dB over its swell to 6.7
 // under its pad (seed 17, Downtempo and Tide 0.95) and added 0.6-2.4 dB to the mix, where golden 38's tri lead stands
@@ -1372,7 +1405,7 @@ const APART = Object.freeze([Object.freeze({ front: Object.freeze(['reedOrgan'])
 // the median (golden 38's tri 0.5), but 2.1-5.3 in fourteen themes, every one in the growl room (keys -9.5) over a
 // sparse bed (the rhodes, the swell), where the reed is the only held voice; over the growl room's strings it adds
 // 0.4-1.1. Over a sparse bed the reed plays no hotter than the sub room's -12.5 on the keys' lane.
-const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8, frontDb: -3, sparseBedMostDb: -12.5 });
+const EXPOSED = Object.freeze({ fronts: APART_FRONTS, bedDb: -8, frontDb: -3, sparseBedMostDb: -12.5 });
 
 // **Every front under its bed, every bed under its drums** (his ear 10-13: the reed's -3 dB as a lead "was the trick,
 // need to review other places"; -3 dB off the glass, the organ stab and the vibes "still too loud"; on seed 48476 his
@@ -1422,13 +1455,22 @@ const EXPOSED = Object.freeze({ fronts: Object.freeze(['reedOrgan']), bedDb: -8,
 //   loudness back only by driving that hit 10-20 dB into the limiter. `mostDb` 4: the clip's planned shave, at which
 //   the residual it leaves is 26-45 dB under the window and the share line does not move. 6 since round
 //   loudness-place, on every house window (the design's 3b: a hit rounded so one clap never holds a deep track quiet).
+//   **Its curve rounds from nought, its ceiling 3 dB over its top** (round hat-crackle, his ear 10-31 on Drive - Comet
+//   Tail: *"I hear cracking noise as of clipping … sounds like a bug"*). The knee at 0.6 was a wire to 2.5 dB under the
+//   top and nearly flat 1 dB past it: a hard clip in all but name. On a dense bed driven into it (the beat-led's
+//   supersaw, its peaks 5-8 dB over the ceiling at the trim) every peak the curve flattened was a click across 4-16 kHz,
+//   up to 24 dB over the bed's own top: 2-4 clicks a second through the main and the breakdown, on the kicks and between
+//   them. Oversampling does not take them out (they are the curve's own products, not aliases). Rounded from nought with
+//   the ceiling 3 dB higher, the same top takes a peak down gradually and the clicks go (over the bed's top by 6 dB or
+//   more: 122 → 7 in bars 56-80), the window 0.1 LU louder; the trims and the top the plan reads are unchanged.
 const FRONT = Object.freeze({
   liftDb: -1.5, mostDb: -12.5, bedMostDb: -8, beds: SYNTH_BEDS, bedDb: -5, followDb: -3.5, bpm: Object.freeze([60, 80] as const),
-  under: Object.freeze(['sawLead', 'clavKey', 'pluck', 'rhodes']), makeup: Object.freeze({ keys: 0.59, pad: 0.36 }),
+  // (`under` and `bands` are the timbres' own measured facts since round sound-properties: `TIMBRES[t].underBed`, `.band`)
+  under: Object.freeze(Object.keys(TIMBRES).filter((t) => TIMBRES[t].underBed === true)), makeup: Object.freeze({ keys: 0.59, pad: 0.36 }),
   peak: Object.freeze({ keys: 15, pad: 20, bass: 34 }),
-  bands: Object.freeze({ wavePad: Object.freeze({ hz: 2800, db: -6, q: 0.9, levelDb: -1.5 }) }),
+  bands: Object.freeze(Object.fromEntries(Object.keys(TIMBRES).filter((t) => TIMBRES[t].band).map((t) => [t, Object.freeze({ ...TIMBRES[t].band! })]))),
   ...(frontHeadroom ? { headroom: frontHeadroom } : {}),
-  ...(frontHeadroom && clipDepth ? { clip: Object.freeze({ mostDb: 6, knee: 0.6, curve: 2, depth: clipDepth }) } : {}),
+  ...(frontHeadroom && clipDepth ? { clip: Object.freeze({ mostDb: 6, knee: 0, curve: 2, ceilingDb: 3, depth: clipDepth }) } : {}),
 });
 
 // --- the catalogue -----------------------------------------------------------
@@ -1528,6 +1570,15 @@ export const catalogue = {
    * `holdLeanFor`; house-v1 carries no block and hands every list through.
    */
   holdLean: { densities: ['minimal'], lists: ['leadTimbres', 'padPartners', 'stabPartners'] },
+  /**
+   * **The palette's ceiling** (round sound-properties; his word 10-30: *"introduce larger variety of sounds to offer"*):
+   * no lead colour more than `share` of the lead draw, from `leastBpm` up (`capShare` in `generator.ts`). Measured over
+   * the guards' grid (seeds 1-40, themes 1-3): the strings drew 53-74 % of the leads where Loom, Tide or Veil lead
+   * (the hold lean and the layer table's own weights stacking on the record's measured 31), where the house draws 24
+   * colours and none over 17 %. A pin keeps its timbre (a place's sound, a hook, a shape), and the slow side, the
+   * ambients' (round ambient-om-field's), keeps its draw.
+   */
+  leadMost: Object.freeze({ share: 0.4, leastBpm: 70 }),
   /**
    * **Timbres from far-apart scenes don't share a track** (his ear 10-13: an
    * acoustic-sounding front voice over synth pads is "a bad match, too wide
@@ -1805,7 +1856,7 @@ export const style = {
   // FM glass past the edge, written only where a theme sounds one
   // (`src/generator.ts`). v1 has no field: its rooms build neither.
   cleanKeys: CLEAN_KEYS,
-  voicings: Object.freeze({ ...HAND_VOICINGS, reedOrgan: REED_VOICING, piano: PIANO_VOICING }),
+  voicings: Object.freeze({ ...HAND_VOICINGS, ...DARK_PAIRS, piano: PIANO_VOICING }),
   // 10-13, the hand grammar (his ear on house seed 35: "too primitive, only one hit"): a hand drum the sixteenth
   // lane draws plays a two-drum conversation off this row, in the hand rows' own character (`src/hand-phrase.ts`).
   // v1 has no field: its lane strikes the mask.

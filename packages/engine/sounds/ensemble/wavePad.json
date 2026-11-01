@@ -56,7 +56,9 @@
         "struck": false,
         "hold": 0.9,
         "brightnessHz": 2200,
-        "loudnessDb": -11
+        "loudnessDb": -11,
+        "source": "synth",
+        "band": { "hz": 2800, "db": -6, "q": 0.9, "levelDb": -1.5 }
       }
     },
     "dispatches": [],

@@ -2,8 +2,9 @@
 // authority for a theme that admits a keys part, written from the rows the keys lab
 // grew and he approved (`recipes/keys/`).
 //
-// A theme draws one **phrase** (`phrases.json`): mostly two chords, A and B. They do
-// not loop on a clock. The keys land where a **density** row draws (`density.json`,
+// A theme draws one **phrase** (`phrases.json`): mostly two chords, A and B; a few rows
+// (liquid-keys-2, the lab's longer progressions written sparse) three or four, played in
+// turn. They do not loop on a clock. The keys land where a **density** row draws (`density.json`,
 // a whole track's row: by section, with a landing budget for the track), each landing
 // strikes the next chord in turn, and **the harmony changes only where the keys land**:
 // the bed, the bass's home and the keys read one chord state. Before the first landing
@@ -11,7 +12,8 @@
 //
 // A landing is written by the **motif** grammar (`motifs.json`): a pickup before it
 // (pre notes) sinks into a deeper voicing, an answer after it (post notes); a row says
-// how often each is there. The keys play through one **tone** (`tones.json`: a sound,
+// how often each is there. A **comp** (`comps.json`, liquid-keys-2) says how a landing is
+// struck: held, or touched again inside its first bars. The keys play through one **tone** (`tones.json`: a sound,
 // its layers and its inserts) into one **space** (a space row of the engine) at one
 // **wetness** (`wetness.json`): the part's own space, one per theme (`partSpace` in the
 // settings), never a reverb per note.
@@ -31,6 +33,7 @@ import MOTIF_FILE from '../recipes/keys/motifs.json' with { type: 'json' };
 import DENSITY_FILE from '../recipes/keys/density.json' with { type: 'json' };
 import TONE_FILE from '../recipes/keys/tones.json' with { type: 'json' };
 import WET_FILE from '../recipes/keys/wetness.json' with { type: 'json' };
+import COMP_FILE from '../recipes/keys/comps.json' with { type: 'json' };
 import DRAW_FILE from '../recipes/keys/draw.json' with { type: 'json' };
 import { SPACE_ROWS } from '@deep-house/engine/space-rows';
 import type { SpaceRow } from '@deep-house/engine/space';
@@ -48,7 +51,11 @@ export interface PhraseChord extends Hands {
   /** the bass's home under this chord: the phrase's key root (`key`, a pedal) or the chord's own root (`root`) */
   bass: 'key' | 'root';
 }
-export interface PhraseRow { id: string; name: string; key: string; mood: string; weight: number; chords: PhraseChord[] }
+export interface PhraseRow { id: string; name: string; key: string; mood: string; weight: number; chords: PhraseChord[];
+  /** a newcomer (liquid-keys-2): drawn only where the theme's roll on `::keys:phrase:more` says a newcomer, so the rows before it draw as they did */
+  widens?: boolean }
+/** A comp: how a landing is struck, the strike (bar 0, step 0) and the touches after it, in sixteenths from the landing's downbeat. */
+interface CompRow { id: string; name: string; hits: Array<{ bar: number; step: number; hands: 'both' | 'right'; vel: number }>; minGapBars: number }
 interface MotifRow { id: string; name: string; density: 'pre-post' | 'pre' | 'none'; bare: number; counts?: Record<string, number>; postChance?: number }
 interface Way { weight: number; from: number | 'half'; every: Array<[number, number]> }
 interface DensityRule { ways: Way[]; levelDb?: number; send?: number; dry?: number }
@@ -79,11 +86,16 @@ interface ToneRow {
 interface WetRow { id: string; send: number; dry: number; trimDb: number }
 /** A choice the draw row weighs, by row id. */
 type Weights = Record<string, number>;
-const CHOICES = ['tone', 'space', 'motif', 'wetness', 'density', 'phrase'] as const;
+const CHOICES = ['tone', 'space', 'motif', 'wetness', 'density', 'comp', 'phrase'] as const;
 type ChoiceName = typeof CHOICES[number];
 interface DrawRow {
   id: string; name: string;
-  tone: Weights; space: Weights; motif: Weights; wetness: Weights; density: Weights;
+  tone: Weights; space: Weights; motif: Weights; wetness: Weights; density: Weights; comp: Weights;
+  /**
+   * the newcomers (liquid-keys-2), by choice: weighed as if they stood in the lists, drawn so the lists draw as they
+   * did (`widened`)
+   */
+  more?: Partial<Record<'tone' | 'space' | 'motif' | 'wetness' | 'density' | 'comp', Weights>>;
   centre: number; strength: number;
   /** by bird, the leans on each choice's rows */
   birds: Record<string, Partial<Record<ChoiceName, Weights>> & { says?: string }>;
@@ -99,6 +111,7 @@ const GRAMMAR = MOTIF_FILE.grammar as unknown as {
     vel: [number, number]; lateMs: [number, number]; beats: number };
 };
 const MOTIFS = MOTIF_FILE.rows as unknown as MotifRow[];
+const COMPS = COMP_FILE.rows as unknown as CompRow[];
 const DENSITIES = (DENSITY_FILE.rows as unknown as Array<{ id: string; scope?: string }>);
 const TONES = TONE_FILE.rows as unknown as ToneRow[];
 const WETNESS = WET_FILE.rows as unknown as WetRow[];
@@ -108,7 +121,7 @@ const DRAWS = DRAW_FILE.rows as unknown as DrawRow[];
 const PHRASE_LEVEL_DB = PHRASE_FILE.levelDb as number;
 
 export const KEYS_ROWS = Object.freeze({
-  phrases: PHRASES.map((r) => r.id), motifs: MOTIFS.map((r) => r.id), tones: TONES.map((r) => r.id), wetness: WETNESS.map((r) => r.id),
+  phrases: PHRASES.map((r) => r.id), motifs: MOTIFS.map((r) => r.id), comps: COMPS.map((r) => r.id), tones: TONES.map((r) => r.id), wetness: WETNESS.map((r) => r.id),
   densities: DENSITIES.filter((r) => r.scope === 'track').map((r) => r.id), spaces: Object.keys(SPACE_ROWS), draws: DRAWS.map((r) => r.id),
 });
 
@@ -160,7 +173,7 @@ export function keysRowsFaults(): string[] {
   const bad: string[] = [];
   for (const row of PHRASES) {
     if (!(Number.isFinite(row.weight) && row.weight > 0)) bad.push(`${row.id}: weight ${row.weight}`);
-    if (row.chords.length < 1 || row.chords.length > 2) bad.push(`${row.id}: ${row.chords.length} chords; a phrase has one or two`);
+    if (row.chords.length < 1 || row.chords.length > 4) bad.push(`${row.id}: ${row.chords.length} chords; a phrase has one to four`);
     try { pcOfName(row.key); } catch (e) { bad.push(`${row.id}: key ${row.key}`); }
     for (const c of row.chords) {
       if (c.bass !== 'key' && c.bass !== 'root') { bad.push(`${row.id} ${c.symbol}: bass is ${c.bass}, not key or root`); continue; }
@@ -179,21 +192,30 @@ export function keysRowsFaults(): string[] {
       for (const [gap, wt] of w.every) if (!(Number.isInteger(gap) && gap > 0 && wt > 0)) bad.push(`${r.id} ${cls}: a gap of ${gap} at ${wt}`);
     }
   }
+  for (const c of COMPS) {
+    if (!(c.hits[0]?.bar === 0 && c.hits[0]?.step === 0 && c.hits[0]?.hands === 'both')) bad.push(`comp ${c.id}: its first hit is not the strike (both hands on the landing's downbeat)`);
+    for (const h of c.hits.slice(1)) if (!(h.bar * 16 + h.step > 0 && h.bar < c.minGapBars && h.vel > 0 && h.vel <= 1)) bad.push(`comp ${c.id}: a touch at bar ${h.bar} step ${h.step} (vel ${h.vel}) outside its landing's first ${c.minGapBars} bars`);
+  }
   for (const t of TONES) for (const l of t.layers) if (!BY_NAME[l.sound]) bad.push(`tone ${t.id}: ${l.sound} is no voice`);
   // a tone a draw row may draw, which a bird's swap may sound over another (PLAN-UNIFY U3), carries a stand-in for every insert the drawn tone may not pay
   // for: the note's low-pass for a cheap one, the field's hall for a dear one
-  const drawable = new Set(DRAWS.flatMap((d) => Object.entries(d.tone).filter(([, w]) => w > 0).map(([k]) => k)));
+  const drawable = new Set(DRAWS.flatMap((d) => Object.entries({ ...d.tone, ...d.more?.tone }).filter(([, w]) => w > 0).map(([k]) => k)));
   for (const t of TONES.filter((x) => drawable.has(x.id))) {
     if (t.inserts.some((e) => EFFECT_COST[e.effect] === 'cheap') && t.swap?.lpMul == null) bad.push(`tone ${t.id}: a cheap insert and no swap.lpMul`);
     if (t.inserts.some((e) => EFFECT_COST[e.effect] !== 'cheap') && t.swap?.hall == null) bad.push(`tone ${t.id}: a dear insert and no swap.hall`);
   }
   const ids: Record<ChoiceName, readonly string[]> = { tone: TONES.map((r) => r.id), space: Object.keys(SPACE_ROWS), motif: MOTIFS.map((r) => r.id),
-    wetness: WETNESS.map((r) => r.id), density: DENSITIES.filter((r) => r.scope === 'track').map((r) => r.id), phrase: PHRASES.map((r) => r.id) };
+    wetness: WETNESS.map((r) => r.id), density: DENSITIES.filter((r) => r.scope === 'track').map((r) => r.id), comp: COMPS.map((r) => r.id), phrase: PHRASES.map((r) => r.id) };
   for (const d of DRAWS) {
-    for (const c of ['tone', 'space', 'motif', 'wetness', 'density'] as const) {
+    for (const c of ['tone', 'space', 'motif', 'wetness', 'density', 'comp'] as const) {
       const w = d[c] ?? {};
       if (!Object.values(w).some((x) => x > 0)) bad.push(`draw ${d.id}: no ${c} weighs anything`);
       for (const [id, x] of Object.entries(w)) { if (!ids[c].includes(id)) bad.push(`draw ${d.id}: ${id} is not a ${c} row`); if (!(Number.isFinite(x) && x >= 0)) bad.push(`draw ${d.id}: ${id} weighs ${x}`); }
+      for (const [id, x] of Object.entries(d.more?.[c] ?? {})) {
+        if (!ids[c].includes(id)) bad.push(`draw ${d.id}: more ${id} is not a ${c} row`);
+        if (!(Number.isFinite(x) && x >= 0)) bad.push(`draw ${d.id}: more ${id} weighs ${x}`);
+        if (id in w) bad.push(`draw ${d.id}: ${id} is both in its ${c} list and a newcomer`);
+      }
     }
     for (const [bird, leans] of Object.entries(d.birds ?? {})) for (const c of CHOICES) for (const [id, x] of Object.entries(leans[c] ?? {})) {
       if (!ids[c].includes(id)) bad.push(`draw ${d.id}: ${bird} leans ${id}, not a ${c} row`);
@@ -220,12 +242,13 @@ export interface KeysChoice {
   leans?: Readonly<{ centre: Readonly<Record<string, number>>; by: Readonly<Record<string, Readonly<Record<string, number>>>> }>;
 }
 /** A hand's override for an audition (a tool's, no link reads it yet): any of the rows by id. */
-export type KeysOverride = Partial<Record<'tone' | 'space' | 'motif' | 'wetness' | 'density' | 'phrase', string>>;
+export type KeysOverride = Partial<Record<'tone' | 'space' | 'motif' | 'wetness' | 'density' | 'comp' | 'phrase', string>>;
 
 // --- the plan ---------------------------------------------------------------------
 
 export interface KeysChord {
-  index: 0 | 1;
+  /** its place in the phrase: 0 the first chord, then in turn (most rows two, a few three or four) */
+  index: number;
   symbol: string;
   rootPc: number;
   /** the bass's home pitch class under this chord (the row's `bass`), which the bass line resolves its riff against */
@@ -254,7 +277,7 @@ export interface KeysNote {
 }
 export interface KeysLanding {
   bar: number;
-  chord: 0 | 1;
+  chord: number;
   /** whether the chord changes here */
   change: boolean;
   section: number;
@@ -265,6 +288,8 @@ export interface KeysLanding {
   pre: number;
   post: number;
   hold: number;
+  /** the comp's touches after the strike */
+  touches: number;
   contour?: string;
   shape?: string;
 }
@@ -280,7 +305,7 @@ export interface KeysPlan {
   landings: KeysLanding[];
   notes: KeysNote[];
   /** the chord in force from each bar on: the first holds from bar 0 */
-  states: Array<{ bar: number; chord: 0 | 1 }>;
+  states: Array<{ bar: number; chord: number }>;
   reserved: KeysWindow[];
   bed: BedSpan[];
   /** by section: the keys' level under the section's class, and the space's send and dry against the wetness's */
@@ -404,14 +429,30 @@ export function planKeys(input: KeysInput): KeysPlan | null {
     }
     return m;
   };
-  const weighsAt = (c: Exclude<ChoiceName, 'phrase'>, sounding: boolean, at: Readonly<Record<string, number>>) =>
-    Object.entries(D[c]).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v, sounding, at) }));
+  const weighsAt = (c: Exclude<ChoiceName, 'phrase'>, sounding: boolean, at: Readonly<Record<string, number>>, list: Weights = D[c]) =>
+    Object.entries(list).filter(([, w]) => w > 0).map(([v, w]) => ({ v, w: w * lean(c, v, sounding, at) }));
+  const total = (xs: ReadonlyArray<{ w: number }>) => xs.reduce((a, x) => a + x.w, 0);
+  /**
+   * **The newcomers** (liquid-keys-2): a theme first rolls, off a stream of its own, whether its choice is one of them,
+   * at their share of the whole as leaned at its birds, and only then draws among them; otherwise its list draws off
+   * the stream it always did, so every theme that rolls no newcomer draws what it drew
+   */
+  const widened = (c: Exclude<ChoiceName, 'phrase'>, sounding: boolean): string | null => {
+    const more = D.more?.[c];
+    if (!more) return null;
+    const extra = weighsAt(c, sounding, input.spell, more), V = total(extra);
+    if (!(V > 0)) return null;
+    const r = new Rng(`${seed}::keys:${c}:more`);
+    return r.chance(V / (V + total(weighsAt(c, sounding, input.spell)))) ? r.weighted(extra) : null;
+  };
   const toneAir = (id: string): number | null => {
     for (const l of byId(TONES, id, 'tone').layers) { const a = airOctaves(l.sound, 'keys'); if (a != null) return a; }
     return null;
   };
   const draw = (c: Exclude<ChoiceName, 'phrase'>, sounding = true): string => {
     if (o[c]) return o[c]!;
+    const fresh = widened(c, sounding);
+    if (fresh) return fresh;
     const rng = new Rng(`${seed}::keys:${c}`);
     const airs = sounding && c === 'tone' && P0 ? Object.keys(P0.by).filter((b) => airPer(c, b) != null && input.spell[b] !== P0.centre[b]) : [];
     if (!airs.length) return rng.weighted(weighsAt(c, sounding, input.spell));
@@ -429,18 +470,24 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   const motif = byId(MOTIFS, draw('motif'), 'motif');
   const wet = byId(WETNESS, draw('wetness'), 'wetness');
   const density = byId(DENSITIES as unknown as Array<TrackDensityRow>, draw('density'), 'density');
+  // the comp: how each landing is struck (liquid-keys-2), off a stream of its own, so no other die moves
+  const comp = byId(COMPS, draw('comp'), 'comp');
   if (density.scope !== 'track') throw new Error(`keys: density ${density.id} is not a whole track's row`);
 
   // the phrase: drawn among those that fit the key, by the rows' own weights (leaned by the birds), off a stream of its own
   const fit = phrasesFor(input.root, input.scale);
   const asked = o.phrase ? fit.find((f) => f.row.id === o.phrase) : undefined;
   if (!fit.length) return null;
-  const drawn = asked ?? new Rng(`${seed}::keys:phrase`).weighted(fit.map((f) => ({ v: f, w: f.w * lean('phrase', f.row.id) })));
+  const old = fit.filter((f) => !f.row.widens), fresh = fit.filter((f) => f.row.widens);
+  const leaned = (fs: typeof fit) => fs.map((f) => ({ v: f, w: f.w * lean('phrase', f.row.id) }));
+  const roll = new Rng(`${seed}::keys:phrase:more`);
+  const freshDrawn = !asked && fresh.length && (!old.length || roll.chance(total(leaned(fresh)) / (total(leaned(fresh)) + total(leaned(old))))) ? roll.weighted(leaned(fresh)) : null;
+  const drawn = asked ?? freshDrawn ?? new Rng(`${seed}::keys:phrase`).weighted(leaned(old));
   const { row, t } = drawn;
   const move = (n: number) => n + t;
   const hands = (h: Hands): Hands => ({ left: h.left.map(move), right: h.right.map(move) });
   const chords: KeysChord[] = row.chords.map((c, i) => ({
-    index: i as 0 | 1, symbol: moveSymbol(c.symbol, t), rootPc: mod(pcOfName(c.root) + t, 12), bass: c.bass,
+    index: i, symbol: moveSymbol(c.symbol, t), rootPc: mod(pcOfName(c.root) + t, 12), bass: c.bass,
     bassPc: mod(bassPcOf(row, c) + t, 12), plain: hands(c), deep: hands(c.deep),
     tones: pcsOf([...c.left, ...c.right, ...c.deep.left, ...c.deep.right].map(move)), scale: c.scale.map((p) => mod(p + t, 12)), vel: c.vel ?? 1,
     ...(c.retouch ? { retouch: c.retouch } : {}),
@@ -480,9 +527,13 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   const landings: KeysLanding[] = [];
   const notes: KeysNote[] = [];
   const reserved: KeysWindow[] = [];
-  let current: 0 | 1 = 0;
+  let current = 0, turn = 0;
   kept.forEach((c, n) => {
-    const chordIndex = (chords.length > 1 ? n % 2 : 0) as 0 | 1;
+    // each landing strikes the next chord in turn (the first landing restrikes the first); a phrase of more than two
+    // chords goes home at a drop's line (its first chord, the loop going on from there), so a drop never lands on the
+    // loop's middle (liquid-keys-2, a producer's read of the four-chord loop: a drop on the relative major is no drop)
+    if (chords.length > 2 && c.line && c.cls === 'line') turn = 0;
+    const chordIndex = turn++ % chords.length;
     const change = chordIndex !== current;
     current = chordIndex;
     const chord = chords[chordIndex];
@@ -517,9 +568,13 @@ export function planKeys(input: KeysInput): KeysPlan | null {
     const voicing = deep ? chord.deep : chord.plain;
     const nextPre = Math.min(G.pre.windowSteps, Math.floor(gapAfter / 2) * 16);
     const postEnd = Math.min(G.post.windowSteps[1], gapAfter * 16 - nextPre);
+    // the comp's touches after the strike, where the gap gives them room (a comp asks for its `minGapBars`): an
+    // answer never lands within two sixteenths of one
+    const touches = gapAfter >= comp.minGapBars ? comp.hits.slice(1).map((h) => ({ ...h, at: h.bar * 16 + h.step })).filter((h) => h.at < gapAfter * 16 - nextPre) : [];
+    const clear = (at: number) => touches.every((h) => Math.abs(at - h.at) > 2);
     if (!bare && motif.density === 'pre-post' && r.chance(motif.postChance ?? 1)) {
       const sh = pick(r, G.post.shapes.map((x) => [x, x.weight] as const));
-      const cells = (G.post.cells[sh.steps.length] ?? []).filter((x) => x.at[x.at.length - 1] < postEnd && x.at[0] >= G.post.windowSteps[0]);
+      const cells = (G.post.cells[sh.steps.length] ?? []).filter((x) => x.at[x.at.length - 1] < postEnd && x.at[0] >= G.post.windowSteps[0] && x.at.every(clear));
       if (cells.length) {
         const cell = pick(r, cells.map((x) => [x, x.weight] as const));
         const top = voicing.right[voicing.right.length - 1];
@@ -543,12 +598,15 @@ export function planKeys(input: KeysInput): KeysPlan | null {
     strike(voicing, true, base, chord.vel, hold * input.barSeconds - 0.05, 'strike');
     const rt = chord.retouch && chord.retouch.bar < hold ? chord.retouch : null;
     if (rt) strike({ left: [], right: voicing.right }, rt.hands === 'both', base + rt.bar * 16 + rt.step, rt.vel, (hold - rt.bar) * input.barSeconds - 0.05, 'retouch');
+    // the comp's touches: the chord again, softer, inside its first bars, each held to where the strike ends
+    for (const h of touches) strike(h.hands === 'both' ? voicing : { left: [], right: voicing.right }, h.hands === 'both', base + h.at, chord.vel * h.vel,
+      Math.max(stepSeconds, hold * input.barSeconds - 0.05 - h.at * stepSeconds), 'retouch');
     for (const x of pre) notes.push({ step: base + x.at, lateMs: x.lateMs, midi: x.midi, vel: +x.vel.toFixed(4), dur: Math.max(stepSeconds, x.sixteenths * stepSeconds), kind: 'pre', hand: 'right', landing: c.bar });
     for (const x of post) notes.push({ step: base + x.at, lateMs: x.lateMs, midi: x.midi, vel: +x.vel.toFixed(4), dur: Math.max(stepSeconds, x.sixteenths * stepSeconds), kind: 'post', hand: 'right', landing: c.bar });
     // the windows the keys own: the pickup up to the strike, and the strike's own beat
     if (pre.length) reserved.push({ kind: 'pickup', bar: c.bar, from: base + pre[0].at, to: base });
     reserved.push({ kind: 'landing', bar: c.bar, from: base, to: base + 4 });
-    landings.push({ bar: c.bar, chord: chordIndex, change, section: c.section, kind: c.kind, cls: c.cls, deep, bare, pre: pre.length, post: post.length, hold,
+    landings.push({ bar: c.bar, chord: chordIndex, change, section: c.section, kind: c.kind, cls: c.cls, deep, bare, pre: pre.length, post: post.length, hold, touches: touches.length,
       ...(contour ? { contour } : {}), ...(shape ? { shape } : {}) });
   });
   notes.sort((a, b) => a.step - b.step || a.lateMs - b.lateMs);
@@ -604,9 +662,11 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   let voicing = first;
   const thinRelease = B.thinRelease;
   const releaseSteps = Math.ceil(thinRelease / stepSeconds);
+  let was = 0;
   for (const l of landings) {
     const L = l.bar * 16;
-    const next = l.change ? lead(voicing, chords[1 - l.chord], chords[l.chord]) : voicing;
+    const next = l.change ? lead(voicing, chords[was], chords[l.chord]) : voicing;
+    was = l.chord;
     let moving = next.map((m, i) => (m !== voicing[i] ? i : -1)).filter((i) => i >= 0);
     if (!moving.length) moving = [voicing.indexOf(Math.max(...voicing))];
     // a bed with no common tone keeps its lowest voice to the strike, so it never leaves a hole
@@ -655,14 +715,14 @@ export function planKeys(input: KeysInput): KeysPlan | null {
   const layers = tone.layers.map((l) => ({ voice: l.sound, gain: 10 ** (l.gainDb / 20), hands: l.hands }));
   return {
     phrase: row.id, transpose: t, chords, landings, notes, states, reserved, bed, sections: sectionMix, space, layers,
-    choice: { tone: tone.id, space: spaceId, motif: motif.id, wetness: wet.id, density: density.id, phrase: row.id }, drawn: drawnCount,
+    choice: { tone: tone.id, space: spaceId, motif: motif.id, wetness: wet.id, density: density.id, comp: comp.id, phrase: row.id }, drawn: drawnCount,
     ...(swapped ? { cast: { tone: drawnTone.id, voices: drawnTone.layers.map((l) => l.sound), ...(swapLp != null ? { lpMul: swapLp } : {}), ...(swapHall != null ? { hall: swapHall } : {}), ...(swapDirect != null ? { direct: swapDirect } : {}), ...(ownRoom ? { ownRoom } : {}), space: partSpaceRow(tone, spaceId, wet, input.choice.levelDb, drawnTone) } } : {}),
   };
 }
 
 /** The chord state in force at a bar. */
-export function chordIndexAt(plan: KeysPlan, bar: number): 0 | 1 {
-  let c: 0 | 1 = 0;
+export function chordIndexAt(plan: KeysPlan, bar: number): number {
+  let c = 0;
   for (const s of plan.states) { if (s.bar > bar) break; c = s.chord; }
   return c;
 }
@@ -678,7 +738,7 @@ export interface KeysReadout {
   transpose: number;
   choice: Required<KeysOverride>;
   chords: Array<{ symbol: string; rootPc: number; bassPc: number; bass: 'key' | 'root'; tones: number[] }>;
-  states: Array<{ bar: number; chord: 0 | 1 }>;
+  states: Array<{ bar: number; chord: number }>;
   landings: KeysLanding[];
   /** the windows the keys own, in sixteenths from the theme's start: a pickup up to its strike, the strike's own beat */
   reserved: KeysWindow[];

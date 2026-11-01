@@ -2,8 +2,8 @@
  "schema": 1,
  "kind": "keys-phrases",
  "round": "liquid-keys",
- "revision": 2,
- "note": "Sparse keys, approved in the keys lab (round 3) and read by the app since liquid-space round 1 (`src/keys-phrase.ts`); place-neutral rows a place table admits. Mostly two chords, each struck once where it lands and left to ring into the space. `chords` play in turn, each for its `bars` (8 and 8 by default at 174 BPM, a 16-bar cycle; a row may say 4 and 4). `left` and `right` are the plain voicing as MIDI notes (the root low and alone or with a shell fifth or seventh; a rootless right hand, wide), `deep` the landing voicing a pickup sinks into (the left hand spread to root, fifth and tenth or a low octave, the right a little lower or fuller), `scale` the pitch classes a motif over the chord draws from, `retouch` at most one quiet right-hand touch inside the chord's bars, `vel` a softer strike. `root` is the chord's root by name; the bed's sub reads `left[0]`. `fromProgressions` maps round 2's progressions to the nearest phrase, for his old links. `levelDb` is the keys' level on this writing, under the bed and with headroom for a strike in a wet space. In the app (revision 2) a theme draws one row by its `weight` among those whose notes fit its key (moved by the semitones that take its key root onto the theme's, or onto the degree that fits), the chords change only where the keys land, and each chord's `bass` is the bass line's home under it: `key` the row's key root held as a pedal (only where it is a tone of the chord), `root` the chord's own root. Chosen by measurement (liquid-space round 1, the round note has the table): the share of the liquid riffs' time (their bar shapes, by length) that lands on a tone of the chord over each home first — the riff is the line the bass plays for bars, and its minor shape over the tonic pedal sits on a VI chord's third, fifth and seventh — and where the two are within 0.02, the low register (`lowClash`: the chord's notes under E3 that beat with the home).",
+ "revision": 3,
+ "note": "Sparse keys, approved in the keys lab (round 3) and read by the app since liquid-space round 1 (`src/keys-phrase.ts`); place-neutral rows a place table admits. Mostly two chords, each struck once where it lands and left to ring into the space; a few rows (revision 3, liquid-keys-2: the lab's round-2 progressions written sparse, his \"two chords\" a pick among the lab's and not a ban) three or four, a landing each, played in turn; a row marked `widens` is drawn the way the draw row's newcomers are (`draw.json` `more`): a theme first rolls, off `<seed>::keys:phrase:more`, whether its phrase is one of them, at their share of the fitting rows' weight, so the rows before them draw as they did. `chords` play in turn, each for its `bars` (8 and 8 by default at 174 BPM, a 16-bar cycle; a row may say 4 and 4). `left` and `right` are the plain voicing as MIDI notes (the root low and alone or with a shell fifth or seventh; a rootless right hand, wide), `deep` the landing voicing a pickup sinks into (the left hand spread to root, fifth and tenth or a low octave, the right a little lower or fuller), `scale` the pitch classes a motif over the chord draws from, `retouch` at most one quiet right-hand touch inside the chord's bars, `vel` a softer strike. `root` is the chord's root by name; the bed's sub reads `left[0]`. `fromProgressions` maps round 2's progressions to the nearest phrase, for his old links. `levelDb` is the keys' level on this writing, under the bed and with headroom for a strike in a wet space. In the app (revision 2) a theme draws one row by its `weight` among those whose notes fit its key (moved by the semitones that take its key root onto the theme's, or onto the degree that fits), the chords change only where the keys land, and each chord's `bass` is the bass line's home under it: `key` the row's key root held as a pedal (only where it is a tone of the chord), `root` the chord's own root. Chosen by measurement (liquid-space round 1, the round note has the table): the share of the liquid riffs' time (their bar shapes, by length) that lands on a tone of the chord over each home first — the riff is the line the bass plays for bars, and its minor shape over the tonic pedal sits on a VI chord's third, fifth and seventh — and where the two are within 0.02, the low register (`lowClash`: the chord's notes under E3 that beat with the home).",
  "levelDb": -3,
  "touch": {
   "left": 0.46,
@@ -466,6 +466,293 @@
       "step": 0,
       "hands": "right",
       "vel": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "fm9-dbmaj9-abmaj9-eb9sus4",
+   "revision": 1,
+   "widens": true,
+   "name": "i-VI-III-VII, the falling loop",
+   "key": "F minor",
+   "mood": "dark to warm",
+   "weight": 0.9,
+   "says": "Fm9, Dbmaj9, Abmaj9, Eb9sus4, a landing each: the lab's minor loop (round 2's i-VI-III-VII) slowed to the sparse writing, the top voice rocking between G and F and lifting to A flat on the suspended seven before it turns home.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 32,
+   "chords": [
+    {
+     "symbol": "Fm9",
+     "root": "F",
+     "bars": 8,
+     "bass": "key",
+     "left": [41, 48],
+     "right": [63, 68, 72, 79],
+     "deep": {
+      "left": [41, 48, 56],
+      "right": [60, 63, 67, 72]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3]
+    },
+    {
+     "symbol": "Dbmaj9",
+     "root": "Db",
+     "bars": 8,
+     "bass": "key",
+     "left": [37, 44],
+     "right": [63, 68, 72, 77],
+     "deep": {
+      "left": [37, 44, 53],
+      "right": [60, 63, 68, 72]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3]
+    },
+    {
+     "symbol": "Abmaj9",
+     "root": "Ab",
+     "bars": 8,
+     "bass": "root",
+     "left": [44, 51],
+     "right": [63, 70, 72, 79],
+     "deep": {
+      "left": [32, 39, 48],
+      "right": [60, 63, 67, 70]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.5
+     }
+    },
+    {
+     "symbol": "Eb9sus4",
+     "root": "Eb",
+     "bars": 8,
+     "bass": "root",
+     "left": [39, 49],
+     "right": [65, 70, 73, 80],
+     "deep": {
+      "left": [39, 46, 53],
+      "right": [58, 61, 65, 68]
+     },
+     "scale": [5, 7, 8, 10, 0, 1, 3]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "cm9-fm9-bb13-ebmaj9",
+   "revision": 1,
+   "widens": true,
+   "name": "i-iv-VII-III, home to the relative major",
+   "key": "C minor",
+   "mood": "dark to warm",
+   "weight": 0.8,
+   "says": "Cm9, Fm9, Bb13, Ebmaj9, a landing each: the middle of the lab's minor two-five-one (round 2) as a four-chord walk, the minor home up to its four, the seven's thirteenth leaning into the relative major's ninth chord.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 32,
+   "chords": [
+    {
+     "symbol": "Cm9",
+     "root": "C",
+     "bars": 8,
+     "bass": "key",
+     "left": [36, 43],
+     "right": [63, 70, 74, 79],
+     "deep": {
+      "left": [36, 43, 51],
+      "right": [58, 63, 67, 70, 74]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10]
+    },
+    {
+     "symbol": "Fm9",
+     "root": "F",
+     "bars": 8,
+     "bass": "root",
+     "left": [41, 48],
+     "right": [63, 68, 72, 79],
+     "deep": {
+      "left": [41, 48, 56],
+      "right": [60, 63, 67, 72]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10]
+    },
+    {
+     "symbol": "Bb13",
+     "root": "Bb",
+     "bars": 8,
+     "bass": "root",
+     "left": [46, 56],
+     "right": [62, 68, 72, 79],
+     "deep": {
+      "left": [34, 41, 50],
+      "right": [62, 65, 68, 72]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.45
+     }
+    },
+    {
+     "symbol": "Ebmaj9",
+     "root": "Eb",
+     "bars": 8,
+     "bass": "root",
+     "left": [39, 46],
+     "right": [62, 67, 70, 77],
+     "deep": {
+      "left": [39, 46, 55],
+      "right": [58, 62, 65, 70]
+     },
+     "scale": [0, 2, 3, 5, 7, 8, 10]
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "fm9-bb13-ebmaj9",
+   "revision": 1,
+   "widens": true,
+   "name": "ii-V-I into the major nine",
+   "key": "E flat major",
+   "mood": "warm",
+   "weight": 0.8,
+   "says": "Fm9, Bb13, Ebmaj9, a landing each: the end of the lab's minor two-five-one (round 2), the two-five landing home on the major ninth, and round again.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 24,
+   "chords": [
+    {
+     "symbol": "Fm9",
+     "root": "F",
+     "bars": 8,
+     "bass": "root",
+     "left": [41, 48],
+     "right": [63, 68, 72, 79],
+     "deep": {
+      "left": [41, 48, 56],
+      "right": [60, 63, 67, 72]
+     },
+     "scale": [3, 5, 7, 8, 10, 0, 2]
+    },
+    {
+     "symbol": "Bb13",
+     "root": "Bb",
+     "bars": 8,
+     "bass": "root",
+     "left": [46, 56],
+     "right": [62, 68, 72, 79],
+     "deep": {
+      "left": [34, 41, 50],
+      "right": [62, 65, 68, 72]
+     },
+     "scale": [3, 5, 7, 8, 10, 0, 2]
+    },
+    {
+     "symbol": "Ebmaj9",
+     "root": "Eb",
+     "bars": 8,
+     "bass": "key",
+     "left": [39, 46],
+     "right": [62, 67, 70, 77],
+     "deep": {
+      "left": [39, 46, 55],
+      "right": [58, 62, 65, 70]
+     },
+     "scale": [3, 5, 7, 8, 10, 0, 2],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "schema": 1,
+   "kind": "keys-phrase",
+   "id": "em9-cmaj9-em9-cmaj9s11",
+   "revision": 1,
+   "widens": true,
+   "name": "i-VI rock, raised the second time",
+   "key": "E minor",
+   "mood": "dark to warm",
+   "weight": 0.8,
+   "says": "Em9, Cmaj9, Em9, Cmaj9#11, a landing each: the lab's minor i-VI rock (round 2), two chords whose second comes back with its raised eleventh, the F sharp held from the home chord.",
+   "bpm": 174,
+   "beatsPerBar": 4,
+   "cycleBars": 32,
+   "chords": [
+    {
+     "symbol": "Em9",
+     "root": "E",
+     "bars": 8,
+     "bass": "key",
+     "left": [40, 47],
+     "right": [62, 67, 71, 78],
+     "deep": {
+      "left": [40, 47, 55],
+      "right": [59, 62, 66, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 0, 2]
+    },
+    {
+     "symbol": "Cmaj9",
+     "root": "C",
+     "bars": 8,
+     "bass": "key",
+     "left": [36, 43],
+     "right": [62, 67, 71, 76],
+     "deep": {
+      "left": [36, 43, 52],
+      "right": [59, 64, 67, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 0, 2]
+    },
+    {
+     "symbol": "Em9",
+     "root": "E",
+     "bars": 8,
+     "bass": "key",
+     "left": [40, 47],
+     "right": [62, 67, 71, 78],
+     "deep": {
+      "left": [40, 47, 55],
+      "right": [59, 62, 66, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 0, 2]
+    },
+    {
+     "symbol": "Cmaj9#11",
+     "root": "C",
+     "bars": 8,
+     "bass": "key",
+     "left": [36, 43],
+     "right": [62, 66, 71, 76],
+     "deep": {
+      "left": [36, 43, 52],
+      "right": [59, 62, 66, 71]
+     },
+     "scale": [4, 6, 7, 9, 11, 0, 2],
+     "retouch": {
+      "bar": 4,
+      "step": 0,
+      "hands": "right",
+      "vel": 0.45
      }
     }
    ]

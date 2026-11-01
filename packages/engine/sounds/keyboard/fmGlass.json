@@ -48,6 +48,7 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "clean": true,
     "cost": "dear",
     "timbres": {
       "fmGlass": {
@@ -63,6 +64,9 @@
   },
   "provenance": {
     "round": "sounds-r2",
+    "notes": {
+      "clean": "Plays clean (round bell-noise, his ear 10-13: \"still this annoying HF noise on the bell like voice\"): the edge's copy of its inharmonic body is a hiss over its ring, 9-34 dB over the voice's own 4-8 kHz, so it builds no strike and takes the bus's clean door where a theme's room writes an edge; its own top stays."
+    },
     "module": "fm-keys.ts",
     "note": "Three operators: a second modulator on the first, which makes partials at every sum and difference of two inharmonic series instead of one. The haze is why the index has to fall faster than the bell's."
   }

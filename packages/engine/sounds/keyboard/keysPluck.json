@@ -101,7 +101,8 @@
         "struck": true,
         "hold": 0.048,
         "brightnessHz": 2000,
-        "loudnessDb": -12.6
+        "loudnessDb": -12.6,
+        "underBed": true
       }
     },
     "dispatches": [],

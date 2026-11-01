@@ -474,6 +474,8 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
   // since liquid-space (10-11) its surface's dark air too (the development table's, `DEVELOPMENT`)
   const own: Record<string, string[]> = { 'fast broken': ['reeseDeep', 'kickTight', 'snareDry', 'reeseBass', 'kickPunchHigh', 'snareCrack', 'snareGhost', 'hatShut', 'hatSoft',
     'pianoClose', 'pianoConcert', 'fmEpSoft', 'fmEpGlass', 'pianoFelt', 'keysSuitcase', 'keysTineDark', 'airBed',
+    // since liquid-keys-2 (10-29) the draw row's four newcomers
+    'pianoUpright', 'pianoMute', 'keysReed', 'pianoMellow',
     // since liquid-ambient (10-11) its weather family's four rows (`AMBIENT_VOICES`)
     'weatherWind', 'weatherUpperAir', 'weatherRain', 'weatherRumble'],
     // trance-1: the high four's hook, chopped chords on the gritty supersaw (the hook table, `src/hook.ts`)

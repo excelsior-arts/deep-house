@@ -67,7 +67,8 @@
         "struck": false,
         "hold": 0.95,
         "brightnessHz": 7000,
-        "loudnessDb": -12.1
+        "loudnessDb": -12.1,
+        "source": "synth"
       }
     },
     "dispatches": [],

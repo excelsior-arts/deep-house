@@ -126,7 +126,7 @@ export interface HygieneInput {
   releaseOf: (e: PlanEvent) => number | null;
   /** the theme's scene (`composition.trace.scene`): a scene the row names keeps its holds as they are */
   scene?: string | null;
-  /** a grammar's own notes, which shape their own holds and endings (the ambient bed's): left as they are */
+  /** notes that shape their own holds and endings (the ambient bed's, a sung voice's phrases): left as they are */
   ownShape?: (e: PlanEvent) => boolean;
   noteName: (midi: number) => string;
 }
@@ -221,7 +221,7 @@ export function applyHygiene(I: HygieneInput): HygieneResult {
   if (T.bpm >= H.leastBpm && !H.skipScenes.includes(I.scene ?? '')) fadeHolds(ev, {
     fadeS, tailS: fadeS * H.tailShare, handoverS: H.handoverFeltBeats * T.feltBeatS + 1e-6, leastS: H.leastS,
     easeDb: null, easeS: 0, onsetLeastS: T.beatS, endMarginS: bs,
-    harmonic: (e) => tonal(e) && H.layers.includes(e.layer ?? '') && !H.skipRoles.includes(e.role ?? '') && e.voice !== 'wordlessVocal' && !I.ownShape?.(e),
+    harmonic: (e) => tonal(e) && H.layers.includes(e.layer ?? '') && !H.skipRoles.includes(e.role ?? '') && !I.ownShape?.(e),
     onset: tonal,
     inWindow: () => true,
     wants: (e) => { const r = I.releaseOf(e); return r != null && r < fadeS; },

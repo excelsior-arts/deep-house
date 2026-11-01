@@ -88,9 +88,11 @@ test('unsupported grammar, meter, scope and inaccurate claims cannot slip throug
 
 test('automatically selected scores survive development and pickups without waking the brush', () => {
   // Since 10-13 a row's hand drum plays over a sparse bed alone, so the three are met further out: the house's seeds
-  // 1-200, the first themes and then the second.
+  // 1-1200, the first themes and then the second (1-200 until round sound-properties: 123#1, where the rolling hands
+  // were met, leads with the organ now that no colour is refused for the theme before it, and over its held bed the
+  // hands leave; the next is 1183#0).
   const seen=new Set();
-  for(const n of [0,1])for(let seed=1;seed<=200&&seen.size<3;seed++) {
+  for(const n of [0,1])for(let seed=1;seed<=1200&&seen.size<3;seed++) {
     const t=planTheme(seed,n,{...opts,development:'percussion'}),tr=trace(t);
     for(const source of tr.recipes??[]) {
       const recipe=recipeById(source.id),part=recipe.wants.rhythm.sixteenth[1];

@@ -219,7 +219,15 @@ export interface BassEntry extends PlaceEntry {
  * `voicing`: where the swapped lane is held in front, its chords voiced by `voiceHeld` (theory.ts): `voices` on every chord,
  * the top inside `top` (MIDI); `levelDb` its level against the lane's (trance-2: the corner's held saw under the runs' level)
  */
-export interface LaneSoundEntry extends PlaceEntry { lane: 'pad' | 'stab'; sound: string; voicing?: { voices: number; top: readonly [number, number]; root?: boolean; levelDb?: number } }
+export interface LaneSoundEntry extends PlaceEntry {
+  lane: 'pad' | 'stab'; sound: string; voicing?: { voices: number; top: readonly [number, number]; root?: boolean; levelDb?: number };
+  /**
+   * the share of the place's themes that play the sound (round sound-properties: a place's colour is its favourite, not
+   * its only one); the rest draw the lane as the house does. Absent, every theme (a pin). Rolled off a stream of its own
+   * (`place-sound`), so a theme that keeps the sound moves nothing.
+   */
+  share?: number;
+}
 /**
  * **The master's tone by place** (round E1): the five gains of the master's
  * tone stages (`EqProfile`) a place's themes play at. A row is a whole profile,
@@ -1041,7 +1049,7 @@ export function placesFaults(p: StylePlaces, vocab: { families: readonly string[
   for (const [word, voice] of Object.entries(sounds)) if (voice !== null && !BY_NAME[voice]) bad.push(`sounds: ${word} resolves to ${voice}, no voice`);
   const word = (at: string, w: string | undefined) => { if (w !== undefined && !Object.hasOwn(sounds, w)) bad.push(`${at}: ${w} is not a sound word`); };
   for (const e of p.bassSound ?? []) word(e.id, e.sound);
-  for (const e of p.laneSound ?? []) word(e.id, e.sound);
+  for (const e of p.laneSound ?? []) { word(e.id, e.sound); if (e.share !== undefined && !(e.share > 0 && e.share <= 1)) bad.push(`${e.id}: share ${e.share} is not a share of themes`); }
   for (const e of p.glueSound ?? []) word(e.id, e.sound);
   for (const e of p.drums ?? []) {
     for (const [from, w] of Object.entries(e.sounds ?? {})) { if (!BY_NAME[from]) bad.push(`${e.id}: sounds swaps ${from}, no voice`); word(e.id, w); }

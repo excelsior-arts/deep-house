@@ -157,6 +157,37 @@ const BOWLS_FORM = Object.freeze({
   orders: [['intro', 'groove', 'outro']],
   sectionBars: Object.freeze({ intro: { p25: 3, p75: 5, median: 4 }, groove: { p25: 70, p75: 90, median: 80 }, outro: { p25: 8, p75: 12, median: 10 } }),
 });
+/**
+ * **OM's claim**: 0.4 about its spell. Unbounded, the conversation's table handed it BOWLS's Root from 0.85 up (BOWLS's
+ * deep, heavy end: 0.41 from OM at Root one, 0.60 from BOWLS), so a control at BOWLS would pull out to OM; within 0.4
+ * no one-bird pull of BOWLS, BELLS, WAVES, PSY or the Ambient tile reads it (every bird in steps of 0.05) and no
+ * featured track does, and what it takes is seed 6's Gleam from 0.55 up, which the bowls reached today: the plan's
+ * bridge (a pull from seed 6 toward Gleam reaches OM).
+ */
+const OM_RADIUS = 0.4;
+/**
+ * Deep, dark-coloured but harmonically open, still: an Om meditation, a plucked drone's cycle under a wordless chant over an
+ * open-fifth pedal, a great bowl now and then (PLAN-AMBIENT P3a, ambient-om-field). It stands 0.508 from the drumless
+ * deep still (seed 6's spell, pinned within 0.15 of it in the conversation's table), 0.72 from BOWLS. Named in one table
+ * only, the conversation's, its harmony, form and bed riding on its entry as BOWLS's do.
+ */
+const OM: Place = Object.freeze({ ...place({ ember: 0.02, tide: 0.90, zephyr: 0.10, root: 1.0, gleam: 0.75, veil: 0.05, spark: 0, loom: 1.0 }, [40, 70]), radius: OM_RADIUS });
+/**
+ * OM's level: the existing ambient step's aim (the brief: −15.8). Measured offline and silent on the branch's site, the
+ * place's windows (seeds 1-4, 30-210 s: the opening and the first chant) read some −18.1 LUFS at a trim of nought, so the
+ * trim stands at the drumless family's ceiling (+2 dB, as BOWLS's) and the windows play −15.5 to −16.3 (median −16.2).
+ */
+const OM_TARGET_LUFS = -15.8;
+const OM_MEASURED_LUFS = -18.1;
+/**
+ * OM's form (his ear 10-31 on the sketch: "generally composition is great"): the plucked drone alone, the chant entering over
+ * it, the overtones in the middle (the breakdown), the chant again, the plucked drone alone at the close.
+ */
+const OM_FORM = Object.freeze({
+  orders: [['intro', 'groove', 'breakdown', 'groove', 'outro']],
+  sectionBars: Object.freeze({ intro: { p25: 3, p75: 5, median: 4 }, groove: { p25: 20, p75: 28, median: 24 }, breakdown: { p25: 12, p75: 20, median: 16 },
+    outro: { p25: 6, p75: 10, median: 8 } }),
+});
 /** The Liquid key's own spell (the Drum & Bass tile's liquid centre), read by the riff, form and development tables. */
 const LIQUID_KEY = { ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.60, spark: 0.85, loom: 0.85 };
 /** The liquid centre as a place (liquid-space, 10-11). */
@@ -412,7 +443,10 @@ export const LANE_SOUND: readonly LaneSoundEntry[] = Object.freeze([
   // -11.2 in the breakdowns against the chopped saw's -13.5 in the peak run, so the peak was the quietest part of the track):
   // six decibels down, the grooves and the breakdown under the runs as source 10's are
   ...CORNER.map(([tag, at]) => ({ id: `wide-held-saw-voiced-${tag}`, place: at, lane: 'pad' as const, sound: 'supersaw', voicing: { voices: 4, top: [67, 72] as const, root: true, levelDb: -6 } })),
-  { id: 'organ-on-the-stab', place: BRIGHT_FOUR, lane: 'stab', sound: 'struck-organ' },
+  // the struck organ in half the bright four's themes, the rest the stab as the house draws it (round sound-properties, his
+  // word 10-30: "introduce larger variety of sounds to offer"): pinned, it was 47 % of the leads at Zephyr 0.95 over the
+  // guards' grid (seeds 1-40), every struck lead the place reached
+  { id: 'organ-on-the-stab', place: BRIGHT_FOUR, lane: 'stab', sound: 'struck-organ', share: 0.5 },
   // The rest keep the lanes' own draw (see BASS_SOUND).
   ...[FAST_BROKEN, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR]
     .map((place, i) => ({ id: `own-layers-${i + 1}`, place, lane: 'pad' as const, sound: 'own' })),
@@ -460,6 +494,24 @@ export const EQ_V2: Readonly<EqProfile> = Object.freeze({
  * than any of theirs); the EQ table names it, because its bottom is the music.
  */
 const HELD_DRONE = place({ ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 }, [40, 70]);
+/**
+ * **The drumless deep still**: the deep still's birds with Ember at nought, slow, wet, deep and dark, no gleam of its
+ * own (the house's), at the tempi a free pulse is played at. Its themes are a held pedal: the library's strings pedal
+ * swelling under sung open fifths, or the composer's own held strings and organ. A pin (PLAN-AMBIENT §2.4, the
+ * HELD_DRONE idiom): listed in a table with the row it resolves to there today, so a place added beside it (OM stands
+ * 0.508 from it, HELD_DRONE's 0.588) leaves its own themes as they are, and the spells nearer it than the new place keep
+ * its rows.
+ */
+const STILL_DEEP_FREE = place({ ember: 0, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }, [40, 70]);
+/**
+ * **The pin's claim**: the drumless deep still in the conversation's table claims its own neighbourhood only, a radius of
+ * 0.15 (a bird's pull of 0.15 each way), so seed 6's spell and its near pulls keep their rows and nothing past it moves:
+ * without the radius it took the spells between it and BOWLS that the bowls reach today (0.42 % of the drumless ring,
+ * the drumless landscape's centre among them, 0.35 from it and 0.47 from BOWLS); with it, none of 40,000 drumless spells.
+ * OM (0.508 away) then takes what lies past the radius on its side, as the plan's bridge says: a pull from seed 6
+ * toward Gleam and Root reaches OM.
+ */
+const STILL_DEEP_PIN: Place = Object.freeze({ ...STILL_DEEP_FREE, radius: 0.15 });
 /** A row of the EQ table: the house's profile with a few gains of its own. */
 const eqRow = (id: string, at: Place, own: Partial<EqProfile> = {}): EqEntry =>
   Object.freeze({ id, place: at, profile: Object.freeze({ ...EQ_V2, ...own }) });
@@ -1349,10 +1401,21 @@ export const CONVERSATION: readonly ConversationEntry[] = Object.freeze([
       // the fourth or the sixth and back, a chord every eight bars (some 40 s, the cycles' longest loop), voiced in sevenths
       harmony: Object.freeze({ cycles: Object.freeze([{ degrees: [0], every: 16, loop: 16, voicing: 'sevenths', w: 3 },
         { degrees: [0, 3], every: 8, loop: 16, voicing: 'sevenths', w: 1 }, { degrees: [0, 5], every: 8, loop: 16, voicing: 'sevenths', w: 1 }]) }), form: BOWLS_FORM, bed: Object.freeze({ strings: 2, swell: 1 }), bedDb: -15, needs: Object.freeze(['no-kit'] as const) }) },
+  // ambient-om-field (PLAN-AMBIENT P3a): the chant over the plucked drone's cycle, an open-fifth pedal under them (the held
+  // layer kept, its bed the entry's own: the strings' swell or the strings), the great bowl now and then; the sub and the
+  // keys' figure held off
+  { id: 'chant-over-drone', place: OM,
+    technique: Object.freeze({ kind: 'conversation', row: 'chant-over-drone', priority: 1, foreground: true, noiseGlue: false,
+      silences: Object.freeze(['bassline', 'figure']), level: Object.freeze({ targetLufs: OM_TARGET_LUFS, measuredLufs: OM_MEASURED_LUFS }),
+      harmony: Object.freeze({ cycles: Object.freeze([{ degrees: [0], every: 16, loop: 16, voicing: 'fifths', w: 1 }]) }), form: OM_FORM,
+      bed: Object.freeze({ swell: 2, strings: 1 }), bedDb: -12, needs: Object.freeze(['no-kit'] as const) }) },
   ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE,
     LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
     .map((place, i) => ({ id: `no-conversation-${i + 1}`, place })),
   { id: 'no-conversation-on-the-journey', place: PSY },
+  // ambient-om-field: the drumless deep still pinned within 0.15 of it (its themes lay no conversation today:
+  // HELD_DRONE's row, 0.588 away), before OM (0.508 away) joins the table
+  { id: 'no-conversation-at-the-still-deep', place: STILL_DEEP_PIN },
 ] as ConversationEntry[]);
 
 /**
@@ -1416,7 +1479,7 @@ export const JOURNEY: readonly JourneyEntry[] = Object.freeze([
 export const AIR: readonly PlaceEntry[] = Object.freeze([
   { id: 'liquid-centre', place: LIQUID_CENTRE },
   { id: 'deep-half', place: DEEP_HALF },
-  { id: 'deep-still-drumless', place: place({ ember: 0, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }, [40, 70]) },
+  { id: 'deep-still-drumless', place: STILL_DEEP_FREE },
   { id: 'high-four-open', place: place({ ember: 0.88, root: 0.60, zephyr: 0.60, veil: 0.60, tide: 0.70 }, [134, 146]) },
   // trance-1: the Trance tile, at its own Zephyr
   { id: 'saw-corner', place: claimed(SAW_CORNER) },

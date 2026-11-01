@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "pianoMute",
-  "revision": 1,
+  "revision": 2,
   "topology": "piano",
   "parameters": {
     "attack": 0.006,
@@ -21,7 +21,98 @@
     "brightMax": 1100,
     "hpHz": 75,
     "spread": 0.25,
-    "dryLevel": 1
+    "dryLevel": 1,
+    "string": {
+      "partials": 12,
+      "reach": 0.35,
+      "strike": 0.125,
+      "comb": 0.5,
+      "stiffness": 0.0005,
+      "level": 0.7,
+      "register": [
+        {
+          "midi": 36,
+          "db": -2.4
+        },
+        {
+          "midi": 40,
+          "db": -1.8
+        },
+        {
+          "midi": 48,
+          "db": -1.9
+        },
+        {
+          "midi": 55,
+          "db": -1.2
+        },
+        {
+          "midi": 60,
+          "db": -0.6
+        },
+        {
+          "midi": 65,
+          "db": 1.7
+        },
+        {
+          "midi": 70,
+          "db": 2.5
+        },
+        {
+          "midi": 75,
+          "db": -1.7
+        },
+        {
+          "midi": 80,
+          "db": -1.0
+        },
+        {
+          "midi": 88,
+          "db": 3.8
+        }
+      ],
+      "body": [
+        {
+          "hz": 150,
+          "db": 4.5,
+          "q": 4.5
+        },
+        {
+          "hz": 280,
+          "db": 4,
+          "q": 5
+        },
+        {
+          "hz": 420,
+          "db": 3.5,
+          "q": 4.5
+        },
+        {
+          "hz": 650,
+          "db": 3,
+          "q": 3
+        },
+        {
+          "hz": 1000,
+          "db": 1.5,
+          "q": 4
+        },
+        {
+          "hz": 1600,
+          "db": -3.5,
+          "q": 1.2
+        }
+      ],
+      "knock": 0.07,
+      "knockHz": 240,
+      "felt": {
+        "hz": 280,
+        "track": 0.6,
+        "top": 600,
+        "level": 1.2,
+        "decay": 0.03
+      }
+    }
   },
   "descriptor": {
     "family": "keyboard",
@@ -46,7 +137,8 @@
     "note": "An upright with its practice felt down between hammer and strings: a soft thud before the pitch, the top gone almost at once, a short note and two strings seven cents apart, a dark muffled warmth.",
     "notes": {
       "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
-      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row",
+      "string": "The deep house keys' string (round liquid-keys-2, his word 10-29 on the old grands the liquid keys draw: \"yeah, that's the trick we might want to pull updated piano there as well\"): the piano row's stiff string, wooden board and felt hammer in place of the six partials and the band of hiss, keeping this row's own envelope, lid (brightMin and brightMax), unison and high-pass, with the small box, a stiff string reaching barely a third as high, and the practice felt's thud low and long (280 Hz, 30 ms, louder than the hammer's own). Its `register` is its level by register against this row's six partials, measured note by note (MIDI 36-88, velocities 0.5 and 0.6, 3 s from the strike, dry): every register plays as loud as it did, the mean difference under 0.55 dB."
     }
   }
 }

@@ -132,6 +132,25 @@ export interface TimbreFacts {
    * room gave it
    */
   loudnessDb: number;
+  /**
+   * What makes the sound, where a rule asks (round sound-properties): `synth`, a synthesiser's own oscillators (a saw,
+   * a supersaw, a wavetable, a formant or grain cloud); `acoustic`, an instrument played by hand (a reed blown, a
+   * string struck). Absent: not said, and no rule that asks reads it as either. A style's rules read it, never a name:
+   * house-v2's synth beds (`SYNTH_BEDS`) and its far-apart fronts (`catalogue.apart`).
+   */
+  source?: 'synth' | 'acoustic';
+  /**
+   * MEASURED (round front-level, 10-15, the grid's mains): a front that sat 5 dB or more under its bed even with the
+   * stage's lift, so the level rule leaves it where its bed puts it (house-v2's `catalogue.front`); absent, the rule
+   * moves it.
+   */
+  underBed?: boolean;
+  /**
+   * MEASURED (round saw-bed, 10-16): a bed denser in one band than the record's other beds, and the bell the level rule
+   * takes that band down with (`hz`, `db`, `q`; the engine's `p.band`) and the K-weighted level the bell takes off the
+   * bed (`levelDb`, the loudness fit's `bandDb`); absent, none.
+   */
+  band?: { hz: number; db: number; q: number; levelDb: number };
 }
 
 /**

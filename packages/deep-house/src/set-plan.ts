@@ -37,7 +37,7 @@
 //   effects        nothing dramatic: the flux peak is 1.7x the median
 
 import { linkRaw } from './link-table.ts';
-import { generate, resolveRoom, leadTimbreOfTheme, rollTempo, heldByZone } from './generator.ts';
+import { generate, resolveRoom, rollTempo, heldByZone } from './generator.ts';
 import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
@@ -406,39 +406,6 @@ export function themeSeed(masterSeed: string | number, n: number): string {
   return `${masterSeed}#${n}`;
 }
 
-/**
- * Was theme `n` of this set an organ theme? Asked of the lead the theme really
- * plays.
- *
- * This is the other half of round K5a's `avoidOrgan` switch, and it is what
- * makes the rule *not twice running* rather than *never*: the flag `generate`
- * takes is "the theme before this one was an organ", and only the set knows
- * what the theme before this one was.
- *
- * It asked the raw die until the review of 09-24 (R37): a pure function of the
- * theme's seed, and not the draw `generate` makes — the hold lean under a
- * minimal density and the drone in front's redraw both move it — so it
- * answered wrongly on 46 of 1200 themes and let seed 123 play two organs
- * running. It asks `leadTimbreOfTheme` now, which is `generate`'s own code up
- * to the lead and no further, with the set's own arguments for that theme.
- *
- * The rule composes without a walk over the whole set: refusing the organ only
- * ever takes it away, so a theme whose lead is not an organ when nothing is
- * refused is not an organ theme, whatever came before it. Only a theme that
- * would lead with the organ asks about the one before it — the organ is about
- * one draw in ten, and a run of two is one in a hundred.
- *
- * A style whose `avoidOrgan` switch is off never asks: `switchOn` is checked
- * before this is called, and under house-v1 the rule has never run at all,
- * which is the fifth reachability fact at the head of `deep-house.ts`.
- */
-export function organTheme(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style }): boolean {
-  if (n < 0) return false;
-  const { args } = themeAt(masterSeed, n, opts);
-  if (leadTimbreOfTheme({ ...args, avoidOrgan: false }) !== 'organ') return false;
-  return !organTheme(masterSeed, n - 1, opts) || leadTimbreOfTheme({ ...args, avoidOrgan: true }) === 'organ';
-}
-
 // Which room theme n of a set is in, without generating it: the preset die is
 // the theme seed's own, so this is the same roll `generate` makes, and a set
 // that names a preset gets that one whatever the die says.
@@ -449,7 +416,7 @@ export function presetOfTheme(style: Style, masterSeed: string | number, n: numb
 // What `generate` is asked for theme n of a set — its seed, tempo, key and
 // length and everything the set was handed — and the stream the set draws the
 // theme's own numbers from, which `planTheme` goes on drawing after the theme
-// is composed. Everything but the organ rule, which is asked of these.
+// is composed.
 function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style }) {
   const style = opts.style;
   const o = setOptions(style, opts);
@@ -623,22 +590,7 @@ export function tailSeconds(spell: Partial<Spell> | null | undefined, style: Sty
 export function planTheme(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style }): SetTrack {
   const style = opts.style;
   const { args, o, r, RANGE } = themeAt(masterSeed, n, opts);
-  const track = generate({
-    ...args,
-    // `dice('timbre:again')`, the fifth reachability fact: the rule that a set
-    // never runs two organ themes back to back. A strategy that carries
-    // switches decides (round K5a); a style that carries none is `false`, which
-    // is `generate`'s own default and is the record.
-    //
-    // **Round K5b turns it on for house-v2, and hands it the predecessor** —
-    // which is why the switch was wired to reach the die rather than the
-    // answer. A theme is told "the one before you was an organ" and refuses a
-    // second one; a theme after anything else is told nothing and draws what it
-    // would have drawn. Theme 0 has no predecessor and is never refused, so the
-    // organ is still the record's rare colour and is only ever prevented from
-    // being the colour twice.
-    avoidOrgan: switchOn(style, 'avoidOrgan') && organTheme(masterSeed, n - 1, opts),
-  }) as SetTrack;
+  const track = generate(args) as SetTrack;
   track.index = n;
   // MEASURED: bimodal blend length, and a filter moves in half of all mixes.
   track.blendBars = Math.round(

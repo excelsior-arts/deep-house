@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "tanpura",
-  "revision": 2,
+  "revision": 3,
   "topology": "jawari",
   "parameters": {
     "burst": 0.008,
@@ -19,15 +19,15 @@
     "peakCeiling": 3.2,
     "detuneCents": 1.2,
     "spread": 0.5,
-    "attack": 0.002,
+    "attack": 0.006,
     "release": 0.6,
-    "cutoff": 7000,
+    "cutoff": 3000,
     "veloOpen": 0.3,
     "hpHz": 40,
     "cacheLimit": 12,
     "trim": 1,
-    "delay": 0.1,
-    "reverb": 0.4
+    "delay": 0.15,
+    "reverb": 0.8
   },
   "descriptor": {
     "family": "keyboard",
@@ -77,7 +77,8 @@
       "roles": "figure and melody, as the struck bowl's and the clean string's: the keys layer is the rim's S lane, which reads the roles that land there, and a voice on that layer playing the pad's role would put the layer in two lanes.",
       "register": "Made for MIDI 30-60 (46-262 Hz): the tanpura's strings, from a low Sa to the Pa an octave over the middle. Over it the period is short enough that the bridge's share of a swing is a few samples; under it the 7 s buffer is under a dozen periods of decay.",
       "maxSeconds": "Seven seconds of buffer, the last half second faded, so a note held past it ends on silence and not a cut. The jawari string rings within 1.5 dB of the clean one to 3 s and 2-4 dB under it at 5-6 s: the bridge's give-back keeps the first seconds and not all of the tail.",
-      "pitch": "Read back over three windows (0.1-0.35, 0.35-0.7 and 0.7-2.2 s), each placed at its middle, and the playback rate run through them: the low Sa reads 20-24 cents flat just after the pluck and under 4 later, and is played in tune through both."
+      "pitch": "Read back over three windows (0.1-0.35, 0.35-0.7 and 0.7-2.2 s), each placed at its middle, and the playback rate run through them: the low Sa reads 20-24 cents flat just after the pluck and under 4 later, and is played in tune through both.",
+      "cutoff": "His ear 10-31 over the pedal: \"a bit harsh string edge, maybe because it's dry, I like the follow up dissonance like resolve on vibrations\". The edge off the pluck and into the room, the buzz kept: the string's output lowpass at 3 kHz (was 7; 4.2 took the top over 8 kHz and left 2-8 kHz within a decibel), its first 6 ms eased in (attack, was 2 ms), its reverb send 0.8 and delay 0.15 (were 0.4 and 0.1). The bridge, its bloom, the two sides' slow beating and the top's loss in the loop are untouched."
     }
   }
 }

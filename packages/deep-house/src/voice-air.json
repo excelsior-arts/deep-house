@@ -435,6 +435,142 @@
     "BELLS, Root 0.89, Zephyr 0.60, seed 2 theme 3, midi 72: 837 Hz, -9.9 dB"
    ]
   },
+  "keysReed": {
+   "hz": 604,
+   "over1500": -10.9,
+   "flat": 0,
+   "at": [
+    "Drum & Bass, Zephyr 0.60, seed 8 theme 1, midi 64: 604 Hz, -10.9 dB"
+   ],
+   "curve": {
+    "by": "lpMul",
+    "unset": 1,
+    "points": [
+     [
+      0.419,
+      486
+     ],
+     [
+      0.539,
+      551
+     ],
+     [
+      0.694,
+      600
+     ],
+     [
+      0.893,
+      609
+     ],
+     [
+      1.15,
+      596
+     ]
+    ]
+   }
+  },
+  "pianoMellow": {
+   "hz": 459,
+   "over1500": -22.7,
+   "flat": 0,
+   "at": [
+    "Drum & Bass, Zephyr 0.60, seed 6 theme 1, midi 61: 459 Hz, -22.7 dB"
+   ],
+   "curve": {
+    "by": "lpMul",
+    "unset": 1,
+    "points": [
+     [
+      0.419,
+      457
+     ],
+     [
+      0.539,
+      458
+     ],
+     [
+      0.694,
+      458
+     ],
+     [
+      0.893,
+      458
+     ],
+     [
+      1.15,
+      459
+     ]
+    ]
+   }
+  },
+  "pianoMute": {
+   "hz": 434,
+   "over1500": -40.1,
+   "flat": 0,
+   "at": [
+    "Drum & Bass, Zephyr 0.60, seed 20 theme 2, midi 62: 434 Hz, -40.1 dB"
+   ],
+   "curve": {
+    "by": "lpMul",
+    "unset": 1,
+    "points": [
+     [
+      0.419,
+      285
+     ],
+     [
+      0.539,
+      333
+     ],
+     [
+      0.694,
+      377
+     ],
+     [
+      0.893,
+      416
+     ],
+     [
+      1.15,
+      461
+     ]
+    ]
+   }
+  },
+  "pianoUpright": {
+   "hz": 561,
+   "over1500": -22.7,
+   "flat": 0,
+   "at": [
+    "Drum & Bass, Zephyr 0.60, seed 4 theme 3, midi 64: 561 Hz, -22.7 dB"
+   ],
+   "curve": {
+    "by": "lpMul",
+    "unset": 1,
+    "points": [
+     [
+      0.419,
+      396
+     ],
+     [
+      0.539,
+      472
+     ],
+     [
+      0.694,
+      523
+     ],
+     [
+      0.893,
+      551
+     ],
+     [
+      1.15,
+      572
+     ]
+    ]
+   }
+  },
   "pianoClose": {
    "hz": 519,
    "over1500": -16.7,

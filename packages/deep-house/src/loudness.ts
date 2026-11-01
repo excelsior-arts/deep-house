@@ -768,6 +768,10 @@ export interface FrontClip {
   mostDbBeat?: number;
   knee: number;
   curve: number;
+  /** **the curve's ceiling over the top the plan reads** (round hat-crackle), in dB: the top stays where the plan sets it
+   * and the trims read it; the curve's own asymptote stands this much over it, so a peak past the top is rounded and
+   * never flattened. Absent, nought: the curve's ceiling is the top. */
+  ceilingDb?: number;
   /** the saw-bed's depth line, as fitted without the clip: the room the loudest block leaves, in dB of trim */
   depth: LoudnessModel;
 }
@@ -836,8 +840,9 @@ export interface SumClip { overDb: number; knee: number; curve: number }
 /** The sum clip a window's features plan, or null where they plan none. */
 function sumClipAt(f: LoudnessFeatures, C: FrontClip, style: Style): SumClip | null {
   if (!f.clipOn) return null;
-  // (its top on the place's own depth line: 8 dB over on a groove, 10 on a beat-led one, round loudness-place)
-  return { overDb: +(clipTopOf(f, style) - f.clipRoomDb).toFixed(3), knee: C.knee, curve: C.curve };
+  // (its top on the place's own depth line: 8 dB over on a groove, 10 on a beat-led one, round loudness-place; the
+  // curve's ceiling `ceilingDb` over it, round hat-crackle)
+  return { overDb: +(clipTopOf(f, style) - f.clipRoomDb + (C.ceilingDb ?? 0)).toFixed(3), knee: C.knee, curve: C.curve };
 }
 
 /** The engine's `master.sumClip` a theme's plan asks for (round drum-clip), or null where it plans none. */

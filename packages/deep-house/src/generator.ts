@@ -90,6 +90,8 @@ import { breakPulse, type BreakPulsePlan, type PulseEvent } from './break-pulse.
 import { momentsOf, type Moment, type MomentsInput } from './moments.ts';
 import { planPhrasing, summarised, said as saidOf, bumpCurve, dipCurve, factorCurve, glueParams, PHRASING_ROWS, TONAL_LAYERS, type Phrasing, type BarKit } from './phrasing.ts';
 import { applyPadArc, PAD_ARC_ROWS, type PadArc } from './pad-arc.ts';
+import { HELD_BLOCK_ROWS, isBlock, blockVoicing } from './held-block.ts';
+import { STAB_SHAPE_ROWS, cutToFront, walkedVoicing, spreadHits } from './stab-shape.ts';
 import { HAT_SCENE, sceneBar, gravityOf, sceneVariation, levelOf, fillStep, fillChance, busyAt, restsAt, struckAt, keysByHats, KEYS_BY_HATS, keysByBody, KEYS_BY_BODY, type SceneBar, type SceneHatSteps, type KeysByHatsStep, type KeysByBodyStep } from './hat-scene.ts';
 import { hatsMoveHere } from './hat-moves.ts';
 import { HAT_FIGURE, planHatFigure } from './hat-figure.ts';
@@ -141,22 +143,42 @@ export function resolveRoom(
 // below; the raw die it once asked, before the lean and the scene's redraw,
 // was a draw no theme makes (R37 of the review of 09-24).
 //
-// The organ is the rare colour: about one theme in ten, and never two themes
-// running. `avoidOrgan` is the mix telling this theme that the last one was an
-// organ; a single track never sets it — and, as things stand, neither does the
-// mix, so `dice('timbre:again')` draws zero times in the released catalogue.
-// That is a fact and not a fault; it is in the style's reachability note.
+// One draw, whatever the theme before it led with. The set's old rule — never two
+// organ themes running, a second die (`timbre:again`) that refused the organ by
+// name — is gone (round sound-properties, his word 10-30: "rule out annoying
+// organ motifs and approaches, then … kill one of rule"): what wore in the
+// organ was a held chord struck whole and held flat, which the held block now
+// voices as a line (`src/held-block.ts`), so no colour is refused by name.
 export function leadTimbreFor(
   style: Style,
   seed: Seed,
-  avoidOrgan = false,
   bias: Bias = biasFor(null, style),
   lean: <T extends { v: string; w: number }>(list: T[]) => T[] = (list) => list,
+  most: number | null = null,
 ): string {
-  // Zephyr leans the draw by the voices' air, about the place's own Zephyr (`drawTimbre`, zephyr-air)
-  const t = drawTimbre(new Rng(`${seed}::timbre`), style, style.catalogue.leadTimbres, bias, 'leadTimbres', lean);
-  if (t !== 'organ' || !avoidOrgan) return t;
-  return drawTimbre(new Rng(`${seed}::timbre:again`), style, style.catalogue.leadTimbres, bias, 'leadTimbres', (l) => lean(l).filter((o) => o.v !== 'organ'));
+  // Zephyr leans the draw by the voices' air, about the place's own Zephyr (`drawTimbre`, zephyr-air); the palette's
+  // ceiling last, over the list as it stands after every lean and every refusal
+  return drawTimbre(new Rng(`${seed}::timbre`), style, style.catalogue.leadTimbres, bias, 'leadTimbres', most == null ? lean : (l) => capShare(lean(l), most));
+}
+
+/**
+ * **The palette's ceiling** (round sound-properties; his word 10-30: *"introduce larger variety of sounds to offer"*):
+ * no colour holds more than `most` of a list's weight; what it held past that goes to the others, each by its own
+ * weight (a colour over the line is set to `most / (1 - most)` of the rest). Read off the weights alone, never a name.
+ * A list no colour of which stands over the line is handed back as the same object, so its draw is the draw it was.
+ */
+export function capShare<T extends { v: string; w: number }>(list: T[], most: number): T[] {
+  let out = list;
+  for (let k = 0; k < list.length; k++) {
+    let total = 0, top = -1;
+    for (let i = 0; i < out.length; i++) { const w = Math.max(0, out[i].w); total += w; if (top < 0 || w > Math.max(0, out[top].w)) top = i; }
+    if (!(total > 0) || top < 0 || out[top].w / total <= most + 1e-12) return out;
+    const rest = total - out[top].w;
+    if (!(rest > 0)) return out;
+    const w = (most * rest) / (1 - most);
+    out = out.map((e, i) => (i === top ? { ...e, w } : e));
+  }
+  return out;
 }
 
 /** A voicing between two ends, placed by the birds: `lean` is a `shiftOf` row (its birds' leans, its `centre`). */
@@ -646,8 +668,6 @@ export interface GenerateOptions {
   bars?: number | null;
   /** the length the arrangement is cut to, mains first, off `bars` (a set's `themeTrim`, S19) */
   fitBars?: number | null;
-  /** the mix telling this theme that the one before it was an organ */
-  avoidOrgan?: boolean;
   /** the eight birds, where a listener, a bench or a URL asked for any */
   spell?: Partial<Spell> | null;
   /**
@@ -892,11 +912,11 @@ export function generate(opts: GenerateOptions): Track {
 /**
  * **Which instrument a theme really leads with**, asked without the rest of
  * the theme: the lead die as `generate` rolls it — the room's own answer, the
- * hold lean at the density drawn, the organ refused where the set says so, and
- * the drone in front's redraw — and nothing after it. It is the set's question
- * for the organ rule (`organTheme`, `src/set-plan.ts`), which read the raw die
- * and so answered for a draw the theme does not make (R37 of the review of
- * 09-24). The same code as `generate` up to that line, so the two cannot part.
+ * hold lean at the density drawn, a place's pin, the drone in front's and the
+ * far-apart rule's redraws — and nothing after it. The same code as `generate`
+ * up to that line, so the two cannot part (the raw die is a draw no theme
+ * makes: R37 of the review of 09-24). The tools ask it to count a grid's lead
+ * colours without planning each theme whole.
  */
 export function leadTimbreOfTheme(opts: GenerateOptions): string {
   return compose(opts, true) as string;
@@ -1041,7 +1061,7 @@ function composeTheme(opts: GenerateOptions, leadOnly: boolean, fromLibrary = fa
   }
 }
 
-function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forceBpm = null, clock: forceClock = null, placeBpm: forcePlaceBpm = null, root: forceRoot = null, scaleName: forceScale = null, bars: forceBars = null, fitBars = null, avoidOrgan = false, spell = null, lanes = null, timbres = null, recipe = null, accompaniment = 'base', development = 'base', motif: forceMotif = null, reach = null }: GenerateOptions, leadOnly: boolean, fromLibrary = false, turnRow: { id: string; scope: string } | null = null): Track | string {
+function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: forceBpm = null, clock: forceClock = null, placeBpm: forcePlaceBpm = null, root: forceRoot = null, scaleName: forceScale = null, bars: forceBars = null, fitBars = null, spell = null, lanes = null, timbres = null, recipe = null, accompaniment = 'base', development = 'base', motif: forceMotif = null, reach = null }: GenerateOptions, leadOnly: boolean, fromLibrary = false, turnRow: { id: string; scope: string } | null = null): Track | string {
   const requestedForm = developmentOf(style, development);
   if (requestedForm && recipe?.scope === 'track') throw new Error('A complete arrangement retains its own development; extract a part first');
   // an ensemble's ingredients widen with the draw's reach (`EnsembleBlock.reach`); its salt never does
@@ -1257,7 +1277,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   // block, which is the record, hands every list through untouched.
   const lean = holdLeanFor(CAT, density);
   // The draw as the palette has it, and the texture and scene read off it.
-  const drawn = { lead: shape.leadTimbre || leadTimbreFor(style, seed, avoidOrgan, bias, lean('leadTimbres')), pad: '', stab: '' };
+  // (the palette's ceiling, `catalogue.leadMost`: from its tempo up, no lead colour over its share of the draw)
+  const leadMost = CAT.leadMost && bpm >= CAT.leadMost.leastBpm ? CAT.leadMost.share : null;
+  const drawn = { lead: shape.leadTimbre || leadTimbreFor(style, seed, bias, lean('leadTimbres'), leadMost), pad: '', stab: '' };
   const leadSustained = CAT.sustainedLeads.includes(drawn.lead);
   drawn.pad = shape.padTimbre || (leadSustained ? drawn.lead : drawTimbre(dPartner, style, CAT.padPartners, bias, 'padPartners', lean('padPartners')));
   drawn.stab = shape.stabTimbre || (leadSustained ? drawTimbre(dPartner, style, CAT.stabPartners, bias, 'stabPartners', lean('stabPartners')) : drawn.lead);
@@ -1270,7 +1292,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const laneSound = placesOn ? placeAt('laneSound') : null;
   const placedTimbre = laneSound ? SOUNDS[laneSound.sound] ?? null : null;
   const placed = { lead: false, pad: false, stab: false };
-  if (laneSound && placedTimbre && passes('lane sound', laneSound.lane, placedTimbre, drawn[laneSound.lane] || null)) {
+  // (a place's sound in its `share` of themes, off a stream of its own; absent, every theme)
+  const soundTaken = !!laneSound && (laneSound.share === undefined || laneSound.share >= 1 || dice('place-sound').chance(laneSound.share));
+  if (laneSound && placedTimbre && soundTaken && passes('lane sound', laneSound.lane, placedTimbre, drawn[laneSound.lane] || null)) {
     placed[laneSound.lane] = true;
     drawn[laneSound.lane] = placedTimbre;
     if ((laneSound.lane === 'pad') === leadSustained) { drawn.lead = placedTimbre; placed.lead = true; }
@@ -1476,7 +1500,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const apart = (front: string, bed: string) => APART.some((r) => r.front.includes(front) && r.beds.includes(bed));
   const besides = (bed: string) => <T extends { v: string }>(list: T[]): T[] => list.filter((e) => !apart(e.v, bed));
   const leadDrawn = shape.leadTimbre || placed.lead || !strikes(drawn.lead, leadPace) ? drawn.lead
-    : leadTimbreFor(style, seed, avoidOrgan, bias, (list) => admitted(leadPace, leadSustained)(lean('leadTimbres')(list)));
+    : leadTimbreFor(style, seed, bias, (list) => admitted(leadPace, leadSustained)(lean('leadTimbres')(list)), leadMost);
   // The bed a lead plays over: the lead itself where it holds, else the drawn partner as the scene admits it (off a
   // fresh `partner` stream, so asking twice is the same answer). A struck lead's bed does not depend on the lead, so
   // the far-apart question asks it of the bed that plays.
@@ -1484,7 +1508,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     : drawTimbre(dice('partner'), style, CAT.padPartners, bias, 'padPartners', (l) => admitted(padPace)(lean('padPartners')(l)));
   const struckBed = leadSustained ? '' : padOf(leadDrawn);
   const leadTimbre = shape.leadTimbre || placed.lead || leadSustained || !apart(leadDrawn, struckBed) ? leadDrawn
-    : leadTimbreFor(style, seed, avoidOrgan, bias, (list) => besides(struckBed)(admitted(leadPace, leadSustained)(lean('leadTimbres')(list))));
+    : leadTimbreFor(style, seed, bias, (list) => besides(struckBed)(admitted(leadPace, leadSustained)(lean('leadTimbres')(list))), leadMost);
   if (leadOnly) return leadTimbre;
   const padTimbre = padOf(leadTimbre);
   const stabDrawn = shape.stabTimbre || placed.stab ? drawn.stab : !leadSustained ? leadTimbre : !strikes(drawn.stab, keysPace) ? drawn.stab
@@ -2299,16 +2323,18 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     arrangement, silent, at, beat, barSeconds, laneOn, voiceOf, trimOf, cellTrimOf, push, characters, pinned: request.pin, selectedRecipeFor, placeHand };
   // **The keys' moments** (keys-moments, `src/keys-moments.ts`; his ear 10-29: *"color in breakdown - great"*,
   // *"either solo or second riff both sound good"*): where the style opts in, the keys that are a part
-  // whose row says it stays (`PitchedFigure.stays.solo`) or the theme's lead on the row's voices may take a long
+  // whose row says it stays (`PitchedFigure.stays.solo`) or the theme's lead, played by a voice that brings a figure of its own, may take a long
   // breakdown's last phrase alone, and the lead a second riff in a long stretch of itself. Planned once the
   // sub-sections are drawn (below, `KM.plan`); the notes written the first time a moment's bar is asked, from the keys'
   // own notes laid before it; every bar a moment plays is kept for the plan's record.
   const KM = { plan: null as KeysMomentsPlan | null, solo: null as MomentNote[] | null, riff: null as MomentNote[] | false | null,
     played: { solo: [] as number[], riff: [] as number[] } };
   const kmOn = switchOn(style, 'keysMoments');
-  const kmPart = kmOn ? UPPERS.find((u) => !!u.stays?.solo && KEYS_MOMENTS.voices.includes(u.voice)) ?? null : null;
+  // (played by a voice that brings a figure of its own: its row's word, `descriptor.ownFigure`)
+  const ownsFigure = (voice: string) => BY_NAME[voice]?.row?.descriptor.ownFigure === true;
+  const kmPart = kmOn ? UPPERS.find((u) => !!u.stays?.solo && ownsFigure(u.voice)) ?? null : null;
   const kmLane = firstByRole('figure');
-  const kmLead = kmOn && !HOOK && !UPPERS.length && !!MOTIF && MOTIF.register === 'lead' && ownFigure && !!kmLane && KEYS_MOMENTS.voices.includes(voiceOf(kmLane));
+  const kmLead = kmOn && !HOOK && !UPPERS.length && !!MOTIF && MOTIF.register === 'lead' && ownFigure && !!kmLane && ownsFigure(voiceOf(kmLane));
   const kmKey = ((progression.root % 12) + 12) % 12;
   // the bar's chord as the key's seventh chord on its degree (root, third, fifth, seventh), and the key's scale
   const kmHarmony = (bar: number): MomentHarmony => {
@@ -2873,6 +2899,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
    * layer, the bus and the level come off the same descriptor, so nothing else
    * in the chain has to be told.
    */
+  const STAB_SHAPE = STAB_SHAPE_ROWS.ring;
+  const stabShapeOn = switchOn(style, 'stabShape') && bpm >= STAB_SHAPE.leastBpm;
   function stabLane(lane: Lane, c: BarContext) {
     if (HOOK) { hookLane(lane, c); return; }
     const voice = voiceOf(lane);
@@ -2924,9 +2952,24 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       }
       return;
     }
-    for (const st of stabsForBar(c.bar).slice(0, maxStabs)) {
+    // **The stab's shape in front** (`src/stab-shape.ts`, his verdicts 10-31): from the row's tempo up, a bar the cap cuts to
+    // its front (beat 1 and beat 2, then nothing) is left to the bed, the bass and the drums; a stab that plays walks its
+    // chord bar to bar and strikes its later hits softer. (The bar's dice are drawn either way, so nothing after moves.)
+    // ...and where no bed holds the bar (its section rolled the keys alone), the cap keeps the mask's hits spread over the
+    // bar instead of its first ones, so the chord still carries the harmony, never as beat 1 and beat 2 and nothing
+    const all = stabsForBar(c.bar), first = all.slice(0, maxStabs);
+    const front = stabShapeOn && cutToFront(STAB_SHAPE, all, first);
+    const bedHolds = c.padSection && !!droneGate && !!c.layers[droneGate];
+    const silent = front && bedHolds;
+    const kept = front && !bedHolds ? spreadHits(all, maxStabs) : first;
+    const barInPhrase = c.bar - phraseAt(c.bar).start;
+    let struck = 0;
+    for (const st of kept) {
       if (!c.r.chance(S.groove.stabChance + 0.3)) continue;
-      const voicing = st.top ? c.chord.voicing.slice(-3) : c.chord.voicing;
+      if (silent) continue;
+      const chord = st.top ? c.chord.voicing.slice(-3) : c.chord.voicing;
+      const voicing = stabShapeOn ? walkedVoicing(STAB_SHAPE, chord, barInPhrase) : chord;
+      const later = stabShapeOn && struck++ > 0 ? STAB_SHAPE.laterVel : 1;
       const dur = Math.max(0.12, (shape.stabLen ?? st.len) * 0.25 * beat);
       voicing.forEach((midi, i) => {
         push(
@@ -2935,7 +2978,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
           {
             midi,
             dur,
-            vel: st.vel * (1 - i * 0.05),
+            vel: st.vel * later * (1 - i * 0.05),
             preset: stabTimbre,
             tremolo,
             delay: 0.28 * fx.delay,
@@ -2987,6 +3030,10 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   }
 
   const heldTop = new Map<Lane, number>();
+  /** the phrase a held block's line last stood in, by lane (a phrase's first chord reaches for the band's other half) */
+  const heldPhrase = new Map<Lane, string>();
+  const BLOCK = HELD_BLOCK_ROWS.ring;
+  const blockOn = switchOn(style, 'heldBlock') && bpm >= BLOCK.leastBpm;
   /** One drone lane's chord: the voicing, folded into the register, held. */
   function droneLane(lane: Lane, c: BarContext, holdBars?: number) {
     const voice = voiceOf(lane);
@@ -3002,15 +3049,23 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
     // a place's held front part voiced as one line (`LaneSoundEntry.voicing`, trance-1): the same count of voices on every
     // chord, the top led by step inside its band; elsewhere the voicing folded into the register, as it always was
     const held = placed.pad && laneSound?.lane === 'pad' ? laneSound.voicing : undefined;
+    // **a held block** (`src/held-block.ts`, his word 10-30 on the organ's wear): a held voice that strikes in a moment and
+    // holds flat, by its own numbers, voiced as a line whose band moves phrase by phrase, and swelled in; the theme's own
+    // draw only, never a place's own pad sound (a place that plays its sound voices it: the trance corner's held saw)
+    const block = !placed.pad && blockOn && isBlock(BLOCK, voice, padTimbre);
+    const phraseIx = Math.floor((c.bar - c.section.startBar) / BLOCK.phraseBars);
     const notes = held ? voiceHeld(c.chord.voicing, held.voices, held.top, heldTop.get(lane) ?? null, held.root ? c.chord.rootMidi : null)
+      : block ? blockVoicing(BLOCK, c.chord.voicing, c.chord.rootMidi, heldTop.get(lane) ?? null,
+        heldPhrase.get(lane) !== `${c.section.index}:${phraseIx}`, phraseIx)
       : c.chord.voicing.map((m) => foldTo(m, S.register.padLow, S.register.padHigh));
-    if (held) heldTop.set(lane, notes[notes.length - 1]);
+    if (held || block) heldTop.set(lane, notes[notes.length - 1]);
+    if (block) heldPhrase.set(lane, `${c.section.index}:${phraseIx}`);
     // A bottom octave when the voicing has floated up out of the register.
     // MEASURED: the references carry -9.5 dB in 120-250 Hz and a chord sitting
     // entirely above middle C leaves that band to the kick alone, which is what
     // makes a mix sound like a bass and a treble with a hole between them.
     const lowest = Math.min(...notes);
-    if (!held && lowest > S.register.padOctaveBelow) notes.unshift(lowest - 12);
+    if (!held && !block && lowest > S.register.padOctaveBelow) notes.unshift(lowest - 12);
     notes.forEach((midi, i) => {
       push(
         voice,
@@ -3023,7 +3078,8 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
           // Only the rare "swell" family really swells; everything else attacks
           // in a few tens of milliseconds and holds. Which is which is
           // `figures.slowAttack` in the style, with the measurement.
-          attack: FIG.slowAttack.includes(padTimbre) ? Math.min(SG.swellAttack + i * 0.09, dur * 0.45) : undefined,
+          attack: FIG.slowAttack.includes(padTimbre) ? Math.min(SG.swellAttack + i * 0.09, dur * 0.45)
+            : block ? +Math.min(BLOCK.attackBeats * beat, dur * 0.45).toFixed(4) : undefined,
           release: Math.min(release, dur * 0.8),
           spread: padSpread,
           reverb: padWet,
@@ -5514,7 +5570,7 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
       // the glide line, where the place's bass plays one (round DNB-7): which row, and where it switches
       ...(formRecipe ? { form: formRecipe.id } : {}),
       // the keys' drawn combo (liquid-space round 1), one line a listener can flag a mix by: tone · space · phrase · motif · wetness · density
-      ...(keysPlan ? { keys: [keysPlan.choice.tone, keysPlan.choice.space, keysPlan.choice.phrase, keysPlan.choice.motif, keysPlan.choice.wetness, keysPlan.choice.density].join(' · ') } : {}),
+      ...(keysPlan ? { keys: [keysPlan.choice.tone, keysPlan.choice.space, keysPlan.choice.phrase, keysPlan.choice.motif, keysPlan.choice.wetness, keysPlan.choice.density, keysPlan.choice.comp].join(' · ') } : {}),
       // the conversation's row and its four voices (PLAN-AMBIENT Phase 1), one line a listener can flag a mix by: row · ground · caller · answerer · hand
       ...(conversation ? { conversation: [conversation.row, conversation.voices.ground, conversation.voices.caller, conversation.voices.answerer, conversation.voices.punctuation ?? 'no hand'].join(' · ') } : {}),
       // the sea's row, its period and its voices (PLAN-AMBIENT Phase 4), one line a listener can flag a mix by: row · period · bloom · bell · bass
@@ -5814,8 +5870,9 @@ function composeThemeOnce({ style, seed = 1, minutes = 2, preset = 'auto', bpm: 
   const hygiene = switchOn(style, 'hygiene') && time && !(passage && producerRow) ? applyHygiene({
     row: HYGIENE_ROWS.ring, events, bars, time, spell: bias.spell as unknown as Record<string, number>, sections: arrangement.sections,
     chordAt: (b) => chordAtBar(progression, b).label, noteName,
-    // the ambient bed's notes shape their own holds (its seconds caps, its plateaus, its entrance swells)
-    ownShape: (e) => ambientNotes.has(e),
+    // the ambient bed's notes shape their own holds (its seconds caps, its plateaus, its entrance swells), and a sung
+    // voice's are phrases whose entrances and endings the composer wrote (its row's family, never its name)
+    ownShape: (e) => ambientNotes.has(e) || BY_NAME[e.voice]?.family === 'vocal',
     scene: composition?.trace.scene ?? null,
     releaseOf: (e) => { const r = e.p.release ?? (S as unknown as Record<string, { release?: unknown } | undefined>)[e.voice]?.release; return typeof r === 'number' ? r : null; },
   }) : null;

@@ -109,6 +109,10 @@ export function eqProfileOf(master: Readonly<EqProfile>): EqProfile {
  */
 export const EQ_RAMP_S = 2;
 
+/** The input the theme's sum clip's curve spans, in units of its own (`softClipCurve`'s `range`): four, 12 dB past
+ * where a curve over ±1 would hold flat (round hat-crackle). */
+const SUM_CLIP_RANGE = 4;
+
 /**
  * The master chain as `buildMaster` builds it: every node of it, in the order
  * the signal passes through them, plus the two facts a caller needs about the
@@ -704,11 +708,13 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   // instant — is rounded where it stands, so the limiter after it holds a
   // ceiling and does not pull the whole mix down for a beat. Absent, the trim
   // is the theme's last node, as it always was.
-  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number; oversample?: OverSampleType }, into: AudioNode, mono: boolean): AudioNode => {
+  // `range`: the input the curve spans (`softClipCurve`), the drive scaled down by it so the curve reads the same.
+  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number; oversample?: OverSampleType; range?: number }, into: AudioNode, mono: boolean): AudioNode => {
+    const range = C.range ?? 1;
     const pre = ctx.createGain();
-    pre.gain.value = dbToGain(C.driveDb);
+    pre.gain.value = dbToGain(C.driveDb) / range;
     const shaper = ctx.createWaveShaper();
-    shaper.curve = softClipCurve(C.curve ?? 2, C.knee ?? 0.6);
+    shaper.curve = softClipCurve(C.curve ?? 2, C.knee ?? 0.6, 4096 * range, range);
     shaper.oversample = C.oversample ?? P.master.oversample;
     const post = ctx.createGain();
     // the drive back down, and the clip's make-up where a room asks one (10-06, hands-on: a master pushed into the limiter, as source 9's is)
@@ -787,7 +793,9 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     const back = down[0];
     for (let i = 0; i + 1 < down.length; i++) down[i].connect(down[i + 1]);
     down[down.length - 1].connect(themeOut);
-    at.connect(clipNodes({ driveDb, knee, curve, oversample: SC.oversample ?? 'none' }, back, false));
+    // (round hat-crackle: the curve spans 12 dB past its unit, so a hit far over the top — a breakdown's downbeat 10-12 dB
+    // over it on Drive - Static Charge — is rounded by the curve and never flattened at the shaper's end)
+    at.connect(clipNodes({ driveDb, knee, curve, oversample: SC.oversample ?? 'none', range: SUM_CLIP_RANGE }, back, false));
     themeEnd = sum;
   }
 

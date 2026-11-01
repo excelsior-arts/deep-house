@@ -20,7 +20,6 @@ import { laneLevelDb, ROOM_OFF_DB } from '../src/lane-level.ts';
 import { silentRuns } from '../src/silence.ts';
 import { readFileSync } from 'node:fs';
 import { makeArrangement, pushCurve, sectionGrid, layersAtBar, cutMainsFirst, mainsApart, type Arrangement, type Section } from '../src/arrangement.ts';
-import { organTheme } from '../src/set-plan.ts';
 import { generate } from '../src/generator.ts';
 import { style, settings } from '../src/styles/deep-house-v2.ts';
 import { style as v1 } from '../src/styles/deep-house.ts';
@@ -89,7 +88,6 @@ export {
   layersAtBar,
   cutMainsFirst,
   mainsApart,
-  organTheme,
   generate,
   style,
   settings,

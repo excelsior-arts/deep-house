@@ -6,13 +6,13 @@
   {
    "link": "seed=4&v=2&spell=em:0.92,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80",
    "place": "tile Dubstep",
-   "shortLu": 2.82,
+   "shortLu": 3.01,
    "trimDb": -2.874,
    "heldBy": "share",
    "measured": {
-    "shareDb": -2.29,
-    "depthDb": 7.61,
-    "shortAtItLu": 2.47
+    "shareDb": -2.32,
+    "depthDb": 7.11,
+    "shortAtItLu": 2.67
    },
    "why": "share"
   },
@@ -23,50 +23,37 @@
    "trimDb": 2.646,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.84,
-    "depthDb": 9.2,
-    "shortAtItLu": 2.24
+    "shareDb": 2.82,
+    "depthDb": 8.58,
+    "shortAtItLu": 2.26
    },
    "why": "share"
   },
   {
    "link": "seed=8&v=2&spell=em:0.75,ze:0.50,ro:0.60,ve:0.60",
    "place": "tile Techno",
-   "shortLu": 2.22,
-   "trimDb": 0.825,
+   "shortLu": 2.34,
+   "trimDb": 0.837,
    "heldBy": "share",
    "measured": {
-    "shareDb": -0.02,
-    "depthDb": 9.88,
-    "shortAtItLu": 2.78
+    "shareDb": -0.03,
+    "depthDb": 9.43,
+    "shortAtItLu": 2.92
    },
    "why": "share"
   },
   {
    "link": "seed=4&v=2",
    "place": "tile Deep House",
-   "shortLu": 2.99,
+   "shortLu": 3.04,
    "trimDb": 0.743,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.38,
-    "depthDb": 8.62,
-    "shortAtItLu": 1.91
+    "shareDb": 1.59,
+    "depthDb": 7.99,
+    "shortAtItLu": 2.47
    },
    "why": "share"
-  },
-  {
-   "link": "seed=6&v=2",
-   "place": "tile Deep House",
-   "shortLu": 2.32,
-   "trimDb": 0.53,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 2.43,
-    "depthDb": 9.51,
-    "shortAtItLu": 1.06
-   },
-   "why": "margin"
   },
   {
    "link": "seed=8&v=2",
@@ -75,9 +62,9 @@
    "trimDb": 2.906,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.74,
-    "depthDb": 8.47,
-    "shortAtItLu": 2.48
+    "shareDb": 2.75,
+    "depthDb": 7.85,
+    "shortAtItLu": 2.47
    },
    "why": "share"
   },
@@ -88,9 +75,9 @@
    "trimDb": 3.174,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.36,
-    "depthDb": 8.89,
-    "shortAtItLu": 2.93
+    "shareDb": 2.38,
+    "depthDb": 8.99,
+    "shortAtItLu": 2.92
    },
    "why": "share"
   },
@@ -101,24 +88,37 @@
    "trimDb": 3.032,
    "heldBy": "depth",
    "measured": {
-    "shareDb": 4.2,
-    "depthDb": 8.33,
-    "shortAtItLu": 2.28
+    "shareDb": 4.21,
+    "depthDb": 8.4,
+    "shortAtItLu": 2.27
    },
    "why": "share"
   },
   {
    "link": "seed=12&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
    "place": "tile Breaks",
-   "shortLu": 2.07,
-   "trimDb": 2.055,
+   "shortLu": 2.14,
+   "trimDb": 2.056,
    "heldBy": "share",
    "measured": {
-    "shareDb": 1.03,
-    "depthDb": 9.85,
-    "shortAtItLu": 2.75
+    "shareDb": 1.11,
+    "depthDb": 9.76,
+    "shortAtItLu": 2.77
    },
    "why": "share"
+  },
+  {
+   "link": "seed=1&v=2&spell=em:0.35,ti:0.70,ro:0.55",
+   "place": "tile Downtempo",
+   "shortLu": 2.66,
+   "trimDb": -0.62,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 1.79,
+    "depthDb": 12.61,
+    "shortAtItLu": 1.09
+   },
+   "why": "margin"
   },
   {
    "link": "seed=3&v=2&spell=em:0.35,ti:0.70,ro:0.55",
@@ -128,7 +128,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 2.47,
-    "depthDb": 12.84,
+    "depthDb": 12.79,
     "shortAtItLu": 0.99
    },
    "why": "margin"
@@ -141,7 +141,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 2.73,
-    "depthDb": 8.27,
+    "depthDb": 8.34,
     "shortAtItLu": 0.46
    },
    "why": "margin"
@@ -154,21 +154,8 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 2.24,
-    "depthDb": 10.32,
+    "depthDb": 10.18,
     "shortAtItLu": 0.38
-   },
-   "why": "margin"
-  },
-  {
-   "link": "seed=9&v=2&spell=em:0.35,ti:0.70,ro:0.55",
-   "place": "tile Downtempo",
-   "shortLu": 2,
-   "trimDb": -0.172,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 3.11,
-    "depthDb": 14.13,
-    "shortAtItLu": 0
    },
    "why": "margin"
   },
@@ -180,7 +167,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 3,
-    "depthDb": 7.81,
+    "depthDb": 7.82,
     "shortAtItLu": 1.22
    },
    "why": "margin"
@@ -193,7 +180,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 4.12,
-    "depthDb": 5.29,
+    "depthDb": 4.92,
     "shortAtItLu": 0.75
    },
    "why": "margin"
@@ -201,26 +188,26 @@
   {
    "link": "seed=9&v=2&spell=em:0.27,ti:0.55,ze:0.30,ro:0.80,gl:0.20,ve:0.25,sp:0.60",
    "place": "tile Trip Hop",
-   "shortLu": 3.58,
+   "shortLu": 3.76,
    "trimDb": 1.002,
    "heldBy": "share",
    "measured": {
-    "shareDb": 4.53,
-    "depthDb": 11.22,
-    "shortAtItLu": 1.24
+    "shareDb": 4.28,
+    "depthDb": 10.69,
+    "shortAtItLu": 1.58
    },
-   "why": "margin"
+   "why": "share"
   },
   {
    "link": "seed=4&v=2&spell=sp:0.95",
    "place": "ring spark",
-   "shortLu": 2.29,
+   "shortLu": 2.46,
    "trimDb": 1.074,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.55,
-    "depthDb": 7.49,
-    "shortAtItLu": 1.31
+    "shareDb": 2.75,
+    "depthDb": 7.74,
+    "shortAtItLu": 1.35
    },
    "why": "margin"
   },
@@ -231,8 +218,8 @@
    "trimDb": 1.829,
    "heldBy": "share",
    "measured": {
-    "shareDb": 8.66,
-    "depthDb": 8.74,
+    "shareDb": 8.96,
+    "depthDb": 8.52,
     "shortAtItLu": 0
    },
    "why": "margin"
@@ -245,7 +232,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 3.64,
-    "depthDb": 8.08,
+    "depthDb": 8.49,
     "shortAtItLu": 1.32
    },
    "why": "margin"
@@ -253,13 +240,13 @@
   {
    "link": "seed=1&v=2&spell=ze:0.95",
    "place": "ring zephyr",
-   "shortLu": 2.56,
+   "shortLu": 2.53,
    "trimDb": 0.219,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.4,
-    "depthDb": 13.89,
-    "shortAtItLu": 1.12
+    "shareDb": 2.37,
+    "depthDb": 13.08,
+    "shortAtItLu": 1.1
    },
    "why": "margin"
   },
@@ -270,8 +257,8 @@
    "trimDb": 1.185,
    "heldBy": "share",
    "measured": {
-    "shareDb": 7.02,
-    "depthDb": 9.29,
+    "shareDb": 7.35,
+    "depthDb": 8.32,
     "shortAtItLu": 1.5
    },
    "why": "margin"
@@ -279,13 +266,13 @@
   {
    "link": "seed=4&v=2&spell=ze:0.95",
    "place": "ring zephyr",
-   "shortLu": 3.33,
-   "trimDb": 0.609,
+   "shortLu": 3.91,
+   "trimDb": 0.809,
    "heldBy": "share",
    "measured": {
-    "shareDb": 1.31,
-    "depthDb": 7.51,
-    "shortAtItLu": 2.87
+    "shareDb": 4.07,
+    "depthDb": 6.99,
+    "shortAtItLu": 1.74
    },
    "why": "share"
   },
@@ -296,9 +283,9 @@
    "trimDb": 1.488,
    "heldBy": "share",
    "measured": {
-    "shareDb": 4.17,
-    "depthDb": 8.59,
-    "shortAtItLu": 2.4
+    "shareDb": 4.8,
+    "depthDb": 7.78,
+    "shortAtItLu": 1.98
    },
    "why": "share"
   },
@@ -309,9 +296,9 @@
    "trimDb": 1.891,
    "heldBy": "share",
    "measured": {
-    "shareDb": 5.12,
-    "depthDb": 10.21,
-    "shortAtItLu": 1.16
+    "shareDb": 5.87,
+    "depthDb": 10.25,
+    "shortAtItLu": 0.66
    },
    "why": "margin"
   },
@@ -322,8 +309,8 @@
    "trimDb": 1.188,
    "heldBy": "share",
    "measured": {
-    "shareDb": 0.74,
-    "depthDb": 8.15,
+    "shareDb": 0.73,
+    "depthDb": 7.78,
     "shortAtItLu": 2.44
    },
    "why": "share"
@@ -331,12 +318,25 @@
   {
    "link": "seed=4&v=2&spell=ro:0.95",
    "place": "ring root",
-   "shortLu": 2.99,
+   "shortLu": 3.04,
    "trimDb": 0.741,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.47,
-    "depthDb": 9.54,
+    "shareDb": 1.66,
+    "depthDb": 9,
+    "shortAtItLu": 2.43
+   },
+   "why": "share"
+  },
+  {
+   "link": "seed=4&v=2&spell=lo:0.95",
+   "place": "ring loom",
+   "shortLu": 3.01,
+   "trimDb": 0.743,
+   "heldBy": "share",
+   "measured": {
+    "shareDb": 2.5,
+    "depthDb": 8.94,
     "shortAtItLu": 1.85
    },
    "why": "share"
@@ -362,7 +362,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": -1.62,
-    "depthDb": 9.11,
+    "depthDb": 9.23,
     "shortAtItLu": 1.41
    },
    "why": "margin"
@@ -375,7 +375,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": -1.94,
-    "depthDb": 8.36,
+    "depthDb": 8.84,
     "shortAtItLu": 1.61
    },
    "why": "share"
@@ -383,26 +383,26 @@
   {
    "link": "seed=4&v=2&spell=ze:0.80,sp:0.80",
    "place": "ring spark+zephyr",
-   "shortLu": 3.48,
+   "shortLu": 3.65,
    "trimDb": 1.052,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.39,
-    "depthDb": 6.59,
-    "shortAtItLu": 2.59
+    "shareDb": 2.49,
+    "depthDb": 7.14,
+    "shortAtItLu": 2.7
    },
    "why": "share"
   },
   {
    "link": "seed=4&v=2&spell=ze:0.80,gl:0.80",
    "place": "ring zephyr+gleam",
-   "shortLu": 2.57,
-   "trimDb": 1.124,
+   "shortLu": 2.66,
+   "trimDb": 1.158,
    "heldBy": "share",
    "measured": {
-    "shareDb": 3.8,
-    "depthDb": 7.05,
-    "shortAtItLu": 0.8
+    "shareDb": 3.64,
+    "depthDb": 6.54,
+    "shortAtItLu": 1.01
    },
    "why": "margin"
   },
@@ -413,22 +413,22 @@
    "trimDb": 1.187,
    "heldBy": "share",
    "measured": {
-    "shareDb": 0.33,
-    "depthDb": 8.31,
-    "shortAtItLu": 2.71
+    "shareDb": 0.35,
+    "depthDb": 7.82,
+    "shortAtItLu": 2.7
    },
    "why": "share"
   },
   {
    "link": "seed=4&v=2&spell=ro:0.80,lo:0.80",
    "place": "ring root+loom",
-   "shortLu": 3.01,
+   "shortLu": 2.93,
    "trimDb": 0.742,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.59,
-    "depthDb": 9.45,
-    "shortAtItLu": 1.79
+    "shareDb": 1.79,
+    "depthDb": 9.02,
+    "shortAtItLu": 2.24
    },
    "why": "share"
   },
@@ -440,34 +440,34 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 1.78,
-    "depthDb": 12.63,
+    "depthDb": 12.3,
     "shortAtItLu": 1.27
    },
    "why": "margin"
   },
   {
-   "link": "seed=12&v=2&spell=ti:0.80,lo:0.80",
+   "link": "seed=4&v=2&spell=ti:0.80,lo:0.80",
    "place": "ring loom+tide",
-   "shortLu": 2.47,
-   "trimDb": -1.938,
+   "shortLu": 3.2,
+   "trimDb": -2.534,
    "heldBy": "share",
    "measured": {
-    "shareDb": 1.15,
-    "depthDb": 10.02,
-    "shortAtItLu": 0.51
+    "shareDb": 0.33,
+    "depthDb": 10.67,
+    "shortAtItLu": 1.43
    },
    "why": "margin"
   },
   {
-   "link": "seed=12&v=2&spell=ti:0.80,ve:0.80",
+   "link": "seed=4&v=2&spell=ti:0.80,ve:0.80",
    "place": "ring tide+veil",
-   "shortLu": 2.27,
-   "trimDb": -2.325,
+   "shortLu": 2.54,
+   "trimDb": -2.534,
    "heldBy": "share",
    "measured": {
-    "shareDb": -0.92,
-    "depthDb": 10.37,
-    "shortAtItLu": 1.41
+    "shareDb": 0.24,
+    "depthDb": 10.12,
+    "shortAtItLu": 0.82
    },
    "why": "margin"
   },
@@ -478,9 +478,9 @@
    "trimDb": 0.834,
    "heldBy": "share",
    "measured": {
-    "shareDb": -0.06,
-    "depthDb": 9.61,
-    "shortAtItLu": 2.84
+    "shareDb": -0.1,
+    "depthDb": 9.04,
+    "shortAtItLu": 2.86
    },
    "why": "share"
   },
@@ -492,7 +492,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 2.26,
-    "depthDb": 10.67,
+    "depthDb": 10.08,
     "shortAtItLu": 2
    },
    "why": "share"
@@ -504,9 +504,9 @@
    "trimDb": 1.3,
    "heldBy": "share",
    "measured": {
-    "shareDb": 1.04,
-    "depthDb": 7.04,
-    "shortAtItLu": 3.37
+    "shareDb": 1.03,
+    "depthDb": 8.05,
+    "shortAtItLu": 3.38
    },
    "why": "share"
   },
@@ -518,7 +518,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 4.46,
-    "depthDb": 5.59,
+    "depthDb": 6,
     "shortAtItLu": 0.28
    },
    "why": "margin"
@@ -531,7 +531,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 3.48,
-    "depthDb": 8.02,
+    "depthDb": 8.54,
     "shortAtItLu": 1.16
    },
    "why": "margin"
@@ -543,9 +543,9 @@
    "trimDb": -1.315,
    "heldBy": "share",
    "measured": {
-    "shareDb": 1.41,
-    "depthDb": 13.55,
-    "shortAtItLu": 0.8
+    "shareDb": 1.43,
+    "depthDb": 12.89,
+    "shortAtItLu": 0.79
    },
    "why": "margin"
   },
@@ -557,7 +557,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": 2.47,
-    "depthDb": 9.67,
+    "depthDb": 8.9,
     "shortAtItLu": 0.6
    },
    "why": "margin"
@@ -570,7 +570,7 @@
    "heldBy": "share",
    "measured": {
     "shareDb": -0.49,
-    "depthDb": 10.73,
+    "depthDb": 10.79,
     "shortAtItLu": 0.55
    },
    "why": "margin"
@@ -578,13 +578,13 @@
   {
    "link": "seed=4&v=2&spell=gl:0.90,ve:0.90",
    "place": "ring gleamxveil",
-   "shortLu": 2.6,
+   "shortLu": 2.75,
    "trimDb": 1.188,
    "heldBy": "share",
    "measured": {
-    "shareDb": 2.4,
-    "depthDb": 8.86,
-    "shortAtItLu": 1.79
+    "shareDb": 2.42,
+    "depthDb": 8.37,
+    "shortAtItLu": 1.93
    },
    "why": "share"
   }

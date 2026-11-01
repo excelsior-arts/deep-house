@@ -47,7 +47,7 @@ type Ev = { t: number; voice: string; layer: string; role?: string; part?: strin
 test('the conversation row is admitted: voices that exist, a pentatonic of the scale, registers of an octave, rests and chances in range', () => {
   assert.deepEqual(conversationRowsFaults((v) => !!BY_NAME[v]), []);
   // the bells' row and the bowls' (ambient-bowls, `tools/check-bowls.ts` holds the second)
-  assert.deepEqual(CONVERSATION_ROWS.map((r) => r.id), ['bells-in-conversation', 'bowls-breathing']);
+  assert.deepEqual(CONVERSATION_ROWS.map((r) => r.id), ['bells-in-conversation', 'bowls-breathing', 'chant-over-drone']);
   assert.deepEqual(ROW.scale, [0, 2, 3, 4, 6], 'the key\'s pentatonic: the relative major\'s, from the minor or the dorian');
 });
 

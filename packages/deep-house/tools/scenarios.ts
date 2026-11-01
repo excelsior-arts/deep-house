@@ -3286,16 +3286,19 @@ export const SCENARIOS = [
         firstVoice: n ? live[0].voice : null, lastVoice: n ? live[n - 1].voice : null };
     `),
     judge: (r) => {
+      // The floor is "enough notes to mean something", not a count of the
+      // theme: seed 1 at 35 % in played 39 in the nine seconds once the stab
+      // rule and the held block thinned its stabs and held chords (10-31).
       // A millisecond is three orders of magnitude under a note: what is being
       // compared is two clocks, and the live one is a set clock counting beats
       // through an exponential while the render's is an offset.
       const ms = r.worst * 1000;
       return {
-        ok: r.landed != null && r.n > 40 && !r.wrong && r.n <= r.offline && ms < 1 && !r.late,
+        ok: r.landed != null && r.n > 30 && !r.wrong && r.n <= r.offline && ms < 1 && !r.late,
         why: r.landed == null ? `the seek to ${r.from} s did not land in six seconds`
           : r.wrong
           ? `event ${r.wrong.i} was a ${r.wrong.live} live and a ${r.wrong.offline} offline`
-          : r.n <= 40 ? `only ${r.n} events were played in nine seconds`
+          : r.n <= 30 ? `only ${r.n} events were played in nine seconds`
           : r.n > r.offline ? `the deck played ${r.n} events and the render is given ${r.offline}`
           : r.late ? `${r.late} notes were reached late, so the live times are not the schedule's`
           : `the two put an event ${ms.toFixed(3)} ms apart`,
@@ -13179,7 +13182,7 @@ SCENARIOS.push({
   // reach neither the link nor the music; the lift applies at once and the
   // wait's fill starts there. Then home by the gravity, and a 5 % step.
   deadline: 200000,
-  query: 'v=2&seed=15576',
+  query: 'v=2&seed=15576&theme=2',
   page: body(K11 + `
     await started();
     await waitFor(() => ctl.mix && ctl.mix.state.elapsed > 1, 12000);
@@ -17238,6 +17241,7 @@ SCENARIOS.push({
 });
 // zones-pilot (his ear 10-19, approved): inside the bells' zone a library turn is re-addressed to the zone's
 // conversation, so theme 3 at Root 0 now lays it, and its cells say the bells' words, not the general ones.
+// The hand there is the soft woodblock alone since v24-bugs (his ear 10-29), no longer the frame drum.
 SCENARIOS.push({
   name: 'a library turn inside the bells\' zone plays the conversation and its cells say the bells\' words',
   area: 'words',
@@ -17246,7 +17250,7 @@ SCENARIOS.push({
   page: body(READ_CELLS),
   judge: (r) => {
     const c = r.cells || {};
-    const ok = /^bells-in-conversation/.test(r.conversation || '') && /^small · /.test(c.root || '') && / · frame drum · /.test(c.spark || '') && / · small bells · /.test(c.zephyr || '');
+    const ok = /^bells-in-conversation/.test(r.conversation || '') && /^small · /.test(c.root || '') && / · woodblock · /.test(c.spark || '') && / · small bells · /.test(c.zephyr || '');
     return {
       ok,
       why: `theme ${r.theme}: conversation ${r.conversation}; ${Object.entries(c).map(([b, w]) => `${b} ${w}`).join(', ')}`,
@@ -17390,7 +17394,9 @@ SCENARIOS.push({
         r.pressed = await skyNow(p);
         // a drag that starts on Liquid's dot pans the sky and tunes nothing
         const l = await skyPoint(p, 'Liquid');
-        if (name === '390') {
+        // a finger's drag by the DevTools protocol, which only Chromium speaks;
+        // WebKit and Firefox drag the phone's sky with the mouse (10-31)
+        if (name === '390' && p.context().browser()?.browserType().name() === 'chromium') {
           const cdp = await p.context().newCDPSession(p);
           const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
           await touch('touchStart', l.x, l.y);
@@ -18865,6 +18871,193 @@ SCENARIOS.push({
     if (r.pass.seed !== two.seed || r.pass.theme !== two.theme) bad.push(`past the seam it plays seed ${r.pass.seed} theme ${r.pass.theme + 1}, not the second track's ${two.seed} theme ${two.theme + 1}`);
     if (!(r.pass.label || '').includes(`2 of ${n}`)) bad.push(`past the seam the line says "${r.pass.label}"`);
     return { ok: !bad.length, why: bad[0], note: `cued "${r.cued.label}", started, and at the seam took ${f.name}'s second track (seed ${r.pass.seed} theme ${r.pass.theme + 1}, "${r.pass.label}")` };
+  },
+});
+
+// **The address keeps its Featured playlist** (round featured-address, his word 10-31: "if Link is copied and pasted
+// it's not part of playlist anymore, that has to be addressed … think about users hear first song and pass link to
+// friend"): while a track plays in a Featured playlist the address bar carries the playlist's `in`, last, as the share
+// circle's Copy link writes it; leaving the playlist takes it off. The rows read the address off the page and the
+// ring's line ("Vibe · 1 of 12").
+// the list's key, a constant per list (his word 10-31: `in=vibe`, not its UUID)
+const FEAT_IN = (f) => f.key;
+const featHere = (p) => p.evaluate(() => {
+  const l = document.getElementById('nowList'), c = window.ring.control;
+  return { url: location.search, seed: String(c.readout().seed), theme: c.state.themeIndex, playing: c.playing, label: l && !l.hidden ? l.textContent.replace(/\s+/g, ' ').trim() : null };
+});
+/** What is wrong with an address that should name track `i` of `f` with its `in` last (`null`: nothing). */
+const featAddressBad = (o, f, i) => {
+  if (!o) return 'nothing was read';
+  const q = new URLSearchParams(o.url), at = FEAT_PLACE(f.links[i]), n = f.links.length;
+  if (q.get('seed') !== at.seed || Math.max(0, Number(q.get('theme') ?? 1) - 1) !== at.theme) return `the address ${o.url} is not ${f.name}'s track ${i + 1} (seed ${at.seed} theme ${at.theme + 1})`;
+  if (q.get('in') !== FEAT_IN(f) || [...q.keys()].at(-1) !== 'in') return `the address ${o.url} does not end in in=${FEAT_IN(f)}`;
+  if (o.seed !== at.seed || o.theme !== at.theme) return `the page plays seed ${o.seed} theme ${o.theme + 1} under the address ${o.url}`;
+  if (!o.label || !o.label.includes(f.name) || !o.label.includes(`${i + 1} of ${n}`)) return `the ring's line says "${o.label}", not ${f.name} ${i + 1} of ${n}`;
+  return null;
+};
+const ADDR_READ = `
+  const addrLine = () => { const l = document.getElementById('nowList'); return l && !l.hidden ? l.textContent.replace(/\\s+/g, ' ').trim() : null; };
+  const here = () => ({ url: location.search, seed: String(ctl.readout().seed), theme: ctl.state.themeIndex, playing: ctl.playing, label: addrLine() });
+`;
+
+SCENARIOS.push({
+  name: 'a bare first open\'s address names the first featured playlist (its in, last) beside its first track, cued and then playing',
+  area: 'link',
+  deadline: 120000,
+  drive: async (page) => {
+    const own = await featFresh(page, {});
+    const p = own.page;
+    try {
+      return await p.evaluate(body(ADDR_READ + `
+        const r = { cued: here() };
+        await started();
+        await waitFor(() => ctl.playing && !ctl.state.starting, 30000);
+        await sleep(2500);
+        r.playing = here();
+        ctl.stop();
+        await sleep(400);
+        r.paused = here();
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const f = FEATURED[0];
+    const bad = [];
+    for (const k of ['cued', 'playing', 'paused']) { const why = featAddressBad(r[k], f, 0); if (why) bad.push(`${k}: ${why}`); }
+    if (!r.playing.playing) bad.push('the first run did not start on a press');
+    return { ok: !bad.length, why: bad[0], note: `cued, playing and paused the address is ${r.playing.url}, the line "${r.playing.label}"` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a first open\'s address opened in another browser plays in the featured playlist, a reload keeps it there, and a bare reopen in that browser comes back with the playlist on the address',
+  area: 'link',
+  deadline: 150000,
+  drive: async (page) => {
+    const browser = page.context().browser();
+    const out = {};
+    const a = await featFresh(page, {});
+    try { out.sent = await featHere(a.page); } finally { await a.close(); }
+    const origin = page.url().replace(/\?.*$/, '');
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    try {
+      const b = await ctx.newPage();
+      await b.goto(`${origin}${out.sent.url}`, { waitUntil: 'networkidle' });
+      await featReady(b);
+      out.opened = await featHere(b);
+      out.played = await b.evaluate(body(ADDR_READ + `
+        await started();
+        await waitFor(() => ctl.playing && !ctl.state.starting, 30000);
+        await sleep(2500);
+        const r = here();
+        ctl.stop();
+        await sleep(400);
+        return r;
+      `));
+      await b.reload({ waitUntil: 'networkidle' });
+      await featReady(b);
+      out.reloaded = await featHere(b);
+      await b.close();
+      // the home-screen app opens bare: the stored place comes back in its playlist, and the address says so
+      const c = await ctx.newPage();
+      await c.goto(`${origin}?out=silent`, { waitUntil: 'networkidle' });
+      await featReady(c);
+      out.bare = await featHere(c);
+      await c.close();
+    } finally { await ctx.close(); }
+    return out;
+  },
+  judge: (r) => {
+    const f = FEATURED[0];
+    const bad = [];
+    for (const k of ['sent', 'opened', 'played', 'reloaded', 'bare']) { const why = featAddressBad(r[k], f, 0); if (why) bad.push(`${k}: ${why}`); }
+    if (!r.played.playing) bad.push('the opened link did not start on a press');
+    return { ok: !bad.length, why: bad[0], note: `sent ${r.sent.url}; another browser opened it on "${r.opened.label}", played on "${r.played.label}", a reload kept ${r.reloaded.url} and a bare reopen came back to ${r.bare.url} ("${r.bare.label}")` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'the featured playlist\'s hand-over at the seam moves the address to its next track, the playlist\'s in still last',
+  area: 'link',
+  deadline: 300000,
+  drive: async (page) => {
+    const own = await featFresh(page, {});
+    const p = own.page;
+    try {
+      return await p.evaluate(body(SEAM_PASS + ADDR_READ + `
+        const r = { cued: here() };
+        await started();
+        r.played = await playing();
+        r.pass = await pass();
+        r.after = here();
+        ctl.stop();
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const f = FEATURED[0];
+    const bad = [];
+    const one = featAddressBad(r.cued, f, 0), two = featAddressBad(r.after, f, 1 % f.links.length);
+    if (one) bad.push(`cued: ${one}`);
+    if (!r.played) bad.push('the first run did not start on a press');
+    if (!r.pass.arrived) bad.push('the seam never arrived');
+    if (two) bad.push(`past the seam: ${two}`);
+    return { ok: !bad.length, why: bad[0], note: `${r.cued.url} handed over at the seam to ${r.after.url} ("${r.after.label}")` };
+  },
+});
+
+SCENARIOS.push({
+  name: 'a featured playlist\'s row pressed puts its in on the address with the track; a dice cast and a typed seed take it off',
+  area: 'link',
+  deadline: 180000,
+  drive: async (page) => {
+    const own = await featFresh(page, {});
+    const p = own.page;
+    try {
+      return await p.evaluate(body(LIB + ADDR_READ + `
+        const f = ${JSON.stringify({ third: FEAT_PLACE(FEATURED[0].links[2 % FEATURED[0].links.length]), first: FEAT_PLACE(FEATURED[0].links[0]) })};
+        const r = {};
+        // the first run plays a featured playlist, so the panel opens on its page
+        await panel();
+        r.pressed = await pressAct('play', '[data-i="${2 % FEATURED[0].links.length}"]');
+        await waitFor(() => ctl.playing && !ctl.state.starting && String(ctl.readout().seed) === f.third.seed, 60000);
+        await sleep(2500);
+        r.row = here();
+        ctl.newSeed();
+        await waitFor(() => String(ctl.readout().seed) !== f.third.seed, 30000);
+        await sleep(2500);
+        r.dice = here();
+        await panel();
+        if (!document.querySelector('#library [data-act="play"]')) await pressAct('list', '[data-name^="n:\\uE000"]');
+        r.again = await pressAct('play', '[data-i="0"]');
+        await waitFor(() => String(ctl.readout().seed) === f.first.seed && ctl.state.themeIndex === f.first.theme, 60000);
+        await sleep(2500);
+        r.back = here();
+        ctl.setSeed(812);
+        await waitFor(() => String(ctl.readout().seed) === '812', 30000);
+        await sleep(2500);
+        r.typed = here();
+        ctl.stop();
+        return r;
+      `));
+    } finally { await own.close(); }
+  },
+  judge: (r) => {
+    const f = FEATURED[0], i = 2 % f.links.length;
+    const bad = [];
+    if (!r.pressed) bad.push('no row to press on the featured playlist\'s page');
+    const row = featAddressBad(r.row, f, i), back = featAddressBad(r.back, f, 0);
+    if (row) bad.push(`a row pressed: ${row}`);
+    for (const k of ['dice', 'typed']) {
+      const q = new URLSearchParams(r[k].url);
+      if (q.has('in')) bad.push(`after the ${k === 'dice' ? 'dice' : 'typed seed'} the address still names a playlist: ${r[k].url}`);
+      if (r[k].label) bad.push(`after the ${k === 'dice' ? 'dice' : 'typed seed'} the ring's line still says "${r[k].label}"`);
+    }
+    if (r.typed.seed !== '812') bad.push(`the typed seed plays ${r.typed.seed}`);
+    if (back) bad.push(`a row pressed again: ${back}`);
+    return { ok: !bad.length, why: bad[0], note: `row ${i + 1} pressed: ${r.row.url}; the dice: ${r.dice.url}; row 1 again: ${r.back.url}; seed 812 typed: ${r.typed.url}` };
   },
 });
 

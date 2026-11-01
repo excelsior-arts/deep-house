@@ -1,0 +1,18 @@
+{
+ "schema": 1,
+ "kind": "arrangement-stab-shape",
+ "round": "front-stabs",
+ "revision": 1,
+ "note": "The chord stab's shape in front (his verdicts 10-31: the chord on beat 1 and beat 2 \"sounds horrible\", \"this motif or technique keeps revealing itself in house, and it almost always borderlining unpleasant\"; of the sketches, the stab removed \"sounds good\", the voicing walking \"fine\"; Ambient - Deep Field \"was great and still is, gotta preserve it\"). The stab lane keeps the first hits of its mined mask under the density's cap (`maxStabs`), so a mask written for a whole bar plays only its front: at the minimal density beat 1 and beat 2, then an empty bar, the same shape bar after bar. From `leastBpm` up: where the cap cuts the bar's hits and every hit it keeps falls before `frontSteps` (the bar's first half), the stab does not play that bar where the bed holds it, and the pad, the bass and the drums carry it; where no bed holds the bar (its section rolled the keys alone) the cap keeps the mask's hits spread over the bar instead of its first ones, so the harmony is never left empty; where the stab plays, its chord walks bar to bar (`inversions`: how many of the chord's lowest voices go up an octave, by the bar's place in its phrase, so the top moves through the chord) and every hit after the bar's first is struck at `laterVel` of itself. Under `leastBpm` the stab is as it was (the slow side, the ambients). Every number is a starting point for listening.",
+ "rows": [
+  {
+   "id": "ring",
+   "name": "the chord stab in front",
+   "units": { "says": "what each knob counts", "leastBpm": "bpm", "frontSteps": "sixteenths", "inversions": "voices", "laterVel": "ratio" },
+   "leastBpm": 70,
+   "frontSteps": 8,
+   "inversions": [0, 1, 2, 1],
+   "laterVel": 0.75
+  }
+ ]
+}
