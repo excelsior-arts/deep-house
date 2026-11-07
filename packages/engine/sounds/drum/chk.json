@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "chk",
+  "revision": 1,
+  "topology": "snare",
+  "dice": 181.3,
+  "parameters": {
+    "shellHz": 3600,
+    "shellFifth": 1.33,
+    "shellLevel": 0.3,
+    "shellDecay": 0.018,
+    "drop": 1.02,
+    "dropTime": 0.004,
+    "wireHp": 2600,
+    "wireHz": 4000,
+    "wireQ": 1.4,
+    "wireLevel": 0.55,
+    "crackHz": 4300,
+    "crackQ": 2.5,
+    "crackDecay": 0.005,
+    "crackLevel": 0.6,
+    "lidHz": 9500,
+    "t10": 0.009,
+    "seconds": 0.2,
+    "variantCents": 20,
+    "attack": 0.0012,
+    "trim": 1.0,
+    "variants": 3,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.12,
+    "panSpread": 0.04,
+    "velBright": 0.2,
+    "velDecay": 0.2,
+    "pan": 0,
+    "room": 0.06
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "chk": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 4000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "snare.ts",
+    "note": "A 'chk' for a lighter backbeat (top-voices, T14): the snare's builder with no box in it, noise band-passed at 4 kHz with its bottom off at 2.6 kHz, a crack at 4.3 kHz and the shell turned into a 3.6 kHz ping about 10 dB under the noise; 25-30 ms long. A sketch row: nothing draws it."
+  }
+}

@@ -21,7 +21,7 @@
 // A lid at 9.5 kHz on top, like the hats have, because nothing else in this
 // music is brighter than that.
 
-import { noiseBuffer, noiseSource, percEnv, route, panner, startTime} from '../dsp.ts';
+import { noiseBuffer, noiseSource, percEnv, route, panner, startTime } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
@@ -81,12 +81,20 @@ function clap(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number,
   const spread = Math.min(0.012, t20 * 0.33);
   const offsets = [0, spread * 0.45, spread];
   let end = time;
+  // **Two hands, not a point** (round stereo-room, the audit's 7): the first hand where the clap stands, the second
+  // and the third fanned to either side of it by `space.clapPan`'s half, a few milliseconds apart: the clap is as
+  // wide as a pair of hands and sums in its place. (`clapPan` was a number nothing read.)
+  const fan = settings.space.clapPan / 2;
   offsets.forEach((off: number, i: number) => {
     const peak = 0.85 - i * 0.12;
     const src = noiseSource(ctx, time + off, t20 * 5);
     const g = ctx.createGain();
     end = Math.max(end, percEnv(g, time + off, peak, C.attack, decayForT20(peak, t20)));
-    src.connect(g);
+    if (fan && i > 0) {
+      const hand = panner(ctx, i === 1 ? -fan : fan);
+      src.connect(hand);
+      hand.connect(g);
+    } else src.connect(g);
     g.connect(i === 0 ? band : band2);
   });
 
@@ -137,7 +145,7 @@ function clap(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number,
 
   const pan = panner(ctx, p.pan ?? 0.06);
   sum.connect(pan);
-  route(ctx, pan, out, { dry: p.dry ?? 1, room: p.room ?? settings.sends.clapReverb,
+  route(ctx, pan, out, { dry: p.dry ?? 1, room: Math.max(p.room ?? settings.sends.clapReverb, settings.space.kitRoom ?? 0),
     ...(p.background !== undefined ? { background: p.background } : {}),
     ...(p.reverb !== undefined ? { reverb: p.reverb } : {}),
     ...(p.delay !== undefined ? { delay: p.delay } : {}) });

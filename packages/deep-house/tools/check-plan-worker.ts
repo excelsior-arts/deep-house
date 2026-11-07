@@ -21,6 +21,7 @@
 // before it would differ. The browser's own worker is the same code, and
 // `tools/plan-perf.ts --identity` asks it the same of a page.
 
+import { sweep } from './sweep.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Worker } from 'node:worker_threads';
@@ -114,7 +115,8 @@ function bytes(v: unknown): string {
 const SPELLS = [null, { ember: 0.9, root: 0.2 }, { tide: 0.1, veil: 0.8, spark: 0.7 }];
 
 test('a plan the worker makes is the plan this thread makes, byte for byte, with its program and its seasoning', async () => {
-  const all = requests();
+  // (every request at night, every third at the merge gate: `tools/sweep.ts`)
+  const all = sweep(requests());
   const worker = startWorker();
   try {
     // the worker is asked in the reverse order, while this thread plans in the grid's

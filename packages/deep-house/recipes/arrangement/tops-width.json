@@ -1,0 +1,33 @@
+{
+ "schema": 1,
+ "kind": "arrangement-tops-width",
+ "round": "tops-bus-2",
+ "revision": 1,
+ "note": "The top's width and colour (his picks on the top end's table, 11-02: T22, T24, T32). Three blocks, each its own switch, each by rule: the hat in the middle and the rest wider the higher it sits (T22), the top's width stepping with the form (T24), and the hats' air drawn per track (T32). None raises the top's level over a track: the standing word on the hats is 'too pronounced'. No width here comes from anti-phase: a hit is widened only by where it is panned, and the bus's side is shelved down under 4.5 kHz and up only above 9 kHz, by less than the hats carry in phase (they reach the bus at a correlation near 0.8). Every number is a starting point for listening.",
+ "centre": {
+  "says": "T22, width by height. The offbeat lane's hits (the closed and open hats, the ride) stand in the middle: their pan draw scaled to `hatPan` of itself and their room send at `roomMul` of its own, so the hat is a point and reads at a lower level. The sixteenth lane's noise voices (`voices`) take their pan draw at `sixteenthPan` of itself (Tide nought to one), so the hiss between the hats sits around the hat and never on it. The tops bus's side: shelved down by `low` dB under 4.5 kHz (Tide nought to one; the hat's body a point, nothing under it wider) and up by `high` dB over 9 kHz (the air wide), so the higher a part sits the wider it is. The hats reach the bus at a correlation near 0.8, side about 9 dB under mid: the shelf keeps the air in phase. The shelf adds the side's power over 9 kHz, so the hats come down `trimPerDb` dB for each dB of it (measured: 0.2-0.3 dB of 6-16 kHz on the tracks with the least trim elsewhere): wider, never louder. A hand drum keeps its own seat",
+  "hatPan": 0.15,
+  "roomMul": 0.5,
+  "voices": ["shaker", "shakerSoft", "cabasa", "tambourine"],
+  "sixteenthPan": [1.8, 2.6],
+  "low": [-6, -3],
+  "high": [3, 4.5],
+  "trimPerDb": 0.12
+ },
+ "form": {
+  "says": "T24, the top's stereo moves with the form, at constant power. Each section kind opens or draws in the tops bus's side by `open` (a multiple; one is T22's own), as `dbPerOctave` dB of side for each doubling, the mid made up for the power with the side taken as `sideShare` of the mid's (the hats' own, side 9 dB under mid): a kind not named is one. A main or a drop longer than `line` bars takes its value for its first `line` bars and comes home (one) on that line; the first main of a theme takes `firstMain` in place of `main`, so the groove opens up after the first break. Tide sets the range: every step's distance from one times `range[0]` at Tide nought to `range[1]` at one. In a breakdown the top that remains stands `breakPan` to one side, drawn once a theme, and comes home with the drop",
+  "open": { "intro": 0.7, "firstMain": 0.85, "main": 1.3, "drop": 1.3, "breakdown": 1.45, "build": 0.7, "outro": 0.8 },
+  "line": 16,
+  "range": [0.6, 1.2],
+  "dbPerOctave": 6,
+  "sideShare": 0.13,
+  "breakPan": 0.4
+ },
+ "character": {
+  "says": "T32, air as the track's character: the hats' and the shaker's lid (one corner for the three, the room's own) moved per theme by an octave share drawn once a theme, centred at `centre[0]` at Zephyr nought to `centre[1]` at one, `spread` either side. Where it opens the lid, the hats come down by `trimPerOct` dB an octave, so the track's top is brighter in colour and never in level; where it closes it, nothing is trimmed (dark is allowed; a dark track's motion is T12's and T24's). Clamped to `octaves`, its ceiling leaning with Zephyr from nought: a theme at Zephyr nought never opens its lid (Vibe - Night Side and Vibe - Drizzle stay dark; Drizzle's die darkens it a little)",
+  "centre": [0, 0.35],
+  "spread": 0.3,
+  "octaves": [-0.6, 0.6],
+  "trimPerOct": 2.5
+ }
+}

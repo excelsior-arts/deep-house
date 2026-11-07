@@ -15,6 +15,8 @@
 declare const __PRIVATE_TOOLS__: boolean;
 /** The page's version, from its package.json, for the exception tracker's release. */
 declare const __APP_VERSION__: string;
+/** Round stab-punch's sketch a private-tier build plays (`VITE_STAB_PUNCH`, src/stab-punch.ts); null in every other build. */
+declare const __STAB_PUNCH__: string | null;
 
 interface ImportMeta {
   /** Vite's build facts the exception tracker reads: a production build, and its mode. */

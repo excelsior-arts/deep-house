@@ -129,6 +129,8 @@ export interface HookAsk {
   read: TechniqueRead;
   /** the theme's scale (intervals): a loop with a diminished triad in it is never drawn */
   scale: readonly number[];
+  /** the trance corner's draw called the riff (`GenerateOptions.hookForced`): the zone's share is taken as whole */
+  force?: boolean;
 }
 
 /**
@@ -139,7 +141,7 @@ export interface HookAsk {
  * the pedal by Loom and Tide, about the zone's tile. Its needs (the row's `needs`) are the caller's to meet (`needsMet`).
  */
 export function planHook(a: HookAsk): HookPlan | null {
-  const drawn = drawZone(a.read, a.seed, 'hook');
+  const drawn = drawZone(a.read, a.seed, 'hook') ?? (a.force ? { entry: a.read.entry } : null);
   if (!drawn) return null;
   const E = drawn.entry;
   const row = hookRowOf(hookOf(E)?.row);

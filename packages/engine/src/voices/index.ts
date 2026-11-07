@@ -94,6 +94,9 @@ import triLeadRow from '../../sounds/keyboard/triLead.json' with { type: 'json' 
 import vinylBedRow from '../../sounds/noise/vinylBed.json' with { type: 'json' };
 import grainPadRow from '../../sounds/ensemble/grainPad.json' with { type: 'json' };
 import sweepUpRow from '../../sounds/effect/sweepUp.json' with { type: 'json' };
+import airTopRow from '../../sounds/noise/airTop.json' with { type: 'json' };
+import airRiseRow from '../../sounds/noise/airRise.json' with { type: 'json' };
+import airArcRow from '../../sounds/noise/airArc.json' with { type: 'json' };
 import hatClosedRow from '../../sounds/noise/hatClosed.json' with { type: 'json' };
 import hatOpenRow from '../../sounds/noise/hatOpen.json' with { type: 'json' };
 import shakerRow from '../../sounds/noise/shaker.json' with { type: 'json' };
@@ -165,6 +168,30 @@ import tanpuraRow from '../../sounds/keyboard/tanpura.json' with { type: 'json' 
 import chantOmRow from '../../sounds/vocal/chantOm.json' with { type: 'json' };
 // trance-1 (10-28): the struck, gritty supersaw the gate and the riff play.
 import supersawGritRow from '../../sounds/keyboard/supersawGrit.json' with { type: 'json' };
+import supersawSmoothRow from '../../sounds/keyboard/supersawSmooth.json' with { type: 'json' };
+import neuroStabRow from '../../sounds/keyboard/neuroStab.json' with { type: 'json' };
+import formantCallRow from '../../sounds/keyboard/formantCall.json' with { type: 'json' };
+import crushPluckRow from '../../sounds/keyboard/crushPluck.json' with { type: 'json' };
+import bellDarkRow from '../../sounds/keyboard/bellDark.json' with { type: 'json' };
+import marimbaGritRow from '../../sounds/keyboard/marimbaGrit.json' with { type: 'json' };
+import sawStabDarkRow from '../../sounds/keyboard/sawStabDark.json' with { type: 'json' };
+// top-voices (11-02): quiet voices for the top, sketch rows named by no lane and no part (`plays: null`): a chk, a snap, a
+// splash and its long and thrown kin, a puff, a far crash and a soft wash, a clave, a light jingle, a tuned tick, a glint,
+// a lone tick and a far ring. The round that wires them names them in a candidate list.
+import chkRow from '../../sounds/drum/chk.json' with { type: 'json' };
+import snapRow from '../../sounds/drum/snap.json' with { type: 'json' };
+import splashRow from '../../sounds/noise/splash.json' with { type: 'json' };
+import splashLongRow from '../../sounds/noise/splashLong.json' with { type: 'json' };
+import shakeThrowRow from '../../sounds/noise/shakeThrow.json' with { type: 'json' };
+import puffRow from '../../sounds/noise/puff.json' with { type: 'json' };
+import crashFarRow from '../../sounds/noise/crashFar.json' with { type: 'json' };
+import washSoftRow from '../../sounds/noise/washSoft.json' with { type: 'json' };
+import claveRow from '../../sounds/drum/clave.json' with { type: 'json' };
+import jingleLightRow from '../../sounds/noise/jingleLight.json' with { type: 'json' };
+import tickTunedRow from '../../sounds/drum/tickTuned.json' with { type: 'json' };
+import glintRow from '../../sounds/drum/glint.json' with { type: 'json' };
+import tickLoneRow from '../../sounds/drum/tickLone.json' with { type: 'json' };
+import ringHighRow from '../../sounds/drum/ringHigh.json' with { type: 'json' };
 import { holdRim } from './rim-bowl.ts';
 
 export { FAMILIES, ROLES, BUSES, FIELDS, VOICE_COST_BANDS, VOICE_COST_UNITS, LAZY_RETURNS } from './descriptor.ts';
@@ -173,6 +200,8 @@ export { CONTROL_UNITS, SEND_CONTROL, controlFaults, noteControl, withControls }
 export { asSound, soundDescriptor, soundFaults, soundLine, patchOf, rowBase, admittedOf } from './sound.ts';
 export type { SoundRow, SoundDescriptor, Topology } from './sound.ts';
 export { TOPOLOGIES } from './topologies.ts';
+// a hat's ring as energy, for the plan's read of the kit's hats against the mix (round hat-ceiling, `top-lanes.ts`)
+export { envelopeEnergy, tailFor } from './hat-grain.ts';
 export { malletLives } from './mallets.ts';
 import { malletLives } from './mallets.ts';
 import { fmBellLives } from './fm-bell.ts';
@@ -378,6 +407,11 @@ export const REGISTRY: Descriptor[] = [
   sound(vinylBedRow),
   sound(grainPadRow),
   sound(sweepUpRow),
+  // round air-voices (11-02), wired in top-voices-2: the air above the hats (the bed, the held hiss, the arcs), played by
+  // the top's voices (`src/top-voices.ts`) and by no list
+  sound(airTopRow),
+  sound(airRiseRow),
+  sound(airArcRow),
   sound(wavePadRow),
   sound(wordlessVocalRow),
   // ...and round KV1's, sounds the catalogue had none of — a bass that rolls
@@ -477,6 +511,31 @@ export const REGISTRY: Descriptor[] = [
   sound(chantOmRow),
   // trance-1 (10-28): the struck, gritty supersaw, named by no lane (`plays: null`): the hook table plays it (`src/hook.ts`)
   sound(supersawGritRow),
+  // trance-drawn (11-04): the smooth supersaw, named by no lane (`plays: null`): the trance corner's peak voice (`src/trance-drawn.ts`)
+  sound(supersawSmoothRow),
+  // top-voices (11-02): the sketch rows, named by no lane (`plays: null`) and no part
+  sound(chkRow),
+  sound(snapRow),
+  sound(splashRow),
+  sound(splashLongRow),
+  sound(shakeThrowRow),
+  sound(puffRow),
+  sound(crashFarRow),
+  sound(washSoftRow),
+  sound(claveRow),
+  sound(jingleLightRow),
+  sound(tickTunedRow),
+  sound(glintRow),
+  sound(tickLoneRow),
+  sound(ringHighRow),
+  // dark-fronts (11-03): the front voices sketched for the dark, bass-heavy places, named by no lane (`plays: null`) and
+  // no part; held at nought by name (`AWAITING`) and played only by the private tier's sketch (`front=`)
+  sound(neuroStabRow),
+  sound(formantCallRow),
+  sound(crushPluckRow),
+  sound(bellDarkRow),
+  sound(marimbaGritRow),
+  sound(sawStabDarkRow),
 ];
 
 /**
@@ -719,6 +778,18 @@ export function edgeReads(voice: string, p?: NoteParams | null, settings?: Setti
   const clean = settings?.cleanKeys;
   if (!clean || !clean.length) return true;
   return !rowsThrough(voice, p).some((row) => clean.includes(row.id));
+}
+
+/**
+ * **How much of a note the harmonic bus's edge reads** (round ep-noise): nought where `edgeReads` says it does not,
+ * else the smallest share a row the note plays through declares (`descriptor.edgeShare`), else one. A share under one
+ * takes the door with an edge of its own (`cleanBus` in master.ts).
+ */
+export function edgeShare(voice: string, p?: NoteParams | null, settings?: Settings | null): number {
+  if (!edgeReads(voice, p, settings)) return 0;
+  let s = 1;
+  for (const row of rowsThrough(voice, p)) { const v = row.descriptor.edgeShare; if (typeof v === 'number' && v >= 0 && v < s) s = v; }
+  return s;
 }
 
 /**

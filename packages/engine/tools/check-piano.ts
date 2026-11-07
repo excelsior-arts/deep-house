@@ -6,17 +6,19 @@ import { BY_NAME } from '../src/voices/index.ts';
 
 // the piano's own controls, as its row declares them (round SOUNDS-R3)
 const C = BY_NAME.piano.controls!;
+// (round piano-pool) every room plays a string: the instruments table's block with the row's own, as `withString` hands it
+const ROOM = Object.freeze({ ...INSTRUMENTS.piano, string: (BY_NAME.piano.row!.parameters as { string: object }).string }) as unknown as Parameters<typeof pianoNoteSettings>[1];
 
-test('an omitted piano character keeps the legacy settings and cache identity', () => {
-  const base = INSTRUMENTS.piano;
+test('an omitted piano character keeps the room settings and cache identity', () => {
+  const base = ROOM;
   assert.equal(pianoNoteSettings({midi:60,vel:.7},base,C),base);
   const key = pianoStringKey(60,.7,2,base);
-  assert.equal(key,`${60}:${.7}:${2}:${base.unisonCents}:${base.unisonLevel}:${base.attack}:${base.stretchCents}:${base.partialDecay}:${base.partialLevel}`);
+  assert.equal(key,`${60}:${.7}:${2}:${base.unisonCents}:${base.unisonLevel}:${base.attack}:${base.partialDecay}:${base.partialLevel}:string:${JSON.stringify(base.string)}`);
   assert.equal(pianoStringKey(60,.7,2,pianoNoteSettings({harmonicBody:0},base,C)),key);
 });
 
 test('piano characters isolate cached string bodies without mutating shared settings', () => {
-  const base=Object.freeze({...INSTRUMENTS.piano});
+  const base=Object.freeze({...ROOM});
   const first=pianoNoteSettings({harmonicBody:.9,partialDecay:.3,unisonCents:2.2,sustainLevel:.58},base,C);
   const second=pianoNoteSettings({sustainLevel:.6,hammerLevel:.1},base,C);
   assert.notEqual(pianoStringKey(60,.7,2,first),pianoStringKey(60,.7,2,base));

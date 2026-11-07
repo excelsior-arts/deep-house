@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "sawStabDark",
+  "revision": 2,
+  "topology": "supersaw-grit",
+  "parameters": {
+    "trim": 0.5,
+    "attack": 0.003,
+    "decay": 0.16,
+    "sustain": 0.25,
+    "release": 0.1,
+    "detune": 0.2,
+    "lightDetune": 1.3,
+    "centre": 1.2,
+    "spread": 0.55,
+    "cutoffHz": 650,
+    "envMult": 7,
+    "envTime": 0.1,
+    "resonanceDb": 6,
+    "hpHz": 300,
+    "topHz": 4200,
+    "drive": 3,
+    "crushBits": 6,
+    "crushMix": 0.3,
+    "noise": 0.15,
+    "lightOpen": 1.6,
+    "lightTop": 1.5,
+    "lightLevel": 1.2,
+    "lightDrive": 0.6,
+    "edgeDrive": 0.8,
+    "octaveMix": 0
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dark-fronts",
+    "module": "supersaw-grit.ts",
+    "note": "A dark detuned noise-saw stab: the struck supersaw's seven saws close together, a filter falling from seven times its 650 Hz corner in a tenth of a second, resonant, driven, crushed at six bits and breathing noise; its edge never an octave (octaveMix nought).",
+    "notes": {
+      "octaveMix": "Nought: the edge is the drive and the noise, never a saw an octave over.",
+      "timbres": "none declared: a sketch row, held at nought (AWAITING) until his pick admits it",
+      "hpHz": "300 Hz (round dark-fronts' fourth pass): clear of the low-mids the reese and the formant pad fill (150-600 Hz), so it stands in front by its band and not by its level."
+    }
+  }
+}

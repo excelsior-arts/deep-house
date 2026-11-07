@@ -37,6 +37,7 @@ import { admittedOf } from './sound.ts';
 import { dropLive, liveNote } from './live.ts';
 import type { ParamSetter } from './live.ts';
 import type { Settings } from '../settings.ts';
+import { cutAndHold } from '../graph-scope.ts';
 
 /**
  * The ramp a voice's own module wrote before handing over: where it started,
@@ -223,9 +224,8 @@ export function heldVoice(
       // go, so half of this list has no `disconnect` on its type. Asking anyway
       // is the point: what answers is disconnected and what does not throws
       // into the same catch everything else here throws into.
-      for (const node of [...nodes, ...sources]) {
-        try { (node as { disconnect: () => void }).disconnect(); } catch (e) { /* already gone */ }
-      }
+      // (cut, then held a while: round crash-resume, `graph-scope.ts`)
+      cutAndHold([...nodes, ...sources]);
     },
   };
   // the drone, kept by the row's paths until its release is silent: each path a move of its own controls

@@ -41,6 +41,7 @@
 // and never evicted.
 
 import { Offline } from '../dsp.ts';
+import { holdAWhile } from '../graph-scope.ts';
 
 /**
  * How many renders may run at once on one context, across every voice. The
@@ -174,7 +175,9 @@ export function offline(
     rendering.add(held);
     // The nodes go when the render has really settled, however long that is;
     // the permit and the count go at the deadline if it comes first.
-    done.then(() => {}, () => {}).finally(() => { rendering.delete(held); heldPeak = Math.max(heldPeak, held.length); held.length = 0; });
+    // (and two seconds past it, round crash-resume: WebKit tears the offline graph down as the render finishes,
+    // on the turn the promise settles, so the nodes outlive that turn by a wide margin, `graph-scope.ts`)
+    done.then(() => {}, () => {}).finally(() => { rendering.delete(held); heldPeak = Math.max(heldPeak, held.length); holdAWhile(held.splice(0)); });
     let timer: ReturnType<typeof setTimeout> | undefined;
     const late = new Promise<never>((_, no) => {
       if (typeof setTimeout === 'function')

@@ -129,7 +129,9 @@
 // plan becomes sound: the compiler is called by the scheduler and by the mix's
 // deck builder, never by `generate()` or by `planTheme()`.
 
+import { frontSends, frontVoices, keyboardSeats, keyboardTouch, spreadsByPitch, bodySends, homeOf } from './stereo-stage.ts';
 import Rng from './rng.ts';
+import { stereoLines, returnFormPoints } from './stereo-plan.ts';
 import { dbToGain } from '@deep-house/engine/dsp';
 import { BY_NAME, VOICE_BUS, VOICE_LEVEL } from '@deep-house/engine/voices';
 import type { Settings } from '@deep-house/engine/settings';
@@ -218,6 +220,26 @@ export interface PlanAutomation {
   partSpace?: { dry: CurvePoint[]; sends: Record<string, CurvePoint[]> };
   /** lines on the theme's shared returns (`settings.returns`), each by its path into one (`returns.<id>.…`) */
   returns?: Array<{ param: string; points: CurvePoint[] }>;
+  /** the stereo plan by section (round stereo-motion, `src/stereo-plan.ts`): the width stage's side gain and breathing depth, as multiples of the room's */
+  stereo?: { width: CurvePoint[]; depth: CurvePoint[] };
+  /**
+   * the drums' top lanes' bus, moved by the form (round tops-bus, `src/tops-bus.ts`): the layers that land on it, and
+   * its low-pass stage (a corner and an engagement, as a sweep stage's), its shelf in dB and its gate, each where a
+   * move writes one
+   */
+  tops?: TopsLines;
+}
+
+/** The tops bus's lines in a plan (round tops-bus): which layers ride it, and each stage's curve where one moves. */
+export interface TopsLines {
+  layers: string[];
+  lp: { cutoff: CurvePoint[]; wet: CurvePoint[] } | null;
+  shelf: CurvePoint[] | null;
+  gate: CurvePoint[] | null;
+  /** (round tops-bus-2) the width stage: T22's side shelves in decibels (`low` under 4.5 kHz, `high` over 9 kHz), T24's side and mid gains */
+  width?: { low: CurvePoint[]; high: CurvePoint[]; side: CurvePoint[] | null; mid: CurvePoint[] | null } | null;
+  /** the rules' moves with their verdicts (`src/tops-bus.ts`), for the readouts; no line reads them */
+  moves?: unknown[];
 }
 
 /** One step of the keyed floors (round EQ-6), read by the level key a voice plays at. */
@@ -1108,7 +1130,9 @@ export function stageParams(track: PlannedTheme, rows: StageRow[], style: Style 
     const colour = role === 'front' ? G.frontLp : 1 + (G.backLp - 1) * back;
 
     p.gain = (base.gain ?? 1) * dbToGain(levelDb);
-    p.lpMul = [colour * t0.lpMul, colour * t1.lpMul];
+    // (a plan's own tone on the note, round long-main's break sketches: a factor or a pair over the note; absent, one)
+    const tone = Array.isArray(base.toneMul) ? base.toneMul as number[] : typeof base.toneMul === 'number' ? [base.toneMul, base.toneMul] : [1, 1];
+    p.lpMul = [colour * t0.lpMul * tone[0], colour * t1.lpMul * tone[1]];
     p.hpMul = [t0.hpMul, t1.hpMul];
     if (t0.spreadMul !== 1 || t1.spreadMul !== 1) p.spreadMul = (t0.spreadMul + t1.spreadMul) / 2;
     if (t0.phaser) p.phaser = t0.phaser;
@@ -1989,6 +2013,9 @@ const gapGroup = (d: Descriptor | undefined): 'kick' | 'sub' | null =>
 // rather than at schedule time: the push is one gesture and not three knobs,
 // and its three destinations are three lines of numbers the moment the room is
 // known. `applyCurve` in master.ts is all that is left to do with them.
+/** Whether a plan's tops lines move anything: a layer on the bus and a stage with a line (round tops-bus). */
+const topsMoves = (T: TopsLines | undefined): boolean => !!T && T.layers.length > 0 && !!(T.lp || T.shelf || T.gate || T.width);
+
 function automationOf(track: PlannedTheme, settings: Settings): AutomationLine[] {
   const lines: AutomationLine[] = [];
   const a: PlanAutomation = track.automation || {};
@@ -2015,6 +2042,25 @@ function automationOf(track: PlannedTheme, settings: Settings): AutomationLine[]
     lines.push({ param: `sweep.${stage}.wet.gain`, curve: 'linear', points: pts(c.wet) });
     lines.push({ param: `sweep.${stage}.dry.gain`, curve: 'linear', points: pts(c.wet, (v) => 1 - v) });
   }
+  // The drums' top lanes' bus (round tops-bus, `src/tops-bus.ts`): its low-pass as a sweep stage is written (the dry
+  // the wet's complement), its shelf in dB and its gate. A stage with no move has no line; a theme with none of the
+  // three never builds the bus and its top lanes stay on the drums' (`compilePerformance`).
+  const T = a.tops;
+  if (T && topsMoves(T)) {
+    if (T.lp) {
+      lines.push({ param: 'tops.lp.cutoffHz', curve: 'exponential', points: pts(T.lp.cutoff) });
+      lines.push({ param: 'tops.lp.wet.gain', curve: 'linear', points: pts(T.lp.wet) });
+      lines.push({ param: 'tops.lp.dry.gain', curve: 'linear', points: pts(T.lp.wet, (v) => 1 - v) });
+    }
+    if (T.shelf) lines.push({ param: 'tops.shelf.gain', curve: 'linear', points: pts(T.shelf) });
+    if (T.gate) lines.push({ param: 'tops.gate.gain', curve: 'linear', points: pts(T.gate) });
+    if (T.width) {
+      lines.push({ param: 'tops.width.low.gain', curve: 'linear', points: pts(T.width.low) });
+      lines.push({ param: 'tops.width.high.gain', curve: 'linear', points: pts(T.width.high) });
+      if (T.width.side) lines.push({ param: 'tops.width.side.gain', curve: 'linear', points: pts(T.width.side) });
+      if (T.width.mid) lines.push({ param: 'tops.width.mid.gain', curve: 'linear', points: pts(T.width.mid) });
+    }
+  }
   // The presence bell's gain, in dB, section by section (round EQ-5): a line
   // only where the theme's bell moves, and a bell only where the settings
   // carry one, so a theme with neither is the program it was.
@@ -2024,6 +2070,16 @@ function automationOf(track: PlannedTheme, settings: Settings): AutomationLine[]
   if (a.partSpace && settings.partSpace) {
     if (a.partSpace.dry.length > 1) lines.push({ param: 'partSpace.levels.dry.gain', curve: 'linear', points: pts(a.partSpace.dry) });
     for (const [id, list] of Object.entries(a.partSpace.sends)) if (list.length > 1) lines.push({ param: `partSpace.levels.sends.${id}.gain`, curve: 'linear', points: pts(list) });
+  }
+  // The stereo plan by section (round stereo-motion): the form's factor on the width stage's side (`widthForm`, the
+  // plan's multiple itself, one at rest) and the breathing depth. The side is (base + LFO x depth) x form, so the depth
+  // is written over the form to breathe by the plan's own multiple of the room's.
+  // Every return's side reads the same line inverted (`returnForm`), so a tail stays as wide as its impulse.
+  if (a.stereo && a.stereo.width.length > 1) {
+    const { widthDepth, returnSide } = settings.space;
+    lines.push(...stereoLines(a.stereo, widthDepth));
+    if (returnSide !== undefined && returnSide !== 1)
+      lines.push({ param: 'returnForm.offset', curve: 'linear', points: returnFormPoints(a.stereo).map((p) => ({ t: p.t, value: +(p.value * returnSide).toFixed(5) })) });
   }
   // The theme's shared returns: a line into one the settings build, and none where they build none.
   for (const L of a.returns ?? []) if (settings.returns?.[L.param.split('.')[1]] && L.points.length > 1) lines.push({ param: L.param, curve: 'linear', points: pts(L.points) });
@@ -2088,10 +2144,27 @@ export function compilePerformance(
   const duck: AutomationPoint[] = [];
   const shape = duckShape(settings, plan.beat);
   const knobCopies: Record<string, Record<string, number>> = {};
+  // the sparse struck fronts' voices (round stereo-room), where the theme carries the plate
+  const fronts = (settings as { returns?: Record<string, unknown> }).returns?.front ? frontVoices(plan.events as Parameters<typeof frontVoices>[0]) : null;
+  // each keyboard note's seat, by its pitch about its part's middle (round voice-homes, `keyboardSeats`), at the room's
+  // spread; and each note of a voice with a body into it, where the theme carries one (`bodySends`)
+  const pianoRoom = (settings as { piano?: { spread?: number; ring?: number } }).piano;
+  const seats = keyboardSeats(plan.events as Parameters<typeof keyboardSeats>[0], pianoRoom?.spread ?? 0.5, spreadsByPitch);
+  // (round voice-homes 2) a keyboard part that plays as rhythm articulates (`keyboardTouch`), Ember leaning it
+  // (round voice-homes 3) a note's pedal by its own row: the room's piano where the row is voiced by it, the grand's own elsewhere
+  const ringOf = (voice: string) => { const row = BY_NAME[voice]?.row; const own = (row?.parameters as { ring?: number } | undefined)?.ring;
+    return row?.block === 'piano' || row?.id === 'piano' ? pianoRoom?.ring ?? own ?? 1.3 : own ?? 1.3; };
+  const touch = keyboardTouch(plan.events as Parameters<typeof keyboardTouch>[0], plan.barSeconds, ringOf,
+    (settings.space as { keysTouch?: number }).keysTouch ?? 1, spreadsByPitch);
+  const bodied = !!(settings as { returns?: Record<string, unknown> }).returns?.body;
+  // (round tops-bus) the top lanes ride their own bus where the plan moves it, and only there: a door into the drums'
+  const topsOn = topsMoves(plan.automation?.tops);
+  const topLayers = new Set(topsOn ? plan.automation!.tops!.layers : []);
   for (let i = 0; i < plan.events.length; i++) {
     const ev = plan.events[i];
     const d = BY_NAME[ev.voice];
-    const bus = VOICE_BUS[ev.voice] || 'melodic';
+    const home = VOICE_BUS[ev.voice] || 'melodic';
+    const bus = home === 'drums' && topLayers.has(ev.layer) ? 'tops' : home;
     const levelKey = VOICE_LEVEL[ev.voice];
     // The level table's say on the gain, made once. It used to be made inside
     // `fireEvent` and `fireDeckEvent`, in a call that also built audio nodes,
@@ -2120,9 +2193,15 @@ export function compilePerformance(
     // seasoning for that knob; no other note carries one, so every other note
     // is the note it was.
     const own = base?.knobs as Record<string, number> | undefined;
-    const p = knobs || own
+    // a sparse struck front's wash into the theme's plate (round stereo-room, `frontSends`), after the stage has coloured it
+    const p = bodySends(frontSends(knobs || own
       ? { ...base, gain: (base?.gain ?? 1) * level, knobs: noteKnobs(knobs, own) }
-      : { ...base, gain: (base?.gain ?? 1) * level };
+      : { ...base, gain: (base?.gain ?? 1) * level }, !!fronts?.has(ev.voice), (settings.space as { frontShare?: number }).frontShare ?? 1),
+      bodied ? homeOf(ev.voice)?.body : undefined);
+    const seat = seats.get(i);
+    if (seat) { p.seat = seat.seat; if (seat.lift !== 1) p.gain = +((p.gain ?? 1) * seat.lift).toFixed(6); }
+    const art = touch.get(i);
+    if (art) { p.vel = art.vel; p.held = art.held; }
     const lead = leadOf(ev);
     const onset = ev.t - lead;
     routing[ev.voice] = bus;

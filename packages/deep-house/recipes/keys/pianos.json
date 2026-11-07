@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "kind": "piano-pool",
+  "round": "piano-pool",
+  "note": "The piano pool (his word 11-01: \"a wider pool of pianos preferable more articulated by birds position and music rules\"): which grand voices a beat-led theme's piano. The house piano holds the middle; each other grand is drawn more the further the birds stand toward its own end, by the one lean about the house (`centre`). The drawn grand's tone (its envelope, its string, its lid, its hammer) voices the room's piano block; the room keeps its own mix and touch (`keep`): the drone's register under the piano, the dry share, the spread and the pedal, so what the piano plays and where it sits are the part's, and only the instrument changes. The birds pick the zone: where the house piano's chance is a half or more it plays; past that, the seed draws among the others by their chances (`src/piano-pool.ts`). `trimDb` holds each grand's strings to the house piano's strike, decibels by register: MEASURED note by note through the house room (MIDI 48-84, three velocities, four lives), then on the twelve featured piano parts' own notes, and less each grand's mean over those parts played whole and dry, so a part stands where it stood. Drawn on a stream of its own, so no other die moves.",
+  "voice": "piano",
+  "keep": ["hpHz", "dryLevel", "spread", "ring"],
+  "rows": [
+    {
+      "id": "house-pianos",
+      "says": "Round piano-pool 2 (his ear 11-01 on the dark upright in two featured tracks: \"darker piano is hiding in the groove bass ... our bass is fairly deep so muted and darker pianos sink especially when drones floating in the air\"; and \"previous was better due to way longer sustain which is suiting long synth drones\"): the dark upright and the muted upright are not drawn here. A short, dark string sinks under our deep groove bass and under a held drone: they keep almost nothing over 2 kHz (-36 and -53 dB on one phrase, the house piano -28) and their held chords fall 40 dB in 1.8 and 1.4 s where the house piano's take 4.6. Their low end was never the bass's to lean: a thin Root does not mean a thin-sounding groove bass. They keep their places in the liquid keys and the drumless rooms.",
+      "centre": { "ember": 0.394, "tide": 0.558, "zephyr": 0.377, "root": 0.717 },
+      "strength": 1,
+      "weights": { "piano": 1, "pianoClose": 0.05, "pianoFelt": 0.05, "pianoConcert": 0.05 },
+      "tide": { "pianoClose": -9, "pianoConcert": 8, "says": "close and dry: the grand heard from over its strings; wide and far: the concert grand at the back of the hall" },
+      "zephyr": { "pianoFelt": -6, "pianoConcert": -1, "says": "the brightness: the felt grand where the air is dark; where it is bright the house piano holds, the brightest grand of the pool (the bright piano is a register for plucked figures, the mellow grand darker than it)" },
+      "root": { "pianoConcert": 3, "says": "the low end: the long strings of the concert grand where the bass is deep" }
+    }
+  ],
+  "ring": {
+    "says": "Round piano-pool 2 (his ear 11-01: \"previous was better due to way longer sustain which is suiting long synth drones\"): a grand rings at least as long as the house piano where it has to ring alone. Where the piano's chords stand further apart than a grand rings (the median gap between its strikes inside a passage, `passageBars`) and a held bed holds across at least `bedShare` of those gaps, that grand is not drawn unless it rings as long as the house piano; the house piano and every grand ringing as long are drawn as before, the birds' middle read again among them. `s` is each grand's ring, MEASURED: a pedalled chord (the ringing chord's touch, played on the grand) held as the part holds it, through the house room, to its fall 40 dB under its strike, median over the notes (a plain held key, unpedalled: the house piano 3.7 s, the close grand 1.9, the felt grand 2.1, the concert grand 4.0; the same order).",
+    "s": { "piano": 4.56, "pianoClose": 3.69, "pianoFelt": 2.98, "pianoConcert": 6.28 },
+    "passageBars": 4,
+    "bedShare": 0.5
+  },
+  "trimDb": {
+    "pianoClose": [{ "midi": 48, "db": 1.7 }, { "midi": 55, "db": 1.9 }, { "midi": 60, "db": 1.7 }, { "midi": 64, "db": 1.3 }, { "midi": 67, "db": 2.1 }, { "midi": 72, "db": 1.4 }, { "midi": 76, "db": 0.2 }, { "midi": 79, "db": -0.1 }, { "midi": 84, "db": -0.7 }],
+    "pianoFelt": [{ "midi": 48, "db": 1.4 }, { "midi": 55, "db": 1.2 }, { "midi": 60, "db": 0.8 }, { "midi": 64, "db": 0.8 }, { "midi": 67, "db": 1.6 }, { "midi": 72, "db": 0.8 }, { "midi": 76, "db": 1.2 }, { "midi": 79, "db": 2.6 }, { "midi": 84, "db": 2.8 }],
+    "pianoConcert": [{ "midi": 48, "db": -2.8 }, { "midi": 55, "db": -1.1 }, { "midi": 60, "db": -3.3 }, { "midi": 64, "db": -0.8 }, { "midi": 67, "db": -0.6 }, { "midi": 72, "db": -1 }, { "midi": 76, "db": -2.8 }, { "midi": 79, "db": -2.9 }, { "midi": 84, "db": -2.4 }]
+  }
+}

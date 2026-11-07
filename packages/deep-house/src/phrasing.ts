@@ -373,6 +373,13 @@ export interface PhrasingInput {
   scene?: (bar: number) => SceneBar | null;
 }
 
+/**
+ * **A turn of the top, or the hats' own figure** (round top-form): a variation, or a top-form sub-section that turns the
+ * top rather than holding its bars (the rota, the growth, the clock, the eighth-bar answer, the second drop's thin hat,
+ * a staged entry). A phrase event may sit over it and wins its bars (a build into the line, a drop-out bar), and the
+ * hats' moves are not kept off it; only a breather holds its bars, as a switch-up does.
+ */
+export const turnOfTop = (s: SubSection): boolean => s.kind === 'variation' || (s.kind === 'top' && s.top !== 'breather');
 /** A row of a figure, as `playSubSections` plays it (a treatment's shape; written here, never in the library). */
 const figureRow = (id: string, name: string, applies: 'switch-up' | 'drop-out' | 'fill', figure: Recipe['figure']): Recipe =>
   ({ schema: 1, kind: 'recipe', id, revision: 1, name, scope: 'treatment', applies, birds: {}, figure, forbids: [], weight: 0 }) as unknown as Recipe;
@@ -434,8 +441,11 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
   const sectionAt = (bar: number) => sections.find((s) => bar >= s.startBar && bar < s.startBar + s.bars);
   // the bars the house's own small things already mark: a bar mark's bar, every bar of a switch-up (a variation, the
   // hats' own figure over a phrase's second half, is a part's figure and lets a phrase event sit over it)
+  // (and the top form's turns, round top-form: a player in or out, the hats' growth, the clock, the eighth-bar answer,
+  // the second drop's thin hat, a staged entry are the top's figure and let a phrase event sit over them, which wins
+  // its bar; a breather holds its bars)
   const marked = new Set<number>([...I.keep]);
-  for (const s of I.drawn) if (s.kind !== 'variation') for (let b = s.startBar; b < s.startBar + s.bars; b++) marked.add(b);
+  for (const s of I.drawn) if (!turnOfTop(s)) for (let b = s.startBar; b < s.startBar + s.bars; b++) marked.add(b);
   // (the house's own alone: a gesture's lead-in bar and a landing's line never sit on them, U2d)
   const houseMarked: ReadonlySet<number> = new Set(marked);
   const free = (a: number, z: number) => { for (let b = a; b < z; b++) if (marked.has(b)) return false; return true; };
@@ -960,6 +970,10 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       return true;
   };
 
+  // (the top form's breather is the main's own breath, round top-end-1: it counts as one of its sub-segments, and no
+  // span is laid in a neighbouring phrase; on Vibe - Warm Front the house's breakdown-lite it displaced came back as a
+  // filtered phrase four bars after it, two kick-and-top turns in twelve bars)
+  const breathersIn = (a: number, z: number) => I.drawn.filter((x) => x.kind === 'top' && x.top === 'breather' && x.startBar >= a && x.startBar < z);
   for (const s of sections) {
     if (!S.sections.includes(s.kind) || !(s.bars > longAt) || span < 1) continue;
     const end = s.startBar + s.bars, cool = coolFrom.get(s.index) ?? end;
@@ -969,7 +983,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     const r = new Rng(`${I.seed}::phrasing:${s.index}`);
     const order = candidates.map((p) => ({ p, k: r.next() })).sort((a, b) => a.k - b.k).map((x) => x.p);
     const want = Math.max(1, Math.round((s.bars * bs / S.everyS) * rate));
-    const chosen: number[] = [];
+    const chosen: number[] = breathersIn(s.startBar, end).map((x) => x.startBar + x.bars - L);
     for (const p of order) {
       if (chosen.length >= want) break;
       if (chosen.some((f) => Math.abs(f - p.from) < (1 + S.spacingPhrases) * L)) continue;
@@ -1058,7 +1072,8 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
       const kindsAt = (p: Phrase): SegmentKind[] => {
         if (inSection().some((g) => g.to === p.to)) return [];
         const a = admitsAt(p, fills, drops);
-        const spanNear = inSection().some((g) => SPANS.includes(g.kind) && Math.abs(g.to - p.to) < (1 + S.spacingPhrases) * L);
+        const spanNear = inSection().some((g) => SPANS.includes(g.kind) && Math.abs(g.to - p.to) < (1 + S.spacingPhrases) * L)
+          || breathersIn(s.startBar, end).some((x) => Math.abs(x.startBar + x.bars - p.to) < (1 + S.spacingPhrases) * L);
         // (never a drop-out bar whose stop would fall over a part's drums, a pin's or a drawn recipe's: a part is exact
         // through this pass; a track row's own drums stop on the last beat as U2's do)
         const k0 = I.kit(p.to - 1), spare = I.spare ?? new Set<string>();
@@ -1244,7 +1259,7 @@ export function planPhrasing(I: PhrasingInput): { phrasing: Phrasing; subs: SubS
     // where the caller cannot say, it sounds, and its bars are its own)
     const silentGlue = (x: SubSection) => { const f = x.row?.figure, g = f?.glue; return !!g && !!I.glueWould && !Object.keys(f?.lanes ?? {}).length && !f?.layers && !f?.stroke
       && (!I.glueWould(g.slot, x.startBar + x.bars, g.bars ?? 1) || glueNear(x.startBar + x.bars, g.bars ?? 1)); };
-    for (const x of I.drawn) if (x.kind !== 'variation' && (x.kind !== 'switch-up' || touchesHats(x.row)) && !silentGlue(x)) for (let b = x.startBar; b < x.startBar + x.bars; b++) busyHats.add(b);
+    for (const x of I.drawn) if (!turnOfTop(x) && (x.kind !== 'switch-up' || touchesHats(x.row)) && !silentGlue(x)) for (let b = x.startBar; b < x.startBar + x.bars; b++) busyHats.add(b);
     const SPAN_ROWS = new Set<Recipe>([BREAKDOWN_LITE, HALF_TIME, TOPS_THIN]);
     for (const x of subs) if (!SPAN_ROWS.has(x.row) && !x.row.id.startsWith('phrasing/bass-out')) for (let b = x.startBar; b < x.startBar + x.bars; b++) busyHats.add(b);
     // (a gesture's whole window, a sweep's two bars among it, is the gesture's: the hats follow it)

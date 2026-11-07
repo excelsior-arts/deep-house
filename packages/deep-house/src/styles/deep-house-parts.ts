@@ -300,9 +300,11 @@ const families: PartFamily[] = [
     { id: 'late-fall', weight: 1, request: { struckFigures: [{ ...ornament, motif: { ...ornament.motif, contour: 'fall' } }] } },
     { id: 'long-answer', weight: 1, when: { controls: { form: { min: .7 } } }, request: { struckFigures: [{ ...ornament, entry: { beats: [24.5, 25.5] }, spacing: { bars: [8, 8] }, motif: { ...ornament.motif, returns: { bars: [8, 8] } } }] } },
   ] },
+  // the figure's room by Tide (round tide-space): both sides ask the one slope from the intimate room to the spacious
+  // (`tidal`), where near and open were a 17 dB step at 0.5; the two windows stay, as the ring's words read them
   { id: 'figure-space', chance: 1, requires: ['figure'], variants: [
-    { id: 'near', weight: 1, when: { controls: { space: { max: .5 } } }, request: { ambience: { figure: 'intimate' } } },
-    { id: 'open', weight: 1, when: { controls: { space: { min: .5 } } }, request: { ambience: { figure: 'spacious' } } },
+    { id: 'near', weight: 1, when: { controls: { space: { max: .5 } } }, request: { ambience: { figure: 'tidal' } } },
+    { id: 'open', weight: 1, when: { controls: { space: { min: .5 } } }, request: { ambience: { figure: 'tidal' } } },
   ] },
   // The quick struck phrases need a rhythmic partner under a pulled broken
   // kit. Preserve the offbeat anchors; two eighth pickups add motion while

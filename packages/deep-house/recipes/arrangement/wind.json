@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "kind": "arrangement-wind",
+  "round": "wind",
+  "revision": 1,
+  "note": "The rising wind lands on its line (round wind, 11-03; his word: \"this wind, getting it in different tracks … it kinda never lands well, it's either too loud, or too fast etc. I like having these effects but i wonder how we can tune it\"). The wind is a noise band whose lid and floor climb (`sounds/effect/sweepUp.json`). The glue's four slots may each draw it, and three of them (the impact, the swell, the fall) laid it on the downbeat, so it rose for three seconds, or two bars, or two beats after the line it marked, into a drop that had already hit or a break that had already fallen away; where two slots drew it, two played at once. Now, whichever slot drew it, the wind rises into its line and stops on the downbeat: as the riser where the riser's rule lays one (its length the rule's, by tempo), as a breath arriving on the line anywhere else; one wind a line, its climb paced by the beat, and its peak held under a ceiling against the mix (src/wind.ts, set-plan.ts). Every number is a starting point for listening.",
+  "units": {
+    "breath.bars": "bars",
+    "breath.mostSeconds": "seconds",
+    "pace.octPerBeat": "octaves of the lid a beat, at most",
+    "pace.mostOct": "octaves",
+    "level.ceilingDb": "dB against the loudness the theme aims at (its peak, the last beat of the rise, as the plan reads it)",
+    "level.peakDb": "dB: the wind's peak loudness over its level-table word, its gain and the theme's trim (measured on renders)"
+  },
+  "voices": [
+    "sweepUp"
+  ],
+  "breath": {
+    "says": "Where the riser's rule laid no riser (the line of an impact, a swell, a fall, the drums' answer), the wind arrives on the line as the glue's swell does: a bar, never more than `mostSeconds` (the swell's own scale). Where the rule laid a riser and the wind is its voice, the wind is that riser, its length the rule's by tempo (4 bars at 110 BPM and over, 2 at 90-110, 1 under).",
+    "bars": 1,
+    "mostSeconds": 2
+  },
+  "pace": {
+    "says": "The lid ends where the row's does (11 kHz) and climbs at most `octPerBeat` a beat, over at most `mostOct` octaves: a one-bar breath is the top two octaves of the whole climb, a two-bar riser the whole of it, a four-bar riser the whole of it at half the pace. Today it climbed four octaves in three seconds, or in two beats.",
+    "octPerBeat": 0.5,
+    "mostOct": 4
+  },
+  "level": {
+    "says": "The wind's peak no louder than `ceilingDb` against the theme's aim; a wind under it stays where its slot put it (the riser's three steps by what the return gains). One wind a line: where two slots drew it on one line, one plays, the riser's shape if either is one, at the louder level.",
+    "ceilingDb": -18,
+    "peakDb": -2
+  }
+}

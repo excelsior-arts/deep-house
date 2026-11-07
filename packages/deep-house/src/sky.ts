@@ -12,6 +12,7 @@ import { linkHere } from './link.ts';
 import type { Link } from './link.ts';
 import { recipesFor } from './mix.ts';
 import { planTheme, themeTempo } from './planning.ts';
+import { planOffThread } from './plan-off-thread.ts';
 import { clockOf, minutesOf } from './length.ts';
 import { ringColour } from './ring-colour.ts';
 import { BIRDS, HOUSE, asSpell, derive, placeDistanceOf } from './spell.ts';
@@ -83,6 +84,37 @@ export function timeOf(link: string): ThemeTime | null {
   return out;
 }
 
+/**
+ * **The same length, planned in the planner's worker** (smooth-start, 11-03; the "later" the playlists' times were
+ * waiting for): the very `planTheme` call `timeOf` makes, so the same number, as a promise, kept as `timeOf` keeps it.
+ * A row's time was a whole plan on the page's thread in an idle slot, 20 to 100 ms each while the ring turned beside
+ * the open panel. Known already, it is handed back at once; where the worker cannot take it, `null`, and the caller
+ * reads `timeOf` as before.
+ */
+export function timeLater(link: string): Promise<ThemeTime | null> | null {
+  if (TIMES.has(link)) return Promise.resolve(TIMES.get(link)!);
+  const L = readOf(link);
+  if (!L?.seed) return Promise.resolve(timeOf(link));
+  let offer: Promise<{ bars: number; bpm: number }> | null = null;
+  try {
+    const search = `?${normaliseLink(link).link}`;
+    const cast = recipesFor({ masterSeed: L.seed, strategy: L.strategy, search });
+    offer = planOffThread(L.seed, L.theme, { strategy: L.strategy, search, spell: cast.spell, recipe: cast.track }, { priority: 'ahead' });
+  } catch (e) { return Promise.resolve(timeOf(link)); }
+  if (!offer) return null;
+  return offer.then((t) => {
+    if (TIMES.has(link)) return TIMES.get(link)!;
+    const minutes = minutesOf(t.bars, t.bpm);
+    const out = { minutes, clock: clockOf(minutes), bars: t.bars, bpm: t.bpm };
+    TIMES.set(link, out);
+    return out;
+  }, () => {
+    // a plan the worker could not make throws here too, and `timeOf` reads that as no time
+    if (!TIMES.has(link)) TIMES.set(link, null);
+    return TIMES.get(link)!;
+  });
+}
+
 const TEMPI = new Map<string, { bpm: number; free: boolean } | null>();
 /**
  * **The theme's tempo**, from the dice before it is composed (round pl-clock, a playlist's clock): the same reading
@@ -148,8 +180,8 @@ export const skyOfLink = (link: string): SkyPoint => skyOf(spellOf(link));
  * spell is the sub-genre's own measurement rather than its rows' region or its family's. The house's own star is
  * `home`. `lit`: a lit, named star in the sky, one to press: a sub-genre with its own measured spell, or a family's
  * tuned preset where none of its sub-genres is lit (or, its own spell measured, where the grid draws it as a tile of its
- * own: Trance beside Hard Trance and Uplifting Trance) and no lit star stands at that spell already (Techno, Trance,
- * Breaks). A sub-genre tuned only by its rows' region shares a lit star's place or its family's, so it is drawn as
+ * own: Trance, whose dark and bright flavours are two of its dots, round trance-drawn's third pass) and no lit star
+ * stands at that spell already (Techno, Trance, Breaks). A sub-genre tuned only by its rows' region shares a lit star's place or its family's, so it is drawn as
  * an open ring. No tempo window: the genre table names none.
  */
 export interface SkyPlace {
@@ -213,7 +245,7 @@ function placeReads(spell: Partial<Spell>): readonly string[] {
 const placeReading = (spell: Partial<Spell>): string => placeReads(spell).join('|');
 
 /** The lit stars' own readings, read once on the first ask (the dots below ask before the module is done). */
-let STAR_READS: { star: SkyPlace; reads: readonly string[] }[] | null = null;
+let STAR_READS: { star: SkyPlace; spell: Readonly<Partial<Spell>>; reads: readonly string[] }[] | null = null;
 const GENRES = new Map<string, SkyPlace>();
 
 /**
@@ -232,7 +264,10 @@ export function genreOfSpell(spell: Partial<Spell> | null | undefined): SkyPlace
   const key = BIRDS.map((b) => full[b]).join();
   const kept = GENRES.get(key);
   if (kept) return kept;
-  STAR_READS ??= SKY_PLACES.filter((p) => p.lit).map((star) => ({ star, reads: placeReads(star.spell) }));
+  // (a star's own neighbour places, `NEAR_PLACES`, vote beside it as candidates of their own that answer to the star:
+  // the votes every other star gets are the ones it got when those places were stars)
+  STAR_READS ??= SKY_PLACES.filter((p) => p.lit).flatMap((star) => [{ star, spell: star.spell, reads: placeReads(star.spell) },
+    ...SETTLED.filter((d) => d.star === star && nearStarOf(d.spell) === star.id).map((d) => ({ star, spell: d.spell, reads: placeReads(d.spell) }))]);
   const votes = STAR_READS.map(() => 0);
   placeReads(full).forEach((row, i) => {
     if (row === 'house') return;
@@ -240,8 +275,8 @@ export function genreOfSpell(spell: Partial<Spell> | null | undefined): SkyPlace
     for (const k of who) votes[k] += 1 / who.length;
   });
   let best: SkyPlace | null = null, most = -1, at = Infinity;
-  STAR_READS.forEach(({ star }, k) => {
-    const d = placeDistanceOf(star.spell, [0, Infinity], full, 0);
+  STAR_READS.forEach(({ star, spell: at0 }, k) => {
+    const d = placeDistanceOf(at0, [0, Infinity], full, 0);
     if (votes[k] > most + 1e-9 || (votes[k] > most - 1e-9 && d < at - 1e-9)) { most = Math.max(most, votes[k]); at = d; best = star; }
   });
   GENRES.set(key, best!);
@@ -254,6 +289,27 @@ export function genreOf(link: string): { name: string; family: string; id: strin
 }
 
 // --- the dots already shown: settled, so they never move (his word 10-28) -----------------------
+
+/**
+ * **A family's own neighbour places** (round trance-drawn, the third pass; his word 11-04: *"we just need to have the
+ * only star trance and the existing dots just be dots, like a preset … this uplifting trance or hard trance could be
+ * just one of those dots"*): the place tables' zones that are a lit star's own flavours, by the star's id. A dot of the
+ * star may stand on one of them, address birds and all (a settled dot at the old star's spell), and it plays that
+ * place's rows, not the star's; a link there reads as the star (`genreOfSpell`). The places themselves, their rows and
+ * their hook mixes are untouched: a link at the old spell plays exactly what it did. A second tile follows by one line.
+ */
+export const NEAR_PLACES: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  trance: ['saw-corner-dark', 'saw-corner-bright'],
+});
+/** The star whose own neighbour place a spell stands on (`NEAR_PLACES`): some lane of the place tables reads an entry named there at the spell; null elsewhere. */
+export function nearStarOf(spell: Partial<Spell>): string | null {
+  if (!PLACES_V2) return null;
+  const full = asSpell({ ...HOUSE, ...spell });
+  const zone = zoneOf(PLACES_V2, full), bpm = derive(full).tempoCentre;
+  const ids = new Set(PLACE_LANES.map((lane) => readPlace(PLACES_V2, lane, full, bpm, zone)?.id).filter((x): x is string => !!x));
+  for (const [star, places] of Object.entries(NEAR_PLACES)) if (places.some((id) => ids.has(id))) return star;
+  return null;
+}
 
 /**
  * **The dots as they first shipped, settled** (round sky-dots 2; his word 10-28: the dots round the genres are "a general
@@ -276,10 +332,16 @@ const SETTLED_DOTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
   'ambient-and-downtempo/bells': ['ro:0.42,gl:0.59', 'gl:0.94,lo:0.74', 'ti:0.46,gl:0.59', 'ro:0.39,lo:0.59'],
   'ambient-and-downtempo/waves': ['ze:0.48,lo:0.78', 'ze:0.99', 'gl:0.24,lo:0.69', 'ro:0.81,lo:0.65'],
   'ambient-and-downtempo/bowls': ['ti:0.79,gl:0.54', 'ti:0.77,ro:0.54', 'ti:0.70,ro:0.70', 'ro:0.54,gl:0.57'],
+  // ambient-field (10-31, his word: "Om and Field, let's place it on map"): the two new stars' dots as their streams drew them
+  'ambient-and-downtempo/om': ['ti:0.78,gl:0.44', 'ti:0.67,ze:0.22', 'gl:0.57', 'ti:0.64'],
+  'ambient-and-downtempo/field': ['ti:0.60', 'ti:0.90', 'ro:0.23', 'ze:0.59,gl:0.32'],
   'dnb-and-dub/liquid': ['ti:0.21', 'ze:0.36', 'ro:0.59', 'gl:0.59'],
   'dnb-and-dub/dub-techno': ['ze:0.38,gl:0.52', 'gl:0.15', 'ze:0.53,ro:0.67', 'ze:0.08,gl:0.22'],
   'dnb-and-dub/chillstep': ['ti:0.73,gl:0.20', 'ro:0.98,lo:0.57', 'ti:0.71,gl:0.62', 'ro:0.66,lo:0.53'],
-  // 'trance' left round trance-1 (10-28): its star was tuned to its own spell, so its four are drawn again by the rules
+  // trance (round trance-drawn's third pass, 11-04): the four its stream drew since trance-1, settled as they stood, and
+  // two more at the spells of the stars it had beside it, the dark one and the bright one, now its dots (`NEAR_PLACES`)
+  'trance': ['ze:0.37', 'lo:0.52', 'gl:0.93,lo:0.66', 'gl:0.85,ro:0.88',
+    'em:0.86,ti:0.50,ze:0.45,ro:0.72,gl:0.18,ve:0.66,sp:0.43,lo:0.72', 'em:0.82,ti:0.78,ze:0.72,ro:0.55,gl:0.92,ve:0.45,sp:0.33,lo:0.92'],
   'breaks-and-big-beat': ['ti:0.30,ro:0.45', 'ro:0.43,gl:0.15', 'ti:0.25,lo:0.38', 'ze:0.47,ro:0.95'],
 });
 const BIRD_OF: Readonly<Record<string, Bird>> = Object.freeze({ em: 'ember', ti: 'tide', ze: 'zephyr', ro: 'root', gl: 'gleam', ve: 'veil', sp: 'spark', lo: 'loom' });

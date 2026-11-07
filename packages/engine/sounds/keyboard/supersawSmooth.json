@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "supersawSmooth",
+  "revision": 1,
+  "topology": "supersaw-smooth",
+  "parameters": {
+    "trim": 0.62,
+    "attack": 0.045,
+    "release": 0.7,
+    "detune": 0.2,
+    "driftCents": 7,
+    "spread": 0.85,
+    "cutoffHz": 5200,
+    "closed": 0.55,
+    "open": 0.9,
+    "topHz": 7500,
+    "topDb": -6,
+    "hpHz": 160
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "sustained"
+    ],
+    "bus": "melodic",
+    "level": "pad",
+    "layer": "pad",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {
+      "supersawSmooth": {
+        "family": "harmonic",
+        "struck": false,
+        "hold": 1,
+        "brightnessHz": 5200,
+        "loudnessDb": -10,
+        "source": "synth"
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "trance-drawn",
+    "module": "supersaw-smooth.ts"
+  }
+}

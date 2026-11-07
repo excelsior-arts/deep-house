@@ -30,6 +30,7 @@ import type { Lane } from '@deep-house/engine/style';
 import { fxOfSegment, programOf } from '../performance.ts';
 import type { StageRow, TreatmentSegment } from '../performance.ts';
 import { ringColour } from '../ring-colour.ts';
+import { TOP_VOICES } from '../top-voices.ts';
 import { calibrationStatus, forwardSpell } from '../calibration.ts';
 import { asSpell, sameSpell } from '../spell.ts';
 import { strategyById } from '../strategies/index.ts';
@@ -226,6 +227,11 @@ const DRUM_BUSES = ['kick', 'drums'];
 const groupOf = (family: string | null, bus: string | null = null): string =>
   (bus && DRUM_BUSES.includes(bus) ? 'drums' : null)
   || (family && GROUPS.find((g) => g.families.includes(family))?.id) || OTHER;
+
+/** Every player the top's quiet voices can draw (a row's picks and the ring a wash may carry): the view's TOP and AIR. */
+const TOP_PLAYERS: ReadonlySet<string> = new Set(Object.values(TOP_VOICES.voices).flatMap((r) => r.rows.flatMap((x) => [x.v, ...(x.ring ? [x.ring.v] : [])])));
+/** The top's block, by the bus its players land on: the kit's on the drums, the air's on the melodic bus. */
+const TOP_BLOCK: ReadonlyArray<readonly [string, string, string]> = [['top', 'drums', 'noise'], ['air', 'melodic', 'effect']];
 
 /** The event layers a lane's own candidates carry, which is how its events are found. */
 const layersOf = (names: string[]): string[] => {
@@ -492,9 +498,25 @@ export function lanesOfTheme(readout: Readout): LaneRow[] {
       group: groupOf(family, bus),
     };
   });
+  // **The top's quiet voices are a block of their own** (the playback review of 11-02): a theme draws three or four of
+  // the top row's players (`src/top-voices.ts`), another three or four the next, and drawn as loose parts they made
+  // 14, 15 and 16 rows on seed 1's first three themes, every box below them moving at each theme change (his 10-08
+  // "the screen shakes"). Two rows stand for them wherever the theme plans them: TOP, the kit's quiet players on the
+  // drum bus, and AIR, the air bed, the hiss and the arcs on the melodic one — each naming the players this theme drew,
+  // its events this bar, and how many players the row could draw.
+  const represented=new Set(declared.flatMap(l=>l.playing));
+  const loose=[...index.sources.keys()].filter((v)=>!represented.has(v));
+  const tops=loose.filter((v)=>TOP_PLAYERS.has(v));
+  if ((track as { topVoices?: unknown }).topVoices || tops.length) for (const [id,bus,family] of TOP_BLOCK) {
+    const candidates=[...TOP_PLAYERS].filter((v)=>BY_NAME[v]?.bus===bus);
+    const playing=tops.filter((v)=>candidates.includes(v));
+    const firing=playing.reduce((n,v)=>n+(index.sources.get(v)?.perBar[bar] ?? 0),0);
+    declared.push({id,role:'texture',gate:null,figure:'top',bus,candidates:candidates.length,playing,firing,on:firing>0,stage:null,
+      treatment:null,knobs:knobsOfLane(track.knobs,playing),timbres:timbresOf(index,playing),family,group:groupOf(family,bus)});
+    for (const v of playing) represented.add(v);
+  }
   // Explicit musical parts can use instruments outside the ordinary lane
   // palette. Their actual compiled sources must remain visible and soloable.
-  const represented=new Set(declared.flatMap(l=>l.playing));
   for (const [voice,source] of index.sources) if (!represented.has(voice)) {
     const d=BY_NAME[voice], firing=source.perBar[bar] ?? 0;
     declared.push({id:voice,role:d.roles[0] ?? 'figure',gate:d.plays,figure:'part',bus:source.bus,

@@ -1,0 +1,42 @@
+{
+ "schema": 1,
+ "kind": "arrangement-tide-space",
+ "round": "tide-space",
+ "revision": 2,
+ "note": "Tide decides how much of the record is room: nought is a very close, dry sound, the house is open and spacious, one is far and washed. One factor, geometric about the house (one at the house's Tide), on the house's own wash wherever the drums play: the chord reverb, the piano's hall, the delay and the front's plate, with the reverb's and the hall's length following. A part's own room (a pinned or a mined part's ambience) is its ceiling: Tide plays less of it below the house and never more of it above. A drumless place's rows already set its room by Tide about their own centre: they are the model, and nothing here touches them. Every number is a starting point for listening.",
+ "wash": {
+  "says": "the factor on the wash's returns at Tide nought and one (one at the house): the reverb's, the hall's and the delay's level, and the plate's return. The returns' impulses are normalised, so a shorter tail is not a quieter one: the dry end's distance is this factor's, which is why nought sits under a half; under the house the way down is bent by `curve` (the share of the way down in dB is its distance from the house to this power), so the dry end is the last few hundredths of Tide and a low Tide stays near the house's room",
+  "nought": 0.4,
+  "one": 1.4,
+  "curve": 4
+ },
+ "length": {
+  "says": "the chord reverb's and the piano hall's length, a multiple of the room's own at Tide nought and one (one at the house); a longer tail keeps its wet energy (its level by the square root of the factor), a shorter one is simply shorter. The hall's top is lower: a five-second hall under a groove is a cathedral",
+  "reverb": {
+   "nought": 0.67,
+   "one": 1.42,
+   "curve": 4
+  },
+  "hall": {
+   "nought": 0.67,
+   "one": 1.15,
+   "curve": 4
+  }
+ },
+ "figure": {
+  "says": "the figure's room where Tide chose it (the near and open figure space): the intimate room at and under `near`, the spacious one from the house, geometric between (the delay linear), so a theme a hair either side of the old step at 0.5 no longer differs by 17 dB of hall",
+  "near": 0.25
+ },
+ "plate": {
+  "says": "the front's plate: its length at the house and its slope above it (seconds a unit of Tide); under the house its length falls geometrically to `nought` of it at Tide nought (a close record's plate is a short bright room); never longer than `most`",
+  "seconds": 2.6,
+  "slope": 1.6,
+  "nought": 0.45,
+  "most": 3.6
+ },
+ "tight": {
+  "says": "a driving kit in a dry room (`tightOf`, Ember's drive times Tide's dryness): the share of a sparse front's wash that moves into the plate falls from all of it at `from` to none at `to`; the rest keeps the wash it was mixed in (round kit-tight's switch at 0.5, now a slope about it)",
+  "from": 0.25,
+  "to": 0.75
+ }
+}

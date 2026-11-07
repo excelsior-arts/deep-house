@@ -6,6 +6,7 @@
 // windows, the departures the app's arrangement makes from them named and counted; the house and
 // the places without the part untouched; and live, on the engine's stand-in, the part's space built
 // once a theme, and let go at a seek and at a hand-over.
+import './test-timers.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planTheme, programOf, createMix } from '../src/mix.ts';

@@ -99,6 +99,22 @@
         unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
           U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2212, U+2215, U+FEFF, U+FFFD;
       }
+      /* **The Japanese face** (round japanese; his pick 11-03, M PLUS 1: "most readable … as our ring gets small on
+         mobile I saw that font as most bold, wide and readable"): Jost has no kana or kanji, so a Japanese page sets
+         them in a second face that only those code points reach (`unicode-range`); Latin, numbers, chord names and
+         the controls' names stay Jost's. Cut to the table's own glyphs (`tools/ja-font-cut.py`, the list in
+         `tools/ja-glyphs.txt`, held by check-words) and self-hosted beside Jost, its OFL beside it. **A step lighter
+         than the Latin it stands beside**: kana and kanji are many strokes in one square, so at the same stem they read
+         darker than Jost's capitals (the ring's small words, measured on a phone); the page's 450 draws M PLUS 1's 400
+         and its 500 the 450, which puts their stems at three quarters of Jost's (0.076 and 0.086 of the em against
+         0.102 and 0.117), the usual balance of a Japanese face set with a Latin one. Scaled so its kana and kanji
+         average 0.80 of the em (Jost's capitals are 0.754 at its own 107.7 %) and given Jost's line box, so a line
+         mixing the two neither jumps nor shouts. A name typed by a listener outside the cut falls to the system's
+         Japanese face. */
+      @font-face { font-family: 'DH Japanese'; font-style: normal; font-weight: 100 470; font-display: swap; src: url(./fonts/ja-400.woff2) format('woff2');
+        size-adjust: 94.5%; ascent-override: 109.9%; descent-override: 27.5%; line-gap-override: 3.17%; unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+FF00-FFEF; }
+      @font-face { font-family: 'DH Japanese'; font-style: normal; font-weight: 471 900; font-display: swap; src: url(./fonts/ja-450.woff2) format('woff2');
+        size-adjust: 94.5%; ascent-override: 109.9%; descent-override: 27.5%; line-gap-override: 3.17%; unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+FF00-FFEF; }
       :root {
         --pale: #ffe9a8;
         --gold: #f2c14e;
@@ -145,6 +161,31 @@
            Futura Medium's (0.146 of the cap against 0.151; 400 is 0.121), so
            the page's own weight is 450 and the type reads as heavy as it did. */
         font-weight: 450;
+      }
+      /* **Japanese** (round japanese): the second face after Jost, then the system's Japanese faces. Spaced
+         capitals do not exist in Japanese, so every tracked line keeps a breath of its tracking and no more (the
+         controls' Latin names lose a little of theirs); and a sentence breaks between phrases, never inside a word
+         where the browser knows how (`auto-phrase`). */
+      html:lang(ja) body {
+        font-family: 'Jost', 'DH Japanese', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo',
+          'Futura', 'Avenir Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        /* kana set on their own widths, as Japanese UI type is, rather than each on a square */
+        font-feature-settings: 'palt';
+      }
+      html:lang(ja) #stage text { letter-spacing: 0.06em; }
+      /* the controls' names as one-character seals (round japanese, `data-bird-names="seal"`, set only where every name
+         is one character): no tracking, and larger than the title's 11 units (his word 11-03: "use bigger font size for
+         birds' name, as it's the only char"), 15 units: a seal that reads at a glance on a phone and stays clear of the
+         icon, the reading under it and the next cell (the words' box is measured with it) */
+      html[data-bird-names="seal"] #stage text.cellName { letter-spacing: 0; font-size: 15px; }
+      html:lang(ja) #library [role="tab"], html:lang(ja) #libAbout .aboutSub, html:lang(ja) #libAbout .aboutKeyName,
+      html:lang(ja) #libAbout .aboutKey, html:lang(ja) #libAbout .aboutPickWord, html:lang(ja) #libAbout .aboutLangName, html:lang(ja) #library .plCaps,
+      html:lang(ja) #library .plHead, html:lang(ja) #library .plLink, html:lang(ja) #library .plShared,
+      html:lang(ja) #library .plFrom button, html:lang(ja) #library .plUndo button, html:lang(ja) #nowList,
+      html:lang(ja) #nowList .nlOf, html:lang(ja) #library .skyLegend, html:lang(ja) #libAbout .aboutLinks { letter-spacing: 0.06em; }
+      html:lang(ja) #libAbout .aboutWhat, html:lang(ja) #libAbout .aboutReportsWhat, html:lang(ja) #library .plLead,
+      html:lang(ja) #library .libFirst p, html:lang(ja) #library .plNotice, html:lang(ja) #birdPanel {
+        word-break: auto-phrase; line-break: strict; text-wrap: pretty;
       }
       .said {
         position: absolute;
@@ -311,6 +352,11 @@
       #star  { transform: translateZ(17px); }
       #inner { transform: translateZ(17px); }
       #glow  { transform: translateZ(20px); }
+      /* the glow (round glow): each bloomed sheet's halo on a sheet of its own under it, blurred by the compositor; its
+         depth is its sheet's, and what moves the sheet moves it (ring.ts, "The glow on the compositor") */
+      #outerHalo { transform: translateZ(-13px); }
+      #starHalo, #innerHalo { transform: translateZ(17px); }
+      .layer.halo { pointer-events: none; }
       /* Engraved, not printed: every label is drawn once in the page's own
          black underneath itself, so a line passing behind it is cut cleanly
          around the letters instead of running through them. */
@@ -832,6 +878,30 @@
       @media (hover: hover) { #libAbout .aboutKey:hover .aboutSwitch, #libAbout .aboutKeyName:hover { border-color: var(--gold); } }
       :root:not([data-quiet-focus]) #libAbout .aboutKey:focus-visible .aboutSwitch { border-color: var(--gold); }
       #libAbout .aboutReportsWhat { margin: 12px auto 0; max-width: 480px; font-size: calc(11.5px * var(--pk, 1)); line-height: 1.6; color: var(--quiet); }
+      /* **The language** (round japanese): the switch's own idiom — the row's word in its pill, and beside it the
+         system's drop-down drawn as the switch's state word, a small chevron in the ring's line after it */
+      #libAbout .aboutLang { margin: 20px 0 0; }
+      #libAbout .aboutPick { position: relative; display: inline-flex; align-items: center; height: 26px; }
+      /* the row's word is a label and looks like one: the switch's type, no outline (his word 11-03: "language is just
+         a label not a button") */
+      #libAbout .aboutLangName { font-size: calc(10px * var(--pk, 1)); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.86); }
+      /* the choice is drawn in a pill, the one pressable thing on the row ("dropdown should have pill shape and wider
+         left/right padding"), the chevron inside it, and the drop-down lies over it unseen: a touch screen's field
+         must be 16 px or iOS zooms on it (the panel's rule below), and the pill keeps the row's size */
+      #libAbout .aboutPickWord {
+        display: inline-flex; align-items: center; height: 26px; padding: 0 30px 0 16px;
+        border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 999px; transition: border-color 160ms ease;
+        font-size: calc(10px * var(--pk, 1)); letter-spacing: 0.12em; text-transform: uppercase; color: #ffffff; white-space: nowrap;
+      }
+      #libAbout .aboutPick select {
+        position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0;
+        -webkit-appearance: none; appearance: none; font: inherit; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      }
+      #libAbout .aboutPick select option { color: #ffffff; background: #000000; }
+      #libAbout .aboutPick svg { position: absolute; right: 13px; top: 50%; width: 9px; height: 6px; margin-top: -3px; color: var(--gold); pointer-events: none; }
+      @media (hover: hover) { #libAbout .aboutPick:hover .aboutPickWord { border-color: var(--gold); } }
+      #libAbout .aboutPick select:focus { outline: none; }
+      :root:not([data-quiet-focus]) #libAbout .aboutPick:has(select:focus-visible) .aboutPickWord { border-color: var(--gold); }
       /* the maker's name, at the foot where the footer had it (K23, K28): Jost
          500, tracked 0.12 em, in the ring's colour */
       #libAbout .aboutMaker { margin: 32px 0 0; font-size: calc(12.24px * var(--pk, 1)); font-weight: 500; letter-spacing: 0.12em; }
@@ -1250,9 +1320,7 @@
       #library .skyWrap { position: relative; flex: 1; min-height: 0; overflow: clip; touch-action: none; overscroll-behavior: contain; -webkit-user-select: none; user-select: none; cursor: grab; }
       #library .sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: inherit; }
       #library .skyField { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
-      #library .sky .skyOpen { opacity: 0.6; }
       #library .sky .skyFigure { stroke: #8f8f8f; stroke-width: 0.7; opacity: 0.3; }
-      #library .sky .skyOpen.dim { opacity: 0.32; }
       /* recentre: a circle, the crosshair alone, shown once the view has moved */
       #library .skyHome { position: relative; flex: none; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; color: var(--gold); background: #000000; border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent); border-radius: 50%; cursor: pointer; }
       /* hidden, its slot stays: nothing beside it shifts */
@@ -1276,9 +1344,8 @@
       #library .skyHome:focus-visible { outline: none; }
       #library .skyHome svg { width: 16px; height: 16px; }
       @media (pointer: coarse) { #library .skyHome::after { content: ''; position: absolute; inset: -7px; } }
-      /* colour means pressable, gray means not yet (his word 10-28): rings, family names and figures are gray */
+      /* colour means pressable, gray means not yet (his word 10-28): family names and figures are gray */
       #library .sky .skyFamily { fill: #8f8f8f; opacity: 0.7; letter-spacing: 0.16em; text-anchor: middle; }
-      #library .sky .skyOpen { fill: none; stroke: #8f8f8f; stroke-width: 0.8; }
       #library .sky .skyStar { fill: var(--gold); }
       #library .sky .skyName { fill: #ffffff; letter-spacing: 0.06em; }
       #library .sky .skyTip { fill: var(--quiet); letter-spacing: 0.06em; }
@@ -1287,7 +1354,6 @@
       #library .sky .skyTip.near { opacity: 0.7; }
       /* a track's name reads as a title, not a place: as written, no tracking (his word 10-28: "remove uppercase effect from it, as it being perceived as genre name") */
       #library .sky .skyTip.track { letter-spacing: 0; text-transform: none; }
-      #library .sky .skyTip.inert { opacity: 0.8; }
       #library .sky .skyPoint { stroke: #000000; stroke-width: 0.8; }
       #library .sky .skyPointOn { fill: none; stroke: var(--gold); stroke-width: 1; }
       #library .sky .skyPointOn.still { opacity: 0.5; }
@@ -1319,7 +1385,7 @@
          stays said and not drawn, because it is a description and the ring is
          the description. -->
     <h1 id="name"><img src="./wordmark.svg" alt="Deep House" width="14415" height="1610" /></h1>
-    <p class="said">An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline. Nothing is recorded or streamed. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
+    <p class="said" data-w="page.said">An astrolabe for music: an endless electronic set, every sound synthesized as it plays, fully offline. Nothing is recorded or streamed. Touch the centre to start; the band is the mix ahead, the cells of the star are the eight controls of the sound, and the dice under the centre cast a new set.</p>
     <div id="say" aria-live="polite" role="status"></div>
     <!-- The set leaves through here: iOS hangs its lock-screen card and its
          controls on a playing media element, not on an audio graph. -->
@@ -1331,7 +1397,7 @@
          the ring's line work and colour: right of the ring in
          landscape, under it in portrait, in the corner of a small window
          (`library-panel.ts` lays it). Hidden while the panel is open. -->
-    <button id="gyro" type="button" title="Playlists · Map · About" aria-label="Playlists, Map and About" aria-haspopup="dialog" aria-controls="library">
+    <button id="gyro" type="button" title="Playlists · Map · About" aria-label="Playlists, Map and About" data-w-title="panel.key" data-w-label="panel.name" aria-haspopup="dialog" aria-controls="library">
       <svg viewBox="-14 -14 28 28" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></svg>
     </button>
 
@@ -1339,16 +1405,16 @@
          it stays live. Tabs are read off the markup: a third is a tab button
          and a tabpanel of the same `data-tab`. Closed by its × and by Esc;
          nothing of it is written into the address. -->
-    <dialog id="library" tabindex="-1" aria-label="Playlists, Map and About" data-sheet>
+    <dialog id="library" tabindex="-1" aria-label="Playlists, Map and About" data-w-label="panel.name" data-sheet>
       <!-- the sheet's outline and its turned-down corner, drawn at the panel's size (library-panel.ts `paintSheet`) -->
       <svg class="sheetEdge" aria-hidden="true"><defs><linearGradient id="flapLitSheet" class="flapLit" x1="1" y1="0" x2="0" y2="1"><stop offset="0.5"/><stop offset="1"/></linearGradient></defs><path class="edge"/><path class="crease"/><path class="flap"/></svg>
       <div class="libHead">
         <div class="libTabs" role="tablist">
-          <button type="button" role="tab" id="tabPlaylists" data-tab="playlists" aria-controls="libPlaylists" aria-selected="true">Playlists</button>
-          <button type="button" role="tab" id="tabGenres" data-tab="genres" aria-controls="libGenres" aria-selected="false">Map</button>
-          <button type="button" role="tab" id="tabAbout" data-tab="about" aria-controls="libAbout" aria-selected="false">About</button>
+          <button type="button" role="tab" id="tabPlaylists" data-tab="playlists" aria-controls="libPlaylists" aria-selected="true" data-w="panel.playlists">Playlists</button>
+          <button type="button" role="tab" id="tabGenres" data-tab="genres" aria-controls="libGenres" aria-selected="false" data-w="panel.map">Map</button>
+          <button type="button" role="tab" id="tabAbout" data-tab="about" aria-controls="libAbout" aria-selected="false" data-w="panel.about">About</button>
         </div>
-        <button class="libClose" id="panelClose" type="button" aria-label="Close (Esc)" title="Close (Esc)">
+        <button class="libClose" id="panelClose" type="button" aria-label="Close (Esc)" title="Close (Esc)" data-w-label="panel.close" data-w-title="panel.close">
           <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2 L12 12 M12 2 L2 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
         </button>
       </div>
@@ -1358,8 +1424,8 @@
         <div class="libFirst">
           <!-- the throne, the astrolabe's ornament at twelve o'clock, on its arc of the rim -->
           <svg class="libThrone" viewBox="-18 -114 36 19.5" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path class="arc" d="M -17.5 -94.4 A 96 96 0 0 1 17.5 -94.4" stroke-width="0.45"/><path d="M -16.39 -97.39 A 98.76 98.76 0 0 1 16.39 -97.39" stroke-width="0.63"/><path d="M -11.70 -100.12 A 100.80 100.80 0 0 1 11.70 -100.12" stroke-width="0.54"/><path d="M -7.65 -102.31 A 102.60 102.60 0 0 1 7.65 -102.31" stroke-width="0.44"/><path d="M -4.30 -104.07 A 104.16 104.16 0 0 1 4.30 -104.07" stroke-width="0.38"/><path d="M -4.08 -109.08 A 4.08 4.08 0 1 1 4.08 -109.08 A 4.08 4.08 0 1 1 -4.08 -109.08" stroke-width="0.57"/><path d="M 0.00 -111.48 L 0.00 -106.68 M -2.40 -109.08 L 2.40 -109.08" stroke-width="0.38"/><path d="M -0.66 -109.08 A 0.66 0.66 0 1 1 0.66 -109.08 A 0.66 0.66 0 1 1 -0.66 -109.08" stroke-width="0.38"/></svg>
-          <h2>No playlists yet</h2>
-          <p>Press the heart on the ring to save</p>
+          <h2 data-w="pl.none">No playlists yet</h2>
+          <p data-w="pl.noneHint">Press the heart on the ring to save</p>
         </div>
       </section>
 
@@ -1367,36 +1433,48 @@
            maker's name at its foot where the footer had it -->
       <section class="libBody" role="tabpanel" id="libAbout" data-tab="about" aria-labelledby="tabAbout" hidden>
         <h2 id="aboutTitle">Deep House <span class="aboutVer" id="aboutVer"></span></h2>
-        <p class="aboutSub">An astrolabe for music</p>
+        <p class="aboutSub" data-w="about.sub">An astrolabe for music</p>
         <hr />
         <p class="aboutWhat" id="aboutWhat">
-          <span>A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.</span>
-          <span>Its best sounds are in the Featured playlists.</span>
-          <span>A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.</span>
-          <span>One link, one track: it plays the same anywhere.</span>
-          <span>Fully offline. No account. No ads. No tracking.</span>
+          <span data-w="about.what1">A clockwork music machine. Roll the dice to wind it, set its eight sigils, and it plays an endless electronic set, every sound synthesized as the gears turn.</span>
+          <span data-w="about.what2">Its best sounds are in the Featured playlists.</span>
+          <span data-w="about.what3">A music companion for work, reading or a late drive. No distracting vocals. No agenda. Just vibes.</span>
+          <span data-w="about.what4">One link, one track: it plays the same anywhere.</span>
+          <span data-w="about.what5">Fully offline. No account. No ads. No tracking.</span>
         </p>
         <hr />
         <ul class="aboutLinks">
-          <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener">Follow on X for news</a></li>
-          <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener">Composer Eugene T · Follow</a></li>
-          <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener">Source</a></li>
-          <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener">License: PolyForm Noncommercial 1.0.0</a></li>
+          <li><a href="https://x.com/DeepHouseAudio" target="_blank" rel="noopener" data-w="about.follow">Follow on X for news</a></li>
+          <li><a href="https://x.com/eugene_tea" target="_blank" rel="noopener" data-w="about.composer">Composer Eugene T · Follow</a></li>
+          <li><a href="https://github.com/excelsior-arts/deep-house" target="_blank" rel="noopener" data-w="about.source">Source</a></li>
+          <li><a href="https://github.com/excelsior-arts/deep-house/blob/master/LICENSE" target="_blank" rel="noopener" data-w="about.license">License: PolyForm Noncommercial 1.0.0</a></li>
         </ul>
         <!-- the app on the App Store (his word 10-21), on the web only: the app's shell removes it (shell-library.ts). Apple's
              own badge, unaltered, bundled (the page loads nothing from elsewhere), 40 px tall as Apple asks at least -->
-        <p class="aboutStore" id="aboutStore"><a href="https://apps.apple.com/app/id6824689539" target="_blank" rel="noopener"><img src="./app-store-badge.svg" width="120" height="40" alt="Download on the App Store" /></a></p>
+        <p class="aboutStore" id="aboutStore"><a href="https://apps.apple.com/app/id6824689539" target="_blank" rel="noopener"><img src="./app-store-badge.svg" width="120" height="40" alt="Download on the App Store" data-w-alt="about.store" /></a></p>
         <hr />
         <!-- The one thing the page ever sends, and its switch (K25): a two-state
              key in the desk's style, on unless this listener said otherwise. -->
         <div class="aboutReports">
           <span class="aboutPills">
-            <label class="aboutKeyName" id="aboutReportsName" for="aboutReports">Anonymous error reports</label>
+            <label class="aboutKeyName" id="aboutReportsName" for="aboutReports" data-w="about.reports">Anonymous error reports</label>
             <button class="aboutKey" id="aboutReports" type="button" role="switch" aria-checked="true" aria-labelledby="aboutReportsName" aria-describedby="aboutReportsWhat">
               <span class="aboutSwitch" aria-hidden="true"><span class="aboutKnob"></span></span><span class="aboutKeyState" id="aboutReportsState">on</span>
             </button>
           </span>
-          <p class="aboutReportsWhat" id="aboutReportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+          <p class="aboutReportsWhat" id="aboutReportsWhat" data-w="about.reportsWhat">When on, a crash sends what broke and the browser version; a caught fault also sends the track's link and where in it. Nothing about you.</p>
+        </div>
+        <!-- **The language** (round japanese, his word 11-03: "a switch in About under crash report toggle"; then "it's
+             probably should be drop down if other locales come"; then "language is just a label not a button, and
+             rather dropdown should have pill shape and wider left/right padding"): the row's word as plain words, and
+             the system's own drop-down beside it in a pill (a keyboard, a screen reader and the phone's picker for free), its
+             options built from the table's languages (`lang-switch.ts`), each named in its own script. Kept on this
+             device, never in a link. -->
+        <div class="aboutLang">
+          <span class="aboutPills">
+            <label class="aboutLangName" id="aboutLangName" for="aboutLang" data-w="about.language">Language</label>
+            <span class="aboutPick"><span class="aboutPickWord" id="aboutLangWord" aria-hidden="true"></span><select id="aboutLang" aria-labelledby="aboutLangName"></select><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1 L5 5 L9 1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+          </span>
         </div>
         <p class="aboutMaker"><a href="https://github.com/excelsior-arts" target="_blank" rel="noopener">Excelsior Arts</a></p>
       </section>
@@ -1413,19 +1491,19 @@
       <div class="plFoot" id="plFoot"></div>
       <!-- the sky's foot (Genres only): recentre in the bottom-left slot, kept even while hidden, and the legend -->
       <div class="skyFoot" id="skyFoot">
-        <button type="button" class="skyHome" id="skyHome" aria-label="Recentre" title="Recentre" data-off="">
-            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="4.2" /><path d="M8 1.5 V4.5 M8 11.5 V14.5 M1.5 8 H4.5 M11.5 8 H14.5" /></svg>
+        <button type="button" class="skyHome" id="skyHome" aria-label="Reset view" title="Reset view" data-w-label="map.recentre" data-w-title="map.recentre" data-off="">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6 V2 H6 M10 2 H14 V6 M14 10 V14 H10 M6 14 H2 V10" /><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none" /></svg>
           </button>
         <span class="skyLegend">
-          <span class="skyLeg" title="Lines join a family's tuned genres"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="solid" /></svg>Family<span class="vh">: lines join a family's tuned genres</span></span>
-          <span class="skyLeg" id="skyLegList" title="The playing playlist's tracks, in order"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="dots" /></svg>Playlist<span class="vh">: the playing playlist's tracks, in order</span></span>
+          <span class="skyLeg" title="Lines join a family's tuned genres" data-w-title="map.familyTip" data-w-text="map.family"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="solid" /></svg>Family<span class="vh" data-w="map.familySaid">: lines join a family's tuned genres</span></span>
+          <span class="skyLeg" id="skyLegList" title="The playing playlist's tracks, in order" data-w-title="map.playlistTip" data-w-text="map.playlist"><svg viewBox="0 0 18 6" aria-hidden="true"><path d="M1 3 H17" class="dots" /></svg>Playlist<span class="vh" data-w="map.playlistSaid">: the playing playlist's tracks, in order</span></span>
         </span>
       </div>
       <!-- the share circle (his word 10-21): the playing sound's link, copied or shared, from a small menu (playlists-ui.ts) -->
-      <button class="machineKey shareKey" id="panelShare" type="button" aria-label="Share what plays" title="Share" aria-haspopup="menu" aria-expanded="false">
+      <button class="machineKey shareKey" id="panelShare" type="button" aria-label="Share what plays" title="Share" data-w-label="panel.share" data-w-title="panel.shareTip" aria-haspopup="menu" aria-expanded="false">
         <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.8 9.2 L9.2 6.8"/><path d="M7.4 4.6 L8.6 3.4 A2.5 2.5 0 0 1 12.6 7.4 L11.4 8.6"/><path d="M8.6 11.4 L7.4 12.6 A2.5 2.5 0 0 1 3.4 8.6 L4.6 7.4"/></svg>
       </button>
-      <button class="machineKey" id="machineKey" type="button" aria-label="the machine view" title="Machine view" aria-expanded="false">
+      <button class="machineKey" id="machineKey" type="button" aria-label="the machine view" title="Machine view" data-w-label="panel.machine" data-w-title="panel.machineTip" aria-expanded="false">
         <svg viewBox="0 0 18 18" aria-hidden="true">
           <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M4 2 V16 M9 2 V16 M14 2 V16" /></g>
           <g fill="#000000" stroke="currentColor" stroke-width="1.2">
@@ -1438,20 +1516,20 @@
 
     <!-- The phone's panel for the bird a finger is on: its words, and Less
          and More. Hidden until a finger opens it (`ring.ts`). -->
-    <!-- Round K12d, Eugene: "the changing value on top, so it's not covered by
+    <!-- Round K12d, his word: "the changing value on top, so it's not covered by
          the finger; the static bird name and subtitle at the bottom of the
          slider." Top to bottom: the live line, − the slider +, with the
          percent over the knob, and then the bird's name and what it means. -->
-    <div id="birdPanel" role="group" aria-label="the ring's control" hidden>
+    <div id="birdPanel" role="group" aria-label="the ring's control" data-w-label="bird.panel" hidden>
       <div class="now" id="birdPanelNow"></div>
       <div class="steps" id="birdPanelSteps">
-        <button id="birdPanelLess" type="button" aria-label="less">−</button>
+        <button id="birdPanelLess" type="button" aria-label="less" data-w-label="bird.less">−</button>
         <div class="slide">
-          <input id="birdPanelSlider" type="range" min="0" max="130" step="1" aria-label="percent of the house" />
+          <input id="birdPanelSlider" type="range" min="0" max="130" step="1" aria-label="percent of the house" data-w-label="bird.slider" />
           <span class="house" aria-hidden="true"></span>
           <span class="pct" id="birdPanelPct" aria-hidden="true"></span>
         </div>
-        <button id="birdPanelMore" type="button" aria-label="more">+</button>
+        <button id="birdPanelMore" type="button" aria-label="more" data-w-label="bird.more">+</button>
       </div>
       <div class="name" id="birdPanelName"></div>
       <div class="means" id="birdPanelMeans"></div>
@@ -1494,7 +1572,7 @@
               </feMerge>
             </filter>
           </defs>
-          <g id="outerGlow" filter="url(#bloom)">
+          <g id="outerGlow" data-bloom="url(#bloom)">
             <g id="rim"></g>
             <g id="timeline"></g>
           </g>
@@ -1514,16 +1592,16 @@
              labels already say, so each of those groups is hidden by name —
              `aria-hidden` on an ancestor cannot be taken back by a child, which
              is why it moved off the sheet and onto the three groups. -->
-        <svg class="layer" id="star" viewBox="0 0 1000 1000" role="group" aria-label="the eight controls of the sound">
+        <svg class="layer" id="star" viewBox="0 0 1000 1000" role="group" aria-label="the eight controls of the sound" data-w-label="ring.controls">
           <!-- The lines that bind the cells breathe, so they live outside the
                bloom with a stroked halo in its place, and under the cells they
                run into. -->
-          <g id="starGlow" filter="url(#bloom)" aria-hidden="true">
+          <g id="starGlow" data-bloom="url(#bloom)" aria-hidden="true">
             <g id="spin"></g>
           </g>
           <g id="starLines" aria-hidden="true"></g>
           <!-- The birds' words, over the star's lines and under the birds
-               themselves (Eugene, round K3: *"labels are drawn over the ring's
+               themselves (his word, round K3: *"labels are drawn over the ring's
                lines but under the bird circles"*). -->
           <g id="starWords" aria-hidden="true"></g>
           <!-- The cells wander with their vertices, so they leave the bloom
@@ -1535,8 +1613,8 @@
           <g id="starLive" aria-hidden="true"></g>
         </svg>
 
-        <svg class="layer" id="inner" viewBox="0 0 1000 1000" role="group" aria-label="transport">
-          <g id="innerGlow" filter="url(#bloom)">
+        <svg class="layer" id="inner" viewBox="0 0 1000 1000" role="group" aria-label="transport" data-w-label="ring.transport">
+          <g id="innerGlow" data-bloom="url(#bloom)">
             <g id="core" aria-hidden="true"></g>
           </g>
           <!-- the four beat dots, lit in turn: outside the blur for the same reason -->

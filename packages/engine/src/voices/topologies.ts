@@ -42,7 +42,7 @@ import { SUPERSAW_LEAD } from './supersaw-lead.ts';
 import { SIREN } from './siren.ts';
 import { ORGAN_STAB } from './organ-stab.ts';
 import { PULSE_LEAD, TRI_LEAD } from './wave-leads.ts';
-import { VINYL, GRAIN_CLOUD, NOISE_SWEEP } from './texture.ts';
+import { VINYL, GRAIN_CLOUD, NOISE_SWEEP, AIR } from './texture.ts';
 import { HAT_LADDER } from './hats.ts';
 import { FM_KEY } from './fm-keys.ts';
 import { MALLET } from './mallets.ts';
@@ -59,6 +59,10 @@ import { JAWARI } from './jawari.ts';
 import { CHANT } from './chant.ts';
 // trance-1 (10-28): the struck, gritty supersaw the hooks play
 import { SUPERSAW_GRIT } from './supersaw-grit.ts';
+import { SUPERSAW_SMOOTH } from './supersaw-smooth.ts';
+// dark-fronts (11-03): the FM growl (the neuro stab, the low call) and the crushed metal pluck, sketch rows only
+import { FM_GROWL } from './fm-growl.ts';
+import { CRUSH_PLUCK } from './crush-pluck.ts';
 
 export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [KICK.id]: KICK,
@@ -90,11 +94,13 @@ export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [SHIMMER_PAD.id]: SHIMMER_PAD,
   [SUPERSAW_LEAD.id]: SUPERSAW_LEAD,
   [SUPERSAW_GRIT.id]: SUPERSAW_GRIT,
+  [SUPERSAW_SMOOTH.id]: SUPERSAW_SMOOTH,
   [SIREN.id]: SIREN,
   [ORGAN_STAB.id]: ORGAN_STAB,
   [PULSE_LEAD.id]: PULSE_LEAD,
   [TRI_LEAD.id]: TRI_LEAD,
   [VINYL.id]: VINYL,
+  [AIR.id]: AIR,
   [GRAIN_CLOUD.id]: GRAIN_CLOUD,
   [NOISE_SWEEP.id]: NOISE_SWEEP,
   [HAT_LADDER.id]: HAT_LADDER,
@@ -113,4 +119,6 @@ export const TOPOLOGIES: Readonly<Record<string, Topology>> = Object.freeze({
   [RIM_BOWL.id]: RIM_BOWL,
   [JAWARI.id]: JAWARI,
   [CHANT.id]: CHANT,
+  [FM_GROWL.id]: FM_GROWL,
+  [CRUSH_PLUCK.id]: CRUSH_PLUCK,
 });

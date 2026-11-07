@@ -2,8 +2,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  planTheme, seamPlan, blendAsked, sectionGrid, layersAtBar, style, v1, HOUSE, v2, leadInStyle, pcIn, leadInsOf,
+  planTheme, seamPlan, blendAsked, sectionGrid, layersAtBar, style, v1, HOUSE, v2, leadInStyle, pcIn, leadInsOf, isWindEvent,
 } from './check-composer-common.ts';
+import { isNoiseGlue } from '../src/glue.ts';
 
 test('R15: a lead motif is never clamped onto a note out of the key: such a note folds into the piano by octaves', () => {
   const PI = style.base.piano;
@@ -123,7 +124,7 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
   // lead-in at all and 42 returns running with the same one.
   const spells = [HOUSE, { ...HOUSE, ember: .9 }, { ...HOUSE, veil: .95 }];
   const found: string[] = [];
-  let returns = 0, risen = 0, first = 0, firstRisen = 0, long = 0;
+  let returns = 0, risen = 0, first = 0, firstRisen = 0, long = 0, hissed = 0;
   for (const spell of spells) for (let seed = 1; seed <= 60; seed++) for (let n = 0; n < 4; n++) {
     const t = planTheme(seed, n, { style: leadInStyle, preset: 'auto', spell, library: [] });
     const { risers, returns: rs } = leadInsOf(t);
@@ -140,6 +141,14 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
       if (haze) found.push(`${where}: a noise rise under haze`);
       if (Math.abs(e.p.dur! - bars * t.barSeconds) > 1e-6) found.push(`${where}: a rise of ${(e.p.dur! / t.barSeconds).toFixed(2)} bars at ${t.bpm} BPM`);
     }
+    // the top's held hiss (top-voices-2, his ear 11-02: T27c) is the break's held air, never a second lead-in: it is laid
+    // over no noise of the glue's (a riser, a swell, a sweep) and on no return one of them leads in on the line
+    for (const h of t.events.filter(e => e.by === 'top-voices/hiss')) {
+      const line = Math.round((h.t + h.p.dur!) / t.barSeconds), a = h.t - 1e-6, z = h.t + h.p.dur! + 1e-6;
+      if (t.events.some(e => e.layer === 'fx' && !String(e.by ?? '').startsWith('top-voices/') && isNoiseGlue(e.voice) && e.t < z && e.t + Number(e.p.dur ?? 0) > a))
+        found.push(`${where}: the held hiss into bar ${line} over a noise of the glue's`);
+      hissed++;
+    }
     rs.forEach((r, i) => {
       returns++;
       if (r.kind === 'riser' || r.kind === 'swell-long') { risen++; if (r.contrast < 1) found.push(`${where}: a partial return at the house rises`); }
@@ -154,7 +163,9 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
       // A palette with no riser of its own (dry, tight) rises a step quieter.
       const STEPS = [.35, .5, .65], sparse = ['dry', 'tight'].includes(String(t.dice.fxPalette));
       const step = STEPS[Math.max(0, (r.gained >= 5 ? 2 : r.gained === 4 ? 1 : 0) - (sparse ? 1 : 0))];
-      if (r.rise && r.gained && Math.abs(r.rise.p.gain! / (r.kind === 'swell-long' ? .7 : 1) - step) > 1e-9)
+      // (the wind as the riser: at or under the step, its ceiling's against the mix; round wind)
+      const over = r.rise && isWindEvent(r.rise) ? r.rise.p.gain! - step > 1e-9 : !!r.rise && Math.abs(r.rise.p.gain! / (r.kind === 'swell-long' ? .7 : 1) - step) > 1e-9;
+      if (r.rise && r.gained && over)
         found.push(`${where}: a rise at ${r.rise.p.gain} for ${r.gained} layers gained on ${t.dice.fxPalette}`);
       if (sparse && r.rise && r.gained < 4) found.push(`${where}: a ${t.dice.fxPalette} theme rises on a return of ${r.gained} layers`);
     });
@@ -163,6 +174,8 @@ test('R34: the lead-ins are scheduled by rules, not by a coin: what follows, the
   // (over 400 returns before round length-2 put the grooves at 3-4 minutes, his word 10-27: "We should aim for 3-4mins
   // here"; 391 since, the shorter themes laying fewer sections)
   assert.ok(returns > 350 && risen > returns / 5 && long > 20, `${returns} returns, ${risen} risen, ${long} long swells`);
+  // (and the hiss is heard: its rule thins it, never empties it)
+  assert.ok(hissed > 50, `${hissed} held hisses`);
   // A first return on a palette that has a rise rises unless the spacing
   // between sections' moments holds it back.
   assert.ok(firstRisen > first * .8, `${firstRisen} of ${first} first returns rise`);

@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "splashLong",
+  "revision": 1,
+  "topology": "cymbal",
+  "dice": 193.1,
+  "parameters": {
+    "ratios": [
+      1,
+      1.47,
+      2.09
+    ],
+    "base": 2600,
+    "detune": 25,
+    "metal": 0.06,
+    "hp": 6000,
+    "peakHz": 7500,
+    "q": 0.6,
+    "tilt": 0,
+    "lidHz": 11000,
+    "pingHz": 0,
+    "pingLevel": 0,
+    "pingDecay": 0.05,
+    "bellPing": 1,
+    "bellWash": 1,
+    "bellRing": 1,
+    "t10": 0.18,
+    "seconds": 1.6,
+    "variants": 3,
+    "variantCents": 120,
+    "attack": 0.003,
+    "trim": 1.0,
+    "rateSpread": 0.06,
+    "gainSpread": 0.1,
+    "decaySpread": 0.15,
+    "panSpread": 0.08,
+    "velBright": 0.2,
+    "velDecay": 0.3,
+    "pan": 0,
+    "room": 0.1
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "drums",
+    "level": "hatOpen",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "splashLong": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.05,
+        "brightnessHz": 7500,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "cymbals.ts",
+    "note": "The splash with a longer fall (top-voices, T17): about 600 ms. A sketch row: nothing draws it."
+  }
+}

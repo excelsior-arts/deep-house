@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "kind": "arrangement",
+  "round": "long-main",
+  "revision": 2,
+  "note": "A minute that doesn't move (round long-main, his ear 11-04 on Drive - Cloudburst's next theme: 'essentially the same minimalistic development going on for 1 minute straight, with some fluctuation through our drum work'; on the sketches, the half-break 'is a lot better', the harmony's departures and the bass's walk out). Where a beat-led theme runs 32 bars or 45 s with no change above the drums (`staticRuns`, src/long-main.ts), the theme's own die may answer it by form: an eight-bar half-break at the phrase line nearest the run's middle, taken out of the main (the theme keeps its length), and where the stretch left is still a run, the build into the drop or a second half-break. The slow places (under leastBpm) and a run without the kick keep their stillness; Loom keeps about one run in two still at its top.",
+  "leastBpm": 100,
+  "leastBars": 32,
+  "leastSeconds": 45,
+  "window": 8,
+  "chance": 1,
+  "leans": {
+    "says": "the one lean (src/lean.ts) on the chance a static run develops, about the house's centre: a static run develops unless Loom (the loop, the hypnotic hold) asks to hold it: about one in two still at full Loom",
+    "centre": 0.5,
+    "strength": 1,
+    "loom": {
+      "develop": -1.5
+    }
+  },
+  "form": {
+    "says": "the half-break: eight bars at the phrase line nearest the run's middle (drawn among the lines within `near` bars of it), the grammar's breakdown a phrase long; its way in at most `lead` bars before it, as the second plan leads into it; a second move where the stretch left is still a run: the build into the drop (its last eight or sixteen bars) where the main runs into one, else a second half-break",
+    "half": 8,
+    "near": 4,
+    "lead": 4,
+    "build": [
+      {
+        "v": 8,
+        "w": 1
+      },
+      {
+        "v": 16,
+        "w": 1
+      }
+    ],
+    "kinds": {
+      "half": 1,
+      "build": 1
+    }
+  }
+}

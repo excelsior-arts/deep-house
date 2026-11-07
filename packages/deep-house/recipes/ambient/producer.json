@@ -1536,7 +1536,7 @@
      "level": 0.25
     },
     "birds": {
-     "says": "PLAN-UNIFY U3 (the fast places' birds), about the Drum & Bass tile's own Zephyr, so the tile plays as it did: Zephyr, how bright the air, the blooms wider and airier up (their spread and their hall, the one lean: x0.55 and x0.67 at Zephyr 0.2, x1.57 and x1.35 at 0.9). Their level stays as U2 left it (a Tide give-back of 3 dB was measured inaudible, 33 dB under the mix at spell B seed 17, and taken out: his call, notes/TODO.md)",
+     "says": "PLAN-UNIFY U3 (the fast places' birds), about the Drum & Bass tile's own Zephyr, so the tile plays as it did: Zephyr, how bright the air, the blooms wider and airier up (their spread and their hall, the one lean: x0.55 and x0.67 at Zephyr 0.2, x1.57 and x1.35 at 0.9). Their level stays as U2 left it (a Tide give-back of 3 dB was measured inaudible, 33 dB under the mix at spell B seed 17, and taken out: his call, the TODO list)",
      "centre": { "zephyr": 0.6 },
      "zephyr": { "width": 1.5, "air": 1 },
      "mostDb": 0

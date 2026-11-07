@@ -28,7 +28,7 @@
 // one, `plays` is null so no arrangement gates them, and the levels are the
 // two the hat family already has.
 
-import { kitTopology, drumNoise, filter, KIT } from './drumkit.ts';
+import { kitTopology, drumNoise, kitNoise, filter, KIT } from './drumkit.ts';
 import { contract, list, num, CENTS, DB, HZ, Q, RATIO, UNIT } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
@@ -137,7 +137,7 @@ function hatBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: numb
     shelf.connect(high);
   } else hiss.connect(high);
 
-  const n = drumNoise(ac, spec.seconds + 0.05, 31337 + Math.round(spec.peakHz));
+  const n = kitNoise(ac, spec, spec.seconds + 0.05, 31337 + Math.round(spec.peakHz));
   n.connect(hiss);
   n.start(at);
   n.stop(at + spec.seconds);
@@ -167,6 +167,9 @@ export const KIT_HAT = kitTopology({
   spec: (H) => hatSpec(H),
   variant: hatVariant,
   build: hatBody,
+  // the noise half's two ears (round stereo-room): the references' hats alone read a correlation of 0.37 with the
+  // metal in it; the metal here stays one channel, so the hiss is drawn a little further apart than that
+  air: 0.3,
 });
 
 export default KIT_HAT;

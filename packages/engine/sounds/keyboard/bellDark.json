@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "bellDark",
+  "revision": 2,
+  "topology": "fm-bell",
+  "parameters": {
+    "ratios": {
+      "dark": 3.51,
+      "tube": 1.41
+    },
+    "tone": "dark",
+    "attack": 0.07,
+    "decay": 4.5,
+    "sustain": 0.0,
+    "release": 2.4,
+    "index": [
+      0.35,
+      0.9
+    ],
+    "indexDecay": 0.5,
+    "indexFloor": 0.05,
+    "detuneCents": 5,
+    "spread": 0.35,
+    "lpHz": 1700,
+    "hpHz": 200,
+    "trim": 1.05
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dark-fronts",
+    "module": "fm-bell.ts",
+    "note": "A dark FM bell: the bell's inharmonic ratio (3.51) under a lid at 1.7 kHz, its clang in the first third of a second and a ring of four and a half seconds; a note's throw sends it into the reverb whole.",
+    "notes": {
+      "lpHz": "1.7 kHz: the clang's partials past it are gone, so it rings dark.",
+      "timbres": "none declared: a sketch row, held at nought (AWAITING) until his pick admits it",
+      "attack": "0.07 s and the index 0.35 + 0.9 per unit of velocity (was 0.003 s, 0.6 + 2.0): round dark-fronts' fifth pass, his ear on the live app ('bells still too loud'): a slower strike and darker first partials, so the bell reads as a shimmer behind the music, not a strike."
+    }
+  }
+}

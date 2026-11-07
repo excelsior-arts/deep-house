@@ -1,5 +1,5 @@
 {
- "note": "Written by tools/headroom-front.ts --report --names: the grid's house mains (seeds 1-12, theme 0) the trim leaves more than 2 LU under their target, each with its window measured at nought: how far its own headroom (15 % of the blocks, the loudest 8 dB over; a window with a sum clip, the depth its clip could give at its cap) would take it, and why it stays (depth: its loudest block, the clap's hit as a rule, past what the clip may take; share: the kick and the bed; either one when the measured headroom leaves it within 0.5 LU of the line or past it; clamp; margin: the model's margin for its own error, its measured headroom would give it back). tools/check.ts fails on a theme past the line that is not named here, and on a name that is no longer past it.",
+ "note": "Written by tools/headroom-front.ts --report --names: the grid's house mains (seeds 1-12, theme 0) the trim leaves more than 2 LU under their target, each with its window measured at nought: how far its own headroom (15 % of the blocks, the loudest 8 dB over; a window with a sum clip, the depth its clip could give at its cap) would take it, and why it stays (depth: its loudest block, the clap's hit as a rule, past what the clip may take; share: the kick and the bed; either one when the measured headroom leaves it within 0.5 LU of the line or past it; clamp; margin: the model's margin for its own error, its measured headroom would give it back). tools/check.ts fails on a theme past the line that is not named here, and on a name that is no longer past it. Since the stab-punch merge (11-04) one theme is named by hand as held by `stab` (ring spark seed 9), until the next refit names it. At the stab-punch merge (11-04) nine named themes moved deeper by hand (their stab stepped back, their trim held by the headroom), each with a note. And 3 came back inside the line there and leave the list (tile Breaks seed 12, ring spark seed 4, ring spark+zephyr seed 4). At the trance-drawn merge (11-05) the two ring seeds 4 are named again by hand, each with a note: the check reads a theme split by a half-break off the plan before its split, the plan its trim was fitted on, where they stand past the line.",
  "measuredAt": "2026-10-31",
  "shortLu": 2,
  "themes": [
@@ -45,7 +45,7 @@
   {
    "link": "seed=4&v=2",
    "place": "tile Deep House",
-   "shortLu": 3.04,
+   "shortLu": 3.6,
    "trimDb": 0.743,
    "heldBy": "share",
    "measured": {
@@ -53,7 +53,8 @@
     "depthDb": 7.99,
     "shortAtItLu": 2.47
    },
-   "why": "share"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 3.04 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=8&v=2",
@@ -93,32 +94,6 @@
     "shortAtItLu": 2.27
    },
    "why": "share"
-  },
-  {
-   "link": "seed=12&v=2&spell=em:0.72,ti:0.45,ze:0.65,sp:0.70",
-   "place": "tile Breaks",
-   "shortLu": 2.14,
-   "trimDb": 2.056,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 1.11,
-    "depthDb": 9.76,
-    "shortAtItLu": 2.77
-   },
-   "why": "share"
-  },
-  {
-   "link": "seed=1&v=2&spell=em:0.35,ti:0.70,ro:0.55",
-   "place": "tile Downtempo",
-   "shortLu": 2.66,
-   "trimDb": -0.62,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 1.79,
-    "depthDb": 12.61,
-    "shortAtItLu": 1.09
-   },
-   "why": "margin"
   },
   {
    "link": "seed=3&v=2&spell=em:0.35,ti:0.70,ro:0.55",
@@ -188,7 +163,7 @@
   {
    "link": "seed=9&v=2&spell=em:0.27,ti:0.55,ze:0.30,ro:0.80,gl:0.20,ve:0.25,sp:0.60",
    "place": "tile Trip Hop",
-   "shortLu": 3.76,
+   "shortLu": 4.95,
    "trimDb": 1.002,
    "heldBy": "share",
    "measured": {
@@ -196,12 +171,13 @@
     "depthDb": 10.69,
     "shortAtItLu": 1.58
    },
-   "why": "share"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 3.76 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=4&v=2&spell=sp:0.95",
    "place": "ring spark",
-   "shortLu": 2.46,
+   "shortLu": 3.08,
    "trimDb": 1.074,
    "heldBy": "share",
    "measured": {
@@ -209,7 +185,8 @@
     "depthDb": 7.74,
     "shortAtItLu": 1.35
    },
-   "why": "margin"
+   "why": "margin",
+   "note": "named again at the trance-drawn merge (11-05), named at 2.46 LU under before stab-punch: since its stab gave way by the scene, its main reads still and takes long-main's half-break; the check reads a split theme off the plan before its split, the plan its trim was fitted on, where it stands past the line (stab-punch's bless read the split plan and saw it back inside); a loudness refit names it again"
   },
   {
    "link": "seed=6&v=2&spell=sp:0.95",
@@ -238,35 +215,9 @@
    "why": "margin"
   },
   {
-   "link": "seed=1&v=2&spell=ze:0.95",
-   "place": "ring zephyr",
-   "shortLu": 2.53,
-   "trimDb": 0.219,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 2.37,
-    "depthDb": 13.08,
-    "shortAtItLu": 1.1
-   },
-   "why": "margin"
-  },
-  {
-   "link": "seed=2&v=2&spell=ze:0.95",
-   "place": "ring zephyr",
-   "shortLu": 4.7,
-   "trimDb": 1.185,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 7.35,
-    "depthDb": 8.32,
-    "shortAtItLu": 1.5
-   },
-   "why": "margin"
-  },
-  {
    "link": "seed=4&v=2&spell=ze:0.95",
    "place": "ring zephyr",
-   "shortLu": 3.91,
+   "shortLu": 4.84,
    "trimDb": 0.809,
    "heldBy": "share",
    "measured": {
@@ -274,20 +225,8 @@
     "depthDb": 6.99,
     "shortAtItLu": 1.74
    },
-   "why": "share"
-  },
-  {
-   "link": "seed=5&v=2&spell=ze:0.95",
-   "place": "ring zephyr",
-   "shortLu": 4.18,
-   "trimDb": 1.488,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 4.8,
-    "depthDb": 7.78,
-    "shortAtItLu": 1.98
-   },
-   "why": "share"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 3.91 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=9&v=2&spell=ze:0.95",
@@ -318,7 +257,7 @@
   {
    "link": "seed=4&v=2&spell=ro:0.95",
    "place": "ring root",
-   "shortLu": 3.04,
+   "shortLu": 3.58,
    "trimDb": 0.741,
    "heldBy": "share",
    "measured": {
@@ -326,12 +265,13 @@
     "depthDb": 9,
     "shortAtItLu": 2.43
    },
-   "why": "share"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 3.04 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=4&v=2&spell=lo:0.95",
    "place": "ring loom",
-   "shortLu": 3.01,
+   "shortLu": 3.72,
    "trimDb": 0.743,
    "heldBy": "share",
    "measured": {
@@ -339,20 +279,8 @@
     "depthDb": 8.94,
     "shortAtItLu": 1.85
    },
-   "why": "share"
-  },
-  {
-   "link": "seed=3&v=2&spell=ti:0.95",
-   "place": "ring tide",
-   "shortLu": 2.47,
-   "trimDb": -1.807,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 1.8,
-    "depthDb": 15.84,
-    "shortAtItLu": 0.16
-   },
-   "why": "margin"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 3.01 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=6&v=2&spell=ti:0.95",
@@ -383,7 +311,7 @@
   {
    "link": "seed=4&v=2&spell=ze:0.80,sp:0.80",
    "place": "ring spark+zephyr",
-   "shortLu": 3.65,
+   "shortLu": 4.46,
    "trimDb": 1.052,
    "heldBy": "share",
    "measured": {
@@ -391,12 +319,13 @@
     "depthDb": 7.14,
     "shortAtItLu": 2.7
    },
-   "why": "share"
+   "why": "share",
+   "note": "named again at the trance-drawn merge (11-05), named at 3.65 LU under before stab-punch: since its stab gave way by the scene, its main reads still and takes long-main's half-break; the check reads a split theme off the plan before its split, the plan its trim was fitted on, where it stands past the line (stab-punch's bless read the split plan and saw it back inside); a loudness refit names it again"
   },
   {
    "link": "seed=4&v=2&spell=ze:0.80,gl:0.80",
    "place": "ring zephyr+gleam",
-   "shortLu": 2.66,
+   "shortLu": 3.56,
    "trimDb": 1.158,
    "heldBy": "share",
    "measured": {
@@ -404,7 +333,8 @@
     "depthDb": 6.54,
     "shortAtItLu": 1.01
    },
-   "why": "margin"
+   "why": "margin",
+   "note": "deeper at the stab-punch merge (11-04), named at 2.66 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=4&v=2&spell=ro:0.80,gl:0.80",
@@ -422,7 +352,7 @@
   {
    "link": "seed=4&v=2&spell=ro:0.80,lo:0.80",
    "place": "ring root+loom",
-   "shortLu": 2.93,
+   "shortLu": 3.57,
    "trimDb": 0.742,
    "heldBy": "share",
    "measured": {
@@ -430,20 +360,8 @@
     "depthDb": 9.02,
     "shortAtItLu": 2.24
    },
-   "why": "share"
-  },
-  {
-   "link": "seed=3&v=2&spell=ti:0.80,lo:0.80",
-   "place": "ring loom+tide",
-   "shortLu": 2.81,
-   "trimDb": -0.58,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 1.78,
-    "depthDb": 12.3,
-    "shortAtItLu": 1.27
-   },
-   "why": "margin"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 2.93 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=4&v=2&spell=ti:0.80,lo:0.80",
@@ -461,7 +379,7 @@
   {
    "link": "seed=4&v=2&spell=ti:0.80,ve:0.80",
    "place": "ring tide+veil",
-   "shortLu": 2.54,
+   "shortLu": 3.42,
    "trimDb": -2.534,
    "heldBy": "share",
    "measured": {
@@ -469,7 +387,8 @@
     "depthDb": 10.12,
     "shortAtItLu": 0.82
    },
-   "why": "margin"
+   "why": "margin",
+   "note": "deeper at the stab-punch merge (11-04), named at 2.54 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
   },
   {
    "link": "seed=1&v=2&spell=em:0.80,ve:0.80",
@@ -537,32 +456,6 @@
    "why": "margin"
   },
   {
-   "link": "seed=3&v=2&spell=ti:0.90,ze:0.90",
-   "place": "ring zephyrxtide",
-   "shortLu": 2.54,
-   "trimDb": -1.315,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 1.43,
-    "depthDb": 12.89,
-    "shortAtItLu": 0.79
-   },
-   "why": "margin"
-  },
-  {
-   "link": "seed=5&v=2&spell=ti:0.90,ze:0.90",
-   "place": "ring zephyrxtide",
-   "shortLu": 3.1,
-   "trimDb": -1.402,
-   "heldBy": "share",
-   "measured": {
-    "shareDb": 2.47,
-    "depthDb": 8.9,
-    "shortAtItLu": 0.6
-   },
-   "why": "margin"
-  },
-  {
    "link": "seed=12&v=2&spell=ti:0.90,ze:0.90",
    "place": "ring zephyrxtide",
    "shortLu": 2.09,
@@ -578,7 +471,7 @@
   {
    "link": "seed=4&v=2&spell=gl:0.90,ve:0.90",
    "place": "ring gleamxveil",
-   "shortLu": 2.75,
+   "shortLu": 3.44,
    "trimDb": 1.188,
    "heldBy": "share",
    "measured": {
@@ -586,7 +479,17 @@
     "depthDb": 8.37,
     "shortAtItLu": 1.93
    },
-   "why": "share"
+   "why": "share",
+   "note": "deeper at the stab-punch merge (11-04), named at 2.75 LU under before: its stab lane speaks in phrases and steps back under its ceiling, and its trim is held by its headroom, so the theme plays quieter by what the stab gave; a loudness refit names it again"
+  },
+  {
+   "link": "seed=9&v=2&spell=sp:0.95",
+   "place": "ring spark",
+   "shortLu": 2.75,
+   "trimDb": 2.711,
+   "heldBy": "stab",
+   "why": "stab",
+   "note": "named by hand at the stab-punch merge (11-04): inside the line before it (trim 3.33); its stab lane now speaks in phrases (36 hits, stepped back 5.6 dB under its ceiling, before the trim), and the trim reads 2.71; the fit data the --names report reads (tmp/analysis/headroom-front.json) is not in this tree, so why the trim reads lower waits for the next loudness refit"
   }
  ]
 }

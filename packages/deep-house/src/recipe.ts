@@ -304,7 +304,7 @@ export function houseRecipe(): Recipe {
       centre: 'the median of the fourteen, measured',
       box: 'half the interquartile range of the fourteen, per bird',
       anchors: 'anchors.json@1e899ba4',
-      calibration: 'notes/analysis/imprint-calibration.md',
+      calibration: 'the imprint-calibration analysis',
       note:
         'The catalogue is two clusters split by the room — Tide, Zephyr, Veil and Spark ' +
         'separate sub from growl with no overlap — so this box is the union of two tighter ' +

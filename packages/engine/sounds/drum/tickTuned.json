@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "tickTuned",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.2,
+        1
+      ],
+      [
+        1.19,
+        0.14,
+        0.5
+      ]
+    ],
+    "attack": 0.001,
+    "release": 0.05,
+    "ringLevel": 0,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 9000,
+    "malletLevel": 0.15,
+    "malletTime": 0.001,
+    "spread": 0,
+    "trim": 0.3,
+    "delay": 0,
+    "reverb": 0.05
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "edge": false,
+    "timbres": {
+      "tickTuned": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 8000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "mallets.ts",
+    "note": "A tuned metal tick (top-voices, T18): two sines a ratio of 1.19 apart at a high note of the key (near 8 kHz), a 1 ms attack and a 200 ms fall to -60 dB, a 1 ms click of noise at 9 kHz; its seat by the note (`strikePan`). A sketch row: nothing draws it; the mallet's builder because nothing else here rings a pitch above 7 kHz."
+  }
+}

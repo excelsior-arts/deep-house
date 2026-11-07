@@ -1,0 +1,2617 @@
+{
+ "about": "The ring's composed words, keyed by the composer's English, Japanese column (draft, round japanese).",
+ "lines": {
+  "Broken beats at 120–140 BPM, from big beat to nu-skool breaks.": {
+   "ja": "120–140 BPMのブレイクビーツ。ビッグビートからニュースクール・ブレイクスまで。"
+  },
+  "The drums are off and the pulse floats free at {bpm} beats a minute.": {
+   "ja": "ドラムはオフ、パルスは{bpm} BPMで自由に漂う。"
+  },
+  "The pulse floats free at {bpm} beats a minute, with no kick under it.": {
+   "ja": "パルスは{bpm} BPMで自由に漂い、キックなし。"
+  },
+  "The kick is a steady four at {bpm} beats a minute.": {
+   "ja": "キックは{bpm} BPMの安定した4つ打ち。"
+  },
+  "The kick drives at {bpm} beats a minute.": {
+   "ja": "キックは{bpm} BPMで力強く進む。"
+  },
+  "The beat runs fast at {bpm} beats a minute.": {
+   "ja": "ビートは{bpm} BPMで速く走る。"
+  },
+  "No drums, pulse at {bpm}": {
+   "ja": "ドラムなし、パルス {bpm}"
+  },
+  "Free pulse at {bpm}": {
+   "ja": "フリーなパルス {bpm}"
+  },
+  "Steady four at {bpm}": {
+   "ja": "安定した4つ打ち {bpm}"
+  },
+  "Driving kick at {bpm}": {
+   "ja": "力強いキック {bpm}"
+  },
+  "Fast beat at {bpm}": {
+   "ja": "高速ビート {bpm}"
+  },
+  "The beat is straight{with}.": {
+   "ja": "ビートはストレート{with}。"
+  },
+  "Straight beat{with}": {
+   "ja": "ストレートなビート{with}"
+  },
+  "Straight beat, hardly moving": {
+   "ja": "ストレートなビート、動きはごくわずか"
+  },
+  "The beat is straight and hardly moving{with}.": {
+   "ja": "ビートはストレートで、ほとんど動かない{with}。"
+  },
+  "Straight beat, nearly rolling": {
+   "ja": "ストレートなビート、ローリング寄り"
+  },
+  "The beat is straight, nearly rolling{with}.": {
+   "ja": "ビートはストレート、ローリング寄り{with}。"
+  },
+  "hand percussion answering": {
+   "ja": "応えるハンドパーカッション"
+  },
+  "percussion answers": {
+   "ja": "パーカッションの応答"
+  },
+  ", with ": {
+   "ja": "、"
+  },
+  "The beat is four on the floor{with}.": {
+   "ja": "ビートは4つ打ち{with}。"
+  },
+  "Rolling four{with}": {
+   "ja": "ローリング4つ打ち{with}"
+  },
+  "Just rolling four": {
+   "ja": "ローリングし始めの4つ打ち"
+  },
+  "The beat is four on the floor, just starting to move{with}.": {
+   "ja": "ビートは4つ打ち、動き始めたところ{with}。"
+  },
+  "Rolling four, nearly broken": {
+   "ja": "ローリング4つ打ち、ブロークン寄り"
+  },
+  "The beat is four on the floor, nearly broken{with}.": {
+   "ja": "ビートは4つ打ち、ブロークン寄り{with}。"
+  },
+  "rolling hands": {
+   "ja": "ロールするハンドパーカッション"
+  },
+  "hands roll": {
+   "ja": "ハンドパーカッションのロール"
+  },
+  "The beat is broken{with}.": {
+   "ja": "ビートはブロークン{with}。"
+  },
+  "Broken beat{with}": {
+   "ja": "ブロークンビート{with}"
+  },
+  "Just broken{with}": {
+   "ja": "わずかにブロークン{with}"
+  },
+  "The beat is just broken{with}.": {
+   "ja": "ビートはわずかにブロークン{with}。"
+  },
+  "Deeply broken{with}": {
+   "ja": "大きくブロークン{with}"
+  },
+  "The beat is deeply broken{with}.": {
+   "ja": "ビートは大きくブロークン{with}。"
+  },
+  "the breaks kit": {
+   "ja": "キットはブレイクビーツ"
+  },
+  "breaks kit": {
+   "ja": "ブレイクビーツキット"
+  },
+  ", on ": {
+   "ja": "、"
+  },
+  "the hats play {hats}, {hits}, and the bass is {bass}": {
+   "ja": "ハットは{hats}（{hits}）、ベースは{bass}"
+  },
+  "No beat plays: the drums are off.": {
+   "ja": "ビートなし：ドラムはオフ。"
+  },
+  "No beat, drums off": {
+   "ja": "ビートなし、ドラムオフ"
+  },
+  "{front} carries the tone.": {
+   "ja": "音色の中心は{front}。"
+  },
+  "{front}": {
+   "ja": "{front}"
+  },
+  "The air is dark, {on}.": {
+   "ja": "空気感はダーク、{on}。"
+  },
+  "Dark air": {
+   "ja": "ダークな空気感"
+  },
+  "Very dark air": {
+   "ja": "ごくダークな空気感"
+  },
+  "The air is very dark, {on}.": {
+   "ja": "空気感はごくダーク、{on}。"
+  },
+  "Dark, nearly warm": {
+   "ja": "ダーク、ウォーム寄り"
+  },
+  "The air is dark, nearly warm, {on}.": {
+   "ja": "空気感はダーク、ウォーム寄り、{on}。"
+  },
+  "The air is warm, {on}.": {
+   "ja": "空気感はウォーム、{on}。"
+  },
+  "Warm air": {
+   "ja": "ウォームな空気感"
+  },
+  "Warm, nearly dark": {
+   "ja": "ウォーム、ダーク寄り"
+  },
+  "The air is warm, nearly dark, {on}.": {
+   "ja": "空気感はウォーム、ダーク寄り、{on}。"
+  },
+  "Warm, nearly mellow": {
+   "ja": "ウォーム、メロウ寄り"
+  },
+  "The air is warm, nearly mellow, {on}.": {
+   "ja": "空気感はウォーム、メロウ寄り、{on}。"
+  },
+  "The air is mellow, {on}.": {
+   "ja": "空気感はメロウ、{on}。"
+  },
+  "Mellow air": {
+   "ja": "メロウな空気感"
+  },
+  "Mellow, nearly warm": {
+   "ja": "メロウ、ウォーム寄り"
+  },
+  "The air is mellow, nearly warm, {on}.": {
+   "ja": "空気感はメロウ、ウォーム寄り、{on}。"
+  },
+  "Mellow, nearly clear": {
+   "ja": "メロウ、クリア寄り"
+  },
+  "The air is mellow, nearly clear, {on}.": {
+   "ja": "空気感はメロウ、クリア寄り、{on}。"
+  },
+  "The air is clear, {on}.": {
+   "ja": "空気感はクリア、{on}。"
+  },
+  "Clear air": {
+   "ja": "クリアな空気感"
+  },
+  "Clear, nearly mellow": {
+   "ja": "クリア、メロウ寄り"
+  },
+  "The air is clear, nearly mellow, {on}.": {
+   "ja": "空気感はクリア、メロウ寄り、{on}。"
+  },
+  "Clear, nearly bright": {
+   "ja": "クリア、ブライト寄り"
+  },
+  "The air is clear, nearly bright, {on}.": {
+   "ja": "空気感はクリア、ブライト寄り、{on}。"
+  },
+  "The air is bright, {on}.": {
+   "ja": "空気感はブライト、{on}。"
+  },
+  "Bright air": {
+   "ja": "ブライトな空気感"
+  },
+  "Bright, nearly clear": {
+   "ja": "ブライト、クリア寄り"
+  },
+  "The air is bright, nearly clear, {on}.": {
+   "ja": "空気感はブライト、クリア寄り、{on}。"
+  },
+  "Bright, nearly airy": {
+   "ja": "ブライト、エアリー寄り"
+  },
+  "The air is bright, nearly airy, {on}.": {
+   "ja": "空気感はブライト、エアリー寄り、{on}。"
+  },
+  "The air is light and open, {on}.": {
+   "ja": "空気感は軽く開放的、{on}。"
+  },
+  "Light, open air": {
+   "ja": "軽く開放的な空気感"
+  },
+  "Airy, nearly bright": {
+   "ja": "エアリー、ブライト寄り"
+  },
+  "The air is light and open, nearly bright, {on}.": {
+   "ja": "空気感は軽く開放的、ブライト寄り、{on}。"
+  },
+  "Very light, open air": {
+   "ja": "ごく軽く開放的な空気感"
+  },
+  "The air is very light and open, {on}.": {
+   "ja": "空気感はごく軽く開放的、{on}。"
+  },
+  "on {voice}": {
+   "ja": "音色は{voice}"
+  },
+  "held on {voice}": {
+   "ja": "持続音は{voice}"
+  },
+  "the calls on {voice}": {
+   "ja": "コールは{voice}"
+  },
+  "The harmony is held{with}.": {
+   "ja": "ハーモニーは持続{with}。"
+  },
+  "Harmony held{with}": {
+   "ja": "持続するハーモニー{with}"
+  },
+  "Held deep{with}": {
+   "ja": "深く持続{with}"
+  },
+  "The harmony is held deep{with}.": {
+   "ja": "ハーモニーは深く持続{with}。"
+  },
+  "Harmony held, nearly moving": {
+   "ja": "持続するハーモニー、展開寄り"
+  },
+  "The harmony is held, nearly moving{with}.": {
+   "ja": "ハーモニーは持続、展開寄り{with}。"
+  },
+  "a pedal": {
+   "ja": "ペダル音の上"
+  },
+  "on pedal": {
+   "ja": "ペダル音の上"
+  },
+  "The harmony moves, chord to chord{with}.": {
+   "ja": "ハーモニーはコードからコードへ動く{with}。"
+  },
+  "Harmony moves chord to chord": {
+   "ja": "コードからコードへ動くハーモニー"
+  },
+  "Harmony just moving": {
+   "ja": "わずかに動くハーモニー"
+  },
+  "The harmony just moves, chord to chord{with}.": {
+   "ja": "ハーモニーはわずかにコードを移る{with}。"
+  },
+  "Harmony moving, nearly lifted": {
+   "ja": "動くハーモニー、高揚寄り"
+  },
+  "The harmony moves chord to chord, nearly lifted{with}.": {
+   "ja": "ハーモニーはコードからコードへ動き、高揚寄り{with}。"
+  },
+  ", over ": {
+   "ja": "、"
+  },
+  "The harmony is light{with}.": {
+   "ja": "ハーモニーは軽やか{with}。"
+  },
+  "Light harmony{with}": {
+   "ja": "軽やかなハーモニー{with}"
+  },
+  "Harmony just lifted": {
+   "ja": "わずかに高揚するハーモニー"
+  },
+  "The harmony is just light{with}.": {
+   "ja": "ハーモニーはわずかに軽やか{with}。"
+  },
+  "Harmony well lifted{with}": {
+   "ja": "しっかり高揚するハーモニー{with}"
+  },
+  "The harmony is well lifted{with}.": {
+   "ja": "ハーモニーはしっかり高揚{with}。"
+  },
+  "arching figures": {
+   "ja": "アーチを描く音型"
+  },
+  "the key is {key}{chords}": {
+   "ja": "キーは{key}{chords}"
+  },
+  "The bass is thin and the full body rarely plays.": {
+   "ja": "ベースは細く、厚みのあるベース音はまれにしか鳴らない。"
+  },
+  "Thin bass, body rare": {
+   "ja": "細いベース、厚みのある音はまれ"
+  },
+  "Very thin bass, body rare": {
+   "ja": "ごく細いベース、厚みのある音はまれ"
+  },
+  "The bass is very thin and the full body rarely plays.": {
+   "ja": "ベースはごく細く、厚みのあるベース音はまれにしか鳴らない。"
+  },
+  "Thin bass, nearly full": {
+   "ja": "細いベース、ほぼ太い"
+  },
+  "The bass is thin, nearly full, and the full body rarely plays.": {
+   "ja": "ベースは細めで太さに近いが、厚みのあるベース音はまれにしか鳴らない。"
+  },
+  "The bass is full and steady.": {
+   "ja": "ベースは太く安定。"
+  },
+  "Full bass": {
+   "ja": "太いベース"
+  },
+  "Full bass, leaning thin": {
+   "ja": "太いベース、やや細め"
+  },
+  "The bass is full and steady, leaning thin.": {
+   "ja": "ベースは太く安定、やや細め。"
+  },
+  "Full bass, leaning heavy": {
+   "ja": "太いベース、やや重め"
+  },
+  "The bass is full and steady, leaning heavy.": {
+   "ja": "ベースは太く安定、やや重め。"
+  },
+  "The bass is heavy.": {
+   "ja": "ベースは重い。"
+  },
+  "Heavy bass": {
+   "ja": "重いベース"
+  },
+  "Just heavy bass": {
+   "ja": "わずかに重いベース"
+  },
+  "The bass is just heavy.": {
+   "ja": "ベースはわずかに重い。"
+  },
+  "Deep heavy bass": {
+   "ja": "深く重いベース"
+  },
+  "The bass is deeply heavy.": {
+   "ja": "ベースは深く重い。"
+  },
+  "the room is {room}": {
+   "ja": "ルームは{room}"
+  },
+  "The form is short loops, with no pedal.": {
+   "ja": "構成は短いループ、ペダル音なし。"
+  },
+  "Short loops, no pedal": {
+   "ja": "短いループ、ペダル音なし"
+  },
+  "Very short loops, no pedal": {
+   "ja": "ごく短いループ、ペダル音なし"
+  },
+  "The form is very short loops, with no pedal.": {
+   "ja": "構成はごく短いループ、ペダル音なし。"
+  },
+  "Loops, nearly phrases": {
+   "ja": "ループ、フレーズ寄り"
+  },
+  "The form is loops, nearly phrases, with no pedal.": {
+   "ja": "構成はループ、フレーズ寄り、ペダル音なし。"
+  },
+  "The form turns phrase by phrase.": {
+   "ja": "構成はフレーズごとに巡る。"
+  },
+  "Form turns phrase by phrase": {
+   "ja": "フレーズごとに巡る構成"
+  },
+  "Phrases, close to loops": {
+   "ja": "フレーズ、ループ寄り"
+  },
+  "The form turns phrase by phrase, close to loops.": {
+   "ja": "構成はフレーズごとに巡り、ループ寄り。"
+  },
+  "Phrases, nearly long form": {
+   "ja": "フレーズ、ほぼ長い構成"
+  },
+  "The form turns phrase by phrase, nearly long.": {
+   "ja": "構成はフレーズごとに巡り、ほぼ長い。"
+  },
+  "The form is long{with}.": {
+   "ja": "構成は長い{with}。"
+  },
+  "Long form{with}": {
+   "ja": "長い構成{with}"
+  },
+  "Just long{with}": {
+   "ja": "やや長い{with}"
+  },
+  "The form is just long{with}.": {
+   "ja": "構成はやや長い{with}。"
+  },
+  "Very long form{with}": {
+   "ja": "ごく長い構成{with}"
+  },
+  "The form is very long{with}.": {
+   "ja": "構成はごく長い{with}。"
+  },
+  "eight-bar pedals": {
+   "ja": "8小節のペダル音"
+  },
+  "long pedals": {
+   "ja": "長いペダル音"
+  },
+  "arches": {
+   "ja": "アーチ"
+  },
+  "the density is {density}": {
+   "ja": "密度は{density}"
+  },
+  "The sound is close and dry{with}.": {
+   "ja": "サウンドは近くてドライ{with}。"
+  },
+  "Close, dry sound": {
+   "ja": "近くてドライなサウンド"
+  },
+  "Very close, dry sound": {
+   "ja": "ごく近くてドライなサウンド"
+  },
+  "The sound is very close and dry{with}.": {
+   "ja": "サウンドはごく近くてドライ{with}。"
+  },
+  "Close sound, nearly open": {
+   "ja": "近いサウンド、開放寄り"
+  },
+  "The sound is close, nearly open{with}.": {
+   "ja": "サウンドは近く、開放寄り{with}。"
+  },
+  "a pulse keeping time": {
+   "ja": "時を刻むパルス"
+  },
+  "a pulse": {
+   "ja": "パルス"
+  },
+  "the drone up front": {
+   "ja": "前に出るドローン"
+  },
+  "drone forward": {
+   "ja": "前に出るドローン"
+  },
+  "The sound is open and spacious{with}.": {
+   "ja": "サウンドは開放的で、広がりがある{with}。"
+  },
+  "Open, spacious sound": {
+   "ja": "開放的で広々としたサウンド"
+  },
+  "Just open sound": {
+   "ja": "わずかに開いたサウンド"
+  },
+  "The sound is just open and spacious{with}.": {
+   "ja": "サウンドはやや開放的で、広がりがある{with}。"
+  },
+  "Open sound, nearly wide": {
+   "ja": "開放的なサウンド、ワイド寄り"
+  },
+  "The sound is open and spacious, nearly wide{with}.": {
+   "ja": "サウンドは開放的で、ワイドに近い広がりがある{with}。"
+  },
+  "The sound is wide{with}.": {
+   "ja": "サウンドはワイド{with}。"
+  },
+  "Wide sound{with}": {
+   "ja": "ワイドなサウンド{with}"
+  },
+  "Just wide sound{with}": {
+   "ja": "わずかにワイドなサウンド{with}"
+  },
+  "The sound is just wide{with}.": {
+   "ja": "サウンドはわずかにワイド{with}。"
+  },
+  "Very wide{with}": {
+   "ja": "ごくワイド{with}"
+  },
+  "The sound is very wide{with}.": {
+   "ja": "サウンドはごくワイド{with}。"
+  },
+  "the backbeat far back": {
+   "ja": "奥で鳴るバックビート"
+  },
+  "backbeat back": {
+   "ja": "奥のバックビート"
+  },
+  "the theme has {sections}": {
+   "ja": "テーマは{sections}"
+  },
+  "The texture stands still{with}.": {
+   "ja": "テクスチャーは静止{with}。"
+  },
+  "Still texture{with}": {
+   "ja": "静止したテクスチャー{with}"
+  },
+  "Very still{with}": {
+   "ja": "まったく動かない{with}"
+  },
+  "The texture stands very still{with}.": {
+   "ja": "テクスチャーはまったく動かない{with}。"
+  },
+  "Still, nearly steady pace": {
+   "ja": "静止、ほぼ安定したペース"
+  },
+  "The texture stands still, nearly at an even pace{with}.": {
+   "ja": "テクスチャーは静止、ほぼ一定のペース{with}。"
+  },
+  "the drone behind": {
+   "ja": "後ろに控えるドローン"
+  },
+  "drone behind": {
+   "ja": "後ろのドローン"
+  },
+  "ornaments": {
+   "ja": "装飾音"
+  },
+  "The music changes at an even pace{with}.": {
+   "ja": "曲は一定のペースで変わる{with}。"
+  },
+  "Steady pace": {
+   "ja": "安定したペース"
+  },
+  "Steady pace, nearly still": {
+   "ja": "安定したペース、静止寄り"
+  },
+  "The music changes at an even pace, nearly still{with}.": {
+   "ja": "曲は一定のペースで変わり、静止寄り{with}。"
+  },
+  "Steady pace, nearly shifting": {
+   "ja": "安定したペース、変化寄り"
+  },
+  "The music changes at an even pace, nearly shifting{with}.": {
+   "ja": "曲は一定のペースで変わり、ほぼ変化し続ける{with}。"
+  },
+  "The music keeps shifting{with}.": {
+   "ja": "曲は変化し続ける{with}。"
+  },
+  "Shifting textures{with}": {
+   "ja": "変化するテクスチャー{with}"
+  },
+  "Just shifting{with}": {
+   "ja": "わずかに変化{with}"
+  },
+  "The music just keeps shifting{with}.": {
+   "ja": "曲はわずかに変化し続ける{with}。"
+  },
+  "Always shifting{with}": {
+   "ja": "常に変化{with}"
+  },
+  "The music keeps shifting all the time{with}.": {
+   "ja": "曲は絶えず変化し続ける{with}。"
+  },
+  "the effects are {fx}": {
+   "ja": "エフェクトは{fx}"
+  },
+  "The supersaw is driven and crushed, bright with dirt on it.": {
+   "ja": "スーパーソウは歪みとビットクラッシュをまとい、ざらついた明るい音。"
+  },
+  "Driven, crushed": {
+   "ja": "ドライブ、ビットクラッシュ"
+  },
+  "The supersaw cleans up, its crush thinning.": {
+   "ja": "スーパーソウはクリーンになり、ビットクラッシュが薄れる。"
+  },
+  "Cleaner, crush thinning": {
+   "ja": "クリーンへ、薄れるビットクラッシュ"
+  },
+  "The supersaw is clean and open, its chords high and wide.": {
+   "ja": "スーパーソウはクリーンで開放的、コードは高くワイド。"
+  },
+  "Clean, open": {
+   "ja": "クリーン、開放"
+  },
+  "The supersaw strikes softly, barely driven.": {
+   "ja": "スーパーソウは柔らかく鳴り、ドライブはごくわずか。"
+  },
+  "Soft strike": {
+   "ja": "ソフトなアタック"
+  },
+  "The supersaw is driven, its gate sharper.": {
+   "ja": "スーパーソウはドライブし、ゲートは鋭い。"
+  },
+  "Driven, sharper": {
+   "ja": "ドライブ、鋭いゲート"
+  },
+  "The supersaw is driven hard, an octave layered over it.": {
+   "ja": "スーパーソウは強く歪み、1オクターブ上の音が重なる。"
+  },
+  "Hard, octave over": {
+   "ja": "ハード、1オクターブ上を重ねる"
+  },
+  "The chop thins toward the off-beats, the patient gallop.": {
+   "ja": "チョップは裏拍へと間引かれ、ゆったりしたギャロップ。"
+  },
+  "Sparser chop": {
+   "ja": "まばらなチョップ"
+  },
+  "The full gallop, every sixteenth chopped.": {
+   "ja": "フルギャロップ、16分すべてをチョップ。"
+  },
+  "Full gallop": {
+   "ja": "フルギャロップ"
+  },
+  "the calls are on {caller}, the answers on {answerer}": {
+   "ja": "コールは{caller}、応答は{answerer}"
+  },
+  "The bells are small, high and quick.": {
+   "ja": "鐘は小さく、高く、速い。"
+  },
+  "Small, high bells": {
+   "ja": "小さく高い鐘"
+  },
+  "All small, high bells": {
+   "ja": "すべて小さく高い鐘"
+  },
+  "The bells are all small, high and bright.": {
+   "ja": "鐘はすべて小さく高く、ブライト。"
+  },
+  "Small, nearly low and high": {
+   "ja": "小さい、高低寄り"
+  },
+  "The bells are small, nearly low and high.": {
+   "ja": "鐘は小さく、高低寄り。"
+  },
+  "Low and high bells talk.": {
+   "ja": "低い鐘と高い鐘が掛け合う。"
+  },
+  "Low and high bells": {
+   "ja": "高低の鐘"
+  },
+  "Low and high, leaning small": {
+   "ja": "高低、小さな鐘寄り"
+  },
+  "Low and high bells talk, leaning small.": {
+   "ja": "低い鐘と高い鐘が掛け合い、小さな鐘寄り。"
+  },
+  "Low and high, leaning great": {
+   "ja": "高低、大きな鐘寄り"
+  },
+  "Low and high bells talk, leaning toward the great bell.": {
+   "ja": "低い鐘と高い鐘が掛け合い、大きな鐘寄り。"
+  },
+  "The bells are great, deep and slow.": {
+   "ja": "鐘は大きく、深く、ゆっくり。"
+  },
+  "Great, deep bells": {
+   "ja": "大きな鐘の深い響き"
+  },
+  "Great, nearly low and high": {
+   "ja": "大きい、高低寄り"
+  },
+  "The bells are great, nearly low and high.": {
+   "ja": "鐘は大きく、高低寄り。"
+  },
+  "Great, very deep bells": {
+   "ja": "大きな鐘の、ごく深い響き"
+  },
+  "The bells are great and very deep, struck rarely.": {
+   "ja": "鐘は大きくごく深く、まれに打たれる。"
+  },
+  "The bells talk rarely, with long rests between.": {
+   "ja": "鐘はまれに掛け合い、間に長い休符。"
+  },
+  "Rare talk, long rests": {
+   "ja": "まれな掛け合い、長い休符"
+  },
+  "Very rare talk": {
+   "ja": "ごくまれな掛け合い"
+  },
+  "The bells talk very rarely, the bowl alone between.": {
+   "ja": "鐘はごくまれに掛け合い、合間はボウルだけ。"
+  },
+  "Rare, nearly now and then": {
+   "ja": "まれ、時々寄り"
+  },
+  "The bells talk rarely, nearly now and then.": {
+   "ja": "鐘はまれに掛け合い、時々寄り。"
+  },
+  "The bells talk now and then.": {
+   "ja": "鐘は時々掛け合う。"
+  },
+  "Talk now and then": {
+   "ja": "時々の掛け合い"
+  },
+  "Unhurried talk": {
+   "ja": "ゆったりした掛け合い"
+  },
+  "The bells talk now and then, unhurried.": {
+   "ja": "鐘は時々、ゆったり掛け合う。"
+  },
+  "Now and then, nearly often": {
+   "ja": "時々、頻繁寄り"
+  },
+  "The bells talk now and then, edging toward often.": {
+   "ja": "鐘は時々掛け合い、頻繁に近づく。"
+  },
+  "The bells talk often, each strike soft.": {
+   "ja": "鐘は頻繁に掛け合い、一打ずつ柔らかい。"
+  },
+  "Talk often, soft strikes": {
+   "ja": "頻繁な掛け合い、柔らかな打音"
+  },
+  "Often, nearly now and then": {
+   "ja": "頻繁、時々寄り"
+  },
+  "The bells talk often, nearly now and then.": {
+   "ja": "鐘は頻繁に掛け合い、時々寄り。"
+  },
+  "Talk often, voices changing": {
+   "ja": "頻繁な掛け合い、声が入れ替わる"
+  },
+  "The bells talk often, other voices taking over the call and the answer.": {
+   "ja": "鐘は頻繁に掛け合い、別の声がコールと応答を引き継ぐ。"
+  },
+  "the hand is {hand}": {
+   "ja": "ハンドパーカッションは{hand}"
+  },
+  "the hand is silent": {
+   "ja": "ハンドパーカッションは無音"
+  },
+  "The talk is still and even, the bowl carrying the time.": {
+   "ja": "掛け合いは穏やかで、ペースは一定。ボウルが時を刻む。"
+  },
+  "Still, even talk": {
+   "ja": "穏やかで一定の掛け合い"
+  },
+  "Still talk, the hand rare": {
+   "ja": "静かな掛け合い、ハンドパーカッションはまれ"
+  },
+  "The talk is still, the hand rare and the bowl carrying the time.": {
+   "ja": "掛け合いは静か、ハンドパーカッションはまれで、ボウルが時を刻む。"
+  },
+  "Still talk, no hand": {
+   "ja": "静かな掛け合い、ハンドパーカッションなし"
+  },
+  "The talk is still, the bowl alone carrying the time.": {
+   "ja": "掛け合いは静か、ボウルだけが時を刻む。"
+  },
+  "Still, nearly moving": {
+   "ja": "静か、ほぼ動き出す"
+  },
+  "The talk is still, nearly moving.": {
+   "ja": "掛け合いは静か、ほぼ動き出す。"
+  },
+  "The talk moves, the hand now and then.": {
+   "ja": "掛け合いは動き、ハンドパーカッションは時々。"
+  },
+  "The talk moves gently": {
+   "ja": "掛け合いは穏やかに動く"
+  },
+  "The talk moves gently, the bowl keeping the time.": {
+   "ja": "掛け合いは穏やかに動き、ボウルが時を刻む。"
+  },
+  "Moving, nearly still": {
+   "ja": "動き、静か寄り"
+  },
+  "The talk moves, nearly still.": {
+   "ja": "掛け合いは動き、静か寄り。"
+  },
+  "Moving, nearly lilting": {
+   "ja": "動き、ほぼ弾む"
+  },
+  "The talk moves, nearly lilting.": {
+   "ja": "掛け合いは動き、ほぼ弾む。"
+  },
+  "The talk lilts, the answers quick and the hand often.": {
+   "ja": "掛け合いは弾み、応答は速く、ハンドパーカッションは頻繁。"
+  },
+  "Lilting, quick answers": {
+   "ja": "弾み、速い応答"
+  },
+  "The talk lilts, the answers quick.": {
+   "ja": "掛け合いは弾み、応答は速い。"
+  },
+  "Lilting gently": {
+   "ja": "穏やかに弾む"
+  },
+  "The talk lilts gently.": {
+   "ja": "掛け合いは穏やかに弾む。"
+  },
+  "Lilting, the hand often": {
+   "ja": "弾み、ハンドパーカッションは頻繁"
+  },
+  "The talk lilts, the answers very quick and the hand often.": {
+   "ja": "掛け合いは弾み、応答はごく速く、ハンドパーカッションは頻繁。"
+  },
+  "Lilting, very quick answers": {
+   "ja": "弾み、ごく速い応答"
+  },
+  "The talk lilts, the answers very quick.": {
+   "ja": "掛け合いは弾み、応答はごく速い。"
+  },
+  "The bells are dark, the bowl holding the tonic and the calls coming home.": {
+   "ja": "鐘はダーク、ボウルが主音を保ち、コールは主音へ帰る。"
+  },
+  "Dark, bowl on the tonic": {
+   "ja": "ダーク、ボウルは主音"
+  },
+  "Very dark, tonic held": {
+   "ja": "ごくダーク、主音を保持"
+  },
+  "The bells are very dark, the bowl on the tonic.": {
+   "ja": "鐘はごくダーク、ボウルは主音。"
+  },
+  "The bells are dark, nearly warm.": {
+   "ja": "鐘はダーク、ウォーム寄り。"
+  },
+  "The bells are warm, the bowl moving between the tonic and the fifth.": {
+   "ja": "鐘はウォーム、ボウルは主音と5度を行き来する。"
+  },
+  "Warm, tonic and fifth": {
+   "ja": "ウォーム、主音と5度"
+  },
+  "The bells are warm, nearly dark.": {
+   "ja": "鐘はウォーム、ダーク寄り。"
+  },
+  "Warm, nearly lifted": {
+   "ja": "ウォーム、高揚寄り"
+  },
+  "The bells are warm, nearly lifted.": {
+   "ja": "鐘はウォーム、高揚寄り。"
+  },
+  "The bells are lifted, the bowl leaving the tonic and the calls on the third and the seventh.": {
+   "ja": "鐘は高揚、ボウルは主音を離れ、コールは3度と7度。"
+  },
+  "Lifted, the bowl wanders": {
+   "ja": "高揚、さまようボウル"
+  },
+  "Lightly lifted": {
+   "ja": "軽く高揚"
+  },
+  "The bells are lightly lifted, the bowl starting to wander.": {
+   "ja": "鐘は軽く高揚、ボウルがさまよい始める。"
+  },
+  "Well lifted, bowl wandering": {
+   "ja": "しっかり高揚、さまようボウル"
+  },
+  "The bells are well lifted, the bowl far from the tonic.": {
+   "ja": "鐘はしっかり高揚、ボウルは主音から遠い。"
+  },
+  "The air is {air}, the calls on {caller}, struck soft and round.": {
+   "ja": "空気感は{air}、コールは{caller}、柔らかく丸い打音。"
+  },
+  "Struck soft and round": {
+   "ja": "柔らかく丸い打音"
+  },
+  "Struck very softly": {
+   "ja": "ごく柔らかな打音"
+  },
+  "The air is {air}, the calls on {caller}, struck very softly.": {
+   "ja": "空気感は{air}、コールは{caller}、ごく柔らかな打音。"
+  },
+  "Soft, nearly firm": {
+   "ja": "ソフト、ほぼ芯がある"
+  },
+  "The air is {air}, the calls on {caller}, struck soft, nearly firm.": {
+   "ja": "空気感は{air}、コールは{caller}、柔らかな打音、ほぼ芯がある。"
+  },
+  "The air is {air}, the calls on {caller}, struck firm.": {
+   "ja": "空気感は{air}、コールは{caller}、芯のある打音。"
+  },
+  "Struck firm": {
+   "ja": "芯のある打音"
+  },
+  "Firm, nearly soft": {
+   "ja": "芯がある、ソフト寄り"
+  },
+  "The air is {air}, the calls on {caller}, struck firm, nearly soft.": {
+   "ja": "空気感は{air}、コールは{caller}、芯のある打音、ソフト寄り。"
+  },
+  "Firm, nearly hard": {
+   "ja": "芯がある、ハード寄り"
+  },
+  "The air is {air}, the calls on {caller}, struck firm, nearly hard.": {
+   "ja": "空気感は{air}、コールは{caller}、芯のある打音、ハード寄り。"
+  },
+  "The air is {air}, the calls on {caller}, struck hard.": {
+   "ja": "空気感は{air}、コールは{caller}、ハードな打音。"
+  },
+  "Struck hard": {
+   "ja": "ハードな打音"
+  },
+  "Hard, nearly firm": {
+   "ja": "ハード、ほぼ芯がある"
+  },
+  "The air is {air}, the calls on {caller}, struck hard, nearly firm.": {
+   "ja": "空気感は{air}、コールは{caller}、ハードな打音、ほぼ芯がある。"
+  },
+  "Struck hard, metallic": {
+   "ja": "ハードで金属的な打音"
+  },
+  "The air is {air}, the calls on {caller}, struck hard and metallic.": {
+   "ja": "空気感は{air}、コールは{caller}、ハードで金属的な打音。"
+  },
+  "The strikes fall free at {bpm} beats a minute, with no kick.": {
+   "ja": "打音は{bpm} BPMを基準に自由に響く。キックなし。"
+  },
+  "Free time at {bpm}": {
+   "ja": "自由なリズム {bpm}"
+  },
+  "Loose, free time at {bpm}": {
+   "ja": "ゆるやかで自由なリズム {bpm}"
+  },
+  "The strikes fall free and loose at {bpm} beats a minute, with no kick.": {
+   "ja": "打音は{bpm} BPMを基準に、ゆるやかで自由な間合い。キックなし。"
+  },
+  "Free, nearly on the grid": {
+   "ja": "フリー、ほぼグリッド上"
+  },
+  "The strikes fall free, nearly on the grid, at {bpm} beats a minute.": {
+   "ja": "打音は{bpm} BPMを基準に自由に響き、タイミングはほぼグリッドに沿う。"
+  },
+  "The strikes settle on the eighths at {bpm} beats a minute.": {
+   "ja": "打音は{bpm} BPMの8分グリッドに乗る。"
+  },
+  "On the eighths at {bpm}": {
+   "ja": "8分に乗る {bpm}"
+  },
+  "A soft heartbeat marks each bar at {bpm} beats a minute, the strikes on the grid.": {
+   "ja": "{bpm} BPMで柔らかな鼓動が小節ごとに刻まれ、打音はグリッド上。"
+  },
+  "Heartbeat at {bpm}": {
+   "ja": "鼓動 {bpm}"
+  },
+  "The talk is a loop, the rests close and its answers free to repeat.": {
+   "ja": "掛け合いはループ、休符は短く、応答は自由に繰り返す。"
+  },
+  "A loop, close rests": {
+   "ja": "ループ、短い休符"
+  },
+  "A tight loop": {
+   "ja": "タイトなループ"
+  },
+  "The talk is a tight loop, the rests close.": {
+   "ja": "掛け合いはタイトなループ、休符は短い。"
+  },
+  "A loop, nearly phrases": {
+   "ja": "ループ、フレーズ寄り"
+  },
+  "The talk is a loop, nearly phrases.": {
+   "ja": "掛け合いはループ、フレーズ寄り。"
+  },
+  "The talk turns phrase by phrase, each answer its own.": {
+   "ja": "掛け合いはフレーズごとに巡り、応答はそれぞれ違う。"
+  },
+  "Phrase by phrase": {
+   "ja": "フレーズごと"
+  },
+  "Phrases, close to a loop": {
+   "ja": "フレーズ、ループ寄り"
+  },
+  "The talk turns phrase by phrase, close to a loop.": {
+   "ja": "掛け合いはフレーズごとに巡り、ループ寄り。"
+  },
+  "The talk turns phrase by phrase, nearly a long form.": {
+   "ja": "掛け合いはフレーズごとに巡り、ほぼ長い構成。"
+  },
+  "The form is long, the talk remembering its answers and resting wide.": {
+   "ja": "構成は長く、掛け合いは応答を覚え、休符は長い。"
+  },
+  "Long form, answers remembered": {
+   "ja": "長い構成、応答を記憶"
+  },
+  "Long, nearly phrase by phrase": {
+   "ja": "長い構成、ほぼフレーズごと"
+  },
+  "The form is long, nearly phrase by phrase.": {
+   "ja": "構成は長い、ほぼフレーズごと。"
+  },
+  "Very long form": {
+   "ja": "ごく長い構成"
+  },
+  "The form is very long, the rests wide.": {
+   "ja": "構成はごく長く、休符は長い。"
+  },
+  "The bowls ring light, struck softly, the great bowl rarely.": {
+   "ja": "ボウルは軽く鳴り、柔らかく打たれ、大きなボウルはまれ。"
+  },
+  "Light bowls, struck softly": {
+   "ja": "軽いボウル、柔らかな打音"
+  },
+  "Very light bowls": {
+   "ja": "ごく軽いボウル"
+  },
+  "The bowls ring very light, the great bowl seldom heard.": {
+   "ja": "ボウルはごく軽やかに響き、大きなボウルはめったに鳴らない。"
+  },
+  "Light, nearly full": {
+   "ja": "軽い、ほぼ豊か"
+  },
+  "The bowls ring light, nearly full.": {
+   "ja": "ボウルは軽く鳴り、ほぼ豊か。"
+  },
+  "Three bowls ring: the great one, its fifth and its octave.": {
+   "ja": "大きなボウルと、その5度上、1オクターブ上の三つが響く。"
+  },
+  "Three bowls, full": {
+   "ja": "三つのボウル、豊か"
+  },
+  "Full, leaning light": {
+   "ja": "豊か、やや軽め"
+  },
+  "The three bowls ring full, leaning light.": {
+   "ja": "三つのボウルが豊かに鳴り、やや軽め。"
+  },
+  "Full, leaning deep": {
+   "ja": "豊か、やや深め"
+  },
+  "The three bowls ring full, leaning deep.": {
+   "ja": "三つのボウルが豊かに鳴り、やや深め。"
+  },
+  "The bowls are deep and heavy, their rings long.": {
+   "ja": "ボウルは深く重く、余韻は長い。"
+  },
+  "Deep, heavy bowls": {
+   "ja": "深く重いボウル"
+  },
+  "Deep, nearly full": {
+   "ja": "深い、ほぼ豊か"
+  },
+  "The bowls are deep, nearly full.": {
+   "ja": "ボウルは深い、ほぼ豊か。"
+  },
+  "Very deep bowls": {
+   "ja": "ごく深いボウル"
+  },
+  "The bowls are very deep and heavy, struck rarely.": {
+   "ja": "ボウルはごく深く重く、まれに打たれる。"
+  },
+  "The bowls are struck now and then, long rests between.": {
+   "ja": "ボウルは時々打たれ、間に長い休符。"
+  },
+  "Now and then, long rests": {
+   "ja": "時々、長い休符"
+  },
+  "Rare strikes, long rests": {
+   "ja": "まれな打音、長い休符"
+  },
+  "The bowls are struck rarely, long rests between.": {
+   "ja": "ボウルはまれに打たれ、間に長い休符。"
+  },
+  "The bowls are struck now and then, nearly often.": {
+   "ja": "ボウルは時々打たれ、頻繁寄り。"
+  },
+  "The bowls are struck often, each touch soft.": {
+   "ja": "ボウルは頻繁に打たれ、一打ずつ柔らかい。"
+  },
+  "Often, each touch soft": {
+   "ja": "頻繁、一打ずつ柔らか"
+  },
+  "The bowls are struck often, nearly now and then.": {
+   "ja": "ボウルは頻繁に打たれ、時々寄り。"
+  },
+  "Very often, touched softly": {
+   "ja": "ごく頻繁、柔らかなタッチ"
+  },
+  "The bowls are struck very often, each touch soft.": {
+   "ja": "ボウルはごく頻繁に打たれ、一打ずつ柔らかい。"
+  },
+  "A bowl is sometimes sung round its rim after a strike.": {
+   "ja": "打音のあと、時々ボウルの縁をこする響きが続く。"
+  },
+  "Rim sung sometimes": {
+   "ja": "縁のこすり音、たまに"
+  },
+  "Rim sung rarely": {
+   "ja": "縁のこすり音、まれ"
+  },
+  "The rim sings rarely, under a bowl just struck.": {
+   "ja": "打音の余韻に、縁をこする響きがまれに重なる。"
+  },
+  "Rim sung now and then": {
+   "ja": "縁のこすり音、時々"
+  },
+  "The rim sings now and then, under a bowl just struck.": {
+   "ja": "打音の余韻に、縁をこする響きが時々重なる。"
+  },
+  "The rim sings under most bowls just struck.": {
+   "ja": "ボウルを打ったあと、多くの場合に縁をこする響きが重なる。"
+  },
+  "Rim sung often": {
+   "ja": "縁のこすり音、頻繁"
+  },
+  "Rim sung fairly often": {
+   "ja": "縁のこすり音、かなり頻繁"
+  },
+  "The rim sings fairly often, under a bowl just struck.": {
+   "ja": "打音の余韻に、縁をこする響きがかなり頻繁に重なる。"
+  },
+  "Rim sings nearly always": {
+   "ja": "縁のこすり音、ほぼ常に"
+  },
+  "The rim sings under nearly every pair of bowls.": {
+   "ja": "ほぼすべてのボウルの組に、縁をこする響きが重なる。"
+  },
+  "The great bowl answers most, the sound low.": {
+   "ja": "大きなボウルが主に応え、音は低い。"
+  },
+  "Great bowl answers most": {
+   "ja": "主に大きなボウルが応答"
+  },
+  "Great bowl nearly alone": {
+   "ja": "ほぼ大きなボウルだけ"
+  },
+  "The great bowl answers nearly alone, the sound dark.": {
+   "ja": "ほぼ大きなボウルだけが応え、音はダーク。"
+  },
+  "Low, nearly even": {
+   "ja": "低い、均等寄り"
+  },
+  "The great bowl answers often, nearly evenly.": {
+   "ja": "大きなボウルが頻繁に応え、均等寄り。"
+  },
+  "The three bowls answer one another evenly.": {
+   "ja": "三つのボウルが均等に応え合う。"
+  },
+  "Three bowls, evenly": {
+   "ja": "三つのボウル、均等"
+  },
+  "Even, leaning low": {
+   "ja": "均等、やや低め"
+  },
+  "The three bowls answer evenly, leaning low.": {
+   "ja": "三つのボウルが均等に応え合い、やや低め。"
+  },
+  "Even, leaning light": {
+   "ja": "均等、やや軽め"
+  },
+  "The three bowls answer evenly, leaning light.": {
+   "ja": "三つのボウルが均等に応え合い、やや軽め。"
+  },
+  "The small bowl answers most, the sound light.": {
+   "ja": "小さなボウルが主に応え、音は軽い。"
+  },
+  "Small bowl answers most": {
+   "ja": "主に小さなボウルが応答"
+  },
+  "Light, nearly even": {
+   "ja": "軽い、均等寄り"
+  },
+  "The small bowl answers often, nearly evenly.": {
+   "ja": "小さなボウルが頻繁に応え、均等寄り。"
+  },
+  "Small bowl nearly alone": {
+   "ja": "ほぼ小さなボウルだけ"
+  },
+  "The small bowl answers nearly alone, the sound high.": {
+   "ja": "ほぼ小さなボウルだけが応え、音は高い。"
+  },
+  "The bowls are struck with felt, muffled and round.": {
+   "ja": "ボウルはフェルトで打たれ、こもって丸い。"
+  },
+  "Struck with felt": {
+   "ja": "フェルトの打音"
+  },
+  "Very muffled strikes": {
+   "ja": "ごくこもった打音"
+  },
+  "The bowls are struck with thick felt, very muffled.": {
+   "ja": "ボウルは厚いフェルトで打たれ、音は深くこもる。"
+  },
+  "Felt, nearly soft": {
+   "ja": "フェルト、ソフト寄り"
+  },
+  "The bowls are struck with felt, nearly soft.": {
+   "ja": "ボウルはフェルトで打たれ、ソフト寄り。"
+  },
+  "The bowls are struck softly, their tone round.": {
+   "ja": "ボウルは柔らかく打たれ、音色は丸い。"
+  },
+  "Struck softly, round": {
+   "ja": "柔らかく丸い打音"
+  },
+  "Soft, nearly felt": {
+   "ja": "ソフト、フェルト寄り"
+  },
+  "The bowls are struck softly, nearly with felt.": {
+   "ja": "ボウルは柔らかく打たれ、フェルト寄り。"
+  },
+  "Soft, nearly clear": {
+   "ja": "ソフト、クリア寄り"
+  },
+  "The bowls are struck softly, nearly clear.": {
+   "ja": "ボウルは柔らかく打たれ、クリア寄り。"
+  },
+  "The bowls are struck clear, their high tones ringing.": {
+   "ja": "ボウルの打音は澄み、高音が響く。"
+  },
+  "Struck clear, bright": {
+   "ja": "クリアな打音、ブライト"
+  },
+  "Clear, nearly soft": {
+   "ja": "クリア、ソフト寄り"
+  },
+  "The bowls are struck clear, nearly soft.": {
+   "ja": "ボウルはクリアに打たれ、ソフト寄り。"
+  },
+  "Struck hard, ringing": {
+   "ja": "ハードな打音、響く"
+  },
+  "The bowls are struck hard, their high tones ringing.": {
+   "ja": "ボウルはハードに打たれ、高音が響く。"
+  },
+  "The room breathes slowly, about five breaths a minute, no beat.": {
+   "ja": "ルームは1分に5回ほど、ゆっくり呼吸し、ビートなし。"
+  },
+  "Slow breath, no beat": {
+   "ja": "ゆっくりした呼吸、ビートなし"
+  },
+  "Very slow breath": {
+   "ja": "ごくゆっくりした呼吸"
+  },
+  "The room breathes very slowly, no beat.": {
+   "ja": "ルームはごくゆっくり呼吸し、ビートなし。"
+  },
+  "Slow, nearly quickening": {
+   "ja": "ゆっくりした呼吸、やや速め"
+  },
+  "The room breathes slowly, nearly quickening.": {
+   "ja": "ルームはゆっくり、やや速めのペースで呼吸する。"
+  },
+  "The room breathes quickly, still with no beat.": {
+   "ja": "ルームは速く呼吸し、それでもビートなし。"
+  },
+  "Quick breath, no beat": {
+   "ja": "速い呼吸、ビートなし"
+  },
+  "Quickening breath": {
+   "ja": "速まる呼吸"
+  },
+  "The room's breath quickens, no beat.": {
+   "ja": "ルームの呼吸が速まり、ビートなし。"
+  },
+  "Quick breath, nearly a pulse": {
+   "ja": "速い呼吸、パルス寄り"
+  },
+  "The room breathes quickly, nearly a pulse.": {
+   "ja": "ルームは速く呼吸し、パルス寄り。"
+  },
+  "The bowls return soon, the rests close.": {
+   "ja": "ボウルはすぐ戻り、休符は短い。"
+  },
+  "Close rests": {
+   "ja": "短い休符"
+  },
+  "Very close rests": {
+   "ja": "ごく短い休符"
+  },
+  "The bowls return soon, the rests very close.": {
+   "ja": "ボウルはすぐ戻り、休符はごく短い。"
+  },
+  "Close, nearly long": {
+   "ja": "短い、ほぼ長い"
+  },
+  "The rests are close, nearly long.": {
+   "ja": "休符は短い、ほぼ長い。"
+  },
+  "The rests are long, each ring left to fade.": {
+   "ja": "休符は長く、余韻はそのまま消えていく。"
+  },
+  "Long rests, rings fade": {
+   "ja": "長い休符、余韻が消える"
+  },
+  "Long, nearly close": {
+   "ja": "長い、ほぼ短い"
+  },
+  "The rests are long, nearly close.": {
+   "ja": "休符は長い、ほぼ短い。"
+  },
+  "Very long rests": {
+   "ja": "ごく長い休符"
+  },
+  "The rests are very long, each ring left to fade.": {
+   "ja": "休符はごく長く、余韻はそのまま消えていく。"
+  },
+  "The bowls ring alone, the room still wet, no bed.": {
+   "ja": "ボウルだけが鳴り、ルームはウェットなまま、下地の音なし。"
+  },
+  "Bowls alone, no bed": {
+   "ja": "ボウルだけ、下地の音なし"
+  },
+  "Bowls alone, room open": {
+   "ja": "ボウルだけ、開放的なルーム"
+  },
+  "The bowls ring alone, the room wide open.": {
+   "ja": "ボウルだけが鳴り、ルームは大きく開く。"
+  },
+  "Alone, nearly a bed": {
+   "ja": "単独、下地の音はごくかすか"
+  },
+  "The bowls ring alone, a bed nearly under them.": {
+   "ja": "ボウルだけが鳴り、背後に下地の音がかすかに重なる。"
+  },
+  "A faint bed of strings lies under the bowls.": {
+   "ja": "ボウルの下に、かすかな下地のストリングス。"
+  },
+  "Faint strings under bowls": {
+   "ja": "ボウルの下にかすかなストリングス"
+  },
+  "Strings barely there": {
+   "ja": "ストリングスはわずか"
+  },
+  "The strings are barely there under the bowls.": {
+   "ja": "ボウルの下のストリングスはごくわずか。"
+  },
+  "Soft strings under bowls": {
+   "ja": "ボウルの下に柔らかなストリングス"
+  },
+  "Soft strings lie under the bowls.": {
+   "ja": "ボウルの下に柔らかなストリングス。"
+  },
+  "Strings lie under the bowls, breathing.": {
+   "ja": "ボウルの下でストリングスが呼吸する。"
+  },
+  "Strings breathe under bowls": {
+   "ja": "ボウルの下で呼吸するストリングス"
+  },
+  "Strings under bowls, soft": {
+   "ja": "ボウルの下に柔らかなストリングス"
+  },
+  "Strings lie under the bowls, soft.": {
+   "ja": "ボウルの下でストリングスが柔らかく響く。"
+  },
+  "Full strings, breathing": {
+   "ja": "豊かなストリングス、呼吸する"
+  },
+  "Full strings lie under the bowls, breathing.": {
+   "ja": "ボウルの下で豊かなストリングスが呼吸する。"
+  },
+  "the swell's peak period is {periodSays}": {
+   "ja": "うねりのピーク周期は{periodSays}"
+  },
+  "The sea is a long, clean groundswell, its sets far apart.": {
+   "ja": "海は周期の長い、整ったうねり。波のまとまりの間隔は広い。"
+  },
+  "Long, clean groundswell": {
+   "ja": "周期の長い、整ったうねり"
+  },
+  "Glassy, long groundswell": {
+   "ja": "滑らかな海面に、長いうねり"
+  },
+  "The sea is glassy, a long groundswell with clear lulls.": {
+   "ja": "海面は滑らか。長いうねりの合間に、静かな間がある。"
+  },
+  "Clean swell, nearly rolling": {
+   "ja": "クリーンなうねり、ローリング寄り"
+  },
+  "The sea is a clean groundswell, nearly rolling.": {
+   "ja": "海には整ったうねり、ローリング寄り。"
+  },
+  "The swell rolls with a little chop, its sets coming and going.": {
+   "ja": "うねりが寄せ、細かな波が少し混じり、波のまとまりは寄せては返す。"
+  },
+  "Swell with a little chop": {
+   "ja": "細かな波が少し混じるうねり"
+  },
+  "Rolling, nearly glassy": {
+   "ja": "ローリング、グラッシー寄り"
+  },
+  "The swell rolls with a little chop, nearly glassy.": {
+   "ja": "うねりが寄せ、細かな波が少し混じり、グラッシー寄り。"
+  },
+  "Rolling, nearly choppy": {
+   "ja": "ローリング、細かな波寄り"
+  },
+  "The swell rolls, nearly choppy, a second swell crossing now and then.": {
+   "ja": "うねりが寄せ、細かな波寄り、時々別のうねりが交差する。"
+  },
+  "The sea is young and choppy, its waves short and crossing.": {
+   "ja": "海は風波で細かく波立ち、波は短く交差する。"
+  },
+  "Choppy, crossing waves": {
+   "ja": "細かな波、交差する波"
+  },
+  "Choppy, nearly rolling": {
+   "ja": "細かな波、ローリング寄り"
+  },
+  "The sea is choppy, nearly rolling.": {
+   "ja": "海は細かな波、ローリング寄り。"
+  },
+  "Choppy, confused sea": {
+   "ja": "細かく波立って乱れた海"
+  },
+  "The sea is choppy and confused, its lulls filled.": {
+   "ja": "海は細かく波立って乱れ、波の合間にもざわめきが続く。"
+  },
+  "The waves are small and near, the sea quiet.": {
+   "ja": "波は小さく近く、海は静か。"
+  },
+  "Small, near waves": {
+   "ja": "小さく近い波"
+  },
+  "Very small, near waves": {
+   "ja": "ごく小さく近い波"
+  },
+  "The waves are very small and near.": {
+   "ja": "波はごく小さく近い。"
+  },
+  "Small, nearly full": {
+   "ja": "小さい、ほぼ大きい"
+  },
+  "The waves are small, nearly full.": {
+   "ja": "波は小さい、ほぼ大きい。"
+  },
+  "The waves are full and the sea is open.": {
+   "ja": "波は大きく、海は開けている。"
+  },
+  "Full waves, open sea": {
+   "ja": "大きな波、開けた海"
+  },
+  "Full, nearly small": {
+   "ja": "大きい、ほぼ小さい"
+  },
+  "The waves are full, nearly small.": {
+   "ja": "波は大きい、ほぼ小さい。"
+  },
+  "Full, far waves": {
+   "ja": "大きな遠い波"
+  },
+  "The waves are full and far, breaking wide.": {
+   "ja": "大きな波が遠くで、広く砕ける。"
+  },
+  "The bloom's shimmer circles at its own pitch, a soft halo.": {
+   "ja": "ふくらむ音のシマーは同じ音高で巡り、柔らかな光輪を描く。"
+  },
+  "A soft halo": {
+   "ja": "柔らかな光輪"
+  },
+  "A chord a set": {
+   "ja": "波のまとまりごとに1コード"
+  },
+  "The wave pad blooms on the sea's own chords, a chord a set.": {
+   "ja": "ウェーブパッドが海のコードでふくらむ。波のまとまりごとに1コード。"
+  },
+  "A still, soft halo": {
+   "ja": "静かで柔らかな光輪"
+  },
+  "The bloom's shimmer circles at its own pitch, very soft.": {
+   "ja": "ふくらむ音のシマーは同じ音高で巡り、ごく柔らかく響く。"
+  },
+  "Halo, nearly climbing": {
+   "ja": "光輪、上昇寄り"
+  },
+  "The bloom's shimmer circles, nearly climbing.": {
+   "ja": "ふくらむ音のシマーは巡り、上昇寄り。"
+  },
+  "The bloom's shimmer climbs an octave now and then.": {
+   "ja": "ふくらむ音のシマーは時々1オクターブ昇る。"
+  },
+  "The shimmer climbs": {
+   "ja": "昇るシマー"
+  },
+  "Climbing, nearly a halo": {
+   "ja": "上昇、光輪寄り"
+  },
+  "The bloom's shimmer climbs now and then, nearly a halo.": {
+   "ja": "ふくらむ音のシマーは時々昇り、光輪寄り。"
+  },
+  "Climbing, nearly soaring": {
+   "ja": "上昇、飛翔寄り"
+  },
+  "The bloom's shimmer climbs often, nearly soaring.": {
+   "ja": "ふくらむ音のシマーは頻繁に昇り、飛翔寄り。"
+  },
+  "The bloom's shimmer soars, each echo an octave up.": {
+   "ja": "ふくらむ音のシマーは舞い上がり、エコーごとに1オクターブ上へ。"
+  },
+  "The shimmer soars": {
+   "ja": "舞い上がるシマー"
+  },
+  "Soaring, nearly climbing": {
+   "ja": "飛翔、上昇寄り"
+  },
+  "The bloom's shimmer soars, nearly climbing.": {
+   "ja": "ふくらむ音のシマーは舞い上がり、上昇寄り。"
+  },
+  "Soaring to the top": {
+   "ja": "頂点まで飛翔"
+  },
+  "The bloom's shimmer soars to the top, each echo an octave up.": {
+   "ja": "ふくらむ音のシマーは頂点まで舞い上がり、エコーごとに1オクターブ上へ。"
+  },
+  "the waves bloom on {bloom}, its tone {air}": {
+   "ja": "波の音は{bloom}でふくらみ、音色は{air}"
+  },
+  "The spray is soft and dark.": {
+   "ja": "しぶきは柔らかくダーク。"
+  },
+  "Soft, dark spray": {
+   "ja": "柔らかくダークなしぶき"
+  },
+  "Faint, dark spray": {
+   "ja": "かすかでダークなしぶき"
+  },
+  "The spray is faint and dark.": {
+   "ja": "しぶきはかすかでダーク。"
+  },
+  "Soft spray, nearly bright": {
+   "ja": "柔らかなしぶき、ブライト寄り"
+  },
+  "The spray is soft, nearly bright.": {
+   "ja": "しぶきは柔らか、ブライト寄り。"
+  },
+  "The spray is bright.": {
+   "ja": "しぶきはブライト。"
+  },
+  "Bright spray": {
+   "ja": "ブライトなしぶき"
+  },
+  "Bright, nearly soft": {
+   "ja": "ブライト、ソフト寄り"
+  },
+  "The spray is bright, nearly soft.": {
+   "ja": "しぶきはブライト、ソフト寄り。"
+  },
+  "Bright, nearly hissing": {
+   "ja": "ブライト、ヒスノイズ寄り"
+  },
+  "The spray is bright, nearly hissing.": {
+   "ja": "しぶきはブライト、ヒスノイズ寄り。"
+  },
+  "The spray is hissing and open.": {
+   "ja": "しぶきはヒスノイズ混じりで開放的。"
+  },
+  "Hissing, open spray": {
+   "ja": "ヒスノイズ混じりの開放的なしぶき"
+  },
+  "Hissing, nearly bright": {
+   "ja": "ヒス、ブライト寄り"
+  },
+  "The spray is hissing, nearly bright.": {
+   "ja": "しぶきはヒスノイズ混じり、ブライト寄り。"
+  },
+  "Hissing, wide open spray": {
+   "ja": "ヒスノイズ混じりの大きく開いたしぶき"
+  },
+  "The spray is hissing, wide open.": {
+   "ja": "しぶきはヒスノイズ混じり、大きく開く。"
+  },
+  ", ": {
+   "ja": "、"
+  },
+  " and ": {
+   "ja": "、"
+  },
+  " over {chords}": {
+   "ja": "、コードは{chords}"
+  },
+  ".": {
+   "ja": "。"
+  }
+ },
+ "words": {
+  "no drums": {
+   "ja": "ドラムなし"
+  },
+  "free": {
+   "ja": "フリー"
+  },
+  "steady": {
+   "ja": "安定"
+  },
+  "driving": {
+   "ja": "力強い"
+  },
+  "fast": {
+   "ja": "高速"
+  },
+  "bpm": {
+   "ja": "BPM"
+  },
+  "straight": {
+   "ja": "ストレート"
+  },
+  "rolling": {
+   "ja": "ローリング"
+  },
+  "broken": {
+   "ja": "ブロークン"
+  },
+  "hats": {
+   "ja": "ハット"
+  },
+  "no beat": {
+   "ja": "ビートなし"
+  },
+  "keys": {
+   "ja": "鍵盤"
+  },
+  "dark": {
+   "ja": "ダーク"
+  },
+  "warm": {
+   "ja": "ウォーム"
+  },
+  "mellow": {
+   "ja": "メロウ"
+  },
+  "clear": {
+   "ja": "クリア"
+  },
+  "bright": {
+   "ja": "ブライト"
+  },
+  "airy": {
+   "ja": "エアリー"
+  },
+  "held": {
+   "ja": "持続"
+  },
+  "moving": {
+   "ja": "展開"
+  },
+  "lifted": {
+   "ja": "高揚"
+  },
+  "key": {
+   "ja": "キー"
+  },
+  "thin": {
+   "ja": "細い"
+  },
+  "full": {
+   "ja": "太い"
+  },
+  "heavy": {
+   "ja": "重い"
+  },
+  "room": {
+   "ja": "ルーム"
+  },
+  "loops": {
+   "ja": "ループ"
+  },
+  "phrases": {
+   "ja": "フレーズ"
+  },
+  "long": {
+   "ja": "長い"
+  },
+  "density": {
+   "ja": "密度"
+  },
+  "near": {
+   "ja": "近い"
+  },
+  "open": {
+   "ja": "開放"
+  },
+  "distant": {
+   "ja": "遠い"
+  },
+  "sections": {
+   "ja": "セクション"
+  },
+  "static": {
+   "ja": "静止"
+  },
+  "shifting": {
+   "ja": "変化"
+  },
+  "fx": {
+   "ja": "FX"
+  },
+  "a great temple bell": {
+   "ja": "大梵鐘"
+  },
+  "small bells": {
+   "ja": "小さな鐘"
+  },
+  "a temple bell": {
+   "ja": "梵鐘"
+  },
+  "a rimmed singing bowl": {
+   "ja": "縁をこすって鳴らすシンギングボウル"
+  },
+  "a struck singing bowl": {
+   "ja": "叩いて鳴らすシンギングボウル"
+  },
+  "a bright piano": {
+   "ja": "ブライトピアノ"
+  },
+  "a wordless chant": {
+   "ja": "言葉のない詠唱"
+  },
+  "a clavinet": {
+   "ja": "クラビネット"
+  },
+  "an electric piano": {
+   "ja": "エレピ"
+  },
+  "an fm bell": {
+   "ja": "FMベル"
+  },
+  "an fm electric piano": {
+   "ja": "FMエレピ"
+  },
+  "a glassy fm electric piano": {
+   "ja": "グラッシーなFMエレピ"
+  },
+  "a soft fm electric piano": {
+   "ja": "ソフトなFMエレピ"
+  },
+  "fm glass": {
+   "ja": "FMグラス"
+  },
+  "an fm pluck": {
+   "ja": "FMプラック"
+  },
+  "a formant pad": {
+   "ja": "フォルマントパッド"
+  },
+  "a frame drum": {
+   "ja": "フレームドラム"
+  },
+  "glass": {
+   "ja": "グラス"
+  },
+  "a grain pad": {
+   "ja": "グレインパッド"
+  },
+  "a plucked string": {
+   "ja": "はじいた弦"
+  },
+  "a suitcase electric piano": {
+   "ja": "スーツケースエレピ"
+  },
+  "a reed electric piano": {
+   "ja": "リード式エレピ"
+  },
+  "a dark tine electric piano": {
+   "ja": "ダークなタインエレピ"
+  },
+  "soft mallets": {
+   "ja": "ソフトマレット"
+  },
+  "a marimba": {
+   "ja": "マリンバ"
+  },
+  "an organ": {
+   "ja": "オルガン"
+  },
+  "an organ stab": {
+   "ja": "オルガンスタブ"
+  },
+  "a piano": {
+   "ja": "ピアノ"
+  },
+  "a close soft grand": {
+   "ja": "近くで柔らかく鳴るグランドピアノ"
+  },
+  "a warm grand, far back": {
+   "ja": "奥で鳴るウォームなグランド"
+  },
+  "a felt grand": {
+   "ja": "フェルトグランド"
+  },
+  "a mellow grand": {
+   "ja": "メロウなグランド"
+  },
+  "a muted upright": {
+   "ja": "ミュートしたアップライト"
+  },
+  "a dark upright": {
+   "ja": "ダークなアップライト"
+  },
+  "a pluck": {
+   "ja": "プラック"
+  },
+  "a pulse lead": {
+   "ja": "パルスリード"
+  },
+  "a reed organ": {
+   "ja": "リードオルガン"
+  },
+  "a rhodes": {
+   "ja": "ローズ"
+  },
+  "a saw lead": {
+   "ja": "ソウリード"
+  },
+  "a saw pad": {
+   "ja": "ソウパッド"
+  },
+  "a soft shaker": {
+   "ja": "ソフトなシェイカー"
+  },
+  "a shimmer pad": {
+   "ja": "シマーパッド"
+  },
+  "strings": {
+   "ja": "ストリングス"
+  },
+  "a supersaw lead": {
+   "ja": "スーパーソウリード"
+  },
+  "a supersaw pad": {
+   "ja": "スーパーソウパッド"
+  },
+  "a gritty supersaw": {
+   "ja": "ザラついたスーパーソウ"
+  },
+  "a swell": {
+   "ja": "スウェル"
+  },
+  "a tanpura": {
+   "ja": "タンプーラ"
+  },
+  "a triangle lead": {
+   "ja": "三角波リード"
+  },
+  "vibes": {
+   "ja": "ビブラフォン"
+  },
+  "a wave pad": {
+   "ja": "ウェーブパッド"
+  },
+  "a soft woodblock": {
+   "ja": "ソフトなウッドブロック"
+  },
+  "great bell": {
+   "ja": "大鐘"
+  },
+  "temple bell": {
+   "ja": "梵鐘"
+  },
+  "bowl": {
+   "ja": "ボウル"
+  },
+  "glass ep": {
+   "ja": "グラスエレピ"
+  },
+  "fm ep": {
+   "ja": "FMエレピ"
+  },
+  "pluck": {
+   "ja": "プラック"
+  },
+  "suitcase": {
+   "ja": "スーツケース"
+  },
+  "reed ep": {
+   "ja": "リード式エレピ"
+  },
+  "dark tine": {
+   "ja": "ダークタイン"
+  },
+  "close grand": {
+   "ja": "近くのグランド"
+  },
+  "far grand": {
+   "ja": "遠いグランド"
+  },
+  "felt grand": {
+   "ja": "フェルトグランド"
+  },
+  "muted": {
+   "ja": "ミュート"
+  },
+  "upright": {
+   "ja": "アップライト"
+  },
+  "shaker": {
+   "ja": "シェイカー"
+  },
+  "woodblock": {
+   "ja": "ウッドブロック"
+  },
+  "bowl rim": {
+   "ja": "縁のこすり音"
+  },
+  "bright piano": {
+   "ja": "ブライトピアノ"
+  },
+  "chant om": {
+   "ja": "オームの詠唱"
+  },
+  "clav key": {
+   "ja": "クラビ"
+  },
+  "ep": {
+   "ja": "エレピ"
+  },
+  "fm bell": {
+   "ja": "FMベル"
+  },
+  "fm pluck": {
+   "ja": "FMプラック"
+  },
+  "formant pad": {
+   "ja": "フォルマントパッド"
+  },
+  "frame drum": {
+   "ja": "フレームドラム"
+  },
+  "grain pad": {
+   "ja": "グレインパッド"
+  },
+  "marimba": {
+   "ja": "マリンバ"
+  },
+  "organ": {
+   "ja": "オルガン"
+  },
+  "organ stab": {
+   "ja": "オルガンスタブ"
+  },
+  "piano": {
+   "ja": "ピアノ"
+  },
+  "pulse lead": {
+   "ja": "パルスリード"
+  },
+  "reed organ": {
+   "ja": "リードオルガン"
+  },
+  "rhodes": {
+   "ja": "ローズ"
+  },
+  "saw lead": {
+   "ja": "ソウリード"
+  },
+  "saw pad": {
+   "ja": "ソウパッド"
+  },
+  "shimmer pad": {
+   "ja": "シマーパッド"
+  },
+  "supersaw lead": {
+   "ja": "スーパーソウリード"
+  },
+  "supersaw pad": {
+   "ja": "スーパーソウパッド"
+  },
+  "supersaw grit": {
+   "ja": "ザラつきスーパーソウ"
+  },
+  "swell": {
+   "ja": "うねり"
+  },
+  "tanpura": {
+   "ja": "タンプーラ"
+  },
+  "tri lead": {
+   "ja": "三角波リード"
+  },
+  "wave pad": {
+   "ja": "ウェーブパッド"
+  },
+  "gritty": {
+   "ja": "ザラつき"
+  },
+  "lit": {
+   "ja": "明るい"
+  },
+  "smooth": {
+   "ja": "スムース"
+  },
+  "driven": {
+   "ja": "ドライブ"
+  },
+  "hard": {
+   "ja": "ハード"
+  },
+  "restless": {
+   "ja": "せわしない"
+  },
+  "calls": {
+   "ja": "コール"
+  },
+  "small": {
+   "ja": "小さい"
+  },
+  "low & high": {
+   "ja": "高低"
+  },
+  "great": {
+   "ja": "大きい"
+  },
+  "rare": {
+   "ja": "まれ"
+  },
+  "calm": {
+   "ja": "穏やか"
+  },
+  "busy": {
+   "ja": "ビジー"
+  },
+  "hand": {
+   "ja": "ハンド"
+  },
+  "no hand": {
+   "ja": "ハンドなし"
+  },
+  "still": {
+   "ja": "静か"
+  },
+  "lilting": {
+   "ja": "弾む"
+  },
+  "call": {
+   "ja": "コール"
+  },
+  "soft": {
+   "ja": "ソフト"
+  },
+  "firm": {
+   "ja": "芯のある"
+  },
+  "eighths": {
+   "ja": "8分"
+  },
+  "heartbeat": {
+   "ja": "鼓動"
+  },
+  "loop": {
+   "ja": "ループ"
+  },
+  "light": {
+   "ja": "軽い"
+  },
+  "deep": {
+   "ja": "ディープ"
+  },
+  "three sizes": {
+   "ja": "三つの大きさ"
+  },
+  "often": {
+   "ja": "頻繁"
+  },
+  "strikes": {
+   "ja": "打音"
+  },
+  "seldom": {
+   "ja": "ごくまれ"
+  },
+  "rim": {
+   "ja": "リム"
+  },
+  "low": {
+   "ja": "低い"
+  },
+  "even": {
+   "ja": "均等"
+  },
+  "muffled": {
+   "ja": "こもった"
+  },
+  "strike": {
+   "ja": "打音"
+  },
+  "slow": {
+   "ja": "ゆっくり"
+  },
+  "quick": {
+   "ja": "速い"
+  },
+  "close": {
+   "ja": "短い"
+  },
+  "rests": {
+   "ja": "休符"
+  },
+  "bed": {
+   "ja": "下地の音"
+  },
+  "alone": {
+   "ja": "単独"
+  },
+  "faint": {
+   "ja": "かすか"
+  },
+  "glassy": {
+   "ja": "グラッシー"
+  },
+  "choppy": {
+   "ja": "細かな波"
+  },
+  "by sets": {
+   "ja": "波のまとまりごと"
+  },
+  "halo": {
+   "ja": "光輪"
+  },
+  "climbing": {
+   "ja": "上昇"
+  },
+  "soaring": {
+   "ja": "飛翔"
+  },
+  "bloom": {
+   "ja": "広がり"
+  },
+  "hissing": {
+   "ja": "ヒスノイズ"
+  },
+  "medium": {
+   "ja": "ミディアム"
+  },
+  "minimal": {
+   "ja": "ミニマル"
+  },
+  "growl": {
+   "ja": "グロウル"
+  },
+  "sub": {
+   "ja": "サブ"
+  },
+  "{n} hits": {
+   "ja": "{n}打"
+  },
+  "walking": {
+   "ja": "ウォーキング"
+  },
+  "{n} moves": {
+   "ja": "{n}音"
+  },
+  "{n} open": {
+   "ja": "オープン{n}打"
+  },
+  "{n} move": {
+   "ja": "{n}音"
+  },
+  "offbeat": {
+   "ja": "オフビート"
+  },
+  "sixteenths": {
+   "ja": "16分"
+  },
+  "sparse": {
+   "ja": "まばら"
+  },
+  "{n} hit": {
+   "ja": "{n}打"
+  },
+  "silent": {
+   "ja": "無音"
+  },
+  "no bass": {
+   "ja": "ベースなし"
+  },
+  "{n} sections": {
+   "ja": "{n}セクション"
+  },
+  "tight": {
+   "ja": "タイト"
+  },
+  "airy shimmer pad": {
+   "ja": "エアリーなシマーパッド"
+  },
+  "airy wave pad": {
+   "ja": "エアリーなウェーブパッド"
+  },
+  "siren": {
+   "ja": "サイレン"
+  },
+  "breakdown": {
+   "ja": "ブレイクダウン"
+  },
+  "build": {
+   "ja": "ビルド"
+  },
+  "drop": {
+   "ja": "ドロップ"
+  },
+  "intro": {
+   "ja": "イントロ"
+  },
+  "main groove": {
+   "ja": "メイングルーヴ"
+  },
+  "outro": {
+   "ja": "アウトロ"
+  },
+  "a breather": {
+   "ja": "小休止"
+  },
+  "bass out": {
+   "ja": "ベース抜き"
+  },
+  "breath": {
+   "ja": "ブレス"
+  },
+  "double kick": {
+   "ja": "ダブルキック"
+  },
+  "drop-out": {
+   "ja": "ドロップアウト"
+  },
+  "fill": {
+   "ja": "フィル"
+  },
+  "ghost pickup": {
+   "ja": "入りを導くゴーストノート"
+  },
+  "ghost sixteenths under the hat": {
+   "ja": "ハットに16分のゴースト"
+  },
+  "half-bar fill": {
+   "ja": "半小節フィル"
+  },
+  "half-bar roll": {
+   "ja": "半小節ロール"
+  },
+  "half-time kick": {
+   "ja": "ハーフタイムキック"
+  },
+  "half-time switch": {
+   "ja": "ハーフタイム切替"
+  },
+  "hat gap": {
+   "ja": "ハット抜き"
+  },
+  "late clap": {
+   "ja": "遅らせたクラップ"
+  },
+  "one bar out": {
+   "ja": "1小節抜き"
+  },
+  "open and": {
+   "ja": "裏拍オープン"
+  },
+  "quarter hats": {
+   "ja": "4分ハット"
+  },
+  "skipping hats": {
+   "ja": "跳ねるハット"
+  },
+  "snare roll": {
+   "ja": "スネアロール"
+  },
+  "stabs out": {
+   "ja": "スタブ抜き"
+  },
+  "the eighth-bar answer": {
+   "ja": "8小節目の応答"
+  },
+  "the hats grow: a tick on the beat": {
+   "ja": "ハットが増える：拍頭に小さな打音"
+  },
+  "the hats grow: the pickups": {
+   "ja": "ハットが増える：拍前の装飾音"
+  },
+  "the hats lead the way out": {
+   "ja": "ハットが先に戻る"
+  },
+  "the open hat marks the phrase": {
+   "ja": "オープンハットがフレーズを告げる"
+  },
+  "the sixteenths step in": {
+   "ja": "16分が入る"
+  },
+  "the top waits a phrase": {
+   "ja": "高域の装飾は1フレーズ待つ"
+  },
+  "nothing": {
+   "ja": "なし"
+  },
+  "none": {
+   "ja": "なし"
+  },
+  "no bell": {
+   "ja": "鐘なし"
+  },
+  "no keys": {
+   "ja": "鍵盤なし"
+  },
+  "pulsing": {
+   "ja": "パルス"
+  },
+  "auto": {
+   "ja": "オート"
+  },
+  "dry": {
+   "ja": "ドライ"
+  },
+  "bars": {
+   "ja": "小節"
+  },
+  "wet": {
+   "ja": "ウェット"
+  },
+  "{n} section": {
+   "ja": "{n}セクション"
+  },
+  "{n} bar": {
+   "ja": "{n}小節"
+  },
+  "{n} bars": {
+   "ja": "{n}小節"
+  },
+  "{n} seconds": {
+   "ja": "{n}秒"
+  },
+  "{n} db": {
+   "ja": "{n} dB"
+  },
+  "crash on the one": {
+   "ja": "1拍目のクラッシュ"
+  },
+  "double kick on the and": {
+   "ja": "裏拍のダブルキック"
+  },
+  "doubled snare": {
+   "ja": "ダブルスネア"
+  },
+  "hats out, eighths": {
+   "ja": "8分ハット、最終拍は休み"
+  },
+  "hats rest": {
+   "ja": "ハット休み"
+  },
+  "kick push": {
+   "ja": "キックプッシュ"
+  },
+  "open hats": {
+   "ja": "オープンハット"
+  },
+  "pad swap": {
+   "ja": "パッド交代"
+  },
+  "ride-in": {
+   "ja": "ライド・イン"
+  },
+  "riser every two": {
+   "ja": "2小節ごとのライザー"
+  },
+  "rolling snare": {
+   "ja": "ローリングスネア"
+  },
+  "stabs in": {
+   "ja": "スタブ入り"
+  },
+  "stepper": {
+   "ja": "ステッパー"
+  },
+  "two ghosts in": {
+   "ja": "ゴースト2音を追加"
+  },
+  "the sixteenths step out": {
+   "ja": "16分が抜ける"
+  },
+  "wordless vocal": {
+   "ja": "言葉のないボーカル"
+  },
+  "full|conversation.root": {
+   "ja": "豊か"
+  },
+  "full|sea.tide": {
+   "ja": "大きい"
+  },
+  "deep|conversation.root": {
+   "ja": "深い"
+  },
+  "light|conversation.root": {
+   "ja": "軽やか"
+  },
+  "double time": {
+   "ja": "ダブルタイム"
+  },
+  "hats halved": {
+   "ja": "ハット間引き"
+  },
+  "offbeat hats": {
+   "ja": "裏拍ハット"
+  },
+  "kick dropped": {
+   "ja": "キック抜き"
+  },
+  "kick on the one": {
+   "ja": "1拍目のキック"
+  },
+  "shaker rest": {
+   "ja": "シェイカー休み"
+  },
+  "snare held": {
+   "ja": "スネア抜き"
+  }
+ },
+ "genres": {
+  "Drum & Bass": {
+   "ja": "ドラムンベース"
+  },
+  "Dubstep": {
+   "ja": "ダブステップ"
+  },
+  "Trance": {
+   "ja": "トランス"
+  },
+  "Techno": {
+   "ja": "テクノ"
+  },
+  "Breaks": {
+   "ja": "ブレイクス"
+  },
+  "Downtempo": {
+   "ja": "ダウンテンポ"
+  },
+  "Trip Hop": {
+   "ja": "トリップホップ"
+  },
+  "Ambient": {
+   "ja": "アンビエント"
+  },
+  "House": {
+   "ja": "ハウス"
+  },
+  "Deep House": {
+   "ja": "ディープハウス"
+  },
+  "Tech House": {
+   "ja": "テックハウス"
+  },
+  "Progressive House": {
+   "ja": "プログレッシブハウス"
+  },
+  "Minimal House": {
+   "ja": "ミニマルハウス"
+  },
+  "Afro House": {
+   "ja": "アフロハウス"
+  },
+  "Melodic House": {
+   "ja": "メロディックハウス"
+  },
+  "Acid House": {
+   "ja": "アシッドハウス"
+  },
+  "Bass House": {
+   "ja": "ベースハウス"
+  },
+  "Peak-time Techno": {
+   "ja": "ピークタイムテクノ"
+  },
+  "Minimal Techno": {
+   "ja": "ミニマルテクノ"
+  },
+  "Melodic Techno": {
+   "ja": "メロディックテクノ"
+  },
+  "Detroit": {
+   "ja": "デトロイト"
+  },
+  "Hard Techno": {
+   "ja": "ハードテクノ"
+  },
+  "Acid Techno": {
+   "ja": "アシッドテクノ"
+  },
+  "Industrial": {
+   "ja": "インダストリアル"
+  },
+  "Hypnotic": {
+   "ja": "ヒプノティック"
+  },
+  "Ambient & Downtempo": {
+   "ja": "アンビエント＆ダウンテンポ"
+  },
+  "Lo-fi": {
+   "ja": "ローファイ"
+  },
+  "Dark Ambient": {
+   "ja": "ダークアンビエント"
+  },
+  "Ambient Dub": {
+   "ja": "アンビエントダブ"
+  },
+  "Drone": {
+   "ja": "ドローン"
+  },
+  "Psybient": {
+   "ja": "サイビエント"
+  },
+  "Bells": {
+   "ja": "ベル"
+  },
+  "Waves": {
+   "ja": "ウェーブ"
+  },
+  "Bowls": {
+   "ja": "シンギングボウル"
+  },
+  "Om": {
+   "ja": "オーム"
+  },
+  "Field": {
+   "ja": "フィールド"
+  },
+  "DnB & Dub": {
+   "ja": "ドラムンベース＆ダブ"
+  },
+  "Liquid": {
+   "en": "Liquid DnB",
+   "ja": "リキッドドラムンベース"
+  },
+  "Jungle": {
+   "ja": "ジャングル"
+  },
+  "Neurofunk": {
+   "ja": "ニューロファンク"
+  },
+  "Jump-up": {
+   "ja": "ジャンプアップ"
+  },
+  "Dub Techno": {
+   "ja": "ダブテクノ"
+  },
+  "Roots Dub": {
+   "ja": "ルーツダブ"
+  },
+  "Chillstep": {
+   "ja": "チルステップ"
+  },
+  "Progressive Trance": {
+   "ja": "プログレッシブトランス"
+  },
+  "Uplifting Trance": {
+   "ja": "アップリフティングトランス"
+  },
+  "Psytrance": {
+   "ja": "サイケトランス"
+  },
+  "Goa Trance": {
+   "ja": "ゴアトランス"
+  },
+  "Tech Trance": {
+   "ja": "テックトランス"
+  },
+  "Vocal Trance": {
+   "ja": "ボーカルトランス"
+  },
+  "Hard Trance": {
+   "ja": "ハードトランス"
+  },
+  "Dream Trance": {
+   "ja": "ドリームトランス"
+  },
+  "Breaks & Big Beat": {
+   "ja": "ブレイクス＆ビッグビート"
+  },
+  "Big Beat": {
+   "ja": "ビッグビート"
+  },
+  "Breakbeat": {
+   "ja": "ブレイクビーツ"
+  },
+  "Nu Skool Breaks": {
+   "ja": "ニュースクールブレイクス"
+  },
+  "Florida Breaks": {
+   "ja": "フロリダブレイクス"
+  },
+  "Progressive Breaks": {
+   "ja": "プログレッシブブレイクス"
+  },
+  "Acid Breaks": {
+   "ja": "アシッドブレイクス"
+  },
+  "Broken Beat": {
+   "ja": "ブロークンビーツ"
+  },
+  "Funky Breaks": {
+   "ja": "ファンキーブレイクス"
+  },
+  "Misc": {
+   "ja": "その他"
+  },
+  "UK Garage": {
+   "ja": "UKガラージ"
+  },
+  "2-Step": {
+   "ja": "2ステップ"
+  },
+  "Speed Garage": {
+   "ja": "スピードガラージ"
+  },
+  "Bassline": {
+   "ja": "ベースライン"
+  },
+  "Electro": {
+   "ja": "エレクトロ"
+  },
+  "Synthwave": {
+   "ja": "シンセウェイブ"
+  },
+  "IDM": {
+   "ja": "IDM"
+  },
+  "Hardstyle": {
+   "ja": "ハードスタイル"
+  }
+ }
+}

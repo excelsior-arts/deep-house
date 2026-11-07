@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "marimbaGrit",
+  "revision": 1,
+  "topology": "crush-pluck",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.9,
+        1
+      ],
+      [
+        4,
+        0.12,
+        0.34
+      ],
+      [
+        9.2,
+        0.06,
+        0.14
+      ]
+    ],
+    "pitchCents": 0,
+    "pitchTime": 0.01,
+    "noise": 0.35,
+    "noiseTone": 0.25,
+    "noiseTime": 0.004,
+    "holdHz": 6000,
+    "bits": 6,
+    "crushMix": 0.6,
+    "maxSeconds": 1.6,
+    "ringLevel": 0.32,
+    "peakCeiling": 1.0,
+    "attack": 0.002,
+    "release": 0.1,
+    "lpHz": 6000,
+    "veloOpen": 0.5,
+    "hpHz": 120,
+    "detuneCents": 4,
+    "spread": 0.4,
+    "cacheLimit": 96,
+    "drive": 0.3,
+    "smear": 0,
+    "smearTime": 0.12,
+    "grainTime": 0.04,
+    "trim": 1.8,
+    "reverb": 0.24,
+    "delay": 0.14
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "mid",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dark-fronts",
+    "module": "crush-pluck.ts",
+    "note": "The marimba, ground: the wooden bar's partials (1, 4 and 9.2, the second tuned down by the arch carved under the bar), a short dark strike for the mallet's head, computed once a pitch as the crushed pluck is, so a note can carry the theme's colour (the crush's bits and rate, a tape's drive, the grains) and its own grind between the clean bar and the ground one. Round dark-fronts' eighth pass, his ear 11-04: the marimba's clean tone 'isn't a great fit' in the dark places, its positions as accents fine.",
+    "notes": {
+      "timbres": "none declared: played only where the dark fronts' rule writes it (AWAITING)",
+      "crushMix": "0.6: the row's own grind where a note asks none; the rule writes every note's",
+      "trim": "set so a clean note stands at the mallet marimba's loudness (tools/dark-fronts-cost.ts' notes)"
+    }
+  }
+}

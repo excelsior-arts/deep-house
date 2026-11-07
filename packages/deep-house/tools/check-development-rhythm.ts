@@ -29,7 +29,9 @@ test('the groove develops in its second half and the bridge ends with one grid-l
     assert.deepEqual(t.arrangement,old.arrangement);
     assert.deepEqual(t.events.filter(e=>e.part===piano.id),old.events.filter(e=>e.part===piano.id));
     const first=t.arrangement.sections.find(s=>s.kind==='main')!;
-    const hits=(from:number,to:number)=>t.events.filter(e=>e.layer==='shaker'&&e.bar>=from&&e.bar<to);
+    // (the development's own: since the top-voices-2 integration (11-02) the top's quiet voices may play the shaker layer
+    // too, on the rota's lines and not the development's halves; `by: top-voices/...`)
+    const hits=(from:number,to:number)=>t.events.filter(e=>e.layer==='shaker'&&e.bar>=from&&e.bar<to&&!String(e.by??'').startsWith('top-voices/'));
     assert.ok(hits(first.startBar,first.startBar+16).length>0);
     assert.ok(hits(first.startBar+16,first.startBar+32).length>=hits(first.startBar,first.startBar+16).length);
     if(hits(first.startBar+16,first.startBar+32).length>hits(first.startBar,first.startBar+16).length)grew++;

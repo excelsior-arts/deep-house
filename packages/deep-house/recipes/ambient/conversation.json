@@ -2,7 +2,7 @@
  "schema": 1,
  "kind": "ambient-conversation",
  "round": "rc-ambient",
- "revision": 10,
+ "revision": 11,
  "note": "Struck voices in slow conversation (PLAN-AMBIENT Phase 1, his words of 10-17: \"something acoustical like bells slow conversation with hint of percussion\"). A ground that is struck and rings, never held: a singing bowl on the tonic or the fifth, struck every 10-24 s (closer by `pace` in the chapters where nobody talks) and ringing some 52 s, so the room is never silent and never a pad. Over it a caller strikes one to three notes, leaning off the pitch the last call started on (`restartW`), softer the higher it goes (`velFrom`, `velByOctave`); a breath; and an answerer in another voice answers, softer than the call: the call's contour echoed from a tone of the chord over or under where the call began, mirrored from where it stopped, or completed to the tonic or the fifth (down after a call that rose, up after one that fell, home to the tonic where a section closes); and now and then the question is left open and only the ground answers. An answer the last `memory` exchanges already said is said another way, and the theme's first answer may come back as its last word (`recall`). Then a long rest. The ground is laid after the talk and gives way to it: a strike that would fall inside an exchange moves a breath (`yieldS`) before its call or after its answer. A hand marks a phrase now and then, between the call and the answer or after it, never on a strike: a hint and never a strike, a round low woodblock alone, some 12 dB under the answer (his ear, 10-17: the record's shaker read as a hat and the hand as a clap in a space this sparse; 10-29: \"the woodblock is the only matching percussion ... wood block sounds natural and fitting, all other claps are distracting\": the frame drum and the soft shaker are out of the bells, and the heartbeat is the woodblock too). Pitches are the key's pentatonic, so any two strikes agree. The chapters follow the section kinds: the intro and the outro the ground alone, the grooves the exchanges, the breakdown the answerer alone now and then and sometimes a long silence over the ground. Seconds are seconds, placed on the theme's sixteenths with a little lateness. Every weight and range is a listening hypothesis, his to trim. Voices: `voices` by weight, a voice's own `db` beside its weight where it sits louder or softer alone (set by rendering each part alone), and its own `hardGain` where the row's would leave Zephyr's hardest strike peakier than the voice's own (set by rendering the strike alone at the place and at Zephyr's top: the temple bell's and the soft mallet's lifted partials, held to 1.5 dB over their own peak); the ground's `dbFrom`, `dbByOctave` and `dbTo` its level by register, MIDI numbers (zones-pilot-2 and -3, measured alone on the keys' floor: the struck bowl reads 4.8 LU louder at F#3 than at G2, so a key that put it at the top of its register stood 2 LU over the place and 3-4 dB into the limiter; over F#3 it reads no louder, level to A3 and a decibel under from B3 to C#4; so from B2, MIDI 47, it is struck 4 dB an octave softer up to F#3, MIDI 54, 2.3 dB there, and held at that over it; the small bells' ground, a fifth up at 50-61, is only 0.5 dB under the place's own, since the register's cut already takes 1.0-2.3 dB off each of its strikes); a role's `levelDb` is on the keys layer's footing (the composer moves a voice on another layer by the room's difference), and `mixDb` lifts the whole conversation to where its windows measure at nought (the place's own level); `keysDb` is the keys layer's room level those were measured on, so in a room the die draws at a pull whose keys stand elsewhere the whole conversation moves by the difference and the place's level is its own in any room. `oscillatorsMost`: the most oscillators its strikes run at once, each oscillator counted for its own seconds (a bar's partials stop at their own ends), the phone's ceiling the plan named; a strike over it is not laid (a call or an answer ends where it is, an exchange or the ground waits). Birds: the one lean about the place's own birds, so the place's tile plays these numbers exactly: `factor` knobs multiply (exp(x · (bird − centre))), `shift` knobs add (x · (bird − centre), held to `most`, or reaching `ends` at the bird's own ends; inside a zone an address bird's ends are reached at its band's edges, so Veil's count is busiest at 0.60, Spark's still end at 0.45 and Ember's heartbeat at 0.18; an end past the knob's own hold is a plateau: `still` is held to 0..1, so its end of 2 makes the still end whole from the band's edge to half-way to the tile, Spark 0.45 to 0.50, and gone at the tile, 0.55, as before: a range a finger finds on the ring, where an end of 1 was whole only at the edge itself and the hand was back at 0.46). Each bird is the thing its name promises, by struck instruments' conventions (his ask, 10-18): Root the bells' `size` (-1 a composition of small bells, +1 great bells, each pole's numbers in `size`, reached as |size| to the pole's `curve`, its `voice` taking the call and the answer over on a die of its own: a bigger bell is lower, rings longer and is struck less often), Veil the `count` (how many strikes and how far apart, `count`'s factors) and the change of hands across sections, Ember the `pulse` (free time under the place, the grid and a heartbeat over it, `pulse`: since the zones pilot its `ends` are reached at the zone's band, so the heartbeat is full at 0.18, where the kit takes over, and the free side keeps its depth of 7.7 a unit), Tide the space (the sends, the `width` between the caller and the answerer, the hall's `tail`), Zephyr the timbre (the voices by their measured air, `air:caller` and `air:answerer`, up airier and down darker, and the strike's `hardness`), Gleam the light (the targets, and how often the ground `leave`s the tonic), Spark the movement (the hand, three-note calls, the answer's `lively` rhythm), Loom the form (the rests, the `memory`, the `recall`, the breakdown's `silence`). A voice of weight nought plays only where a lean adds to it; `oct` is the octaves a voice sounds its role's pitches at.",
  "rows": [
   {
@@ -2276,6 +2276,396 @@
       -1,
       0
      ]
+    }
+   },
+   "budget": {
+    "fallbacks": [
+     "answerer takes the caller's voice",
+     "the punctuation goes"
+    ]
+   }
+  },
+  {
+   "id": "drone-in-the-field",
+   "note": "FIELD (PLAN-AMBIENT P3, ambient-field; his ear 10-31 on the sketches: the drone \"good\", the weather \"the total silent gap doesn't read well\", the chirps \"I guess it can live if it doesn't interfere much\", together \"sounds pretty good\"): the held drone is the entry's bed (the wave pad on an open fifth or a cluster), and over it a field recording's shape made of noise: the wind, a fine rain or a dark cloud one after another with no gap, a distant rumble now and then under the cloud, and rare short glides far back, a bird somewhere. No strikes, no calls.",
+   "scale": [
+    0,
+    4
+   ],
+   "degrees": {
+    "0": "tonic",
+    "1": "fifth"
+   },
+   "lateMs": [
+    0,
+    40
+   ],
+   "mixDb": 16.7,
+   "keysDb": -14.5,
+   "oscillatorsMost": 32,
+   "clearS": 0.5,
+   "ground": {
+    "none": true,
+    "voices": [
+     {
+      "v": "bowlStruck",
+      "w": 1
+     }
+    ],
+    "degrees": [
+     [
+      0,
+      1
+     ]
+    ],
+    "register": [
+     34,
+     45
+    ],
+    "everyS": [
+     30,
+     58
+    ],
+    "ringShare": 1,
+    "ringsMost": 2,
+    "pace": {
+     "ground": 1
+    },
+    "yieldS": [
+     4,
+     6
+    ],
+    "touch": 0.5,
+    "firstS": [
+     24,
+     40
+    ],
+    "apartS": 28,
+    "lastS": 30,
+    "vel": [
+     0.26,
+     0.36
+    ],
+    "levelDb": -1.5,
+    "dbFrom": 34,
+    "dbByOctave": -5.5,
+    "dbTo": 54,
+    "reverb": 0.6,
+    "delay": 0.03,
+    "pan": [
+     -0.08,
+     0.08
+    ]
+   },
+   "caller": {
+    "voices": [
+     {
+      "v": "bowlStruck",
+      "w": 1
+     }
+    ],
+    "register": [
+     34,
+     70
+    ],
+    "notes": [
+     [
+      1,
+      1
+     ]
+    ],
+    "contours": {},
+    "targets": {
+     "0": 1,
+     "1": 1
+    },
+    "restartW": 1,
+    "gapS": [
+     0.7,
+     1.6
+    ],
+    "vel": [
+     0.24,
+     0.36
+    ],
+    "velFrom": 72,
+    "velByOctave": 0,
+    "fade": 0,
+    "dur": [
+     2.5,
+     4
+    ],
+    "levelDb": -6,
+    "reverb": 0.6,
+    "delay": 0.04,
+    "pan": [
+     -0.3,
+     -0.12
+    ]
+   },
+   "answerer": {
+    "voices": [
+     {
+      "v": "bowlStruck",
+      "w": 1
+     }
+    ],
+    "register": [
+     34,
+     70
+    ],
+    "kinds": [
+     [
+      "echo",
+      3
+     ],
+     [
+      "open",
+      1
+     ]
+    ],
+    "memory": 0,
+    "recall": false,
+    "afterS": [
+     1.1,
+     1.4
+    ],
+    "gapMul": 1,
+    "velMul": 0.85,
+    "levelDb": -6,
+    "dur": [
+     2.5,
+     4
+    ],
+    "reverb": 0.6,
+    "delay": 0.04,
+    "pan": [
+     0.12,
+     0.3
+    ]
+   },
+   "field": {
+    "weather": {
+     "states": [
+      {
+       "id": "wind",
+       "voice": "weatherWind",
+       "w": 3,
+       "levelDb": -13.3
+      },
+      {
+       "id": "rain",
+       "voice": "weatherRain",
+       "w": 2,
+       "levelDb": -13.3
+      },
+      {
+       "id": "dark",
+       "voice": "airBed",
+       "w": 1,
+       "levelDb": -15.3,
+       "rumble": true
+      }
+     ],
+     "spanS": [
+      40,
+      90
+     ],
+     "overlapS": [
+      6,
+      10
+     ],
+     "vel": 0.8,
+     "reverb": 0.3,
+     "delay": 0,
+     "rumble": {
+      "voice": "weatherRumble",
+      "everyS": [
+       50,
+       120
+      ],
+      "firstS": [
+       10,
+       30
+      ],
+      "dur": [
+       2.5,
+       4
+      ],
+      "vel": 0.8,
+      "levelDb": -17.3,
+      "reverb": 0.3
+     }
+    },
+    "chirp": {
+     "voices": [
+      {
+       "v": "siren",
+       "w": 1
+      }
+     ],
+     "everyS": [
+      45,
+      110
+     ],
+     "firstS": [
+      20,
+      40
+     ],
+     "endS": 20,
+     "burst": [
+      2,
+      4
+     ],
+     "gapS": [
+      0.11,
+      0.16
+     ],
+     "midi": [
+      91,
+      98
+     ],
+     "dur": [
+      0.07,
+      0.1
+     ],
+     "downChance": 0.3,
+     "vel": [
+      0.4,
+      0.55
+     ],
+     "knobs": {
+      "span": 1.35,
+      "glide": 1,
+      "brightnessHz": 5000
+     },
+     "levelDb": -23,
+     "reverb": 0.5,
+     "delay": 0.1,
+     "pan": [
+      -0.5,
+      0.5
+     ],
+     "sections": [
+      "groove",
+      "main",
+      "breakdown"
+     ]
+    }
+   },
+   "exchange": {
+    "entryS": [
+     8,
+     16
+    ],
+    "restS": [
+     20,
+     50
+    ],
+    "endS": 8
+   },
+   "punctuation": {
+    "voices": [],
+    "chance": 0,
+    "where": [
+     [
+      "after",
+      1
+     ]
+    ],
+    "afterS": [
+     1,
+     3
+    ],
+    "vel": [
+     0.1,
+     0.2
+    ],
+    "levelDb": -20,
+    "reverb": 0.2,
+    "delay": 0,
+    "pan": [
+     0,
+     0
+    ]
+   },
+   "breakdown": {
+    "everyS": [
+     20,
+     40
+    ],
+    "firstS": [
+     4,
+     10
+    ],
+    "steps": [
+     [
+      -1,
+      1
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "velMul": 0.85,
+    "silence": {
+     "chance": 0,
+     "s": [
+      30,
+      50
+     ]
+    }
+   },
+   "chapters": {
+    "intro": "ground",
+    "groove": "ground",
+    "breakdown": "ground",
+    "outro": "ground",
+    "main": "ground",
+    "build": "ground",
+    "drop": "ground"
+   },
+   "count": {
+    "rest": -1,
+    "ground": -0.4,
+    "db": -1.5,
+    "floor": 0.35,
+    "groundFloor": 0.6
+   },
+   "widthMost": 0.45,
+   "hardGain": 1.3,
+   "birds": {
+    "by": {
+     "gleam": {
+      "chirps": 1
+     },
+     "veil": {
+      "weatherSpan": -1.5
+     },
+     "loom": {
+      "weatherSpan": 1
+     },
+     "tide": {
+      "weatherDb": 8
+     },
+     "zephyr": {
+      "state:wind": 2.5,
+      "state:dark": -2
+     },
+     "root": {
+      "state:dark": 2.5,
+      "rumbleEvery": -1.5
+     }
+    },
+    "ends": {
+     "chirps": [
+      -1,
+      1
+     ]
+    },
+    "most": {
+     "weatherDb": 4
     }
    },
    "budget": {

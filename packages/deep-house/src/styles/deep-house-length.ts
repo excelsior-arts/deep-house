@@ -19,6 +19,19 @@ export const LENGTH_ROWS: LengthKnobs = Object.freeze({
     band: Object.freeze([9.1, 9.9] as const), ember: 0, veil: 0.08, tide: 0.08, loom: 0.15,
   }),
   named: Object.freeze({
+    /**
+     * **A groove felt at half its written tempo** (round dark-fronts' tenth pass, his word 11-04 on the heavy-bass
+     * half-time tracks: *"they have fast bpm, but fundamentally they are slow … could be a bit longer, they actually
+     * seem to not fit the 3 min limit, and could go into 3:30-4"*): 3:30-4:00 about the deep half-time place, every bird
+     * a small lean (Loom the smallest of the groove's: these are the places where Loom sits low by nature); named by the
+     * time entries whose kit plays half-time (`length: 'half'`, `TIME` in deep-house-places.ts) and played only where
+     * the plan's own drums read half (`feltPulseOf`, set-plan.ts): a kick on every beat keeps the groove's band.
+     */
+    half: Object.freeze({
+      family: 'groove' as const,
+      centre: Object.freeze({ ember: 0.92, spark: 0.10, tide: 0.90, zephyr: 0.25, root: 0.85, veil: 0.15, loom: 0.80 }),
+      band: Object.freeze([3.5, 4.0] as const), ember: 0.03, veil: 0.08, tide: 0.08, loom: 0.1,
+    }),
     /** struck voices in conversation: 5-6 minutes, the simplest ambient tone, every bird a small lean about the middle of the conversation's places; blended into the drumless band by its share */
     struck: Object.freeze({
       family: 'drumless' as const,

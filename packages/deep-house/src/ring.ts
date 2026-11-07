@@ -22,6 +22,8 @@
 // so a new build is a new module graph and no tab keeps an old ring alive.
 // The TV's page first (round tv-scene): before anything that stores is evaluated, its page keeps nothing.
 import { TV_VIEW } from './tv-mode.ts';
+// the page's words in the language it speaks, before anything is drawn, and the About's drop-down (round japanese)
+import './lang-switch.ts';
 // The exception tracker first, so its handlers stand before any other module runs.
 import { reportsWanted, reportsRunning, setReports } from './instrument.ts';
 import { reportFaults } from './fault-report.ts';
@@ -38,7 +40,7 @@ import { styleDistance, FLOOR, WEIGHTS } from './style-distance.ts';
 // The eight birds' glyphs: one drawing each, drawn once and never again.
 import { drawBirdGlyph, glyphAt, levelAt } from './bird-glyph.ts';
 // What a bird's cell says: the quantity it biases, and the seed's locked reading under it (round K13).
-import { cellReading, sentenceOf, shortOf, hatsOfProgram, programFactsOf, keysOfProgram, heldOfProgram, airPlayOf } from './bird-labels.ts';
+import { cellReading, cellSaid, sentenceOf, shortOf, hatsOfProgram, programFactsOf, keysOfProgram, heldOfProgram, airPlayOf } from './bird-labels.ts';
 import type { CellValue, LabelTheme } from './bird-labels.ts';
 // Which bird reaches which cell: the ring's dotted lines, from the model (round K13).
 import { linksOf, frameLine, COMPASS } from './bird-influence.ts';
@@ -75,6 +77,8 @@ import { shellDragging, onShellDrag } from './shell-library.ts';
 import { phoneSize, pageViewport } from './motion.ts';
 import { startTvFeed } from './tv-feed.ts';
 import { startTvView } from './tv-view.ts';
+import { w, onLang, lang, birdName, birdNameBoth, type WordKey } from './words.ts';
+import { ringCell, ringSection } from './words-ring.ts';
 import type { Parts, PlannedTheme } from './style-distance.ts';
 
 // ==========================================================================
@@ -499,12 +503,42 @@ function syncTwins(to: RingColour, e: number): void {
       { g: twinOf(gSpin, starSvg, gStarLines, to, true), follow: gSpin },
       { g: twinOf(gCore, gInnerLive, gInnerLive.firstChild, to, false) },
     ];
+    // the centre's copy lies on the sheet above the keys: it stops at their rims, as the centre itself does under them
+    twins[twins.length - 1].g.setAttribute('clip-path', keysOut());
     twinsFor = to.hex;
   }
   for (const t of twins) {
     put(t.g, 'opacity', e.toFixed(3));
     if (t.follow) put(t.g, 'transform', t.follow.getAttribute('transform') ?? '');
   }
+}
+
+/**
+ * **The keys stay clean over a crossing** (round ring-details, his eye 11-03: *"when mixing control button circles get
+ * a bit annoying overlap with ring circle lines"*). The keys sit inside the bloomed group under the centre's
+ * unfiltered copy in the coming gold (`.twin`, on the sheet above), so through a colour walk the centre's two circles
+ * and its ground were drawn across all five faces, at the walk's own opacity, the inner half of each key dimmed by the
+ * ground. MEASURED (a featured playlist's own seam, halfway through the crossing, chromium and webkit): Pause, Back,
+ * Next, Love and the dice each crossed by both circles. The copy is clipped to the ring outside the keys' discs, out to
+ * the rim's outer edge, so a circle meets a key's rim and stops there, as the centre itself does under them at rest.
+ * The clip follows the keys wherever they are built (`buildActions`); nothing else of the walk changes.
+ */
+let keysOutPath: Mark<SVGPathElement> | null = null;
+function keysOut(): string {
+  if (!keysOutPath || !keysOutPath.isConnected) {
+    const clip = el('clipPath', { id: 'keysOut', clipPathUnits: 'userSpaceOnUse' }, el('defs', {}, innerSvg));
+    keysOutPath = el('path', { d: '', 'clip-rule': 'evenodd' }, clip);
+  }
+  paintKeysOut();
+  return 'url(#keysOut)';
+}
+/** The sheet with a hole for each key, out to its rim's outer edge (the rim's stroke is `.thin`, 1.6). */
+function paintKeysOut(): void {
+  if (!keysOutPath) return;
+  const r = ctrlR + 0.8;
+  let d = 'M-1000 -1000H2000V2000H-1000Z';
+  for (const a of actionNodes) d += `M${(a.x - r).toFixed(2)} ${a.y.toFixed(2)}a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(2 * r).toFixed(2)} 0a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(-2 * r).toFixed(2)} 0Z`;
+  put(keysOutPath, 'd', d);
 }
 
 /**
@@ -1040,6 +1074,16 @@ const BIRD: Record<CellId, { key: string; name: string; means: string }> = {
 
 /** The bird a cell is, typed: the key above, read as the composer's own name. */
 const birdOf = (id: CellId) => BIRD[id].key as Bird;
+/** **The name a cell's title prints** (round japanese): the language's, alone (his word 11-03: no English in the default view). */
+const titleName = (id: CellId): string => birdName(BIRD[id].key);
+/**
+ * **A one-character name is a seal, and a seal is printed on a finger's ring too** (his word 11-03: "for Japanese use
+ * bigger font size for birds' name, as it's the only char"): where every control's name is one character (`seal`,
+ * index.html draws it larger and untracked), a phone's title carries it beside the percent, as a desktop's does; a
+ * longer name keeps the finger's rule, the percent alone.
+ */
+const sealed = (): boolean => document.documentElement.dataset.birdNames === 'seal';
+const coarseTitle = (id: CellId, pct: string): string => (sealed() ? (pct ? `${titleName(id)} ${pct}` : titleName(id)) : pct);
 
 // --- the eight cells as controls (UX-1, `notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md`) ----------
 //
@@ -1249,9 +1293,14 @@ let askedFrom: string | null = null;
 let askedWas: Partial<Spell> | null = null;
 /** The TV's page (round tv-scene): the spell the phone's address asks, as the phone's page says it (tv-view.ts). */
 let tvAsk: Partial<Spell> | null = null;
+/** The transport's stated place on its way (`control.placeAsk`), set once the transport is made. */
+let placeAskOf: (() => Partial<Spell> | null | undefined) | null = null;
 function askedSpell(): Partial<Spell> | null {
   // the TV's address carries the spell the music plays, in the delay behind the phone; what a hand asked is said apart
   if (TV_VIEW) return tvAsk;
+  // a playlist's next track, a journal walk: asked of the transport, not yet on the address (round crash-resume)
+  const placed = placeAskOf ? placeAskOf() : undefined;
+  if (placed !== undefined) return placed;
   const q = typeof location === 'undefined' ? '' : location.search;
   if (q !== askedFrom) {
     askedFrom = q;
@@ -1512,7 +1561,7 @@ function tempoNow(r: Readout): number {
  * the grid's while a seam glides (`tempoNow`).
  */
 function cellValue(id: CellId, r: Readout): CellValue {
-  return cellReading(birdOf(id), { ...r, bpm: tempoNow(r) } as LabelTheme, labelStyle(r));
+  return cellSaid(birdOf(id), { ...r, bpm: tempoNow(r) } as LabelTheme, labelStyle(r));
 }
 /** The style whose quantities the cells say: the playing strategy's, where it reads the spell. */
 function labelStyle(r: Readout) {
@@ -1542,6 +1591,7 @@ const SECTION: Record<string, { short: string; dash: string | null; op: number }
 // (the TV's page is told its place by the phone's, and takes no link of its own: tv-view.ts)
 const listRefused = TV_VIEW ? null : openListLink();
 const control = createControl();
+placeAskOf = () => control.placeAsk();
 if (listRefused) control.linkProblems.push(listRefused);
 // the ledger's faults, reported where the listener's switch is on (K33)
 reportFaults(control);
@@ -1572,6 +1622,70 @@ const gStarLive = $('starLive')!;
 const gStarLines = $('starLines')!;
 // the words' own sheet: over the lines, under the birds and their lights
 const gStarWords = $('starWords')!;
+
+/**
+ * **The glow on the compositor** (round glow, his word 11-03: *"every time I open app or play a track from playlist …
+ * it seems ring animation is a bit not smooth"*; his pick 11-03, *"GPU all the way!"*). The glow was an SVG filter
+ * (`#bloom`) on three groups, and WebKit ran its blur on the page's thread whenever anything inside one changed: a
+ * colour step (a playlist's track, a crossing's swap), the die's fold and rebuild, a theme's band. MEASURED (headless
+ * WebKit, this Mac, `tools/glow.ts`): 70-85 ms a change on a desktop's square, 120-130 ms on a phone's (×3), mostly the
+ * band's lanes, each drawn through a layer of its own inside the filter. Chromium's was 10 ms.
+ *
+ * Now the three groups (`data-bloom` in the page) draw their lines unfiltered on their sheets, and under each sheet a
+ * sheet of its own (`#outerHalo`, `#starHalo`, `#innerHalo`) shows the same groups (`<use>`, so it is never out of
+ * step) through a CSS `blur()` of the bloom's own deviation at its 0.55, which the browser's compositor draws on the
+ * GPU. A change is a repaint of lines (19-30 ms in the same WebKit), and the glow follows it. Each halo sheet follows
+ * its sheet's transform, clip and opacity (the star's turn, the cast's fold and sweep). The glow is cut in the bloomed
+ * gold (`#gold`) as before, so it and the keys inside the transport's group hold the playing colour through a crossing
+ * and change at the swap (his word 11-03: the two colours together are wanted).
+ *
+ * The lock screen's picture is one SVG drawn to an image, with no compositor: it puts `#bloom` back on its copy of the
+ * groups (`coverSvg`), which is why the filter stays in the page's defs.
+ */
+/** the bloom's deviation, in the ring's units, and its strength: `#bloom`'s own */
+const BLOOM_SD = 2.4;
+const BLOOM_A = 0.55;
+/** each halo sheet and the sheet it glows under */
+/**
+ * A sheet is an HTML box holding the halo's drawing, and the box is `inert` (nightly 11-04): a `<use>` copies its group
+ * whole, the keys' `tabindex` with it, and every engine made the copies of play, skip, cast, love and back five stops
+ * the keyboard reached between the birds and play. `inert` is HTML's alone (an SVG element ignores it), so it is said
+ * on a box round the drawing, which is laid out as the sheet was (`.layer`).
+ */
+const halos: { sheet: HTMLElement; halo: HTMLElement }[] = [];
+{
+  for (const [sheet, id] of [[outerSvg, 'outerGlow'], [starSvg, 'starGlow'], [innerSvg, 'innerGlow']] as [HTMLElement, string][]) {
+    const halo = document.createElement('div');
+    halo.className = 'layer halo';
+    halo.id = `${sheet.id}Halo`;
+    halo.inert = true;
+    halo.setAttribute('aria-hidden', 'true');
+    const art = document.createElementNS(NS, 'svg') as SVGSVGElement;
+    for (const [k, v] of Object.entries({ viewBox: '0 0 1000 1000', style: 'position:absolute;inset:0;width:100%;height:100%;overflow:visible;display:block' })) art.setAttribute(k, v);
+    el('use', { href: `#${id}` }, art);
+    halo.appendChild(art);
+    tiltEl.insertBefore(halo, sheet);
+    halos.push({ sheet, halo });
+  }
+  const follow = () => {
+    for (const { sheet, halo } of halos) {
+      const s = sheet.style, h = halo.style;
+      if (h.transform !== s.transform) h.transform = s.transform;
+      if (h.clipPath !== s.clipPath) h.clipPath = s.clipPath;
+      const o = String(BLOOM_A * (s.opacity === '' ? 1 : Number(s.opacity)));
+      if (h.opacity !== o) h.opacity = o;
+    }
+  };
+  follow();
+  // (a write to a sheet's style is followed before the frame is drawn: a mutation's records are a microtask)
+  const watch = new MutationObserver(follow);
+  for (const { sheet } of halos) watch.observe(sheet, { attributes: true, attributeFilter: ['style'] });
+}
+/** the halo sheets' blur at the square's size (a CSS length, so it is the bloom's deviation on the square) */
+function haloBlur(): void {
+  const b = `blur(${(BLOOM_SD * unitPx).toFixed(3)}px)`;
+  for (const { halo } of halos) if (halo.style.filter !== b) halo.style.filter = b;
+}
 
 // The mandala: the star **sways about north** rather than turning a whole
 // circle a theme, and it is read off the same clock as the cursor.
@@ -1877,7 +1991,7 @@ function buildTimeline(r: Readout) {
     // it does not land on twelve o'clock, which belongs to the lane key
     const fm = f0 + Math.min(0.022, (f1 - f0) * 0.4);
     if (f1 - f0 >= 0.022 && fm < 0.972 && fm > 0.012) {
-      txt(gTimeline, st.short, px(fm, R_SEC_TXT).toFixed(1), (py(fm, R_SEC_TXT) + 4).toFixed(1), 11, { op: 0.62, ls: 0.24 });
+      txt(gTimeline, w(`section.short.${SECTION[s.kind] ? s.kind : 'main'}` as WordKey), px(fm, R_SEC_TXT).toFixed(1), (py(fm, R_SEC_TXT) + 4).toFixed(1), 11, { op: 0.62, ls: 0.24 });
     }
   }
 
@@ -2594,11 +2708,11 @@ function actionsNow(): Action[] {
   };
   const over = (f: number) => ky(f) - ctrlR - 6;
   return [
-    { id: 'play', f: ACT_F.play, word: 'play', lx: C, ly: labelUp(), la: 'middle' },
-    { id: 'skip', f: ACT_F.skip, word: 'skip', lx: kx(ACT_F.skip) - side(ACT_F.skip), ly: LABEL_SIDE_Y, la: 'end' },
-    { id: 'cast', f: ACT_F.cast, word: 'cast', lx: kx(ACT_F.cast), ly: over(ACT_F.cast), la: 'middle' },
-    { id: 'love', f: ACT_F.love, word: 'save', lx: kx(ACT_F.love), ly: over(ACT_F.love), la: 'middle' },
-    { id: 'back', f: ACT_F.back, word: 'back', lx: kx(ACT_F.back) + side(ACT_F.back), ly: LABEL_SIDE_Y, la: 'start' },
+    { id: 'play', f: ACT_F.play, word: w('ring.play'), lx: C, ly: labelUp(), la: 'middle' },
+    { id: 'skip', f: ACT_F.skip, word: w('ring.skip'), lx: kx(ACT_F.skip) - side(ACT_F.skip), ly: LABEL_SIDE_Y, la: 'end' },
+    { id: 'cast', f: ACT_F.cast, word: w('ring.cast'), lx: kx(ACT_F.cast), ly: over(ACT_F.cast), la: 'middle' },
+    { id: 'love', f: ACT_F.love, word: w('ring.save'), lx: kx(ACT_F.love), ly: over(ACT_F.love), la: 'middle' },
+    { id: 'back', f: ACT_F.back, word: w('ring.back'), lx: kx(ACT_F.back) + side(ACT_F.back), ly: LABEL_SIDE_Y, la: 'start' },
   ];
 }
 
@@ -2644,7 +2758,7 @@ function buildActions(r: Readout) {
     const love = a.id === 'love';
     const g = el('g', {
       'data-action': a.id, transform: `translate(${x} ${y})`,
-      role: 'button', tabindex: '0', 'aria-label': love ? 'Save what plays' : a.word,
+      role: 'button', tabindex: '0', 'aria-label': love ? w('ring.saveWhat') : a.word,
       ...(love ? { id: 'love', 'aria-pressed': loved ? 'true' : 'false' } : {}),
     }, gActions);
     g.addEventListener('keydown', (ev: KeyboardEvent) => {
@@ -2686,7 +2800,7 @@ function buildActions(r: Readout) {
   }
   // The offer, said in the same band and the same type as the four actions'
   // own words, because it is the same kind of thing: what a press will do.
-  releaseWord = txt(gLabels, 'release', C, labelDown(), LABEL_SIZE, { op: 0, ls: 0.26 });
+  releaseWord = txt(gLabels, w('ring.release'), C, labelDown(), LABEL_SIZE, { op: 0, ls: 0.26 });
   releaseWord.style.transition = 'opacity 160ms ease';
   if (releaseOffered()) put(releaseWord, 'opacity', 0.8);
   // A link the page would not play in full says so here, in the same band, in
@@ -2704,6 +2818,8 @@ function buildActions(r: Readout) {
     linkNote.style.transition = 'opacity 160ms ease';
   }
   paintLinkNote();
+  // the centre's copy over a crossing stops at the keys where they now stand
+  paintKeysOut();
   setPlayGlyph(sounding(r));
   labelPlay(sounding(r));
   hoverAction(hoveredAction);
@@ -2729,7 +2845,7 @@ function offerRelease(on: boolean) {
   coreHold.until = on ? performance.now() + RELEASE_HOLD_MS : 0;
   if (releaseWord) put(releaseWord, 'opacity', on ? 0.8 : 0);
   paintLinkNote();
-  if (on) announce('release all of the ring\'s controls');
+  if (on) announce(w('ring.releaseSaid'));
 }
 
 function runCoreHold(now: number) {
@@ -2769,13 +2885,13 @@ const playMode = (playing: boolean): PlayMode => (playing ? 'pause' : started ? 
 let pressingPlay = false;
 const waiting = (r: Readout | null | undefined): boolean => !!r && (r.starting || (pressingPlay && !r.playing));
 const sounding = (r: Readout | null | undefined): boolean => !!r && (r.playing || waiting(r));
-const PLAY_WORD: Record<PlayMode, string> = { about: 'about', play: 'play', pause: 'pause' };
+const PLAY_WORD: Record<PlayMode, string> = { get about() { return w('ring.about'); }, get play() { return w('ring.play'); }, get pause() { return w('ring.pause'); } };
 
 function labelPlay(playing: boolean) {
   const n = actionNodes.find((a) => a.id === 'play');
   const m = playMode(playing);
   if (n && n.g) {
-    put(n.g, 'aria-label', m === 'about' ? 'About' : PLAY_WORD[m]);
+    put(n.g, 'aria-label', m === 'about' ? w('ring.aboutKey') : PLAY_WORD[m]);
     if (m === 'about') put(n.g, 'aria-haspopup', 'dialog');
     else n.g.removeAttribute('aria-haspopup');
   }
@@ -3471,7 +3587,7 @@ function buildCells(r: Readout) {
     // placer used to be asked again at both moments and a reading could jump
     // to another spot as the hand took the bird (Eugene, 09-23: *"the bird
     // swaps short to long during drag and back on release, which is jarring"*).
-    const title = txt(gt, COARSE ? `${RIM_PERCENT}%` : `${BIRD[c.id].name} ${RIM_PERCENT}%`, 0, -12, 11, { op: 0.7, ls: 0.3 });
+    const title = txt(gt, COARSE ? coarseTitle(c.id, `${RIM_PERCENT}%`) : `${titleName(c.id)} ${RIM_PERCENT}%`, 0, -12, 11, { op: 0.7, ls: 0.3, class: 'cellName' });
     const lines = el('g', {}, gt);
     const word = txt(lines, v.word, 0, 5, 16, { ls: 0.2 });
     // **On a small square the subtitle reads** (round K15, Eugene on the
@@ -4289,10 +4405,6 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
   // plans are kept by the whole request, so a hand going back over a value it
   // has passed costs nothing (R13).
   const known = !!control.plannedAlready(about, r.seed, control.state.strategyTo ?? r.strategy, spell);
-  if (fresh && !known && force !== 'now' && now - c.impliedAt < IMPLIED_MS) {
-    trailImplied(c, now);
-    return c.implied;
-  }
   // **The whole request, asked of the one place that resolves it** (R57): the
   // recipe the set was cast under, the two modes and the theme length ride
   // with the spell, and the engine is the one the theme will arrive under.
@@ -4305,9 +4417,28 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
   // hand replacing one still waiting (`tag`) — and the cell reads the one it
   // had until it lands, then is painted again. It was planned here, in the
   // hand's own frame, up to eleven times a second behind a moving hand.
+  //
+  // **One ask out at a time, and the hand's latest value asked as it lands**
+  // (round night-reds, 11-06). Each new hundredth under the hand was asked at
+  // once and only the latest answer read, so a hand moving to a new hundredth
+  // faster than a plan is made had its every answer thrown away as it landed
+  // and read nothing, its own word or the birds it changes, until it stopped:
+  // MEASURED in Chromium on seed 15576, Ember walked 104 → 130 % in 270 ms with
+  // a plan taking 20-47 ms in the worker, and nothing moved until 30 ms after
+  // the walk (it had passed only while the plans were quicker than the hand).
+  // Now the answer in flight is read when it lands — the nearest reading there
+  // is — and the value the hand is on by then is asked next, at most eleven
+  // asks a second (`IMPLIED_MS` from the last ask, as R13 holds the phone's
+  // slider to: ten notches, six plans at most), so the readings follow the hand
+  // and the last value is asked a window after the one before it at the latest.
   if (!known) {
     const ask = `${about}|${leave}|${r.seed}|${strategy}|${JSON.stringify(spell)}`;
     if (c.impliedAsk === ask) return c.implied;
+    if (c.impliedAsk) return c.implied;
+    if (fresh && force !== 'now' && now - c.impliedAt < IMPLIED_MS) {
+      trailImplied(c, now);
+      return c.implied;
+    }
     const later = control.planLater(about, r.seed, strategy, spell, undefined, { tag: `implied:${c.bird}` });
     if (later) {
       c.impliedAsk = ask;
@@ -4317,7 +4448,6 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
         c.impliedAsk = '';
         if (!cellNodes.includes(c)) return;
         const at = last ?? r;
-        c.impliedAt = performance.now();
         c.impliedFor = leave;
         c.impliedTheme = about;
         readImplied(c, t, at, spell);
@@ -4341,6 +4471,10 @@ function impliedDie(c: CellNode, r: Readout, now: number, force: boolean | 'now'
       });
       return c.implied;
     }
+  }
+  if (fresh && !known && force !== 'now' && now - c.impliedAt < IMPLIED_MS) {
+    trailImplied(c, now);
+    return c.implied;
   }
   c.impliedAsk = '';
   c.impliedAt = now;
@@ -4554,11 +4688,15 @@ function paintCell(c: CellNode, r: Readout) {
   // percent stays: the phone's birds carry the percent and the short reading,
   // and who each one is lives in the panel a tap opens.
   const pct = owned ? percentText(c.bird, c.value) : '';
-  const title = COARSE ? pct : pct ? `${BIRD[c.id].name} ${pct}` : BIRD[c.id].name;
+  const title = COARSE ? coarseTitle(c.id, pct) : pct ? `${titleName(c.id)} ${pct}` : titleName(c.id);
   const tu = title.toUpperCase();
   if (c.saidTitle !== tu) { c.saidTitle = tu; c.title.textContent = tu; }
-  const up = String(v.word ?? '').toUpperCase();
-  const su = String(v.sub ?? '').toUpperCase();
+  // Gleam's key and its chords' degrees as a musician writes them, never put up in capitals (`musicLine`)
+  const music = c.bird === 'gleam';
+  const word = String(v.word ?? '');
+  const up = music && KEY_WORDS.test(word) ? word : word.toUpperCase();
+  const su = music ? String(v.sub ?? '') : String(v.sub ?? '').toUpperCase();
+  if (music) { musicLine(c.word, /[a-z]/.test(up)); musicLine(c.sub, /[a-z]/.test(su)); }
   c.sub2Full = (COARSE ? '' : String(v.sub2 || '')).toUpperCase();
   const su2 = c.tight ? '' : c.sub2Full;
   const said = `${up}\n${su}\n${su2}`;
@@ -4596,6 +4734,26 @@ function paintCell(c: CellNode, r: Readout) {
 }
 
 /**
+ * **Gleam's words are music** (his word 11-05, on "DB MIN · I": *"should be same render of chords in Gleam bird?"*,
+ * after the centre's chord was written as given): its key and its progression's degrees are written as a musician
+ * writes them, "Db min · i", "F dor · i-iv", "E min · i-VI", where capitals made a flat a B (DB) and every degree a
+ * major chord (I-IV). The big word is the key where the cell's reading has no band (`KEY_WORDS`), else the band's word
+ * in capitals like every other bird's. A line in lower case is tracked as lower case is, a step tighter than capitals.
+ */
+const KEY_WORDS = /^[A-G][b#]? /;
+const MUSIC_LS = 0.08;
+function musicLine(node: Mark<SVGTextElement>, lower: boolean): void {
+  // the page's type puts every line up in capitals (index.html): this one is set in its own case, by the code
+  if (node.style.textTransform !== 'none') node.style.textTransform = 'none';
+  const size = Number(node.getAttribute('font-size')) || 10;
+  // the tracking it was built with, kept for its capitals
+  if (!node.dataset.capsLs) node.dataset.capsLs = (Number(node.getAttribute('letter-spacing')) / size).toFixed(3);
+  const ls = (lower ? MUSIC_LS : Number(node.dataset.capsLs)) * size;
+  put(node, 'letter-spacing', ls.toFixed(2));
+  put(node, 'dx', (-ls / 2).toFixed(2));
+}
+
+/**
  * **The words' box follows the words** (the UI-fix round of 10-11). A cell's
  * box was measured once, at build, round whatever its lines read then — so a
  * square changed while Spark stood at the rim reading "SIXTEENTHS · 10 HITS ·
@@ -4608,7 +4766,7 @@ function paintCell(c: CellNode, r: Readout) {
  */
 function measureWords(c: CellNode): DOMRect {
   const said = c.title.textContent;
-  c.title.textContent = COARSE ? `${RIM_PERCENT}%` : `${BIRD[c.id].name} ${RIM_PERCENT}%`;
+  c.title.textContent = COARSE ? coarseTitle(c.id, `${RIM_PERCENT}%`) : `${titleName(c.id)} ${RIM_PERCENT}%`;
   // the lines fading out are not the words' own
   if (c.linesOut) c.linesOut.style.display = 'none';
   let bb: DOMRect;
@@ -4917,7 +5075,7 @@ function endPull(c: CellNode, r: Readout | null, snap = true) {
   c.value = pulled(c.value);
   heldValue.set(c.bird, c.value);
   layoutCells();
-  commitSpell(r, `${BIRD[c.id].name} held at ${percentShown(c.bird, c.value)} percent`);
+  commitSpell(r, w('ring.heldAt', { name: birdName(BIRD[c.id].key), pct: percentShown(c.bird, c.value) }));
 }
 
 /** One bird, let go: home to the house, and the cell is a reading again. */
@@ -4931,7 +5089,7 @@ function releaseCell(c: CellNode, r: Readout | null) {
   c.impliedTheme = -1;
   heldValue.delete(c.bird);
   layoutCells();
-  commitSpell(r, was ? `${BIRD[c.id].name} released` : '');
+  commitSpell(r, was ? w('ring.releasedOne', { name: birdName(BIRD[c.id].key) }) : '');
 }
 
 /** Every bird let go at once: the ring is a reading again and the link is bare. */
@@ -4943,7 +5101,7 @@ function releaseAll(r: Readout | null) {
   layoutCells();
   // every bird let go is every bird, an outside ask's included: nothing to merge onto
   ringAsked = askedSpell();
-  commitSpell(r, 'the ring\'s controls released', true);
+  commitSpell(r, w('ring.released'), true);
   return true;
 }
 
@@ -5050,10 +5208,10 @@ function sayCell(c: CellNode, r: Readout) {
     // (round K11 took them off the tooltip; round K13 off this). Said once per
     // release through the readout's own live region and never per frame.
     put(c.g, 'aria-valuetext', owned
-      ? `${pct} percent of the house, held · ${pullLine(c, r)}`
-      : `${pct} percent of the house · ${restSentence(c, r)}`);
+      ? w('ring.valueHeld', { pct, says: pullLine(c, r) })
+      : w('ring.value', { pct, says: restSentence(c, r) }));
   }
-  put(c.g, 'aria-label', `${BIRD[c.id].name}, ${BIRD[c.id].means} · ${restSentence(c, r)}${owned ? `, held at ${pct} percent` : ''}`);
+  put(c.g, 'aria-label', `${w('ring.cellLabel', { name: birdNameBoth(BIRD[c.id].key), means: w(`means.${BIRD[c.id].key}` as WordKey), says: restSentence(c, r) })}${owned ? w('ring.cellHeld', { pct }) : ''}`);
 }
 
 // ==========================================================================
@@ -5068,7 +5226,7 @@ const reading = (r: Readout | null) => started || sounding(r);
 
 // All seven are engraved by `buildCore`, which runs before anything reads one.
 let seedText!: Mark<SVGTextElement>, chordText!: Mark<SVGTextElement>,
-  notesText!: Mark<SVGTextElement>, sectionText!: Mark<SVGTextElement>,
+  notesText!: Mark<SVGTextElement>, sectionText!: Mark<SVGTextElement>, subText!: Mark<SVGTextElement>,
   themeText!: Mark<SVGTextElement>, coreScale!: Mark<SVGGElement>, coreTextG!: Mark<SVGGElement>;
 // The beat dots light in turn, one a beat: they sit beside the bloomed star,
 // because a write inside it re-blurred the whole star.
@@ -5104,6 +5262,11 @@ function beatCount(r: Readout): number {
   if (beatSaid && beatSaid.seed === String(r.seed) && beatSaid.strategy === r.strategy && beatSaid.theme === r.mix.themeNumber)
     beatRun.n = at + beatSaid.off;
   return beatRun.n;
+}
+/** whether the readout has moved into a beat the dots have not drawn yet (read only: `beatCount` moves the count) */
+function beatDue(r: Readout | null): boolean {
+  if (!r || !r.playing || waiting(r) || beatRun.n < 0) return false;
+  return r.bar * 4 + r.beatInBar !== beatRun.at || r.mix.themeNumber !== beatRun.theme || r.seed !== beatRun.seed;
 }
 /**
  * **The count as the TV takes it** (10-26): a TV's page starts counting when it starts following, so its lit dot
@@ -5162,15 +5325,22 @@ function buildCore(r: Readout) {
   // for. The reading below appears once there is something to read, and from
   // then on it stays through a pause.
   coreTextG = el('g', { opacity: reading(r) ? 1 : 0 }, coreScale);
+  // the lines' places, sizes and ink (`hubStack`)
+  const hub = hubStack();
+  const line = (s: string, l: HubLine, o: TxtOpts = {}) => txt(coreTextG, s, C, C + l.y, l.size, { op: l.op, ls: l.ls, class: 'hubLine', ...o });
   // which theme of the mix this is, and how long it runs
-  themeText = txt(coreTextG, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`, C, C - 46, 14, { op: 0.6, ls: 0.28, class: 'hubLine' });
+  themeText = line(`${roman(r.mix.themeNumber)} · ${r.durationLabel}`, hub.time);
   // the part of the theme playing now
-  sectionText = txt(coreTextG, sectionName(r), C, C - 22, SECTION_SIZE, { op: 0.5, ls: SECTION_LS, class: 'hubLine' });
+  sectionText = line(sectionName(r), hub.section);
+  // its second line, under it, where the section's line goes on two; empty on one
+  subText = line('', hub.sub);
   sectionFit = '';
   // the chord sounding now
-  chordText = txt(coreTextG, r.chord || '', C, C + 26, 30, { op: 0.95, ls: 0.16 });
+  chordText = line(r.chord || '', hub.chord, { class: undefined, raw: true });
   // the notes in it
-  notesText = txt(coreTextG, (r.chordNotes || []).join(' '), C, C + 54, 12, { op: 0.5, ls: 0.38, class: 'hubLine' });
+  notesText = line((r.chordNotes || []).join(' '), hub.notes, { raw: true });
+  // both written as a musician writes them: the page's type puts every line up in capitals (index.html), these not
+  for (const t of [chordText, notesText]) t.style.textTransform = 'none';
   // The seed the whole set was grown from, engraved under the die that rolls a
   // new one and close enough to it to belong to it. It used to sit further out
   // at a size the rest of the reading is written in, where five digits were
@@ -5179,7 +5349,7 @@ function buildCore(r: Readout) {
   // a size rather than asking the star for room. Checked against the widest
   // seed there is at every ninety-sixth of a turn: the nearest a cell's word
   // comes is fourteen units.
-  seedText = txt(coreScale, `seed ${r.seed}`, C, C + R_ACT + ctrlR + 11, 9, { op: 0.55, ls: 0.26, class: 'seedLine' });
+  seedText = txt(coreScale, w('ring.seedLine', { seed: r.seed }), C, C + R_ACT + ctrlR + 11, 9, { op: 0.55, ls: 0.26, class: 'seedLine' });
 }
 
 // ==========================================================================
@@ -5212,7 +5382,7 @@ function seedEditor() {
   const wrap = document.createElement('div');
   wrap.className = 'seedWrap';
   const word = document.createElement('span');
-  word.textContent = 'seed';
+  word.textContent = w('ring.seed');
   seedInput = document.createElement('input');
   seedInput.type = 'text';
   seedInput.inputMode = 'numeric';
@@ -5220,7 +5390,7 @@ function seedEditor() {
   seedInput.spellcheck = false;
   seedInput.maxLength = SEED_DIGITS;
   seedInput.setAttribute('pattern', '[0-9]*');
-  seedInput.setAttribute('aria-label', 'master seed');
+  seedInput.setAttribute('aria-label', w('ring.seedInput'));
   wrap.appendChild(word);
   wrap.appendChild(seedInput);
   box.appendChild(wrap);
@@ -5288,7 +5458,7 @@ function castTypedSeed(seed: string) {
  * fill", "drop · drop-out".
  */
 function sectionName(r: { section?: string; sub?: string }): string {
-  return r.sub ? `${r.section || ''} · ${r.sub}` : r.section || '';
+  return ringSection(r.sub ? `${r.section || ''} · ${r.sub}` : r.section || '');
 }
 
 /**
@@ -5303,38 +5473,139 @@ function sectionName(r: { section?: string; sub?: string }): string {
  * the star** (star-keys): the upper keys stand nearer the middle at the line's
  * height than the old side keys did, so a long line is fitted on every screen.
  */
-const SECTION_SIZE = 12;
-const SECTION_LS = 0.32;
-const SECTION_BASE = 22;        // how far above the centre the line stands
 const SECTION_CLEAR = 6;
-const SECTION_CAP = 9;          // the line's cap height at its size
+/** Jost's cap height, of the em, as the page sets it (its 107.7 %): a capital's top over its baseline */
+const CAP_OF_EM = 0.754;
+
+/**
+ * **The section's line on two lines** (his word 11-05, on "MAIN GROOVE · THE HATS GROW: THE PICKUPS" set small:
+ * *"sometimes the string is too long in the center of ring, can we do maybe two liner"*; his pick of three, A: *"two
+ * lines shown when no fit, same size"*). Where the section and its sub-section fit between the keys at the line's size,
+ * they stay one line; where they do not, the section stands on the first line and the sub-section on a second under
+ * it. A line that still does not fit between the keys at its own height shrinks (`sizeLine`).
+ *
+ * **The centre as one stack** (his word 11-05, seeing that: *"I can't say it's laid out well … have the second line
+ * smaller text, and perhaps review typographically to align it all vertically nicely"*; his pick of three, 3: *"I like
+ * 3! Thanks for making chords not upper case, it was a weird choice from the beginning"*):
+ *
+ * - the theme's line, the section and its second line are small capitals of one size (12, the second a step down at
+ *   10 and dimmer) and one tracking (`HUB_LS`);
+ * - the chord's name (30) stays where it always stood, and every other line is set off it on one rhythm, measured from
+ *   the ink of one line to the ink of the next (`HUB_UNIT`): two units between the lines above it, four above and
+ *   below it; the stack's middle stands a hair over the circle's centre;
+ * - the second line's place is kept when it is empty, so nothing moves when it comes or goes: the section's line
+ *   never steps inside a main groove, where sub-sections come and go every few bars;
+ * - the chord's name and its notes are written as a musician writes them ("Dbm9", "E B Db Eb Ab"), never put up in
+ *   capitals, where "Dbm9" read DBM9, a major ninth to a musician (`chordWords`).
+ *
+ * Japanese has no capitals: its lines are set on the same rhythm by their ink (`HUB_JA`), so the gaps between what is
+ * drawn are the gaps between Latin capitals.
+ */
+/** One line of the centre: its size, its baseline (under the centre, in the ring's units), its ink and tracking (of the em). */
+interface HubLine { size: number; y: number; op: number; ls: number; /** its top over its baseline, for its room between the keys */ cap: number }
+interface HubStack { time: HubLine; section: HubLine; sub: HubLine; chord: HubLine; notes: HubLine }
+/** How a line's ink stands on its baseline, of the em: its top over it and its foot under it. */
+interface Ink { top: number; foot: number }
+const CAPS: Ink = { top: CAP_OF_EM, foot: 0 };
+/**
+ * The Japanese face's ink, of the em, as the page sets it (94.5 %), read off the section words in a browser: their top
+ * stands 0.81 over the baseline (Jost's capitals 0.754) and their foot 0.06 to 0.09 under it (a kanji's hooks and
+ * tails; 0.14 at the most, 息).
+ */
+const HUB_JA: Ink = { top: 0.8, foot: 0.07 };
+/** The rhythm's unit: half a 12-unit capital. A gap inside the upper lines is two, round the chord four. */
+const HUB_UNIT = 4.5;
+/** The tracking of every line of small capitals */
+const HUB_LS = 0.3;
+
+/**
+ * The stack: the chord's name stays where it stands (its baseline 26 under the centre) and every other line is set off
+ * it, gap by gap. `ink` is how the section's two lines stand (Latin capitals, or Japanese).
+ */
+function stackSet(ink: Ink): HubStack {
+  const u = HUB_UNIT;
+  // the chord and its notes are in lower case too, which is not spaced as capitals are
+  const chord: HubLine = { size: 30, y: 26, op: 0.95, ls: 0.04, cap: 30 * CAP_OF_EM };
+  const chordTop = chord.y - chord.cap;
+  const notes: HubLine = { size: 12, y: +(chord.y + 4 * u + 12 * CAP_OF_EM).toFixed(2), op: 0.5, ls: 0.12, cap: 12 * CAP_OF_EM };
+  const subY = chordTop - 4 * u - 10 * ink.foot;
+  const sub: HubLine = { size: 10, y: +subY.toFixed(2), op: 0.4, ls: HUB_LS, cap: 10 * ink.top };
+  const sectionY = subY - sub.cap - 2 * u - 12 * ink.foot;
+  const section: HubLine = { size: 12, y: +sectionY.toFixed(2), op: 0.5, ls: HUB_LS, cap: 12 * ink.top };
+  const time: HubLine = { size: 12, y: +(sectionY - section.cap - 2 * u).toFixed(2), op: 0.6, ls: HUB_LS, cap: 12 * CAP_OF_EM };
+  return { time, section, sub, chord, notes };
+}
+const STACK_LATIN = stackSet(CAPS), STACK_JA = stackSet(HUB_JA);
+/** The stack in the page's language. */
+const hubStack = (): HubStack => (lang() === 'ja' ? STACK_JA : STACK_LATIN);
+/** what the section's lines say now: the whole line, and the section and the sub-section apart */
+let sectionWords = { whole: '', head: '', tail: '' };
 let sectionFit = '';
-function fitSection(): void {
-  if (!sectionText) return;
-  const want = `${ctrlR}|${sectionText.textContent}`;
-  if (want === sectionFit) return;
-  sectionFit = want;
-  let size = SECTION_SIZE;
-  if (want) {
-    // where an upper key's circle is widest across the line's height (its cap line, the nearer to the key's
-    // centre), the nearer edge
-    const kx = px(ACT_F.skip, R_ACT) - C, dy = C - SECTION_BASE - SECTION_CAP - py(ACT_F.skip, R_ACT);
-    const room = 2 * (kx - Math.sqrt(Math.max(0, ctrlR * ctrlR - dy * dy)) - SECTION_CLEAR);
-    const drawn = Number(sectionText.getAttribute('font-size')) || SECTION_SIZE;
-    let wide = 0;
-    // the box and not `getComputedTextLength`, which in WebKit leaves the
-    // tracking out (208 of a 319-unit line)
-    try { wide = sectionText.getBBox().width * (SECTION_SIZE / drawn); } catch (err) { wide = 0; }
-    if (wide > room) size = +(SECTION_SIZE * room / wide).toFixed(2);
-  }
-  const ls = SECTION_LS * size;
-  put(sectionText, 'font-size', size);
-  put(sectionText, 'letter-spacing', ls.toFixed(2));
-  put(sectionText, 'dx', (-ls / 2).toFixed(2));
+
+/** The room between the two upper keys for a line standing at `base` over the centre, with this cap height. */
+function sectionRoom(base: number, cap: number): number {
+  // where an upper key's circle is widest across the line's height (its cap line, the nearer to the key's centre,
+  // or the key's centre itself where the line crosses it), the nearer edge
+  const kx = px(ACT_F.skip, R_ACT) - C, dy = Math.max(0, C - base - cap - py(ACT_F.skip, R_ACT));
+  return 2 * (kx - Math.sqrt(Math.max(0, ctrlR * ctrlR - dy * dy)) - SECTION_CLEAR);
+}
+/** A line's width at the size `at`, whatever size it is drawn at now. */
+function wideAt(node: Mark<SVGTextElement>, at: number): number {
+  const drawn = Number(node.getAttribute('font-size')) || at;
+  // the box and not `getComputedTextLength`, which in WebKit leaves the
+  // tracking out (208 of a 319-unit line)
+  try { return node.getBBox().width * (at / drawn); } catch (err) { return 0; }
+}
+/** A line set at its size, or smaller by as much as it needs to fit `room`, with its tracking. */
+function sizeLine(node: Mark<SVGTextElement>, line: HubLine, room: number): void {
+  const wide = node.textContent ? wideAt(node, line.size) : 0;
+  const at = wide > room ? +(line.size * room / wide).toFixed(2) : line.size;
+  const ls = line.ls * at;
+  put(node, 'font-size', at);
+  put(node, 'letter-spacing', ls.toFixed(2));
+  put(node, 'dx', (-ls / 2).toFixed(2));
+}
+/** A line put where the stack sets it, at its size and ink: the ones that are never fitted. */
+function placeLine(node: Mark<SVGTextElement> | undefined, line: HubLine): void {
+  if (!node) return;
+  put(node, 'y', C + line.y);
+  put(node, 'opacity', line.op);
+  sizeLine(node, line, Infinity);
 }
 
-function setText(node: Element, v: string | number) {
-  const s = String(v).toUpperCase();
+function fitSection(): void {
+  if (!sectionText) return;
+  const { whole, head, tail } = sectionWords;
+  const stack = hubStack();
+  const want = `${ctrlR}|${lang()}|${whole}|${head}|${tail}`;
+  if (want === sectionFit) return;
+  sectionFit = want;
+  // every line where the stack sets it (a language changes where the section's two stand)
+  put(sectionText, 'y', C + stack.section.y);
+  if (subText) { put(subText, 'y', C + stack.sub.y); put(subText, 'opacity', stack.sub.op); }
+  placeLine(themeText, stack.time);
+  placeLine(chordText, stack.chord);
+  placeLine(notesText, stack.notes);
+  const room1 = sectionRoom(-stack.section.y, stack.section.cap);
+  let two = false;
+  if (tail) {
+    setText(sectionText, whole);
+    two = !!whole && wideAt(sectionText, stack.section.size) > room1;
+  }
+  setText(sectionText, two ? head : whole);
+  if (subText) setText(subText, two ? tail : '');
+  sizeLine(sectionText, stack.section, room1);
+  if (two && subText) sizeLine(subText, stack.sub, sectionRoom(-stack.sub.y, stack.sub.cap));
+}
+
+/** The section's words for a readout, kept for `fitSection`, which lays them on one line or two. */
+function setSection(r: { section?: string; sub?: string }): void {
+  sectionWords = { whole: sectionName(r), head: ringSection(r.section || ''), tail: r.sub ? ringSection(r.sub) : '' };
+  fitSection();
+}
+
+function setText(node: Element, v: string | number, raw = false) {
+  const s = raw ? String(v) : String(v).toUpperCase();
   if (node.textContent !== s) node.textContent = s;
 }
 
@@ -5342,12 +5613,11 @@ function repaintCore(r: Readout) {
   setPlayGlyph(sounding(r));
   // one write, at the moment the set first starts — never during playback
   put(coreTextG, 'opacity', reading(r) ? 1 : 0);
-  setText(seedText, `seed ${r.seed}`);
+  setText(seedText, w('ring.seedLine', { seed: r.seed }));
   setText(themeText, `${roman(r.mix.themeNumber)} · ${r.durationLabel}`);
-  setText(sectionText, sectionName(r));
-  setText(chordText, r.chord || '');
-  setText(notesText, (r.chordNotes || []).join(' '));
-  fitSection();
+  setText(chordText, r.chord || '', true);
+  setText(notesText, (r.chordNotes || []).join(' '), true);
+  setSection(r);
 }
 
 // ==========================================================================
@@ -5875,7 +6145,8 @@ function showTell(cell: CellNode) {
   // the text on it, so a wider one costs a shorter line nothing.
   const w = 0.19;
   put(tellPath, 'd', top ? arcPath(rr, f - w, f + w, 1) : arcPath(rr, f + w, f - w, 0));
-  const up = line.toUpperCase();
+  // (round japanese: an opened bird is named in both languages, `birdNameBoth`; English names none, as always)
+  const up = (lang() === 'en' ? line : `${birdNameBoth(BIRD[cell.id].key)}　${line}`).toUpperCase();
   // the path, the text and the run along it are made in one pass
   if (tellTP!.textContent !== up) tellTP!.textContent = up;
   // **A line that is already up stays up** (Eugene, 09-23: *"the tooltip
@@ -6233,7 +6504,7 @@ stage.addEventListener('pointermove', (e: PointerEvent) => {
   const hit = hitAt(e);
   const onLove = hit.kind === 'action' && hit.action.id === 'love';
   // the throne's tooltip, kept on love (his word 10-21), the ring's layer carrying it only while the hand is over it
-  const tip = onLove ? 'Save to playlist' : '';
+  const tip = onLove ? w('ring.saveTip') : '';
   if (tiltEl.title !== tip) tiltEl.title = tip;
   if (!(dragging && (dragging.kind === 'band' || dragging.kind === 'spin')) && !onLove && throneHeld === null) aimTilt(e);
   if (dragging) return;
@@ -6374,10 +6645,24 @@ function paintReports() {
   const on = reportsWanted();
   if (reportsKey) reportsKey.setAttribute('aria-checked', on ? 'true' : 'false');
   const word = document.getElementById('aboutReportsState');
-  if (word) word.textContent = on ? 'on' : 'off';
+  if (word) word.textContent = w(on ? 'about.on' : 'about.off');
 }
 paintReports();
 if (reportsKey) reportsKey.addEventListener('click', () => { setReports(!reportsWanted()); paintReports(); });
+// **Another language, at once and in place** (round japanese): the ring's words are written again where they stand —
+// the five keys' words (built again, as a new theme builds them), the rim's sections, the cells' readings and the
+// centre's lines (restated, as a released hand restates them); nothing that moves is restarted
+onLang(() => {
+  paintReports();
+  const seedWord = document.querySelector('#seedEdit .seedWrap span');
+  if (seedWord) seedWord.textContent = w('ring.seed');
+  if (seedInput) seedInput.setAttribute('aria-label', w('ring.seedInput'));
+  if (!last) return;
+  buildActions(last);
+  restate(last);
+  sayCells(last);
+  paintPanel();
+});
 // **Not in the Apple app** (Eugene, 10-19: "we can hide Send errors for now for
 // App builds"): the app sends nothing (instrument.ts), so a switch there would
 // promise a choice that does nothing. A browser never has the shell's flag.
@@ -7425,17 +7710,17 @@ function paintPanel() {
   const set = (n: HTMLElement | null, t: string) => { if (n && n.textContent !== t) n.textContent = t; };
   // The name alone: the percent is said once, over the slider's knob, where
   // the hand working it is looking (round K3).
-  set(panelName, BIRD[c.id].name);
-  set(panelMeans, BIRD[c.id].means);
+  set(panelName, birdNameBoth(BIRD[c.id].key));
+  set(panelMeans, w(`means.${BIRD[c.id].key}` as WordKey));
   // **And said to a screen reader** (K30, the reviews of 09-26): the group, the
   // two keys and the slider carry the control they move; their words alone
   // were "less", "more" and "percent of the house", which name nothing
-  const name = BIRD[c.id].name;
+  const name = birdNameBoth(BIRD[c.id].key);
   const label = (n: Element | null, t: string) => { if (n && n.getAttribute('aria-label') !== t) n.setAttribute('aria-label', t); };
-  label(panelEl, `${name}, ${BIRD[c.id].means}`);
-  label(document.getElementById('birdPanelLess'), `less ${name}`);
-  label(document.getElementById('birdPanelMore'), `more ${name}`);
-  label(panelSlider, `${name}, percent of the house`);
+  label(panelEl, `${name}, ${w(`means.${BIRD[c.id].key}` as WordKey)}`);
+  label(document.getElementById('birdPanelLess'), `${w('bird.less')} ${name}`);
+  label(document.getElementById('birdPanelMore'), `${w('bird.more')} ${name}`);
+  label(panelSlider, `${name}, ${w('bird.slider')}`);
   const waiting = owned && (c.pulling || !birdLanded(c.bird, last.spell));
   // **Never blank** (Eugene, round K4: *"the bottom string should always carry
   // the musical explanation for the current value, the same way the desktop
@@ -8007,13 +8292,13 @@ const say = (() => {
     const theme = `${r.mix.themeNumber}|${r.key}|${r.bpm}`;
     if (theme !== saidTheme) {
       saidTheme = theme;
-      box.textContent = `Theme ${WORDS[r.mix.themeNumber] || r.mix.themeNumber}, ${r.key}, ${r.bpm}`;
+      box.textContent = w('ring.themeSaid', { n: (lang() === 'en' && WORDS[r.mix.themeNumber]) || r.mix.themeNumber, key: r.key, bpm: r.bpm });
       saidPlay = null;
       return;
     }
     if (r.playing !== saidPlay) {
       saidPlay = r.playing;
-      box.textContent = r.playing ? 'Playing' : 'Paused';
+      box.textContent = w(r.playing ? 'ring.playing' : 'ring.paused');
     }
   };
 })();
@@ -8160,7 +8445,7 @@ function paintEngrave(r: Readout) {
   const cut = r.mix.cutInBars;
   engraveCut = cut;
   const label = cut
-    ? `${r.time} · ${r.bar + 1}/${r.bars} · cut in ${cut}`
+    ? `${r.time} · ${r.bar + 1}/${r.bars} · ${w('ring.cutIn', { n: cut })}`
     : `${r.time} · ${r.bar + 1}/${r.bars}`;
   const up = label.toUpperCase();
   if (engraveTP.textContent !== up) engraveTP.textContent = up;
@@ -8521,7 +8806,11 @@ function frame(now: number) {
   const away = unfocused && !inSight;
   holdBirds(away);
   if (away && lastFrame && !(last && sounding(last))) { requestAnimationFrame(frame); return; }
-  if (lastFrame && now - lastFrame < (away ? FRAME_AWAY_MS : inSight ? Math.max(gap, FRAME_MINI_AWAY_MS) : gap)) { requestAnimationFrame(frame); return; }
+  // **The beat's own frame is drawn** (round night-reds, 11-06): at the rest rate the beat's dot, its blink and the rim's
+  // lift waited for the next of the ring's thirty frames a second, up to 33 ms after the beat, more where WebKit's
+  // 60 Hz frames jitter the half rate onto every third; a frame on which the readout has crossed into a beat the ring
+  // has not drawn is drawn, one frame more a beat (two a second at 120 BPM), the rest as his word of 10-21 keeps them
+  if (lastFrame && now - lastFrame < (away ? FRAME_AWAY_MS : inSight ? Math.max(gap, FRAME_MINI_AWAY_MS) : gap) && !(gap && !away && beatDue(last))) { requestAnimationFrame(frame); return; }
   if (lastFrame) { deltas[dIdx % deltas.length] = now - lastFrame; dIdx++; dCount = Math.min(dCount + 1, deltas.length); }
   // the frame's own step, for the few eases that are written per frame (the lean, the wobble, the halos): at most a
   // spring's `FRAME_STEP`, so a rate the moments above change draws them finer and never faster
@@ -8741,6 +9030,7 @@ function sizeControls(redraw = true) {
   const side = tiltEl.offsetWidth || tiltEl.getBoundingClientRect().width || 1000;
   square = null;
   unitPx = side / 1000;
+  haloBlur();
   const big = smallWindow.on && side < MINI_BIG_SIDE ? MINI_BIG_K : 1;
   const next = CTRL_R * (side < CTRL_SMALL_SIDE ? CTRL_SMALL_K : 1) * big;
   if (next === ctrlR && redraw) return;
@@ -8840,8 +9130,9 @@ function fitViewport() {
  * (`control.setCover`). Drawn only when something drastic changed: the first
  * start, a new seed, another engine, or the colour the ring wears travelling
  * `COVER_HUE_STEP` or more from the last cover's; never on a bird's move, never
- * on a frame; `COVER_WAIT` after the change, in an idle callback, outside the
- * hand's task and the transport's tick. Only where there is a media session.
+ * on a frame; in an idle callback, outside the hand's task and the transport's
+ * tick, and since smooth-start only while the ring is out of sight (below).
+ * Only where there is a media session.
  * Anything failing leaves the static cover. `COVER_REDUCED` draws it without
  * the bloom's blur and without the dashes (the cheap ring the gate allows).
  */
@@ -8859,14 +9150,42 @@ const hexDist = (a: string, b: string) => {
   const [x, y] = [p(a), p(b)];
   return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
 };
+/**
+ * **Drawn out of sight** (smooth-start, 11-03, his word: *"every time I … play a track from playlist … it seems ring
+ * animation is a bit not smooth"*). WebKit rasterises the drawing's three blooms in one step, 85-115 ms on this Mac
+ * whatever the square's size (the blur runs at the drawing's own 1000 units), and that step held one of the ring's
+ * frames a second and a half after every new track, the iPhone and the Mac app included. It cannot be split: a worker
+ * cannot draw an SVG (`createImageBitmap` refuses one in WebKit and Chromium alike), and drawing it in strips or tiles
+ * runs the whole blur for each. So the cover is drawn when nobody is looking at the ring: the page hidden (the lock
+ * screen, another app) or the window not in front (the Mac's Now Playing, opened over the app, takes the focus). Due
+ * while the ring is in front, it waits for that moment; due while it is not, it is drawn `COVER_WAIT` after the change,
+ * as before. The picture is the same drawing, made by the same code.
+ */
+let coverPending = false;
+const coverOutOfSight = () => typeof document !== 'undefined' && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()));
+function coverNow(wait: number) {
+  clearTimeout(coverTimer);
+  const idle = (fn: () => void) => ((window as any).requestIdleCallback ? (window as any).requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 0));
+  coverTimer = window.setTimeout(() => idle(() => {
+    // back in front before its turn came: it waits for the next time the ring is out of sight
+    if (!coverOutOfSight()) { coverPending = true; return; }
+    coverPending = false;
+    renderCover().catch(() => { coverCost.failed += 1; control.setCover(null); });
+  }), wait);
+}
 function coverDue(r: Readout) {
   if (typeof navigator === 'undefined' || !navigator.mediaSession || !control.state.userStarted) return;
   const seed = String(r.seed), strategy = String(r.strategy), hex = colour.hex;
   if (coverFor && coverFor.seed === seed && coverFor.strategy === strategy && hexDist(coverFor.hex, hex) < COVER_HUE_STEP) return;
   coverFor = { seed, strategy, hex };
   clearTimeout(coverTimer);
-  const idle = (fn: () => void) => ((window as any).requestIdleCallback ? (window as any).requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 0));
-  coverTimer = window.setTimeout(() => idle(() => { renderCover().catch(() => { coverCost.failed += 1; control.setCover(null); }); }), COVER_WAIT);
+  coverPending = true;
+  if (coverOutOfSight()) coverNow(COVER_WAIT);
+}
+if (typeof document !== 'undefined') {
+  const outOfSight = () => { if (coverPending && coverOutOfSight()) coverNow(0); };
+  document.addEventListener('visibilitychange', outOfSight);
+  window.addEventListener('blur', outOfSight);
 }
 /** The ring's sheets as one drawing, at rest. */
 function coverSvg(): string {
@@ -8878,6 +9197,8 @@ function coverSvg(): string {
     if (!svg) return '';
     const c = svg.cloneNode(true) as Element;
     for (const q of drop) for (const n of c.querySelectorAll(q)) n.remove();
+    // (the bloomed groups draw their glow on the compositor, which an image has not got: the picture puts their bloom back)
+    for (const n of c.querySelectorAll('[data-bloom]')) n.setAttribute('filter', n.getAttribute('data-bloom')!);
     if (COVER_REDUCED) { for (const n of c.querySelectorAll('[filter]')) n.removeAttribute('filter'); for (const n of c.querySelectorAll('path.dot')) n.remove(); }
     return c.innerHTML;
   };
@@ -9281,6 +9602,8 @@ export interface RingHandle {
     percent: number;
     held: boolean; pulling: boolean; pending: boolean;
     radius: number; rest: number; controls: boolean; implied: string;
+    /** a promise asked of the planner's worker and not landed yet: the reading under the hand is a plan behind it */
+    asking: boolean;
     /** the reading printed under the bird, its word and the line under it; whether it is cross-fading; whether the wait's fill is drawn (round K11) */
     reading: string; fading: boolean; filled: boolean;
     /** the big word and the subtitle alone, as printed (round K13) */
@@ -9407,6 +9730,7 @@ window.ring = {
     birdR,
     controls,
     implied: c.implied ? `${c.implied.word} ${c.implied.sub}`.trim() : '',
+    asking: !!c.impliedAsk,
     reading: `${c.word.textContent} ${c.sub.textContent}`.trim(),
     word: c.word.textContent || '', sub: c.sub.textContent || '',
     fading: !!c.linesOut,

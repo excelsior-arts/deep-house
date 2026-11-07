@@ -32,7 +32,7 @@
 // either, `plays` is null, and the level is the clap's own, which the table
 // already has.
 
-import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { kitTopology, kitNoise, filter, tuned, transient, KIT } from './drumkit.ts';
 import { contract, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
@@ -132,7 +132,7 @@ function snareBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: nu
   const crack = filter(ac, 'bandpass', spec.crackHz, spec.crackQ);
   transient(ac, crack, spec.crackDecay, lid, at, spec.crackLevel);
 
-  const n = drumNoise(ac, spec.seconds + 0.05, 7919 + Math.round(spec.wireHz));
+  const n = kitNoise(ac, spec, spec.seconds + 0.05, 7919 + Math.round(spec.wireHz));
   n.connect(hp);
   n.connect(crack);
   n.start(at);
@@ -154,6 +154,8 @@ export const SNARE = kitTopology({
   spec: snareSpec,
   variant: snareVariant,
   build: snareBody,
+  // the noise half's two ears (round stereo-room); the shell and the bell stay one channel, in the middle
+  air: 0.5,
 });
 
 export default SNARE;

@@ -33,7 +33,7 @@
 // arithmetic. The pitch of a grain is then a playback rate, which is exactly
 // what a granular instrument is.
 
-import { midiToHz, route, panner, startTime, noiseSource, phasedLfo, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR } from '../dsp.ts';
+import { midiToHz, route, panner, startTime, noiseSource, phasedLfo, lcg, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR, fanned } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import { heldVoice } from './held.ts';
 import { insert } from './treat.ts';
@@ -42,9 +42,10 @@ import type { HeldVoice } from './voice-contract.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf, provePatch, withDesk } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';
-import { contract, int, list, num, pos, DB, HZ, LEVEL, LFO_HZ, SECONDS, SPREAD, UNIT } from './schema.ts';
+import { bool, contract, int, list, num, pos, word, DB, HZ, LEVEL, LFO_HZ, Q, SECONDS, SEND, SPREAD, UNIT } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { VoiceRenderer } from './descriptor.ts';
+import { cutAndHold } from '../graph-scope.ts';
 
 // --- the bed ---------------------------------------------------------------
 
@@ -144,14 +145,21 @@ function sweepUp(
 
   const b = band(ctx, S);
   b.lp.connect(g);
+  // How far it climbs (round wind): a note may say, in octaves of the lid (`p.rise`), and then both ends arrive where
+  // the row's do and start that far under them — the floor by the same share of its own climb — so a short wind is
+  // the top of the long one and the pace per beat stays the planner's. Absent, the row's whole climb.
+  const rise = typeof p.rise === 'number' && p.rise > 0 ? Math.min(p.rise, Math.log2(S.toHz / S.fromHz)) : null;
+  const share = rise == null ? 1 : rise / Math.log2(S.toHz / S.fromHz);
+  const fromHz = rise == null ? S.fromHz : S.toHz / Math.pow(2, rise);
+  const hpHz = rise == null ? S.hpHz : S.hpToHz / Math.pow(S.hpToHz / S.hpHz, share);
   // The corner climbs in **octaves**, which is what an exponential ramp on a
   // frequency is and is how a sweep sounds like it is moving evenly.
-  b.lp.frequency.setValueAtTime(S.fromHz, time);
+  b.lp.frequency.setValueAtTime(fromHz, time);
   b.lp.frequency.exponentialRampToValueAtTime(S.toHz, time + dur);
   // And so does the floor, a little behind it: a riser that only opens its lid
   // keeps its bottom, and a riser that takes its bottom with it is the one that
   // makes room for the drop.
-  b.hp.frequency.setValueAtTime(S.hpHz, time);
+  b.hp.frequency.setValueAtTime(hpHz, time);
   b.hp.frequency.exponentialRampToValueAtTime(S.hpToHz, time + dur);
 
   const src = noiseSource(ctx, time, dur + S.release + 0.05);
@@ -222,7 +230,7 @@ function grain(
   into: AudioNode,
   { rate, level, pan, length, tilt }: GrainSpec,
   S: GrainPatch,
-): { src: AudioBufferSourceNode; env: GainNode; out: AudioNode; end: number } {
+): { src: AudioBufferSourceNode; env: GainNode; out: AudioNode; end: number; nodes: AudioNode[] } {
   const src = ctx.createBufferSource();
   src.buffer = buf;
   src.playbackRate.value = rate;
@@ -247,7 +255,7 @@ function grain(
   src.start(at, Math.max(0, offset), length * rate + 0.02);
   // When it is over: the window has closed and the slice has run out. What a
   // ring of grains uses to know which of them it may let go of.
-  return { src, env, out: pn, end: at + length + 0.02 / rate + 0.05 };
+  return { src, env, out: pn, end: at + length + 0.02 / rate + 0.05, nodes: [src, env, lp, pn] };
 }
 
 /** One grain in flight: its source, the node it ends on, and the instant it is over. */
@@ -255,6 +263,8 @@ interface Grain {
   src: AudioBufferSourceNode;
   out: AudioNode;
   end: number;
+  /** the grain's whole chain, cut and held a while once it is over (round crash-resume, `graph-scope.ts`) */
+  nodes: AudioNode[];
 }
 
 /**
@@ -297,11 +307,11 @@ function cloud(
     const g = grain(ctx, buf, t + d2 * S.every * S.timeSpread, into, {
       rate: rate * jitter,
       level: S.grainLevel * (0.6 + 0.4 * d3),
-      pan: (d3 * 2 - 1) * S.spread,
+      pan: (d3 * 2 - 1) * fanned(S.spread, true),
       length: S.grainSeconds * (0.7 + 0.6 * d1),
       tilt: Math.min(14000, S.tiltHz * (0.7 + 0.6 * d2)),
     }, S);
-    grains.push({ src: g.src, out: g.out, end: g.end });
+    grains.push({ src: g.src, out: g.out, end: g.end, nodes: g.nodes });
   }
   return { grains, next: t, n };
 }
@@ -432,8 +442,9 @@ export function holdGrainPad(
     const now = ctx.currentTime;
     let kept = 0;
     // a grain that is over lets go of the cloud's filter, so its chain leaves the graph (the performance
-    // review of 10-06: the list was compacted and every grain since the cloud began stayed wired in)
-    for (const grain of inFlight) if (grain.end >= now) inFlight[kept++] = grain; else grain.out.disconnect();
+    // review of 10-06: the list was compacted and every grain since the cloud began stayed wired in); its whole
+    // chain is cut and held a while, never collected still wired (round crash-resume, `graph-scope.ts`)
+    for (const grain of inFlight) if (grain.end >= now) inFlight[kept++] = grain; else cutAndHold(grain.nodes);
     inFlight.length = kept;
     sources.length = 0;
     for (const grain of inFlight) sources.push(grain.src);
@@ -470,7 +481,7 @@ export function holdGrainPad(
   const unTick = (): void => {
     if (timer != null) clearTimeout(timer);
     timer = null;
-    if (tick) { tick.onended = null; try { tick.disconnect(); } catch (e) { /* gone */ } }
+    if (tick) { tick.onended = null; cutAndHold([tick]); }
     tick = null;
   };
   function pump(): void {
@@ -484,7 +495,7 @@ export function holdGrainPad(
   const stopPumping = (): void => {
     pumping = false;
     unTick();
-    if (idle) try { idle.disconnect(); } catch (e) { /* gone */ }
+    if (idle) cutAndHold([idle]);
   };
   if (pumping) arm();
 
@@ -528,6 +539,9 @@ export function holdGrainPad(
     dispose() {
       stopPumping();
       voice.dispose();
+      // the grains still in flight, whole (their sources the voice has stopped)
+      for (const grain of inFlight) cutAndHold(grain.nodes);
+      inFlight.length = 0;
     },
   };
 }
@@ -617,5 +631,238 @@ export const NOISE_SWEEP: Topology = {
   id: 'noise-sweep',
   cost: 'cheap',
   parameters: SWEEP_FIELDS,
+  // (round wind) a note that says `arrive` is laid at its arrival, as the reverse swell's is: it starts its own length
+  // before its time and lands on it. Any other note starts at its time, as it always has.
+  anticipates: (p: NoteParams) => (p?.arrive ? Math.max(0.3, Number(p.dur ?? 3)) : 0),
   render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => sweepUp(row, ctx, out, time, p, settings),
+};
+
+// --- the air (round air-voices, 11-02) ---------------------------------------
+//
+// One noise voice for everything that lives above 5 kHz and is not a hit: the bed that comes and goes, the riser
+// that lives only in the air, the breath at a phrase line, the arcs of a beatless stretch, a bow's breath. The vinyl
+// bed is the topology it grew from (a band, a lid that drifts), with what that one cannot do: two streams of pink or
+// white noise, as wide as the row says (`corr`), and three shapes a note asks for by name.
+//
+//   `bed`    up over `attack` (or the note's own), held, down over `release`; the lid drifts. A note that asks to
+//            breathe (`cycle`, `fall`, `lowHz`, `dipDb`) closes the lid toward `lowHz` over `fall` seconds of each
+//            `cycle` and lets the level dip by `dipDb` with it, then opens again.
+//   `rise`   the level on a power curve (`curve`) over the note, from nothing to its peak, and cut dead on the end
+//            (`release` a few milliseconds). A note with `flat` holds it level instead (the held hiss over a break's
+//            last bars), with `attack` in.
+//   `swell`  a band-pass whose centre glides `bandHz[0]` -> `bandHz[1]` at the note's `peak` share and back, the
+//            level up and down with it on a raised cosine: the breath, the arc, the bow's breath (a short note).
+//
+// Why a topology of its own: `vinyl` renders one shape from one mono stream, and its contract is every bed's (the
+// vinyl, the air and the weather rows), so a new field there moves them all; `noise-rise` climbs a band from 320 Hz
+// on an exponential gain and cannot sit flat or stay above 9 kHz. The pink is the bed's colour the miners measured
+// (a white band 5-14 kHz is 4.5 dB brighter at its top than theirs).
+
+/** Two streams of noise, pink or white, the right `corr` of the left: rendered once a context per kind. */
+const airCache = new WeakMap<BaseAudioContext, Map<string, AudioBuffer>>();
+function airBuffer(ctx: BaseAudioContext, pink: boolean, corr: number): AudioBuffer {
+  let per = airCache.get(ctx);
+  if (!per) { per = new Map(); airCache.set(ctx, per); }
+  const c = Math.max(0, Math.min(1, corr)), key = `${pink ? 'p' : 'w'}:${c}`;
+  const had = per.get(key);
+  if (had) return had;
+  const len = Math.floor(ctx.sampleRate * 4);
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  const k = Math.sqrt(1 - c * c);
+  const draw = (seed: number): Float32Array => {
+    const w = lcg(seed), d = new Float32Array(len);
+    if (!pink) { for (let i = 0; i < len; i++) d[i] = w(); return d; }
+    // the usual three-pole pink filter, scaled back to about the white stream's level
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < len; i++) {
+      const x = w();
+      b0 = 0.99886 * b0 + x * 0.0555179; b1 = 0.99332 * b1 + x * 0.0750759; b2 = 0.969 * b2 + x * 0.153852;
+      b3 = 0.8665 * b3 + x * 0.3104856; b4 = 0.55 * b4 + x * 0.5329522; b5 = -0.7616 * b5 - x * 0.016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + x * 0.5362) * 0.11;
+      b6 = x * 0.115926;
+    }
+    return d;
+  };
+  const a = draw(31337), b = draw(31337 + 4099);
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  for (let i = 0; i < len; i++) { L[i] = a[i]; R[i] = c * a[i] + k * b[i]; }
+  per.set(key, buf);
+  return buf;
+}
+
+/** A raised-cosine swell, or a power curve, as points for `setValueCurveAtTime`. */
+function airCurve(n: number, f: (x: number) => number): Float32Array<ArrayBuffer> {
+  const c = new Float32Array(n);
+  for (let i = 0; i < n; i++) c[i] = Math.max(0, f(i / (n - 1)));
+  return c;
+}
+
+const fin = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+function airNote(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams = {}, settings: Settings): number {
+  time = startTime(ctx, time);
+  const S = patchOf(settings, row, AIR_FIELDS);
+  const shape = p.shape === 'bed' || p.shape === 'rise' || p.shape === 'swell' ? p.shape : S.shape;
+  const dur = Math.max(0.02, p.dur ?? 4);
+  const peak = (p.vel ?? 1) * (p.gain ?? 1) * S.trim;
+  const release = fin(p.release) ? Math.max(0.003, p.release) : S.release;
+  const end = time + dur + (shape === 'swell' ? 0 : release);
+
+  const g = ctx.createGain();
+  g.channelCount = 2;
+  g.channelCountMode = 'explicit';
+  g.channelInterpretation = 'speakers';
+
+  // the band: a high-pass of one or two stages under a lid
+  const hpHz = fin(p.hpHz) ? p.hpHz : S.hpHz;
+  const lidHz = Math.min(18000, fin(p.lidHz) ? p.lidHz : S.lpHz);
+  const src = ctx.createBufferSource();
+  src.buffer = airBuffer(ctx, S.pink, S.corr);
+  src.loop = true;
+  src.start(time, (time * 7.13) % src.buffer.duration);
+  src.stop(end + 0.05);
+  let at: AudioNode = src;
+  for (let i = 0; i < S.poles; i++) {
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.Q.value = 0.7;
+    hp.frequency.value = hpHz;
+    at.connect(hp);
+    at = hp;
+  }
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.Q.value = S.q;
+  lp.frequency.value = lidHz;
+  at.connect(lp);
+  at = lp;
+
+  if (shape === 'swell') {
+    const [f0, f1] = Array.isArray(p.bandHz) && p.bandHz.length === 2 && p.bandHz.every(fin) ? p.bandHz as [number, number] : S.bandHz;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = fin(p.bandQ) ? p.bandQ : S.bandQ;
+    const top = Math.max(0.05, Math.min(0.95, fin(p.peak) ? p.peak : S.peak));
+    bp.frequency.setValueAtTime(f0, time);
+    bp.frequency.exponentialRampToValueAtTime(f1, time + dur * top);
+    bp.frequency.exponentialRampToValueAtTime(f0, time + dur);
+    at.connect(bp);
+    at = bp;
+    // up on a half cosine to the peak, down on one after it
+    g.gain.setValueAtTime(0, time);
+    g.gain.setValueCurveAtTime(airCurve(64, (x) => peak * (x <= top ? 0.5 - 0.5 * Math.cos(Math.PI * x / top) : 0.5 + 0.5 * Math.cos(Math.PI * (x - top) / (1 - top)))), time, dur);
+  } else if (shape === 'rise') {
+    const k = fin(p.curve) ? Math.max(0, p.curve) : S.curve;
+    if (p.flat) {
+      const a = Math.min(dur * 0.5, fin(p.attack) ? p.attack : S.attack);
+      g.gain.setValueAtTime(0, time);
+      g.gain.linearRampToValueAtTime(peak, time + a);
+      g.gain.setValueAtTime(peak, time + dur);
+    } else {
+      g.gain.setValueAtTime(0, time);
+      g.gain.setValueCurveAtTime(airCurve(128, (x) => peak * Math.pow(x, k)), time, dur);
+    }
+    // cut dead on the line
+    g.gain.linearRampToValueAtTime(0, time + dur + release);
+  } else {
+    const a = Math.min(dur, fin(p.attack) ? p.attack : S.attack);
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(peak, time + a);
+    g.gain.setValueAtTime(peak, time + dur);
+    g.gain.linearRampToValueAtTime(0, time + dur + release);
+    // a bed that breathes: the lid closes over `fall` of each `cycle` and opens again, the level dipping with it
+    if (fin(p.cycle) && p.cycle > 0.5 && fin(p.fall) && fin(p.lowHz)) {
+      const fall = Math.min(p.cycle - 0.1, Math.max(0.1, p.fall)), low = Math.max(CUTOFF_FLOOR, Math.min(lidHz, p.lowHz));
+      const dip = Math.pow(10, -(fin(p.dipDb) ? Math.max(0, p.dipDb) : 0) / 20);
+      const breath = ctx.createGain();
+      breath.gain.setValueAtTime(1, time);
+      lp.frequency.setValueAtTime(lidHz, time);
+      for (let t = time; t < time + dur; t += p.cycle) {
+        lp.frequency.setValueAtTime(lidHz, t);
+        lp.frequency.exponentialRampToValueAtTime(low, t + fall);
+        lp.frequency.exponentialRampToValueAtTime(lidHz, Math.min(t + p.cycle, time + dur + release));
+        breath.gain.setValueAtTime(1, t);
+        breath.gain.linearRampToValueAtTime(dip, t + fall);
+        breath.gain.linearRampToValueAtTime(1, Math.min(t + p.cycle, time + dur + release));
+      }
+      at.connect(breath);
+      at = breath;
+    } else if (S.driftDepth > 0) {
+      const lfo = phasedLfo(ctx, S.driftHz, ((p.midi ?? 0) % 5) * 1.2);
+      const depth = ctx.createGain();
+      depth.gain.value = lidHz * S.driftDepth;
+      lfo.connect(depth);
+      depth.connect(lp.frequency);
+      lfo.start(time);
+      lfo.stop(end + 0.05);
+    }
+  }
+  // (round top-voices-2) a bed that moves with the groove: ducked on each beat a note names (`pumpBeat`, seconds; the
+  // kick's), down `pumpDb` in a few milliseconds and swelling back over the beat. Absent (every note before it), nothing
+  // is built.
+  if (shape === 'bed' && fin(p.pumpBeat) && p.pumpBeat > 0.2 && fin(p.pumpDb) && p.pumpDb > 0) {
+    const dip = Math.pow(10, -Math.min(12, p.pumpDb) / 20), beat = p.pumpBeat;
+    const pump = ctx.createGain();
+    pump.gain.setValueAtTime(1, time);
+    for (let t = time; t < time + dur + release; t += beat) {
+      pump.gain.setValueAtTime(1, t);
+      pump.gain.linearRampToValueAtTime(dip, t + 0.012);
+      pump.gain.setTargetAtTime(1, t + 0.012, beat * 0.28);
+    }
+    at.connect(pump);
+    at = pump;
+  }
+  at.connect(g);
+
+  // a slow sway across the field, as wide as the note asks (`sway`, a share of the edge)
+  let tail: AudioNode = g;
+  const sway = fin(p.sway) ? Math.max(0, Math.min(0.5, p.sway)) : S.sway;
+  if (sway > 0) {
+    const pn = ctx.createStereoPanner();
+    pn.pan.setValueAtTime(0, time);
+    pn.pan.setValueCurveAtTime(airCurve(32, (x) => 0.5 + 0.5 * Math.sin(2 * Math.PI * x)).map((v) => (v - 0.5) * 2 * sway) as Float32Array<ArrayBuffer>, time, Math.max(0.05, dur));
+    g.connect(pn);
+    tail = pn;
+  }
+  route(ctx, insert(ctx, p, tail, time, end, settings), out, { dry: 1, delay: p.delay ?? S.delay, reverb: p.reverb ?? S.reverb });
+  return end + MIN_RELEASE;
+}
+
+/** What an air row carries: exactly these, each in its range (`schema.ts`). */
+const AIR_FIELDS = contract({
+  /** the shape a note plays when it names none */
+  shape: word('bed', 'rise', 'swell'),
+  /** pink or white, and how much of the left stream the right one is (nought: two sources) */
+  pink: bool(),
+  corr: UNIT,
+  /** the band: a floor of one or two stages (12 or 24 dB an octave), a lid */
+  hpHz: HZ,
+  poles: int(1, 2),
+  lpHz: HZ,
+  q: Q,
+  /** the lid's slow drift on a bed */
+  driftHz: LFO_HZ,
+  driftDepth: UNIT,
+  /** a bed's fade in and out; a rise's cut */
+  attack: SECONDS,
+  release: SECONDS,
+  /** a rise's power */
+  curve: num(0, 8),
+  /** a swell's glide: from, to at its peak, the band's Q, where in the note the peak is */
+  bandHz: list(HZ, 2),
+  bandQ: Q,
+  peak: UNIT,
+  /** a slow sway across the field, a share of the edge */
+  sway: num(0, 0.5),
+  reverb: SEND,
+  delay: SEND,
+  trim: LEVEL,
+});
+
+/** The air topology (round air-voices): two streams of noise above 5 kHz in three shapes, a bed, a rise, a swell. */
+export const AIR: Topology = {
+  id: 'air',
+  cost: 'cheap',
+  parameters: AIR_FIELDS,
+  render: (row): VoiceRenderer => (ctx, out, time, p = {}, settings) => airNote(row, ctx, out, time, p, settings),
 };

@@ -49,6 +49,21 @@ import type { Accompaniment } from './recipe-request.ts';
 import type { Development } from './development.ts';
 import { LINK_ROWS, ROW, SOUND, BYPASS_NAMES, VERSIONS, DEFAULT_VER, versionOf, verOf, pageDefault, linkQuery, linkRaw, linkValue } from './link-table.ts';
 import type { LinkClass, LinkRow, Version } from './link-table.ts';
+import { w, matchLang, lang as spoken, langName, type WordKey } from './words.ts';
+
+type Vars = Record<string, string | number | (() => string)>;
+/**
+ * **A refusal, said in the language the page speaks when it is read** (round japanese): the ring's line is `key`'s
+ * words and the sentence `key`Long's, both filled from `vars` (a function is a word said in the language of the moment).
+ */
+function problem(param: string, key: WordKey, vars: Vars): LinkProblem {
+  const filled = () => Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, typeof v === 'function' ? v() : v]));
+  return {
+    param,
+    get short() { return w(key, filled()); },
+    get long() { return w(`${key}Long` as WordKey, filled()); },
+  };
+}
 
 export { LINK_ROWS, VERSIONS, DEFAULT_VER, versionOf, verOf, pageDefault, linkRaw, linkValue };
 export type { LinkClass, LinkRow, Version };
@@ -135,40 +150,45 @@ export function linkRead(search: string, opts: LinkOptions = {}): { link: Link; 
   const fallback = opts.pageDefault ?? pageDefault();
   const q = linkQuery(search);
   const problems: LinkProblem[] = [];
-  const refuse = (param: string, short: string, long: string) => {
+  // the ring's line and the sentence, said in the language the page speaks when they are read (round japanese)
+  const refuse = (param: string, key: WordKey, vars: Vars) => {
     q.delete(param);
-    problems.push({ param, short, long });
+    problems.push(problem(param, key, vars));
   };
+  // `lang=` (round japanese): the language of the visit, a BCP 47 tag matched to the table's columns; one it speaks
+  // no column of is taken off out loud, and the usual order decides (the About's choice, then the browser's)
+  const langAsked = q.get('lang');
+  if (langAsked !== null && !matchLang(langAsked)) refuse('lang', 'link.lang', { v: echo(langAsked), lang: () => langName(spoken()) });
   const seed = q.get('seed');
   if (seed !== null && !/^[!-~]{1,64}$/.test(seed.trim()))
-    refuse('seed', 'bad seed · the house', `seed ${echo(seed)} is not a seed anybody could type; the page opens where it would with none`);
-  for (const [param, word] of [['theme', 'theme one'], ['bar', 'bar one']]) {
+    refuse('seed', 'link.seed', { v: echo(seed) });
+  for (const [param, word] of [['theme', 'link.themeOne'], ['bar', 'link.barOne']] as const) {
     const v = q.get(param);
     if (v !== null && !(/^\d{1,4}$/.test(v) && Number(v) >= 1))
-      refuse(param, `bad ${param} · ${word}`, `${param} ${echo(v)} is not a count from one; the page opens on ${word}`);
+      refuse(param, 'link.count', { param, v: echo(v), word: () => w(word) });
   }
   // The line says what plays, which is the page's default and not the record
   // (the reconciled review of 09-24, R125): it said "the record" while v2
   // played, and a listener reading it thought they were on v1.
   const ver = q.get('v');
   if (ver !== null && ver.trim() && !versionOf(ver, versions))
-    refuse('v', `no such engine · v${verOf(fallback, versions)}`, `v ${echo(ver)} names no engine in this build; the page plays v${verOf(fallback, versions)}`);
+    refuse('v', 'link.engine', { v: echo(ver), ver: verOf(fallback, versions) });
   const spell = q.get('spell');
   if (spell !== null && spell.trim() && !parseSpell(spell))
-    refuse('spell', 'bad spell · the house', `spell ${echo(spell)} does not read as name:value pairs; the page plays the house`);
+    refuse('spell', 'link.spell', { v: echo(spell) });
   const accompaniment = q.get('accompaniment');
   if (accompaniment !== null && !['base', 'auto'].includes(accompaniment))
-    refuse('accompaniment', 'bad accompaniment · the house', `accompaniment ${echo(accompaniment)} is not base or auto; the page plays base`);
+    refuse('accompaniment', 'link.accompaniment', { v: echo(accompaniment) });
   const development = q.get('development');
   if (development !== null && !['base', 'phrased', 'shaped', 'percussion'].includes(development))
-    refuse('development', 'bad development · the house', `development ${echo(development)} is not a mode this page has; the page plays base`);
+    refuse('development', 'link.development', { v: echo(development) });
   // An empty recipe is none, as the link below reads it; it was refused as
   // "no recipe called \"\"" and then read as none anyway (R125).
   const recipe = q.get('recipe');
   if (recipe !== null && !['auto', 'none', ''].includes(recipe.trim())) {
     let row = null;
     try { row = /^[a-z0-9][a-z0-9/_-]{0,80}$/i.test(recipe.trim()) ? recipeById(recipe.trim()) : null; } catch (e) { row = null; }
-    if (!row) refuse('recipe', 'no such recipe · the house', `no recipe in this build is called ${echo(recipe)}; the page plays the house`);
+    if (!row) refuse('recipe', 'link.recipe', { v: echo(recipe) });
   }
   // The whole request, planned once: what the composer refuses is refused
   // here, until what is left plays. **One row is taken off where one is
@@ -177,7 +197,20 @@ export function linkRead(search: string, opts: LinkOptions = {}): { link: Link; 
   // &development=shaped` lost its recipe and kept the mode at fault (R66 of the
   // review of 09-24). Where no one row alone plays, the recipe goes first and
   // then the modes round it, as it always did.
-  if (opts.trial !== false) {
+  //
+  // **Only a link that asks the composer something it can refuse is planned** (smooth-start, his word 11-03: "every
+  // time I open app … it seems ring animation is a bit not smooth"): what the composer refuses is a recipe, or a
+  // mode round one, so a link naming none of the three — every featured track, a bare open, a seed and its birds —
+  // has nothing to refuse, and its trial was a whole plan of the first theme in the open's own task (70 ms of it on
+  // this Mac), made again a line later for the ring. A recipe, an accompaniment or a development on the link, or in
+  // what its engine reads their absence as, is planned as it always was.
+  const engineNow = versionOf(q.get('v'), versions) ?? versionOf(fallback, versions);
+  const absentNow = engineNow?.absent ?? { recipe: null, accompaniment: 'base', development: 'base' };
+  const recipeAsked = q.get('recipe');
+  const refusable = (recipeAsked === null ? absentNow.recipe !== null : !['', 'none'].includes(recipeAsked.trim()))
+    || (q.get('accompaniment') ?? absentNow.accompaniment) !== 'base'
+    || (q.get('development') ?? absentNow.development) !== 'base';
+  if (opts.trial !== false && refusable) {
     const refusal = (query: URLSearchParams): string | null => {
       try {
         const at = `?${query.toString()}`;
@@ -201,9 +234,8 @@ export function linkRead(search: string, opts: LinkOptions = {}): { link: Link; 
     };
     const refuseFor = (param: string, why: string) => {
       const alone = /layer playback is not implemented/.test(why);
-      refuse(param, alone ? 'hand part alone · the house' : `${param} refused · the house`,
-        alone ? `recipe ${echo(q.get('recipe') || '')} is a part and plays only over its accompaniment (add accompaniment=auto); the page plays the house`
-          : `${param} ${echo(q.get(param) || '')} was refused: ${why}; the page plays without it`);
+      if (alone) refuse(param, 'link.alone', { v: echo(q.get('recipe') || '') });
+      else refuse(param, 'link.refused', { param, v: echo(q.get(param) || ''), why });
     };
     const why = refusal(q);
     if (why !== null) {
@@ -233,13 +265,13 @@ export function linkRead(search: string, opts: LinkOptions = {}): { link: Link; 
         const without = new URLSearchParams(q);
         without.delete('theme');
         if (refusal(without) === null) {
-          refuse('theme', 'theme refused · theme one', `theme ${echo(q.get('theme') || '')} was refused: ${now}; the page opens on theme one`);
+          refuse('theme', 'link.theme', { v: echo(q.get('theme') || ''), why: now });
           now = null;
         }
       }
       if (now !== null) {
         note('fault', 'the planner refused a link with nothing left to take off', { error: now.slice(0, 120) });
-        problems.push({ param: 'plan', short: 'this link will not plan', long: `the planner refused this link and nothing on it could be taken off: ${now}` });
+        problems.push(problem('plan', 'link.plan', { why: now }));
       }
     }
   }

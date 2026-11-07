@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "brightPiano",
-  "revision": 1,
+  "revision": 2,
   "topology": "bright-piano",
   "block": "brightPiano",
   "parameters": {
@@ -20,7 +20,8 @@
     "hammerLevel": 0.28,
     "hammerTime": 0.004,
     "spread": 0.3,
-    "trim": 1.208
+    "trim": 0.486,
+    "after": { "seconds": 5, "level": 0.3, "damper": 0.12, "cents": 2 }
   },
   "descriptor": {
     "family": "keyboard",
@@ -86,7 +87,8 @@
     "notes": {
       "inharmonicity": "A real string is stiff, so its nth partial is at n*f*sqrt(1 + B*n^2). B is about 0.0004 in the middle of a piano and rises towards the top.",
       "partialDecay": "How much faster each partial dies than the one below it. The ratio *is* the decay of a piano.",
-      "upper": "What velocity adds to the partials from the fourth up: a piano hit harder is brighter and not merely louder."
+      "upper": "What velocity adds to the partials from the fourth up: a piano hit harder is brighter and not merely louder.",
+      "after": "The aftersound and the damper (round piano-pool, his word 11-01: \"we need to apply new sound technic to all our acoustic piano voices\"): each partial falls in two stages, its prompt fall (the row's decay, as before, at most 0.7 s) to 0.3 of its strike, then an aftersound by its frequency (5 s at middle C); the key held rings on, and the damper stops the note at its release in 0.12 s, where every partial used to fall over the note's length and release (a pluck); its lowest three partials on two strings 2 cents apart about the note. Kept in its own synthesis, not the string: it is a register for plucked figures (Drive - Eli's Ignition plays it as a sixteenth-note figure at velocities 0.13-0.21, where the string's touch and a piano's square law of velocity would turn it into a dark ghost), so it takes no keyboard seats and no articulation either. Its `trim` 1.208 -> 0.486 (-7.9 dB) holds its strike: measured note by note, within half a decibel at its own short lengths, -0.5 dB where held."
     }
   }
 }

@@ -1211,8 +1211,14 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   /** An aim no hand-over has taken up yet: a cut or a cast still being built. */
   const pendingAim = (): Place | null =>
     (aim && !(incoming && placeOf(incoming.track).seed === aim.seed && placeOf(incoming.track).index === aim.index) ? aim : null);
-  /** Where a press counts from: what is aimed at, or where the music is heading. */
-  const from = (): Place => aim ?? heading();
+  /**
+   * Where a press counts from: what a hand has aimed at, or the theme the screen names as playing — the record, until
+   * the swap. **Never the set's own hand-over** (his word 11-03: *"mix could be not obvious for users so Next still
+   * should be next, and not next after one that's in the mixing"*): a listener cannot see a hand-over armed or a blend
+   * begun, so a next pressed before its swap lands on the theme arriving, and one pressed after it, past it. A hand's
+   * own move still counts from its aim, so five nexts inside a second land five ahead.
+   */
+  const from = (): Place => aim ?? here();
   /** What the hand has asked for, as a place: where a move now would take the set. */
   const asked = (): Place => wish(pendingAim() ?? heading());
   /** The seasoning the hand has asked for: the last pull, or the set's own. */
@@ -1961,15 +1967,16 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
    * @param unit the line a hand-over begins on, in bars; a cut takes a beat
    */
   async function move(resolve: () => Place, kind: NonNullable<typeof moving>['kind'], unit = 1, asked: MixWait['kind'] = kind === 'cut' ? 'skip' : kind as MixWait['kind'],
-    said: ((arriving: SetTrack) => void) | null = null, floor: LineFloor | null = null): Promise<TransportPoint | null> {
+    said: ((arriving: SetTrack) => void) | null = null, floor: LineFloor | null = null, landNow = false): Promise<TransportPoint | null> {
     if (!running || !current) return null;
     const cut = kind === 'cut';
     const token = supersede(kind);
     const stale = () => token !== moveToken || dead || !running || !current;
     try {
       // A tap during a seam lands the hand-over in flight at once — the
-      // arriving theme is the record — and the cut is planned from there.
-      if (cut) interruptSeam();
+      // arriving theme is the record — and the cut is planned from there;
+      // a cut going anywhere else drops a blend not yet swapped instead.
+      if (cut) interruptSeam(true, true, resolve());
       // the plans the landing needs, made off the page's thread (`landingOff`)
       const missing = missingFor(resolve);
       if (missing.length) {
@@ -2006,7 +2013,14 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       // ride runs re-aim the ride at the new set's tempo and blend into it
       // where the bird's blend was to begin; a bird pulled while a cast's ride
       // runs is the same join the other way round.
-      if ((kind === 'spell' || kind === 'cast') && ridingAhead()) {
+      // **A press into the very place a blend is bringing lands it at once**
+      // (`landNow`, a playlist's Next, his word 11-03): as a set's Next inside
+      // its own blend does, the arriving track is the record now, where the
+      // blend has it, and the move is reached below. Joining the blend left it
+      // to the blend's own swap, many seconds on. A ride not yet blended is
+      // dropped and laid again from here, as an armed hand-over is.
+      if (landNow && blending() && samePlace(dest, placeOf(incoming!.track))) interruptSeam(true, true);
+      if ((kind === 'spell' || kind === 'cast') && ridingAhead() && !landNow) {
         const kept = keepRide(dest, arriving);
         if (kept) return kept;
       }
@@ -2021,7 +2035,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
         const joined = joinBlend(dest, arriving);
         if (joined) return joined;
       }
-      if (!cut || transition) interruptSeam(cut, cut);
+      if (!cut || transition) interruptSeam(cut, cut, cut ? dest : null);
       if (stale()) return null;
       // Reached already: a seam that landed on the way — its own, armed while
       // the landing was built with the theme this move had planned — brought
@@ -2381,7 +2395,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
   // A skip or a back landing inside a blend: the hand-over in flight lands at
   // once — the arriving theme is the record — and the seam that was shaping it
   // is dropped rather than left running underneath the new cut.
-  function interruptSeam(replan = true, hard = true) {
+  function interruptSeam(replan = true, hard = true, dest: Place | null = null) {
     if (!transition && !incoming && !retiring) return;
     // **A ride the blend has not reached is dropped, not landed.** The theme
     // it was riding to has not sounded — it starts where the ride ends, as
@@ -2397,7 +2411,21 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // pulled 260 ms later: the seed turned over at the pull, forty seconds
     // before the hand-over a listener was promised. The record stays, and the
     // ask lays its own hand-over from here, into the place that was arriving.
-    if (ridingAhead() || (!hard && incoming && transition && ctx.currentTime < transition.at)) {
+    // **A cut too** (the playback review of 11-02): a next pressed inside the
+    // wait of a cut before it, or after the tick armed the set's own seam,
+    // landed a deck that starts in the future — the record let go in 80 ms and
+    // a hole until the arriving deck's instant, up to 1.8 s on a hidden page.
+    // The cut is laid from the record; a press with nothing aimed counts from
+    // it (`from`, his word 11-03), so a next lays the theme that was arriving.
+    // **And a blend not yet swapped, under a cut going elsewhere** (his word
+    // 11-03): a back pressed inside the set's own blend landed the arriving
+    // theme for a beat at full — the screen said 3, then 4, then 2 — before
+    // cutting back. The theme the screen names is still the record: it stays,
+    // the arriving theme goes in 80 ms, and the cut is laid from the record.
+    // A cut *into* the arriving theme still lands it, where the blend has it.
+    const elsewhere = hard && dest != null && !!incoming && !!transition && ctx.currentTime < transition.swapAt
+      && !(placeOf(incoming.track).seed === dest.seed && placeOf(incoming.track).index === dest.index);
+    if (ridingAhead() || (incoming && transition && ctx.currentTime < transition.at) || elsewhere) {
       dropSeam(0.08, replan);
       return;
     }
@@ -2975,10 +3003,13 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // stops; `pick` is read after `interruptSeam`, so a press that lands the
     // hand-over in flight aims from the theme that has just become the record.
     //
-    // It counts from where the music is *heading*: inside a blend that is the
-    // theme arriving, which the cut lands at once, so a next pressed there goes
-    // to the theme after it. It used to count from the theme leaving, and the
-    // landing then cleared the aim and the cut planned theme `null` (`1#null`).
+    // **With nothing aimed, it counts from the theme the screen names** (`from`,
+    // his word 11-03): the record, until the set's own hand-over swaps. Armed,
+    // the hand-over is dropped (`interruptSeam`) and the cut lays the arriving
+    // theme from the record, from its first bar as any next does; inside the
+    // blend the cut lands it at once, where the blend has it, and is reached.
+    // It used to count from where the music was heading, so a next there went
+    // to the theme after the arriving one, which was never heard.
     async skip(): Promise<TransportPoint | null> {
       if (!running || !current) return stepWhileStopped(1);
       const f = from();
@@ -2996,7 +3027,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       note('transport', 'a back was asked for', { from: n + 1, to: want.index + 1, ...(want.seed !== masterSeed ? { seed: want.seed } : {}) });
       return move(() => wish(want), 'cut', 1, 'back');
     },
-    /** The theme a press would count from: what is aimed at, or where the music is heading. */
+    /** The theme a press would count from: what is aimed at, or the theme the screen names (`from`). */
     get aim() {
       return from().index;
     },
@@ -3027,8 +3058,13 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
     // seconds ahead of the record's own seam, it hands over on that seam's line
     // and not on the next bar line after the ask, so the record's last phrase
     // plays whole, as it does where the set hands over on its own.
-    cast(seed: string | number, { spell, themeIndex = 0, strategy, recipe = o.recipe, top = false, atSeam = false }: {
+    //
+    // `now` is a press (a playlist's Next or Back, a journal walk): asked
+    // inside a blend that is bringing this very place, it lands that blend at
+    // once rather than joining it (his word 11-03, `move`'s `landNow`).
+    cast(seed: string | number, { spell, themeIndex = 0, strategy, recipe = o.recipe, top = false, atSeam = false, now = false }: {
       spell?: Partial<Spell> | null; themeIndex?: number; strategy?: string | Strategy | null; recipe?: Recipe | null; top?: boolean; atSeam?: boolean;
+      now?: boolean;
     } = {}): Promise<TransportPoint | null> {
       if (!running || !current) return Promise.resolve(null);
       const floor: LineFloor | null = atSeam && current !== spentDeck ? { deck: current, at: seamOfRecord().at } : null;
@@ -3058,7 +3094,7 @@ export function createMix(ctx: AudioContext, opts: Partial<MixOptions> = {}) {
       return move(() => wish(place), 'cast', 1, 'cast', (arriving) => note('cast', 'a cast was asked for', {
         from, to: next, theme: i + 1, bpm: arriving.bpm, key: arriving.key.name, room: arriving.presetLabel,
         ...(floor ? { atSeam: +floor.at.toFixed(2) } : {}),
-      }), floor);
+      }), floor, now);
     },
     /**
      * The spell the set is cast under, changed while it plays.

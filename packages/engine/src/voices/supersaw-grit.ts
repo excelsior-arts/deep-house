@@ -19,6 +19,13 @@
 //                the top open, the band widens downward, the noise thins and the stack spreads a little wider.
 //   the edge     `p.edge` (0..1, the composer's: Spark) is its edge: more drive, a sharper strike, and one saw an
 //                octave over the note at a low blend — a parallel harmonic stage, never the note moved up.
+//   the grit     `p.grit` (0..1, the composer's: round dark-fronts' tenth pass, his ear 11-04 on a dark front's
+//                "modulation effects that make it cartoonish"): movement by grit and density, never by pitch. The
+//                stack pulls tight (the detune down to a fifth of itself: no chorus beating), the strike's filter
+//                fall flattens and its resonance goes (no zap), the crush deepens, the drive and the breath come up;
+//                under `p.open` the crush rises across the hold, so a held chord thickens instead of sweeping.
+//   the swell    `p.open` (seconds) plays a held chord that swells in and opens `p.openMul` over its corner, held at
+//                `p.sustain` (round dark-fronts' second pass); absent, the strike as ever.
 //   the gate     `p.gate` chops one held note into steps (`steps`, a level a step, nought shut; `stepS` seconds a step;
 //                `open` the fraction of a step that sounds): each open step a fresh strike of the level and the filter,
 //                so a chord held for two bars is two bars of sixteenths at the price of one note; `lift` is the gate's
@@ -87,11 +94,11 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
   const hz = midiToHz(p.midi);
   const dur = Math.max(0.03, p.dur ?? 0.25);
   const vel = p.vel ?? 0.8;
-  const light = clamp01(p.light), edge = clamp01(p.edge);
+  const light = clamp01(p.light), edge = clamp01(p.edge), grit = clamp01(p.grit);
   const gate = gateOf(p.gate);
 
   const corner = Math.min(15000, S.cutoffHz * (1 + (S.lightOpen - 1) * light) * (p.cutoffMul ?? 1));
-  const envFrom = Math.min(16000, corner * S.envMult * (1 + 0.5 * edge));
+  const envFrom = Math.min(16000, corner * (1 + (S.envMult - 1) * (1 - 0.85 * grit)) * (1 + 0.5 * edge));
   const envTime = S.envTime * (1 - 0.35 * edge);
   const attack = Math.max(0.0015, Math.min(p.attack ?? S.attack * (1 - 0.5 * edge), dur * 0.5));
   const release = Math.max(MIN_RELEASE, (p.release ?? S.release) * (1 - 0.4 * edge));
@@ -108,7 +115,7 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
   g.gain.setValueAtTime(0, time);
 
   // Two low-pass stages, both moving together, the second resonant.
-  const lps: BiquadFilterNode[] = [S.resonanceDb - 3.01, -3.01].map((q) => {
+  const lps: BiquadFilterNode[] = [S.resonanceDb * (1 - grit) - 3.01, -3.01].map((q) => {
     const f = ctx.createBiquadFilter();
     f.type = 'lowpass';
     f.Q.value = q;
@@ -153,6 +160,20 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
     }
     if (low > 0) { g.gain.setValueAtTime(low, Math.max(last, time + dur)); g.gain.linearRampToValueAtTime(0, Math.max(last, time + dur) + close); }
     else g.gain.setValueAtTime(0, Math.max(last, time + dur));
+  } else if (typeof p.open === 'number' && p.open > 0) {
+    // a held chord that swells (round dark-fronts' second pass): the level rises over the attack and holds, the filter
+    // opens from its corner by `openMul` over `open` seconds instead of falling onto it; only a note that asks plays it
+    const hold = Math.max(0.05, Math.min(1, typeof p.sustain === 'number' ? p.sustain : 0.9));
+    g.gain.linearRampToValueAtTime(peak, time + attack);
+    g.gain.setValueAtTime(peak, time + attack);
+    g.gain.linearRampToValueAtTime(peak * hold, time + dur);
+    g.gain.linearRampToValueAtTime(0, end);
+    // (a filter that closes rather than opens, `openMul` under one: the dark front's movement, round dark-fronts)
+    const to = Math.min(16000, corner * Math.max(0.2, Math.min(12, typeof p.openMul === 'number' ? p.openMul : 4)));
+    for (const f of lps) {
+      f.frequency.setValueAtTime(Math.max(CUTOFF_FLOOR, corner), time);
+      f.frequency.exponentialRampToValueAtTime(Math.max(CUTOFF_FLOOR, to), time + Math.min(dur, p.open));
+    }
   } else {
     const decayEnd = time + attack + S.decay;
     g.gain.linearRampToValueAtTime(peak, time + attack);
@@ -173,15 +194,17 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
   top.frequency.value = Math.min(16000, S.topHz * (1 + (S.lightTop - 1) * light));
   top.connect(g);
 
-  // The crush, mixed in, leaving as the light comes up.
-  const crushMix = S.crushMix * (1 - light);
+  // The crush, mixed in, leaving as the light comes up; deeper with the grit, and under a held chord rising across the
+  // hold (the chord thickens where it would have swept).
+  const crushMix = Math.min(0.9, S.crushMix * (1 - light) + 0.45 * grit);
+  const crushFrom = typeof p.open === 'number' && p.open > 0 && grit > 0.01 ? Math.min(0.9, S.crushMix * (1 - light)) : crushMix;
   const sum = ctx.createGain();
   sum.connect(top);
   const dry = ctx.createGain();
-  dry.gain.value = 1 - crushMix;
+  dry.gain.value = 1 - crushFrom;
   dry.connect(sum);
   const driven = ctx.createWaveShaper();
-  driven.curve = driveCurve(S.drive * (1 + (S.lightDrive - 1) * light) * (1 + S.edgeDrive * edge));
+  driven.curve = driveCurve(S.drive * (1 + (S.lightDrive - 1) * light) * (1 + S.edgeDrive * edge) * (1 + 1.5 * grit));
   driven.oversample = 'none';
   driven.connect(dry);
   if (crushMix > 0.01) {
@@ -189,7 +212,14 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
     crush.curve = crushCurve(S.crushBits);
     crush.oversample = 'none';
     const wet = ctx.createGain();
-    wet.gain.value = crushMix;
+    wet.gain.value = crushFrom;
+    if (crushFrom !== crushMix) {
+      const over = Math.min(dur, p.open as number);
+      wet.gain.setValueAtTime(crushFrom, time);
+      wet.gain.linearRampToValueAtTime(crushMix, time + over);
+      dry.gain.setValueAtTime(1 - crushFrom, time);
+      dry.gain.linearRampToValueAtTime(1 - crushMix, time + over);
+    }
     driven.connect(crush);
     crush.connect(wet);
     wet.connect(sum);
@@ -205,7 +235,7 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
 
   // The stack: the outer four through two panners, the middle three in the centre and a step louder.
   const spread = (p.spread ?? S.spread) * (p.spreadMul ?? 1);
-  const detune = S.detune * (1 + (S.lightDetune - 1) * light);
+  const detune = S.detune * (1 + (S.lightDetune - 1) * light) * (1 - 0.8 * grit);
   const sideLevel = 1 / Math.sqrt(OFFSETS.length);
   const groups = new Map<number, AudioNode>();
   const groupOf = (side: number): AudioNode => {
@@ -242,7 +272,7 @@ function supersawGrit(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: n
     o.stop(stop);
   }
   // ...and the breath, through the same filters, thinning as the light comes up
-  const breath = S.noise * (1 - 0.6 * light);
+  const breath = S.noise * (1 - 0.6 * light) * (1 + grit);
   if (breath > 0.001) {
     const n = noiseSource(ctx, time, stop - time);
     const lvl = ctx.createGain();

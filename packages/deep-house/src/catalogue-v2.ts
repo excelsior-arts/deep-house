@@ -208,7 +208,6 @@ const FLAGGED_IDS = new Set<string>(FLAGGED.map((f) => String(f.id)));
  * commit is a re-bless of house-v2 and says so.
  */
 export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }> = Object.freeze([
-  { id: 'siren', since: '2026-09-27', for: 'a tone that glides up or down by a stated interval over a share of its note' },
   { id: 'organStab', since: '2026-09-27', for: 'a struck organ: drawbars, a key click and a short stab' },
   { id: 'fx:drive', since: '2026-09-27', for: 'a soft clip on a bus, the drums first, with input and output trims and a tone' },
   { id: 'fx:lofi', since: '2026-09-27', for: 'a worn-tape treatment: a low-pass and a wandering head' },
@@ -228,6 +227,15 @@ export const AWAITING: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'pianoElectric', since: '2026-10-10', for: 'an electric grand with a pickup zing' },
   { id: 'keysReedAmp', since: '2026-10-10', for: 'a mellow reed electric piano for a small amplifier' },
   { id: 'fmSineLayer', since: '2026-10-10', for: 'a near-pure sine to double a piano' },
+  // dark-fronts (11-03): the front voices sketched for the dark, bass-heavy places, his to pick; played only by the
+  // private tier's sketch (`src/front-sketch.ts`, `front=`), so no list draws them and no seed moves
+  { id: 'neuroStab', since: '2026-11-03', for: 'an FM neuro stab: a short driven growl through moving formants and a comb, answering the bass' },
+  { id: 'formantCall', since: '2026-11-03', for: 'a low formant call: a held growl opening o to a, falling off its end' },
+  { id: 'crushPluck', since: '2026-11-03', for: 'a crushed metal pluck: inharmonic partials, a noisy strike, held at 7 kHz and five bits' },
+  { id: 'bellDark', since: '2026-11-03', for: 'a dark FM bell under a 1.7 kHz lid, ringing long: the reverb throw' },
+  { id: 'sawStabDark', since: '2026-11-03', for: 'a dark detuned noise-saw stab with a falling filter, crushed and driven, no octave' },
+  // its eighth pass (11-04): the marimba ground by the birds, played where the dark fronts' rule colours an accent
+  { id: 'marimbaGrit', since: '2026-11-04', for: 'the marimba ground: wooden partials computed once a pitch, crushed, taped and smeared by the note' },
 ].map((e) => Object.freeze(e)));
 
 /**
@@ -257,24 +265,26 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   { id: 'hatSoft', since: '2026-10-06', for: 'the soft closed hat of the liquid kit, its own row so the house keeps its tight hat' },
   // trance-1 (10-28): the hook's voice, played by the hook table (`src/hook.ts`, `StylePlaces.hook`) and by no list
   { id: 'supersawGrit', since: '2026-10-28', for: 'the hook at the trance corner and the house\'s leak: a struck, gritty supersaw chopping chords (the gallop and the gated chords)' },
+  // trance-drawn (11-04): the smooth supersaw, the trance corner's peak voice, played by its techniques (`src/trance-drawn.ts`) and by no list
+  { id: 'supersawSmooth', since: '2026-11-04', for: 'the peak of a trance-corner track: a held wall of nine drifting saws, the fizz rolled off' },
   { id: 'kickKnock', since: '2026-10-04', for: 'the kick at the deep half-time place, a punch over the bass line rather than the sub under it (round DUB-1)' },
   { id: 'reeseWobble', since: '2026-10-04', for: 'the bass at the deep half-time place, a sine carrying the low end under saws swept on the grid (round DUB-1)' },
   { id: 'reeseSub', since: '2026-10-05', for: 'the line at a fast broken beat, a sine that glides and wobbles on the eighths under a faint swept pair of saws (round DNB-5)' },
   // liquid-space round 1: the warm pianos and electric pianos of the keys lab, the sparse keys part's tones at the
   // fast broken places (`KEYS`, `recipes/keys/draw.json`), each the voice of a tone row
-  { id: 'pianoClose', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: an intimate close soft grand for held chords' },
-  { id: 'pianoConcert', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a warm concert grand to sit far back' },
+  { id: 'pianoClose', since: '2026-10-11', for: 'an intimate close soft grand: the sparse keys at a fast broken beat, and the house piano where the birds stand close and dry (the piano pool)' },
+  { id: 'pianoConcert', since: '2026-10-11', for: 'a warm concert grand to sit far back: the sparse keys at a fast broken beat, and the house piano where the birds stand wide and far (the piano pool)' },
   { id: 'fmEpSoft', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a two-operator electric piano played soft' },
   { id: 'fmEpGlass', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a glassy electric piano with a high tine' },
-  { id: 'pianoFelt', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a felt-damped grand for held chords under a backdrop' },
+  { id: 'pianoFelt', since: '2026-10-11', for: 'a felt-damped grand: the sparse keys at a fast broken beat, and the house piano where the air is dark (the piano pool)' },
   { id: 'keysSuitcase', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a tine electric piano with a stereo tremolo' },
   { id: 'keysTineDark', since: '2026-10-11', for: 'the sparse keys at a fast broken beat: a darker tine electric piano with a soft bark' },
   // liquid-keys-2 (10-29, his word: "all liquid dnb tracks now very similar"): four more of the lab's keyboards the
   // sparse keys draw at lower weights, his to trim
-  { id: 'pianoUpright', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a dark upright, a quick first fall and two strings beating' },
-  { id: 'pianoMute', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: an upright with its practice felt down, a soft thud and short dark notes' },
+  { id: 'pianoUpright', since: '2026-10-29', for: 'a dark upright, a quick first fall and two strings beating: the sparse keys at a fast broken beat, and the house piano where the birds stand close or the bass thin (the piano pool)' },
+  { id: 'pianoMute', since: '2026-10-29', for: 'an upright with its practice felt down, a soft thud and short dark notes: the sparse keys at a fast broken beat, and the house piano where the birds stand close and the air dark (the piano pool)' },
   { id: 'keysReed', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a reed electric piano with an amplifier tremolo' },
-  { id: 'pianoMellow', since: '2026-10-29', for: 'the sparse keys at a fast broken beat: a mellow bright grand, clear and never glassy' },
+  { id: 'pianoMellow', since: '2026-10-29', for: 'a mellow bright grand, clear and never glassy: the sparse keys at a fast broken beat' },
   { id: 'airBed', since: '2026-10-11', for: 'the dark air the fast places lay under their exposed passages, their surface row (liquid-space)' },
   // liquid-ambient (10-11): the weather family the fast places draw one identity of a track (`recipes/ambient/weather.json`)
   { id: 'weatherWind', since: '2026-10-11', for: 'the moving wind the fast places lay in weather spans, its level and centre walked (liquid-ambient)' },
@@ -295,7 +305,29 @@ export const BY_PLACE: ReadonlyArray<{ id: string; since: string; for: string }>
   // ambient-om-field (10-31, PLAN-AMBIENT P3a): the held drone at OM (`recipes/ambient/conversation.json`, the row's `drone`)
   { id: 'tanpura', since: '2026-10-31', for: 'the tanpura of the held drone at OM: a string over a jawari bridge, its buzz blooming after each pluck (ambient-om-field)' },
   { id: 'chantOm', since: '2026-10-31', for: 'the chant of the held drone at OM: a wordless baritone syllable opening on a, rounding to o and closing to a hum, with an overtone mode (ambient-om-field)' },
+  // ambient-field (10-31, PLAN-AMBIENT P3): the bird far back at FIELD, short glides (`recipes/ambient/conversation.json`, the row's `field.chirp`)
+  { id: 'siren', since: '2026-10-31', for: 'the chirp at FIELD: a short glide up or down, far back, in rare bursts (ambient-field)' },
   { id: 'shakerSoft', since: '2026-10-17', for: 'a soft swish of a shaker, not the record\'s hat-bright one (ambient-bells); named by no row since 10-29 (his ear: the woodblock alone fits the bells)' },
+  // top-voices-2 (11-02): the quiet top voices his ear took, played by the top's voices (`src/top-voices.ts`) and by no list
+  { id: 'chk', since: '2026-11-02', for: 'a lighter backbeat: a 4 kHz chk with a 3.6 kHz ping' },
+  { id: 'snap', since: '2026-11-02', for: 'a dry snap near 2.5 kHz, one a bar in a break' },
+  { id: 'splash', since: '2026-11-02', for: 'a short spray of bright noise, 6-11 kHz, about 300 ms' },
+  { id: 'splashLong', since: '2026-11-02', for: 'the splash, about 600 ms' },
+  { id: 'shakeThrow', since: '2026-11-02', for: 'a shaker thrown once, at 7 kHz' },
+  { id: 'puff', since: '2026-11-02', for: 'a soft, slow shake at 5.3 kHz in the gaps between the hats' },
+  { id: 'crashFar', since: '2026-11-02', for: 'a far crash, darker and longer, for the return of the kick' },
+  { id: 'washSoft', since: '2026-11-02', for: 'the splash with a 3 s fall, for the return of the kick' },
+  { id: 'clave', since: '2026-11-02', for: 'a clave at 2.8 kHz' },
+  { id: 'jingleLight', since: '2026-11-02', for: 'a jingle with the skin off, 7.7-12.7 kHz' },
+  { id: 'tickTuned', since: '2026-11-02', for: 'a tuned metal tick near 8 kHz' },
+  { id: 'glint', since: '2026-11-02', for: 'the glint of a triangle near 7 kHz' },
+  { id: 'tickLone', since: '2026-11-02', for: 'a lone resonant tick at 4-5 kHz' },
+  { id: 'ringHigh', since: '2026-11-02', for: 'a far ring of three sines near 7 kHz' },
+  // top-voices-2 (11-02): the air above the hats, played by the top's voices (`src/top-voices.ts`) and by no list: the bed
+  // (T26b), the held hiss at a break's end (T27c; the row's rising shape, T27a, is held for his word), the arcs (T30c)
+  { id: 'airTop', since: '2026-11-02', for: 'an air bed above the hats that comes and goes on the form, ducked on the kick' },
+  { id: 'airRise', since: '2026-11-02', for: 'air above 9 kHz held over a break\'s last bars, cut dead on the downbeat' },
+  { id: 'airArc', since: '2026-11-02', for: 'arcs of resonant noise for a beatless stretch' },
 ].map((e) => Object.freeze(e)));
 
 const AWAITING_IDS = new Set<string>(AWAITING.map((a) => a.id));
@@ -650,8 +682,8 @@ export const liveOf = (list: readonly { v: string; w: number }[]): string[] =>
 // the gate reads a row of this table the way it reads a mined one — `s` is the
 // **snare's**, and `b` is how many notes of bass the break leaves room for.
 //
-// None of them is a transcription. "Amen-shaped" is the shape of that break's
-// kick conversation at sixteenth resolution, not the Amen; the distinction
+// None of them is a transcription. The row named "amen-shaped" is the shape of the
+// classic jungle break's kick conversation at sixteenth resolution, not the break; the distinction
 // matters because the one is convention and the other is somebody's record.
 //
 // **Thinned 09-20, on Eugene's ear and on a count.** The first cut of this
@@ -686,7 +718,7 @@ export const BREAK_MASKS: readonly BreakRow[] = Object.freeze([
   // note of bass: half-time is the row with the most air in it and a pedal is
   // what that air is for.
   Object.freeze({ name: 'half-time', m: 'x.....x.........', s: '........x.......', b: 1, c: 18 }),
-  // Amen-shaped: the kick doubles on the first beat and answers late. A pump.
+  // The jungle break's shape (its id kept): the kick doubles on the first beat and answers late. A pump.
   Object.freeze({ name: 'amen-shaped', m: 'x.x.......x.....', s: '....x.......x...', b: 2, c: 18 }),
   // Funky-shaped: the sixteenth one — a pickup a sixteenth after the downbeat
   // and a late answer before the fourth beat. It is the busiest kick of the

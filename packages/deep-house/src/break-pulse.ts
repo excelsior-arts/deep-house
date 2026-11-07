@@ -35,6 +35,7 @@ import { dbToGain } from '@deep-house/engine/dsp';
 import { Rng } from './rng.ts';
 import { lean } from './lean.ts';
 import { beatLedOf } from './performance.ts';
+import type { TopHolder, TopBreak, TopFormRow } from './top-form.ts';
 
 export type Carrier = 'hats' | 'half-time' | 'pump';
 export const CARRIERS: readonly Carrier[] = ['hats', 'half-time', 'pump'];
@@ -50,7 +51,8 @@ export interface BreakPulseRow {
     db: { light: number; first: number; second: number; last: [number, number]; sixteenth: number } };
   halfTime: { backbeat: number; hatSteps: number[]; hp: { backbeat: number; ghost: number; hats: number; last: number }; db: { backbeat: number; ghost: number; hats: number; last: number } };
   pump: { depthDb: { light: number; first: number; last: number }; attackS: number; minimumBeats: number; back: number; backBeats: number; wholeBeats: number };
-  level: { window: number; target: number; most: number; least: number; hits: Record<string, number>; hit: number; beds: Record<string, number>; bed: number };
+  level: { window: number; target: number; most: number; least: number; hits: Record<string, number>; hit: number; beds: Record<string, number>; bed: number;
+    hold?: { bars: number; least: number; offsetDb: number; into?: string[]; endMost?: number } };
 }
 export const BREAK_PULSE: Readonly<BreakPulseRow> = ROW_FILE as unknown as BreakPulseRow;
 
@@ -72,6 +74,12 @@ export interface PulseBreak {
   hits: number; ridden: number;
   /** what the lift was read from: the main line's hits by voice and the bed by class, as played, dB per window (no loudness per unit) */
   reads?: { hits: Record<string, number>; beds: Record<string, number> };
+  /**
+   * (round break-hats) the stretch's end as the plan reads it once lifted: the carrier's hats over the bed in its last
+   * bars [`endFrom`, `until`), dB; and where the planner held them to the groove they land on (`set-plan.ts` `breakHats`):
+   * the groove's hats against its mix (`grooveDb`, its first bars) and the cut that took (`heldDb`, nought or less)
+   */
+  endFrom?: number; endGapDb?: number | null; grooveDb?: number | null; heldDb?: number; endHatsDb?: number | null;
 }
 export interface BreakPulsePlan {
   reading: number;
@@ -105,6 +113,8 @@ const isDrum = (e: PulseEvent) => { const b = VOICE_BUS[e.voice]; return b === '
 const rolesOf = (e: PulseEvent): readonly string[] => BY_NAME[e.voice]?.roles ?? [];
 const hasRole = (e: PulseEvent, r: string) => rolesOf(e).includes(r);
 const built = (e: PulseEvent) => typeof e.by === 'string' && /build/.test(e.by);
+/** a hat of the kit (round break-hats: what the break's end is read and held by) */
+const isHat = (e: PulseEvent) => /^hat/.test(e.voice) || e.voice === 'ride';
 const power = (db: number) => Math.pow(10, db / 10);
 const half = (x: number) => Math.round(2 * x) / 2;
 
@@ -244,6 +254,7 @@ export function breakPulse(I: BreakPulseInput, R: Readonly<BreakPulseRow> = BREA
     const tops = carrier === 'pump' ? [] : events.filter((e) => isDrum(e) && !built(e) && (hasRole(e, 'offbeat') || hasRole(e, 'sixteenth'))
       && barOf(e) >= r.from && barOf(e) < r.until);
     let liftDb = 0, gapDb: number | null = null, ridden = 0;
+    let endFrom: number | undefined, endGapDb: number | null | undefined;
     const hitsBy: Record<string, number> = {}, bedBy: Record<string, number> = {};
     if (carrier === 'hats' && H) {
       const T = R.hats;
@@ -293,12 +304,30 @@ export function breakPulse(I: BreakPulseInput, R: Readonly<BreakPulseRow> = BREA
         liftDb = half(Math.max(R.level.least, Math.min(R.level.most, R.level.target - gapDb)));
       }
       if (liftDb) for (const e of mine) e.p = { ...e.p, gain: +(Number(e.p.gain) * dbToGain(liftDb)).toFixed(6) };
+      // **The stretch's end, read** (round break-hats): the carrier's hats, every one of them as lifted, over the bed in
+      // the stretch's last `hold.bars`, by the same units: what the planner holds to the groove the break lands on
+      const HOLD = R.level.hold;
+      if (HOLD) {
+        const a = Math.max(r.from, r.until - HOLD.bars), span2 = (r.until - a) * bs;
+        let h = 0, b2 = 0;
+        for (const e of mine) if (isHat(e) && barOf(e) >= a) h += power(I.levelOf(e) + unit(R.level.hits, e.voice, R.level.hit)) * W / span2;
+        const beats2 = (r.until - a) * 4;
+        for (let k = a * 4; k < r.until * 4; k++) {
+          const t = k * beat;
+          for (const e of bed) {
+            const d = Number(e.p.dur) || 0;
+            const w = d > W ? Math.max(0, Math.min(e.t + d, t + W) - Math.max(e.t, t)) / W : e.t >= t - 0.02 && e.t < t + W ? 1 : 0;
+            if (w > 0) b2 += w * power(I.levelOf(e) + unit(R.level.beds, I.classOf(e), R.level.bed)) / beats2;
+          }
+        }
+        endFrom = a; endGapDb = h > 0 && b2 > 0 ? +(10 * Math.log10(h / b2)).toFixed(2) : null;
+      }
       for (const e of tops) dropped.add(e);
       added.push(...mine);
     }
     const dbOf = (x: Record<string, number>) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, +(10 * Math.log10(v)).toFixed(2)]));
     out.push({ from: r.from, to: r.to, until: r.until, band, carrier, liftDb, gapDb, hits: mine.length, ridden,
-      ...(gapDb != null ? { reads: { hits: dbOf(hitsBy), beds: dbOf(bedBy) } } : {}) });
+      ...(gapDb != null ? { reads: { hits: dbOf(hitsBy), beds: dbOf(bedBy) } } : {}), ...(endFrom != null ? { endFrom, endGapDb } : {}) });
   }
   if (dropped.size) for (let i = events.length - 1; i >= 0; i--) if (dropped.has(events[i])) events.splice(i, 1);
   if (added.length) { events.push(...added); events.sort((a, b) => a.t - b.t); }
@@ -352,4 +381,109 @@ function pump(I: BreakPulseInput, R: Readonly<BreakPulseRow>, r: { from: number;
     n++;
   }
   return n;
+}
+
+// ----- the deep break's holder (round top-form, T02 and T10) -----------------------------------------------------------
+//
+// **A deep break keeps its top, or chooses not to** (round top-form; the top-end gap of 11-01: 14% of our featured deep
+// bars have nothing above 6 kHz against the sources' 3%, and the breakdown's first phrase, where `hatSections` rests the
+// hats, is most of them). Below `bands.lift` the rule above leaves a break beatless, as his word allows a deep place to
+// be; the top form (`src/top-form.ts`) draws once a theme what holds a breakdown's first phrase instead, and this lays
+// it, every hit a copy of one the groove plays (the groove the break builds into, else the one before it):
+//
+//   floor     the groove's hat as a whisper on two offbeats a bar, nine dB down (T02);
+//   backbeat  the groove's backbeat alone on two and four, six dB down, high-passed, into the theme's reverb (T10);
+//   ticks     two or three of the groove's hats a bar on the off steps, falling, the stretch's last bar empty (T10);
+//   none      nothing: the break stays beatless.
+//
+// Each comes in after the break's first beat (the line's own sweep or impact has it) and leaves the stretch's last beat
+// empty, so it has a way in and a way out. Under the breakdown's slope (the macro's gentle corner, T02) it sits in the
+// high mids and the lower air, never bright.
+
+
+export interface DeepPulseInput {
+  seed: string | number;
+  events: PulseEvent[];
+  sections: ReadonlyArray<{ kind: string; startBar: number; bars: number }>;
+  barSeconds: number;
+  holder: TopHolder;
+  stretches: readonly TopBreak[];
+  row: Pick<TopFormRow, 'floor' | 'pulse'>;
+  /** a backbeat stroke struck as a ghost */
+  ghost: (e: PulseEvent) => boolean;
+  /** a hit the holder may take its sound from (round hat-ceiling: T15's floor kept out where its row says so); absent, any */
+  source?: (e: PulseEvent) => boolean;
+}
+export interface DeepPulsePlan { holder: TopHolder; breaks: Array<{ from: number; until: number; hits: number }>; summary: string }
+
+/** The deep break's holder, laid into `events`; null where nothing was laid (`none`, no stretch, nothing to copy). */
+export function deepPulse(I: DeepPulseInput): DeepPulsePlan | null {
+  if (I.holder === 'none' || !I.stretches.length) return null;
+  const { events, sections, barSeconds: bs } = I;
+  const st = bs / 16;
+  const barOf = (e: PulseEvent) => (e.bar != null ? e.bar : Math.floor(e.t / bs + EPS));
+  const stepOf = (e: PulseEvent) => (e.step != null ? e.step : Math.round((e.t - barOf(e) * bs) / st));
+  const groove = sections.filter((s) => s.kind === 'main' || s.kind === 'drop');
+  if (!groove.length) return null;
+  const sourceOf = (r: TopBreak) => groove.find((s) => s.startBar >= r.until) ?? [...groove].reverse().find((s) => s.startBar + s.bars <= r.from) ?? groove[0];
+  // the source's hits of a role by step over its first four bars (each step's loudest), its commonest voice's
+  const templates = (src: { startBar: number; bars: number }, pick: (e: PulseEvent) => boolean) => {
+    const end = src.startBar + Math.min(4, src.bars), count = new Map<string, number>(), by = new Map<string, Map<number, PulseEvent>>();
+    for (const e of events) {
+      const b = barOf(e);
+      if (b < src.startBar || b >= end || !isDrum(e) || built(e) || e.part || !pick(e) || (I.source && !I.source(e))) continue;
+      const m = by.get(e.voice) ?? by.set(e.voice, new Map()).get(e.voice)!;
+      const was = m.get(stepOf(e));
+      if (!was || Number(e.p.vel ?? 1) > Number(was.p.vel ?? 1)) m.set(stepOf(e), e);
+      count.set(e.voice, (count.get(e.voice) ?? 0) + 1);
+    }
+    const voice = [...count].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
+    return voice ? by.get(voice)! : null;
+  };
+  const nearest = (T: Map<number, PulseEvent>, step: number): PulseEvent | null => {
+    if (T.has(step)) return T.get(step)!;
+    const kind = (s: number) => (s % 2 ? 2 : s % 4 ? 1 : 0);
+    const steps = [...T.keys()].sort((a, b) => (kind(a) === kind(step) ? 0 : 1) - (kind(b) === kind(step) ? 0 : 1) || Math.abs(a - step) - Math.abs(b - step) || a - b);
+    return steps.length ? T.get(steps[0])! : null;
+  };
+  const F = I.row.floor, P = I.row.pulse;
+  const added: PulseEvent[] = [];
+  const out: DeepPulsePlan['breaks'] = [];
+  for (const r of I.stretches) {
+    const src = sourceOf(r);
+    const H = templates(src, (e) => hasRole(e, 'offbeat') && !/open/i.test(e.voice));
+    const B = templates(src, (e) => hasRole(e, 'backbeat') && !I.ghost(e));
+    const mine: PulseEvent[] = [];
+    const lay = (tpl: PulseEvent, bar: number, step: number, db: number, extra: Record<string, unknown>, what: string) => {
+      // the way in (after the break's first beat) and the way out (the stretch's last beat empty)
+      if ((bar === r.from && step < 4) || (bar === r.until - 1 && step >= 12)) return;
+      const { bar: _b, step: _s, t: _t, p: _p, by: _by, label: _l, ...rest } = tpl;
+      const p = { ...tpl.p, gain: +((Number(tpl.p.gain ?? 1)) * dbToGain(db)).toFixed(6), ...extra };
+      mine.push({ ...rest, t: +(bar * bs + step * st).toFixed(6), bar, step, p, by: `top-form/${I.holder}`, label: `the break's ${what}` });
+    };
+    if (I.holder === 'floor' && H) {
+      for (let b = r.from; b < r.until; b++) for (const step of F.hats.steps) { const tpl = nearest(H, step); if (tpl) lay(tpl, b, step, F.hats.db, {}, 'floor'); }
+    } else if (I.holder === 'backbeat' && B) {
+      for (let b = r.from; b < r.until; b++) for (const step of P.backbeat.steps) {
+        const tpl = nearest(B, step);
+        if (tpl) lay(tpl, b, step, P.backbeat.db, { hpPath: P.backbeat.hp, reverb: P.backbeat.reverb }, 'backbeat alone');
+      }
+    } else if (I.holder === 'carry' && H) {
+      // T37 (round top-lanes pass 3): the groove's closed hat walks on through the phrase, on the offbeats of two and four
+      for (let b = r.from; b < r.until; b++) for (const step of F.carry.steps) { const tpl = nearest(H, step); if (tpl) lay(tpl, b, step, F.carry.db, {}, 'hats carried'); }
+    } else if (I.holder === 'ticks' && H) {
+      // the pattern falls bar by bar; the stretch's last bar is empty before the hats come back
+      for (let b = r.from; b < r.until - 1; b++) for (const step of P.ticks.bars[(b - r.from) % P.ticks.bars.length]) {
+        const tpl = nearest(H, step);
+        if (tpl) lay(tpl, b, step, P.ticks.db, {}, 'ticks');
+      }
+    }
+    added.push(...mine);
+    out.push({ from: r.from, until: r.until, hits: mine.length });
+  }
+  if (!added.length) return null;
+  events.push(...added);
+  events.sort((a, b) => a.t - b.t);
+  const words: Record<TopHolder, string> = { floor: 'the hat as a whisper', backbeat: 'the backbeat alone', ticks: 'a few ticks', none: 'nothing', carry: 'the hats carried' };
+  return { holder: I.holder, breaks: out, summary: `the deep break's first phrase held by ${words[I.holder]}` };
 }

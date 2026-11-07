@@ -206,6 +206,28 @@ function recordingGraph(beat, sink) {
       wet: { gain: recorder(`sweep.${s}.wet.gain`, sink) },
       dry: { gain: recorder(`sweep.${s}.dry.gain`, sink) },
     }])),
+    // The drums' top lanes' bus (round tops-bus): its low-pass stage, its shelf and its gate.
+    tops: {
+      lp: {
+        cutoffHz: recorder('tops.lp.cutoffHz', sink),
+        wet: { gain: recorder('tops.lp.wet.gain', sink) },
+        dry: { gain: recorder('tops.lp.dry.gain', sink) },
+      },
+      shelf: { gain: recorder('tops.shelf.gain', sink) },
+      gate: { gain: recorder('tops.gate.gain', sink) },
+      // (round tops-bus-2) the width stage's side shelves and gains
+      width: {
+        mid: { gain: recorder('tops.width.mid.gain', sink) },
+        side: { gain: recorder('tops.width.side.gain', sink) },
+        low: { gain: recorder('tops.width.low.gain', sink) },
+        high: { gain: recorder('tops.width.high.gain', sink) },
+      },
+    },
+    // The width stage's side gain and breathing depth, by the form (round stereo-motion).
+    widthForm: { gain: recorder('widthForm.gain', sink) },
+    widthDepth: { gain: recorder('widthDepth.gain', sink) },
+    // Every return's side scale, the form's line inverted (stereo-motion joined to stereo-room's returns).
+    returnForm: { offset: recorder('returnForm.offset', sink) },
   };
 }
 

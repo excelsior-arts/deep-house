@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { upTo } from './sweep.ts';
 import test from 'node:test';
 import { PART_LIBRARY, LIBRARY, PATTERN_LIBRARY, TRACK_LIBRARY, CANDIDATE_LIBRARY, STUDY_LIBRARY, ENSEMBLE_LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY, PINNABLE, recipeById,
   TREATMENT_LIBRARY, TREATMENT_CANDIDATES, SECTION_LIBRARY, SEAM_CANDIDATES } from '../src/recipes.ts';
@@ -192,7 +193,13 @@ test('a hand row drawn by the catalogue and the same row pinned are one performa
     const t = planTheme(seed, 0, opts), source = trace(t).recipes?.[0];
     if (!source) continue;
     const pinned = planTheme(seed, 0, { ...opts, recipe: recipeById(source.id), accompaniment: 'auto' });
-    const own = x => x.events.filter(e => e.part === source.id);
+    // (the part's own: since the top-voices-2 integration (11-02) the stage's centring of the kit's top (rule 1,
+    // `stereo-stage.ts`, eight bars a layer at a time) reads the top's quiet voices on the shaker layer too, and the two
+    // themes may draw them apart (their harmony differs: the tuned tick reads the keys); where an eight-bar block's top
+    // voices differ, the part's hits are compared without their pan, which that centring moved)
+    const topIn = (x, blk) => JSON.stringify(x.events.filter(e => e.layer === 'shaker' && String(e.by ?? '').startsWith('top-voices/') && Math.floor(e.bar / 8) === blk).map(e => [e.t, e.voice, e.p.pan]));
+    const alike = new Set(Array.from({ length: 64 }, (_, b) => b).filter(b => topIn(t, b) === topIn(pinned, b)));
+    const own = x => x.events.filter(e => e.part === source.id).map(e => alike.has(Math.floor(e.bar / 8)) ? e : { ...e, p: { ...e.p, pan: undefined } });
     assert.ok(own(t).length > 0);
     const left = !own(t).some(e => family(e.voice) === 'drum') && own(pinned).some(e => family(e.voice) === 'drum');
     if (left) { assert.ok(withdrawsHands(t), `${seed}: the hand drum left where the rule does not take it`); shakerOnly++; }
@@ -359,7 +366,8 @@ test('every genre row plays at its audit link and under its key on thirty seeds,
       assert.ok(cell.steps.length > 0);
     }
     const spell = parseSpell(p.spell);
-    for (let seed = 1; seed <= 30; seed++) for (const theme of [0, 1])
+    // (thirty seeds at night, every third at the merge gate: `tools/sweep.ts`)
+    for (const seed of upTo(30)) for (const theme of [0, 1])
       assert.doesNotThrow(() => quietly(() => planTheme(seed, theme, { strategy: 'house-v2', spell, recipe: r })), `${p.id} refuses ${seed}/${theme + 1} under its key`);
   }
 });
@@ -367,6 +375,8 @@ test('every genre row plays at its audit link and under its key on thirty seeds,
 // --- the small things as rows (round T1, PLAN-TREATMENTS) ------------------
 
 const DNB = parseSpell('em:0.95,sp:0.85,ze:0.60,ro:0.75,ve:0.60,ti:0.45');
+/** The deep half-time place's birds (`DEEP_HALF` in `src/styles/deep-house-places.ts`, the dub key's audit spell). */
+const HALF = parseSpell('em:0.92,sp:0.10,ti:0.90,ze:0.25,ro:0.85,ve:0.15,lo:0.80');
 
 test('the treatment rows: the eleven figures the code played in the draw\'s order, the six admitted after them at a half, the mains pass\'s nine boxed to the house, the candidates at nought, each pinnable and named on the readout', () => {
   const vocab = vocabularyOf(style, registry);
@@ -382,7 +392,9 @@ test('the treatment rows: the eleven figures the code played in the draw\'s orde
     if (r.id.startsWith('mains/')) assert.ok(r.tempo && r.tempo.bpm[1] < 140 && r.birds.ember && Object.keys(r.birds).length === 1, `${r.id}: a mains row is boxed to the house`);
     else assert.deepEqual(r.birds, {}, `${r.id}: a figure is not a place in bird space`);
     assert.ok(!JSON.stringify(r).includes('http'));
-    assert.ok(typeof r.provenance.moved === 'string' && /T[12]|M1|DNB-\d|liquid-space/.test(r.provenance.moved), `${r.id}: provenance says when`);
+    // (round dark-fronts, merged 11-04, added the deep half-time place's seven figures, `recipes/treatments/half/`: their
+    // provenance names the round by its name, so the rounds that may move a figure name it too; restated 11-05)
+    assert.ok(typeof r.provenance.moved === 'string' && /T[12]|M1|DNB-\d|liquid-space|dark-fronts/.test(r.provenance.moved), `${r.id}: provenance says when`);
   }
   // The library: the kinds the mechanism plays, at the weights the code had, in the order the code listed them (the draw's order).
   assert.deepEqual(TREATMENT_LIBRARY.map(r => [r.applies, r.weight]), [
@@ -394,7 +406,10 @@ test('the treatment rows: the eleven figures the code played in the draw\'s orde
     ['switch-up', 1], ['switch-up', 0.5], ['switch-up', 1], ['switch-up', 1], ['switch-up', 0.5], ['turnaround', 1],
     ['drop-out', 1], ['drop-out', 1], ['drop-out', 1],
     // ...and the hats' own: three variations over a phrase's second half, a bar of rest before a line.
-    ['variation', 1], ['variation', 1], ['variation', 1], ['drop-out', 1]]);
+    ['variation', 1], ['variation', 1], ['variation', 1], ['drop-out', 1],
+    // ...and the deep half-time place's seven (round dark-fronts, merged 11-04), after them: two turnarounds, three
+    // switch-ups for its kit, two variations, boxed to its tempo (restated 11-05).
+    ['turnaround', 2], ['turnaround', 2], ['switch-up', 2], ['switch-up', 1], ['switch-up', 1], ['variation', 1], ['variation', 1]]);
   for (const r of TREATMENT_LIBRARY.filter(r => r.weight === 0.5 && !r.id.startsWith('mains/'))) assert.ok(/^admitted 2026-10-02/.test(r.provenance.admitted), `${r.id}: an admitted row says when`);
   for (const r of TREATMENT_LIBRARY) assert.ok((PLAYED_KINDS as readonly string[]).includes(r.applies!), `${r.id}: a kind nothing plays`);
   // The candidates: nought and mined, so no draw reaches one; a lead-in or a seam refuses a pin in the plan's words.
@@ -405,25 +420,34 @@ test('the treatment rows: the eleven figures the code played in the draw\'s orde
   for (const r of TREATMENT_CANDIDATES.filter(r => !(PLAYED_KINDS as readonly string[]).includes(r.applies!))) assert.throws(() => recipeRequest(r), /not played yet/);
   assert.throws(() => recipeRequest({ ...TREATMENT_LIBRARY[0], figure: undefined }), /needs a figure/);
   // A playable row pinned under the fast broken key is heard on some bar of its kind's rule, and the readout names the bar by the row's name;
-  // a mains row (round M1) at the house, where its kit and its box are.
+  // a mains row (round M1) at the house, where its kit and its box are; a half row (round dark-fronts, merged 11-04:
+  // written for the deep half-time place's kit and boxed to its tempo; at the fast broken key the double time and the
+  // shaker's rest are heard on none of five themes) at that place, on three of its themes where its kit lays each
+  // lane a half row thins (the shaker the rest rests plays in a main on five of its first forty themes, 19 the first)
+  // (restated 11-05).
   const playable = [...TREATMENT_LIBRARY, ...TREATMENT_CANDIDATES.filter(r => (PLAYED_KINDS as readonly string[]).includes(r.applies!))];
   for (const r of playable) {
     let heard = 0;
-    const mains = r.id.startsWith('mains/');
-    for (const [seed, n] of mains ? [[1, 0], [2, 2], [3, 1]] : [[1, 0], [7, 0], [5555, 0]]) {
-      const t = quietly(() => planTheme(seed, n, mains ? { ...opts, recipe: r } : { strategy: 'house-v2', spell: DNB, recipe: r }));
+    const mains = r.id.startsWith('mains/'), half = r.id.startsWith('half/');
+    for (const [seed, n] of mains ? [[1, 0], [2, 2], [3, 1]] : half ? [[7, 0], [5555, 0], [19, 0]] : [[1, 0], [7, 0], [5555, 0]]) {
+      const t = quietly(() => planTheme(seed, n, mains ? { ...opts, recipe: r } : { strategy: 'house-v2', spell: half ? HALF : DNB, recipe: r }));
       const named = t.timeline.filter(row => row.sub === r.name);
       heard += named.length;
       assert.ok(t.timeline.every(row => !row.sub || row.sub === r.name), `${r.id}: another small thing played beside the pin`);
     }
-    assert.ok(heard > 0, `${r.id} was not heard on three themes at ${mains ? 'the house' : 'the fast broken key'}`);
+    assert.ok(heard > 0, `${r.id} was not heard on three themes at ${mains ? 'the house' : half ? 'the deep half-time place' : 'the fast broken key'}`);
   }
   // The house, unpinned, draws its share — since the mains pass every kind, the
   // switch-ups among the rows written for its four-floor — and names it.
   const names = new Set<string>();
   for (let seed = 1; seed <= 12; seed++) for (const row of quietly(() => planTheme(seed, 0, opts)).timeline) if (row.sub) names.add(row.sub);
   const house = TREATMENT_LIBRARY.filter(r => r.applies !== 'switch-up' || r.place?.kit === 'four').map(r => r.name);
-  assert.ok([...names].every(n => house.includes(n)), `the house drew ${[...names]}`);
+  // Since round top-form the house's top lanes also carry the top form's own moves, planned once a track beside
+  // the library's small things and named on the same rows (`src/top-form.ts`, its `add` calls): not library rows.
+  const topForm = new Set(['a breather', 'the open hat marks the phrase', 'the eighth-bar answer', 'the hats lead the way out',
+    'ghost sixteenths under the hat', 'the sixteenths step out', 'the sixteenths step in', 'the top waits a phrase',
+    'the hats grow: a tick on the beat', 'the hats grow: the pickups']);
+  assert.ok([...names].every(n => house.includes(n) || topForm.has(n)), `the house drew ${[...names].filter(n => !house.includes(n) && !topForm.has(n))}`);
   assert.ok([...names].some(n => TREATMENT_LIBRARY.some(r => r.id.startsWith('mains/') && r.name === n)), 'the house drew none of its own mains rows');
   assert.ok(names.size >= 2);
 });

@@ -241,43 +241,43 @@ test('the sea is one line of the place: taken out, WAVES plays the lanes it held
  * Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did.
  */
 const PROTECTED: Record<string, string> = {
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'db003cff5f51b938',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': '870b897800990792', // piano-tone: the new piano
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': '786f0f4be12e5a7f',
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '61c82458b1ec8d37',
-  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '66b5ce9c64996692',
-  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '11f20507cbc43405',
-  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c73795ad1370643c', // piano-tone: the new piano
-  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b3b1b073d28fdbda',
-  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'b021d93ad012095c',
-  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '8e3e80c9c4485fdf',
-  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '5f6734f79119cfbc', // piano-tone: the new piano
-  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'ba5cf2c4acb96e90',
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '401d3474e265e505' /* inside the bells' box, the zone's */,
-  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '3439642f654051da' /* inside the bells' box, the zone's */,
-  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '55ccae884e71dc58' /* inside the bells' box, the zone's */,
-  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9e8fb2b8e36b2837' /* inside the bells' box, the zone's */,
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.60,sp:0.55,lo:0.90': '7dfad6250e27e80c' /* inside the bells' box, the zone's */, // bells-birds: Veil 0.60 lengthens BELLS's rests
-  'seed=2&v=2&spell=em:0.05,ti:0.85,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '75612b5fbfebfcea' /* inside the bells' box, the zone's */, // bells-birds: Tide 0.85 BELLS's send
-  'seed=1&v=2&spell=em:0.08,ti:0.90,ze:0.35,ro:0.55,gl:0.45,ve:0.15,sp:0.10,lo:0.90': '876878fe5147cd77',
-  'seed=1&v=2&spell=em:0.05,ti:0.95,ze:0.10,ro:0.30,gl:0.10,ve:0.10,sp:0.00,lo:0.95': 'f36e7098936370cd',
-  'seed=1&v=2&spell=em:0.05,ti:0.90,ze:0.30,ro:1.00,gl:0.30,ve:0.20,sp:0.00,lo:1.00': 'a7c6207a5a155d6b',
-  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.50,ro:0.50,gl:0.50,ve:0.00,sp:0.00,lo:1.00': '646b47bd6a6480f6',
-  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '0973cb02ca9455cb',
-  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': '30edfa506b765d33' /* piano-tone: the new piano; outside the box: the tables less the zone's */, // bells-birds: BELLS's birds at their ends (Root's light bells, Veil and Loom's floor on the rests)
-  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': '494734ea6685bf6b',
-  'seed=10&v=2': 'bf45689d5799b08a',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'a1405abd83f2d337',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=2': '71bd215abde45fb0', // piano-tone: the new piano
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=3': 'b0dbf91851661baa',
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=4': '41898ca47d5b4577',
+  'seed=1&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'bc0839a2b6313716',
+  'seed=2&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'cf9d138fd1b6be94',
+  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '6183c1ba3010f17d', // piano-tone: the new piano
+  'seed=4&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'eb15ac1701f9e8a2',
+  'seed=5&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'f62469869e1874aa',
+  'seed=6&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '22b67e17f6e04101',
+  'seed=7&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c9ec559cdb84693b', // piano-tone: the new piano
+  'seed=8&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '7ebe6573a8e4f2f6',
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '5bb825234d7f738b' /* inside the bells' box, the zone's */,
+  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'aae60c1e5cf18ec7' /* inside the bells' box, the zone's */,
+  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'a9186afac1841a30' /* inside the bells' box, the zone's */,
+  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'b006d9638ccd0b44' /* inside the bells' box, the zone's */,
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.60,sp:0.55,lo:0.90': '96432102c9134a40' /* inside the bells' box, the zone's */, // bells-birds: Veil 0.60 lengthens BELLS's rests
+  'seed=2&v=2&spell=em:0.05,ti:0.85,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'c6bf47e80d134718' /* inside the bells' box, the zone's */, // bells-birds: Tide 0.85 BELLS's send
+  'seed=1&v=2&spell=em:0.08,ti:0.90,ze:0.35,ro:0.55,gl:0.45,ve:0.15,sp:0.10,lo:0.90': 'a4d42ac6ef5e6455',
+  'seed=1&v=2&spell=em:0.05,ti:0.95,ze:0.10,ro:0.30,gl:0.10,ve:0.10,sp:0.00,lo:0.95': '246e7ca26a0b4a76',
+  'seed=1&v=2&spell=em:0.05,ti:0.90,ze:0.30,ro:1.00,gl:0.30,ve:0.20,sp:0.00,lo:1.00': 'f53e5087388e60dc',
+  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.50,ro:0.50,gl:0.50,ve:0.00,sp:0.00,lo:1.00': 'dd24215bd6b99b05',
+  'seed=1&v=2&spell=em:0.00,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': 'eb336e35a7a195c5',
+  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': 'ed553750928e435a' /* piano-tone: the new piano; outside the box: the tables less the zone's */, // bells-birds: BELLS's birds at their ends (Root's light bells, Veil and Loom's floor on the rests)
+  'seed=1&v=2&spell=ti:1.00,ze:0.00,ro:1.00,gl:1.00,ve:1.00,sp:0.00,lo:1.00': '246339ed3041353d',
+  'seed=10&v=2': '4752e9907fcbd078',
   // trance-1: the Ember pull reads the high four, whose every theme now plays the hook; trance-2: the hook one of his five
   // chopped-chord rows, in runs (source 10's arc) on a loop of two or three chords, and the high four's breakdown its own
   // again (hats in)
-  'seed=1&v=2&spell=em:0.95': '31ef91f8ed0e8e11',
-  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': 'ffc24756d507b3ce',
-  'seed=1&v=2&spell=em:0.14,ti:0.85,gl:0.00,ve:0.34,sp:0.00,lo:0.81': '356b85858cb5ff31',
+  'seed=1&v=2&spell=em:0.95': 'fec2acd29f7132c7',
+  'seed=1&v=2&spell=em:0.30,ti:0.70,ro:0.55': '7b6594b1d2d050cb',
+  'seed=1&v=2&spell=em:0.14,ti:0.85,gl:0.00,ve:0.34,sp:0.00,lo:0.81': '8bce8d29f0c4f24b',
   // Ember up from WAVES, where the kit comes on and WAVES is still the ambient voices' nearest (the review of 10-18, its
   // first finding): the sea needs no drums (`no-kit`), so these play `local`'s programs (3a90d7b1), the kit and the lanes
-  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'b1d061f599e30fd3', // keys-room and keys-balance: the breakdown's keys, its copied pad gone, single tones under the front drone
-  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': 'ad71439fc4fa6398',
-  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '47afb467c1ce0c30',
+  'seed=3&v=2&spell=em:0.20,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '31ded407cd45abc5', // keys-room and keys-balance: the breakdown's keys, its copied pad gone, single tones under the front drone
+  'seed=1&v=2&spell=em:0.25,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '9948cab0cfb982dd',
+  'seed=1&v=2&spell=em:0.35,ti:0.85,ze:0.75,ro:0.55,gl:0.50,ve:0.60,sp:0.10,lo:0.95': '2953a5de3fc56344',
 };
 
 test('where the weather\'s row is "none" the admission moves nothing: the protected spells and the ring around WAVES lay no sea and play the programs they played', () => {
@@ -340,12 +340,12 @@ test('where WAVES is nearest in the ambient voices\' table and BELLS in the conv
   // else: the program less its level is rc-ambient's, d6439e956df30a76, the whole 190a66c862d450f6 before; re-pinned in
   // round length-after to `local` fb344631, where round length-2's lengths moved the three, its trim unmoved, his word
   // 10-28: "The length around is great ... so we can merge it now")
-  assert.equal(levelApart(plan), '851eb6288a483bc2', 'its program moved');
+  assert.equal(levelApart(plan), 'e37354d1ba1f4e84', 'its program moved');
   assert.equal(plan.trimDb, 0.703, 'its trim is not the place\'s less the sea\'s lean');
-  assert.equal(themeHash(plan).slice(0, 16), '5e57aa2f70a77416', 'its program moved');
+  assert.equal(themeHash(plan).slice(0, 16), 'a5994386d57411ea', 'its program moved');
   const inside = quiet(() => played(link.replace('ve:0.67', 've:0.60').replace('sp:0.36', 'sp:0.45'))).plan;
   assert.ok(inside.conversation && !inside.sea, 'inside the box: not the conversation alone');
-  assert.equal(themeHash(inside).slice(0, 16), 'b315d1a160c2b60e', 'its program moved');
+  assert.equal(themeHash(inside).slice(0, 16), '5e21c890786ea0a9', 'its program moved');
 });
 
 /**

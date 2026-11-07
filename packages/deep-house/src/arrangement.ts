@@ -57,6 +57,14 @@ export interface Section {
    * the record.
    */
   roll?: number;
+  /** a half-break taken out of a still main (round long-main, `src/long-main.ts`): its texture is the half-break's own */
+  half?: true;
+  /**
+   * **The second drop's line** (round top-form, T04): where the top form holds the top lanes back after a breakdown
+   * (a thin hat, the sixteenths waiting), the bar they open on, a phrase into this section. The tops bus reads it for
+   * its filter's half of the move. Absent where nothing waits.
+   */
+  topOpens?: number;
 }
 
 /** The shape of the whole track: its sections, and how long it came out. */

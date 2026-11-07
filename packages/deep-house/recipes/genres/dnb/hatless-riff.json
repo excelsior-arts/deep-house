@@ -242,7 +242,7 @@
     "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
     "cut": "8:2881+67",
     "bars": "0\u201347",
-    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "reading": "packages/mining/tools/readings.py; the round's tables in round dnb-1 and the dnb-1-segments analysis",
     "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
     "kind": "bass riff",
     "pattern": "no hats at all: kicks and snares filling the sixteenths between them, and a bass riff of short notes jumping from the root to the fifth above",
@@ -252,7 +252,7 @@
       "reaches": false,
       "eventRateZ": -1.8,
       "syncopationZ": -1.4,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (round dnb-1 \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
     }
   }
 }

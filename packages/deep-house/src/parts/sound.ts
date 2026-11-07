@@ -24,7 +24,7 @@ export interface SoundCharacters {
       /** where the phrase also plays single notes: a chord's tones together this many dB over its typical single note */
       chordOverDb?: number } }>;
   presence: { backgroundDb: number };
-  ambience: Record<'intimate' | 'spacious' | 'distant' | 'echo', { room: number; reverb: number; delay: number; background?: number; echo?: number }>;
+  ambience: Record<'intimate' | 'spacious' | 'distant' | 'echo' | 'tidal', { room: number; reverb: number; delay: number; background?: number; echo?: number }>;
   tone: Record<string, Record<string, { requires: string[]; params: NoteParams }>>;
   pulse: { register: [number, number]; articulation: NoteParams; space: Record<'distant' | 'immersed', NoteParams> };
   /**

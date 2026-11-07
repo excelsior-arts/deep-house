@@ -116,8 +116,13 @@ export interface HarmonicEdgeStage {
   driveNow(): number;
 }
 
-/** Build the stage. The settings are admitted already (`admitGrain`). */
-export function buildHarmonicEdge(ctx: BaseAudioContext, p: HarmonicEdge): HarmonicEdgeStage {
+/**
+ * Build the stage. The settings are admitted already (`admitGrain`). `share` (round ep-noise) is a fixed gain on the
+ * copy after its blend, for a door whose notes take a share of the edge (`cleanOf` in master.ts): the blend stays the
+ * room's number, so a desk move written on every edge's blend moves this one the same, and the share holds under it.
+ * At one nothing is built for it.
+ */
+export function buildHarmonicEdge(ctx: BaseAudioContext, p: HarmonicEdge, share = 1): HarmonicEdgeStage {
   const input = ctx.createGain();
   const output = ctx.createGain();
   input.connect(output);
@@ -157,14 +162,22 @@ export function buildHarmonicEdge(ctx: BaseAudioContext, p: HarmonicEdge): Harmo
   floor2.connect(tone1);
   tone1.connect(tone2);
   tone2.connect(blend);
-  blend.connect(output);
+  let shared: GainNode | null = null;
+  if (share !== 1) {
+    shared = ctx.createGain();
+    shared.gain.value = Math.max(0, share);
+    blend.connect(shared);
+    shared.connect(output);
+  } else {
+    blend.connect(output);
+  }
   // The drive's two gains get their lines on the first move and not before,
   // so a stage nobody moves is the stage it always was, node for node.
   let lines: { drive: Line; makeup: Line } | null = null;
   let driveNow = p.drive;
   return {
     input, output, blend,
-    nodes: [input, output, pre, drive, shaper, makeup, floor1, floor2, tone1, tone2, blend],
+    nodes: [input, output, pre, drive, shaper, makeup, floor1, floor2, tone1, tone2, blend, ...(shared ? [shared] : [])],
     params: {
       blend: [blend.gain], preHz: [pre.frequency],
       floorHz: [floor1.frequency, floor2.frequency], toneHz: [tone1.frequency, tone2.frequency],

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "kind": "arrangement",
+  "round": "long-main",
+  "revision": 1,
+  "note": "A break must breathe, not blast (his ear 11-04 on house seed 190's first break: 'after fairly spacious acoustic we blast with Drone pad strings and it doesn't even feel like break'). The break's level against the groove it interrupts, read off the plan the way the hat floor reads the highs (the tops table's K-weighted energy of every note, at its gain, its lane's level and the mix's lines, the kick's duck where it plays): the break's loudest block against the groove's last bars. Sketches for his pick (`src/break-bed.ts`): keep (the break keeps the groove's own voice, thinned: darker, wetter, softer), grow (a new bed may enter, under the groove and darker, growing over the break), mine (the groove's voice carries the break's first half, the new bed grows under its second into the drop); each under the ceiling: a break never comes up over the groove (the read runs high on the house by up to 3 dB against renders, so nought reads as a dB or two under), a break with a new bed two under.",
+  "leastBpm": 100,
+  "ceilingDb": 0,
+  "newBedCeilingDb": -2,
+  "blockBars": 4,
+  "grooveBars": 8,
+  "keep": { "says": "the groove's own voice through the break, thinned: its tone darker, its reverb and its delay wetter, its touch softer", "toneMul": 0.6, "reverbMul": 1.8, "delayMul": 1.6, "velMul": 0.85 },
+  "grow": { "says": "a bed the groove did not have enters low and dark and grows to its own level and tone over the stretch it plays", "fromDb": -10, "toDb": 0, "toneFrom": 0.4, "toneTo": 1 }
+}

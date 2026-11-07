@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "airArc",
+  "revision": 1,
+  "topology": "air",
+  "parameters": {
+    "shape": "swell",
+    "pink": true,
+    "corr": 0.6,
+    "hpHz": 1500,
+    "poles": 1,
+    "lpHz": 12000,
+    "q": 0.5,
+    "driftHz": 0.06,
+    "driftDepth": 0,
+    "attack": 2,
+    "release": 2,
+    "curve": 1,
+    "bandHz": [
+      2500,
+      6000
+    ],
+    "bandQ": 3,
+    "peak": 0.55,
+    "sway": 0,
+    "reverb": 0.4,
+    "delay": 0,
+    "trim": 0.0376
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "air-voices",
+    "module": "none",
+    "note": "Breathing noise for a beatless stretch: a resonant band of pink noise whose centre arcs up and back over a bar or two, like a wave on sand."
+  }
+}

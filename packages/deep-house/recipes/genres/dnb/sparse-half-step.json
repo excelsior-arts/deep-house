@@ -225,7 +225,7 @@
     "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
     "cut": "8:1575+108",
     "bars": "0\u201376",
-    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "reading": "packages/mining/tools/readings.py; the round's tables in round dnb-1 and the dnb-1-segments analysis",
     "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
     "kind": "drum beat",
     "pattern": "the two-step thinned: kick on one and three-and, the snare on two and four-a, hats on the quarters, a sub with a grace note into a long hold",
@@ -235,7 +235,7 @@
       "reaches": false,
       "eventRateZ": -3.3,
       "syncopationZ": -2.1,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (round dnb-1 \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
     },
     "admitted": "admitted 2026-10-05 on the brief of round DNB-3 (his word of 10-05, liquid first) at the weight the round gave it",
     "weighed": "round DNB-3 (2026-10-05): 0 -> 0.5, admitted on the brief of round DNB-3 (his word of 10-05, liquid first): DNB-2 proposed 0; the two-step thinned, its sub held long, is the liquid side of the mined rows"

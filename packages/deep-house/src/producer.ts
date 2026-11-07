@@ -764,6 +764,36 @@ export function arrange(I: ProducerInput): { row: PassageRow; phrases: PhrasePla
     plansDone++;
   }
 
+  // ----- the way into a break that starts where the written window ends -----
+  // The window's phrases are the passage's, so the grammar writes nothing in them; a break that starts on the window's
+  // end (the passage clipped at it, or a form whose break falls exactly there) gets no way in from the grammar. Where the
+  // passage's last bar has none of its own either (no ending, no drum gesture, no reverse swell), it gets the one every
+  // break the grammar writes gets: the drummer's ending into the exposed section, and a reverse swell into the break's
+  // landing with the field leaning in. A passage that wrote any way in keeps it as written (his ear 11-05 on the wider
+  // rule, a swell after the passage's open ending: "honestly I didn't hear much change with naked ear"). Drawn off a
+  // stream of its own, so no other die moves.
+  const WAY_IN = new Set<End>([...GESTURE, 'snareDeparture', 'topsClose', 'topsDarken']);
+  for (const s of sections) {
+    const q = s.startBar;
+    if (s.kind !== 'breakdown' || q !== wTo || q <= wFrom || !drumsIn(q - 1, q)) continue;
+    if (endings.some((x) => x.bar === rel(q - 1) && x.end.some((e) => WAY_IN.has(e)))) continue;
+    const r = new Rng(`${I.seed}::producer:break-in:${q}`);
+    const says: string[] = [];
+    const pairs = Object.entries(fxLean(G.drums.endings.exposed)).filter(([k, x]) => x > 0 && k !== 'none').map(([v, x]) => ({ v, w: x }));
+    if (pairs.length) {
+      const pick = r.weighted(pairs);
+      end(q - 1, pick.split('+') as End[], `the ending (exposed): the way into the break at ${q}`);
+      says.push(`the drums close into the break at ${q} (${pick.replace(/\+/g, ', ')})`);
+    }
+    if (landingAt(q)) {
+      fx.push({ at: posAt(q * 16), kind: 'swell', beats: 4, label: `a reverse swell into the break's landing at ${q}` });
+      swellInto((q - 1) * 16 + 8, q, G.anticipation.fieldDb, RB.breakLanding);
+      says.push(`a reverse swell into the break's landing at ${q}, the field swelling`);
+    }
+    const pl = plans.find((x) => x.to === q);
+    if (pl && says.length) pl.answers = [pl.answers, ...says].filter(Boolean).join('; ');
+  }
+
   // ----- the drum-led build into every drop and the breath's return, and the landing (fast-drops) -----
   // His word 10-13 on the Drum & Bass tile's drop: "lost drum emphasis and other voices build up, so it feels strange".
   // On the line's last bar (or its last two) the drums lead with a gesture of the vocabulary (U2d's rows the kit takes:

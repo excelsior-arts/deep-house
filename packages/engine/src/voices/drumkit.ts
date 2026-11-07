@@ -36,7 +36,7 @@
 // module that declares it holds nothing else but its descriptor and its own
 // four lines of sound.
 
-import { route, panner, MIN_RELEASE, startTime, lcg, GAIN_FLOOR } from '../dsp.ts';
+import { route, panner, MIN_RELEASE, startTime, lcg, GAIN_FLOOR, stereoNoise } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { NoteParams, PrepareHook, VoiceCost, VoiceRenderer } from './descriptor.ts';
 import type { ProgramEvent } from '../program.ts';
@@ -379,7 +379,10 @@ export function strike(
   const pan = panner(ctx, Math.max(-1, Math.min(1,
     (p.pan ?? spec.pan ?? 0) + (spec.panSpread ?? 0) * (2 * d.pan - 1))));
   g.connect(pan);
-  route(ctx, pan, out, { dry: p.dry ?? 1, room: p.room ?? spec.room ?? 0, delay: p.delay ?? spec.delay ?? 0, reverb: p.reverb ?? spec.reverb ?? 0,
+  // the kit's top in the room (round stereo-room): its own send, never under the theme's floor (`space.kitRoom`);
+  // (round tops-bus-2) `roomMul`, the centred hat's send narrowed
+  const room = Math.max(p.room ?? spec.room ?? 0, spec.roomy ? settings.space.kitRoom ?? 0 : 0) * (p.roomMul ?? 1);
+  route(ctx, pan, out, { dry: p.dry ?? 1, room, delay: p.delay ?? spec.delay ?? 0, reverb: p.reverb ?? spec.reverb ?? 0,
     ...(p.background !== undefined ? { background: p.background } : {}) });
   return end;
 }
@@ -404,6 +407,14 @@ export function drumNoise(ctx: BaseAudioContext, seconds: number, seed = 2026091
   const src = ctx.createBufferSource();
   src.buffer = buf;
   return src;
+}
+
+/**
+ * A body's noise: two channels at the topology's `air` correlation where the kit's top is in the room (`KitBuild.air`,
+ * round stereo-room), else `drumNoise`'s one. Same seed, so the left ear of the two is the noise the body always had.
+ */
+export function kitNoise(ctx: BaseAudioContext, spec: DrumSpec, seconds: number, seed: number): AudioBufferSourceNode {
+  return typeof spec.noiseCorr === 'number' ? stereoNoise(ctx, seconds, seed, spec.noiseCorr) : drumNoise(ctx, seconds, seed);
 }
 
 /** A biquad, with the one thing this engine keeps getting wrong written down. */
@@ -554,6 +565,12 @@ export interface KitBuild<S extends Fields> {
   build(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: number): void;
   /** the pass this topology's rows are warmed in; its own when absent */
   kit?: Kit;
+  /**
+   * **A hit of the kit's top, in the room** (round stereo-room): the correlation of its noise half's two channels
+   * (`kitNoise`), and with it the room's floor (`space.kitRoom`) on every hit. The hats, the cymbals, the snares and
+   * the shakers say it; the kick, the toms, the hands and the blocks do not.
+   */
+  air?: number;
 }
 
 // What a patch is, as a short word for a cache key: the same numbers are the
@@ -594,7 +611,11 @@ export function kitTopology<S extends Fields>(b: KitBuild<S>): Topology {
         spec: (p: NoteParams, s: Settings) => {
           const patch = patchOf(s, row, b.parameters);
           const spec = b.spec(patch, p);
-          spec.key = `${printOf(patch)}:${spec.key}`;
+          const air = b.air !== undefined;
+          // the spread by the theme (round kit-tight): a dry tight place keeps its top near one channel
+          const corr = air ? +(1 - (1 - b.air!) * Math.max(0, Math.min(1, s.space.kitAir ?? 1))).toFixed(3) : 1;
+          spec.key = `${printOf(patch)}:${spec.key}${air ? `:air${corr}` : ''}`;
+          if (air) { spec.channels = 2; spec.noiseCorr = corr; spec.roomy = true; }
           return spec;
         },
         variant: b.variant,

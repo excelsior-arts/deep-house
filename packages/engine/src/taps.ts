@@ -27,6 +27,7 @@
 
 import { gainToDb } from './dsp.ts';
 import type { V1Graph, V1Master } from './graph.ts';
+import { holdAWhile } from './graph-scope.ts';
 
 /** One meter, in the units a meter is read in. */
 export interface MeterReading {
@@ -274,6 +275,8 @@ export function attachTaps(graph: V1Graph, master: V1Master | null = null, { per
       }
       try { outNode.disconnect(out.analyser); } catch (e) { /* gone */ }
       try { out.analyser.disconnect(); } catch (e) { /* gone */ }
+      // the analysers held a while after their cut (round crash-resume, `graph-scope.ts`)
+      holdAWhile([out.analyser, ...taps.map((t) => t.analyser)]);
       taps.length = 0;
       if (port) {
         try { port.removeEventListener('message', onMessage); } catch (e) { /* gone */ }

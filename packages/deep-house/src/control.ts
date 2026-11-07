@@ -27,6 +27,7 @@ import type { MixSeam, MixState, MixWait, TransportPoint } from '@deep-house/eng
 import { createJournal } from './journal.ts';
 import { seamStages } from './seam-stages.ts';
 import { planOffThread, startPlanner, plannerState } from './plan-off-thread.ts';
+import { plansOnThisThread } from './planning.ts';
 import type { OffThreadHow } from './plan-off-thread.ts';
 import type { JournalEntry, JournalPlace } from './journal.ts';
 import { note, report, addressFlood, aBug } from './ledger.ts';
@@ -42,6 +43,7 @@ import { sayHello } from './console-hello.ts';
 import { pageBase } from './page-base.ts';
 import { watchSlowdowns, settleSlowdowns, slowSummary, slowdowns } from './slowdown.ts';
 import { readStress, stressRender } from './render-stress.ts';
+import { w, lang } from './words.ts';
 
 /** A set playing, as `createMix` hands one back. */
 export type Mix = ReturnType<typeof createMix>;
@@ -776,6 +778,14 @@ export interface PlaylistSteer {
    * Featured playlist's `in` last where that playlist holds its track (`trackShareLink`), else as it came.
    */
   context?(search: string): string;
+  /**
+   * **A seek let go of the step on its way** (playlist-scrub, his report 11-03): a scrub inside the record drops any
+   * hand-over the transport had laid or was building, a playlist's next track included, so the playlist names the
+   * track the record is again and asks once more from where the seek lands (`seeked`).
+   */
+  dropped?(): void;
+  /** **A seek has landed**: the playlist asks for its next track at once where the landing is near the seam. */
+  seeked?(): void;
 }
 
 /**
@@ -820,6 +830,28 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   })();
   /** **The playlist's hand on next, back and the dice** (PLAN-LIBRARY §2): set by the Playlists tab while a playlist plays. */
   let steer: PlaylistSteer | null = null;
+  /**
+   * **Seeks committed and not yet landed** (playlist-scrub): while one is built the transport has no seam to read
+   * (`seamOf`), and a playlist's ask made then would overtake the seek and lose the hand's place.
+   */
+  let seeksLanding = 0;
+  /**
+   * **A seek, as a playlist hears it** (playlist-scrub, his report 11-03: a tap near the end of the ring's track
+   * played the seed's own next theme while the list named the playlist's next track): the seek lets go of whatever
+   * hand-over was on its way, so the playlist goes back to the track the record is (`dropped`), and once the seek
+   * has landed it asks its next track again from there (`seeked`), on the seam line the seek re-armed.
+   */
+  function seekHeard(landing: Promise<unknown>): void {
+    seeksLanding += 1;
+    steer?.dropped?.();
+    const landed = () => {
+      seeksLanding = Math.max(0, seeksLanding - 1);
+      if (seeksLanding) return;
+      syncFromMix();
+      steer?.seeked?.();
+    };
+    Promise.resolve(landing).then(landed, landed);
+  }
   /**
    * **A playlist's clock** (round pl-clock): the list's tempo while a playlist plays, handed by the Playlists tab
    * (`listClock`), and handed on to every set this transport makes. It holds until a hand moves the tempo or sends the
@@ -1041,7 +1073,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     return linkWrite({
       seed: state.seed,
       theme: state.themeIndex,
-      strategy: edit.strategy ?? state.strategyTo ?? state.strategy,
+      // (a stated place on its way is not written until it arrives: the engine it brings with it waits too)
+      strategy: edit.strategy ?? (pendingPlace ? state.strategy : state.strategyTo ?? state.strategy),
       spell: edit.spell !== undefined ? edit.spell : here.spell,
       recipe: here.recipe,
       accompaniment: here.accompaniment,
@@ -1210,8 +1243,27 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     goTo(entry, recipeOfEntry(entry), kind);
   }
 
-  /** The birds a hand-over into a stated place wrote on the address at its ask (`goTo`), for a stop that drops it. */
+  /** The birds a hand-over into a stated place asked at its ask (`goTo`), for a stop that drops it. */
   let placeSpellAsked: Partial<Spell> | null | undefined;
+  /**
+   * **A stated place asked and not yet arrived** (round crash-resume, 11-03): a playlist's next track, a journal walk,
+   * a hand-over into another track. Until its swap the address stays the place the screen names as playing, whole —
+   * its seed, theme, engine and birds, and its playlist's `in` — and only the swap writes the arriving one. The ask's
+   * birds used to go on the address at the ask while its seed waited for the swap, so a reload in that window (a
+   * crash's replay, the Mac's relaunch, a copied link) played a track nobody heard, out of its playlist. The ring
+   * reads the ask from here instead (`placeAsk`), so its birds still stand at the place coming and fill their wait.
+   */
+  let pendingPlace: JournalPlace | null = null;
+  /** A stated place dropped (a pause, a seek): the record's own birds back on the address, unless a pull's landing is kept. */
+  function dropPlaceSpell(kept = false): void {
+    const placeAsked = placeSpellAsked;
+    placeSpellAsked = undefined;
+    pendingPlace = null;
+    if (state.mix && !state.fake && !kept && playedTrack && placeAsked !== undefined && !sameSpell(playedSpell, castOf().spell)) {
+      writePlaceSpell({ seed: state.seed, theme: state.themeIndex, strategy: state.strategy, spell: playedSpell,
+        accompaniment: accompanimentFor(), development: developmentFor() });
+    }
+  }
   /**
    * **A hand-over into a stated place** (the journal's walk, and since
    * PLAN-LIBRARY phase 3 a playlist's track, `playPlace`): playing, `mix.cast`
@@ -1228,14 +1280,20 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       state.castToTheme = here ? null : entry.theme;
       state.previewIndex = here ? entry.theme : null;
       state.strategyTo = entry.strategy === state.strategy ? null : entry.strategy;
+      // a press (a playlist's Next or Back, a walk along the journal) lands a blend bringing this very place at once
       armCut(state.mix.cast(entry.seed, {
         spell: entry.spell, themeIndex: entry.theme, strategy: entry.strategy,
-        recipe, top, atSeam,
+        recipe, top, atSeam, now: kind === 'skip' || kind === 'back',
       }), kind);
       // **The birds go with it** (his question 10-20: only the die showed the wait): the spell the place is heard
-      // under is the ask from here, so it is in the address at once, as a pull's is, and the ring stands its birds
-      // at it and fills their wait to the swap (`followOutsideAsk`, ring.ts). The sound is the cast's, as before.
-      writePlaceSpell(entry);
+      // under is the ask from here, and the ring stands its birds at it and fills their wait to the swap
+      // (`followOutsideAsk`, ring.ts, through `placeAsk`). The sound is the cast's, as before.
+      // **The address stays the track that plays** until the swap (`pendingPlace`): another track is written whole
+      // when it arrives. Only the same track under other birds is written at the ask, as a pull's is: that is one
+      // place either way.
+      const crossing = entry.seed !== state.seed || entry.theme !== state.themeIndex || entry.strategy !== state.strategy;
+      pendingPlace = crossing ? entry : null;
+      if (!crossing) writePlaceSpell(entry);
       placeSpellAsked = entry.spell;
       replan(null);
       remember();
@@ -1734,8 +1792,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // present.
     const next: Parameters<typeof planned> = state.castTo
       ? [Math.max(0, state.castToTheme ?? 0), state.castTo, state.strategyTo ?? state.strategy]
-      : listed && listed.seed !== state.seed ? [Math.max(0, listed.theme), listed.seed, listed.strategy]
-      : listed ? [Math.max(0, listed.theme), state.seed, listed.strategy, state.mix ? state.mix.spellAsked : undefined, state.mix ? state.mix.reachAsked : reachAsked]
+      // a playlist's track under its own birds, as `playPlace` casts it and `nextInfo` colours it: not the
+      // address's (another seed's roll read `location.search`) nor the set's ask (the playback review of 11-02)
+      : listed && listed.seed !== state.seed ? [Math.max(0, listed.theme), listed.seed, listed.strategy, listed.spell]
+      : listed ? [Math.max(0, listed.theme), state.seed, listed.strategy, listed.spell, state.mix ? state.mix.reachAsked : reachAsked]
       : [Math.max(0, ahead), state.seed, state.strategyTo ?? state.strategy,
         state.mix ? state.mix.spellAsked : undefined, state.mix ? state.mix.reachAsked : reachAsked];
     // (the TV's transport is handed the coming theme as the phone's page planned it, tv-view.ts)
@@ -1751,9 +1811,12 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
    * makes — so a pull planned it twice there. The plan is asked of the worker
    * and the coming card reads it when it lands, a plan's time after the ask
    * (the card read the theme it had until then: it is read by the card and by
-   * nothing else); planned already, or before the page has drawn a card, or
-   * with no worker, it is read at once as it always was. A stop that keeps a
-   * pull's landing asks for the theme after it this way too.
+   * nothing else); planned already, or with no worker, it is read at once as
+   * it always was. A stop that keeps a pull's landing asks for the theme after
+   * it this way too. **And at the open** (smooth-start, 11-03): the page's first
+   * card was planned in the open's own task, 25 ms of it on this Mac, for lanes
+   * the ring shows only near the seam; it is asked of the worker as every later
+   * one is, and fades in from where it stands when it lands.
    */
   let nextAsk = 0;
   /**
@@ -1782,7 +1845,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
   }
   function nextSoon(args: Parameters<typeof planned>): void {
     const ask = ++nextAsk;
-    const offer = state.mix || state.nextTrack ? planLater(...args) : null;
+    const offer = planLater(...args);
     if (!offer) { state.nextTrack = planned(...args); return; }
     void offer.then((t) => {
       if (ask !== nextAsk) return;
@@ -1802,6 +1865,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
    * for a place the start no longer names is simply not taken.
    */
   let primeQueued = false;
+  /** the last link a pointer asked to have planned before its press (`preplan`), with the place it was asked from */
+  let preplanned = '';
   function primeSoon(): void {
     if (primeQueued || state.mix || state.starting || following) return;
     primeQueued = true;
@@ -2174,13 +2239,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // **A named track says its name** (his word 10-27: "when the track has a name in playlist, we should show that
     // name in the lock screen player and Bluetooth speakers"), its playlist the album line; still once a track
     const pl = steer?.heard?.() ?? null;
-    const key = `${r.mix.themeNumber}|${r.seed}|${pl ? `${pl.list}|${pl.title ?? ''}` : ''}`;
-    const title = pl?.title || `Theme ${roman(r.mix.themeNumber)}`;
+    const key = `${r.mix.themeNumber}|${r.seed}|${pl ? `${pl.list}|${pl.title ?? ''}` : ''}|${lang()}`;
+    const title = pl?.title || w('media.theme', { n: roman(r.mix.themeNumber) });
     let fresh = false;
     if ((key !== mediaFor || !ms.metadata) && window.MediaMetadata) {
       mediaFor = key;
       try {
-        ms.metadata = new window.MediaMetadata({ title, artist: 'Deep House', album: pl ? pl.list : `seed ${r.seed}`, artwork: cover ?? artwork() });
+        ms.metadata = new window.MediaMetadata({ title, artist: 'Deep House', album: pl ? pl.list : w('media.seed', { seed: r.seed }), artwork: cover ?? artwork() });
         fresh = true;
       } catch (e) { /* older shapes */ }
     }
@@ -2333,6 +2398,14 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // rather than at whatever the loop's next five-second mark happens to be.
       if (seedMoved || engineMoved) remember();
     }
+    // **A stated place has arrived** (`pendingPlace`): the address turns over to it whole, in the swap's own task —
+    // its seed, theme and engine are the state's now, its birds the ones it plays under.
+    if (pendingPlace && (seedMoved || engineMoved || themeMoved || spellMoved) && state.seed === pendingPlace.seed
+      && state.strategy === pendingPlace.strategy) {
+      pendingPlace = null;
+      writePlaceSpell(placeNow());
+      remember();
+    }
     // **A cast the transport let go is not coming.** A seek inside a cast's
     // blend abandons it, and a journal walk can be overtaken; the transport
     // says so by no longer casting, and the band stops drawing the set that
@@ -2466,6 +2539,10 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
    * interruption never resumes a hand's pause.
    */
   let stoppedBy: 'hand' | 'system' = 'hand';
+  /** Nexts pressed while stopped past the journal's end (`skip`): the seed and the theme they stepped from. */
+  let stoppedSteps: { seed: string; from: number } | null = null;
+  /** The pause left the record playing alone past its own seam (`stop`): a play picks it up alone. */
+  let pausedPastSeam = false;
   function stop(by?: unknown) {
     stoppedBy = by === 'system' ? 'system' : 'hand';
     cancelStartup();
@@ -2488,6 +2565,11 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // taken early. Only a pull's own wait is kept.
     const asked = state.mix && !state.fake ? state.mix.state.wait : null;
     const landing = state.mix && !state.fake && asked?.kind !== 'cast' ? state.mix.pendingLanding : null;
+    // **A record that played alone past its own seam picks up alone** (the playback review of 11-02): a scrub past
+    // the theme's seam re-arms it on a later line on the deck alone, and a play read the plan's seam and rebuilt a
+    // blend nobody had heard — the next theme in at its bar 7, or a theme never heard. Only a pause with no
+    // hand-over up says so; inside one, the blend is rebuilt at its stage (`start`'s `ownSeamSpent`).
+    pausedPastSeam = !!state.mix && !state.fake && !landing && !state.mix.state.incoming && state.position >= seamSeconds(null) - 1e-3;
     // **And what it does not keep, it says** (the deep review of 10-08, F8): a
     // hand-over a hand asked for — a next, a back, a cast, an engine switch —
     // that has not changed hands is not rebuilt by a play, which resumes the
@@ -2503,12 +2585,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // second landing in another theme. Whatever was asked and is not landed — waiting on its line, or still being
     // planned and not yet waiting — is dropped, and the record stays as it was heard.
     // A pull asked since stands (`setSpell`): only the birds a stated place wrote are taken off.
-    const placeAsked = placeSpellAsked;
-    placeSpellAsked = undefined;
-    if (state.mix && !state.fake && !landing && playedTrack && placeAsked !== undefined && !sameSpell(playedSpell, castOf().spell)) {
-      writePlaceSpell({ seed: state.seed, theme: state.themeIndex, strategy: state.strategy, spell: playedSpell,
-        accompaniment: accompanimentFor(), development: developmentFor() });
-    }
+    dropPlaceSpell(!!landing);
     const quiet = disposeMix();
     if (landing) keepLanding(landing);
     state.playing = false;
@@ -2610,6 +2687,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // (the never-stops rule), so a render in flight is no reason not to start.
     if (state.mix) return;
     state.userStarted = true;
+    // the theme plays from here: the stopped steps are behind it, and the journal writes it on arrival
+    stoppedSteps = null;
     mediaHandlers();
     // A start still in flight is superseded by this one rather than racing it.
     cancelStartup();
@@ -2689,7 +2768,9 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // and builds that blend again at the stage it had reached.
       // a playlist's record picked up past its own seam: the hand-over there was the playlist's, and the pause took it
       // (chillstep-ends; `start`'s `ownSeamSpent`)
-      const spent = !!steer?.place() && from >= seamSeconds() - 1e-3;
+      // and any record a pause left playing alone past its seam: a scrub had re-armed it later (`pausedPastSeam`)
+      const spent = (!!steer?.place() || pausedPastSeam) && from >= seamSeconds() - 1e-3;
+      pausedPastSeam = false;
       await mine.start(state.themeIndex, from, woken, spent);
       if (stale()) return;
       pending = null;
@@ -2830,9 +2911,13 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     // will report once the seed has changed hands.
     const cast = recipesFor({ masterSeed: next, strategy: state.strategy });
     const spell = cast.spell;
-    state.castTo = next;
-    state.castToTheme = 0;
-    state.previewIndex = null;
+    // **A cast onto the seed that plays is a walk to its first theme** (the playback review of 11-02): the reset
+    // on seed 1 wrote `castTo = '1'`, which only a seed's move clears, and the coming card said theme I at every
+    // seam after. As `goTo` does on the seed that plays: the theme is the preview, and none where it plays already.
+    const here = next === state.seed;
+    state.castTo = here ? null : next;
+    state.castToTheme = here ? null : 0;
+    state.previewIndex = here && mix.aim !== 0 ? 0 : null;
     // **A null answer is a cast overtaken, never refused** (R7). Another move
     // took it over — a next, a back, a seek, another throw — and that move says
     // where the set is going; the transport never refuses a cast while it is
@@ -2891,7 +2976,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       withTime: (seconds?: number): string => {
         const r = readout();
         const here = linkHere(location.search, { pageDefault: PAGE_DEFAULT });
-        const place: LinkState = { seed: state.seed, theme: state.themeIndex, strategy: state.strategyTo ?? state.strategy,
+        const place: LinkState = { seed: state.seed, theme: state.themeIndex, strategy: pendingPlace ? state.strategy : state.strategyTo ?? state.strategy,
           spell: here.spell, recipe: here.recipe, accompaniment: here.accompaniment, development: here.development };
         const search = linkWithTime(place, seconds ?? (r ? r.seconds : state.position));
         return `${pageBase()}?${search}`;
@@ -2975,7 +3060,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     plannedAlready,
     planLater,
     /** the planner's worker: whether it runs, and what it has been asked (a bench reading) */
-    get planner() { return plannerState(); },
+    // (and how many themes the page's own thread has planned, smooth-start)
+    get planner() { return { ...plannerState(), page: plansOnThisThread() }; },
     /** how many themes the page has planned for itself, for a gate to count */
     get plansMade() { return plansMade; },
     start,
@@ -3039,6 +3125,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       leaveList(Math.abs((spell?.ember ?? HOUSE.ember) - emberWas) < 1e-9);
       // the birds on the address are the hand's from here: a stop keeps them (`placeSpellAsked`)
       placeSpellAsked = undefined;
+      pendingPlace = null;
       writeSpellUrl(spell);
       if (state.mix) {
         armCut(state.mix.setSpell(spell), 'spell');
@@ -3172,10 +3259,18 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       // playhead must not write over it between two moves.
       state.scrubbing = !commit;
       if (commit && state.mix) {
-        state.mix.seek(to);
+        seekHeard(state.mix.seek(to));
         // The seek dropped whatever seam was running, so a cut the face is
         // still counting down to is not going to happen.
         state.cut = null;
+        // **And a place it was walking to is not coming** (the playback review of 11-02): a journal walk or a
+        // playlist track on this seed left the coming card, the lanes and the birds at the place the seek dropped,
+        // until the next seam. As a pause does it (`stop`): the record's birds back on the address.
+        if (state.previewIndex != null || placeSpellAsked !== undefined) {
+          state.previewIndex = null;
+          dropPlaceSpell();
+          replan(null);
+        }
       }
       if (commit) remember();
       emit();
@@ -3208,7 +3303,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
           const f = fraction == null ? (len ? clamp(state.position / len, 0, 1) : 0) : clamp(fraction, 0, 1);
           state.position = f * len;
           note('transport', 'a drag made on the theme before the swap commits into it', { theme: (made.index ?? 0) + 1, at: +(f * len).toFixed(2) });
-          m.seek(f * len, made);
+          seekHeard(m.seek(f * len, made));
           state.cut = null;
           remember();
           emit();
@@ -3268,6 +3363,7 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       }
       // Stopped: step the plan only. Nothing sounds until play is pressed,
       // and then it starts at this theme's first bar.
+      if (!stoppedSteps || stoppedSteps.seed !== state.seed) stoppedSteps = { seed: state.seed, from: state.themeIndex };
       state.themeIndex += 1;
       state.position = 0;
       state.previewIndex = null;
@@ -3279,6 +3375,21 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
 
     back(): boolean {
       if (steer && steer.back()) return true;
+      // **Stopped, a back first takes back the nexts stepped past the journal's end** (the playback review of 11-02):
+      // they stepped the theme and not the journal's pointer, so a back walked the journal from the theme that was
+      // playing — Next, Next, Back from theme 3 went to theme 2 where theme 4 was meant.
+      if (!state.mix && stoppedSteps && stoppedSteps.seed === state.seed && state.themeIndex > stoppedSteps.from) {
+        journal.cancel();
+        state.themeIndex -= 1;
+        if (state.themeIndex <= stoppedSteps.from) stoppedSteps = null;
+        state.position = 0;
+        state.previewIndex = null;
+        replan('theme');
+        remember();
+        emit();
+        return true;
+      }
+      stoppedSteps = null;
       // **Back walks the journal across casts** (`notes/archive/2026-09-plans/cited/PLAN-BIRDS-UX.md` §3b): the seed
       // you were on three tracks ago, as a hand-over like every other
       // manipulation of the ring. Before its first entry it is this set's
@@ -3374,6 +3485,31 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
       return true;
     },
     /**
+     * **A playlist's track, planned before the hand presses it** (smooth-start, 11-03; K42's pre-plan for a press):
+     * a pointer come to its Play (a row, its point on the Map), with the set stopped, asks the planner's worker for
+     * the very plan a press would read (`playPlace`, then `goTo`'s `planned`: the same request, kept by the same
+     * name), so the press finds it made and the ring's frames are not held for it. A press before it lands plans
+     * as it always did; a link opened as another page, or any while a set plays (a cast plans off the thread
+     * already), asks nothing. Only the latest pointer's is wanted (`tag`).
+     */
+    preplan(link: string): void {
+      if (state.mix || state.starting || following || !link) return;
+      // asked once a pointer's arrival, not once a move over the same Play
+      const key = `${link}|${state.seed}|${state.strategy}|${location.search}`;
+      if (key === preplanned) return;
+      preplanned = key;
+      try {
+        const search = `?${String(link).replace(/^\?/, '')}`;
+        const L = linkHere(search, { pageDefault: PAGE_DEFAULT });
+        if (!L.seed) return;
+        const here = linkHere(location.search, { pageDefault: PAGE_DEFAULT });
+        if ((L.recipe ?? null) !== (here.recipe ?? null) || L.accompaniment !== here.accompaniment || L.development !== here.development) return;
+        const cast = recipesFor({ masterSeed: L.seed, strategy: L.strategy, search });
+        const offer = planLater(L.theme, String(L.seed), L.strategy, cast.spell ?? null, reachAsked, { priority: 'ahead', tag: 'preplan' });
+        if (offer) offer.catch(() => { /* a later pointer's took its place, or it plans at the press as ever */ });
+      } catch (e) { /* not a link this page plays: the press says so */ }
+    },
+    /**
      * **The playlist's next track, before it is asked for** (round ring-seam, 10-30): its link, or null. The coming
      * theme is planned from it (`replan`), so the ring fades in what the playlist will play; the transport is not
      * asked, and a link this page cannot play, or one opened as another page, is no hint at all.
@@ -3397,6 +3533,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     },
     /** Hand the transport a playlist's steer, or take it back (`null`). */
     steer(s: PlaylistSteer | null): void { steer = s; },
+    /** The birds of a stated place asked and not yet arrived (`pendingPlace`), for the ring's birds; `undefined` when none. */
+    placeAsk(): Partial<Spell> | null | undefined { return pendingPlace ? pendingPlace.spell : undefined; },
     /** The address's context written again where nothing else moved (a reload put back in its playlist): `withContext`. */
     readdress(): void { writeAddress({}, false); },
     /** **A playlist's clock** (round pl-clock): the list's tempo while it plays (`listTempo`), or null. */
@@ -3406,6 +3544,8 @@ export function createControl({ seed = 1, preset = 'auto', minutes = null }: Con
     resumedPlaylist,
     /** The second the playing theme hands over at on its own: where a playlist mixes its next track in. */
     get seamAt(): number { return seamSeconds(); },
+    /** A seek committed and not yet landed (`seeksLanding`): no seam to read, and no ask to make, until it has. */
+    get seeking(): boolean { return seeksLanding > 0; },
     /**
      * **The place heard, as one string**, for a playlist's seam (`playlists-ui.ts`): the seed, the theme, the
      * engine and the spell, all four from the one snapshot the transport takes of a swap (`syncFromMix`), so a

@@ -66,6 +66,9 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   { name: 'lock', class: 'view', absent: 'the engine switch is free', written: 'never; `lock=engine` is kept as given' },
   { name: 'view', class: 'view', absent: 'the ring', written: '`view=machine` while the machine view is open, removed when it closes (K21); a stored place carries it. `view=tv` is the Apple app\'s TV page (round tv-scene, `tv-mode.ts`): the ring alone, told what to draw by the phone\'s page, never sounding or storing; written only on that page\'s own address, and never stored' },
   { name: 'out', class: 'view', absent: 'a media element on an Apple phone, straight out elsewhere', written: 'never; kept as given' },
+  // round japanese (his word 11-03: "expose an URL query param so deep link could lead to interactively japanese edition"):
+  // the page's language for the visit, presentation and never music (`words.ts`)
+  { name: 'lang', class: 'view', absent: 'the About\'s choice on this device, else the browser\'s languages (the first the page speaks), else English', written: 'never by the page; kept as given while the page writes its own place, so a reload speaks it; taken off by a pick in About and by the refusal of a tag no column speaks; never on a shared link (the share circle\'s Copy link writes the track\'s rows only)' },
   { name: 'latency', class: 'view', absent: 'the playback hint', written: 'never; kept as given' },
   // star-keys round 3 (prototype only): which of the icon variants the ring's love key and the panel's scroll draw
   { name: 'heart', class: 'view', absent: 'the pick (`HEART_PICK`, heart-glyph.ts)', written: 'never; kept as given, read once as the page opens' },
@@ -83,6 +86,8 @@ export const LINK_ROWS: readonly LinkRow[] = Object.freeze([
   // round pl-link (his word 10-26): a track copied while it played in a Featured playlist names that playlist, so the
   // page opened on it plays the track in the list and the list's next after it (`featured.ts`, `featuredPlace`)
   { name: 'in', class: 'context', absent: 'the track alone: the seed\'s own next theme follows it', written: 'last, as the playlist\'s key from `featured.json` (`vibe`, `drive`, `ambient`: a constant per list, his word 10-31; its UUID is never written nor read here): on the address while the track plays in a Featured playlist that holds it (a first run, an `in` link opened, a row pressed, a step and the seam\'s hand-over, a reload; round featured-address), and taken off when it leaves the list (the dice, a bird moved, a typed seed, a track played outside it); by a track\'s Copy link (the share circle\'s Copy link and Copy at m:ss, a row\'s Copy link) while that track is in a Featured playlist it plays in or is shown in. Your own playlists never write it (their ids are local). A key this edition lacks (a UUID too), or a list without that track, plays the plain track and comes off the address' },
+  // pass 2 of trance-drawn (11-04): a groove sketch for his A/B (`src/groove-sketch.ts`)
+  { name: 'groove', class: 'private', absent: 'the theme\'s own kit', written: 'never; kept as given, read as the plans are made (the private tier only): `uplifting` (the off-beat hat opened, a clap on two and four, the sixteenths quieter, the kick 1.5 dB down)' },
   { name: 'reach', class: 'private', absent: 'the style\'s own reach (house-v2: 0, today\'s band); a release build never reads it', written: 'only by the private tier\'s slider in the machine view; kept as given' },
   // round audio-slack: a check's render made to fall behind, for the slowdown watch (`src/render-stress.ts`)
   { name: 'stress', class: 'view', absent: 'no stress', written: 'never; kept as given, read once as the context is made; never on a shared link' },

@@ -1,0 +1,80 @@
+{
+  "about": "Round trance-drawn (11-04): the trance corner's techniques, drawn per theme by the birds, never stamped. The corner shares its grammar (tempo, the four-on-the-floor groove, the long arc of breakdowns and builds, eight-bar phrases); each theme draws one front and one or two more techniques by its own die, and the voices come from the house's palette. A technique's weight is `w` times the birds' leans about the middle of the ring (`by`: per bird, exp(k x (bird - 0.5))). `src/trance-drawn.ts` reads this file; each technique's writer is named by its id. The tripwire: no technique and no lead voice in more than about 40 % of the corner's themes.",
+  "rows": [
+    {
+      "id": "trance-corner",
+      "places": ["saw-corner", "saw-corner-dark", "saw-corner-bright"],
+      "radius": 0.5,
+      "sawCall": { "about": "pass 2 (his word: the gritty saw riff, aiming for 20 %): beside the walk, the riff's own die, by Spark; about 20 % of Trance's themes, 30 % of Hard Trance's, a few at Uplifting, and more the higher Spark", "w": 0.17, "by": { "spark": 2.4, "gleam": -0.6 }, "most": 0.6 },
+      "more": { "w": 0.42, "by": { "loom": 1.6, "veil": 0.8 }, "most": 0.75 },
+      "release": { "about": "a release pays for its wait (the third pass; his ear 11-04 on Trance 4568: 'this break looks a bit too long?'): a breakdown and its build may run this many times the groove that answers them (the drop and the grooves after it, to the next break or the outro), the hypnotic hold letting the wait run longer (Loom); past it the breakdown gives the drop its bars over one phrase, in whole phrases, the length kept", "w": 1.25, "by": { "loom": 0.8 } },
+      "fronts": [
+        { "id": "phrase-hook", "where": "the melancholic phrase: a call and its answer over eight bars, landing on long notes; patient, wet birds (Tide and Loom up, Veil down)",
+          "w": 1.4, "by": { "tide": 1.2, "loom": 0.4, "veil": -2.2 },
+          "voices": [
+            { "v": "piano", "w": 0.9, "by": { "gleam": 1.2 } },
+            { "v": "pianoFelt", "w": 1.0, "by": { "gleam": -2.0 } },
+            { "v": "triLead", "w": 0.7, "by": { "zephyr": 1.5, "gleam": 0.8 } },
+            { "v": "karplusPluck", "w": 0.6, "by": { "spark": 1.6 } },
+            { "v": "fmEpSoft", "w": 0.5, "by": { "tide": 1.0 } }
+          ],
+          "double": { "v": "triLead", "db": -6 }
+        },
+        { "id": "hypnotic-figure", "where": "the hypnotic figure: a one-bar sixteenth cell grouped 3+3+2, a note of it turning every eight bars, its filter moving for minutes; restless birds (Veil up, Loom long)",
+          "w": 0.85, "by": { "veil": 1.6, "loom": 0.8, "tide": -0.8 },
+          "voices": [
+            { "v": "fmPluck", "w": 0.8, "by": { "gleam": 1.0 } },
+            { "v": "karplusPluck", "w": 0.6, "by": { "spark": 1.2 } },
+            { "v": "pulseLead", "w": 0.75, "by": { "gleam": -1.0 } }
+          ]
+        },
+        { "id": "voice-line", "where": "the sung line: a voice-like lead in long notes, a phrase's half each, sighing down; climbing at the drop; airy, wet birds (Zephyr and Tide up)",
+          "w": 0.75, "by": { "zephyr": 1.4, "tide": 1.0, "spark": -1.2 },
+          "voices": [
+            { "v": "wordlessVocal", "w": 1.0, "by": { "gleam": 0.8 } },
+            { "v": "formantPad", "w": 0.9, "by": { "gleam": -1.1 } }
+          ]
+        },
+        { "id": "saw-riff", "where": "today's saw riff (the gallops and the gated chords, picked by their own birds): gritty, driven birds (Spark up, Gleam down)",
+          "w": 0.6, "by": { "spark": 2.0, "gleam": -1.4, "ember": 1.0 } }
+      ],
+      "colours": [
+        { "id": "vocal-pad", "bed": true, "where": "a spacious voice-like pad that calls in long curves through the opening, the breakdowns and the build; airy birds (Zephyr up)",
+          "w": 0.8, "by": { "zephyr": 2.2, "tide": 1.0, "gleam": 0.6 }, "voices": [{ "v": "wordlessVocal", "w": 1 }, { "v": "formantPad", "w": 0.7, "by": { "gleam": -1.5 } }] },
+        { "id": "dark-bed", "bed": true, "where": "the dark cinematic bed: a low drone on the tonic and fifth, low strings, distance; dark, heavy birds (Gleam down, Root up); the fourth pass (his word 11-04: the Trance star 'a bit darker to match app deep theme'): drawn more, and reaching the star's own light",
+          "w": 1.45, "by": { "gleam": -1.0, "root": 0.4 } },
+        { "id": "euphoric-progression", "bed": true, "where": "the euphoric progression: a lifting four-chord loop the bed and the bass follow, the build opening into the drop's brightest chord; bright birds (Gleam up); the fourth pass: the bright edge, steeper by Gleam so the bright dot keeps it and the star draws it less",
+          "w": 0.45, "by": { "gleam": 3.4, "ember": 0.8 } },
+        { "id": "filter-build", "where": "the long filter-opening build: the bed and the front opening over 16 bars into the drop, the air rising under it; long birds (Loom up)",
+          "w": 0.62, "by": { "loom": 1.6 }, "needs": ["build"] },
+        { "id": "strip-breakdown", "where": "the breakdown that strips to the melody: no drums, no bass, the front alone with its left hand, the bed coming in late; wet birds (Tide up)",
+          "w": 1.0, "by": { "tide": 1.6, "veil": -1.0 }, "needs": ["breakdown", "melodic-front"] },
+        { "id": "echo-throws", "where": "echo throws: a phrase's landing note thrown into a long delay, every sixteenth bar; wet, airy birds",
+          "w": 0.6, "by": { "tide": 2.0, "zephyr": 1.0 }, "needs": ["melodic-front"] },
+        { "id": "rolling-bass", "where": "the rolling bass in our weight: the theme's own bass voice off the kick (the off-beats, or a rolling three in four at Root and Spark up)",
+          "w": 0.7, "by": { "root": 2.0, "spark": 1.0 } },
+        { "id": "supersaw-peak", "where": "the supersaw as a peak voice a track earns: the smooth saw holding two or three chords through the last drop's second half, under the kick; energetic, bright birds",
+          "w": 0.55, "by": { "ember": 2.0, "gleam": 1.4 }, "needs": ["drop", "melodic-front"] },
+        { "id": "dream-opening", "where": "the dream opening (mined): no kick and no bass for the first sixteen bars, the front and the bed carrying them over the hats, the groove arriving under the phrase; slow, wet birds",
+          "w": 0.6, "by": { "tide": 1.4, "ember": -2.0 }, "needs": ["intro"] },
+        { "id": "strip-to-groove", "where": "strip to the groove (mined): eight bars of the kick and the bass alone in the second main, the top returning as the release; heavy, restless birds",
+          "w": 0.6, "by": { "root": 1.4, "veil": 1.0 }, "needs": ["second-main"] }
+      ],
+      "beds": [
+        { "v": "stringsPad", "w": 1.0, "by": { "gleam": 0.8 } },
+        { "v": "wavePad", "w": 0.9, "by": { "veil": 1.0 } },
+        { "v": "sawPad", "w": 0.5, "by": { "spark": 1.2, "gleam": 0.8 } },
+        { "v": "padHaze", "w": 1.2, "by": { "gleam": -1.3 } }
+      ],
+      "gainsAbout": "a voice's gain on its lane, by technique where one differs (`technique:voice`), else by voice: set by the short-term loudness (the 90th percentile of 3-second windows) of each stem in a drop on the Trance tile, seed 1: a phrase 1.5 dB under the rest of the mix, a figure 2.5, the bed 6, the smooth saw about 4 (his ear 10-28: the saw too loud), the call 4 in a breakdown",
+      "gains": {
+        "phrase-hook:piano": 1.5, "phrase-hook:pianoFelt": 1.33, "phrase-hook:triLead": 0.37, "phrase-hook:karplusPluck": 0.59, "phrase-hook:fmEpSoft": 0.67,
+        "hypnotic-figure:fmPluck": 0.43, "hypnotic-figure:karplusPluck": 0.37, "hypnotic-figure:pulseLead": 0.22, "voice-line:wordlessVocal": 0.44, "voice-line:formantPad": 0.34,
+        "triLead": 0.37,
+        "stringsPad": 0.26, "wavePad": 0.2, "sawPad": 0.2, "padHaze": 0.18,
+        "wordlessVocal": 0.56, "formantPad": 0.43, "drone": 0.4,
+        "supersawSmooth": 0.21
+      }
+    }
+  ]
+}

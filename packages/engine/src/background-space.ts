@@ -2,6 +2,7 @@
 // One instance per theme, built only when a note asks for this send. The
 // composer chooses the send amount; no recording or instrument lives here.
 import { room, ROOMS } from './effects/spaces.ts';
+import { cutAndHold } from './graph-scope.ts';
 
 export interface BackgroundSpaceSettings {
   seconds: number; preDelay: number; lowHz: number; highHz: number;
@@ -71,5 +72,6 @@ export function backgroundSpace(ctx: BaseAudioContext, destination: AudioNode, b
   if (!p.diffuseOnly) echoLevel.connect(destination);
   pre.connect(plate); echoLevel.connect(plate); plate.connect(plateLevel); plateLevel.connect(destination);
   const nodes: AudioNode[] = [input, hp, lp, pre, echo, feedbackTone, feedback, echoLevel, plate, plateLevel];
-  return { input, dispose() { for (const node of nodes) node.disconnect(); } };
+  // cut, then held a while (round crash-resume, `graph-scope.ts`)
+  return { input, dispose() { cutAndHold(nodes); } };
 }

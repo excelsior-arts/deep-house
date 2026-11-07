@@ -62,12 +62,18 @@ test('developed ordinary and pinned tracks contain real contrast, bounded sectio
       if(recipe===piano) assert.equal(s.bars%16,0);
       if(s.bars>=16) {
         const claimed=JSON.parse(String(t.dice.composition)).recipes?.some(r=>r.roles.includes('sixteenth'));
-        if (!claimed) assert.ok(!t.events.some(e=>e.layer==='shaker'&&e.bar>=s.startBar&&e.bar<s.startBar+8));
+        // (the development's lanes: since the top-voices-2 integration (11-02) a quiet top voice the rota brought in may
+        // run on over a section's line, as the groove's run does; `by: top-voices/...`)
+        if (!claimed) assert.ok(!t.events.some(e=>e.layer==='shaker'&&e.bar>=s.startBar&&e.bar<s.startBar+8&&!String(e.by??'').startsWith('top-voices/')));
         // (a phrase's build and stop, on its last bar alone, are the arrangement's over the score: U2c)
         else { const built=((t: any) => new Set<number>([...(t.phrasing?.segments ?? []), ...(t.phrasing?.outs ?? [])]
       .filter((x: any) => x.build || (x.answered ?? x.lift ?? []).some((y: string) => / rolling|stop/.test(y))).map((x: any) => x.to - 1)
       // (a gesture over two bars builds on the bar before too: U2d)
-      .concat((t.phrasing?.builds ?? []).filter((b: any) => b.beats > 4).map((b: any) => b.line - 2))))(t); assert.ok(t.events.filter(e=>e.layer==='shaker'&&!built.has(e.bar!)).every(e=>e.part),'catalogue scores retain their own musical rests'); }
+      .concat((t.phrasing?.builds ?? []).filter((b: any) => b.beats > 4).map((b: any) => b.line - 2))))(t); 
+          // (the score's rests are the theme's lanes' to keep: since the top-voices-2 integration (11-02) the top's quiet
+          // voices may sound over a part the catalogue drew, as his ear took them on Vibe - Pure Gold; `by: top-voices/...`)
+          const top=(e:any)=>String(e.by??'').startsWith('top-voices/');
+          assert.ok(t.events.filter(e=>e.layer==='shaker'&&!built.has(e.bar!)&&!top(e)).every(e=>e.part),'catalogue scores retain their own musical rests'); }
         assert.notDeepEqual(s.phrases[0].layers,s.phrases[1].layers);
       }
     }

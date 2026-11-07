@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "piano",
-  "revision": 2,
+  "revision": 3,
   "topology": "piano",
   "block": "piano",
   "parameters": {
@@ -56,7 +56,14 @@
         "top": 1400,
         "level": 0.9,
         "decay": 0.018
-      }
+      },
+      "after": { "seconds": 14, "slope": 0.7, "damper": 0.15, "keep": { "db": 4.6, "slope": 2.4 } },
+      "unison": [
+        { "cents": -1.6, "level": 1 },
+        { "cents": 0.4, "level": 0.85 },
+        { "cents": 1.9, "level": 0.7 }
+      ],
+      "touch": 1.5
     }
   },
   "descriptor": {
@@ -72,6 +79,7 @@
     "mono": false,
     "treat": true,
     "ownFigure": true,
+    "home": { "spread": "pitch", "body": 1 },
     "cost": "dear",
     "edge": false,
     "controls": {
@@ -151,6 +159,10 @@
       "measured": "The piano alone on its own fixture through the real graph, eight bars of its figure, integrated, less the level its table gave it: the scene every kitchen voice is held to (tools/test-voices.ts), in both engines at both rates, within a decibel. MEASURED and written by that gate's --bless. Before the channel pin the same scene read -21.2 in Chromium and -21.5 in Firefox; with it, -20.5 in both.",
       "controls": "Per-note controls let a sustained piano phrase and short chord stabs share the instrument without revoicing the theme; omission plays the room's numbers. `harmonicBody` 0 is no body; `ring` is how far past its written length the note rings.",
       "edge": "Not read by the harmonic bus's edge (10-28, a piano phrase heard as distorted, not clean): the edge is a clipper on the sum, and on the piano's held chords it wrote 5.4 dB more of 2-6 kHz than the strings make (the keys alone with the edge taken out, measured). A struck string ringing under a pedal is what the clip mangles most; its notes take the bus's clean door.",
+      "home": "Its own width and body (round voice-homes, his word 11-01: \"sparse piano should get that extra width because it just doesn't sound good dry\"): its notes seated across the field by their pitch about their part's middle, as a keyboard stands, and a small room of its own (the soundboard and a close reflection), at every Tide; Tide scales the tail above them.",
+      "after": "The aftersound (round voice-homes, his ear 11-01: \"when it's dry it doesn't even sound like piano\"): measured note by note, the string died 40 dB in 0.5-0.7 s whatever its length (the envelope and every partial both ran out over the note's written life, 60-75 dB a second after the first 0.3 s), a pluck where a held piano note rings for seconds. Now a partial lives by its frequency (the fundamental 14 s to the floor at middle C, shorter up the keyboard), the key held rings on, and the damper stops it in 0.15 s at the key's release (its length and its pedal, the note's ring). The strike is held to the plucked string's loudness by the note's life (`keep`, round voice-homes 2: a held string is louder in its first 0.4 s the shorter its life, +5.5 dB at 0.4 s, +3 at a second, nought from about four; the strings play 4.6 - 2.4 ln(life) dB under, never over), where round 1 took 1.5 dB off every note: short and dense parts read up to 3.6 dB louder, long ones quieter.",
+      "unison": "Three strings about the note (-1.6, +0.4, +1.9 cents), each a touch stiffer than the last, where two had the second 4 cents flat: the note read 1-1.6 cents flat under middle C and every partial beat in step, a deep regular wobble (5 dB on the fundamental from middle C up); now centred, its partials blooming each at its own rate.",
+      "touch": "A hard strike reaches higher than a soft one (the string's top and the felt's corner, about a velocity of 0.6): pp to ff moved the 1-5 kHz share of the attack 2.4 dB at middle C, 5.4 with it. (round voice-homes 2) Colour, not loudness: the partials are held to the untouched strike's loudness (the top over 1.5 kHz weighed 4 dB the more), so a soft part is not quieter for being darker.",
       "string": "The deep house keys (round piano-tone, his pick of six sketches on 10-29: \"the 6 sounds a little better\"): a stiff string of up to twelve partials whose strike reaches two thirds as high as a full string's, struck at an eighth of its length with a soft comb, over warm low-mid wooden modes with the top laid back at 1.7 kHz, a knock of the board, and a felt hammer (a short low knock) where the six-partial string had a band of hiss. A room plays it where it writes it: house-v2 writes it into the room of every theme that sounds the piano; the instruments table, house-v1 and the catalogue's other grands carry none and play the six-partial string. The place's grain is not read by it. Its `level` is the sketch's 0.62 raised 1 dB (0.7): without the hiss the keys read 0.2-1.8 dB quieter over the rest at the strikes on five featured tracks, and the balance the keys' trim was fitted on is the one kept. Its `register` is its level by register, measured against the six partials in the ten featured seeds' themes (the string read 1 dB over them at the bottom and 1.2-3.6 under over MIDI 66, the hiss having carried the high notes), so each register plays as loud as it did. Its timbres and its measured scene are the six-partial string's, kept so the voice draw and the trims do not move; they move with the next refit of the loudness model."
     }
   }

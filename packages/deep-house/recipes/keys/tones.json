@@ -2,7 +2,7 @@
  "schema": 1,
  "kind": "tones",
  "round": "liquid-keys",
- "note": "Tone profiles for the keys lab, unapproved: each the engine sound rows it layers (`packages/engine/sounds/`), the hands each layer plays and its level, and any insert on the keys before the space (an effect of the kitchen, with its numbers). `gainDb` matches the profiles in loudness on round 1's chord-a-bar writing, near dry; it is MEASURED by the lab page (notes/rounds/liquid-keys.md). `sparseDb` (round 3) holds the match on the sparse writing, where a tone that sustains feeds a long wet tail more than one that falls: a trim per space, MEASURED as each landing's loudness over its first 3 s (BS.1770; the bare motif, 16 bars of i9 to VImaj9), against the mean of the eighteen tones in that space, averaged over the three wetness steps.",
+ "note": "Tone profiles for the keys lab, unapproved: each the engine sound rows it layers (`packages/engine/sounds/`), the hands each layer plays and its level, and any insert on the keys before the space (an effect of the kitchen, with its numbers). `gainDb` matches the profiles in loudness on round 1's chord-a-bar writing, near dry; it is MEASURED by the lab page (round liquid-keys). `sparseDb` (round 3) holds the match on the sparse writing, where a tone that sustains feeds a long wet tail more than one that falls: a trim per space, MEASURED as each landing's loudness over its first 3 s (BS.1770; the bare motif, 16 bars of i9 to VImaj9), against the mean of the eighteen tones in that space, averaged over the three wetness steps.",
  "rows": [
   {
    "schema": 1,

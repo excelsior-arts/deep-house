@@ -27,6 +27,8 @@ export type Felt = 'whole' | 'half';
  */
 export interface TimeEntry extends PlaceEntry {
   felt?: Felt;
+  /** the length row (`length.ts`, the style's `named`) a place whose kit plays half-time names: read by its share (`lengthMargin`) and played only where the plan's drums read half */
+  length?: string;
   /**
    * The phrase pinned at the place: `bars` written bars at the place's own Loom (`loom.centre`), leaned from there by
    * the one lean at `loom.strength` (its target in seconds; nought keeps `bars` at every Loom).

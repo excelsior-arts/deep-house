@@ -84,6 +84,8 @@ export type StrategyStyle = Style & {
   cleanKeys?: readonly string[];
   /** 10-13, the hand voicing: a voice's settings block as this style voices it, written into a theme's room only where the theme sounds that voice (`src/generator.ts`) */
   voicings?: Readonly<Record<string, Readonly<Record<string, number | object>> | LeanedVoicing>>;
+  /** round piano-pool: the piano pool's row (`recipes/keys/pianos.json`): which grand voices a beat-led theme's piano, drawn by the birds (`src/piano-pool.ts`) */
+  pianoPool?: string;
   /** 10-13, the hand grammar: what a hand drum drawn on the sixteenth lane plays (`src/hand-phrase.ts`) */
   handPhrases?: Readonly<HandPhrases>;
 };
@@ -470,6 +472,56 @@ export const switches = Object.freeze({
    */
   stabShape: true,
   /**
+   * **The trance corner, drawn** (round trance-drawn; his word 11-04: *"organic integration of genre specific techniques
+   * in the birds position while having our app voice"*). On, inside the corner's radius, each theme draws one front (a
+   * melancholic phrase, a hypnotic figure, or today's saw riff) and one or two colours (a voice-like pad, a dark bed, a
+   * euphoric progression, a long filter build, a stripped breakdown, echo throws, a rolling bass, the smooth saw at the
+   * last drop's peak, a dream opening, a strip to the groove) by its own die and the birds (`src/trance-drawn.ts`,
+   * `recipes/arrangement/trance-techniques.json`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  tranceDrawn: true,
+  /**
+   * **A roll is a build device** (pass 2 of trance-drawn; his ear 11-04: *"too intense and repetitive and sometimes too long.
+   * 16th beat on snare"*). On, a snare-or-clap lane that strikes sixteenths for more than two bars outside a build plays
+   * the plain backbeat there, and the roll once in each build's last eight bars, a few dB over the groove at its peak
+   * (`src/build-roll.ts`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  rollAtBuild: true,
+  /**
+   * **The front where the bass leads** (round dark-fronts; his ear 11-03: the crushed pluck, the formant call as long
+   * curves and the swelling chords approved, the dark bell as hints only). On, where a place turned the roles round
+   * (the reese carries the sub) from 110 BPM up, the front lane is the row's: the pluck or the swelling chords lead the
+   * drop by the beat, the call's curves at the build's end and through the breaks, the bell's few hints
+   * (`src/dark-fronts.ts`, `recipes/arrangement/dark-fronts.json`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  darkFronts: true,
+  /**
+   * **A half-break in a main that stands still** (round long-main; his ear 11-04 on Drive - Cloudburst's next theme,
+   * "the same minimalistic development going on for 1 minute straight", and on the sketch: "a lot better"). On, where a
+   * beat-led theme runs 32 bars or 45 s with nothing new above the drums, its die and Loom may take eight bars of the
+   * main for a half-break (the kick and the bass out, the bed exposed, the groove back with the crash), the theme's
+   * length and every other bar as planned (`src/long-main.ts`, `recipes/arrangement/long-main.json`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  halfBreaks: true,
+  /**
+   * **The stab lane's fixed punch, its way out** (round stab-punch, his ear 11-04 on house seed 148: "similar annoying move
+   * as it was with organs"; on the sketches: "D seems like is what it is … it's a go too"). On, from 70 BPM up, a theme
+   * whose stab strikes at most two chords a bar plays them by the bar: under a bed it steps back, over a held scene or
+   * alone it breathes, in the air it speaks in phrases whose level the mix sets and whose space Tide sets
+   * (`src/stab-punch.ts`, `recipes/arrangement/stab-punch.json`).
+   *
+   * house-v1 carries no switches and the record never asks.
+   */
+  stabPunch: true,
+  /**
    * **The keys by the hats** — round keys-balance (his words 10-29: *"balance the volume based on hat loudness as it
    * work in one place but not in another"*). On, the piano's lane steps down by section where its strikes stand over
    * the hats past what his references reach, a few dB at most (`src/hat-scene.ts` `keysByHats`,
@@ -493,6 +545,43 @@ export const switches = Object.freeze({
    * (`src/break-pulse.ts`, `recipes/arrangement/break-pulse.json`). Deep and slow places keep their beatless break.
    */
   breakPulse: true,
+  /**
+   * **The stereo image follows the form** (round stereo-motion, his rule 10-31). On, a theme with a kick writes the
+   * width stage's side gain and breathing depth by its sections: the intro narrower, the breakdown widest and
+   * breathing deepest, the build drawing in, the drop opening back from it, the outro closing; Tide scales the swing
+   * (`src/stereo-plan.ts`, `recipes/arrangement/stereo-plan.json`). Automation only: no note moves.
+   */
+  stereoPlan: true,
+  /**
+   * **The top moved by the form** (round tops-bus, 11-02; his word on the top end: *"All T1-12 improvements are go"*).
+   * The drums' top lanes ride a bus of their own (engine `TOPS_FILTER`: a low-pass, an 8 kHz shelf, a gate), and four
+   * rules move it, each its own switch so any one comes out by ear without the others (`src/tops-bus.ts`,
+   * `recipes/arrangement/tops-bus.json`). Automation only; a theme none of them moves never builds the bus.
+   *
+   * `topsLid` (T06): inside a main after the first, the top held under the low-pass for the bars before a line and
+   * snapped open on it, in place of the house's own hats drop-out there, once a track.
+   */
+  topsLid: true,
+  /**
+   * `topsStepOut` (T11): where the kick comes back and the top is there, the top steps out so its return is the event.
+   * Off (his ear 11-02: "hardly noticeable"); the rule stays, a switch away.
+   */
+  topsStepOut: false,
+  /** `topsAir` (T12): the air up slowly over a long main's last bars, from a shelf lowered so the top's mean holds; a build's top opening. */
+  topsAir: true,
+  /** `topsSecondDrop` (T04, its filter half): where the lanes' second drop lands (`Section.topOpens`), the air opens on its line. */
+  topsSecondDrop: true,
+  /**
+   * **The top's width and colour** (round tops-bus-2, 11-02; `src/tops-width.ts`, `recipes/arrangement/tops-width.json`),
+   * each its own switch; his go on wave 2 (11-02: "T22 okay / T24 ok / T32 ok"). `topsWidth` (T22): the offbeat hat's
+   * pan drawn in and its room send halved, the sixteenths' hiss panned wider around it, the bus's side shelved down
+   * under 4.5 kHz and up 3-4.5 dB over 9, the top lanes' notes trimmed for the added side.
+   */
+  topsWidth: true,
+  /** `topsWidthForm` (T24): that width stepping with the sections at constant level; a breakdown's top to one side. */
+  topsWidthForm: true,
+  /** `topsCharacter` (T32): the hats' and the shaker's lid drawn per theme by Zephyr, trimmed where it opens. */
+  topsCharacter: true,
   /**
    * **The library reaches the draw** — round GA1, Eugene 09-26: *"we go all in
    * on styles … diversity is the priority. We need to wire the new recipes."*
@@ -1224,8 +1313,8 @@ const presentPiano = Object.freeze({ ...base.piano,
  * **And the string** (round piano-tone, his pick of six sketches on 10-29: *"the 6 sounds a little better"*, after
  * *"it still sounds like there is a piece of paper between a string and a hammer"*): the piano row's `string`, the
  * deep house keys — a stiff string over a wooden body, struck by felt (`piano-string.ts` in the engine) — where the
- * six-partial string had a band of hiss for a top. Written here, so only a theme that sounds the piano carries it, and
- * house-v1 keeps the six-partial string.
+ * six-partial string had a band of hiss for a top. (round piano-pool) The instruments table carries it too now, so
+ * house-v1 plays it; here it is the house piano's own string, which the pool's draw replaces with the drawn grand's.
  */
 const PIANO_VOICING = Object.freeze({ dryLevel: .72, spread: .8, hpHz: 160, brightMax: 4400, string: ROWS.piano.parameters.string as object });
 
@@ -1856,6 +1945,7 @@ export const style = {
   // FM glass past the edge, written only where a theme sounds one
   // (`src/generator.ts`). v1 has no field: its rooms build neither.
   cleanKeys: CLEAN_KEYS,
+  pianoPool: 'house-pianos',
   voicings: Object.freeze({ ...HAND_VOICINGS, ...DARK_PAIRS, piano: PIANO_VOICING }),
   // 10-13, the hand grammar (his ear on house seed 35: "too primitive, only one hit"): a hand drum the sixteenth
   // lane draws plays a two-drum conversation off this row, in the hand rows' own character (`src/hand-phrase.ts`).

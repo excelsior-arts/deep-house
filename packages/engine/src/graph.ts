@@ -32,6 +32,7 @@ import { stageLine, settingsWith } from './stage.ts';
 import type { StageHow } from './stage.ts';
 import type { SourceMix } from './source-mix.ts';
 import type { VoiceOut } from './dsp.ts';
+import { cutAndHold, holdAWhile } from './graph-scope.ts';
 
 /** One theme's graph, as everything outside this file may know about it. */
 export interface V1Graph {
@@ -39,13 +40,13 @@ export interface V1Graph {
    * Where a source's note goes in: its bus, or (round PIANO-2) where the note
    * is struck, the bus's struck door, whose dry takes the shallow duck.
    */
-  sourceOutput(source: string, bus: string, struck?: boolean, clean?: boolean): VoiceOut;
+  sourceOutput(source: string, bus: string, struck?: boolean, clean?: boolean | number): VoiceOut;
   /** the struck door of a harmonic bus, built on the first ask; `null` for a bus with none (`ThemeGraph.struckBus`) */
   struckBus(bus: string): Bus | null;
   /** whether the struck path has been built; looking never builds one */
   hasStruck(): boolean;
   /** the clean door of a harmonic bus (round HF-NOISE), past the edge, built on the first ask; `null` where there is none (`ThemeGraph.cleanBus`) */
-  cleanBus(bus: string, struck: boolean): Bus | null;
+  cleanBus(bus: string, struck: boolean, share?: number): Bus | null;
   /** the dry of each clean door built so far into a bus; looking never builds one */
   cleanDoors(bus: string): AudioNode[];
   /**
@@ -198,15 +199,17 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
   };
   const made: V1Graph = {
     sourceOutput: (source, bus, struck = false, clean = false) => {
-      // a note the edge may not read takes its path's clean door where the path has an edge (round HF-NOISE)
-      const passed = (clean && graph.cleanBus(bus, struck)) || null;
+      // a note the edge may not read takes its path's clean door where the path has an edge (round HF-NOISE); a number
+      // is its share of the edge, the door with an edge of its own (round ep-noise), and nought the clean door
+      const share = clean === true ? 0 : typeof clean === 'number' && clean < 1 ? Math.max(0, clean) : null;
+      const passed = (share !== null && graph.cleanBus(bus, struck, share)) || null;
       const door = passed ?? ((struck && graph.struckBus(bus)) || null);
-      const name = passed ? (struck ? 'struck-clean' : 'clean') : 'struck';
+      const name = passed ? `${struck ? 'struck-clean' : 'clean'}${share ? `@${share}` : ''}` : 'struck';
       return sources ? sources.output(source, bus, door, name) : door ?? graph.buses[bus];
     },
     struckBus: (bus) => graph.struckBus(bus),
     hasStruck: () => graph.hasStruck(),
-    cleanBus: (bus, struck) => graph.cleanBus(bus, struck),
+    cleanBus: (bus, struck, share) => graph.cleanBus(bus, struck, share),
     cleanDoors: (bus) => graph.cleanDoors(bus),
     setSourceMix(state) {
       if (isCleanSourceMix(state)) {
@@ -281,6 +284,8 @@ export function makeV1Graph(ctx: BaseAudioContext, settings: Settings, opts: V1G
       // keep for as long as the page lives wherever a loop holds them up
       // (`graph-scope.ts`, the phone review of 10-12).
       graph.letGo();
+      // the out and what held the graph alive, held a while after their cut with the rest (round crash-resume)
+      holdAWhile([graph.out, ...(graph.keepAlive || [])]);
     },
     nodes: graph,
   };
@@ -324,10 +329,8 @@ export function makeV1Master(ctx: BaseAudioContext, settings: Settings): V1Maste
         try { port.onmessage = null; } catch (e) { /* gone */ }
         setTimeout(() => { try { port.close(); } catch (e) { /* gone */ } }, 200);
       }
-      for (const node of nodes) {
-        if (!node) continue;
-        try { node.disconnect(); } catch (e) { /* already gone */ }
-      }
+      // cut, then held a while before the page drops them (round crash-resume, `graph-scope.ts`)
+      cutAndHold(nodes);
     },
     nodes: master,
   };

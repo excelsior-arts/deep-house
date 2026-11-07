@@ -27,6 +27,7 @@
 //       the row it was blessed with (`tools/sound-rows.json`);
 //   (j) a genre row (`PATTERN_LIBRARY`) pins by its audit link and is refused in
 //       words without its family key's spell.
+import { sweep as swept } from './sweep.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -204,7 +205,8 @@ const writes = (f: Fields, base = '', explicit = false) => linkWrite(f, base, { 
 
 test('(b) state -> linkWrite -> linkRead is the same state and the same plan, compact and explicit', () => {
   assert.ok(SWEEP.length >= 220, `the sweep holds ${SWEEP.length} states`);
-  for (const f of SWEEP) for (const explicit of [false, true]) {
+  // (every state at night, every third at the merge gate: `tools/sweep.ts`)
+  for (const f of swept(SWEEP)) for (const explicit of [false, true]) {
     const search = writes(f, '', explicit);
     const read = linkRead(`?${search}`);
     assert.deepEqual(read.problems, [], `${search} was refused: ${read.problems.map((p) => p.long).join('; ')}`);
@@ -276,7 +278,8 @@ test('(d) the default shift: under a page default of house-v3, every written lin
   const styles = { 'house-v3': v3Style };
   const shifted = (search: string) => linkRead(search, { pageDefault: 'house-v3', versions, trial: false });
   let moved = 0;
-  for (const f of SWEEP) {
+  // (every state at night, every third at the merge gate: `tools/sweep.ts`)
+  for (const f of swept(SWEEP)) {
     const search = `?${writes(f)}`;
     const now = linkRead(search).link, then = shifted(search).link;
     assert.deepEqual(fieldsOf(then), fieldsOf(now), `${search} reads differently once the page's default is v3`);

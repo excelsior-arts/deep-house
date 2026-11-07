@@ -14,6 +14,10 @@
 //
 // Only the hat layer's own notes; no die, no time moves; a main, a build and a
 // drop are untouched.
+//
+// **The top form owns its own bars** (round top-form, `src/top-form.ts`): a bar
+// whose hats the top form writes (a long breakdown's way out on the hats alone)
+// is the top form's, and this rule leaves it as it is.
 
 import type { Arrangement } from './arrangement.ts';
 
@@ -30,10 +34,10 @@ function modeAt(kind: string, phrase: number, phrases: number): 'rest' | 'thin' 
 
 /** The plan's events with the hat thinned by section; the same list where nothing is. */
 export function hatsBySection<E extends { layer: string; bar?: number | null; step?: number }>(
-  events: E[], arrangement: Arrangement, layer = 'hats',
+  events: E[], arrangement: Arrangement, layer = 'hats', owned: ReadonlySet<number> = new Set(),
 ): E[] {
   return events.filter((e) => {
-    if (e.layer !== layer || e.bar == null) return true;
+    if (e.layer !== layer || e.bar == null || owned.has(e.bar)) return true;
     const s = arrangement.sections.find((x) => e.bar! >= x.startBar && e.bar! < x.startBar + x.bars);
     if (!s) return true;
     let k = 0;

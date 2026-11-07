@@ -32,7 +32,7 @@
 // so the width comes from a second *pair* an octave up and panned, which is two
 // more nodes and does not touch the morph.
 
-import { midiToHz, adsrEnv, route, panner, startTime, phasedLfo, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR } from '../dsp.ts';
+import { midiToHz, adsrEnv, route, panner, startTime, phasedLfo, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR, FAN_EDGE } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import { heldVoice } from './held.ts';
 import { insert } from './treat.ts';
@@ -92,6 +92,12 @@ export function frames(ctx: BaseAudioContext, S: WavePadPatch): Frames {
   return out;
 }
 
+/** the share of a stack's fan that keeps its outermost layer within `FAN_EDGE` (one where it already is) */
+const edgeOf = (layers: ReadonlyArray<readonly number[]>, spread: number): number => {
+  const outer = Math.max(...layers.map((l) => Math.abs(l[2]))) * Math.abs(spread);
+  return outer > FAN_EDGE ? FAN_EDGE / outer : 1;
+};
+
 /**
  * The pair of oscillators and the crossfade between them, plus the octave over
  * it that carries the width.
@@ -112,6 +118,8 @@ function stack(
   const b = ctx.createGain();
   nodes.push(a, b);
   const layers: Array<{ lvl: GainNode; pn: StereoPannerNode; level: number; pan: number }> = [];
+  // its outermost layer held to the fan's edge (round stereo-room); a stack already inside it stands as it was
+  const edge = edgeOf(S.layers, spread);
   for (const [octave, level, pan] of S.layers) {
     for (const [wave, gainNode] of [[w.from, a], [w.to, b]] as [PeriodicWave, GainNode][]) {
       const o = ctx.createOscillator();
@@ -119,7 +127,7 @@ function stack(
       o.frequency.value = hz * Math.pow(2, octave);
       const lvl = ctx.createGain();
       lvl.gain.value = level;
-      const pn = panner(ctx, pan * spread);
+      const pn = panner(ctx, pan * spread * edge);
       o.connect(lvl);
       lvl.connect(pn);
       pn.connect(gainNode);
@@ -212,7 +220,7 @@ function wavePad(
       .on('q', (v) => [[lp.Q, v]])
       .on('driftHz', (v) => [[drift.frequency, v]])
       .on('driftDepth', (v) => [[driftDepth.gain, built * v]])
-      .on('spread', (v) => (p.spread != null ? [] : st.layers.map(({ pn, pan }) => [pn.pan, side(pan * v * (p.spreadMul ?? 1))] as [AudioParam, number])))
+      .on('spread', (v) => (p.spread != null ? [] : st.layers.map(({ pn, pan }) => [pn.pan, side(pan * v * (p.spreadMul ?? 1) * edgeOf(S.layers, v * (p.spreadMul ?? 1)))] as [AudioParam, number])))
       .on('trim', (v) => {
         if (!(S.trim > 0)) return [];
         cur.trim = v;

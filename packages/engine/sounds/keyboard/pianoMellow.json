@@ -2,24 +2,154 @@
   "schema": 1,
   "kind": "sound",
   "id": "pianoMellow",
-  "revision": 1,
-  "topology": "bright-piano",
+  "revision": 2,
+  "topology": "piano",
   "parameters": {
-    "partials": 6,
-    "inharmonicity": 0.0006,
     "attack": 0.004,
-    "decay": 2.4,
-    "partialDecay": 0.62,
-    "tilt": 0.45,
-    "upper": 0.04,
-    "release": 0.5,
-    "lpHz": 3600,
-    "veloOpen": 0.4,
-    "hammerHz": 2400,
+    "decayFast": 0.45,
+    "sustainLevel": 0.42,
+    "decaySlow": 4,
+    "ring": 1.5,
+    "partialLevel": 0.34,
+    "partialDecay": 0.5,
+    "stretchCents": 2,
+    "unisonCents": 2,
+    "unisonLevel": 0.7,
     "hammerLevel": 0.08,
-    "hammerTime": 0.004,
-    "spread": 0.35,
-    "trim": 1
+    "hammerHz": 2400,
+    "brightMin": 2600,
+    "brightMax": 6000,
+    "hpHz": 50,
+    "spread": 0.4,
+    "dryLevel": 1,
+    "string": {
+      "partials": 12,
+      "reach": 0.5,
+      "strike": 0.125,
+      "comb": 0.5,
+      "stiffness": 0.0004,
+      "level": 0.7,
+      "register": [
+        {
+          "midi": 36,
+          "db": 1.6
+        },
+        {
+          "midi": 43,
+          "db": 2.9
+        },
+        {
+          "midi": 48,
+          "db": 3.1
+        },
+        {
+          "midi": 55,
+          "db": 4.6
+        },
+        {
+          "midi": 60,
+          "db": 5.2
+        },
+        {
+          "midi": 67,
+          "db": 6.3
+        },
+        {
+          "midi": 72,
+          "db": 7.1
+        },
+        {
+          "midi": 79,
+          "db": 9.6
+        },
+        {
+          "midi": 86,
+          "db": 12.3
+        }
+      ],
+      "body": [
+        {
+          "hz": 120,
+          "db": 2.5,
+          "q": 4.5
+        },
+        {
+          "hz": 230,
+          "db": 2,
+          "q": 5
+        },
+        {
+          "hz": 350,
+          "db": 2,
+          "q": 4.5
+        },
+        {
+          "hz": 560,
+          "db": 1.5,
+          "q": 3
+        },
+        {
+          "hz": 950,
+          "db": 1.5,
+          "q": 4
+        },
+        {
+          "hz": 1900,
+          "db": -1,
+          "q": 1.2
+        }
+      ],
+      "knock": 0.03,
+      "knockHz": 240,
+      "felt": {
+        "hz": 520,
+        "track": 1.5,
+        "top": 1800,
+        "level": 0.7,
+        "decay": 0.012
+      },
+      "after": {
+        "seconds": 12,
+        "slope": 0.7,
+        "damper": 0.15,
+        "fade": 3.5,
+        "keep": {
+          "by": [
+            {
+              "life": 1.8,
+              "db": 3.5
+            },
+            {
+              "life": 2,
+              "db": 2.6
+            },
+            {
+              "life": 2.5,
+              "db": 1.0
+            },
+            {
+              "life": 4,
+              "db": -0.3
+            }
+          ]
+        }
+      },
+      "unison": [
+        {
+          "cents": -1.0,
+          "level": 1
+        },
+        {
+          "cents": 0.3,
+          "level": 0.85
+        },
+        {
+          "cents": 1.2,
+          "level": 0.7
+        }
+      ],
+      "touch": 1.3
+    }
   },
   "descriptor": {
     "family": "keyboard",
@@ -33,18 +163,23 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "home": {
+      "spread": "pitch",
+      "body": 1
+    },
     "returns": [],
     "timbres": {},
     "dispatches": [],
     "mood": []
   },
   "provenance": {
-    "module": "keys-2.ts",
+    "module": "piano.ts",
     "round": "liquid-keys",
-    "note": "A mellow bright grand: six stretched partials with a gentle tilt and a lid at 3.6 kHz, clear in the middle and never glassy, the hammer a short soft tick.",
+    "note": "A mellow bright grand: clear in the middle and never glassy, a light board under it and the hammer a short soft tick; its lid opens with the strike.",
     "notes": {
       "copiedFrom": "brightPiano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
-      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row",
+      "string": "Round piano-pool (his word 11-01: \"we need to apply new sound technic to all our acoustic piano voices\"): the grand on the deep house keys' string (piano-string.ts) in place of six oscillators, keeping its character: clear and mellow (a reach of 0.5, its partials falling about as the six oscillators' tilt did; a light board, its modes half the house piano's), a soft short felt tick, three strings close about the note, the lid opening with the strike (2.6 to 6 kHz, which the liquid keys' Zephyr shade, the note's lpMul, takes down). The aftersound, the damper, the touch and the keyboard's seats are the house piano's (round voice-homes); its held key fades over 3.5 s and rings at most 4, near the 2.4 s its oscillators fell in, so the liquid keys' long chords do not turn into a held tone. Its register and its keep are its level against the oscillators it was, measured note by note at its own pedal (velocities 0.4 and 0.55, the liquid keys' range; a piano's level goes as the velocity's square where the oscillators' went as the velocity), less 3.3 dB measured in Vibe - Liquid Gravity: the keyboard's seats there lift the part by the fold it is owed (+1.8 dB) and its ring feeds the part's own space; the keys stand within 0.7 dB of before in both windows."
     }
   }
 }

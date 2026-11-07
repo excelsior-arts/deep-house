@@ -33,6 +33,9 @@ import { zoneBands, TECHNIQUE_LANES, type StylePlaces, type TechniqueLane } from
 import { techniqueOrder } from './technique.ts';
 import { toneOf, restlessOf } from './hook.ts';
 import HOOK_LABELS from './hook-labels.json' with { type: 'json' };
+// the language spoken (round japanese): English is the table's own words, untouched; another reads `words-ring.json`
+import { ringLine as T, ringFills, ringJoin, ringWord, ringCell } from './words-ring.ts';
+import { lang } from './words.ts';
 import type { Bird, Derived, Spell } from './spell.ts';
 import type { Style } from '@deep-house/engine/style';
 
@@ -345,13 +348,14 @@ function allFacts(items: WithItem[]): Array<[string, ProgramFacts]> {
 
 /** Fill a line's `{with}` from the parts the program plays. */
 function fillWith(text: string, band: Pick<Band, 'with' | 'joiner'>, facts: ProgramFacts | null, kind: 'says' | 'short'): string {
+  text = T(text);
   if (!text.includes('{with}')) return text;
   const on = facts ? band.with.filter((w) => facts[w.needs]) : [];
   if (!on.length) return text.replace('{with}', '');
-  if (kind === 'short') return text.replace('{with}', `, ${on[0].short}`);
-  const words = on.map((w) => w.says);
-  const list = words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words[0];
-  return text.replace('{with}', `${band.joiner}${list}`);
+  if (kind === 'short') return text.replace('{with}', `${T(', ')}${T(on[0].short)}`);
+  const words = on.map((w) => T(w.says));
+  const list = words.length > 1 ? `${words.slice(0, -1).join(T(', '))}${T(' and ')}${words[words.length - 1]}` : words[0];
+  return text.replace('{with}', `${T(band.joiner)}${list}`);
 }
 
 /** The hats a theme plays: its program where it carries one, else its dice's mask. */
@@ -611,7 +615,7 @@ function bandLine(bird: Bird, spell: Partial<Spell> | null | undefined, style: S
   if (!band) return '';
   // K30: a beat named with no drum in the theme is not what the music is
   const nd = LABEL_TABLE.birds[bird].noDrums;
-  if (nd && facts && !facts.drums) return nd[kind];
+  if (nd && facts && !facts.drums) return T(nd[kind]);
   const lean = leanAt(bird, spell, style);
   return fillWith(lean !== 'mid' && band.lean ? band.lean[lean][kind] : band[kind], band, facts, kind);
 }
@@ -708,7 +712,7 @@ export function lockedReading(bird: Bird, t: LabelTheme): CellValue {
  * **What a cell prints.** Under a strategy that reads the spell, the big word
  * is the band of the quantity the bird biases (Ember's tempo and Zephyr's keys
  * are the plan's own reading of their bird), and the subtitle is the locked
- * reading with its role: `TIGHT · FX`, `C MIN · I-VI`, `7 SECTIONS`.
+ * reading with its role: `TIGHT · FX`, `C min · i-VI` (Gleam's music in its own case, ring.ts), `7 SECTIONS`.
  */
 export function cellReading(bird: Bird, t: LabelTheme, style: Style | null | undefined): CellValue {
   const locked = lockedReading(bird, t);
@@ -729,6 +733,18 @@ export function cellReading(bird: Bird, t: LabelTheme, style: Style | null | und
   const out: CellValue = { word, sub: sub != null ? fill(sub, words) : general.sub };
   if (sub == null && general.sub2 != null) out.sub2 = general.sub2;
   return out;
+}
+
+/**
+ * **What a cell prints, in the language spoken** (round japanese): `cellReading` said through the ring's table, each
+ * word looked up where it stands first (the technique that owns the cell, then the control), so the bowls' `full`
+ * and the bass's `full` can be two words.
+ */
+export function cellSaid(bird: Bird, t: LabelTheme, style: Style | null | undefined): CellValue {
+  const v = cellReading(bird, t, style);
+  if (lang() === 'en') return v;
+  const tech = style && labelsFor(style) ? techniqueOf(t, seaPlaces(style)) : null;
+  return ringCell(v, lang(), tech ? [`${tech.tech.field}.${bird}`, bird] : [bird]);
 }
 
 /** The cell a style's general words print (round K13): the band of the quantity the bird biases, and the locked reading under it. */
@@ -771,7 +787,8 @@ function lockedWords(t: LabelTheme): Record<string, string> {
   return {
     bpm: String(t.bpm),
     keys: keysOf(t) ? timbrePhrase(keysOf(t)!) : 'silent',
-    key: String(t.key).toLowerCase(),
+    // the key as a musician writes it, its root a capital and a flat a b: "Db minor", never "db minor" (ring-type)
+    key: String(t.key).replace(/ .*$/, (m) => m.toLowerCase()),
     chords: ch.length ? ` over ${ch.join(' and ')}` : '',
     room: String(t.presetName || t.preset || '').toLowerCase(),
     density: String(dieLabel(d.density) ?? '').toLowerCase(),
@@ -789,7 +806,7 @@ function frontWords(t: LabelTheme): Record<string, string> {
   const f = frontOf(t);
   if (!f) return { front: 'nothing', on: '', air: '' };
   const voice = timbrePhrase(f.id);
-  return { front: voice, on: fill(LABEL_TABLE.birds.zephyr.air?.on[f.role] ?? '', { voice }), air: airOf(f.id, f.role, settingOf(playOf(t), f.id, f.role))?.band.word ?? '' };
+  return { front: voice, on: fill(T(LABEL_TABLE.birds.zephyr.air?.on[f.role] ?? ''), { voice: ringWord(voice) }), air: airOf(f.id, f.role, settingOf(playOf(t), f.id, f.role))?.band.word ?? '' };
 }
 
 /**
@@ -805,23 +822,23 @@ export function sentenceOf(bird: Bird, t: LabelTheme, style: Style | null | unde
   const row = LABEL_TABLE.birds[bird];
   const o = style && labelsFor(style) ? overlayOf(bird, t, style) : null;
   if (o) {
-    const words = { ...lockedWords(t), ...o.words };
-    const first = cap(fill(techniqueLine(o, t.spell, 'says'), words));
+    const words = ringFills({ ...lockedWords(t), ...o.words });
+    const first = cap(fill(T(techniqueLine(o, t.spell, 'says')), words));
     const own = lockedOf(o, 'lockedSays');
     const lockedSays = own !== undefined ? own : row.lockedSays;
-    const locked = lockedSays ? fill(lockedSays, words) : '';
-    return locked ? `${first.replace(/\.$/, '')}; ${locked}.` : first;
+    const locked = lockedSays ? fill(T(lockedSays), words) : '';
+    return ringJoin(first, locked);
   }
-  const words = lockedWords(t);
+  const words = ringFills(lockedWords(t));
   let first = '';
   const air = bird === 'zephyr' ? frontAir(t) : null;
-  if (air) first = fill(airLine(air, 'says'), words);
-  else if (typeof row.says === 'string') first = fill(row.says, words);
-  else if (row.says) first = fill(row.says[familyKey(t.spell)] ?? '', words);
+  if (air) first = fill(T(airLine(air, 'says')), words);
+  else if (typeof row.says === 'string') first = fill(T(row.says), words);
+  else if (row.says) first = fill(T(row.says[familyKey(t.spell)] ?? ''), words);
   else if (style && labelsFor(style)) first = fill(bandLine(bird, t.spell, style, 'says', factsOf(t)), words);
-  const locked = row.lockedSays ? fill(row.lockedSays, words) : '';
-  if (!first) return locked ? locked[0].toUpperCase() + locked.slice(1) + '.' : '';
-  return locked ? `${first.replace(/\.$/, '')}; ${locked}.` : first;
+  const locked = row.lockedSays ? fill(T(row.lockedSays), words) : '';
+  if (!first) return locked ? (lang() === 'en' ? locked[0].toUpperCase() + locked.slice(1) + '.' : ringJoin(locked, '')) : '';
+  return ringJoin(first, locked);
 }
 
 /**
@@ -835,13 +852,13 @@ export function sentenceOf(bird: Bird, t: LabelTheme, style: Style | null | unde
 export function shortOf(bird: Bird, t: LabelTheme, style: Style | null | undefined): string {
   const row = LABEL_TABLE.birds[bird];
   const o = style && labelsFor(style) ? overlayOf(bird, t, style) : null;
-  if (o) return cap(fill(techniqueLine(o, t.spell, 'short'), { ...lockedWords(t), ...o.words }));
-  const words = lockedWords(t);
+  if (o) return cap(fill(T(techniqueLine(o, t.spell, 'short')), ringFills({ ...lockedWords(t), ...o.words })));
+  const words = ringFills(lockedWords(t));
   let line = '';
   const air = bird === 'zephyr' ? frontAir(t) : null;
-  if (air) line = fill(airLine(air, 'short'), words);
-  else if (typeof row.short === 'string') line = fill(row.short, words);
-  else if (row.short) line = fill(row.short[familyKey(t.spell)] ?? '', words);
+  if (air) line = fill(T(airLine(air, 'short')), words);
+  else if (typeof row.short === 'string') line = fill(T(row.short), words);
+  else if (row.short) line = fill(T(row.short[familyKey(t.spell)] ?? ''), words);
   else if (style && labelsFor(style)) line = fill(bandLine(bird, t.spell, style, 'short', factsOf(t)), words);
   return line ? line[0].toUpperCase() + line.slice(1) : '';
 }

@@ -22,6 +22,28 @@
 //   node tools/test-browsers.ts --relaunch 0   never make a fresh browser
 //   node tools/test-browsers.ts --console      print every line the page logs,
 //                                              with the time it was logged
+//   node tools/test-browsers.ts --tier gate    the merge gate's rows (Chromium, about
+//                                              five minutes); `night` is the gate's and
+//                                              the night's, `weekly` every row
+//   node tools/test-browsers.ts --no-rerun     a red row is FAIL at once, not rerun alone
+//
+// **Tiers, the rerun, the measurements and Firefox's list** (round test-sane, 11-05;
+// his word: "5.5 hours is a laughing joke for the app of my size"). Every row names a
+// `tier`: `gate` (the merge gate: short rows that need no serial tail), `night` (the
+// default when a row names none) or `weekly` (the private tier's recordings, run on
+// Sunday's pass and at a release cut). `--tier gate` runs the gate's rows, `--tier
+// night` the gate's and the night's, `--tier weekly` (or no `--tier`) every row; the
+// gate's deadline is 60 s a row and the night's 180 s, unless `--deadline` says.
+// A row red in the queue is **rerun alone** in a fresh browser after it: `FAIL` is a
+// row red twice, `flaky` one green alone, and only a `FAIL` ends the run non-zero (the
+// morning triage, done by the runner). A row marked `measure` (a frame budget, a long
+// task, the beat flash: this Mac's timing) prints `meas` with its reading and is never
+// red. Firefox runs only the rows marked `firefox: true` and the minute, one at a time
+// with 90 s a row: it wedges `control.start()` under load, found no regression in three
+// nights, and costs hours; it runs on the weekly pass and at a release cut. A browser
+// found stuck is retired at once, whatever the relaunch budget says (the budget bounds a
+// row's second go only), and three stuck rows in a row end that engine's leg: every row
+// left is a `skip` with the reason, and a skip is not a pass.
 //
 // `--deadline` given on the command line is also a ceiling on the scenarios
 // that name their own: a run asked for a short deadline to find a hang is not
@@ -78,6 +100,7 @@
 import path from 'node:path';
 import { ROOT, PORT, siteDir, serve, servedIsUnderTest, playwright, finish, pageUrl, launchOptions, silentOutput } from '@deep-house/engine/harness';
 import { SCENARIOS, EDGE_TRACKER, AREAS } from './scenarios.ts';
+import { staleTierNames } from './scenario-tiers.ts';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i < 0 ? d : process.argv[i + 1]; };
 const SECONDS = Number(arg('seconds', 60));
@@ -86,6 +109,12 @@ const SECONDS = Number(arg('seconds', 60));
 const BROWSERS = arg('browsers', 'chromium,webkit,firefox').split(',').filter(Boolean);
 const MINUTE_IN = arg('minute-in', 'webkit,firefox').split(',').filter(Boolean);
 const ONE = arg('scene', arg('scenario', null));
+const TIERS = ['gate', 'night', 'weekly'];
+const TIER = arg('tier', null);
+// what each tier runs: the gate's own rows, the night's and the gate's, or every row
+const TIER_RUNS = { gate: ['gate'], night: ['gate', 'night'], weekly: TIERS };
+const tierOf = (s) => s.tier ?? 'night';
+const RERUN = !process.argv.includes('--no-rerun');
 const AREA = arg('area', null);
 const WANT_AREAS = AREA ? AREA.split(',').filter(Boolean) : null;
 // How many browsers run scenarios at once. Four is what this Mac was measured
@@ -118,11 +147,14 @@ const areasOf = (s) => [].concat(s.area ?? []);
   // native text selection — is handed the page itself instead of a body)
   const hasBody = (s) => (typeof s.page === 'string' && s.page.length > 0) || typeof s.page === 'function' || typeof s.drive === 'function';
   const bad = SCENARIOS.map((s) => [s, !s.name ? 'no name' : !hasBody(s) ? 'no page body' : typeof s.judge !== 'function' ? 'no judge'
-    : !areasOf(s).length || areasOf(s).some((a) => !(a in AREAS)) ? `the area ${JSON.stringify(s.area)}, which is not one of ${Object.keys(AREAS).join(', ')}` : null]).filter(([, why]) => why);
+    : !areasOf(s).length || areasOf(s).some((a) => !(a in AREAS)) ? `the area ${JSON.stringify(s.area)}, which is not one of ${Object.keys(AREAS).join(', ')}`
+    : !TIERS.includes(tierOf(s)) ? `the tier ${JSON.stringify(s.tier)}, which is not one of ${TIERS.join(', ')}` : null]).filter(([, why]) => why);
   const names = new Map();
   for (const s of SCENARIOS) names.set(s.name, (names.get(s.name) || 0) + 1);
   for (const [n, k] of names) if (k > 1) bad.push([{ name: n }, `a name ${k} rows share, so a filter or a log line cannot tell them apart`]);
   if (WANT_AREAS) for (const a of WANT_AREAS) if (!(a in AREAS)) bad.push([{ name: `--area ${a}` }, `no such area; there are ${Object.keys(AREAS).join(', ')}`]);
+  for (const n of staleTierNames(SCENARIOS)) bad.push([{ name: n }, 'a tier or a mark in tools/scenario-tiers.ts, and no row of that name']);
+  if (TIER && !TIERS.includes(TIER)) bad.push([{ name: `--tier ${TIER}` }, `no such tier; there are ${TIERS.join(', ')}`]);
   if (bad.length) {
     for (const [s, why] of bad) console.log(`FAIL  the scenario ${JSON.stringify(s.name || '(no name)')} has ${why} — its fields are ${Object.keys(s).join(', ')}`);
     finish({ failed: bad.length, skipped: [] });
@@ -131,17 +163,20 @@ const areasOf = (s) => [].concat(s.area ?? []);
 if (process.argv.includes('--areas')) {
   for (const [a, what] of Object.entries(AREAS))
     console.log(`${a.padEnd(10)} ${String(SCENARIOS.filter((s) => areasOf(s).includes(a)).length).padStart(3)}  ${what}`);
+  console.log(`tiers      ${TIERS.map((t) => `${t} ${SCENARIOS.filter((s) => tierOf(s) === t).length}`).join(', ')}; ${SCENARIOS.length} rows; `
+    + `firefox ${SCENARIOS.filter((s) => s.firefox).length}, measure ${SCENARIOS.filter((s) => s.measure).length}, serial ${SCENARIOS.filter((s) => s.serial).length}`);
   process.exit(0);
 }
 // `--repeat <n>` runs each chosen row n times over, as rows of their own in the
 // same queue: how a row suspected of leaning on the machine's load is measured
 // under the load four browsers make.
 const REPEAT = Math.max(1, Math.floor(Number(arg('repeat', 1))) || 1);
-const RUN = SCENARIOS.filter((s) => (!ONE || s.name.includes(ONE)) && (!WANT_AREAS || areasOf(s).some((a) => WANT_AREAS.includes(a))))
+const RUN = SCENARIOS.filter((s) => (!ONE || s.name.includes(ONE)) && (!WANT_AREAS || areasOf(s).some((a) => WANT_AREAS.includes(a)))
+  && (!TIER || TIER_RUNS[TIER].includes(tierOf(s))))
   .flatMap((s) => (REPEAT === 1 ? [s] : Array.from({ length: REPEAT }, (_, k) => ({ ...s, name: `${s.name} (${k + 1} of ${REPEAT})` }))));
 // A filter that matches nothing has run nothing, and nothing is not a pass.
 if (!RUN.length) {
-  console.log(`FAIL  no scenario matches${ONE ? ` --scenario ${JSON.stringify(ONE)}` : ''}${WANT_AREAS ? ` in --area ${WANT_AREAS.join(',')}` : ''}`);
+  console.log(`FAIL  no scenario matches${ONE ? ` --scenario ${JSON.stringify(ONE)}` : ''}${WANT_AREAS ? ` in --area ${WANT_AREAS.join(',')}` : ''}${TIER ? ` in --tier ${TIER}` : ''}`);
   finish({ failed: 1, skipped: [] });
 }
 
@@ -173,8 +208,12 @@ if (served.ok) {
 const NAV_TIMEOUT = +arg('nav-deadline', 45000);
 // The deadline a scenario gets when it names none of its own, and how many
 // times one browser may be thrown away and made again inside one engine's turn.
-const DEFAULT_DEADLINE = +arg('deadline', 120000);
-const DEADLINE_CAP = process.argv.includes('--deadline') ? DEFAULT_DEADLINE : Infinity;
+// (a tier names its own: the gate 60 s a row, the night 180 s, a cap on the rows that name a longer one; Firefox 90 s)
+const TIER_DEADLINE = { gate: 60000, night: 180000 };
+const DEFAULT_DEADLINE = +arg('deadline', TIER_DEADLINE[TIER] ?? 120000);
+const DEADLINE_CAP = process.argv.includes('--deadline') || TIER_DEADLINE[TIER] ? DEFAULT_DEADLINE : Infinity;
+const FIREFOX_DEADLINE = 90000;
+const deadlineOf = (s, name) => Math.min(s.deadline || DEFAULT_DEADLINE, DEADLINE_CAP, name === 'firefox' && !process.argv.includes('--deadline') ? FIREFOX_DEADLINE : Infinity);
 const CONSOLE = process.argv.includes('--console');
 const T0 = Date.now();
 const MAX_RELAUNCH = +arg('relaunch', 3);
@@ -212,8 +251,8 @@ const stuck = (e) => /Timeout|timed out|did not answer|has been closed|Target (p
 
 {
   // What the run's own deadlines add up to, per engine: every scenario at its
-  // deadline twice (a go and a relaunched go), every relaunch, and the minute.
-  const perEngine = RUN.reduce((a, s) => a + 2 * Math.min(s.deadline || DEFAULT_DEADLINE, DEADLINE_CAP), 0)
+  // deadline three times (a go, a relaunched go and the rerun alone), every relaunch, and the minute.
+  const perEngine = RUN.reduce((a, s) => a + 3 * Math.min(s.deadline || DEFAULT_DEADLINE, DEADLINE_CAP), 0)
     + MAX_RELAUNCH * (NAV_TIMEOUT + 20000) + SECONDS * 1000 + 6 * NAV_TIMEOUT;
   const ceiling = RUN_CEILING || perEngine * BROWSERS.length;
   setTimeout(() => {
@@ -256,6 +295,14 @@ for (const name of pw ? BROWSERS : []) {
   const engine = pw[name];
   if (!engine) { skip(`${name} is not a browser playwright knows`); continue; }
   let relaunches = 0;
+  // **Firefox runs its own short list** (round test-sane): the rows marked `firefox: true`, and the minute.
+  const ROWS = name === 'firefox' ? RUN.filter((s) => s.firefox) : RUN;
+  // **The cliff** (round test-sane; the 11-05 night: three wedged rows spent the relaunch budget inside the first hour,
+  // the dead browser was kept, and 272 rows then failed in 0.0 s on "browser has been closed"). A stuck browser is
+  // retired every time; three rows in a row that end stuck end the engine's leg, and what is left is skipped by name.
+  let stuckRun = 0;
+  let abandoned = null;
+  const STUCK_ROWS = 3;
 
   // **A worker is a browser, and a scenario is a context in it.** The browser
   // is disposable — a stuck one is retired and made again between two rows —
@@ -272,7 +319,8 @@ for (const name of pw ? BROWSERS : []) {
     // One go of one row in a fresh context: what the judge said, or a throw.
     const go = async (s) => {
       if (!browser) await launch();
-      const context = await inTime(browser.newContext({ viewport: { width: 390, height: 844 } }), `${s.name} (a fresh context)`, NAV_TIMEOUT);
+      // a row may name the browser's language (`locale`, round japanese): the page hears it as `navigator.languages`
+      const context = await inTime(browser.newContext({ viewport: { width: 390, height: 844 }, ...(s.locale ? { locale: s.locale } : {}) }), `${s.name} (a fresh context)`, NAV_TIMEOUT);
       const errors = [];
       try {
         // Before the page's own script, so it sees every edge the graph makes
@@ -290,7 +338,7 @@ for (const name of pw ? BROWSERS : []) {
         // so a deep buffer cannot be asked for from inside a page already
         // running on a shallow one. Every other row opens the plain page.
         await openAt(page, s.query || '');
-        const deadline = Math.min(s.deadline || DEFAULT_DEADLINE, DEADLINE_CAP);
+        const deadline = deadlineOf(s, name);
         const setup = s.setup ? s.setup() : null;
         if (setup) await inTime(page.evaluate((v) => { window.__setup = v; }, setup), `${s.name} (setup)`, NAV_TIMEOUT);
         // **A scenario has a deadline on this side too.** Every await inside a
@@ -318,36 +366,48 @@ for (const name of pw ? BROWSERS : []) {
       tag,
       launch,
       close: retire,
-      async run(s) {
+      // `again`: the rerun of a row red in the queue, alone and in a browser made for it
+      async run(s, again = false) {
         const at = Date.now();
         const where = `${tag} · ${s.name}`;
         WHERE.add(where);
+        if (again) await retire();
         let r = null;
         let retried = '';
+        let wasStuck = false;
         // Two goes at the most, and the second only in a browser that has
         // just been made: a fault the page can see is a failure, and a browser
         // that has stopped answering is not the page's fault and is not
-        // evidence.
+        // evidence. A stuck browser is retired whether or not a second go is
+        // left, so the row after it never meets a closed one.
         for (let n = 0; n < 2 && !r; n++) {
           try {
             r = await go(s);
+            wasStuck = false;
           } catch (e) {
             const why = e.message.split('\n')[0].slice(0, 160);
-            if (n === 0 && stuck(e) && relaunches < MAX_RELAUNCH) {
+            wasStuck = stuck(e);
+            if (wasStuck) await retire();
+            if (n === 0 && wasStuck && relaunches < MAX_RELAUNCH) {
               relaunches += 1;
               retried = why;
               console.log(`retry ${tag} · ${s.name}: ${why} — a fresh browser (${relaunches} of ${MAX_RELAUNCH})`);
-              await retire();
               continue;
             }
             r = { ok: false, why };
           }
         }
         WHERE.delete(where);
+        if (!again) {
+          stuckRun = wasStuck ? stuckRun + 1 : 0;
+          if (stuckRun >= STUCK_ROWS && !abandoned) abandoned = `${STUCK_ROWS} rows in a row found the browser stuck, the last ${s.name}`;
+        }
         const ms = Date.now() - at;
-        const again = retried ? ` [after a relaunch: ${retried}]` : '';
-        return { ok: r.ok, ms, line: r.ok ? `ok    ${name} · ${s.name}: ${r.note || r.why} (${(ms / 1000).toFixed(1)} s)${again}`
-          : `FAIL  ${name} · ${s.name}: ${r.why} (${(ms / 1000).toFixed(1)} s)${again}` };
+        const relaunched = retried ? ` [after a relaunch: ${retried}]` : '';
+        const said = r.ok ? (r.note || r.why) : r.why;
+        // a measurement is read, never tripped: its line says what it read, green or not
+        const tagOf = s.measure ? 'meas ' : r.ok ? (again ? 'flaky' : 'ok   ') : again || !RERUN ? 'FAIL ' : 'red  ';
+        return { ok: r.ok, ms, measure: !!s.measure, line: `${tagOf} ${name} · ${s.name}: ${s.measure && !r.ok ? `(over its budget) ${said}` : said} (${(ms / 1000).toFixed(1)} s)${relaunched}` };
       },
     };
   };
@@ -356,9 +416,10 @@ for (const name of pw ? BROWSERS : []) {
   // ones alone, each list in the file's order. Lines are printed in that order
   // as soon as every row before them has answered, so a log is the same log
   // whatever finished first.
-  const order = [...RUN.filter((s) => !s.serial), ...RUN.filter((s) => s.serial)];
-  const shared = order.length - RUN.filter((s) => s.serial).length;
+  const order = [...ROWS.filter((s) => !s.serial), ...ROWS.filter((s) => s.serial)];
+  const shared = order.length - ROWS.filter((s) => s.serial).length;
   const workers = Array.from({ length: Math.max(1, Math.min(jobsFor(name), shared || 1)) }, (_, w) => makeWorker(w));
+  if (!order.length) { console.log(`note  ${name}: no row of this run is ${name}'s`); }
   try {
     await workers[0].launch();
   } catch (e) {
@@ -377,25 +438,42 @@ for (const name of pw ? BROWSERS : []) {
     .sort((a, b) => (order[b].deadline || DEFAULT_DEADLINE) - (order[a].deadline || DEFAULT_DEADLINE) || a - b);
   const results = new Array(order.length);
   let printed = 0;
+  const reds = [];
   const flush = () => {
     while (printed < order.length && results[printed]) {
-      const x = results[printed++];
+      const i = printed++;
+      const x = results[i];
       console.log(x.line);
-      if (!x.ok) failed++;
+      if (x.skipped) continue;
+      if (!x.ok && !x.measure) { if (RERUN) reds.push(i); else failed++; }
     }
   };
+  const skipRow = (s) => ({ ok: false, ms: 0, skipped: true, line: `skip  ${name} · ${s.name}: not run, the leg ended (${abandoned})` });
   const began = Date.now();
   let next = 0;
   await Promise.all(workers.map(async (wk) => {
     while (next < shared) {
       const i = rank[next++];
-      results[i] = await wk.run(order[i]);
+      results[i] = abandoned ? skipRow(order[i]) : await wk.run(order[i]);
       flush();
     }
   }));
   for (const wk of workers.slice(1)) await wk.close();
-  for (let i = shared; i < order.length; i++) { results[i] = await workers[0].run(order[i]); flush(); }
+  for (let i = shared; i < order.length; i++) { results[i] = abandoned ? skipRow(order[i]) : await workers[0].run(order[i]); flush(); }
+  // **The reds again, alone** (round test-sane: the morning triage, done here). Each in a browser of its own, one at a
+  // time, after the rest: red twice is `FAIL`, green alone is `flaky`.
+  let flaky = 0, unrun = 0;
+  const rerunAt = Date.now();
+  for (const i of reds) {
+    // (a row red in a leg that ended is not evidence twice over: a skip, which still ends the run non-zero)
+    if (abandoned) { console.log(`skip  ${name} · ${order[i].name}: red in the queue, and not rerun (the leg ended: ${abandoned})`); unrun++; continue; }
+    const x = await workers[0].run(order[i], true);
+    console.log(x.line);
+    if (x.ok) flaky++; else failed++;
+  }
   await workers[0].close();
+  const skippedRows = results.filter((x) => x && x.skipped).length + unrun;
+  if (skippedRows) skip(`${name}: ${skippedRows} rows not run or not rerun (${abandoned})`);
   if (order.length) {
     // What each area cost, summed over its rows (a row of two areas counted in
     // its first), and what the whole took on the wall: the second is what four
@@ -403,7 +481,8 @@ for (const name of pw ? BROWSERS : []) {
     const byArea = {};
     order.forEach((s, i) => { const a = areasOf(s)[0]; byArea[a] = (byArea[a] || 0) + results[i].ms; });
     console.log(`time  ${name}: ${order.length} scenarios in ${((Date.now() - began) / 1000).toFixed(0)} s on the wall, ${workers.length} at a time`
-      + `${order.length > shared ? ` and ${order.length - shared} alone` : ''}; by area, summed: `
+      + `${order.length > shared ? ` and ${order.length - shared} alone` : ''}${reds.length ? `, ${reds.length} rerun alone in ${((Date.now() - rerunAt) / 1000).toFixed(0)} s (${flaky} flaky)` : ''}`
+      + `${TIER ? `; tier ${TIER}` : ''}; by area, summed: `
       + Object.entries(byArea).map(([a, ms]) => `${a} ${(ms / 1000).toFixed(0)} s`).join(', '));
   }
 

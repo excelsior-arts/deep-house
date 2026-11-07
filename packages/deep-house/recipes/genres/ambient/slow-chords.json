@@ -197,7 +197,7 @@
       "reaches": false,
       "eventRateZ": 2,
       "syncopationZ": null,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (round recipes-g1 tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
     }
   }
 }

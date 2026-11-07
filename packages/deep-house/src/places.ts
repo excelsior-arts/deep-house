@@ -1368,10 +1368,11 @@ export function lengthMargin(P: StylePlaces | null | undefined, row: string, spe
   if (!P) return -Infinity;
   let out = -Infinity;
   const z = zoneOf(P, spell);
-  for (const lane of TECHNIQUE_LANES) {
+  // (...and the time table, whose entries name a row at the top: a kit that plays half-time, round dark-fronts' tenth pass)
+  for (const lane of [...TECHNIQUE_LANES, 'time'] as const) {
     const table = P[lane] as readonly TechniqueEntry[] | undefined;
-    if (!table?.some((e) => e.technique?.length === row)) continue;
-    const names = (e: PlaceEntry | null | undefined) => (e as TechniqueEntry | null | undefined)?.technique?.length === row;
+    const names = (e: PlaceEntry | null | undefined) => !!e && ((e as TechniqueEntry).technique?.length === row || (e as { length?: string }).length === row);
+    if (!table?.some(names)) continue;
     const zoneRead = (zz: Zone) => {
       const id = zz.rows[lane];
       return id !== undefined ? table.find((e) => e.id === id) ?? null : (zz.borrow[lane] as TechniqueEntry | null | undefined) ?? null;

@@ -87,6 +87,14 @@ export interface SoundDescriptor {
    */
   clean?: boolean;
   /**
+   * **the share of the harmonic bus's edge its notes take** (round ep-noise, his ear 11-05 on the soft FM electric piano
+   * at the trance corner: the edge's buzz on its near-sines "a bit out of control … so it doesn't compete with the voice
+   * itself", and of four strengths, *"let's do number 2 (-12 dB)"*): from nought to one, the copy the edge makes of its
+   * notes at that share (a quarter is 12 dB down), their dry as it always was. Absent, the edge reads the note whole;
+   * `clean` or the topology's `edge: false` still play past it. Where a theme's room builds no edge it moves nothing.
+   */
+  edgeShare?: number;
+  /**
    * an instrument that brings a figure of its own (an arpeggio or a written melody, in the melody role, to its own room)
    * rather than striking the stab grid: the piano, since the record (v1's `figures.ownFigure`). The composer and the
    * keys' moments read it (round sound-properties), never the row's name; absent, the voice plays the grid.
@@ -98,6 +106,16 @@ export interface SoundDescriptor {
    * bright end; a style walks the patch between the two by the birds (house-v2's Zephyr voicing). Absent, one patch.
    */
   dark?: Readonly<Record<string, number>>;
+  /**
+   * **The voice's home** (round voice-homes, his word 11-01: *"sparse piano should get that extra width because it just
+   * doesn't sound good dry … tune up some voices too to their more archetypical strengths"*): the width and the body an
+   * instrument needs to sound like itself, which belong to it and not to the room (Tide scales the tail above them).
+   * `spread: 'pitch'`, its notes seated across the field by their pitch about their part's middle, as a keyboard's
+   * strings stand (the stage's `keyboardSeats`; the topology reads the seat); `body`, how much of its note goes into
+   * its own close room (the soundboard and an early reflection: the theme's `body` return), 1 the piano's. Absent, the
+   * voice stands where its part puts it, with no room of its own.
+   */
+  home?: Readonly<{ spread?: 'pitch'; body?: number }>;
   /** a gain over every note's output from its onset (`output-envelope.ts`); absent, none */
   contour?: OutputContour;
   timbres: Record<string, TimbreFacts>;
@@ -299,7 +317,16 @@ export function soundFaults(row: SoundRow, topology: Topology | undefined): stri
   if (d.returns !== undefined) for (const r of d.returns) if (!(LAZY_RETURNS as readonly string[]).includes(r)) say(`${r} is not a lazy return`);
   if (d.edge !== undefined && typeof d.edge !== 'boolean') say('edge is not a boolean');
   if (d.clean !== undefined && typeof d.clean !== 'boolean') say('clean is not a boolean');
+  if (d.edgeShare !== undefined && !(typeof d.edgeShare === 'number' && d.edgeShare >= 0 && d.edgeShare <= 1)) say('edgeShare is not a share from nought to one');
   if (d.ownFigure !== undefined && typeof d.ownFigure !== 'boolean') say('ownFigure is not a boolean');
+  if (d.home !== undefined) {
+    if (!isObject(d.home)) say('home is not a table');
+    else {
+      for (const k of Object.keys(d.home)) if (k !== 'spread' && k !== 'body') say(`home.${k} is not a field of a home`);
+      if (d.home.spread !== undefined && d.home.spread !== 'pitch') say(`home.spread ${JSON.stringify(d.home.spread)} is not 'pitch'`);
+      if (d.home.body !== undefined && !(typeof d.home.body === 'number' && d.home.body >= 0 && d.home.body <= 2)) say('home.body is not a level from 0 to 2');
+    }
+  }
   if (d.dark !== undefined) {
     if (!isObject(d.dark)) say('dark is not a table');
     else for (const [k, v] of Object.entries(d.dark)) if (typeof v !== 'number' || typeof row.parameters[k] !== 'number') say(`dark.${k}: a number for a numeric parameter of the row`);

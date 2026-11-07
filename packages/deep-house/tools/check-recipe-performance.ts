@@ -18,6 +18,9 @@ import { validate, vocabularyOf } from '../src/recipe.ts';
 import * as registry from '@deep-house/engine/voices';
 import { resolveRhythm, withRhythm } from '../src/parts/rhythm.ts';
 import { recipesFor } from '../src/mix.ts';
+import { isWindEvent } from '../src/wind.ts';
+// (and the wind's gain, round wind (11-03): its ceiling reads it against the whole mix as the hats' does, so a part that moves the mix moves the wind's level, never where or how it plays; `isWindEvent`)
+const windLevelAside = <E extends { voice: string; layer?: string; p: Record<string, unknown> }>(e: E): E => (isWindEvent(e) ? { ...e, p: { ...e.p, gain: undefined } } : e);
 import { figureCandidates } from '../src/parts/figure.ts';
 
 const style = strategyById('house-v2').style;
@@ -291,7 +294,7 @@ test('continuous pitched percussion keeps every pulse while an independent ornam
       figures: { ...continuousRecipe.wants!.figures, figure: ostinato },
     } } });
     const before = planTheme(seed, 0, { ...opts, recipe: seasonedRecipe });
-    assert.deepEqual(both.events.filter(e => e.layer !== 'keys'), before.events.filter(e => e.layer !== 'keys'), 'all foundation events and their parameters remain fixed');
+    assert.deepEqual(both.events.filter(e => e.layer !== 'keys').map(windLevelAside), before.events.filter(e => e.layer !== 'keys').map(windLevelAside), 'all foundation events and their parameters remain fixed');
     const body = both.events.filter(e => e.voice === bodyVoice);
     // ...in its notes. Its level follows the stage, which hears the ornament as the keys' novelty, and a front stands no
     // higher on the stage than the style's `front.liftDb` (the front-level round): its gains move by exactly the
@@ -408,7 +411,7 @@ test('sparse texture keeps its own four-bar clock and return without restaging t
     // (over ten a theme until round length-2 put the grooves at 3-4 minutes, his word 10-27: "We should aim for 3-4mins
     // here"; seed 31003 lays ten since, a pulse every four bars of keys)
     assert.ok(pulses.length >= 8, `${seed}: ${pulses.length} pulses`);
-    assert.deepEqual(next.events.filter(e => e.role !== 'texture'), old.events);
+    assert.deepEqual(next.events.filter(e => e.role !== 'texture').map(windLevelAside), old.events.map(windLevelAside));
     for (const e of pulses) {
       assert.equal(e.bar % 4, 0);
       assert.equal(e.step, 2);
@@ -429,7 +432,7 @@ test('sparse texture keeps its own four-bar clock and return without restaging t
       else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) { if (k === 'gain' && typeof x === 'number') out.push(x); else gains(x, out); }
       return out;
     };
-    const ga = gains(after.events.filter(e => e.role !== 'texture')), gb = gains(before.events);
+    const ga = gains(after.events.filter(e => e.role !== 'texture' && !isWindEvent(e))), gb = gains(before.events.filter(e => !isWindEvent(e)));
     assert.ok(ga.length === gb.length && ga.every((g, k) => g === gb[k] || Math.abs(20 * Math.log10(g / gb[k])) < 0.5), `${seed}: a gain moved 0.5 dB or more`);
     assert.deepEqual(after.development, before.development);
     assert.equal(after.events.filter(e => e.role === 'texture').length, pulses.length);

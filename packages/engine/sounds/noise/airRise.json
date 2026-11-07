@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "airRise",
+  "revision": 1,
+  "topology": "air",
+  "parameters": {
+    "shape": "rise",
+    "pink": false,
+    "corr": 0.7,
+    "hpHz": 9000,
+    "poles": 2,
+    "lpHz": 18000,
+    "q": 0.7,
+    "driftHz": 0.06,
+    "driftDepth": 0,
+    "attack": 0.4,
+    "release": 0.006,
+    "curve": 3,
+    "bandHz": [
+      5000,
+      9000
+    ],
+    "bandQ": 1,
+    "peak": 0.5,
+    "sway": 0.1,
+    "reverb": 0.04,
+    "delay": 0,
+    "trim": 0.0253
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "air-voices",
+    "module": "none",
+    "note": "A riser that lives only in the air: white noise over a 24 dB floor at 9 kHz, its level on a power curve, cut dead on the line. Flat, it is the held hiss over a break's last bars."
+  }
+}

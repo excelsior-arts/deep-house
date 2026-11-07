@@ -195,17 +195,17 @@ test('the journey is one line of the place: taken out, PSY plays the composer\'s
  * Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did.
  */
 const OUTSIDE: Record<string, string> = {
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '401d3474e265e505',
-  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '3439642f654051da',
-  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '55ccae884e71dc58',
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '5bb825234d7f738b',
+  'seed=2&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'aae60c1e5cf18ec7',
+  'seed=3&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'a9186afac1841a30',
   // a library turn at the bells' tile, which the zone plays as the conversation (zones-pilot; check-conversation's TURNED)
-  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': '9e8fb2b8e36b2837',
-  'seed=3&v=2': '9cb9b1aa1cad7cc9', // piano-tone: the new piano
-  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '4a98552d24b3d18d', // piano-tone: the new piano
-  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': 'f2ce703f18612815', // piano-tone: the new piano
-  'seed=2&v=2&spell=em:0.10,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '1a688dd439b4bc81',
+  'seed=4&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90': 'b006d9638ccd0b44',
+  'seed=3&v=2': 'dbc860fd2e405082', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:1,ze:0,ro:1,gl:0,ve:0,sp:0,lo:1': '5edccbb582714066', // piano-tone: the new piano
+  'seed=3&v=2&spell=ti:0,ze:1,ro:0,gl:1,ve:1,sp:1,lo:0': '4545c379c59239fb', // piano-tone: the new piano; round wind (11-03, his pick C): its four winds arrive on their lines, nothing else moved
+  'seed=2&v=2&spell=em:0.10,ti:1.00,ze:0.00,ro:1.00,gl:0.00,ve:0.00,sp:0.00,lo:1.00': '0aa3c3d28f76e490',
   // outside the bells' box (Spark 0), where every lane BELLS lists read BELLS's entry on local: the tables less the zone's since zones-pilot
-  'seed=2&v=2&spell=em:0.10,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:0.30,sp:0.00,lo:0.00': '2b205e3751b1850c',
+  'seed=2&v=2&spell=em:0.10,ti:0.00,ze:1.00,ro:0.00,gl:1.00,ve:0.30,sp:0.00,lo:0.00': 'bc1e89772250cb99', // round wind (11-03, his pick C): its winds arrive on their lines, nothing else moved
 };
 
 test('the harmony entry that draws its own mode plays only inside its journey\'s region: where the harmony is PSY\'s and the journey is not, the theme plays the house\'s walk in the key die\'s mode', (ctx) => {

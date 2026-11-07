@@ -71,6 +71,6 @@
     "reading": "sixteen bars of kick and rolling sub with no snare and no hats (the snare 1.7 a bar, the hats 2.5, the sub 1.9 dB under the level), then the break back in; cut 29 holds 28 bars of drop-out and cut 31 ends on 28 bars of no kick",
     "plays": "since round T2: a main row the fast broken place prefers beside the house's (deep-house-places.ts SECTIONS); its first phrase is the kick and the sub under the pad, the break from the second; it takes the small things a main takes",
     "knowledge": "mined: read off the cuts' onset lanes bar by bar (packages/mining/tools/readings.py); nothing sampled, no audio copied",
-    "moved": "round T2 (2026-10-02): written in the treatment contract (src/treatment.ts) from the readings of notes/analysis/dnb-1-segments.md; at nought in the row, preferred by the fast broken place"
+    "moved": "round T2 (2026-10-02): written in the treatment contract (src/treatment.ts) from the readings of the dnb-1-segments analysis; at nought in the row, preferred by the fast broken place"
   }
 }

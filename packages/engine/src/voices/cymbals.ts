@@ -27,7 +27,7 @@
 // Registered and reachable by nothing: no candidate list of any style names
 // either of them and `plays` is null, so no arrangement gates them.
 
-import { kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { kitTopology, drumNoise, kitNoise, filter, tuned, transient, KIT } from './drumkit.ts';
 import { contract, list, num, CENTS, DB, HZ, LEVEL, Q, RATIO, SECONDS, UNIT } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
@@ -130,7 +130,7 @@ function cymbalBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: n
   const hiss = ac.createGain();
   hiss.gain.value = 1 - spec.metal;
   hiss.connect(wash);
-  const n = drumNoise(ac, spec.seconds + 0.05, 60013 + Math.round(spec.peakHz));
+  const n = kitNoise(ac, spec, spec.seconds + 0.05, 60013 + Math.round(spec.peakHz));
   n.connect(hiss);
   n.start(at);
   n.stop(at + spec.seconds);
@@ -157,6 +157,8 @@ export const CYMBAL = kitTopology({
   spec: cymbalSpec,
   variant: cymbalVariant,
   build: cymbalBody,
+  // the noise half's two ears (round stereo-room); the shell and the bell stay one channel, in the middle
+  air: 0.3,
 });
 
 export default CYMBAL;

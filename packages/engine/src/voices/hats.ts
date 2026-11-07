@@ -429,7 +429,10 @@ function hat(ctx: BaseAudioContext, out: VoiceOut, time: number, p: NoteParams, 
   wide.gain.value = 1;
   pan.connect(wide);
   haasGain.connect(wide);
-  route(ctx, wide, out, { dry: p.dry ?? 1, room: p.room ?? spec.room ?? 0, delay: p.delay ?? spec.delay,
+  // the kit's top in the room (round stereo-room): never under the theme's floor (`space.kitRoom`)
+  // (round tops-bus-2, T22) `roomMul`: the centred hat's send narrowed, so it stays a point in the middle
+  const room = Math.max(p.room ?? spec.room ?? 0, S.kitRoom ?? 0) * (p.roomMul ?? 1);
+  route(ctx, wide, out, { dry: p.dry ?? 1, room, delay: p.delay ?? spec.delay,
     ...(p.background !== undefined ? { background: p.background } : {}),
     ...(p.reverb !== undefined ? { reverb: p.reverb } : {}) });
   return end;

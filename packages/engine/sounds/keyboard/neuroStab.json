@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "neuroStab",
+  "revision": 1,
+  "topology": "fm-growl",
+  "parameters": {
+    "trim": 0.86,
+    "attack": 0.003,
+    "decay": 0.16,
+    "sustain": 0.35,
+    "release": 0.07,
+    "ratio": 1,
+    "index": [
+      2.2,
+      2.6
+    ],
+    "indexPeak": 2.2,
+    "indexTime": 0.09,
+    "wobbleHz": 7.5,
+    "wobbleDepth": 0.45,
+    "pitchDropCents": 420,
+    "pitchTime": 0.035,
+    "bendCents": 0,
+    "bendTime": 0,
+    "drive": 2.8,
+    "vowelFrom": [
+      420,
+      1150
+    ],
+    "vowelTo": [
+      760,
+      1500
+    ],
+    "vowelTime": 0.18,
+    "formantQ": 5,
+    "formantMix": 0.6,
+    "combMs": 4.2,
+    "combFeedback": 0.55,
+    "combMix": 0.3,
+    "noise": 0.5,
+    "noiseHz": 2600,
+    "noiseTime": 0.03,
+    "lpHz": 3600,
+    "hpHz": 180,
+    "edgeOpen": 1.8,
+    "detuneCents": 9,
+    "spread": 0.3,
+    "reverb": 0.16,
+    "delay": 0.12
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "dear",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dark-fronts",
+    "module": "fm-growl.ts",
+    "note": "An FM neuro stab: one sine throwing another at the note's own ratio, struck at twice its held index and wobbling at 7.5 Hz, the pitch falling a major third onto the note in 35 ms, driven, through a pair of formants opening from o toward a, over a 4.2 ms comb's metallic ring, with a breath of noise at 2.6 kHz in the strike. Short (a sixteenth or an eighth), a growl that answers the bass rather than doubling it.",
+    "notes": {
+      "hpHz": "180 Hz: nothing of the stab under the reese's body.",
+      "wobbleHz": "The growl's movement: one or two turns inside a stab.",
+      "timbres": "none declared: a sketch row, held at nought (AWAITING) until his pick admits it"
+    }
+  }
+}

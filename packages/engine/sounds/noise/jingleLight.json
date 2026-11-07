@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "jingleLight",
+  "revision": 1,
+  "topology": "jingle",
+  "dice": 203.9,
+  "parameters": {
+    "hp": 6500,
+    "peakHz": 9500,
+    "q": 0.6,
+    "ratios": [
+      1,
+      1.21,
+      1.42,
+      1.65
+    ],
+    "jingleHz": 7700,
+    "jingleLevel": 0.5,
+    "skinHz": 480,
+    "skinLevel": 0,
+    "skinDecay": 0.02,
+    "t10": 0.02,
+    "seconds": 0.4,
+    "variants": 3,
+    "variantCents": 28,
+    "attack": 0.004,
+    "trim": 0.63,
+    "rateSpread": 0.035,
+    "gainSpread": 0.1,
+    "decaySpread": 0.14,
+    "panSpread": 0.06,
+    "velBright": 0.28,
+    "velDecay": 0.3,
+    "pan": 0,
+    "room": 0.06
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "jingleLight": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 9500,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "perc.ts",
+    "note": "A jingle with the skin off (top-voices, T38): the tambourine's builder with no skin, four jingle pairs at 7.7, 9.3, 10.9 and 12.7 kHz over a 6.5 kHz high-pass, a 4 ms attack and a 20 ms hit; centred. A sketch row: nothing draws it; the tambourine stays reserved."
+  }
+}

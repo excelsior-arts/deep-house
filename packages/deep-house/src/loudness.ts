@@ -468,7 +468,11 @@ function chosenWindow(track: LoudnessTrack, style: Style): { w: { from: number; 
     for (const w of calm.length ? calm : all) {
       const f = featuresAt(track, style, w, index);
       const v = lufsAfter(f, style);
-      if (v > loudest) { loudest = v; best = { w, f }; }
+      // **Louder by more than noise** (the determinism review of 11-02): a steady stretch's windows read the same events in
+      // rotated order and differ by the summation's last bit (seed 28617's theme 24, windows 43-48, one ulp apart), and
+      // the walk leaves the chosen window out of its mean, so the pick moved the trim (0.018 dB) the day a library's
+      // `pow` moved a bit. Windows level within noise go to the first.
+      if (v > loudest + 1e-9) { loudest = v; best = { w, f }; }
     }
     if (best) return walked(track, style, best, index, steady);
   }

@@ -67,6 +67,9 @@ export default defineConfig({
     __PRIVATE_TOOLS__: JSON.stringify(PRIVATE_TOOLS),
     // The page's version, for the exception tracker's `release` (src/instrument.ts).
     __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf8')).version),
+    // Round stab-punch's sketch builds (src/stab-punch.ts): the sketch a private-tier build plays, `VITE_STAB_PUNCH=a|b|c|d`;
+    // a release build never sets it, and the plan plays as ever.
+    __STAB_PUNCH__: JSON.stringify(PRIVATE_TOOLS ? process.env.VITE_STAB_PUNCH ?? null : null),
   },
   publicDir: PICTURES,
   base: './',

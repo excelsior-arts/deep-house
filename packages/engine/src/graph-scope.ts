@@ -28,6 +28,8 @@
 
 /** The list the nodes built now go into, if a graph is building. */
 let into: AudioNode[] | null = null;
+/** ...and, when no graph is building, the note being built on this context (`noteNodes`, `note-scope.ts`). */
+let noteInto: { ctx: BaseAudioContext; list: AudioNode[] } | null = null;
 let patched = false;
 
 /** Is this a context whose graphs collect: a playing context in a browser (a render never tears a graph down). */
@@ -44,7 +46,11 @@ function patchCreates(): void {
     if (typeof make !== 'function') continue;
     proto[name] = function (this: BaseAudioContext, ...args: unknown[]) {
       const node = (make as (...a: unknown[]) => unknown).apply(this, args);
-      if (into && node instanceof AudioNode) into.push(node);
+      if (node instanceof AudioNode) {
+        if (into) into.push(node);
+        // a node an offline render makes inside a note (a string, a drum body) is that render's, never the note's
+        else if (noteInto && node.context === noteInto.ctx) noteInto.list.push(node);
+      }
       return node;
     };
   }
@@ -60,6 +66,23 @@ export function owning<T>(ctx: BaseAudioContext, list: AudioNode[], build: () =>
     return build();
   } finally {
     into = outer;
+  }
+}
+
+/**
+ * Run `build`, the nodes it makes on `ctx` outside any graph's builder going into `list`: a note's own chain (its
+ * sources, envelopes, filters, panners, its LFOs and their depths), which the note lets go of whole when it has
+ * finished (`note-scope.ts`). A lazy return the note happens to build first is the graph's (`owning` inside it).
+ */
+export function noteNodes<T>(ctx: BaseAudioContext, list: AudioNode[], build: () => T): T {
+  if (!collects(ctx)) return build();
+  patchCreates();
+  const outer = noteInto;
+  noteInto = { ctx, list };
+  try {
+    return build();
+  } finally {
+    noteInto = outer;
   }
 }
 
@@ -95,5 +118,67 @@ export function letGoOfAll(list: AudioNode[]): void {
       try { node.buffer = blankFor(node, node.buffer.numberOfChannels); } catch (e) { /* a browser that will not take it */ }
     }
   }
+  holdAWhile(list.slice());
   list.length = 0;
 }
+
+// **A node let go is held a while after its last wire is cut** (round crash-resume, 11-03). His Mac app's WebKit
+// content process aborted twice in five minutes of Vibe, on its audio thread: `AudioSummingJunction::
+// updateRenderingState` from `handleDirtyAudioSummingJunctions`, before and after a render quantum, a pure virtual
+// call: a node's input or AudioParam was on the context's list of junctions whose wiring changed, and was being
+// destroyed while the render thread read it. The same abort is in his app on 10-27 and in Safari on 10-28.
+//
+// A junction goes on that list when a wire into it is made or cut, and comes off it at the next render quantum
+// (a few milliseconds). WebKit destroys a node only once nothing holds it: its wrapper collected, and nothing wired
+// into it. So two things feed the race:
+//
+// - **a cut, and the node's end, close together**: an AudioParam whose own node is gone lives on only in the wire
+//   into it (an LFO's depth into a filter's frequency), so cutting that wire dirties the param and frees it in one
+//   step; any node whose last holder goes in the same few milliseconds as its last wire is the same shape;
+// - **a node let go still wired**: the collector takes a note's chain whole, and WebKit cuts its wires one node at
+//   a time as it frees them, each cut dirtying a neighbour that is being freed beside it. Measured headless in
+//   Chromium before this round: on Vibe - Solar Wind 88 nodes a second were collected still wired.
+//
+// So every node the engine lets go of is first cut from everything (`disconnect()`, each one, the whole chain and
+// not only its door), and then held here for `HOLD_AFTER_CUT_MS` — hundreds of render quanta — before the page drops
+// it. By the time WebKit can destroy it, the render thread has long read every junction the cuts dirtied, and the
+// node has no wire left for its own end to cut. Nothing heard changes: what is cut is already silent and off the
+// sum (a note's chain after its tail and margin, a deck after its fade, a grain after its window).
+//
+// What it holds is bounded by the rate things are let go: every node let go in the last two seconds, a few hundred
+// on a busy theme (`heldAfterCut`), and a deck's graph for two seconds after its seam.
+
+/** How long a node let go is held after its wires are cut, in milliseconds. */
+export const HOLD_AFTER_CUT_MS = 2000;
+const holding = new Set<unknown[]>();
+let heldNow = 0;
+let heldMost = 0;
+
+/** Hold `nodes`, already cut, for `HOLD_AFTER_CUT_MS`, then let the page drop them. `nodes` is the caller's to give. */
+export function holdAWhile(nodes: unknown[]): void {
+  if (!nodes.length || typeof setTimeout !== 'function') return;
+  holding.add(nodes);
+  heldNow += nodes.length;
+  if (heldNow > heldMost) heldMost = heldNow;
+  const t = setTimeout(() => {
+    holding.delete(nodes);
+    heldNow -= nodes.length;
+    nodes.length = 0;
+  }, HOLD_AFTER_CUT_MS);
+  // never a reason for a node process to stay up
+  (t as unknown as { unref?: () => void }).unref?.();
+}
+
+/** Cut every wire of each of `nodes`, then hold them a while (`holdAWhile`). */
+export function cutAndHold(nodes: Iterable<unknown>): void {
+  const held: unknown[] = [];
+  for (const n of nodes) {
+    if (!n) continue;
+    try { (n as { disconnect: () => void }).disconnect(); } catch (e) { /* already gone, or not a node */ }
+    held.push(n);
+  }
+  holdAWhile(held);
+}
+
+/** What is held now and the most ever held at once, in nodes (a gate's and the churn tool's reading). */
+export const heldAfterCut = (): { now: number; most: number } => ({ now: heldNow, most: heldMost });

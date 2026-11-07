@@ -32,7 +32,7 @@
 // declares the `sustained` role, and house-v2 plays it only where a place
 // table names it (`BY_PLACE`).
 
-import { midiToHz, route, startTime, panner, MIN_RELEASE, GAIN_FLOOR } from '../dsp.ts';
+import { midiToHz, route, startTime, panner, MIN_RELEASE, GAIN_FLOOR, fanned } from '../dsp.ts';
 import { insert } from './treat.ts';
 import { knobScale } from './descriptor.ts';
 import { shifter } from '../effects/shimmer.ts';
@@ -82,7 +82,7 @@ function shimmerPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: num
       o.detune.value = side * S.detuneCents * 0.5;
       const lvl = ctx.createGain();
       lvl.gain.value = level * 0.5;
-      const pan = panner(ctx, side * S.spread);
+      const pan = panner(ctx, side * fanned(S.spread));
       o.connect(lvl);
       lvl.connect(pan);
       pan.connect(src);
@@ -127,7 +127,7 @@ function shimmerPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, at: num
     lp.type = 'lowpass';
     lp.Q.value = -3.01;
     lp.frequency.value = Math.min(16000, damp);
-    const pan = panner(ctx, i ? S.spread : -S.spread);
+    const pan = panner(ctx, i ? fanned(S.spread) : -fanned(S.spread));
     fb.connect(line);
     line.connect(lp);
     lp.connect(pan);

@@ -177,6 +177,16 @@
    "pad:swell": -7.0,
    "pad:wavePad": -6.0
   },
-  "bed": -4.5
+  "bed": -4.5,
+  "hold": {
+   "says": "Round break-hats (his ear 11-03 on a Chillstep track: 'in this break end the hats got very loud, and then the drop starts and the sound is quieter because of all the other voices ... one fix, to balance it in the break, so it will likely feel uniform when switching to the drop'). The carrier's hats at the stretch's end, its last `bars` (the plan's read: every hat of the carrier as lifted over the bed, the units above), stand no louder against the bed than the groove they land on keeps its hats against its mix (its first `bars`, `top-lanes.json` `level.read`, the hat-ceiling's read; `offsetDb` the one step between the two reads, measured on renders), so the hats keep their place against everything else from the break into the drop. The whole stretch comes down by that one cut, so the build still grows into the drop and lands on the groove's place; never raised, never under `least` against the bed (3 dB under the quietest line he heard keep a break, Vibe - Undertow's sketch at 17 LU under its bed). MEASURED (tools/break-hats.ts, 16 carried breaks into a groove in the Chillstep place, the beat-led featured and his track, rendered with the hats alone and the rest alone, K-weighted): the end's read lands 2.1 dB rms from the render, the groove's read 5.8 dB under it (the median; 4.0-7.9, Drive - Static Charge 9.4 under its closed lid), the jump the two read 2.5 dB rms from the rendered one: the five jumps of 4.9 dB or more read 4.4-10.4 dB, one of 4.1 read as none.",
+   "bars": 8,
+   "least": -20,
+   "offsetDb": 5.8,
+   "intoSays": "Round hat-top (11-03): the sections a carried break may land on and be held against. A theme's last break hands to its outro's drums as an earlier one hands to the drop, and was left as it was: measured (K-weighted, the hats alone against the rest), his Chillstep track's second breakdown ended 6.2 dB over its groove's place, Vibe - Undertow's second 11.4, Drive - Cloudburst's second 3.1, the very jump round break-hats took out at the drop. Take `outro` out and only the drop's and the main's seams are held.",
+   "into": ["main", "drop", "outro"],
+   "endMostSays": "Round hat-top: the end is read against the bed it plays over, so an end whose hats stand over that bed (the bed gone from the break's last bars, the hats alone) gives no place to hold to and is left as drawn: one such end over the Map's grid, Dub Techno's second seed, whose last 32-bar break ends on the hats 2.2 dB over a bed that has left, and whose whole stretch the one cut would have taken 17.9 dB down, under every other sound of the break. No break the rule held before reads over nought.",
+   "endMost": 0
+  }
  }
 }

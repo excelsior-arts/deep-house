@@ -29,7 +29,7 @@
 // velocity on the rate and the decay, five dice off the strike time — and none
 // of them is reachable by any die.
 
-import { kit, kitTopology, drumNoise, filter, tuned, transient, KIT } from './drumkit.ts';
+import { kit, kitTopology, drumNoise, kitNoise, filter, tuned, transient, KIT } from './drumkit.ts';
 import { contract, list, num, CENTS, HZ, LEVEL, Q, RATIO, SECONDS } from './schema.ts';
 import type { PatchOf } from './schema.ts';
 import type { DrumSpec } from './drumkit.ts';
@@ -91,7 +91,7 @@ function cabasaBody(ac: BaseAudioContext, spec: DrumSpec, dest: AudioNode, at: n
   hp.connect(band);
   band.connect(dest);
   for (const [off, level] of [[0, 1], [spec.gapSeconds, spec.second]]) {
-    const n = drumNoise(ac, spec.seconds, 8191 + Math.round(off * 1e5));
+    const n = kitNoise(ac, spec, spec.seconds, 8191 + Math.round(off * 1e5));
     const g = ac.createGain();
     g.gain.value = level;
     n.connect(g);
@@ -219,7 +219,7 @@ const PERC = kit();
 
 export const SHAKEN = kitTopology({
   id: 'shaken', cost: 'mid', kit: PERC, spec: cabasaSpec, variant: shakerVariant, build: cabasaBody,
-  parameters: CABASA,
+  parameters: CABASA, air: 0.4,
 });
 export const JINGLE = kitTopology({
   id: 'jingle', cost: 'mid', kit: PERC, spec: tambSpec, variant: tambVariant, build: tambBody,

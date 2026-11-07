@@ -16,6 +16,7 @@
 //      edges; the ring's detent at an edge;
 //   6. reach: a turn inside a box draws only the zone's list, at any reach (BELLS's is empty: no turn), and a row a zone
 //      lists is drawn nowhere outside it.
+import { sweep, swept } from './sweep.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -211,7 +212,8 @@ function outsideProbes(): Array<{ seed: string; n: number; spell: Spell; kind: s
 }
 
 test('2-3. outside every box: the legacy read alone, the program the tables less the zones\' entries plan, and today\'s wherever today read none of a zone\'s entries', (ctx) => {
-  const probes = outsideProbes();
+  // (every probe at night, every third at the merge gate: `tools/sweep.ts`)
+  const every = outsideProbes(), probes = sweep(every);
   const zoneRead = (t: ReturnType<typeof planTheme>) => (placeReadsOf(t) ?? []).some((r) => ZONES.some((z) => ownIds(z).has(`${r.lane}/${r.id}`)));
   let same = 0, readZone = 0;
   const kinds: Record<string, number> = {};
@@ -229,7 +231,7 @@ test('2-3. outside every box: the legacy read alone, the program the tables less
     same++;
   }
   ctx.diagnostic(`${probes.length} probes outside every box: ${same} play today's program to the bit; ${readZone} read a BELLS entry today (${Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', ')}) and now play the tables less it`);
-  assert.ok(probes.length >= 200 && same >= 150, `${probes.length} probes, ${same} unmoved`);
+  assert.ok(every.length >= 200 && same >= swept(150), `${probes.length} probes of ${every.length}, ${same} unmoved`);
   for (const p of probes.filter((x) => x.kind === 'digest' || x.kind === 'protected')) assert.ok(!zoneRead(plan(NO_ZONES, p.seed, p.n, p.spell)), `${p.kind}: a shipped spell read BELLS today`);
 });
 

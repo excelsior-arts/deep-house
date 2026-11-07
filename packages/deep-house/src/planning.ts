@@ -19,13 +19,23 @@ import { developmentFor } from './development.ts';
 import { strategyById } from './strategies/index.ts';
 
 /**
+ * **How many themes this thread has planned** (smooth-start, 11-03), whoever asked: the link's trial, the ring, the
+ * set, the playlists' times. A bench reading: the page's thread at the open plans the first theme once, and a press on
+ * a track a pointer came to first plans none.
+ */
+let plansHere = 0;
+export const plansOnThisThread = (): number => plansHere;
+
+/**
  * The whole plan of theme n, in this build's style unless told another. A
  * caller may name the music two ways and they compose: `style` is the music
  * itself, and `strategy` is the id of the thing that plays it. A caller that
  * names neither gets the default strategy's style, which is the record.
  */
-export const planTheme = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): SetTrack =>
-  planThemeOf(masterSeed, n, { ...opts, accompaniment: accompanimentFor(opts), development: developmentFor(opts), style: opts.style || strategyById(opts.strategy).style });
+export const planTheme = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): SetTrack => {
+  plansHere += 1;
+  return planThemeOf(masterSeed, n, { ...opts, accompaniment: accompanimentFor(opts), development: developmentFor(opts), style: opts.style || strategyById(opts.strategy).style });
+};
 
 /** **Theme n's tempo without composing it** (round pl-clock, a playlist's clock): the tempo `planTheme` would plan it at. */
 export const themeTempo = (masterSeed: string | number, n: number, opts: Partial<MixOptions> = {}): { bpm: number; free: boolean } =>

@@ -93,6 +93,23 @@ export interface StyleTable {
     padDriftHz: number; padDriftCents: number;
     hatPan: number; hatHaas: number; hatHaasPan: number; hatHaasLevel: number;
     clapPan: number;
+    /**
+     * (round stereo-room) every return's side scaled by this before the width stage, so a tail leaves as wide as its
+     * impulse (`1 / widthBase`) and not wider; absent or one, the returns are widened with the chords, as before
+     */
+    returnSide?: number;
+    /** (round stereo-room) the kit's top in the room: the least a hat, a cymbal, a snare or a shaker sends to the short room */
+    kitRoom?: number;
+    /**
+     * (round kit-tight) how far the kit's top spreads its noise into two ears: one plays the topology's own
+     * correlation (`KitBuild.air`), nought one channel in both ears, as before stereo-room; absent, one
+     */
+    kitAir?: number;
+    /**
+     * (round tide-space) the share of a sparse front's wash that moves into the theme's front plate: one all of it,
+     * as stereo-room wrote it; a driving kit in a dry room moves less, the rest keeping the wash it was mixed in
+     */
+    frontShare?: number;
   };
   /** the three spaces and what goes to them */
   sends: {

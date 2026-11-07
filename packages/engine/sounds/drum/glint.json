@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "glint",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.3,
+        1
+      ],
+      [
+        1.59,
+        0.22,
+        0.6
+      ],
+      [
+        2.14,
+        0.16,
+        0.4
+      ]
+    ],
+    "attack": 0.001,
+    "release": 0.05,
+    "ringLevel": 0,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 10000,
+    "malletLevel": 0.15,
+    "malletTime": 0.001,
+    "spread": 0,
+    "trim": 0.3,
+    "delay": 0,
+    "reverb": 0.05
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "edge": false,
+    "timbres": {
+      "glint": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 7000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "mallets.ts",
+    "note": "A triangle's glint (top-voices, T18): three sines at 1 : 1.59 : 2.14 from a note near 7 kHz, a 300 ms fall to -60 dB, a click at 10 kHz; three strokes every second bar. A sketch row: nothing draws it."
+  }
+}

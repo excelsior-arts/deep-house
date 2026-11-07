@@ -17,6 +17,7 @@ import { textureCandidates } from './texture.ts';
 import type { MusicalParts } from './types.ts';
 import type { SoundCharacters } from './sound.ts';
 import type { EventMeta, PlanEvent } from '../generator.ts';
+import { tidalRoom, ceilingOf } from '../tide-space.ts';
 
 /** The pulse's instrument and numbers, off its own stream, or null with no pulse requested. */
 export function rollTexture({ style, parts, forbids, dice, partStream }:
@@ -54,11 +55,13 @@ export interface Treatment {
   beat: number;
   barSeconds: number;
   push: (voice: string, t: number, p: NoteParams, meta: EventMeta) => void;
+  /** (round tide-space) the spell's Tide and whether the drums play: what an asked room is scaled by */
+  space?: { tide: number; drums: boolean };
 }
 
 /** The post-passes, in the order they always ran, before the events are sorted. */
 export function treat({ style, levels, parts, characters, events, upperEvents, phraseParameters, LANES, voiceOf, UPPERS, TEXTURE,
-  silent, bars, arrangement, progression, at, beat, barSeconds, push }: Treatment): void {
+  silent, bars, arrangement, progression, at, beat, barSeconds, push, space }: Treatment): void {
   // Space follows the actual musical role; it never changes a note's
   // onset, pitch, strength or the dry kick/bass. Engine defaults survive when
   // no spatial character was requested.
@@ -80,8 +83,14 @@ export function treat({ style, levels, parts, characters, events, upperEvents, p
       e.p = { ...e.p, gain: (e.p.gain ?? 1) * dbToGain(targetLevel - roomLevel) };
     }
   }
+  // (round tide-space) a part's own room is a ceiling where the drums play: through the wash's returns Tide plays less
+  // of it below the house, and never more above (`ceilingOf`); the figure's room Tide chose is one slope from intimate
+  // to spacious (`tidal`)
   for (const [role, character] of Object.entries(parts.ambience)) {
-    const sends = characters!.ambience[character!];
+    const A = characters!.ambience;
+    const asked = character === 'tidal' && space ? { ...A.tidal, ...tidalRoom(space.tide, A.intimate, A.spacious) } : A[character!];
+    const k = space?.drums ? ceilingOf(space.tide) : 1;
+    const sends = k === 1 ? asked : { ...asked, reverb: +(asked.reverb * k).toFixed(4), delay: +(asked.delay * k).toFixed(4) };
     for (const e of eventsForRole(role)) e.p = { ...e.p, ...sends, ...(role === 'figure' ? { hall: sends.reverb } : {}) };
   }
   // Tone is an explicit musical character, mapped only where the renderer

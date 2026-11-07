@@ -48,6 +48,7 @@
 // **Time**: every rest and gap is in seconds, placed on the theme's sixteenths with a little lateness, so the plan's
 // bars and steps say where a strike falls and its seconds say when.
 
+import { STAGE_EDGE, onStage } from './stereo-stage.ts';
 import { Rng } from './rng.ts';
 import { leanFactor, leanShift, type BirdLeans } from './places.ts';
 import { airAbout, airDraw, voiceAir } from './air-lean.ts';
@@ -116,7 +117,7 @@ export interface ConversationRow {
    * G2 and rises no further, level to A3 and a decibel under from B3 to C#4, so a theme whose key put the bowl at the top
    * of its register stood two LU over the place and its strikes 3-4 dB into the limiter)
    */
-  ground: { voices: RoleVoice[]; degrees: Pairs<number>; register: Range; everyS: Range; ringShare: number; ringsMost: number; firstS: Range; apartS: number; lastS: number;
+  ground: { /** a ground that strikes nothing (FIELD: its weather is the floor); its voice is drawn, and laid nowhere */ none?: boolean; voices: RoleVoice[]; degrees: Pairs<number>; register: Range; everyS: Range; ringShare: number; ringsMost: number; firstS: Range; apartS: number; lastS: number;
     pace: Partial<Record<Chapter, number>>; yieldS: Range; touch: number; vel: Range; levelDb: number; reverb: number; delay: number; pan: Range;
     dbFrom?: number; dbByOctave?: number; dbTo?: number;
     /** Gleam's light on the ground: log factors per unit of `leave` on the tonic's weight and the others', and degrees it adds */
@@ -237,6 +238,24 @@ export interface ConversationRow {
     chant: { voices: RoleVoice[]; register: Range; phrase: Range; syllableS: Range; breathS: Range; restS: Range; firstS: Range; endS: number; vel: Range; levelDb: number; reverb: number; delay: number; pan: Range;
       sections: string[]; overtone: { sections: string[]; chance: number; longer: number } };
   };
+  /**
+   * **The field** (FIELD, PLAN-AMBIENT P3, ambient-field; his ear 10-31 on the sketches: "the total silent gap doesn't
+   * read well, maybe keep there wind/rain or whatever that noise"; on the chirps: "I guess it can live if it doesn't
+   * interfere much"): the held drone is the entry's bed, and over it a field recording's shape made of noise.
+   *   - `weather`: one span after another from the first second to the end, never a gap: a state of `states` by weight
+   *     (never the one before it), `spanS` long, each overlapping the next by `overlapS` so one fades in as the other
+   *     goes; under a state that names a `rumble`, a distant rumble now and then (`rumble.everyS` apart, `dur` long);
+   *   - `chirp`: rare bursts far back, `everyS` apart, of `burst` short glides (the voice's `knobs`), `gapS` apart, on
+   *     MIDI `midi`, gliding up or down by `downChance`; only in the section kinds of `sections`, from `firstS`, to
+   *     `endS` before the end; the `chirps` lean (a shift, its ends) takes their number to none at its low end and to
+   *     twice at its high one.
+   */
+  field?: {
+    weather: { states: Array<{ id: string; voice: string; w: number; levelDb: number; rumble?: boolean }>; spanS: Range; overlapS: Range; vel: number; reverb: number; delay: number;
+      rumble: { voice: string; everyS: Range; firstS: Range; dur: Range; vel: number; levelDb: number; reverb: number } };
+    chirp: { voices: RoleVoice[]; everyS: Range; firstS: Range; endS: number; burst: Range; gapS: Range; midi: Range; dur: Range; downChance: number; vel: Range;
+      knobs: Record<string, number>; levelDb: number; reverb: number; delay: number; pan: Range; sections: string[] };
+  };
   birds: { by: BirdLeans['by']; most?: BirdLeans['most']; ends?: BirdLeans['ends'] };
   budget: { fallbacks: string[] };
 }
@@ -298,6 +317,17 @@ export function conversationRowsFaults(voiceExists: (v: string) => boolean = () 
       if (!(C.overtone.chance >= 0 && C.overtone.chance <= 1) || !(C.overtone.longer >= 1 && C.overtone.longer <= 2)) bad.push(at('the chant\'s overtones: a chance in [0, 1], at most twice as long'));
       for (const [role, x] of [['pluck', T], ['chant', C]] as const)
         if (!finite(x.levelDb) || x.levelDb > 6 || x.levelDb < -30 || !(x.reverb >= 0 && x.reverb <= 1) || !(x.delay >= 0 && x.delay <= 1)) bad.push(at(`${role}'s levelDb from -30 to 6, its sends in [0, 1]`));
+    }
+    if (r.field) {
+      const { weather: W, chirp: H } = r.field;
+      if (!W.states.length || !W.states.some((x) => x.w > 0) || W.states.some((x) => !voiceExists(x.voice) || !(x.w >= 0) || !finite(x.levelDb) || x.levelDb > 6 || x.levelDb < -30)) bad.push(at('the field\'s weather: states in voices that exist, weights, levels from -30 to 6'));
+      if (W.states.filter((x) => x.w > 0).length < 2) bad.push(at('the field\'s weather moves between two states at least (never the one before it)'));
+      if (!range(W.spanS, 10, 300) || !range(W.overlapS, 1, 20) || W.overlapS[1] >= W.spanS[0] / 2) bad.push(at('the field\'s weather: spans of 10-300 s overlapping by 1-20 s, under half a span'));
+      if (!voiceExists(W.rumble.voice) || !range(W.rumble.everyS, 10, 600) || !range(W.rumble.dur, 1, 10) || !range(W.rumble.firstS, 0, 300)) bad.push(at('the field\'s rumble in range'));
+      voices('chirp', H.voices);
+      if (!range(H.everyS, 5, 300) || !range(H.burst, 1, 6) || !range(H.gapS, 0.05, 1) || !range(H.midi, 60, 110) || !range(H.dur, 0.02, 0.5) || !(H.downChance >= 0 && H.downChance <= 1) || !range(H.vel, 0, 1) || !H.sections.length)
+        bad.push(at('the field\'s chirps in range'));
+      if (!finite(H.levelDb) || H.levelDb > 6 || H.levelDb < -40) bad.push(at('the chirp\'s levelDb from -40 to 6'));
     }
     if (r.wash && !(r.wash.offAt < 0 && r.wash.offAt >= -1 && r.wash.dbPerUnit >= 0 && r.wash.dbPerUnit <= 30 && (r.wash.aloneDb ?? 0) >= 0 && (r.wash.aloneDb ?? 0) <= 6)) bad.push(at('the wash: offAt in [-1, 0), dbPerUnit 0-30, aloneDb 0-6'));
     if (r.breath) {
@@ -375,8 +405,8 @@ export interface ConversationEvent {
   t: number;
   bar: number;
   step: number;
-  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse' | 'conversation-rim' | 'conversation-pluck' | 'conversation-chant';
-  p: { midi?: number; vel: number; dur: number; gain: number; reverb: number; delay: number; panPath: number; hardness?: number; buzz?: number; overtone?: number };
+  part: 'conversation-ground' | 'conversation-call' | 'conversation-answer' | 'conversation-punctuation' | 'conversation-pulse' | 'conversation-rim' | 'conversation-pluck' | 'conversation-chant' | 'conversation-weather' | 'conversation-chirp';
+  p: { midi?: number; vel: number; dur: number; gain: number; reverb: number; delay: number; panPath: number; hardness?: number; buzz?: number; overtone?: number; down?: number; release?: number; knobs?: Record<string, number> };
 }
 
 /** What the plan says of the conversation: its row, its voices, how many of each thing, and what the budget did. */
@@ -412,6 +442,8 @@ export interface ConversationSummary {
   breath?: { periodS: number; db: number; phaseS: number };
   /** the held drone, where the row has one: the plucked drone's Sa and strings, its beat and buzz, the chant's note, syllables and overtone syllables */
   drone?: { pluck: string | null; chant: string | null; sa: number; beatS: number; buzz: number; strings: number; note: number; syllables: number; overtones: number; phrases: number };
+  /** the field, where the row has one: its weather's states in order, the rumbles, the chirps and their bursts */
+  field?: { states: string[]; rumbles: number; chirps: number; bursts: number };
   /** the bowls' set the theme drew, its great bowl (MIDI), its pace and its rim's factor (round 2) */
   bowls?: { set: string; great: number; pace: number; rim: number };
   says: string;
@@ -660,10 +692,11 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   const octOf = (role: RoleVoice[], v: string) => 12 * (role.find((x) => x.v === v)?.oct ?? 0);
   // Tide's width between the caller and the answerer: their pan ranges widened or drawn in about the middle, never
   // past `widthMost` (a loud call panned hard puts its rings in one channel, and that channel into the limiter)
-  const wm = R.widthMost ?? 0.95;
+  // ...and never past the stage (round stereo-room, `STAGE_EDGE`): a bowl alone at 0.95 is a bowl in one ear
+  const wm = Math.min(R.widthMost ?? 0.95, STAGE_EDGE);
   const widened = (rr: Range): Range => (LN.width === 1 ? rr : [Math.max(-wm, Math.min(wm, rr[0] * LN.width)), Math.max(-wm, Math.min(wm, rr[1] * LN.width))]);
   const callPan = widened(R.caller.pan), answerPan = widened(R.answerer.pan);
-  const pan = (r: Rng, rr: Range) => +lerp(r, rr).toFixed(3);
+  const pan = (r: Rng, rr: Range) => +onStage(lerp(r, rr)).toFixed(3);
   const send = (x: number) => +Math.max(0, Math.min(1, x + shift('send'))).toFixed(3);
   const lateRange: Range = [R.lateMs[0] / 1000 * LN.lateMul, R.lateMs[1] / 1000 * LN.lateMul];
   const late = (r: Rng) => lerp(r, lateRange);
@@ -1033,7 +1066,7 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     // steps back before it, or a refused strike would be asked again at the same breath for ever
     let tried = -Infinity;
     // the last strike `lastS` before the end, once it is on its grid and late
-    const last = end - R.ground.lastS - s16 * LN.unit - lateMost;
+    const last = R.ground.none ? -Infinity : end - R.ground.lastS - s16 * LN.unit - lateMost;
     // the breath's floor a strike is struck on (P2), past the last strike's `apartS`, a refused strike and a ring's wait;
     // the theme's first strike opens it where it is
     let floorFrom = -Infinity;
@@ -1181,6 +1214,78 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
     drone = { pluck: tanOk ? tv : null, chant: chantOk ? cv : null, sa, beatS: +beatS.toFixed(4), buzz, strings, note, syllables, overtones, phrases };
   }
 
+  // --- the field (FIELD): the weather from the first second to the end, never a gap; the chirps rare and far back ---
+  let field: ConversationSummary['field'] | undefined;
+  const FD = R.field;
+  if (FD) {
+    const W = FD.weather, H = FD.chirp;
+    const rw = new Rng(`${I.seed}::conversation:weather`);
+    const states: string[] = [];
+    let rumbles = 0, chirps = 0, bursts = 0;
+    const live = W.states.filter((x) => x.w > 0);
+    const darkSpans: Range[] = [];
+    let t = 0, prev: string | null = null;
+    while (t < end - 1) {
+      const pool = live.filter((x) => x.id !== prev);
+      // a bird's `state:<id>` lean weighs the states (Zephyr's air toward the wind, Root's weight toward the dark cloud)
+      const st = rw.weighted(pool.map((x) => ({ v: x, w: x.w * factor(`state:${x.id}`) })));
+      if (!cast.has(st.voice) && !fits(st.voice)) { prev = st.id; continue; }
+      cast.add(st.voice);
+      const span = lerp(rw, W.spanS) * factor('weatherSpan');
+      const over = lerp(rw, W.overlapS);
+      // the last span runs to the end, and none starts too short to be a state of its own
+      const last = t + span + W.spanS[0] * 0.5 >= end;
+      const dur = last ? end - t : span + over;
+      // Tide's room: the weather nearer or further (`weatherDb`, dB by its lean)
+      const db = st.levelDb + R.mixDb + footingDb + I.layerDbOf(st.voice) + shift('weatherDb');
+      events.push({ voice: st.voice, t: +t.toFixed(6), bar: Math.floor(t / I.barSeconds), step: Math.floor((t % I.barSeconds) / s16), part: 'conversation-weather',
+        p: { vel: W.vel, dur: +dur.toFixed(3), gain: +dbToGain(db).toFixed(5), reverb: send(W.reverb), delay: W.delay, panPath: 0 } });
+      states.push(st.id);
+      if (st.rumble) darkSpans.push([t, t + dur]);
+      prev = st.id;
+      if (last) break;
+      t += span;
+    }
+    // the distant rumble, now and then under a state that names one
+    const RU = W.rumble;
+    if (darkSpans.length && (cast.has(RU.voice) || fits(RU.voice))) {
+      cast.add(RU.voice);
+      const rr = new Rng(`${I.seed}::conversation:rumble`);
+      for (const [a, b] of darkSpans) {
+        for (let u = a + lerp(rr, RU.firstS); u < b - RU.dur[1] - 2; u += lerp(rr, RU.everyS) * factor('rumbleEvery')) {
+          const dur = +lerp(rr, RU.dur).toFixed(3);
+          const db = RU.levelDb + R.mixDb + footingDb + I.layerDbOf(RU.voice) + shift('weatherDb');
+          events.push({ voice: RU.voice, t: +u.toFixed(6), bar: Math.floor(u / I.barSeconds), step: Math.floor((u % I.barSeconds) / s16), part: 'conversation-weather',
+            p: { vel: RU.vel, dur, gain: +dbToGain(db).toFixed(5), reverb: send(RU.reverb), delay: 0, panPath: 0 } });
+          rumbles++;
+        }
+      }
+    }
+    // the chirps: rare bursts, far back; a bird's `chirps` lean takes them to none or to twice as many
+    const chirpF = Math.max(0, Math.min(2, 1 + shift('chirps')));
+    const hv = voiceOf(new Rng(`${I.seed}::conversation:chirp:voice`), H.voices, () => 1);
+    if (chirpF > 0 && (cast.has(hv) || fits(hv))) {
+      cast.add(hv);
+      const rh = new Rng(`${I.seed}::conversation:chirp`);
+      const db = H.levelDb + voiceDb(H.voices, hv) + I.layerDbOf(hv);
+      for (let u = lerp(rh, H.firstS); u < end - H.endS; u += lerp(rh, H.everyS) / chirpF) {
+        if (!H.sections.includes(kindAt(u))) continue;
+        const n = Math.round(lerp(rh, H.burst)), base = Math.round(lerp(rh, H.midi)), down = rh.chance(H.downChance), pp = pan(rh, H.pan);
+        let at = u, laid = 0;
+        // a burst's glides a tenth of a second apart, in free time (the grid's sixteenth would lay them on one another)
+        for (let k = 0; k < n && at < end - 0.5; k++) {
+          events.push({ voice: hv, t: +at.toFixed(6), bar: Math.floor(at / I.barSeconds), step: Math.floor((at % I.barSeconds) / s16), part: 'conversation-chirp',
+            p: { midi: base + (k % 2 ? 2 : 0), vel: +lerp(rh, H.vel).toFixed(3), dur: +lerp(rh, H.dur).toFixed(3), gain: +dbToGain(db).toFixed(5),
+              reverb: send(H.reverb), delay: H.delay, panPath: pp, knobs: H.knobs, release: 0.04, ...(down ? { down: 1 } : {}) } });
+          laid++; chirps++;
+          at += lerp(rh, H.gapS);
+        }
+        if (laid) bursts++;
+      }
+    }
+    field = { states, rumbles, chirps, bursts };
+  }
+
   // --- the heartbeat (Ember's top, where the kit does not play): a soft stroke on each bar's one in the sections that
   // talk; never on a strike ---
   let pulses = 0;
@@ -1210,13 +1315,14 @@ export function planConversation(I: ConversationInput): { events: ConversationEv
   const says = `${R.id}: ${ground} ground, ${caller} calls, ${answerer} answers${punct ? `, ${punct} marks` : ''}; ${exchanges} exchanges (${Object.entries(answers).filter(([, n]) => n).map(([k, n]) => `${k} ${n}`).join(', ')}${returns ? `, ${returns} return` : ''}), ${hands} hands, ${groundOn.length} ground strikes`
     + (handovers.length ? `; handed to ${handovers.join(', ')}` : '') + (pulses ? `; ${pulses} heartbeats` : '')
     + (SET ? `; the ${SET.id} set over ${greatMidi}, pace ${paceF.toFixed(2)}` : '') + (RM ? `; ${rims} rims` : '') + (BR ? `; breathing every ${BR.periodS.toFixed(1)} s, ${BR.db.toFixed(1)} dB` : '')
+    + (field ? `; the field: ${field.states.join(' > ')}, ${field.rumbles} rumbles, ${field.chirps} chirps in ${field.bursts} bursts` : '')
     + (drone ? `; the drone: ${drone.strings} strings over Sa ${drone.sa} (a beat ${drone.beatS} s, buzz ${drone.buzz}), ${drone.syllables} syllables in ${drone.phrases} phrases on ${drone.note} (${drone.overtones} with overtones)` : '');
   return {
     events,
     summary: { row: R.id, voices, handovers, size: +LN.size.toFixed(3), pulse: pulses, count: +LN.count.toFixed(4), tail: +LN.tail.toFixed(4), breathS: +(R.answerer.afterS[1] * afterF).toFixed(3), exchanges, answers, returns, recalled, punctuation: hands, ground: groundOn.length, breakdownNotes, silences,
       budget: { ceiling: I.ceiling, before, after: I.unitsOf(cast) + I.besides, fallback, oscillatorsMost: R.oscillatorsMost, refused },
       ...(RM ? { rims } : {}), ...(BR ? { breath: { periodS: BR.periodS, db: BR.db, phaseS: BR.phaseS } } : {}),
-      ...(SET ? { bowls: { set: SET.id, great: greatMidi, pace: paceF, rim: rimF } } : {}), ...(drone ? { drone } : {}), says },
+      ...(SET ? { bowls: { set: SET.id, great: greatMidi, pace: paceF, rim: rimF } } : {}), ...(drone ? { drone } : {}), ...(field ? { field } : {}), says },
     breath: BR,
   };
 }

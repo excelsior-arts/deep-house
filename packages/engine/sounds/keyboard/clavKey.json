@@ -62,7 +62,7 @@
     "notes": {
       "pwmWidth": "The pulse, as a fraction of the note's own period. A clavinet is narrow: a quarter of a cycle is most of where its rasp comes from.",
       "combRatio": "The comb, as a fraction of the period, and how much of it is mixed in.",
-      "drive": "The pickup, driven. MEASURED per engine under `--ab` (round K2): the shaped signal here is a narrow pulse already full of harmonics going into a 3.6 kHz lowpass, and the two engines agree at every setting, so the cheapest one is the one that is declared. See notes/archive/2026-09-kitchen/rounds/k2.md.",
+      "drive": "The pickup, driven. MEASURED per engine under `--ab` (round K2): the shaped signal here is a narrow pulse already full of harmonics going into a 3.6 kHz lowpass, and the two engines agree at every setting, so the cheapest one is the one that is declared. See round k2.",
       "peakHz": "The resonance: one peaking bell where a clavinet's body speaks."
     }
   }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { upTo, swept } from './sweep.ts';
 import test from 'node:test';
 import { planTheme, recipesFor } from '../src/mix.ts';
 import { programOf, stage, stageParams } from '../src/performance.ts';
@@ -26,6 +27,8 @@ import { treat } from '../src/parts/treat.ts';
 import { recipeById } from '../src/recipes.ts';
 import { fixture } from './fixtures/programs.ts';
 import { PAD_ARC_ROWS } from '../src/pad-arc.ts';
+import { isKitHat } from '../src/top-lanes.ts';
+import { isWindEvent } from '../src/wind.ts';
 
 const choiceOf = (track: ReturnType<typeof planTheme>) => JSON.parse(String(track.dice.composition));
 /** Ordinary themes whose composition drew the ringing keyboard part, first theme of each seed. */
@@ -315,7 +318,11 @@ test('keyboard character is style data, preserves the score and isolates legacy 
   // style's new replacement part, which no longer asks this voice to stab.
   const patchStyle = { ...style, composition: { ...style.composition,
     // (and the two keyboard parts of 10-28 that claim the figure on an airy theme)
-    families: style.composition.families.filter(f => !['ringing-keys', 'acoustic-keys', 'hum'].includes(f.id)) } };
+    families: style.composition.families.filter(f => !['ringing-keys', 'acoustic-keys', 'hum'].includes(f.id)) },
+    // (and the stab's ways out, round stab-punch (merged 11-04, approved): the lane steps back under a bed and speaks
+    // in phrases in the air, so seed 12 strikes no stab at all and the patch has nothing to voice; off here, the lane
+    // strikes as it did, and the patch is asked of every hit; restated 11-05)
+    switches: { ...(style.switches as Record<string, boolean>), stabPunch: false } };
   const legacyStyle = { ...patchStyle, base: legacyBase };
   // The patch voices the ep wherever a draw, a request or a tool names the
   // timbre; the tool override pins it here on two seeds.
@@ -435,8 +442,12 @@ test('ringing keyboard parts replace the rejected stabs with slow, stable notes 
     whole++;
     // The figure lane's own instrument in either theme is what the part replaces.
     const figureVoices = [voicePlaying('keys', String(before.dice.stabTimbre)), String(after.dice.struckFigureVoice)];
-    const other = (t: typeof after) => t.events.filter(e => !figureVoices.includes(e.voice))
-      .map(e => e.layer === 'pad' ? { ...e, p: { ...e.p, gain: undefined } } : e);
+    // (and the top's quiet voices, since the top-voices-2 integration (11-02): their set reads the harmony, the tuned
+    // tick only over acoustic keys (his ear 11-02, T18), so a ringing piano part redraws them; `by: top-voices/...`)
+    // (and the kit's hats' gain, since the hat-ceiling integration (11-03): the ceiling reads the hats against the whole mix, so a part that moves the mix moves the hats' level, never their hits; `isKitHat`)
+    // (and the wind's gain, round wind (11-03): its ceiling reads it against the whole mix as the hats' does, so a part that moves the mix moves the wind's level, never where or how it plays; `isWindEvent`)
+    const other = (t: typeof after) => t.events.filter(e => !figureVoices.includes(e.voice) && !String(e.by ?? '').startsWith('top-voices/'))
+      .map(e => e.layer === 'pad' || isKitHat(e) || isWindEvent(e) ? { ...e, p: { ...e.p, gain: undefined } } : e);
     assert.deepEqual(other(after), other(before), 'only the accompanying pad level changes outside the keyboard');
   }
   assert.ok(whole >= 1, 'a ringing theme whose form the part leaves whole');
@@ -497,7 +508,9 @@ test('ringing articulation gives a melody space over a drone without changing it
     const withoutPresence = { ...style, composition: { ...style.composition, families: style.composition.families.map(f => f.id !== 'ringing-keys' ? f :
       { ...f, variants: f.variants.map(v => ({ ...v, request: { ...v.request, presence: {} } })) }) } };
     const quieter = planTheme(seed, 0, { style: withoutPresence, spell });
-    const plain = (t: typeof track) => t.events.map(e => e.articulation || e.layer === 'pad' ? { ...e, p: { ...e.p, gain: undefined } } : e);
+    // (and the kit's hats' gain, since the hat-ceiling integration (11-03): the ceiling reads the hats against the whole mix, so a part that moves the mix moves the hats' level, never their hits; `isKitHat`)
+    // (and the wind's gain, round wind (11-03): its ceiling reads it against the whole mix as the hats' does, so a part that moves the mix moves the wind's level, never where or how it plays; `isWindEvent`)
+    const plain = (t: typeof track) => t.events.map(e => e.articulation || e.layer === 'pad' || isKitHat(e) || isWindEvent(e) ? { ...e, p: { ...e.p, gain: undefined } } : e);
     assert.deepEqual(plain(track), plain(quieter), 'presence changes gain, not notes or other instruments');
     // Supporting is the style's base level, background the quieter of base and
     // room less the style's own margin: the arithmetic, from the tables.
@@ -554,7 +567,9 @@ test('the accordion riff plays nowhere: no pitch cycle faster than an eighth ins
   // (ensemble) lane plays four pitch changes in a row at an eighth or faster;
   // the fast learned figure is never drawn at these tempos.
   let themes = 0, sustained = 0;
-  for (let seed = 1; seed <= 200; seed++) {
+  // (200 seeds at night, every third at the merge gate: `tools/sweep.ts`)
+  const seeds = upTo(200);
+  for (const seed of seeds) {
     const track = planTheme(String(seed), 0, { strategy: 'house-v2', spell: HOUSE });
     const eighth = 30 / track.bpm;
     assert.ok(track.bpm <= 110 && !choiceOf(track).selected.figure, `${seed}: a fast learned figure at ${track.bpm} BPM`);
@@ -584,7 +599,7 @@ test('the accordion riff plays nowhere: no pitch cycle faster than an eighth ins
     }
     themes++;
   }
-  assert.equal(themes, 200); assert.ok(sustained > 150, `${sustained} sustained lanes read`);
+  assert.equal(themes, seeds.length); assert.ok(sustained > swept(150), `${sustained} sustained lanes read`);
   // And across the six focus scenarios and successive themes, as on 09-21.
   for(const scenario of FOCUS_SCENARIOS) for(const seed of ['543831854',...Array.from({length:24},(_,i)=>String(i+1))]) for(let theme=0;theme<3;theme++) {
     const track=planTheme(seed,theme,{strategy:'house-v2',spell:scenario.spell});
@@ -627,7 +642,9 @@ test('ordinary catalogue reaches learned parts, varied motifs and simpler combin
 
 test('bird endpoints and intermediate positions preserve finite compilation, arrangement and kit constraints', () => {
   let plans = 0;
-  for (const bird of BIRDS) for (const value of [0,.5,1]) for (let i=1;i<=32;i++) {
+  // (seeds 1-32 at night, every third at the merge gate: `tools/sweep.ts`)
+  const seeds = upTo(32);
+  for (const bird of BIRDS) for (const value of [0,.5,1]) for (const i of seeds) {
     const spell = {...HOUSE,[bird]:value};
     const track = planTheme(String(i),0,{strategy:'house-v2',spell,library:[]}), program = programOf(track);
     const choice = choiceOf(track).selected, derived = biasFor(spell,style).derived;
@@ -641,7 +658,7 @@ test('bird endpoints and intermediate positions preserve finite compilation, arr
     }
     plans++;
   }
-  assert.equal(plans, BIRDS.length * 3 * 32);
+  assert.equal(plans, BIRDS.length * 3 * seeds.length);
 });
 
 test('declared bird responses guide choices and removing one family preserves independent draws', () => {

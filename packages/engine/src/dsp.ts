@@ -834,6 +834,69 @@ export function phasedLfo(ctx: BaseAudioContext, hz: number, phase = 0): Oscilla
   return o;
 }
 
+// --- the stage: width from the room, never from one ear (round stereo-room) ---
+
+/**
+ * **No part alone past the edge** (round stereo-room, the stereo audit's rule 4): the outermost part of a fanned
+ * voice (a pad's lines, a stack's saws, a cloud's grains) stands within this of the middle before the width stage. On
+ * headphones a line hard to one side with nothing between it and its twin is two sounds, not one wide one; the width
+ * past here is the room's (the returns, the width stage's breath), not a part's.
+ */
+export const FAN_EDGE = 0.6;
+/**
+ * ...and the edge of a **filled** fan: a stack whose parts stand evenly across it (a supersaw's seven, a cloud's
+ * grains drawn anywhere between its edges) has something at every place between its outermost two, so it reads as
+ * one wide sound; it may stand a little further out. Two lines with nothing between them hold to `FAN_EDGE`.
+ */
+export const FAN_EDGE_FILLED = 0.8;
+/** a fan's extent held to its edge, its sign kept: the factor every part of the fan is scaled by is `fanned(s) / s` */
+export const fanned = (spread: number, filled = false): number =>
+  Math.sign(spread) * Math.min(Math.abs(spread), filled ? FAN_EDGE_FILLED : FAN_EDGE);
+
+/**
+ * **The low fan** (round stereo-room, the audit's rule 7): a stacked voice's parts under 300 Hz keep this share of
+ * their fan. It was 0.3 (the strings' 0.35, which now read it too), which held 120-300 Hz 3 to 12 dB narrower than the references' -8.5 dB;
+ * the kick and the bass never fan (their buses are mono), so the band opens on the chords' own bottom only.
+ */
+export const lowFan = (hz: number): number => (hz > 300 ? 1 : 0.5);
+
+/**
+ * **Two channels of noise for a drum's body** (round stereo-room, the kit's width is a room): the left channel one
+ * stream, the right `corr` of it and the rest a second stream, as `noiseBuffer` draws the hats' two channels. A kit
+ * hit's noise half rendered through this is two ears' worth of hiss at the centre, so the air band carries side
+ * energy without either ear carrying the hit; its metal or its shell stays one channel. A body is rendered once a
+ * context (`drumkit.ts`), so a phone pays for it at load, never per hit.
+ */
+export function stereoNoise(ctx: BaseAudioContext, seconds: number, seed: number, corr: number): AudioBufferSourceNode {
+  const len = Math.max(16, Math.ceil(ctx.sampleRate * seconds));
+  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  const a = lcg(seed), b = lcg(seed + 4099);
+  const c = Math.max(0, Math.min(1, corr)), k = Math.sqrt(1 - c * c);
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  for (let i = 0; i < len; i++) { L[i] = a(); R[i] = c * L[i] + k * b(); }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  return src;
+}
+
+/**
+ * **A soft clip linked across the two channels** (round stereo-room, the audit's rule 7): the gain `softClipCurve`
+ * would apply to the louder of the two channels, applied to both, so a peak on one side is rounded on both and the
+ * image never shifts on a loud instant. The curve maps the louder channel's level, `max(|L|, |R|) = |M| + |S|`, to
+ * the curve's own gain at that level (`clip(v) / v`, one under the knee).
+ */
+export function softClipGainCurve(drive = 1.4, knee = 0.8, n = 4096, range = 1): Float32Array<ArrayBuffer> {
+  return curveOf(`clipGain:${drive}:${knee}:${n}${range === 1 ? '' : `:${range}`}`, () => {
+    const curve = new Float32Array(n);
+    const head = 1 - knee;
+    for (let i = 0; i < n; i++) {
+      const a = Math.abs(((i / (n - 1)) * 2 - 1) * range);
+      curve[i] = a <= knee ? 1 : (knee + (head / drive) * Math.tanh((drive * (a - knee)) / head)) / a;
+    }
+    return curve;
+  });
+}
+
 export function panner(ctx: BaseAudioContext, pan: number): StereoPannerNode {
   const p = ctx.createStereoPanner();
   p.pan.value = Math.max(-1, Math.min(1, pan));

@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "puff",
+  "revision": 1,
+  "topology": "shaken",
+  "dice": 197.9,
+  "parameters": {
+    "hp": 2500,
+    "peakHz": 5300,
+    "q": 1.5,
+    "gapSeconds": 0.07,
+    "second": 0.5,
+    "t10": 0.075,
+    "seconds": 0.6,
+    "variantCents": 40,
+    "attack": 0.04,
+    "trim": 1.0,
+    "variants": 3,
+    "rateSpread": 0.04,
+    "gainSpread": 0.35,
+    "decaySpread": 0.15,
+    "panSpread": 0.06,
+    "pan": 0,
+    "velBright": 0.1,
+    "velDecay": 0.2,
+    "room": 0.2
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "puff": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 5300,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "perc.ts",
+    "note": "A soft puff (top-voices, T20): the cabasa's builder as one slow shake, noise band-passed at 5.3 kHz (Q 1.5) over a 2.5 kHz high-pass, a 40 ms attack and about 250 ms of fall, a second burst 70 ms on at half, \u00b13 dB per hit; laid in the hats' gaps. A sketch row: nothing draws it."
+  }
+}

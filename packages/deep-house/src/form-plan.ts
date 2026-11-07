@@ -4,7 +4,8 @@
 // generator.ts in the composer fix round of 09-22 without moving an event.
 import type { Lane, Style } from '@deep-house/engine/style';
 import type Rng from './rng.ts';
-import { makeArrangement, layersAtBar, SHORT_OUTRO_BARS, SECTION_TIME, type MainTexture } from './arrangement.ts';
+import { makeArrangement, layersAtBar, sectionsFrom, SHORT_OUTRO_BARS, SECTION_TIME, type MainTexture } from './arrangement.ts';
+import { splitArrangement, type LongMainHint } from './long-main.ts';
 import { switchOn } from './lanes.ts';
 import { developArrangement, developmentQuantum, type DevelopmentPolicy } from './development.ts';
 import { harmonicSupport, shapeArrangement, type HarmonicSupport, type ShapePolicy } from './development-shape.ts';
@@ -50,11 +51,13 @@ export interface FormRequest {
   CORPUS: Style['corpus'];
   sectionBars: number;
   dice: (tag: string) => Rng;
+  /** round long-main's form (sketch b): the sections a static run splits, the plan's second ask (`src/long-main.ts`) */
+  splits?: LongMainHint['splits'] | null;
 }
 
 /** The arrangement, its development trace, and the harmonic support the form leaves. */
 export function planForm({ style, grammar = null, LANES, silent, laneOn, form, contourPolicy, figureSelected, figureSustained, padUnderFigure,
-  leadSustained, bothChance, leadAloneChance, parts, pinned, composition, wantedBars, fitBars = null, texture = null, soloBars = 0, windowBars = SECTION_TIME.windowBars, phrase = 0, dArr, CORPUS, sectionBars, dice }: FormRequest) {
+  leadSustained, bothChance, leadAloneChance, parts, pinned, composition, wantedBars, fitBars = null, texture = null, soloBars = 0, windowBars = SECTION_TIME.windowBars, phrase = 0, dArr, CORPUS, sectionBars, dice, splits = null }: FormRequest) {
   const roleAvailable = (role: string) => LANES.some(l => l.role === role && (!l.gate || !silent.includes(l.gate)));
   const continuity = contourPolicy ? harmonicSupport({
     figureAvailable:roleAvailable('figure'), sustainedAvailable:roleAvailable('sustained'),
@@ -89,7 +92,10 @@ export function planForm({ style, grammar = null, LANES, silent, laneOn, form, c
   const shaped = contourPolicy ? shapeArrangement(phrased,
     {...styled,sections:{...sections,kinds:{...sections.kinds,[form!.bridgeKind]:form!.bridge}}},
     contourPolicy, continuity!, dice('development:contour'), silent, protectedGates) : null;
-  const arrangement = shaped?.arrangement ?? phrased;
+  // **The form tightens** (round long-main, sketch b): a static run's section split around a half-break, or its last
+  // bars a build, each piece the theme's own grammar's; the plan's second ask, where its first read the run
+  const arrangement = splits?.length ? splitArrangement(shaped?.arrangement ?? phrased, splits,
+    (kind, bars) => sections.kinds[kind] ? sectionsFrom([{ kind, bars }], sections, silent).sections[0] ?? null : null) : shaped?.arrangement ?? phrased;
   const bars = arrangement.bars;
   const separated = parts.struckFigures.some(p => p.support?.sustained === 'separate');
   const clearance = (style as Style & { composition?: CompositionPolicy }).composition?.placement?.sustainedClearanceBeats;

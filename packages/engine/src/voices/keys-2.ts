@@ -36,7 +36,7 @@ import type { NoteParams } from './descriptor.ts';
 import type { Settings } from '../settings.ts';
 import { patchOf } from './sound.ts';
 import type { SoundRow, Topology } from './sound.ts';
-import { contract, int, num, pos, DB, HZ, LEVEL, LFO_HZ, Q, SECONDS, UNIT, CENTS } from './schema.ts';
+import { contract, inUnit, int, num, optional, pos, table, DB, HZ, LEVEL, LFO_HZ, Q, SECONDS, UNIT, CENTS } from './schema.ts';
 import type { VoiceRenderer } from './descriptor.ts';
 
 function brightPiano(
@@ -59,10 +59,24 @@ function brightPiano(
   const kHold = knobScale(p, row.descriptor.knobs, 'hold');
   const attack = S.attack * knobScale(p, row.descriptor.knobs, 'attack');
   const release = S.release * kHold;
-  const end = time + Math.max(dur, 0.12) + release;
+  // (round piano-pool) **the aftersound and the damper** (round voice-homes' technique, his word 11-01: "we need to
+  // apply new sound technic to all our acoustic piano voices"): where the row has `after`, each partial falls in two
+  // stages, its prompt fall (the row's own decay, as before) down to `after.level` of its strike and then an aftersound
+  // that lives by its frequency (`after.seconds` at middle C, shorter up the keyboard), whatever the note's length; the
+  // key held rings on and the damper stops the note at its release (`p.held` where a part let go early, else its
+  // length) in `after.damper` seconds. The lowest partials sound on two strings `after.cents` apart, centred on the
+  // note, so they bloom. Absent, the note as it always was: every partial falls over the note's length and release.
+  const A = S.after;
+  const held = A ? Math.max(0.03, typeof p.held === 'number' && Number.isFinite(p.held) ? Math.min(dur, p.held) : dur) : 0;
+  const end = A ? time + attack + held + A.damper + MIN_RELEASE : time + Math.max(dur, 0.12) + release;
 
   const g = ctx.createGain();
   g.gain.value = 1;
+  if (A) {
+    g.gain.setValueAtTime(1, time + attack + held);
+    g.gain.exponentialRampToValueAtTime(1e-4, time + attack + held + A.damper);
+    g.gain.linearRampToValueAtTime(0, end);
+  }
   g.channelCount = 2;
   g.channelCountMode = 'explicit';
   g.channelInterpretation = 'speakers';
@@ -79,25 +93,41 @@ function brightPiano(
     // by sqrt(1 + B·n²), and it is what tells a piano from an organ.
     const f = hz * n * Math.sqrt(1 + S.inharmonicity * n * n);
     if (f > 18000) break;
-    const o = ctx.createOscillator();
-    o.type = 'sine';
-    o.frequency.value = f;
     const env = ctx.createGain();
     // The upper partials die first and the fundamental holds: that ratio *is*
     // the decay of a piano, and `S.partialDecay` is how much faster each one
     // goes than the one below it.
-    const decay = Math.min(dur + release, (S.decay * kHold) * Math.pow(S.partialDecay, n - 1));
     const level = (Math.pow(S.tilt, n - 1) + (n >= 4 ? S.upper * vel : 0)) * peak;
     env.gain.setValueAtTime(0, time);
     env.gain.linearRampToValueAtTime(level, time + attack);
-    env.gain.exponentialRampToValueAtTime(Math.max(1e-5, level * 0.001), time + attack + decay);
-    env.gain.linearRampToValueAtTime(0, time + attack + decay + MIN_RELEASE);
+    let stop: number;
+    if (A) {
+      // the prompt fall to the aftersound, then the aftersound by the partial's frequency; the damper (above) ends it
+      const prompt = Math.min((S.decay * kHold) * Math.pow(S.partialDecay, n - 1), 0.7);
+      const life = Math.max(prompt * 2, A.seconds * kHold * Math.pow(261.6 / f, 0.7));
+      env.gain.exponentialRampToValueAtTime(Math.max(1e-5, level * A.level), time + attack + prompt);
+      env.gain.exponentialRampToValueAtTime(Math.max(1e-5, level * 0.001), time + attack + life);
+      stop = Math.min(end, time + attack + life + MIN_RELEASE) + 0.01;
+    } else {
+      const decay = Math.min(dur + release, (S.decay * kHold) * Math.pow(S.partialDecay, n - 1));
+      env.gain.exponentialRampToValueAtTime(Math.max(1e-5, level * 0.001), time + attack + decay);
+      env.gain.linearRampToValueAtTime(0, time + attack + decay + MIN_RELEASE);
+      stop = Math.min(end, time + attack + decay + 0.01);
+    }
     const pan = panner(ctx, (n % 2 ? 1 : -1) * spread * (n / S.partials));
-    o.connect(env);
     env.connect(pan);
     pan.connect(lp);
-    o.start(time);
-    o.stop(Math.min(end, time + attack + decay + 0.01));
+    // the strings: one, or two about the note on the lowest partials (`after.cents`), at the one's level between them
+    const two = A && A.cents > 0 && n <= 3;
+    for (const c of two ? [-A.cents / 2, A.cents / 2] : [0]) {
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = f;
+      o.detune.value = c;
+      if (two) { const h = ctx.createGain(); h.gain.value = Math.SQRT1_2; o.connect(h); h.connect(env); } else o.connect(env);
+      o.start(time);
+      o.stop(stop);
+    }
   }
 
   // The hammer: a very short band of noise where the felt lands. It is what a
@@ -239,6 +269,17 @@ const BRIGHT = contract({
   hammerTime: SECONDS,
   spread: UNIT,
   trim: LEVEL,
+  /** (round piano-pool) the aftersound and the damper: absent, every partial falls over the note's length */
+  after: optional(table({
+    /** the fundamental's life at middle C, shorter up the keyboard as (middle C / f)^0.7 */
+    seconds: inUnit(num(0.2, 30), 'seconds'),
+    /** the aftersound's level against the strike, where the prompt fall lands */
+    level: UNIT,
+    /** the damper's fall at the key's release */
+    damper: inUnit(num(0.02, 1), 'seconds'),
+    /** the lowest three partials' two strings, this many cents apart about the note (0: one string) */
+    cents: CENTS,
+  })),
 });
 
 /**

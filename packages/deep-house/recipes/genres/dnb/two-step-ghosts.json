@@ -261,7 +261,7 @@
     "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
     "cut": "8:102+123",
     "bars": "6\u201337",
-    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "reading": "packages/mining/tools/readings.py; the round's tables in round dnb-1 and the dnb-1-segments analysis",
     "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
     "kind": "drum beat",
     "pattern": "the two-step drop: kick on one and three-and, the snare on two and four with ghosts on one-a, two-a and three-e and one on four-a every other bar, eighth hats in a two-bar figure, a sub held on the root that leans a semitone down and back and jumps to the fourth",
@@ -271,7 +271,7 @@
       "reaches": false,
       "eventRateZ": -0.1,
       "syncopationZ": -1.4,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (round dnb-1 \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
     },
     "admitted": "admitted 2026-10-02 on the review of the mined links (round R1, part 4) at the weight its audited standing gives",
     "weighed": "round DNB-3 (2026-10-05): 0.5 -> 0.75, liquid first at the fast broken places"

@@ -79,7 +79,12 @@ export const RELEASE_BARS = 0.25;
 
 /** One sweep, and what the gates made of it. */
 export interface SweepMove {
-  kind: 'entry' | 'exit' | 'breath' | 'hold';
+  kind: 'entry' | 'exit' | 'breath' | 'hold' | 'carry';
+  /**
+   * a carry's corners (round top-form, T02's slope): the macro filter's own line over a breakdown, in bars and Hz, which
+   * the melodic bus takes over so the harmony closes and opens exactly as it did while the drums' low-pass slopes
+   */
+  points?: ReadonlyArray<{ bar: number; hz: number }>;
   stage: 'hp' | 'lp';
   /** the bar it starts on, and how many bars it runs */
   bar: number;
@@ -229,9 +234,26 @@ export function sweepCurves(moves: readonly SweepMove[], barSeconds: number): Bu
     const cutoff: Pt[] = [{ t: 0, value: open }];
     const wet: Pt[] = [{ t: 0, value: 0 }];
     // each move as its engage (`lead`), its body and its let-go (`tail`), and the line it ends on
+    // (an exit that a carry takes up on its line hands its corner straight on: no let-go between them, round top-form)
+    const carriedAt = new Set(laid.filter((m) => m.kind === 'carry').map((m) => m.bar));
     const parts = laid.map((m) => {
       const a = m.bar * barSeconds;
       const b = (m.bar + m.bars) * barSeconds;
+      if (m.kind === 'carry') {
+        // **The macro's own line, on the harmony** (round top-form): engaged at its first corner on the line, along the
+        // breakdown's corners, let go on its end; the drums meanwhile slope under the macro's gentler corner
+        const pts = (m.points ?? [{ bar: m.bar, hz: m.hz }]).map((x) => ({ t: x.bar * barSeconds, value: x.hz }));
+        const lead = Math.max(0, a - ENGAGE_S);
+        return { m, a, end: b, lead: { wet: [{ t: lead, value: 0 }], cutoff: [{ t: lead, value: pts[0].value }] },
+          body: { wet: [{ t: a, value: 1 }, { t: b - ENGAGE_S, value: 1 }], cutoff: pts },
+          tail: { wet: [{ t: b, value: 0 }], cutoff: [{ t: b + ENGAGE_S, value: open }] }, first: pts[0].value };
+      }
+      if (m.kind === 'exit' && carriedAt.has(m.line)) {
+        // engaged open, closed onto the line, and held there for the carry that takes it up
+        return { m, a, end: b, lead: { wet: [{ t: a, value: 0 }], cutoff: [] as Pt[] },
+          body: { wet: [{ t: a + ENGAGE_S, value: 1 }, { t: b, value: 1 }], cutoff: [{ t: a + ENGAGE_S, value: open }, { t: b, value: m.hz }] },
+          tail: { wet: [{ t: b + ENGAGE_S, value: 0 }], cutoff: [] as Pt[] }, first: open };
+      }
       if (m.kind === 'entry') {
         // In at the line, already thin: the crossfade and the corner's rise
         // land together on the downbeat, and the corner opens down over the span.

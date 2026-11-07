@@ -17,6 +17,7 @@ import type { Line } from './ramp.ts';
 import { SEND_NAMES } from './dsp.ts';
 import type { VoiceOut } from './dsp.ts';
 import type { Bus, Buses } from './master.ts';
+import { cutAndHold } from './graph-scope.ts';
 
 export interface SourceMix {
   mute: string[];
@@ -106,7 +107,8 @@ export function makeSourceMixer(ctx: BaseAudioContext, buses: Buses, initial: So
       for (const g of gains) g.line.to(sourceGain(state, g.source, g.send), at, RAMP);
     },
     dispose() {
-      for (const { node } of gains) node.disconnect();
+      // cut, then held a while (round crash-resume, `graph-scope.ts`)
+      cutAndHold(gains.map((g) => g.node));
       gains.length = 0;
       channels.clear();
     },

@@ -1,0 +1,257 @@
+{
+  "schema": 1,
+  "kind": "top-form",
+  "round": "top-form",
+  "revision": 1,
+  "note": "The top lanes follow the form (round top-form, 11-02; his word 11-01: 'make our root deep house music more interesting and fill in a bit better our lacking high freq domain', and 11-02 on the table: 'All T1-12 improvements are go'). Measured first (the top-end gap, 11-01): at matched loudness our top is not short on level, it is short on time: it turns in 17% of bars against the sources' 47%, steps by 3 dB or more 2.1 times a minute against their 0.9, and 14% of our featured deep bars have nothing above 6 kHz against their 3%. So nothing here raises a level: every hit is a copy of one the theme already plays, at or under its own level, and the moves are turns (a player in or out, a figure grown, a clock) rather than switches. One planner owns the top lanes' in and out on the phrase lines (`src/top-form.ts`); each idea is a block here and a word in the place's list (`SubRates.top`), so one can come out by ear without the others. Every number is a starting point for listening.",
+  "units": {
+    "*.bars": "bars",
+    "*.leastBars": "bars",
+    "*.steps": "sixteenths",
+    "*.level": "share of the copied hit's velocity",
+    "*.db": "dB",
+    "*.hz": "Hz",
+    "*.chance": "share",
+    "*.weights.*": "weight",
+    "leans.*": "lean (src/lean.ts) about the house's own birds"
+  },
+  "centre": {
+    "ember": 0.394,
+    "tide": 0.558,
+    "zephyr": 0.377,
+    "root": 0.717,
+    "gleam": 0.359,
+    "veil": 0.473,
+    "spark": 0.275,
+    "loom": 0.578
+  },
+  "tempo": {
+    "says": "the house's pace: the top form plays on a groove whose tempo is inside this window (the fast places keep their own small things, and a theme the place lists it for at another tempo keeps its top as it was)",
+    "bpm": [
+      88,
+      116
+    ]
+  },
+  "front": {
+    "says": "under a drone in front (the one-foreground rule) the top stays simple: no rota, no clock, no pulse in the break; the growth, the breather, the second drop, the staged entries, the answer and the floor play",
+    "off": [
+      "rota",
+      "clock",
+      "pulse"
+    ]
+  },
+  "rota": {
+    "says": "T01: the top is a few quiet players, and about every dozen bars one of them steps out or in on a phrase line inside a groove (a main or a drop), the kick never changing. A span of `bars` (the long one where Loom is past `loomLong`) out or in, then back; the next no sooner than `gapBars` after the last change (Veil from still to shifting, a line between). The players it rotates today: the sixteenth lane out (where the theme plays one, never a hand player's phrase), the open-hat clock out (T03), and the closed hat's ghost sixteenths in (a third light player under the hat, `ghosts`). `later` is the slot the group B players join (a shaker, a tick, a tambourine): each a word here and a figure in `src/top-form.ts` when he picks them.",
+    "leastBars": 24,
+    "bars": {
+      "short": 8,
+      "long": 16,
+      "loomLong": 0.8
+    },
+    "gapBars": {
+      "still": 24,
+      "shifting": 8
+    },
+    "players": [
+      "sixteenths",
+      "clock",
+      "ghosts"
+    ],
+    "later": [
+      "shaker",
+      "tick",
+      "tambourine"
+    ],
+    "ghosts": {
+      "steps": [
+        7,
+        15
+      ],
+      "level": 0.3
+    },
+    "leans": {
+      "spark": {
+        "ghosts": 1.5
+      }
+    }
+  },
+  "clock": {
+    "says": "T03: the hats stay short and closed, and once every `period` bars one offbeat opens into a 'tss' that hangs a quarter of a second, choked before the next closed hat: a clock for the phrase without a fill. The slot (the and-of-one at the period's first bar, or the and-of-four at its last) is drawn once a theme; the period is Loom's (`loomLong` and past: eight bars, else four). The theme's own open hat at its own level (`level`), the closed hat on that step out. Only in a groove, never over another small thing's bar, and the rota may take it out for a span.",
+    "slots": [
+      2,
+      14
+    ],
+    "period": {
+      "short": 4,
+      "long": 8,
+      "loomLong": 0.75
+    },
+    "level": 1,
+    "chokeAfter": 1.5
+  },
+  "secondDrop": {
+    "says": "T04 (the lanes' half): once a track (wave 1 laid one after every breakdown, two on Vibe - Deep Dive), after the track's longest breakdown (the later of two alike): the kick and the bass come back under a thin hat, the closed hat on the offbeats of one and three only, a touch softer (`hat`, `level`: the house's own thinned hat, as an intro's first phrase plays it), the open hat and the sixteenths waiting; a phrase later (`bars`, the long one past `loomLong`) the top is whole again. The line it opens on is the section's `topOpens`, which the tops bus reads for its filter's half.",
+    "bars": {
+      "short": 8,
+      "long": 16,
+      "loomLong": 0.85
+    },
+    "hat": "..t.......t.....",
+    "level": 0.8
+  },
+  "breather": {
+    "says": "T05: once a track at most, in a long main (`leastBars` and over) the kick and the bass step out for a short breath on a phrase line, ending on a sixteen-bar line, while every top lane plays on as before: the groove on its toes, the kick's return the event. Short (his ear 11-02 on wave 1's eight bars: 'probably shorter segments'): `bars.long` where the main runs `bars.longMain` bars or more or Loom leans long, else `bars.short`. No lift on the tops (his 'hats too pronounced'). Drawn once a track at `chance`, leaned by Root (a full low end makes it an event) and Veil; never over another small thing, never where the theme has no closed hat to carry it. The ring marks it as the low track's bass-out dots over its bars ('a breather should be seen as well as heard').",
+    "leastBars": 32,
+    "bars": {
+      "short": 2,
+      "long": 4,
+      "longMain": 40
+    },
+    "chance": 0.55,
+    "leans": {
+      "root": {
+        "on": 1.5
+      },
+      "veil": {
+        "on": 0.8
+      },
+      "loom": {
+        "long": 2
+      }
+    }
+  },
+  "grow": {
+    "says": "T07: each groove keeps its hat and adds one small thing that then stays: the second groove a soft tick on every beat (`tick`), the third and later the pickups after the offbeats too (`pickup`), each under the hat by eight dB or more. The growth is the base the variations play around: a bar another small thing edits the hats on keeps its own.",
+    "tick": {
+      "steps": [
+        0,
+        4,
+        8,
+        12
+      ],
+      "level": 0.4
+    },
+    "pickup": {
+      "steps": [
+        3,
+        11
+      ],
+      "level": 0.35
+    },
+    "leastGrooves": 2
+  },
+  "steps": {
+    "says": "T08: the top arrives in steps. A breakdown of `breakLeast` bars or more brings the offbeat back alone on plain eighths over its last phrase (the sixteenths waiting), so the hats lead the way out before the kick; a build of `buildLeast` bars or more brings the sixteenth lane in over its last half (at most a phrase), where the theme plays one. At a long Loom (`long.loomLong` and past) the way out is trimmed (his ear 11-02 on Vibe - Saturn Rings: 'gets a bit too busy on break'): its last `long.bars` only, the hat on the offbeats of one and three (`long.hat`, the thin hat the second drop then carries under the kick, so the hat line runs on across the line and the full top waits for its phrase).",
+    "breakLeast": 16,
+    "buildLeast": 8,
+    "hat": "..x...x...x...x.",
+    "level": 0.75,
+    "long": {
+      "loomLong": 0.75,
+      "bars": 4,
+      "hat": "..x.......x....."
+    }
+  },
+  "answer": {
+    "says": "T09: in a long groove the eighth bar of every sixteen punctuates itself: the backbeat's beat-three hit moved to the 'e' after it (`clap`, six dB down) and the theme's own open hat on the last sixteenth, ringing over the next downbeat (`splash`). Two sounds, back like a clock; drawn once a theme at `chance` (Spark and Loom lean it in, a still Veil out). A seam or a phrase event on the same bar wins.",
+    "chance": 0.45,
+    "leastBars": 16,
+    "every": 16,
+    "at": 7,
+    "clap": {
+      "step": 9,
+      "level": 0.5
+    },
+    "splash": {
+      "step": 15,
+      "level": 0.6
+    },
+    "leans": {
+      "spark": {
+        "on": 1.5
+      },
+      "loom": {
+        "on": 1
+      }
+    }
+  },
+  "floor": {
+    "says": "T02: when the kick leaves the top slopes, it never goes dark. The breakdown's low-pass on the drums (the macro filter) starts from a gentle corner near 6 kHz (`slope`, Zephyr leaning it: darker at Zephyr nought, never past `most`) in place of 0.9 kHz, while the harmony keeps its own close and opening on the melodic bus exactly as the macro drew it; and the breakdown's first phrase, where the hats rest, is held by one of the `holders`, drawn once a theme: the groove's hat as a whisper on two offbeats a bar (`floor`), the backbeat alone into the room or a few loose ticks (T10, `pulse`), or nothing, and where nothing was drawn, at a share of its own, the groove's hat carried on the offbeats of two and four (T37, `carry`) (a deep break may stay beatless).",
+    "slope": {
+      "hz": 6000,
+      "zephyr": 0.95,
+      "least": 3800,
+      "most": 9000
+    },
+    "holders": {
+      "floor": 1,
+      "backbeat": 0.4,
+      "ticks": 0.35,
+      "none": 0.35
+    },
+    "leans": {
+      "spark": {
+        "ticks": 1.5,
+        "none": -1
+      },
+      "tide": {
+        "backbeat": 2
+      },
+      "loom": {
+        "carry": 1
+      },
+      "veil": {
+        "none": 0.5
+      }
+    },
+    "hats": {
+      "steps": [
+        2,
+        10
+      ],
+      "db": -9
+    },
+    "least": 4,
+    "carry": {
+      "says": "T37 (round top-lanes pass 3, his ear 11-02 on the pair: \"after-half sounds good, rythm didn't sound good at all\"): the hats carry the deep break. Where the draw over the `holders` left the break beatless (`none`), at `share` (Loom leaning it), on a stream of its own, the breakdown's first phrase keeps the groove's closed hat on the offbeats of two and four (`steps`), `db` under it, under the break's slope. \"none\" stays possible.",
+      "share": 0.25,
+      "steps": [
+        6,
+        14
+      ],
+      "db": -3
+    }
+  },
+  "pulse": {
+    "says": "T10: a light pulse for the deep break, a third answer between the beat-led carrier and a beatless break: `backbeat`, the groove's own backbeat alone on two and four, six dB down and sent into the theme's reverb (`reverb`) so it rings into the room; `ticks`, two or three of the groove's hats a bar on the off steps, falling, then one empty bar before the hats come back. Each comes in after the break's first beat and leaves its last beat empty. The kick's click alone (the card's third) is not built: a kick posts the pads' duck on every strike, which is the 'too wobbly' pump the break-pulse round refused.",
+    "backbeat": {
+      "steps": [
+        4,
+        12
+      ],
+      "db": -6,
+      "reverb": 0.2,
+      "hp": 700
+    },
+    "ticks": {
+      "bars": [
+        [
+          6,
+          14
+        ],
+        [
+          10
+        ],
+        [
+          6,
+          11,
+          14
+        ],
+        [
+          14
+        ]
+      ],
+      "db": -8
+    }
+  }
+}

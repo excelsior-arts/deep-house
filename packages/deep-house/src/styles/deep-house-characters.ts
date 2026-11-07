@@ -100,6 +100,10 @@ export const characters: SoundCharacters = {
     // is dear and lazy, so it counts against the composition's spatial
     // returns (`partUsage`) as the background and the immersed spaces do.
     echo: { room: .06, reverb: .18, delay: 0, echo: .62 },
+    // **The figure's room by Tide** (round tide-space): where Tide itself chooses the figure's room (the near and
+    // open figure space), the intimate room at and under Tide 0.25 and the spacious one from the house, one slope
+    // between (`tidalRoom`), where it was a 17 dB step at 0.5. The numbers are the ceiling's, the spacious room's.
+    tidal: { room: .12, reverb: .85, delay: .12 },
   },
   tone: {
     kick: { rounded: { requires: ['bodyLp', 'partialLevel'], params: { bodyLp: 110, partialLevel: .025, startHz: 58, endHz: 40 } } },

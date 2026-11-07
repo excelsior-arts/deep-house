@@ -48,6 +48,16 @@
 //               (a bed's 2-4 kHz), so it stands where its level says. It sits
 //               beside a `dip`, never in place of one
 //
+//   p.lift      { hz, db, q, floorHz } — the front's presence (round dark-fronts, his ear 11-03: the call "sinking
+//               behind other synths … maybe we play EQ a bit to get these voices in a bit higher frequencies"): a floor
+//               (a high-pass at `floorHz`) clearing the low-mids a reese and a pad fill, and one gentle bell lifting the
+//               voice's own presence (at most +6 dB). Written by the composer on a front lane over a dense low bed; a
+//               note without it builds nothing
+//   p.lid       { hz, to } — a band-limit (round dark-fronts' eighth pass, his ear 11-04: a bright struck accent "above
+//               mix … due to their bright nature and rest of mix is darker"): a fourth-order Butterworth low-pass at
+//               `hz`, walked to `to` across the note where given, so the voice's top sits where its mix's does. Written
+//               by the composer from the plan's read of the bed's top; a note without it builds nothing
+//
 // A ±0.5 octave move is a multiplier of 2^±0.5, so the numbers below read in
 // octaves wherever they can.
 
@@ -374,6 +384,38 @@ export function insert(
     const d = dipInsert(ctx, p.dip);
     node.connect(d);
     node = d;
+  }
+  if (p.lift) {
+    const L = p.lift as { hz?: number; db?: number; q?: number; floorHz?: number };
+    if ((L.floorHz ?? 0) > 20) {
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = Math.min(2000, L.floorHz!);
+      hp.Q.value = 0.7;
+      node.connect(hp);
+      node = hp;
+    }
+    if ((L.db ?? 0) > 0.05) {
+      const bell = ctx.createBiquadFilter();
+      bell.type = 'peaking';
+      bell.frequency.value = Math.max(200, Math.min(12000, L.hz ?? 2500));
+      bell.Q.value = Math.max(0.3, Math.min(4, L.q ?? 0.8));
+      bell.gain.value = Math.min(6, L.db!);
+      node.connect(bell);
+      node = bell;
+    }
+  }
+  if (p.lid && Number.isFinite(p.lid.hz) && p.lid.hz > 0) {
+    // a fourth-order Butterworth: two biquads, their Qs the pair's (1/(2 cos(pi/8)) and 1/(2 cos(3 pi/8)))
+    const a = Math.max(200, Math.min(20000, p.lid.hz)), z = Math.max(200, Math.min(20000, Number.isFinite(p.lid.to) ? p.lid.to : a));
+    for (const q of [0.5412, 1.3066]) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.Q.value = 20 * Math.log10(q);
+      rampFrequency(f.frequency, a, z, time, end);
+      node.connect(f);
+      node = f;
+    }
   }
   if (p.band && (p.band.db ?? 0) < -0.05) {
     const d = dipInsert(ctx, p.band);

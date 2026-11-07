@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "ringHigh",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        4.0,
+        1
+      ],
+      [
+        1.137,
+        3.2,
+        0.7
+      ],
+      [
+        1.414,
+        2.4,
+        0.5
+      ]
+    ],
+    "attack": 0.001,
+    "release": 0.3,
+    "ringLevel": 0,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 9000,
+    "malletLevel": 0,
+    "malletTime": 0.001,
+    "spread": 0,
+    "trim": 0.3,
+    "delay": 0,
+    "reverb": 0.4
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "edge": false,
+    "timbres": {
+      "ringHigh": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.6,
+        "brightnessHz": 7000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "mallets.ts",
+    "note": "A far ring (top-voices, T28): three inharmonic sines from a key note near 7 kHz, falling over 2.4-4 s, no click; laid under the wash at about -25 dB. A sketch row: nothing draws it."
+  }
+}

@@ -27,7 +27,7 @@
 // alone, with a ping-pong in it, until R80 of the reconciled review of 09-24.)
 
 import { duckShape } from './program.ts';
-import { impulseResponse, softClipCurve, saturationCurve, dbToGain, phasedLfo } from './dsp.ts';
+import { impulseResponse, softClipCurve, softClipGainCurve, curveOf, saturationCurve, dbToGain, phasedLfo } from './dsp.ts';
 import { line, type Line } from './ramp.ts';
 import { backgroundSpace, DEFAULT_SPACES, type BackgroundSpace } from './background-space.ts';
 import type { Settings } from './settings.ts';
@@ -239,6 +239,54 @@ export interface BusSweep {
  */
 export const SWEEP_FILTER = { resonanceDb: 2, lpOpenHz: 20000, hpOpenHz: 30 } as const;
 
+/**
+ * **The tops bus** (round tops-bus, 11-02; his word on the top end: *"fill in a bit better our lacking high freq
+ * domain"*, and on the table: *"All T1-12 improvements are go"*): one bus for the drums' top lanes — the closed and
+ * the open hat, the sixteenths and the hand percussion, never the kick, the bass or the backbeat's body — with its own
+ * low-pass and high shelf, so the form can move the top alone: a lid held over it and snapped open on a line, the top
+ * stepping out before a drop, the air coming up across a long main, the air opening a phrase after the kick returns.
+ *
+ *   top lanes -> tops (the bus's door) -+-> lp.dry --------------+-> shelf (8 kHz) -> gate -> drums
+ *                                       +-> lp.filter -> lp.wet -+
+ *
+ * The low-pass is a sweep stage (the melodic bus's own shape): the clean biquad between a dry and a wet gain, engaged
+ * by a crossfade at its open corner, so a parked stage is the bus to the sample; Butterworth (no peak at the corner:
+ * a closing hat must not whistle). The shelf at nought decibels is the identity, and the gate at one is a wire. The
+ * sends of a top lane's notes are the drums' own and are not filtered: a group bus's filter in a desk does not reach
+ * the channels' sends either, and the hats send almost nothing (the shaker's room and reverb at .12, both already
+ * low-passed under the top).
+ *
+ * **Built the first time a path into it is read** — a line naming `tops.…`, or a note whose program bus is `tops` —
+ * which only a program with a move on it does: a theme with none never builds it, its top lanes land on `drums` as
+ * they always did, and nothing moves a byte. Width by height (T22) is not here: the shelf's output is the place a
+ * mid-side stage would go, after it and before the gate.
+ */
+export const TOPS_FILTER = { resonanceDb: 0, lpOpenHz: 20000, shelfHz: 8000 } as const;
+
+/** The tops bus as built: its door, the low-pass stage, the shelf, and the gate. */
+export interface TopsBus {
+  /** the bus's door: what a top lane's notes connect to */
+  input: GainNode;
+  lp: SweepStage;
+  /** a high shelf at `TOPS_FILTER.shelfHz`; its `gain` in decibels, nought at rest */
+  shelf: BiquadFilterNode;
+  /** the bus's level after the shelf, one at rest: what a gate on the top moves */
+  gate: GainNode;
+  /**
+   * **Width by height** (round tops-bus-2, T22): a mid/side stage between the shelf and the gate, spliced in on the
+   * first read of a path into it. The side alone through a low shelf (`low`, its gain in decibels: the hat's body
+   * drawn in, so nothing under `TOPS_WIDTH.lowHz` is wider than the hat) and a high shelf (`high`: the air above
+   * `TOPS_WIDTH.highHz` wider), then `side` and `mid` as gains (the form's width, at constant power). Every part at
+   * rest is the identity. A side louder than its mid is anti-phase (the air-voices round's finding through the
+   * master's width stage); the hats reach this stage at a correlation near 0.8 (side about 9 dB under mid), and the
+   * rules keep the shelf and the form's steps inside what that carries in phase.
+   */
+  readonly width: { mid: GainNode; side: GainNode; low: BiquadFilterNode; high: BiquadFilterNode };
+}
+
+/** The tops bus's width stage's corners (round tops-bus-2): the side's low shelf and its high shelf. */
+export const TOPS_WIDTH = { lowHz: 4500, highHz: 9000 } as const;
+
 export interface ThemeGraph {
   ctx: BaseAudioContext;
   /** what a deck's own filters and fader hang off */
@@ -267,7 +315,7 @@ export interface ThemeGraph {
    * built the first time it is asked for; `null` for a bus with none, or where
    * the path built no edge (its own door is clean).
    */
-  cleanBus(name: string, struck: boolean): Bus | null;
+  cleanBus(name: string, struck: boolean, share?: number): Bus | null;
   /** the dry of each clean door built so far into the bus named; looking never builds one */
   cleanDoors(name: string): AudioNode[];
   /** an automation target by the path a program's line names: a path the two harmonic paths share answers with both */
@@ -328,11 +376,29 @@ export interface ThemeGraph {
    * one and plays through the graph it always did.
    */
   readonly sweep: BusSweep;
+  /**
+   * The drums' top lanes' own bus (round tops-bus, `TOPS_FILTER`): a low-pass stage, a high shelf and a gate into
+   * `drums`. **Built the first time a path into it is read** (a line naming `tops.…`, or `buses.tops`), so a program
+   * with no move on its top never builds one and plays through the graph it always did.
+   */
+  readonly tops: TopsBus;
+  /** whether the tops bus has been built; looking never builds one */
+  hasTops(): boolean;
   /** the dotted-eighth delay line's time, which a tempo glide leans */
   echo: { time: AudioParam };
   limiter: AudioWorkletNode | GainNode;
   trim: GainNode;
   width: GainNode;
+  /**
+   * The width's breathing depth (the LFO's gain into `width.gain`) and **the form's factor** on the side after it
+   * (round stereo-motion): the two a program's stereo plan by section writes (`widthDepth.gain`, `widthForm.gain`).
+   * `widthForm` is one number, the multiple the form puts on the room's width (one at rest); a return that must keep
+   * its impulse's width reads the same line inverted: `returnForm.offset`, the side's scale on every return into the
+   * stage (`space.returnSide` at rest).
+   */
+  widthDepth: GainNode;
+  widthForm: GainNode;
+  returnForm: ConstantSourceNode;
   /**
    * Anything whose only path to the destination is through an AudioParam.
    * `AudioNode` and not a source type: what is in it is whatever held the graph
@@ -709,7 +775,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   // ceiling and does not pull the whole mix down for a beat. Absent, the trim
   // is the theme's last node, as it always was.
   // `range`: the input the curve spans (`softClipCurve`), the drive scaled down by it so the curve reads the same.
-  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number; oversample?: OverSampleType; range?: number }, into: AudioNode, mono: boolean): AudioNode => {
+  const clipNodes = (C: { driveDb: number; knee?: number; curve?: number; makeupDb?: number; oversample?: OverSampleType; range?: number }, into: AudioNode, mono: boolean, linked = false): AudioNode => {
     const range = C.range ?? 1;
     const pre = ctx.createGain();
     pre.gain.value = dbToGain(C.driveDb) / range;
@@ -720,6 +786,39 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     // the drive back down, and the clip's make-up where a room asks one (10-06, hands-on: a master pushed into the limiter, as source 9's is)
     post.gain.value = dbToGain(-C.driveDb + (C.makeupDb ?? 0));
     if (mono) for (const n of [pre, shaper, post]) { n.channelCount = 1; n.channelCountMode = 'explicit'; }
+    if (linked && !mono) {
+      // **Linked** (round stereo-room, the audit's 7): the louder channel's level, |M| + |S|, read through the curve's
+      // own gain (`softClipGainCurve`), and that gain on both channels, so a loud instant on one side is rounded on
+      // both and the image holds still; under the knee the gain is one and the sum passes untouched, as before.
+      const split = ctx.createChannelSplitter(2);
+      pre.connect(split);
+      const absCurve = curveOf('abs:3', () => new Float32Array([1, 0, 1]));
+      const det = ctx.createGain();
+      det.channelCount = 1; det.channelCountMode = 'explicit';
+      for (const sign of [1, -1]) {
+        const sum = ctx.createGain();
+        sum.channelCount = 1; sum.channelCountMode = 'explicit';
+        const l = ctx.createGain(), r = ctx.createGain();
+        l.gain.value = 0.5; r.gain.value = 0.5 * sign;
+        split.connect(l, 0); split.connect(r, 1);
+        l.connect(sum); r.connect(sum);
+        const abs = ctx.createWaveShaper();
+        abs.curve = absCurve;
+        sum.connect(abs);
+        abs.connect(det);
+      }
+      const gainOf = ctx.createWaveShaper();
+      gainOf.curve = softClipGainCurve(C.curve ?? 2, C.knee ?? 0.6, 4096 * range, range);
+      det.connect(gainOf);
+      const vca = ctx.createGain();
+      vca.gain.value = 0;
+      gainOf.connect(vca.gain);
+      pre.connect(vca);
+      post.gain.value *= range;
+      vca.connect(post);
+      post.connect(into);
+      return pre;
+    }
     pre.connect(shaper);
     shaper.connect(post);
     post.connect(into);
@@ -745,7 +844,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   const MC = P.master.mixClip;
   if (MC && MC.driveDb > 0) {
     const after = ctx.createGain();
-    themeTail.connect(clipNodes(MC, after, false));
+    themeTail.connect(clipNodes(MC, after, false, true));
     themeTail = after;
   }
   const chain = opts.master || buildMaster(ctx, settings);
@@ -795,7 +894,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     down[down.length - 1].connect(themeOut);
     // (round hat-crackle: the curve spans 12 dB past its unit, so a hit far over the top — a breakdown's downbeat 10-12 dB
     // over it on Drive - Static Charge — is rounded by the curve and never flattened at the shaper's end)
-    at.connect(clipNodes({ driveDb, knee, curve, oversample: SC.oversample ?? 'none', range: SUM_CLIP_RANGE }, back, false));
+    at.connect(clipNodes({ driveDb, knee, curve, oversample: SC.oversample ?? 'none', range: SUM_CLIP_RANGE }, back, false, true));
     themeEnd = sum;
   }
 
@@ -912,14 +1011,17 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   widthLfo.start(opts.at ?? 0);
   keepAlive.push(widthLfo, widthDepth);
 
+  // the form's factor on the side (round stereo-motion): one at rest, a program's stereo plan writes it by section
+  const widthForm = ctx.createGain();
+  width.connect(widthForm);
   const widthNeg = ctx.createGain();
   widthNeg.gain.value = -1;
-  width.connect(widthNeg);
+  widthForm.connect(widthNeg);
 
   const msMerge = ctx.createChannelMerger(2);
   mid.connect(msMerge, 0, 0);
   mid.connect(msMerge, 0, 1);
-  width.connect(msMerge, 0, 0);
+  widthForm.connect(msMerge, 0, 0);
   widthNeg.connect(msMerge, 0, 1);
 
   duck.connect(msSplit);
@@ -936,6 +1038,50 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   const struckDuck = ctx.createGain();
   struckDuck.gain.value = 1;
   struckDuck.connect(msSplit);
+
+  // **A return keeps the width its room was made with** (round stereo-room, the audit's 5.3): every return reaches the
+  // width stage with its side scaled by `space.returnSide` first, so the stage's ×`widthBase` widens the dry chords to
+  // the references and leaves a tail as wide as its impulse (the reverb's two tails at 0.25, the hall's at 0.2, a part
+  // space's plate at 0.05), breathing with the chords. Without it a tail that was already two tails came out with its
+  // side over its mid (correlation -0.2 to +0.2 on its own): on AirPods a hollow ring outside the head. A mid/side
+  // scale is a 2×2 mix of the two channels (four gains), and linear, so it sits in front of the duck it feeds and
+  // the duck's pump is the same either way. One per destination, built on the first return into it; at one (a room
+  // that names none) nothing is built and the return is wired as it always was.
+  //
+  // The side's scale is one number for every return, `returnForm.offset` (round stereo-motion, joined at its merge):
+  // `returnSide` at rest, and the form's line over it divided by the form's factor, so a return reaching the stage is
+  // narrowed by exactly what `widthForm` widens it by and its tail stays as wide as its impulse in every section. Each
+  // of the four gains is ½ ± ½ x the scale, the source feeding their AudioParams (one source, two signs).
+  const RS = P.space.returnSide ?? 1;
+  const returnForm = ctx.createConstantSource();
+  returnForm.offset.value = RS;
+  const halfUp = ctx.createGain(), halfDown = ctx.createGain();
+  halfUp.gain.value = 0.5;
+  halfDown.gain.value = -0.5;
+  returnForm.connect(halfUp);
+  returnForm.connect(halfDown);
+  returnForm.start();
+  keepAlive.push(returnForm, halfUp, halfDown);
+  const narrowed = new Map<AudioNode, AudioNode>();
+  const narrowInto = (into: AudioNode): AudioNode => {
+    if (RS === 1) return into;
+    const had = narrowed.get(into);
+    if (had) return had;
+    const inp = ctx.createGain();
+    const split = ctx.createChannelSplitter(2);
+    const merge = ctx.createChannelMerger(2);
+    inp.connect(split);
+    ([[0, 0, halfUp], [1, 0, halfDown], [0, 1, halfDown], [1, 1, halfUp]] as const).forEach(([from, to, by]) => {
+      const g = ctx.createGain();
+      g.gain.value = 0.5;
+      by.connect(g.gain);
+      split.connect(g, from);
+      g.connect(merge, 0, to);
+    });
+    merge.connect(into);
+    narrowed.set(into, inp);
+    return inp;
+  };
 
   // **One harmonic path**: the bus's own gain, the seam gain, the edge, the
   // bell, into the duck it ends on — and, built on the first read of a path
@@ -1254,7 +1400,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   rvbCut.connect(conv);
   conv.connect(rvbTop);
   rvbTop.connect(reverbOut);
-  reverbOut.connect(duck);
+  reverbOut.connect(narrowInto(duck));
 
   // --- a slow chorus, shared by the keys, so stabs are wide without each
   // note carrying its own delay line --- one for each harmonic path's keys
@@ -1354,7 +1500,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     hp.connect(conv);
     conv.connect(lp);
     lp.connect(level);
-    level.connect(which === 'struck' ? struckDuck : duck);
+    level.connect(narrowInto(which === 'struck' ? struckDuck : duck));
     return hallIn;
   });
 
@@ -1410,6 +1556,66 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     const made = sweepIn(held);
     if (struck) twinSweep(made, sweepIn(struck.path));
     return made;
+  });
+
+  // **The tops bus** (round tops-bus, `TOPS_FILTER`): the top lanes' door, a low-pass stage between a dry and a wet
+  // gain, a high shelf and a gate, into the drums' bus ahead of its clip and the macro filter, so everything the drums
+  // pass through the top lanes still pass. Built on the first read, by a line or by a note on it.
+  let topsBus: TopsBus | null = null;
+  let topsDoor: Bus | null = null;
+  const topsOf = own((): TopsBus => {
+    if (topsBus) return topsBus;
+    const input = ctx.createGain();
+    input.gain.value = 1;
+    const dry = ctx.createGain();
+    const wet = ctx.createGain();
+    dry.gain.value = 1;
+    wet.gain.value = 0;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = TOPS_FILTER.lpOpenHz;
+    filter.Q.value = qFor('lowpass', TOPS_FILTER.resonanceDb);
+    const shelf = ctx.createBiquadFilter();
+    shelf.type = 'highshelf';
+    shelf.frequency.value = TOPS_FILTER.shelfHz;
+    shelf.gain.value = 0;
+    const gate = ctx.createGain();
+    gate.gain.value = 1;
+    input.connect(dry);
+    input.connect(filter);
+    filter.connect(wet);
+    dry.connect(shelf);
+    wet.connect(shelf);
+    shelf.connect(gate);
+    gate.connect(drums);
+    // (round tops-bus-2) the width stage, spliced between the shelf and the gate on its first read
+    let width: TopsBus['width'] | null = null;
+    const widthOf = (): TopsBus['width'] => {
+      if (width) return width;
+      const split = ctx.createChannelSplitter(2);
+      const merge = ctx.createChannelMerger(2);
+      const m = ctx.createGain(), sP = ctx.createGain(), sN = ctx.createGain();
+      m.gain.value = 0.5; sP.gain.value = 0.5; sN.gain.value = -0.5;
+      split.connect(m, 0); split.connect(m, 1); split.connect(sP, 0); split.connect(sN, 1);
+      const low = ctx.createBiquadFilter();
+      low.type = 'lowshelf'; low.frequency.value = TOPS_WIDTH.lowHz; low.gain.value = 0;
+      const high = ctx.createBiquadFilter();
+      high.type = 'highshelf'; high.frequency.value = TOPS_WIDTH.highHz; high.gain.value = 0;
+      sP.connect(low); sN.connect(low); low.connect(high);
+      const side = ctx.createGain(), mid = ctx.createGain(), sideNeg = ctx.createGain();
+      side.gain.value = 1; mid.gain.value = 1; sideNeg.gain.value = -1;
+      high.connect(side); m.connect(mid);
+      side.connect(sideNeg);
+      mid.connect(merge, 0, 0); mid.connect(merge, 0, 1);
+      side.connect(merge, 0, 0); sideNeg.connect(merge, 0, 1);
+      shelf.disconnect(gate);
+      shelf.connect(split);
+      merge.connect(gate);
+      width = { mid, side, low, high };
+      return width;
+    };
+    topsBus = { input, lp: { cutoffHz: filter.frequency, dry, wet, filter }, shelf, gate, get width() { return widthOf(); } };
+    return topsBus;
   });
 
   // **The outgoing harmony's close** (round MIX-X4; Eugene, 10-02, on the
@@ -1537,9 +1743,20 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   // it always had and only the clip never reads it. Built the first time such
   // a note asks, which a deck does when it is made (`prepareReturns`); none
   // where the path built no edge, whose bus is clean already.
-  const cleans: { held: Buses | null; struck: Buses | null } = { held: null, struck: null };
-  const cleanOf = own((which: 'held' | 'struck'): Buses | null => {
-    const built = cleans[which];
+  //
+  // **A door with an edge of its own** (round ep-noise, his ear 11-05 on a soft FM electric piano through the edge:
+  // "a bit out of control … tune it so it doesn't compete with the voice itself"): a `share` between nought and one (a
+  // row's `edgeShare`) is the clean door with a copy of the path's edge behind it, at the path's numbers as they stand,
+  // its copy held at `share` under its blend, so the notes it takes are driven alone and their copy is that share of
+  // what the shared edge made of them (−6 dB at a half, −12 at a quarter), while their dry is the clean door's, to the
+  // sample. Nought is the clean door. The desk's moves of the edge (DESK-EDGE) reach these edges as they reach the two
+  // paths' (`stageParams`, `stageSetters`), and an edge built after a move starts from where the path stands.
+  const cleans = new Map<string, Buses>();
+  const ownEdges: HarmonicEdgeStage[] = [];
+  const cleanOf = own((which: 'held' | 'struck', share: number = 0): Buses | null => {
+    const s = Math.max(0, Math.min(1, share));
+    const key = `${which}:${s}`;
+    const built = cleans.get(key);
     if (built) return built;
     const path = which === 'struck' ? struckOf().path : held;
     if (!path.edge) return null;
@@ -1548,10 +1765,23 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     const h = ctx.createGain();
     h.gain.value = 1;
     m.connect(h);
-    h.connect(path.edge.output);
+    if (s > 0) {
+      const E = path.edge.params;
+      const mine = buildHarmonicEdge(ctx, {
+        blend: E.blend[0]!.value, drive: path.edge.driveNow(),
+        preHz: E.preHz[0]!.value, floorHz: E.floorHz[0]!.value, toneHz: E.toneHz[0]!.value,
+      }, s);
+      ownEdges.push(mine);
+      h.connect(mine.input);
+      mine.output.connect(path.edge.output);
+    } else {
+      h.connect(path.edge.output);
+    }
     twin('melodic.gain', melodic.gain, m.gain);
     twin('harmonic.gain', harmonic.gain, h.gain);
-    return (cleans[which] = { melodic: bus(m, which), keys: bus(chorusInto(m), which) });
+    const doors = { melodic: bus(m, which), keys: bus(chorusInto(m), which) };
+    cleans.set(key, doors);
+    return doors;
   });
 
   // **The echo** (round KV1): the kitchen's tape delay (`effects/tape-delay.ts`)
@@ -1569,7 +1799,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     const back = ctx.createGain();
     back.gain.value = level;
     echo.output.connect(back);
-    back.connect(duck);
+    back.connect(narrowInto(duck));
     return echo.input as GainNode;
   });
 
@@ -1583,7 +1813,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
   const partSpaceInput = own((): GainNode | undefined => {
     if (!P.partSpace) return undefined;
     if (!partSpace) {
-      partSpace = buildSpace(ctx, settings, asSpace(P.partSpace), { beat: beatSeconds, at: opts.at ?? 0 });
+      partSpace = buildSpace(ctx, settings, asSpace(P.partSpace), { beat: beatSeconds, at: opts.at ?? 0, returnsVia: narrowInto });
       partSpace.output.connect(struckDuck);
     }
     return partSpace.input as GainNode;
@@ -1600,7 +1830,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     if (built) return built;
     const row = P.returns?.[id];
     if (!row) return null;
-    const space = buildSpace(ctx, settings, asSpace(row), { beat: beatSeconds, at: opts.at ?? 0 });
+    const space = buildSpace(ctx, settings, asSpace(row), { beat: beatSeconds, at: opts.at ?? 0, returnsVia: narrowInto });
     const d = ctx.createGain();
     d.gain.value = 1;
     space.output.connect(d);
@@ -1643,8 +1873,8 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     struckDuck,
     struckBus: (name: string) => (name === 'melodic' || name === 'keys' ? struckOf().buses[name] : null),
     hasStruck: () => struck !== null,
-    cleanBus: (name: string, struckNote: boolean) => (name === 'melodic' || name === 'keys' ? cleanOf(struckNote ? 'struck' : 'held')?.[name] ?? null : null),
-    cleanDoors: (name: string) => [cleans.held, cleans.struck].flatMap((b) => (b && b[name] ? [b[name].dry] : [])),
+    cleanBus: (name: string, struckNote: boolean, share = 0) => (name === 'melodic' || name === 'keys' ? cleanOf(struckNote ? 'struck' : 'held', share)?.[name] ?? null : null),
+    cleanDoors: (name: string) => [...cleans.values()].flatMap((b) => (b[name] ? [b[name].dry] : [])),
     // A path the two harmonic paths share answers with the pair; any other
     // walks the graph, as `paramOf` always has.
     param: (path: string) => {
@@ -1653,6 +1883,7 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
       // is written on both.
       const head = path.split('.')[0];
       if (head === 'sweep') sweepOf();
+      else if (head === 'tops') topsOf();
       else if (head === 'harmonicLp') harmonicLpOf();
       // a shared return, built on the first line that names it: `returns.<id>.<path into it>`
       else if (head === 'returns') {
@@ -1682,16 +1913,18 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
       // the bus edge's blend and corners, on both paths where the struck one is built (DESK-EDGE)
       if (target.startsWith('harmonicEdge.')) {
         const k = target.slice('harmonicEdge.'.length) as keyof HarmonicEdgeStage['params'];
-        return [held.edge, struck ? struck.path.edge : null].flatMap((e) => (e && e.params[k] ? e.params[k] : []));
+        return [held.edge, struck ? struck.path.edge : null, ...ownEdges].flatMap((e) => (e && e.params[k] ? e.params[k] : []));
       }
       const p = walkTo(made, target) as unknown;
       return p && typeof (p as AudioParam).setValueAtTime === 'function' ? [p as AudioParam] : [];
     },
     stageSetters: (target: string) => {
       if (target !== 'harmonicEdge.drive') return [];
-      return [held.edge, struck ? struck.path.edge : null].filter((e): e is HarmonicEdgeStage => !!e).map((e) => e.drive);
+      return [held.edge, struck ? struck.path.edge : null, ...ownEdges].filter((e): e is HarmonicEdgeStage => !!e).map((e) => e.drive);
     },
     get sweep() { return sweepOf(); },
+    get tops() { return topsOf(); },
+    hasTops: () => topsBus !== null,
     get harmonicLp() { return harmonicLpOf(); },
     // The dotted-eighth line's time, by path: a tempo glide moves the grid
     // under a deck that is already playing, and its echoes move with it.
@@ -1699,19 +1932,25 @@ function graphOf(ctx: BaseAudioContext, settings: Settings, opts: GraphOptions, 
     limiter: chain.limiter,
     trim: chain.trim,
     width,
+    widthDepth,
+    widthForm,
+    returnForm,
     keepAlive,
     beat: beatSeconds,
     // The sidechain, worked out once for this graph rather than once per kick:
     // the shape is a function of the room and of the beat this graph is
     // running on, and neither moves for as long as the graph is alive.
     duckShape: duckShape(settings, beatSeconds),
-    buses: {
+    // (round tops-bus) the top lanes' door, `tops`, is there to be asked for and not to be listed: built on the first
+    // note that names it, never by a walk over the buses (a meter, a readout), so a theme with no move on its top
+    // builds nothing
+    buses: Object.defineProperty({
       kick: bus(kickBus),
       sub: bus(subBus, 'held', bassDriveFx?.side),
       drums: bus(drums),
       melodic: bus(melodic),
       keys: bus(keysIn),
-    },
+    } as Buses, 'tops', { enumerable: false, get: () => (topsDoor ??= bus(topsOf().input)) }),
     // The level table is read by whatever name a caller has, and a name that
     // is not in it is -12 dB; the cast is that statement, since the table
     // itself is a fixed set of keys and this lookup is deliberately not.

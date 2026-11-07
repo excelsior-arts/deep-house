@@ -331,7 +331,7 @@
     "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
     "cut": "8:1864+126",
     "bars": "24\u201389",
-    "reading": "packages/mining/tools/readings.py; the round's tables in notes/rounds/dnb-1.md and notes/analysis/dnb-1-segments.md",
+    "reading": "packages/mining/tools/readings.py; the round's tables in round dnb-1 and the dnb-1-segments analysis",
     "knowledge": "mined: the figure read off the cut's onset lanes and bass notes bar by bar and written as a pattern; nothing sampled, no audio copied, the cut is the catalog's and stays there",
     "kind": "drum beat",
     "pattern": "a chopped break with a snare or a ghost on nearly every sixteenth and kicks on the eighths, the bass walking down by steps from a tone above the root",
@@ -341,7 +341,7 @@
       "reaches": false,
       "eventRateZ": -1.6,
       "syncopationZ": -0.8,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (notes/rounds/dnb-1.md \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the Drum and Bass rule target at the row's audit link (round dnb-1 \u00a75); on approval the row weighs 0.75 where it reaches and 0.5 where it leans"
     },
     "admitted": "admitted 2026-10-02 on the review of the mined links (round R1, part 4) at the weight its audited standing gives",
     "weighed": "round DNB-3 (2026-10-05): 0.5 -> 0.25, reachable, not dominant: liquid is the territory's first character"

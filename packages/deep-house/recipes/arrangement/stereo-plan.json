@@ -1,0 +1,49 @@
+{
+ "schema": 1,
+ "kind": "arrangement-stereo-plan",
+ "round": "stereo-motion",
+ "revision": 1,
+ "note": "The stereo image follows the form (his rule, 10-31): the intro arrives narrower and the record opens as it goes, the breakdown is the widest moment and breathes deepest, the build draws in toward the drop, and the outro closes. Written on the width stage's two numbers (the side gain over the harmonic sum and its breathing depth), never on a voice: the kick and the bass stay mono under it, and a voice keeps its own seat. Every change is walked over a bar or more, never a step. Tide (wet, held) scales the swing; a theme with no kick takes none of it (`noKick`). The drop opens back to the room's base, a touch over it, after a build that drew in: it reads as the record opening, not as a narrower peak. Every number is a starting point for listening.",
+ "kinds": {
+  "says": "per section kind: the side's level against the room's base in dB (`db`) and the breathing depth as a multiple of the room's (`depth`); a kind the table does not name plays as `main`. The breakdown's own opening is held to half a decibel while the returns pass the width stage: there a wider breakdown is a wider anti-phase wash (Drive - Eli's Ignition's breakdown has 12 % of its seconds under nought correlation already; +1.5 dB took it to 39 %, +0.5 to 15 %). It is the widest section by the intro, the build and the outro drawing in around it; raise it to about +1.5 once the returns join after the width stage",
+  "intro": {
+   "db": -3,
+   "depth": 0.8
+  },
+  "main": {
+   "db": 0,
+   "depth": 1
+  },
+  "breakdown": {
+   "db": 0.5,
+   "depth": 1.1
+  },
+  "build": {
+   "db": -2.5,
+   "depth": 0.75
+  },
+  "drop": {
+   "db": 0.5,
+   "depth": 1
+  },
+  "outro": {
+   "db": -3.5,
+   "depth": 0.8
+  }
+ },
+ "walk": {
+  "says": "the bars a change is walked over from the section's first bar; a build walks its whole length to its own level, so it lands there on the next downbeat; a drop opens over `dropBars` from its downbeat",
+  "bars": 2,
+  "outroBars": 4,
+  "dropBars": 1
+ },
+ "tide": {
+  "says": "the swing's scale by Tide: `at0` at Tide 0, `at1` at Tide 1, linear between",
+  "at0": 0.7,
+  "at1": 1.2
+ },
+ "noKick": {
+  "says": "the share of the swing a theme with no kick takes: none. Where there is no kick the wash is the record, its correlation already dips under nought, and a section's width there is the parts' own (measured on Ambient - Northern Lights, 10-31: the whole swing took its breakdown's correlation under nought; a third of it moved nothing the ear could find).",
+  "share": 0
+ }
+}

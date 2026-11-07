@@ -28,6 +28,7 @@ import type { V1Graph, V1Master } from './graph.ts';
 import type { AutomationTarget } from './master.ts';
 import type { SetClock } from './set-clock.ts';
 import type { Settings } from './settings.ts';
+import { cutAndHold } from './graph-scope.ts';
 
 /**
  * What the three time functions below read of a deck: the grid it is counted
@@ -824,9 +825,8 @@ export function teardown(deck: Deck): void {
   releaseNotes(deck.graph, deck.fader.context ? deck.fader.context.currentTime : 0);
   deck.graph.dispose();
   // the deck's own channel behind the fader, which the graph's out fed
-  for (const node of [deck.hp, deck.lp]) {
-    try { node.disconnect(); } catch (e) { /* already gone, or a stand-in */ }
-  }
+  // and the deck's own channel, cut and held a while with its fader (round crash-resume, `graph-scope.ts`)
+  cutAndHold([deck.fader, deck.hp, deck.lp]);
 }
 
 /**

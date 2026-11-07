@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "snap",
+  "revision": 1,
+  "topology": "snare",
+  "dice": 187.3,
+  "parameters": {
+    "shellHz": 1800,
+    "shellFifth": 1.5,
+    "shellLevel": 0,
+    "shellDecay": 0.01,
+    "drop": 1.0,
+    "dropTime": 0.004,
+    "wireHp": 1200,
+    "wireHz": 2400,
+    "wireQ": 1.2,
+    "wireLevel": 0.5,
+    "crackHz": 2500,
+    "crackQ": 1.6,
+    "crackDecay": 0.008,
+    "crackLevel": 0.9,
+    "lidHz": 7000,
+    "t10": 0.012,
+    "seconds": 0.25,
+    "variantCents": 18,
+    "attack": 0.001,
+    "trim": 1.0,
+    "variants": 3,
+    "rateSpread": 0.03,
+    "gainSpread": 0.08,
+    "decaySpread": 0.12,
+    "panSpread": 0.05,
+    "velBright": 0.2,
+    "velDecay": 0.2,
+    "pan": 0,
+    "room": 0
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "backbeat"
+    ],
+    "bus": "drums",
+    "level": "clap",
+    "layer": "clap",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "snap": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 2500,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "snare.ts",
+    "note": "A dry snap (top-voices, T16): the snare's builder with no shell, a crack and a short noise near 2.5 kHz, 30 ms; one hit on two, its answer only in the long room. A sketch row: nothing draws it."
+  }
+}

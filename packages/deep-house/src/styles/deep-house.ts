@@ -206,7 +206,9 @@ export const base = {
     // at 50 Hz and +1.4 dB at 100 Hz, so the low end was never mono at all.
     // Here the side is -12.3 dB at 50 Hz, -5.4 at 80, -3.0 at the corner and
     // -0.6 by 160 Hz, which leaves the 120-300 Hz width the sources measure.
-    sideHpHz: 100,
+    // (round stereo-room, the audit's 7) 90 Hz where it was 100: the chords' bottom keeps a little more of its width
+    // between 90 and 160 Hz; the kick and the bass are on their own mono bus and never reach this stage
+    sideHpHz: 90,
     // DECIBELS, not a linear Q: Web Audio defines `Q` on lowpass and highpass
     // as the resonance at the cutoff in dB. -3.01 dB is linear 1/sqrt(2),
     // which is the Butterworth the old comment claimed and did not have.
@@ -255,7 +257,16 @@ export const base = {
     // mono sum a 1.2 dB comb, so it goes back where it was; the remaining
     // decibel and a half is written up rather than bought at that price.
     hatHaasLevel: 0.09,
+    // (round stereo-room) the clap's three hands fanned across this much of the field about the clap's own place:
+    // two hands and a slap a few milliseconds apart are a pair of hands, never a point (`clap.ts`)
     clapPan: 0.35,
+    // (round stereo-room, the audit's 5.3) a return leaves as wide as the room it was made with: its side scaled by
+    // the inverse of the stage's `widthBase` before the stage, so the tails sit around the chords (correlation near
+    // their impulses' own) and never outside the head with their side over their mid
+    returnSide: +(1 / 1.45).toFixed(4),
+    // (round stereo-room) the kit's top in the room: the least every hat, cymbal, snare and shaker sends to the short
+    // room, at the house; the plan moves it with the birds (`stereo-stage.ts`)
+    kitRoom: 0.22,
   },
 
   sends: {

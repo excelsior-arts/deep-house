@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "half/hats-offbeat",
+  "revision": 1,
+  "name": "offbeat hats",
+  "scope": "treatment",
+  "applies": "variation",
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "tempo": {
+    "bpm": [
+      134,
+      160
+    ]
+  },
+  "figure": {
+    "lanes": {
+      "offbeat": {
+        "clear": 0,
+        "mask": [
+          "..X...X...X...X."
+        ]
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main"
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "his ear 11-04 on Drive - Cloudburst's next theme (dark-fronts, the eleventh pass): \"could we add more sub segments for drums to add little breaks and moves around straight line, similar to how we did for all our deep house genre … on long mains it could add more interesting development and phrasing\"",
+    "kind": "variation",
+    "where": "the second half of a sixteen-bar phrase inside a main",
+    "idiom": "the hats on the offbeats alone, the on-beats out: the top breathes against the kick for half a phrase",
+    "knowledge": "written from the idiom of half-time bass music, as a producer of it varies a straight groove: the kick thinned or pulled to the one, the snare withheld, the hats halved or gapped, a phrase at double time; nothing sampled, no audio copied",
+    "moved": "round dark-fronts, the eleventh pass (2026-11-04): a row of the deep half-time place's own figures, drawn by its weight among the rows of its kind where the place table draws the kind, boxed to the place's tempo so the house and the fast broken places draw exactly as they did"
+  }
+}

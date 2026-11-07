@@ -62,7 +62,7 @@
   "provenance": {
     "source": "the catalog's source 8, a drum and bass mix (mining id 8)",
     "cut": "8: cuts 2, 4, 8, 21, 22, 25 and 27, as statistics (score-8.py --territory)",
-    "reading": "packages/mining/tools/score-8.py, the sub's pitch every 5 ms as a curve; the round's numbers in notes/rounds/dnb-7.md",
+    "reading": "packages/mining/tools/score-8.py, the sub's pitch every 5 ms as a curve; the round's numbers in round dnb-7",
     "knowledge": "mined: a grammar of gestures from the territory's statistics (time on home, time gliding, a half bar's span, the swoop, a glide's length), no curve of any record; nothing sampled, no audio copied",
     "kind": "bass glide grammar",
     "note": "Home held longer, a short glide up a third late in the bar, a swoop every four bars, the home on each chord's root where the chord changes.",

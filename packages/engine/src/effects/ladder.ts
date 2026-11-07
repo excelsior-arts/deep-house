@@ -8,7 +8,7 @@
 //
 // **A real ladder is a feedback loop and this is not one.** Four one-pole
 // sections with the output fed back to the input, inverted, is what makes a
-// Moog-style filter resonate and what makes its resonance *thin the bottom* as
+// transistor-ladder filter resonate and what makes its resonance *thin the bottom* as
 // it comes up. A loop like that has to be computed sample by sample, and in
 // this engine a loop through nodes cannot be shorter than a render quantum —
 // 128 samples, round K2's Karplus finding, the same wall that put a string into
@@ -37,7 +37,7 @@
 //
 // It is wrong **physically**: a transistor ladder is a stack of differential
 // pairs, and a differential pair saturates the same amount either way. That is
-// the whole reason a Moog-style filter's overdrive is odd-harmonic and reads as
+// the whole reason a transistor-ladder filter's overdrive is odd-harmonic and reads as
 // warm rather than as fuzzy, and it is why a fuzz and a ladder do not sound
 // alike however hard either is driven.
 //

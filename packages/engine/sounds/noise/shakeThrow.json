@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "shakeThrow",
+  "revision": 1,
+  "topology": "shaken",
+  "dice": 193.7,
+  "parameters": {
+    "hp": 5000,
+    "peakHz": 7000,
+    "q": 0.7,
+    "gapSeconds": 0.06,
+    "second": 0.7,
+    "t10": 0.1,
+    "seconds": 0.8,
+    "variantCents": 60,
+    "attack": 0.004,
+    "trim": 1.0,
+    "variants": 3,
+    "rateSpread": 0.05,
+    "gainSpread": 0.1,
+    "decaySpread": 0.15,
+    "panSpread": 0.08,
+    "pan": 0,
+    "velBright": 0.2,
+    "velDecay": 0.2,
+    "room": 0.15
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "shakeThrow": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 7000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "perc.ts",
+    "note": "A shaker thrown once (top-voices, T17): the cabasa's builder in the splash's band (5 kHz up, 7 kHz centre), two bursts 60 ms apart, a 300 ms fall. A sketch row: nothing draws it."
+  }
+}

@@ -113,6 +113,13 @@ import mainsHatsQuarters from '../recipes/treatments/house/hats-quarters.json' w
 import mainsHatsOpenAnd from '../recipes/treatments/house/hats-open-and.json' with { type: 'json' };
 import mainsHatsSkip from '../recipes/treatments/house/hats-skip.json' with { type: 'json' };
 import mainsHatsRest from '../recipes/treatments/house/hats-rest.json' with { type: 'json' };
+import halfKickDropped from '../recipes/treatments/half/kick-dropped.json' with { type: 'json' };
+import halfSnareHeld from '../recipes/treatments/half/snare-held.json' with { type: 'json' };
+import halfKickOnTheOne from '../recipes/treatments/half/kick-on-the-one.json' with { type: 'json' };
+import halfHatsHalved from '../recipes/treatments/half/hats-halved.json' with { type: 'json' };
+import halfDoubleTime from '../recipes/treatments/half/double-time.json' with { type: 'json' };
+import halfHatsOffbeat from '../recipes/treatments/half/hats-offbeat.json' with { type: 'json' };
+import halfShakerRest from '../recipes/treatments/half/shaker-rest.json' with { type: 'json' };
 import dnbRiserEveryTwo from '../recipes/treatments/riser-every-two.json' with { type: 'json' };
 import dnbCrashOnTheOne from '../recipes/treatments/crash-on-the-one.json' with { type: 'json' };
 import sectionIntro from '../recipes/sections/intro.json' with { type: 'json' };
@@ -167,7 +174,7 @@ export const LIBRARY: Recipe[] = Object.freeze([
 
 /**
  * **The pattern rows** (recipes-g1, Eugene 09-26). Classic patterns — the
- * two-step, the Amen, the skank — written from public knowledge as `track`
+ * two-step, the jungle break, the skank — written from public knowledge as `track`
  * rows under `recipes/genres/<folder>/` (the folder and the id are the rows'
  * own names, authored content; the composer reads neither).
  *
@@ -354,6 +361,19 @@ export const TREATMENT_LIBRARY: Recipe[] = Object.freeze([
   mainsHatsOpenAnd as unknown as Recipe,
   mainsHatsSkip as unknown as Recipe,
   mainsHatsRest as unknown as Recipe,
+  // ...and the deep half-time place's own (round dark-fronts, the eleventh
+  // pass, his word 11-04: "more sub segments for drums"; `recipes/treatments/half/`):
+  // two turnarounds, three switch-ups written for its kit, two variations, each
+  // boxed to the place's tempo, so the house and the fast broken places draw
+  // exactly as they did. Listed last, so the draw's order among the rows
+  // before them is as it was.
+  halfKickDropped as unknown as Recipe,
+  halfSnareHeld as unknown as Recipe,
+  halfKickOnTheOne as unknown as Recipe,
+  halfHatsHalved as unknown as Recipe,
+  halfDoubleTime as unknown as Recipe,
+  halfHatsOffbeat as unknown as Recipe,
+  halfShakerRest as unknown as Recipe,
 ]) as Recipe[];
 
 /**

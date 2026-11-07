@@ -9,6 +9,8 @@
 // 09-23 a held bass under the full body is always the drone in front (no coin,
 // no bird), and behind the drone the sixteenth lane's mid-band voices take the
 // lane's scene presence (`Lane.presence`).
+import { sweep, swept } from './sweep.ts';
+import './test-timers.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { planTheme } from '../src/mix.ts';
@@ -25,6 +27,8 @@ import { maskSteps } from '../src/patterns.ts';
 import { BY_NAME, FAMILIES, TIMBRES } from '@deep-house/engine/voices';
 import { BENCHMARK_SEED, BENCHMARK_SPELL, BENCHMARK_THEMES, blessedLine, themeHash, played } from './link-digest.ts';
 import { linkWrite } from '../src/link.ts';
+import { isKitHat } from '../src/top-lanes.ts';
+import { isWindEvent } from '../src/wind.ts';
 
 // The scene's rules are the composer's; the library's turn (GA1) is held out of
 // reach here, so every theme below is the composer's own draw.
@@ -179,13 +183,14 @@ test('drone + body is the drone in front on every seed, at the house and at both
     { ...HOUSE, tide: 0, veil: 1, loom: .52 }];
   for (const spell of spells) {
     let n = 0;
-    for (const seed of SEEDS) {
+    // (200 seeds at night, every third at the merge gate: `tools/sweep.ts`)
+    for (const seed of sweep(SEEDS)) {
       const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] });
       if (!endless(t)) continue;
       n++;
       assert.equal(sceneOfDice(t.dice), 'drone-forward', `seed ${seed} at drone ${musicalControls(spell, style)!.drone}: drone + body behind`);
     }
-    assert.ok(n > 10, `${n} drone + body themes at ${JSON.stringify(spell)}`);
+    assert.ok(n > swept(10), `${n} drone + body themes at ${JSON.stringify(spell)}`);
   }
   // The number is still drawn: the coin's own stream is where it was, so the
   // themes it decides draw exactly what they drew before the rule.
@@ -199,7 +204,8 @@ test('drone + body is the drone in front on every seed, at the house and at both
 test('the coin is still reachable for every other held set, both ways, at the house and at both pulls', () => {
   for (const spell of [HOUSE, { ...HOUSE, tide: .75, veil: .3, loom: .72 }, { ...HOUSE, tide: .4, veil: .62, loom: .45 }] as Spell[]) {
     const seen: Record<string, Set<string>> = {};
-    for (const seed of SEEDS) {
+    // (200 seeds at night, every third at the merge gate: `tools/sweep.ts`)
+    for (const seed of sweep(SEEDS)) {
       const t = spell === HOUSE ? at(seed) : planTheme(seed, 0, { strategy: 'house-v2', spell, library: [] });
       const s = sceneOfDice(t.dice);
       if (s === 'air' || endless(t)) continue;
@@ -270,20 +276,53 @@ test('a drone-back theme is the airy draw with its pad at the background presenc
     }
     const events = t.events.filter((e) => !at(e)), wasEvents = was.events.filter((e) => !at(e));
     assert.equal(events.length, wasEvents.length, `seed ${seed}`);
+    // (each break's one factor: its loudest note besides the pad, the hats, the wind and the lane's own hits whose level
+    // moved, and the reading's error from the rounding to 1e-4)
+    // (a break's notes and the strokes on its return's line, which the half-break's splice takes with it, `spliceSplits`)
+    const breakOf = (e: { bar: number; step?: number; layer?: string }) => t.arrangement.sections.find(x => x.kind === 'breakdown' && e.bar >= x.startBar && e.bar < x.startBar + x.bars)?.startBar
+      ?? t.arrangement.sections.find(x => x.kind === 'breakdown' && e.bar === x.startBar + x.bars && !e.step && e.layer !== 'pad')?.startBar;
+    const factors = new Map<number, { k: number; err: number; g: number }>();
+    events.forEach((e, i) => {
+      const before = wasEvents[i], b = breakOf(e);
+      if (b == null || e.layer === 'pad' || e.layer === 'shaker' || isKitHat(e) || isWindEvent(e) || e.p.gain === before.p.gain || !(Number(before.p.gain) > 0)) return;
+      const g = Number(before.p.gain), had = factors.get(b);
+      if (!had || g > had.g) factors.set(b, { k: Number(e.p.gain) / g, err: 5e-5 / Number(e.p.gain) + 5e-5 / g, g });
+    });
+    const factorAt = (e: { bar: number; step?: number; layer?: string }) => factors.get(breakOf(e) ?? -1)?.k ?? 1;
+    const kErr = (e: { bar: number; step?: number; layer?: string }) => factors.get(breakOf(e) ?? -1)?.err ?? 0;
     events.forEach((e, i) => {
       const before = wasEvents[i];
-      const db = !e.part && sixteenth.voices!.some(c => c.v === e.voice) && e.layer === 'shaker' ? presenceDb(e.voice, 'drone-back') : 0;
+      // (the lane's own hits: since the top-voices-2 integration (11-02) the top's talking percussion may play a woodblock
+      // on the shaker layer, at its own level against the theme's hat (16.8-22.4 dB under its peak, past the 6 LU the
+      // drone-back presence holds a mid-band voice under the hats), which is no hit of the sixteenth lane's; `by:
+      // top-voices/...`, and it plays as it would with no scene, held equal below)
+      const db = !e.part && !String(e.by ?? '').startsWith('top-voices/') && sixteenth.voices!.some(c => c.v === e.voice) && e.layer === 'shaker' ? presenceDb(e.voice, 'drone-back') : 0;
       if (db) {
         under++;
         const { gain, ...rest } = e.p, { gain: g0, ...rest0 } = before.p;
         assert.deepEqual({ ...e, p: rest }, { ...before, p: rest0 });
         return assert.ok(Math.abs(20 * Math.log10((gain ?? 1) / (g0 ?? 1)) - db) < 1e-9, `seed ${seed}: ${e.voice} ${gain} from ${g0}`);
       }
-      if (e.layer !== 'pad') return assert.deepEqual(e, before, `seed ${seed}: only the pad and a mid-band sixteenth move behind the drone`);
+      // (the kit's hats' gain, since the hat-ceiling integration (11-03): the ceiling reads the hats against the whole mix, so a part that moves the mix moves the hats' level, never their hits; `isKitHat`)
+      if (isKitHat(e)) return assert.deepEqual({ ...e, p: { ...e.p, gain: undefined } }, { ...before, p: { ...before.p, gain: undefined } }, `seed ${seed}: a hat moves only by the ceiling`);
+      // (and the wind's gain, round wind (11-03): its ceiling reads it against the whole mix as the hats' does, so a part that moves the mix moves the wind's level, never where or how it plays; `isWindEvent`)
+      if (isWindEvent(e)) return assert.deepEqual({ ...e, p: { ...e.p, gain: undefined } }, { ...before, p: { ...before.p, gain: undefined } }, `seed ${seed}: the wind moves only by its ceiling`);
+      // (and a break's notes, since the break's ceiling (round long-main, pass 3, merged 11-04, `breakCeiling`): a break
+      // that stands over its groove comes down to the row's ceiling, every note in it by one cut, so a pad behind the
+      // drone that leaves a break under its ceiling keeps notes the airy draw cut (seed 27's held hiss and wash at 16, a
+      // half-break the splice took from the second plan, and at 40). A break's notes move together by one factor, read
+      // off its loudest note that moved, to the cut's rounding to 1e-4; restated 11-05)
+      const k = factorAt(e), slack = k === 1 ? 1e-12 : 5e-5 * (1 + k) + Number(before.p.gain ?? 1) * k * kErr(e);
+      if (e.layer !== 'pad') {
+        if (k === 1 || e.p.gain === before.p.gain) return assert.deepEqual(e, before, `seed ${seed}: only the pad and a mid-band sixteenth move behind the drone`);
+        assert.deepEqual({ ...e, p: { ...e.p, gain: undefined } }, { ...before, p: { ...before.p, gain: undefined } }, `seed ${seed}: only the pad and a mid-band sixteenth move behind the drone`);
+        return assert.ok(Math.abs(Number(e.p.gain ?? 1) - Number(before.p.gain ?? 1) * k) <= slack, `seed ${seed}: ${e.voice} at ${e.bar} ${e.p.gain} from ${before.p.gain}, its break's notes by ${k}`);
+      }
       const { gain, ...rest } = e.p, { gain: g0, ...rest0 } = before.p;
       assert.deepEqual({ ...e, p: rest }, { ...before, p: rest0 });
       // at most nine decibels under the style's level, never above what it was
-      assert.ok((gain ?? 1) <= (g0 ?? 1) + 1e-12 && (gain ?? 1) >= (g0 ?? 1) * 10 ** (back / 20) - 1e-12, `seed ${seed}: pad gain ${gain} from ${g0}`);
+      const g0k = (g0 ?? 1) * k;
+      assert.ok((gain ?? 1) <= g0k + slack && (gain ?? 1) >= g0k * 10 ** (back / 20) - slack, `seed ${seed}: pad gain ${gain} from ${g0}`);
     });
     assert.ok(events.some((e, i) => e.layer === 'pad' && e.p.gain !== wasEvents[i].p.gain)
       || !t.events.some(e => e.layer === 'pad') || JSON.parse(String(t.dice.composition)).selected['ringing-keys'],

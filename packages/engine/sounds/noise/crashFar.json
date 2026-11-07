@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "crashFar",
+  "revision": 1,
+  "topology": "cymbal",
+  "dice": 199.3,
+  "parameters": {
+    "ratios": [
+      1,
+      1.63,
+      2.21,
+      3.07,
+      4.13,
+      5.41
+    ],
+    "base": 380,
+    "detune": 30,
+    "metal": 0.15,
+    "hp": 3000,
+    "peakHz": 7000,
+    "q": 0.2,
+    "tilt": -1.5,
+    "lidHz": 9500,
+    "pingHz": 0,
+    "pingLevel": 0,
+    "pingDecay": 0.05,
+    "bellPing": 1,
+    "bellWash": 1,
+    "bellRing": 1,
+    "t10": 0.9,
+    "seconds": 5.0,
+    "variants": 2,
+    "variantCents": 30,
+    "attack": 0.025,
+    "trim": 0.72,
+    "rateSpread": 0.02,
+    "gainSpread": 0.06,
+    "decaySpread": 0.1,
+    "panSpread": 0.05,
+    "velBright": 0.2,
+    "velDecay": 0.5,
+    "pan": 0,
+    "room": 0.3
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "drums",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "crashFar": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.4,
+        "brightnessHz": 6000,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "cymbals.ts",
+    "note": "A far crash (top-voices, T28): the crash's builder darker and lighter in metal (lid 9.5 kHz, a falling tilt, a 3 kHz high-pass, the band at 7 kHz), a 25 ms bloom and a two-bar tail (-10 dB at 0.9 s), a third into the room and most of it into the long room by the note. A sketch row: nothing draws it."
+  }
+}

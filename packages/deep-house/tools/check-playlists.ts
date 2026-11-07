@@ -7,12 +7,13 @@ import { linkOfPlace } from '../src/control.ts';
 import { recipesFor, planTheme, programOf } from '../src/mix.ts';
 import { STRATEGIES } from '../src/strategies/index.ts';
 import { PLACE_LANES, readPlace, rowOf, zoneOf } from '../src/places.ts';
+import { TOP_FORM } from '../src/top-form.ts';
 import { BIRDS, HOUSE, asSpell, derive } from '../src/spell.ts';
 import {
   readLibrary, mergeLibraries, normaliseLink, sameSound, saveTrack, createPlaylist, addToPlaylist, removeTrack, renamePlaylist, setLabel,
   writePlaylistFile, writeBackupFile, readDeephouseFile, backupSummary, keepBothName, playlistOf, tracksOf, stamp, emptyLibrary,
 } from '../src/playlists.ts';
-import { skyOfLink, genreOf, colourOf, SKY_PLACES, SKY_DOTS, SKY_REGIONS, STEER_BIRDS, DOTS_PER_STAR, genreOfSpell, tempoOf, timeOf } from '../src/sky.ts';
+import { skyOfLink, genreOf, colourOf, SKY_PLACES, SKY_DOTS, SKY_REGIONS, STEER_BIRDS, DOTS_PER_STAR, NEAR_PLACES, nearStarOf, genreOfSpell, tempoOf, timeOf } from '../src/sky.ts';
 import { listTempo, listPull, foldTo, LIST_PULL } from '../src/performance.ts';
 import { stepIndex, indexOfSound, seamDue, placeWords, playMark } from '../src/playlist-play.ts';
 import { replaceLink, saveTarget, removePlaylist, playlistFileSummary, openPlaylistFile } from '../src/playlists.ts';
@@ -700,9 +701,9 @@ export function playlistChecks(check, must) {
     const gap = (a, b) => Math.hypot(at(a).x - at(b).x, at(a).y - at(b).y);
     must(gap('Drone', 'Ambient') < gap('Drone', 'Deep House') / 3, `Drone stands ${gap('Drone', 'Ambient').toFixed(3)} from Ambient, ${gap('Drone', 'Deep House').toFixed(3)} from the house`);
     must(gap('Chillstep', 'Dub Techno') < 0.2, `Chillstep stands ${gap('Chillstep', 'Dub Techno').toFixed(3)} from Dub Techno`);
-    // (trance-1: Trance's own spell measured, and its two neighbours beside it, Uplifting Trance and Hard Trance)
+    // (trance-1: Trance's own spell measured; trance-drawn's third pass, his word 11-04: its two neighbours are its dots)
     const lit = SKY_PLACES.filter((p) => p.lit).map((p) => p.name);
-    must(lit.join() === 'Deep House,Tech House,Techno,Ambient,Downtempo,Trip Hop,Dark Ambient,Ambient Dub,Drone,Psybient,Bells,Waves,Bowls,Liquid,Dub Techno,Chillstep,Trance,Uplifting Trance,Hard Trance,Breaks & Big Beat', `the lit stars are ${lit.join(', ')}`);
+    must(lit.join() === 'Deep House,Tech House,Techno,Ambient,Downtempo,Trip Hop,Dark Ambient,Ambient Dub,Drone,Psybient,Bells,Waves,Bowls,Om,Field,Liquid,Dub Techno,Chillstep,Trance,Breaks & Big Beat', `the lit stars are ${lit.join(', ')}`);
     return `${pin.length} positions pinned, genres ${pin.map((p) => p[3]).join(', ')}, the house ${colourOf(A)}; ${lit.length} lit stars, Drone by Ambient, Chillstep by Dub Techno`;
   });
   check('a track\'s genre is the star whose place it plays (genres-by-music, 10-29): every lit star reads itself, and the featured tracks read their words', () => {
@@ -711,8 +712,11 @@ export function playlistChecks(check, must) {
     // places they play; Drive 3 the tech house tables under a saw hook; Vibe 6 the slow place's harmony over the drone's floor
     const WORDS = {
       Vibe: ['Deep House', 'Liquid', 'Deep House', 'Drone', 'Deep House', 'Drone', 'Deep House', 'Downtempo', 'Liquid', 'Ambient Dub', 'Ambient Dub', 'Chillstep'],
-      Drive: ['Breaks & Big Beat', 'Tech House', 'Tech House', 'Hard Trance', 'Chillstep', 'Chillstep', 'Dub Techno', 'Deep House'],
-      Ambient: ['Dark Ambient', 'Waves', 'Drone', 'Waves', 'Dark Ambient', 'Bells', 'Bells', 'Drone', 'Downtempo', 'Waves', 'Waves'],
+      // Drive 4 (Tailwind) reads Trance since the dark trance place became one of Trance's dots (trance-drawn's third pass)
+      Drive: ['Breaks & Big Beat', 'Tech House', 'Tech House', 'Trance', 'Chillstep', 'Chillstep', 'Dub Techno', 'Deep House'],
+      // Ambient 1 (Moon Tide) Psybient since the Map's Om and Field (ambient-field, 10-31: any new lit star in the family
+      // shares the votes of the rows it plays, and Psybient's sea row stood 0.08 over Dark Ambient's); his word pending
+      Ambient: ['Psybient', 'Waves', 'Drone', 'Waves', 'Dark Ambient', 'Bells', 'Bells', 'Drone', 'Downtempo', 'Waves', 'Waves'],
     };
     const lit = SKY_PLACES.filter((p) => p.lit);
     for (const p of lit) must(genreOfSpell(p.spell) === p, `the ${p.name} star reads ${genreOfSpell(p.spell).name}`);
@@ -753,6 +757,13 @@ export function playlistChecks(check, must) {
       ['ambient-and-downtempo/trip-hop#2', 'ze:0.60'],
       ['ambient-and-downtempo/trip-hop#3', 'ti:0.39'],
       ['ambient-and-downtempo/trip-hop#4', 'ti:0.40,gl:0.01'],
+      // trance (trance-drawn's third pass, 11-04): its stream's four settled as they stood, and its two old neighbours
+      ['trance#1', 'ze:0.37'],
+      ['trance#2', 'lo:0.52'],
+      ['trance#3', 'gl:0.93,lo:0.66'],
+      ['trance#4', 'gl:0.85,ro:0.88'],
+      ['trance#5', 'em:0.86,ti:0.50,ze:0.45,ro:0.72,gl:0.18,ve:0.66,sp:0.43,lo:0.72'],
+      ['trance#6', 'em:0.82,ti:0.78,ze:0.72,ro:0.55,gl:0.92,ve:0.45,sp:0.33,lo:0.92'],
       ['ambient-and-downtempo/dark-ambient#1', 'ti:0.98,gl:0.64'],
       ['ambient-and-downtempo/dark-ambient#2', 'ze:0.23'],
       ['ambient-and-downtempo/dark-ambient#3', 'ze:0.20,lo:0.37'],
@@ -781,6 +792,14 @@ export function playlistChecks(check, must) {
       ['ambient-and-downtempo/bowls#2', 'ti:0.77,ro:0.54'],
       ['ambient-and-downtempo/bowls#3', 'ti:0.70,ro:0.70'],
       ['ambient-and-downtempo/bowls#4', 'ro:0.54,gl:0.57'],
+      ['ambient-and-downtempo/om#1', 'ti:0.78,gl:0.44'],
+      ['ambient-and-downtempo/om#2', 'ti:0.67,ze:0.22'],
+      ['ambient-and-downtempo/om#3', 'gl:0.57'],
+      ['ambient-and-downtempo/om#4', 'ti:0.64'],
+      ['ambient-and-downtempo/field#1', 'ti:0.60'],
+      ['ambient-and-downtempo/field#2', 'ti:0.90'],
+      ['ambient-and-downtempo/field#3', 'ro:0.23'],
+      ['ambient-and-downtempo/field#4', 'ze:0.59,gl:0.32'],
       ['dnb-and-dub/liquid#1', 'ti:0.21'],
       ['dnb-and-dub/liquid#2', 'ze:0.36'],
       ['dnb-and-dub/liquid#3', 'ro:0.59'],
@@ -814,7 +833,10 @@ export function playlistChecks(check, must) {
     }
     // the rules, read here again from the composer's own tables, for every dot (a new star's too)
     const P = STRATEGIES['house-v2'].style.places;
-    const reading = (s) => { const f = asSpell({ ...HOUSE, ...s }); const z = zoneOf(P, f); const bpm = derive(f).tempoCentre; return [z?.id ?? '-', ...PLACE_LANES.map((l) => rowOf(readPlace(P, l, f, bpm, z)))].join('|'); };
+    // a sub-section entry's top-form list (round top-form) plays only inside its tempo window: outside it, it is inert and no other place
+    const inert = (l, row, bpm) => l === 'subSections' && row?.rates?.top && !(bpm >= TOP_FORM.tempo.bpm[0] && bpm <= TOP_FORM.tempo.bpm[1])
+      ? { ...row, rates: Object.fromEntries(Object.entries(row.rates).filter(([k]) => k !== 'top')) } : row;
+    const reading = (s) => { const f = asSpell({ ...HOUSE, ...s }); const z = zoneOf(P, f); const bpm = derive(f).tempoCentre; return [z?.id ?? '-', ...PLACE_LANES.map((l) => rowOf(inert(l, readPlace(P, l, f, bpm, z), bpm)))].join('|'); };
     // what plays: the first theme of seeds 1 and 2 (one seed alone can draw the same at two spells: a bird the dice of that
     // theme do not read)
     const hash = (spell) => ['1', '2'].map((seed) => JSON.stringify(programOf(planTheme(seed, 0, { strategy: 'house-v2', spell })).events)).join('\n');
@@ -822,14 +844,19 @@ export function playlistChecks(check, must) {
     const rings = SKY_REGIONS.flatMap((r) => r.rings);
     for (const st of lit) {
       const ds = SKY_DOTS.filter((d) => d.star === st.id);
-      must(ds.length === DOTS_PER_STAR, `${st.name} has ${ds.length} dots`);
+      // (a star with neighbour places of its own, `NEAR_PLACES`, has a dot on each beside its four: trance-drawn's third pass)
+      const nearPlaces = NEAR_PLACES[st.id] ?? [];
+      must(ds.length === DOTS_PER_STAR + nearPlaces.length, `${st.name} has ${ds.length} dots`);
       const own = reading(st.spell), heard = hash(asSpell({ ...HOUSE, ...st.spell }));
       for (const d of ds) {
         const moved = BIRDS.filter((b) => Math.abs(v(d.spell, b) - v(st.spell, b)) > 1e-9);
-        must(moved.length >= 1 && moved.length <= 2 && moved.every((b) => STEER_BIRDS.includes(b)), `${d.id} moves ${moved.join(', ')}`);
+        // a dot on a neighbour place of its star's family stands at that place's own spell, address birds and all, and
+        // plays that place; every other dot steers inside its star's place
+        const onNear = nearStarOf(d.spell) === st.id;
+        if (!onNear) must(moved.length >= 1 && moved.length <= 2 && moved.every((b) => STEER_BIRDS.includes(b)), `${d.id} moves ${moved.join(', ')}`);
         must(moved.every((b) => Math.abs(v(d.spell, b) * 100 - Math.round(v(d.spell, b) * 100)) < 1e-6), `${d.id} is not on a link's two decimals`);
         must(genreOfSpell(d.spell) === st, `${d.id} reads ${genreOfSpell(d.spell).name}`);
-        must(reading(d.spell) === own, `${d.id} plays another place than ${st.name}`);
+        if (!onNear) must(reading(d.spell) === own, `${d.id} plays another place than ${st.name}`);
         must(hash(asSpell({ ...HOUSE, ...d.spell })) !== heard, `${d.id} plays seeds 1 and 2 exactly as ${st.name} does`);
         // one settled dot stands under a star tuned after it (Waves 3 by Dark Ambient, 0.011: his word 10-28 kept both, the
         // dot exactly as round 1 made it and the star at its approved spell); it shows from the zoom that parts them

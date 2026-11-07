@@ -107,7 +107,7 @@
     "pool": 46,
     "box": "the members' 2.5th to 97.5th percentile on every bird \u2014 the middle half widened symmetrically until at least 50% of the members sit inside on all eight birds at once \u2014 then stretched to include the medoid; the coverage is in reading.coverage",
     "rates": "onsets per bar in three bands \u2014 40-120 Hz, 300-2000 Hz, 6-11 kHz \u2014 keyed by the role each band stands in for. They are band proxies and not source separation: a bassline that moves inside the low band is a low-band onset and a clap is a mid-band one.",
-    "words": "every class word is a tercile of the corpus itself; the cut points are in notes/analysis/mining-v2.md",
+    "words": "every class word is a tercile of the corpus itself; the cut points are in the mining-v2 analysis",
     "name": "the class words at least half the members agree on, and the medoid's own where they do not \u2014 so a name may describe the medoid where `wants` stays silent, which is the honest way round: a name is a description and a want is an instruction.",
     "note": "A candidate, not a row of the library. Only `score` and `verdicts` are the listener's own, and no tool writes them.",
     "scopeOf": "track",
@@ -145,7 +145,7 @@
       }
     },
     "port": {
-      "round": "genres GA2, 2026-09-26 (notes/rounds/genres-ga2.md)",
+      "round": "genres GA2, 2026-09-26 (round genres-ga2)",
       "read": "rates.figure and rates.offbeat lean the stab and hat masks (and the figure rate the density budget); figures.brightness and figures.sustain are class words, a tercile of the list each leans (brightness on the lead, pad and stab lists, sustain on the lead and stab)",
       "lost": [
         "rates.kick {\"perBar\":4.688,\"min\":4.344,\"max\":5.344}: the 40-120 Hz band is the kick and the bass together, and a four-floor kick is four a bar"

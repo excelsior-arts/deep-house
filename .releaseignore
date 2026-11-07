@@ -18,3 +18,10 @@ packages/deep-house/lab/keys/
 # The Apple app (round apple-0, 10-19): the shell for iPhone, iPad and Mac
 # that bundles the release site. Private tier until it ships through the store.
 apple/
+# The promo reel (10-31): a square film of the ring cut from several tracks for
+# a post; it renders tracks to video and writes nothing a listener needs, so it
+# stays in the private tier with the recorder it drives.
+packages/deep-house/tools/promo-reel.ts
+# and its films (11-03): each cut list in promo/<name>/reel.json, kept in git so
+# it is never lost with tmp/
+promo/

@@ -1,0 +1,415 @@
+{
+ "schema": 1,
+ "kind": "wetFit",
+ "note": "MEASURED (round dark-fronts, ninth pass, 11-04) by tools/wet-fit-table.ts: each voice of the keys, pad and bass lanes alone, one note a quarter of a second long (MIDI 60, the bass 40) in the house room of seed 1: `onset` the milliseconds to its loudest 10 ms, `tail` the share of its energy sounding 0.6 s after it starts, `low` the share under 200 Hz. What the plan reads to decide how wet Tide may take a voice (src/dark-fronts.ts).",
+ "voices": {
+  "sub": {
+   "lane": "bass",
+   "onset": 10,
+   "tail": 0,
+   "low": 1
+  },
+  "keys": {
+   "lane": "keys",
+   "onset": 30,
+   "tail": 0,
+   "low": 0.076
+  },
+  "pad": {
+   "lane": "pad",
+   "onset": 80,
+   "tail": 0,
+   "low": 0.072
+  },
+  "piano": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.043,
+   "low": 0.06
+  },
+  "pluckBass": {
+   "lane": "bass",
+   "onset": 20,
+   "tail": 0,
+   "low": 1
+  },
+  "sawLead": {
+   "lane": "keys",
+   "onset": 20,
+   "tail": 0,
+   "low": 0.071
+  },
+  "fmBell": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.097
+  },
+  "karplusPluck": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.001
+  },
+  "formantPad": {
+   "lane": "pad",
+   "onset": 230,
+   "tail": 0.003,
+   "low": 0.02
+  },
+  "clavKey": {
+   "lane": "keys",
+   "onset": 0,
+   "tail": 0,
+   "low": 0.031
+  },
+  "supersawPad": {
+   "lane": "pad",
+   "onset": 150,
+   "tail": 0.001,
+   "low": 0.067
+  },
+  "pulseLead": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.201
+  },
+  "triLead": {
+   "lane": "keys",
+   "onset": 30,
+   "tail": 0,
+   "low": 0.056
+  },
+  "subSoft": {
+   "lane": "bass",
+   "onset": 80,
+   "tail": 0,
+   "low": 1
+  },
+  "subTri": {
+   "lane": "bass",
+   "onset": 20,
+   "tail": 0,
+   "low": 1
+  },
+  "sawPad": {
+   "lane": "pad",
+   "onset": 570,
+   "tail": 0.756,
+   "low": 0.047
+  },
+  "fmGlass": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.095
+  },
+  "fmEp": {
+   "lane": "keys",
+   "onset": 0,
+   "tail": 0,
+   "low": 0.071
+  },
+  "fmPluck": {
+   "lane": "keys",
+   "onset": 0,
+   "tail": 0,
+   "low": 0.131
+  },
+  "marimba": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.1
+  },
+  "vibes": {
+   "lane": "keys",
+   "onset": 60,
+   "tail": 0.204,
+   "low": 0.081
+  },
+  "brightPiano": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.057
+  },
+  "reedOrgan": {
+   "lane": "keys",
+   "onset": 50,
+   "tail": 0,
+   "low": 0.046
+  },
+  "grainPad": {
+   "lane": "pad",
+   "onset": 310,
+   "tail": 0,
+   "low": 0.007
+  },
+  "wavePad": {
+   "lane": "pad",
+   "onset": 610,
+   "tail": 0.853,
+   "low": 0.019
+  },
+  "wordlessVocal": {
+   "lane": "pad",
+   "onset": 200,
+   "tail": 0,
+   "low": 0.009
+  },
+  "reeseBass": {
+   "lane": "bass",
+   "onset": 10,
+   "tail": 0,
+   "low": 1
+  },
+  "reeseDriven": {
+   "lane": "bass",
+   "onset": 200,
+   "tail": 0,
+   "low": 1
+  },
+  "line303": {
+   "lane": "bass",
+   "onset": 240,
+   "tail": 0,
+   "low": 1
+  },
+  "shimmerPad": {
+   "lane": "pad",
+   "onset": 320,
+   "tail": 0.3,
+   "low": 0
+  },
+  "supersawLead": {
+   "lane": "pad",
+   "onset": 110,
+   "tail": 0,
+   "low": 0.012
+  },
+  "siren": {
+   "lane": "keys",
+   "onset": 30,
+   "tail": 0,
+   "low": 0.003
+  },
+  "organStab": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.046
+  },
+  "reeseDeep": {
+   "lane": "bass",
+   "onset": 30,
+   "tail": 0,
+   "low": 1
+  },
+  "reeseWobble": {
+   "lane": "bass",
+   "onset": 140,
+   "tail": 0,
+   "low": 1
+  },
+  "reeseSub": {
+   "lane": "bass",
+   "onset": 140,
+   "tail": 0,
+   "low": 1
+  },
+  "pianoFelt": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.032,
+   "low": 0.05
+  },
+  "pianoUpright": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.006,
+   "low": 0.066
+  },
+  "pianoWorn": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.015,
+   "low": 0.06
+  },
+  "pianoMellow": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.017,
+   "low": 0.052
+  },
+  "keysSuitcase": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.066
+  },
+  "keysReed": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.085
+  },
+  "fmEpSoft": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.077
+  },
+  "fmEpGlass": {
+   "lane": "keys",
+   "onset": 0,
+   "tail": 0.001,
+   "low": 0.104
+  },
+  "malletSoft": {
+   "lane": "keys",
+   "onset": 20,
+   "tail": 0.157,
+   "low": 0.081
+  },
+  "padHaze": {
+   "lane": "pad",
+   "onset": 920,
+   "tail": 0.946,
+   "low": 0.053
+  },
+  "pianoClose": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.05,
+   "low": 0.049
+  },
+  "pianoMute": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.001,
+   "low": 0.066
+  },
+  "pianoConcert": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.165,
+   "low": 0.048
+  },
+  "pianoCassette": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.009,
+   "low": 0.071
+  },
+  "pianoElectric": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.083
+  },
+  "keysTineDark": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.065
+  },
+  "keysReedAmp": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.093
+  },
+  "fmSineLayer": {
+   "lane": "keys",
+   "onset": 20,
+   "tail": 0.001,
+   "low": 0.079
+  },
+  "bowlStruck": {
+   "lane": "keys",
+   "onset": 60,
+   "tail": 0.758,
+   "low": 0.074
+  },
+  "bellTemple": {
+   "lane": "keys",
+   "onset": 60,
+   "tail": 0.473,
+   "low": 0.414
+  },
+  "bellGreat": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.672,
+   "low": 0.05
+  },
+  "bellSmall": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0.104,
+   "low": 0.081
+  },
+  "bowlRim": {
+   "lane": "keys",
+   "onset": 1980,
+   "tail": 1,
+   "low": 0.077
+  },
+  "tanpura": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.076
+  },
+  "chantOm": {
+   "lane": "pad",
+   "onset": 1440,
+   "tail": 0.994,
+   "low": 0.077
+  },
+  "supersawGrit": {
+   "lane": "keys",
+   "onset": 110,
+   "tail": 0,
+   "low": 0.016
+  },
+  "neuroStab": {
+   "lane": "keys",
+   "onset": 90,
+   "tail": 0,
+   "low": 0.016
+  },
+  "formantCall": {
+   "lane": "keys",
+   "onset": 40,
+   "tail": 0,
+   "low": 0.001
+  },
+  "crushPluck": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.051
+  },
+  "bellDark": {
+   "lane": "keys",
+   "onset": 60,
+   "tail": 0,
+   "low": 0.079
+  },
+  "marimbaGrit": {
+   "lane": "keys",
+   "onset": 10,
+   "tail": 0,
+   "low": 0.089
+  },
+  "sawStabDark": {
+   "lane": "keys",
+   "onset": 20,
+   "tail": 0,
+   "low": 0.006
+  }
+ }
+}

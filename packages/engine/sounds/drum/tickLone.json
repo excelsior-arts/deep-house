@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "tickLone",
+  "revision": 1,
+  "topology": "mallet",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.16,
+        1
+      ],
+      [
+        2.71,
+        0.05,
+        0.12
+      ]
+    ],
+    "attack": 0.001,
+    "release": 0.05,
+    "ringLevel": 0,
+    "tremoloHz": 0.5,
+    "tremoloDepth": 0,
+    "malletHz": 6000,
+    "malletLevel": 0.1,
+    "malletTime": 0.001,
+    "spread": 0,
+    "trim": 0.3,
+    "delay": 0,
+    "reverb": 0.12
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "offbeat"
+    ],
+    "bus": "drums",
+    "level": "hatClosed",
+    "layer": "hats",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "edge": false,
+    "timbres": {
+      "tickLone": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 4700,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "mallets.ts",
+    "note": "A lone tick (top-voices, T18, the beatless intro's): one resonant sine at a key note between 3.9 and 5.3 kHz, a 160 ms fall to -60 dB, a faint upper partial and a click at 6 kHz; one a bar on a late spot, to the right, its pitch wandering among the key's notes. A sketch row: nothing draws it."
+  }
+}

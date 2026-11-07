@@ -85,6 +85,8 @@ export function holedBy(gaps: Record<string, Gap[]> | null): ((pe: ProgramEvent)
   for (const k in gaps) if (k === HOLE_ALL || k.startsWith('bus:')) { voices = true; break; }
   return voices
     ? (pe) => (!!pe.gap && inGap(gaps[pe.gap], pe.t)) || inGap(gaps[HOLE_ALL], pe.t) || inGap(gaps[holeOfBus(pe.bus)], pe.t)
+      // (round tops-bus) the top lanes' bus is the drums' own, a door into it: a hole in the drums is a hole in it
+      || (pe.bus === 'tops' && inGap(gaps[holeOfBus('drums')], pe.t))
     : (pe) => !!pe.gap && inGap(gaps[pe.gap], pe.t);
 }
 

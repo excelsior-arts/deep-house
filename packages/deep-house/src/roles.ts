@@ -231,6 +231,43 @@ function unhold(events: readonly RolesEvent[], held: NonNullable<RolesReadout['h
   return out;
 }
 
+/**
+ * **An edit of a turned theme's events that keeps its held line undoable** (round dark-fronts): the held line's record
+ * (`held`) names events by their place in the list, so an edit that adds, drops or reorders events would put the
+ * classic roles' notes back in the wrong places. The edit is handed the list as drawn (the held notes back in it, the
+ * held ones as the plan plays them), and the record is written again by what each event is, not where it stood.
+ */
+export function relayEvents<T extends RolesTrack>(track: T, edit: (events: RolesEvent[]) => RolesEvent[]): void {
+  const R = track.sound?.roles, held = R?.held;
+  if (!held) { track.events = edit(track.events as RolesEvent[]) as T['events']; return; }
+  // the ride's notes stand outside the record (`classicRoles` takes them out before it reads it)
+  const lines = new Set(Object.keys(R!.swapped));
+  const isRide = (e: RolesEvent) => !!R!.ride && e.layer === 'bass' && lines.has(e.voice) && e.p.ride === 1;
+  const events = track.events as RolesEvent[];
+  const rides = new Set(events.filter(isRide));
+  const base = events.filter((e) => !rides.has(e));
+  const full: RolesEvent[] = [];
+  let k = 0, g = 0;
+  const n = base.length + held.gone.length;
+  for (let i = 0; i < n; i++) full.push(g < held.gone.length && held.gone[g][0] === i ? held.gone[g++][1] : base[k++]);
+  const gone = new Set(held.gone.map(([, e]) => e));
+  const was = new Map(held.was.map(([i, p]) => [full[i], p] as const));
+  const edited = edit([...full, ...rides]);
+  held.gone = []; held.was = [];
+  const kept: RolesEvent[] = [];
+  let i = 0;
+  for (const e of edited) {
+    // a ride by what it is (an edit may lay a new one, a copy of a ride's note elsewhere in the theme)
+    if (rides.has(e) || isRide(e)) { kept.push(e); continue; }
+    if (gone.has(e)) { held.gone.push([i++, e]); continue; }
+    const p = was.get(e);
+    if (p) held.was.push([i, p]);
+    i++;
+    kept.push(e);
+  }
+  track.events = kept as T['events'];
+}
+
 /** A copy of a room with one path taken out, and its parent with it where nothing else is left there. */
 function withoutPath(room: PlainTable, path: readonly string[]): PlainTable {
   const out = clone(room) as PlainTable;

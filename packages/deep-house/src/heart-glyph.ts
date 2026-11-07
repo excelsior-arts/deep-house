@@ -33,6 +33,16 @@ interface HeartSpec {
   /** the two sides run past the point by these lengths (R; the left side's, the right side's), the line crossing itself */
   cross?: [number, number];
   hatch?: 'right' | 'left';
+  /**
+   * **The point** (round ring-details, his eye 11-03: at a small size the point *"looks like it merge into one pixel
+   * hair line and stretches down under heart"*). The classical curve ends in a cusp: both sides arrive at the point
+   * tangent to each other, so its last stretch is narrower than the line drawn along it. For his review, beside H1b:
+   * - `open`: the sides near the point leave it as two straight lines at this half-angle (degrees), the curve eased
+   *   back into its own over `span` of the curve's parameter, so the point keeps its place and the lobes their shape;
+   * - `cut`: the cusp cut where its two sides stand this far apart (R), each side carried on along its own tangent
+   *   to where the two meet: an engraver's point, a little higher than the cusp it replaces.
+   */
+  point?: { open?: number; span?: number; cut?: number };
   /** a second line inside the left lobe and side, an engraver's shading */
   inner?: true;
   arrow: {
@@ -97,9 +107,27 @@ export const HEARTS: readonly HeartSpec[] = [
     width: [1.06, 0.93], crown: [1.06, 0.9], tipShift: 0.03, tall: 1, tilt: -9, wobble: 0.018, phase: 0.7,
     arrow: { angle: 32, head: 'chevron', vanes: 2, shaft: 'over', up: true, tailLen: 0.64, headLen: 0.7 },
   },
+  // round ring-details (his eye 11-03, the point at a small size): H1b with its point drawn three ways, for his
+  // review by the address alone (`?heart=1b-a`, `1b-b`, `1b-c`); his pick 11-03: 1b-c ("1b-c looks good, approved")
+  {
+    name: 'H1b, the point opened a little', label: '1b-a', centred: true, point: { open: 20, span: 1.2 },
+    width: [1.03, 0.965], crown: [1.03, 0.95], tipShift: 0.015, tall: 1, tilt: -6, wobble: 0.012, phase: 0.7,
+    arrow: { angle: 32, head: 'chevron', vanes: 2, shaft: 'over', tailLen: 0.64, headLen: 0.68 },
+  },
+  {
+    name: "H1b, an engraver's point", label: '1b-b', centred: true, point: { cut: 0.09 },
+    width: [1.03, 0.965], crown: [1.03, 0.95], tipShift: 0.015, tall: 1, tilt: -6, wobble: 0.012, phase: 0.7,
+    arrow: { angle: 32, head: 'chevron', vanes: 2, shaft: 'over', tailLen: 0.64, headLen: 0.68 },
+  },
+  {
+    name: "H1b, opened a hair and cut to an engraver's point", label: '1b-c', centred: true, point: { open: 14, span: 1.2, cut: 0.06 },
+    width: [1.03, 0.965], crown: [1.03, 0.95], tipShift: 0.015, tall: 1, tilt: -6, wobble: 0.012, phase: 0.7,
+    arrow: { angle: 32, head: 'chevron', vanes: 2, shaft: 'over', tailLen: 0.64, headLen: 0.68 },
+  },
 ];
-/** The pick when the address names none (1-based): H1b, the eighth entry (round 4). */
-export const HEART_PICK = 8;
+/** The pick when the address names none (1-based): H1b-c, the twelfth entry (his pick 11-03, "1b-c looks good,
+ * approved": H1b's point opened a hair and cut short, so it never closes into a hairline at a small size). */
+export const HEART_PICK = 12;
 /** A variant's label, as the gallery shows it and the address may name it (`?heart=1b`). */
 export const heartLabel = (i: number): string => HEARTS[i]?.label ?? String(i + 1 - HEARTS.slice(0, i).filter((h) => h.label).length);
 /** The variant the address names (`?heart=3`, `?heart=1b`), 1-based, or the pick. */
@@ -125,7 +153,14 @@ const smooth = (x: number) => { const t = Math.max(0, Math.min(1, x)); return t 
  * of 0.4 and a height of 0.7, each side and crown its own, the point pushed aside, the line wobbling slowly.
  */
 function heartAt(h: HeartSpec, t: number): Pt {
-  const X = 16 * Math.sin(t) ** 3;
+  let X = 16 * Math.sin(t) ** 3;
+  if (h.point?.open) {
+    // two straight sides out of the point: x grows as s·|s| where the curve's y grows as s² (15.5 s² near it), so
+    // the half-angle's tangent is X / (Y − Y₀); eased back into the curve's own over the span
+    const s = t - Math.PI, span = h.point.span ?? 0.9;
+    const k = (15.5 * Math.tan((h.point.open * Math.PI) / 180) * 0.0242) / 0.025;
+    X -= k * s * Math.abs(s) * (1 - smooth(Math.abs(s) / span));
+  }
   const Y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
   let x = X * 0.025, y = (Y - 2.5) * 0.0242 * h.tall;
   // each side's width and, above the middle, its crown, blended across the notch so the line stays whole
@@ -167,13 +202,21 @@ export function heartParts(n: number, R: number, rr: number): HeartParts {
   const f = (p: Pt) => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
   const N = 96;
   // round from the notch, the right lobe first, down to the point, up the left lobe and home
-  const ring: Pt[] = Array.from({ length: N + 1 }, (_, i) => heartAt(h, (2 * Math.PI * i) / N));
+  let ring: Pt[] = Array.from({ length: N + 1 }, (_, i) => heartAt(h, (2 * Math.PI * i) / N));
+  // the drawn point (the cusp's own, or an engraver's point where the variant cuts it)
+  let tipAt: Pt = heartAt(h, Math.PI);
+  if (h.point?.cut) {
+    const cut = engraverPoint(h, h.point.cut);
+    ring = [...ring.filter((_, i) => (2 * Math.PI * i) / N < Math.PI - cut.s), cut.right, cut.apex, cut.left,
+      ...ring.filter((_, i) => (2 * Math.PI * i) / N > Math.PI + cut.s)];
+    tipAt = cut.apex;
+  }
   const poly = (pts: Pt[]) => 'M' + pts.map((p) => f(S(p))).join('L');
   const fill = poly(ring) + 'Z';
   let outline = fill;
   if (h.cross) {
     // one line: from past the point on the left side's run, up the left lobe, over, down the right and out past it
-    const tip = heartAt(h, Math.PI);
+    const tip = tipAt;
     const leftRun = unit(sub(tip, heartAt(h, Math.PI + 0.08))), rightRun = unit(sub(tip, heartAt(h, Math.PI - 0.08)));
     const half = N / 2;
     const fromTip = [...ring.slice(half), ...ring.slice(1, half + 1)];   // the point, the left lobe, the notch, the right lobe, the point
@@ -201,7 +244,7 @@ export function heartParts(n: number, R: number, rr: number): HeartParts {
   // outline's centroid (round 4) sits higher, up among the lobes' weight, and the arrow read as passing above the middle
   let mid = T([h.tipShift * 0.4, -0.02]);
   if (h.centred) {
-    const cleft = heartAt(h, 0), tip = heartAt(h, Math.PI);
+    const cleft = heartAt(h, 0), tip = tipAt;
     mid = T(add(cleft, mul(sub(tip, cleft), 0.45)));
   }
   // the arrow: through the heart's middle, flying down to the lower left (or up to the upper right)
@@ -258,6 +301,29 @@ export function heartParts(n: number, R: number, rr: number): HeartParts {
     outline, inner, hatch, fill, shaft, head, headClosed, fletch,
     hidden: kind === 'hidden' || kind === 'open', shaftGaps, heartGaps, gapR: R * (kind === 'open' ? 0.06 : 0.085),
   };
+}
+
+/**
+ * **An engraver's point**: where the curve's two sides first stand `gap` apart (the parameter `s` either side of the
+ * point, found by halving), each side carried on along its own tangent there to where the two lines meet.
+ */
+function engraverPoint(h: HeartSpec, gap: number): { s: number; right: Pt; left: Pt; apex: Pt } {
+  const at = (s: number) => [heartAt(h, Math.PI - s), heartAt(h, Math.PI + s)] as const;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i++) {
+    const m = (lo + hi) / 2, [r, l] = at(m);
+    if (Math.hypot(r[0] - l[0], r[1] - l[1]) < gap) lo = m; else hi = m;
+  }
+  const s = hi, e = 1e-4;
+  const [right, left] = at(s);
+  // each side's way on toward the point
+  const dr = unit(sub(heartAt(h, Math.PI - s + e), heartAt(h, Math.PI - s - e)));
+  const dl = unit(sub(heartAt(h, Math.PI + s - e), heartAt(h, Math.PI + s + e)));
+  // right + a·dr = left + b·dl
+  const den = dr[0] * -dl[1] - dr[1] * -dl[0];
+  const w = sub(left, right);
+  const a = Math.abs(den) < 1e-9 ? 0 : (w[0] * -dl[1] - w[1] * -dl[0]) / den;
+  return { s, right, left, apex: add(right, mul(dr, a)) };
 }
 
 function roundedCorner(a: Pt, b: Pt, c: Pt, r: number, f: (p: Pt) => string): string {

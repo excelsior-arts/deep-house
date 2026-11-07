@@ -37,16 +37,32 @@
 //   effects        nothing dramatic: the flux peak is 1.7x the median
 
 import { linkRaw } from './link-table.ts';
-import { generate, resolveRoom, rollTempo, heldByZone } from './generator.ts';
+import { generate, resolveRoom, rollTempo, heldByZone, keepTraces } from './generator.ts';
 import type { Track } from './generator.ts';
 import { clone, mergeParams } from '@deep-house/engine/params';
 import type { PlainTable } from '@deep-house/engine/params';
 import { loudnessTrimDb, loudnessPlanOf, densityOf } from './loudness.ts';
+import { TOP_LANES, hatOverMixDb, hatCeilingDb, hatFloorDb, isKitHat, type HatReadEvent } from './top-lanes.ts';
+import { topsOver, duckLossDb, edgeBlend, TOPS_DRUMS_DB, TOPS_HAT_READ_DB, TOPS_BARS, type TopsBirds, type TopsLines, type TopsReadEvent } from './tops-read.ts';
+import { BREAK_PULSE } from './break-pulse.ts';
+import { STAB_PUNCH_ROWS } from './stab-punch.ts';
+import { isWind, windCeilingDb } from './wind.ts';
+import { laneLevelDb } from './lane-level.ts';
+import { settingsOf } from '@deep-house/engine/settings';
+import type { Settings } from '@deep-house/engine/settings';
+import { BY_NAME, VOICE_LEVEL, envelopeEnergy, tailFor } from '@deep-house/engine/voices';
 import { classicRoles } from './roles.ts';
+import { tranceDrawn, frontOf } from './trance-drawn.ts';
+import { rollsAtBuilds } from './build-roll.ts';
+import { grooveSketch, readGroove, type GrooveAsk } from './groove-sketch.ts';
+import { darkFronts, type DarkFrontsGiven, type DarkFrontsRead } from './dark-fronts.ts';
+import { longMainHint, spliceSplits, type LongMainHint } from './long-main.ts';
+import { feltPulseOf } from './beat-reading.ts';
+import { breakSketch, readBreaks, breakCeiling, keepThin, growBeds } from './break-bed.ts';
 import { seamPlan, blendAsked, seamTempo, glideBarsFor, freeSides, freeSeamBars, isFree, splitSeamBars, listPull, SPLIT_SWAP_BARS, programOf, beatLed, BEAT_LED, BEAT_DRIVE } from './performance.ts';
 import { HOLE_ALL, holeOfBus } from '@deep-house/engine/schedule';
 import { clockAt, freeBlendSeconds, freeRingSeconds, FREE_BPM } from './musical-time.ts';
-import { lengthMargin, type StylePlaces } from './places.ts';
+import { lengthMargin, type StylePlaces, type Place } from './places.ts';
 import { makeSetClock } from '@deep-house/engine/set-clock';
 import type { SetClock } from '@deep-house/engine/set-clock';
 import type { SeamPlan } from '@deep-house/engine/program';
@@ -158,6 +174,13 @@ export type MixOptions = Style['set'] & {
   /** Explicit component assembly; absent preserves accepted recipe playback. */
   accompaniment?: Accompaniment;
   development?: Development;
+  /**
+   * a tool's hand on the trance corner's draw (round trance-drawn, `src/trance-drawn.ts`): `off` plays the theme as
+   * the place lays it, a list names the techniques outright (a sketch); never a page's
+   */
+  trance?: 'off' | string[] | null;
+  /** a tool's hand: `as-written` plays a snare roll where its row lays it (the rule off, `src/build-roll.ts`); never a page's */
+  rolls?: 'as-written' | null;
   /** a tool's hand on which melody family states the theme: see `GenerateOptions` */
   motif?: { family?: string; register?: string; off?: boolean } | null;
   /** a tool's hand on the library a turn draws from: see `GenerateOptions` */
@@ -280,6 +303,8 @@ export interface Bypass {
   roles?: 'classic';
   /** the turned line's own clip taken out (round DUB-2: `bassdrive=0` where the line carries the drive) */
   noGrit?: true;
+  /** a groove sketch for his A/B (pass 2 of trance-drawn, `groove=uplifting`, the private tier only, `src/groove-sketch.ts`) */
+  groove?: GrooveAsk;
 }
 
 /**
@@ -353,13 +378,16 @@ export function readBypass(search?: string | null): Bypass | null {
   // read as the roles taken out, which is not what it plays.
   const roles = q.get('roles') === 'classic' ? 'classic' as const : null;
   if (roles) on.push('classic roles');
+  // A groove sketch (pass 2 of trance-drawn): a dev or preview build only, as `reach=` is; a release reads nothing
+  const groove = typeof __PRIVATE_TOOLS__ !== 'undefined' && !!__PRIVATE_TOOLS__ ? readGroove(q.get('groove')) : null;
+  if (groove) on.push(`groove sketch (${groove})`);
   const strip: string[][] = [];
   for (const [k, paths] of Object.entries(GRAIN_ROWS)) if (off(k)) { strip.push(...paths); on.push(k === 'spark' ? 'grain' : k === 'sparkdrums' ? 'drums grain' : k.replace('spark', 'grain ')); }
   if (!on.length) return null;
   // The bass's drive is the line's own clip where a place's roles took the
   // copy in parallel off (round DUB-2), so the switch takes that too.
   const noGrit = on.includes('bassdrive');
-  return { params, ...(sub != null ? { subDb: sub } : {}), label: on.join(', '), ...(strip.length ? { strip } : {}), ...(roles ? { roles } : {}), ...(noGrit ? { noGrit: true as const } : {}) };
+  return { params, ...(sub != null ? { subDb: sub } : {}), label: on.join(', '), ...(strip.length ? { strip } : {}), ...(roles ? { roles } : {}), ...(noGrit ? { noGrit: true as const } : {}), ...(groove ? { groove } : {}) };
 }
 
 // Fold the bypass into one theme's audio-level overrides. The plan is not
@@ -383,6 +411,7 @@ export function applyBypass<T extends Track>(track: T, bypass: Bypass | null): T
     const lines = new Set(Object.keys(turned));
     track.events = track.events.map((e) => e.layer === 'bass' && lines.has(e.voice) ? { ...e, p: { ...e.p, grit: 0 } } : e);
   }
+  if (bypass.groove) grooveSketch(track, bypass.groove);
   if (bypass.params) track.paramOverrides = mergeParams(track.paramOverrides, bypass.params);
   if (bypass.strip) {
     const room = mergeParams(track.paramOverrides, {}) as PlainTable;
@@ -501,6 +530,8 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
   // proportions Eugene approved. The cut's own bounds (`themeTrimBars`) are the
   // band's business now and are not read on this path.
   let fit: number | null = null;
+  let halfTime: { fit: number; bars: number } | null = null;
+  let lengthTop: number | null = null;
   if (byMinutes) {
     const P = o.themeBarPercentiles;
     // the rows are the style's (`length`, engine-data); a row a place's entry names (the struck voices' conversation, the
@@ -512,9 +543,20 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     const named = places ? Object.keys(K.named).map((row) => ({ row, share: namedShare(lengthMargin(places, row, bias.spell, placeBpm), K) }))
       .filter((x) => x.share > 0).sort((a, b) => b.share - a.share)[0] ?? null : null;
     const band = minutesBand(bias.derived, K, named);
-    const minutes = minutesAt(band, (ladder - P[0]) / (P[P.length - 1] - P[0]));
+    const pos = (ladder - P[0]) / (P[P.length - 1] - P[0]);
+    const minutes = minutesAt(band, pos);
     fit = barsFor(minutes, bpm, K);
     bars = o.themeTrim ? Math.ceil(fit / o.themeTrim / 4) * 4 : fit;
+    // **A groove felt at half its written tempo** (round dark-fronts' tenth pass): the half-time row's band is rolled
+    // here by the place's share, and played only where the plan's own drums read half (`planTheme`): the band the
+    // theme would have read without it, for the plan to fall back on where its kick is on every beat
+    lengthTop = barsFor(band[1], bpm, K);
+    if (named?.row === 'half') {
+      const other = places ? Object.keys(K.named).filter((row) => row !== 'half').map((row) => ({ row, share: namedShare(lengthMargin(places, row, bias.spell, placeBpm), K) }))
+        .filter((x) => x.share > 0).sort((a, b) => b.share - a.share)[0] ?? null : null;
+      const whole = barsFor(minutesAt(minutesBand(bias.derived, K, other), pos), bpm, K);
+      if (whole !== fit) halfTime = { fit: whole, bars: o.themeTrim ? Math.ceil(whole / o.themeTrim / 4) * 4 : whole };
+    }
   }
 
   // MEASURED: no harmonic mixing. The root moves anywhere; only the mode keeps
@@ -561,7 +603,7 @@ function themeAt(masterSeed: string | number, n: number, opts: Partial<MixOption
     // **How far that turn may reach** (round D1): the set's own, 0 at the style's.
     reach: o.reach ?? null,
   };
-  return { args, o, r, RANGE };
+  return { args, o, r, RANGE, halfTime, lengthTop };
 }
 
 /**
@@ -587,11 +629,22 @@ export function tailSeconds(spell: Partial<Spell> | null | undefined, style: Sty
 }
 
 // The whole plan of theme n, pure and cheap: no audio, no context.
-export function planTheme(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style }): SetTrack {
+export function planTheme(masterSeed: string | number, n: number, opts: Partial<MixOptions> & { style: Style },
+  /** round long-main: the half-break's second ask (the plan whose split bars `spliceSplits` takes); absent, every caller */
+  longMain: LongMainHint | null = null): SetTrack {
   const style = opts.style;
-  const { args, o, r, RANGE } = themeAt(masterSeed, n, opts);
-  const track = generate(args) as SetTrack;
+  const { args, o, r, RANGE, halfTime, lengthTop } = themeAt(masterSeed, n, opts);
+  let track = generate(longMain ? { ...args, longMain } : args) as SetTrack;
+  // **The half-time band is the drums' to keep** (round dark-fronts' tenth pass; his word 11-04: *"140 BPM of trance
+  // does feel fast, but 145 of chillstep or 170 of liquid DnB actually should be divided by two"*): a theme rolled on
+  // the half-time row whose own kick lands on every beat is planned again at the band it would have read without it
+  if (halfTime && !feltPulseOf({ barSeconds: track.barSeconds, arrangement: track.arrangement }, track.events as never, track.bpm).half) {
+    track = generate(longMain ? { ...args, longMain, bars: halfTime.bars, fitBars: halfTime.fit } : { ...args, bars: halfTime.bars, fitBars: halfTime.fit }) as SetTrack;
+    (track as SetTrack & { feltWhole?: true }).feltWhole = true;
+  }
   track.index = n;
+  // (the band's top in bars, for a form rule that may grow the theme: never past it)
+  if (lengthTop != null) Object.defineProperty(track, 'lengthTopBars', { value: lengthTop, enumerable: false, writable: true });
   // MEASURED: bimodal blend length, and a filter moves in half of all mixes.
   track.blendBars = Math.round(
     (r.chance(o.shortBlendChance * RANGE.shortBlendChance)
@@ -609,6 +662,27 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
     track.ringSeconds = freeRingSeconds(birds.tide);
     track.blendBars = Math.max(2, Math.ceil(track.blendSeconds / track.barSeconds - 1e-9));
   }
+  // **A roll is a build device** (pass 2 of trance-drawn, `src/build-roll.ts`): a snare lane rolling as its groove plays the
+  // plain backbeat, the roll once into each drop
+  if (switchOn(style, 'rollAtBuild') && opts.rolls !== 'as-written') rollsAtBuilds(track);
+  // **The trance corner, drawn** (round trance-drawn, `src/trance-drawn.ts`): inside the corner's radius, the theme's own
+  // die draws its techniques (one front, one or two colours) and writes them, before the trim reads the plan.
+  if (switchOn(style, 'tranceDrawn') && opts.trance !== 'off') {
+    const hookPlaces = ((style as Style & { places?: StylePlaces }).places?.hook ?? []) as ReadonlyArray<{ id: string; place: Place }>;
+    const tSpell = biasFor(o.spell, style).spell as Spell;
+    // the riff called where the hook's own zone placed none: the theme planned again with the hook (pass 2), the same
+    // dice otherwise; the blend's draws above are the set's and stay
+    if (!Array.isArray(opts.trance) && frontOf(track, tSpell, hookPlaces) === 'saw-riff' && !track.events.some((e) => e.layer === 'keys' && e.p?.hook != null)) {
+      const keep = { index: track.index, blendBars: track.blendBars, filterMove: track.filterMove };
+      // (the plan's second ask keeps its splits through the re-plan: the fourth pass found a riff theme whose second plan
+      // had lost them here while the splice still grew its bars)
+      Object.assign(track, generate(longMain ? { ...args, hookForced: true, longMain } : { ...args, hookForced: true }), keep, { hookCalled: true });
+    }
+    tranceDrawn(track, tSpell, hookPlaces, { force: Array.isArray(opts.trance) ? opts.trance : null, shed: longMain?.tranceDrawn?.shed ?? null });
+  }
+  // **The front where the bass leads** (round dark-fronts, `src/dark-fronts.ts`): in a place that turned the roles round,
+  // the front lane written by the row, before the trim reads the plan.
+  if (switchOn(style, 'darkFronts')) darkFronts(track, biasFor(o.spell, style).spell as Spell, undefined, style, (longMain?.darkFronts as DarkFrontsGiven | undefined) ?? null);
   // How far this theme is from the record's target loudness, worked out from
   // the plan and nothing else — no render, no meter, no audio. It is a number
   // *beside* the plan and not in it: the events, the sections and the dice are
@@ -634,6 +708,39 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
   // ...never over the place's ceiling, where the place states one (round DNB-3: the model does not see the place's lifts).
   const most = track.sound?.trimMostDb;
   if (most != null && track.trimDb > most) track.trimDb = most;
+  // **The hats' ceiling against the mix** (round hat-ceiling, `top-lanes.ts`): where the place's top lists the hats' level
+  // with a ceiling, the kit's hats come down to it, as the plan reads them against the mix the trim aims at; a hat under
+  // it is left as it is. After the trim, which reads the hats as they were drawn, so the trim does not move with them.
+  if (track.topLanes?.ceilingDb != null) hatCeiling(track, style);
+  // **The hats' floor in the highs** (round hat-floor, `tops-read.ts`): after the ceiling, where the plan reads the kit's
+  // hats crowded under the rest of the groove above 3 kHz, they get back what the ceiling took, up to the row's floor.
+  if (track.topLanes?.ceilingDb != null && TOP_LANES.level.floor) hatFloor(track, style, biasFor(o.spell, style).spell);
+  // **The stab's phrase under its ceiling** (round stab-punch, his ear 11-04: "if we roll C pulse should be a bit quieter
+  // given how much energy a stab brings into mix"): after the hats are set, its hits against everything else.
+  stabCeiling(track, style, biasFor(o.spell, style).spell);
+  // **The break's hats hold the groove's place** (round break-hats): after the groove's own ceiling, so the break lands
+  // on the hats as the groove plays them.
+  breakHats(track, style);
+  // **The wind under its ceiling** (round wind, `src/wind.ts`): each wind's peak, as the plan reads it against the
+  // loudness the trim aims at, down to the row's ceiling; a wind under it stays where its slot put it.
+  windCeiling(track, style);
+  // **A break breathes** (round long-main, pass 3, `src/break-bed.ts`; his pick, mine, 11-04): the groove's own voice
+  // carries a break's first half and a new bed grows under its second into the drop, and every break holds under the
+  // groove's level (the read the hat floor uses); after the trim, which reads the plan as drawn, so the groove's level
+  // never moves with it.
+  const breakBed = breakSketch();
+  if (breakBed && switchOn(style, 'placeTables')) {
+    const birds = biasFor(o.spell, style).spell as unknown as TopsBirds;
+    // the room resolved once for every read here: the three passes edit notes, never the overrides it is made from
+    // (round night-reds: resolved again in each read, it was a third of a fast theme's plan, 20-40 ms on seed 15576)
+    const settings = settingsOf(track);
+    const readK = (a: number, b: number) => stretchK(track, style, birds, a, b, settings);
+    if (breakBed === 'keep' || breakBed === 'mine') keepThin(track, readBreaks(track, readK), undefined, breakBed === 'mine');
+    if (breakBed === 'grow' || breakBed === 'mine') growBeds(track, readBreaks(track, readK), undefined, breakBed === 'mine');
+    const reads = readBreaks(track, readK);
+    const cuts = breakCeiling(track, reads, undefined, breakBed === 'grow' || breakBed === 'mine');
+    (track as SetTrack & { breakBed?: unknown }).breakBed = { sketch: breakBed, reads, cuts };
+  }
   if (sumClip) track.paramOverrides = mergeParams(track.paramOverrides || {}, { master: { sumClip } });
   // ...and the density its place asks (round loudness-place, `densityOf`: the beat-led band's drive made upstream)
   const density = densityOf(track, style);
@@ -642,7 +749,333 @@ export function planTheme(masterSeed: string | number, n: number, opts: Partial<
   // turned the roles round carries the trim it would have had without them,
   // so `roles=classic` plays the theme as it was, level and all.
   if (track.sound?.roles) track.sound.roles.trimDb = loudnessTrimDb(classicRoles(track), style);
+  // **A minute that doesn't move** (round long-main, `src/long-main.ts`; his ear 11-04: the half-break "is a lot
+  // better"): where the theme as planned stands still 32 bars or 45 s above the drums with the kick on, and its die and
+  // Loom let it, eight bars of the main become a half-break (a second move where the stretch left is still a run). The
+  // theme is planned again with the split in its form and only the split's bars are taken from that plan: the theme as
+  // planned keeps every other bar, its level, its rooms and its draws, so what comes after plays as before. A theme
+  // planned under the development proposal's own form (`development=`) keeps it; one whose asked form was refused (a
+  // mode outside its style context, `developmentRefused`) plays the base form, and splits as the base form does.
+  // ...and **a long break in two around a groove passage** (round dark-fronts, the tenth pass): the front rule's ask on
+  // the first plan (`darkFronts.form.wants`) rides the same second ask and the same splice, the theme growing where the
+  // break's own bars were too few, with the first plan's draws given to the second so nothing the dice chose moves.
+  const devAsked = args.development ?? 'base';
+  if (!longMain && switchOn(style, 'placeTables') && (devAsked === 'base' || (track.dice as { developmentRefused?: string } | undefined)?.developmentRefused === devAsked)) {
+    const half = switchOn(style, 'halfBreaks') ? longMainHint(track as never, biasFor(o.spell, style).spell as unknown as Record<string, number>) : null;
+    const df = (track as SetTrack & { darkFronts?: DarkFrontsRead }).darkFronts;
+    // ...and **a release pays for its wait** (round trance-drawn, the third pass): the corner's ask on the first plan, a
+    // breakdown giving its drop the bars it had over one phrase, rides the same second ask and the same splice
+    const pays = switchOn(style, 'tranceDrawn') ? (track as SetTrack & { tranceDrawn?: { form?: { wants?: LongMainHint['splits'] } } }).tranceDrawn?.form?.wants ?? [] : [];
+    const wants = [...(switchOn(style, 'darkFronts') ? df?.form?.wants ?? [] : []), ...pays];
+    const td = (track as SetTrack & { tranceDrawn?: { shed?: string[] } }).tranceDrawn;
+    const hint: LongMainHint | null = half || wants.length ? { runs: half?.runs ?? [], splits: [...(half?.splits ?? []), ...wants].sort((a, b) => a.at - b.at), said: half?.said ?? [], ...(df?.given ? { darkFronts: df.given } : {}), ...(td ? { tranceDrawn: { shed: td.shed ?? [] } } : {}) } : null;
+    if (hint) {
+      const split = planTheme(masterSeed, n, opts, hint);
+      // a new plan object (a compiled program is kept by the plan it was compiled from)
+      const out: SetTrack = { ...track, automation: { ...track.automation }, timeline: [...track.timeline], ...(track.moments ? { moments: [...track.moments] } : {}) } as SetTrack;
+      // (and the first plan's traces, which the copy does not carry: its place reads and its bass lane, `keepTraces`)
+      keepTraces(track, out);
+      const windows = spliceSplits(out as never, split as never, hint);
+      (out as SetTrack & { longMain?: LongMainHint & { windows: Array<[number, number]> } }).longMain = { ...hint, windows };
+      // (the front rule's readout is the second plan's, where the break's pieces are; its ask the first's)
+      const df2 = (split as SetTrack & { darkFronts?: DarkFrontsRead }).darkFronts;
+      if (df2 && df) (out as SetTrack & { darkFronts?: DarkFrontsRead }).darkFronts = { ...df2, ...(df2.form ? { form: { ...df2.form, wants } } : {}) };
+      // (the plan before the split, for a reader of its level: its trim and its clip are this one's; not carried with the plan)
+      Object.defineProperty(out, 'unsplit', { value: track, enumerable: false });
+      return out;
+    }
+  }
   return track;
+}
+
+/**
+ * **The kit's hats under their ceiling** (round hat-ceiling): the hats' level against the mix as the plan reads it
+ * (`hatOverMixDb`: each hit off the room's table and its own gain, a ladder hat's ring as the voice plays it, the theme's
+ * trim, against its aim), and where that stands over the row's ceiling, every kit hat that much down. Written on the
+ * plan's readout beside the ceiling.
+ */
+function hatCeiling(track: SetTrack, style: Style): void {
+  const L = track.topLanes!;
+  const over = hatsOverMix(track, style);
+  if (over === undefined) return;
+  const cut = hatCeilingDb(over, L.ceilingDb!);
+  if (over != null) L.hatOverMixDb = +over.toFixed(2);
+  L.hatCutDb = +cut.toFixed(2);
+  if (cut < 0) {
+    const g = Math.pow(10, cut / 20);
+    for (const e of track.events) if (isKitHat(e as { voice: string; by?: unknown })) e.p = { ...e.p, gain: Math.round(Number(e.p.gain ?? 1) * g * 10000) / 10000 };
+  }
+}
+
+/**
+ * **The stab's phrase under its ceiling** (round stab-punch, pass 2): section by section, the phrase's hits (`punch`: its
+ * calls, answers and close) against everything else in the instant after each (`stabHitsOverRest`), and where they stand
+ * over the row's ceiling, every note of the phrase there that much down; never lifted. `punchRead`: the loudest section's
+ * read and the deepest cut. The hat ceiling's way, against the mix and not a flat
+ * cut: a stab over a busy groove keeps more than one alone over a kick and a pad. Written on the plan beside it.
+ */
+function stabCeiling(track: SetTrack, style: Style, birds: TopsBirds): void {
+  const R = STAB_PUNCH_ROWS.sketch;
+  const phrase = (e: { punch?: string }) => e.punch === 'call' || e.punch === 'answer' || e.punch === 'close';
+  const first = track.events.find(phrase);
+  if (!first) return;
+  // the plan's read on the renders' scale, by the stab's voice (MEASURED, the row's `offsetDb`)
+  const voice = String(first.p.preset ?? first.voice);
+  const offset = R.offsetDb.voices[voice] ?? R.offsetDb.default;
+  // section by section: the phrase over a full groove keeps more than over a thin one, and the loudest section is not
+  // hidden in the theme's average
+  const bs = track.barSeconds;
+  let worst = -Infinity, most = 0, hits = 0;
+  for (const s of track.arrangement.sections) {
+    const a = s.startBar * bs, z = (s.startBar + s.bars) * bs;
+    const inside = (e: { t: number; punch?: string }) => phrase(e) && e.t >= a && e.t < z;
+    const read = stabHitsOverRest(track, style, birds, inside, R.hitSeconds);
+    if (!read) continue;
+    const over = read.overDb + offset;
+    const cut = Math.min(0, R.ceilingDb - over);
+    worst = Math.max(worst, over); most = Math.min(most, cut); hits += read.hits;
+    if (cut < 0) {
+      const g = Math.pow(10, cut / 20);
+      for (const e of track.events) if (inside(e)) e.p = { ...e.p, gain: Math.round(Number(e.p.gain ?? 1) * g * 10000) / 10000 };
+    }
+  }
+  if (hits) track.punchRead = { overDb: +worst.toFixed(2), cutDb: +most.toFixed(2), hits };
+}
+
+/**
+ * **Some notes' hits against everything else, in the instant after each** (round stab-punch; the plan's read, `tops-read.ts`,
+ * K-weighted): for each onset of the picked notes, their power over the `seconds` after it against the rest's over the
+ * same, summed over the hits, in dB. Null where none is picked or nothing else sounds.
+ */
+export function stabHitsOverRest(track: SetTrack, style: Style, birds: TopsBirds, pick: (e: TopsReadEvent & { punch?: string }) => boolean, seconds = 0.2): { overDb: number; hits: number } | null {
+  const events = track.events as unknown as (TopsReadEvent & { punch?: string })[];
+  const onsets: number[] = [];
+  for (const e of events) if (pick(e) && (!onsets.length || e.t - onsets[onsets.length - 1] > 0.05)) onsets.push(e.t);
+  if (!onsets.length) return null;
+  const settings = settingsOf(track);
+  const set = settings as unknown as { levels: Record<string, number> };
+  const floors = (track.automation as { floors?: ReadonlyArray<{ t: number } & Record<string, number>> } | undefined)?.floors;
+  const floorDb = (t: number, key: string | undefined): number => {
+    if (!floors || !key) return 0;
+    let at: Record<string, number> | null = null;
+    for (const f of floors) { if (f.t <= t) at = f; else break; }
+    return at ? at[key] ?? 0 : 0;
+  };
+  const levelDb = (e: TopsReadEvent) => { const key = VOICE_LEVEL[e.voice]; return (laneLevelDb(style, set.levels, e.voice, key) ?? -12) + floorDb(e.t, key); };
+  const hit = hatHitDb(track, style);
+  const base = { events, levelDb, birds, lines: track.automation as unknown as TopsLines, knobs: (track as { knobs?: Record<string, Record<string, number>> }).knobs ?? null,
+    duck: { loss: duckLossDb(settings, track.beat), beat: track.beat }, drumsDb: TOPS_DRUMS_DB, edgeOf: (e: TopsReadEvent) => edgeBlend(e, settings),
+    hitOf: hit ? (e: TopsReadEvent) => (isKitHat(e) ? hit(e as unknown as HatReadEvent) : null) : undefined };
+  // only the notes near the hits are read: the rest of the theme is skipped once, not per hit
+  const near = events.filter((e) => { const end = e.t + Math.max(0, Number(e.p?.dur) || 0) + 0.3; let lo = 0, hi = onsets.length; while (lo < hi) { const m = (lo + hi) >> 1; if (onsets[m] + seconds < e.t) lo = m + 1; else hi = m; } return lo < onsets.length && onsets[lo] < end; });
+  let a = 0, b = 0, n = 0;
+  // a hit's own notes are read as if held only `seconds` (the table's step for that length: the attack's energy, its
+  // release included), whole inside the stretch; the rest's notes by the share of each that sounds in it
+  const struck = near.filter((e) => pick(e)).map((e) => ({ ...e, p: { ...e.p, dur: Math.min(Number(e.p?.dur) || seconds, seconds) } }));
+  const span = seconds + 0.3;
+  for (const t of onsets) {
+    const s = topsOver({ ...base, events: struck, from: t, to: t + span, pick: (e) => Math.abs(e.t - t) < 0.05 });
+    const r = topsOver({ ...base, events: near, from: t, to: t + seconds, pick: (e) => !pick(e) });
+    if (!s || !r) continue;
+    a += Math.pow(10, s.k / 10) * (span / seconds); b += Math.pow(10, r.k / 10); n++;
+  }
+  return a > 0 && b > 0 ? { overDb: 10 * Math.log10(a / b), hits: n } : null;
+}
+
+/**
+ * **The kit's hats' floor in the highs** (round hat-floor, his ear 11-03 on Drive - Eli's Ignition: *"hats clearly have
+ * an issue in Ignition, even the snare is louder than the hat there"*): the hats against the rest of the groove above
+ * 3 kHz as the plan reads them (`hatsTopOverRest`), and where that stands under the row's floor, every kit hat up by the
+ * difference, never past the hats as drawn (only the ceiling's cut is given back). Written on the readout beside it.
+ */
+function hatFloor(track: SetTrack, style: Style, birds: TopsBirds): void {
+  const L = track.topLanes!, F = TOP_LANES.level.floor!;
+  const top = hatsTopOverRest(track, style, birds);
+  if (top == null) return;
+  const lift = hatFloorDb(top, F.db, L.hatCutDb ?? 0);
+  L.hatTopDb = +top.toFixed(2);
+  L.hatLiftDb = +lift.toFixed(2);
+  if (lift > 0) {
+    const g = Math.pow(10, lift / 20);
+    for (const e of track.events) if (isKitHat(e as { voice: string; by?: unknown })) e.p = { ...e.p, gain: Math.round(Number(e.p.gain ?? 1) * g * 10000) / 10000 };
+    L.hatCutDb = +((L.hatCutDb ?? 0) + lift).toFixed(2);
+  }
+}
+
+/**
+ * **The kit's hats against the rest of the groove above 3 kHz, as the plan reads them** (round hat-floor,
+ * `tops-read.ts`): each note off the engine's table of the voices' tops at its pitch, length, velocity and gain, the
+ * room's lane level and the theme's seasoning, through the mix's lines, the kit's hats at the hat ceiling's own read of
+ * their level, over each groove's first bars (mains and drops), in dB. Null where the groove has no kit hat or nothing else.
+ */
+export function hatsTopOverRest(track: SetTrack, style: Style, birds: TopsBirds): number | null {
+  const settings = settingsOf(track);
+  const set = settings as unknown as { levels: Record<string, number> };
+  const floors = (track.automation as { floors?: ReadonlyArray<{ t: number } & Record<string, number>> } | undefined)?.floors;
+  const floorDb = (t: number, key: string | undefined): number => {
+    if (!floors || !key) return 0;
+    let at: Record<string, number> | null = null;
+    for (const f of floors) { if (f.t <= t) at = f; else break; }
+    return at ? at[key] ?? 0 : 0;
+  };
+  const duck = { loss: duckLossDb(settings, track.beat), beat: track.beat };
+  const levelDb = (e: TopsReadEvent) => { const key = VOICE_LEVEL[e.voice]; return (laneLevelDb(style, set.levels, e.voice, key) ?? -12) + floorDb(e.t, key); };
+  const lines = track.automation as unknown as TopsLines;
+  const hit = hatHitDb(track, style);
+  const hitOf = hit ? (e: TopsReadEvent) => (isKitHat(e) ? hit(e as unknown as HatReadEvent) : null) : undefined;
+  const knobs = (track as { knobs?: Record<string, Record<string, number>> }).knobs ?? null;
+  const events = track.events as unknown as TopsReadEvent[];
+  const bs = track.barSeconds;
+  let hats = 0, rest = 0;
+  for (const s of track.arrangement.sections) {
+    if (s.kind !== 'main' && s.kind !== 'drop') continue;
+    // each groove's first bars (`TOPS_BARS`), where his verdicts were measured and the read was checked against renders
+    const base = { events, from: s.startBar * bs, to: (s.startBar + Math.min(TOPS_BARS, s.bars)) * bs, levelDb, birds, lines, knobs, duck, hitOf, drumsDb: TOPS_DRUMS_DB, edgeOf: (e: TopsReadEvent) => edgeBlend(e, settings) };
+    const h = topsOver({ ...base, pick: (e) => isKitHat(e) });
+    const r = topsOver({ ...base, pick: (e) => !isKitHat(e) });
+    if (!h || !r) continue;
+    const secs = Math.min(TOPS_BARS, s.bars) * bs;
+    hats += secs * Math.pow(10, (h.hi + TOPS_HAT_READ_DB) / 10);
+    rest += secs * Math.pow(10, r.hi / 10);
+  }
+  return hats > 0 && rest > 0 ? 10 * Math.log10(hats / rest) : null;
+}
+
+/**
+ * **A stretch's loudness, as the plan reads it** (round long-main, pass 3): every note's K-weighted energy off the tops
+ * table at its gain, its lane's level and its floors, through the mix's lines, the kit's hats by the hat ceiling's read,
+ * the drum bus's hits under the glue, the kick's duck where it plays (`topsOver`, the hat floor's read with every note),
+ * in dB of mean power over the bars `from` to `to`. Null where nothing sounds. Checked against renders on the breaks.
+ */
+export function stretchK(track: SetTrack, style: Style, birds: TopsBirds, from: number, to: number, settings: Settings = settingsOf(track)): number | null {
+  const set = settings as unknown as { levels: Record<string, number> };
+  const floors = (track.automation as { floors?: ReadonlyArray<{ t: number } & Record<string, number>> } | undefined)?.floors;
+  const floorDb = (t: number, key: string | undefined): number => {
+    if (!floors || !key) return 0;
+    let at: Record<string, number> | null = null;
+    for (const f of floors) { if (f.t <= t) at = f; else break; }
+    return at ? at[key] ?? 0 : 0;
+  };
+  const levelDb = (e: TopsReadEvent) => { const key = VOICE_LEVEL[e.voice]; return (laneLevelDb(style, set.levels, e.voice, key) ?? -12) + floorDb(e.t, key); };
+  const hit = hatHitDb(track, style, settings);
+  const bs = track.barSeconds;
+  return topsOver({ events: track.events as unknown as TopsReadEvent[], from: from * bs, to: to * bs, levelDb, birds,
+    lines: track.automation as unknown as TopsLines, knobs: (track as { knobs?: Record<string, Record<string, number>> }).knobs ?? null,
+    duck: { loss: duckLossDb(settings, track.beat), beat: track.beat }, drumsDb: TOPS_DRUMS_DB, edgeOf: (e: TopsReadEvent) => edgeBlend(e, settings),
+    hitOf: hit ? (e: TopsReadEvent) => (isKitHat(e) ? hit(e as unknown as HatReadEvent) : null) : undefined, pick: () => true })?.k ?? null;
+}
+
+/**
+ * **The kit's hats against the mix, as the plan reads them** (round hat-ceiling's read, `hatOverMixDb`): over the
+ * groove's bars, or over `bars` (round break-hats: a groove's first bars). Undefined where the row holds no read.
+ */
+export function hatsOverMix(track: SetTrack, style: Style, bars?: ReadonlySet<number>): number | null | undefined {
+  const P = hatReadParts(track, style);
+  if (!P) return undefined;
+  return hatOverMixDb({
+    events: track.events as unknown as HatReadEvent[], sections: track.arrangement.sections, barSeconds: track.barSeconds,
+    ...P, trimDb: track.trimDb, aimLufs: track.aimLufs, bars,
+  });
+}
+
+/**
+ * **One kit hat's level, as the hat ceiling reads it** (round hat-floor, from round hat-ceiling's read): the room's table
+ * and its floor, its own gain and velocity, the hat's fitted unit and a ladder hat's ring, in dB before the trim. Null for
+ * a hat the read does not list.
+ */
+export function hatHitDb(track: SetTrack, style: Style, settings?: Settings): ((e: HatReadEvent) => number | null) | null {
+  const P = hatReadParts(track, style, settings);
+  if (!P) return null;
+  return (e) => {
+    const k = P.read.voiceDb[e.voice];
+    if (k == null) return null;
+    const ring = P.ladderDb(e);
+    return P.tableDb(e) + 20 * Math.log10(Math.max(1e-9, Number(e.p.gain ?? 1) * Number(e.p.vel ?? 1))) + k + (ring == null ? 0 : ring + P.familyTrimDb);
+  };
+}
+
+function hatReadParts(track: SetTrack, style: Style, settings: Settings = settingsOf(track)) {
+  const read = TOP_LANES.level.read;
+  if (!read) return null;
+  const set = settings as unknown as { levels: Record<string, number>; hats: Record<string, number> };
+  const floors = (track.automation as { floors?: ReadonlyArray<{ t: number } & Record<string, number>> } | undefined)?.floors;
+  const floorDb = (t: number, key: string | undefined): number => {
+    if (!floors || !key) return 0;
+    let at: Record<string, number> | null = null;
+    for (const f of floors) { if (f.t <= t) at = f; else break; }
+    return at ? at[key] ?? 0 : 0;
+  };
+  const H = set.hats;
+  return {
+    read,
+    tableDb: (e: HatReadEvent) => { const key = VOICE_LEVEL[e.voice]; return (laneLevelDb(style, set.levels, e.voice, key) ?? -12) + floorDb(e.t, key); },
+    // a ladder hat's ring, as `hats.ts` plays it: its room's ten-decibel time (by the row's word), the ring's velocity term, the tail
+    ladderDb: (e: HatReadEvent) => {
+      const P = (BY_NAME[e.voice]?.row as { topology?: string; parameters?: { t10?: unknown; ring?: number[] | null } } | undefined);
+      if (P?.topology !== 'hat-ladder' || typeof P.parameters?.t10 !== 'string') return null;
+      const t10 = Number(H[P.parameters.t10]), vel = Number(e.p.vel ?? 1);
+      const ring = P.parameters.ring ? P.parameters.ring[0] + P.parameters.ring[1] * vel : 1;
+      return Number.isFinite(t10) && t10 > 0 ? 10 * Math.log10(envelopeEnergy(t10 * ring, tailFor(Number(H.tail ?? 0), t10), 0.0025)) : null;
+    },
+    familyTrimDb: Number(H.trimDb ?? 0),
+  };
+}
+
+/**
+ * **The break's hats hold the groove's place** (round break-hats, his ear 11-03 on a Chillstep track: *"in this break
+ * end the hats got very loud, and then the drop starts and the sound is quieter because of all the other voices ... one
+ * fix, to balance it in the break, so it will likely feel uniform when switching to the drop"*). Each break the pulse
+ * carried (`break-pulse.ts`), read at its end (its carrier's hats over the bed there, `endGapDb`), stands no louder
+ * against what plays with it than the groove it lands on keeps its hats against its mix (the groove's first bars, the
+ * hat-ceiling's read, after its ceiling); the carrier's hats come down by the difference, the whole stretch by one cut,
+ * so the build still grows into the drop. Never raised; never under the row's floor against the bed.
+ */
+function breakHats(track: SetTrack, style: Style): void {
+  const P = track.breakPulse, HOLD = BREAK_PULSE.level.hold;
+  if (!P || !HOLD) return;
+  const S = track.arrangement.sections, bs = track.barSeconds;
+  for (const b of P.breaks) {
+    // (round hat-top) an end whose hats stand over its bed is a break whose bed is gone, the hats alone: no seam to read
+    if (b.endGapDb == null || (HOLD.endMost != null && b.endGapDb > HOLD.endMost)) continue;
+    // the groove the break lands on, straight from the carried stretch (a stretch that hands over to the break's own
+    // build or snare roll is not the seam, and is left as it is); round hat-top: the outro's drums too, where the row
+    // lists it (a theme's last break lands on its outro's kit as an earlier one lands on the drop)
+    const into = HOLD.into ?? ['main', 'drop'];
+    const g = S.find((s) => s.startBar >= b.until);
+    if (!g || g.startBar !== b.until || !into.includes(g.kind)) continue;
+    const bars = new Set<number>();
+    for (let k = g.startBar; k < g.startBar + Math.min(HOLD.bars, g.bars); k++) bars.add(k);
+    const over = hatsOverMix(track, style, bars);
+    if (over == null) continue;
+    const endBars = new Set<number>();
+    for (let k = b.endFrom ?? b.until; k < b.until; k++) endBars.add(k);
+    const end = hatsOverMix(track, style, endBars);
+    b.endHatsDb = end == null ? null : +end.toFixed(2);
+    const groove = over + HOLD.offsetDb;
+    const cut = Math.min(0, Math.max(groove, HOLD.least) - b.endGapDb);
+    b.grooveDb = +groove.toFixed(2);
+    b.heldDb = +cut.toFixed(2);
+    if (!(cut < 0)) continue;
+    const k = Math.pow(10, cut / 20);
+    for (const e of track.events) {
+      const bar = Math.floor(e.t / bs + 1e-6);
+      if (bar < b.from || bar >= b.until || !String((e as { by?: unknown }).by ?? '').startsWith('break-pulse/') || !(/^hat/.test(e.voice) || e.voice === 'ride')) continue;
+      e.p = { ...e.p, gain: Math.round(Number(e.p.gain ?? 1) * k * 10000) / 10000 };
+    }
+  }
+}
+
+/** **The wind under its ceiling** (round wind): every wind's peak, read off its level-table word, its gain and the trim, no louder than the row's ceiling against the aim. */
+function windCeiling(track: SetTrack, style: Style): void {
+  const winds = track.events.filter((e) => e.layer === 'fx' && isWind(e.voice));
+  if (!winds.length) return;
+  const set = settingsOf(track) as unknown as { levels: Record<string, number> };
+  for (const e of winds) {
+    const key = VOICE_LEVEL[e.voice];
+    const tableDb = laneLevelDb(style, set.levels, e.voice, key) ?? -12;
+    const cut = windCeilingDb({ tableDb, gain: Number(e.p.gain ?? 1) * Number(e.p.vel ?? 1), trimDb: track.trimDb, aimLufs: track.aimLufs });
+    if (cut < 0) e.p = { ...e.p, gain: Math.round(Number(e.p.gain ?? 1) * Math.pow(10, cut / 20) * 10000) / 10000 };
+  }
 }
 
 /**

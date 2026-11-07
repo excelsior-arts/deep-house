@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "splash",
+  "revision": 1,
+  "topology": "cymbal",
+  "dice": 191.9,
+  "parameters": {
+    "ratios": [
+      1,
+      1.47,
+      2.09
+    ],
+    "base": 2600,
+    "detune": 25,
+    "metal": 0.06,
+    "hp": 6000,
+    "peakHz": 7500,
+    "q": 0.6,
+    "tilt": 0,
+    "lidHz": 11000,
+    "pingHz": 0,
+    "pingLevel": 0,
+    "pingDecay": 0.05,
+    "bellPing": 1,
+    "bellWash": 1,
+    "bellRing": 1,
+    "t10": 0.09,
+    "seconds": 1.0,
+    "variants": 3,
+    "variantCents": 120,
+    "attack": 0.003,
+    "trim": 1.0,
+    "rateSpread": 0.06,
+    "gainSpread": 0.1,
+    "decaySpread": 0.15,
+    "panSpread": 0.08,
+    "velBright": 0.2,
+    "velDecay": 0.3,
+    "pan": 0,
+    "room": 0.1
+  },
+  "descriptor": {
+    "family": "noise",
+    "roles": [
+      "texture"
+    ],
+    "bus": "drums",
+    "level": "hatOpen",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {
+      "splash": {
+        "family": "noise",
+        "struck": true,
+        "hold": 0.02,
+        "brightnessHz": 7500,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "cymbals.ts",
+    "note": "A splash (top-voices, T17): the cymbal's builder as a short spray of bright noise, a 6 kHz high-pass and a wide band at 7.5 kHz under an 11 kHz lid, a trace of metal, 3 ms attack and about 300 ms of fall; three variants a minor third apart and a 6 % rate spread, so each hit sits at its own pitch; the noise's two ears decorrelated (the cymbal's air). A sketch row: nothing draws it."
+  }
+}

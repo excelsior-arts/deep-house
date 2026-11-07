@@ -22,6 +22,11 @@
 // placed over a root floor; a passing dominant is the dominant of the chord it arrives on. Another seed
 // at the place plays the same passage over its own key, chords and cast.
 
+import { onStage } from './stereo-stage.ts';
+/** (round stereo-room) the share of a weather span's walk that stands: ±0.35 a side became ±0.21 */
+const WALK_SHARE = 0.6;
+/** (round stereo-room) a passage's shaker seated within a placement, never a side */
+const SHAKER_SEAT = 0.3;
 import PASSAGE_FILE from '../recipes/ambient/passage.json' with { type: 'json' };
 import { asSpace, type SpaceRow } from '@deep-house/engine/space';
 import { dbToGain } from '@deep-house/engine/dsp';
@@ -146,6 +151,8 @@ export interface PassageRow {
   pad: { rootFloor: number; levelDb: number; blooms: Bloom[];
     /** the register every pad is moved by, in semitones (its floor and its ceiling): the bed's lean by the birds, carried (the producer writes it) */
     shift?: number;
+    /** how long the ear holds a bed's level, in bars: a bloom that rises from under starts no lower than a note of the bed that ended within this many bars of it (round dark-fronts, the eleventh pass) */
+    memoryBars?: number;
     /**
      * the birds on every pad the grammar writes (PLAN-UNIFY U3, the fast places' birds; the producer writes it, only off
      * the tile's own values): `width` and `air` factors on a bloom's spread and its hall (Zephyr), `db` on every pad's
@@ -593,9 +600,30 @@ export function playPassage(I: PassageInput): PassageResult {
     // spread across the field, alternately left and right, the low voices near the middle and the high ones wide
     const dur = B.bars * bs;
     // the level walked across the entry (a swell toward its end) and, where it fades, a squared fall over its last bars
-    const lvl = (x: number) => (B.rise ? dbToGain(B.rise[0] + (B.rise[1] - B.rise[0]) * x) / dbToGain(B.rise[1]) : 1);
+    const gain = round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0) + (PL?.db ?? 0)), 6);
+    // **A bed that comes back comes back where it left** (round dark-fronts, the eleventh pass; his ear 11-04 on Vibe -
+    // Liquid Gravity's pad at 1:30: "sinking a bit"): a bloom that rises from under (the pad under a build) starts no
+    // lower than the level the bed's last note stood at where that note ended within `R.pad.memoryBars` of the bloom,
+    // so a bed the ear still holds is not pulled from under it; a bed away longer rises from the row's floor as before
+    let rise = B.rise;
+    if (rise && R.pad.memoryBars) {
+      const t0 = tOf(bar, step);
+      let last = -Infinity;
+      for (const e of evs) {
+        if (e.voice !== bedT.voice || e.part !== 'study-pad' || (e.p as { gone?: number }).gone || e.t >= t0 - 1e-6) continue;
+        const end = e.t + Number(e.p.dur ?? 0);
+        if (end < t0 - R.pad.memoryBars * bs) continue;
+        const gp = e.p.gainPath;
+        const atEnd = Array.isArray(gp) && gp.length >= 2 ? Number(gp[gp.length - 1]) : 1;
+        const db = 20 * Math.log10(Math.max(1e-6, Number(e.p.gain ?? 1) * atEnd / gain));
+        if (db > last) last = db;
+      }
+      // (`last` is read against this bloom's gain, which is the rise's end; in the rise's own frame that is `rise[1]` up)
+      if (Number.isFinite(last) && last + rise[1] > rise[0]) rise = [Math.min(rise[1], round(last + rise[1], 2)), rise[1]];
+    }
+    const lvl = (x: number) => (rise ? dbToGain(rise[0] + (rise[1] - rise[0]) * x) / dbToGain(rise[1]) : 1);
     let path: number[] | null = null;
-    if (B.rise || B.fadeBars) {
+    if (rise || B.fadeBars) {
       path = [];
       const f0 = B.fadeBars ? Math.max(dur * 0.35, dur - B.fadeBars * bs) : dur;
       for (let k = 0; k <= 8; k++) { const t = f0 * k / 8; path.push(round(t, 4), round(lvl(t / dur), 4)); }
@@ -609,7 +637,7 @@ export function playPassage(I: PassageInput): PassageResult {
       const pan = width && midis.length > 1 ? round(Math.max(-1, Math.min(1, width * (i % 2 ? 1 : -1) * (0.35 + 0.65 * i / (midis.length - 1)))), 3) : null;
       const sends = air != null ? { direct: send(B.send).direct, returns: { 'field.hall': air } } : returnsOf(send(B.send));
       push({ ...bedT, t: tOf(bar, step), bar, step, note: I.noteName(m), part: 'study-pad', label: B.label ?? `pad bloom ${bar}`,
-        p: { ...p0, midi: m, dur: round(B.into ? (B.into.cut ?? B.into.bars) * bs + (B.into.cut != null ? 0.012 : 0) : dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain: round(Number(I.bedGain ?? bedT.p.gain ?? 1) * dbToGain(R.pad.levelDb + (B.db ?? 0) + (PL?.db ?? 0)), 6), ...sends,
+        p: { ...p0, midi: m, dur: round(B.into ? (B.into.cut ?? B.into.bars) * bs + (B.into.cut != null ? 0.012 : 0) : dur, 4), attack: B.attack, release: B.release, reverb: 0, delay: 0, gain, ...sends,
           ...(pan != null ? { panPath: pan } : {}), ...(path ? { gainPath: path } : {}) } }, 'pad-bloom');
     });
     say(bar, 'space', `pad bloom into the hall${midis.length > 2 ? ` (${midis.length} voices)` : ''}`);
@@ -641,7 +669,9 @@ export function playPassage(I: PassageInput): PassageResult {
       // a slow pan across the span: a triangle from one side to the other and back, `panBars` a side to side
       const period = W.panBars ?? 12, x0 = (I.drop + (W.panAt ?? W.from)) * bs;
       // a triangle travels from side to side; a sine drifts, slowing at each side, so it never reads as a speaker test
-      const at = (t: number) => { const ph = ((t - x0) / (period * bs)) % 2; const u = W.panShape === 'sine' ? (1 - Math.cos(Math.PI * ph)) / 2 : ph < 1 ? ph : 2 - ph; return round(W.pan![0] + (W.pan![1] - W.pan![0]) * u, 3); };
+      // (round stereo-room) the walk drawn in about the middle: the whole weather leaning to one ear was the part in one ear
+      const walk = WALK_SHARE;
+      const at = (t: number) => { const ph = ((t - x0) / (period * bs)) % 2; const u = W.panShape === 'sine' ? (1 - Math.cos(Math.PI * ph)) / 2 : ph < 1 ? ph : 2 - ph; return round(onStage(walk * (W.pan![0] + (W.pan![1] - W.pan![0]) * u)), 3); };
       const dur = Number(e.p.dur ?? 4) + 3, path: number[] = [];
       for (let x = 0; x <= dur + 1e-6; x += bs / 2) path.push(round(x, 3), at(e.t + x));
       q.panPath = path;
@@ -895,7 +925,7 @@ export function playPassage(I: PassageInput): PassageResult {
       if (shakerFits) {
         const gain = I.ownGain(Sh.voice, Sh.db);
         const hit = (bar: number, step: number, vel: number, extra: Record<string, unknown> = {}) => push({ t: round(tOf(bar, step), 6), voice: Sh.voice, layer: I.layerOf(Sh.voice), bar, step, role: 'texture', part: 'texture', label,
-          p: { vel: round(Math.max(0.05, Math.min(1, vel * (1 + Sh.jitter * (2 * jitter(bar * 16 + step) - 1)))), 4), gain: round(gain, 6), pan: round(side * Sh.pan, 3), ...extra } }, 'shaker');
+          p: { vel: round(Math.max(0.05, Math.min(1, vel * (1 + Sh.jitter * (2 * jitter(bar * 16 + step) - 1)))), 4), gain: round(gain, 6), pan: round(Math.max(-SHAKER_SEAT, Math.min(SHAKER_SEAT, side * Sh.pan)), 3), ...extra } }, 'shaker');
         // in on a rising last beat, the sixteenths accented off the hats (the e and the a), out over the last half bar
         Sh.in.forEach((v, k) => hit(a - 1, 12 + k, v));
         for (let bar = a; bar < b; bar++) for (let st = 0; st < 16; st++) {

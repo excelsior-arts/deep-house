@@ -29,6 +29,7 @@ import { BY_ID, makeEffect } from './index.ts';
 import { isOffline } from './shell.ts';
 import type { EffectInstance } from './contract.ts';
 import type { Settings } from '../settings.ts';
+import { cutAndHold } from '../graph-scope.ts';
 
 /** One effect of a space, with the numbers it is built with. */
 export interface SpaceEffect {
@@ -145,7 +146,7 @@ export interface SpaceInstance {
  * @param opts.beat the beat in seconds a delay's `timeBeats` is read against
  * @param opts.at when the effects' own sources start
  */
-export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: SpaceRow, opts: { beat?: number; at?: number } = {}): SpaceInstance {
+export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: SpaceRow, opts: { beat?: number; at?: number; returnsVia?: (into: AudioNode) => AudioNode } = {}): SpaceInstance {
   const at = opts.at ?? 0;
   const made: EffectInstance[] = [];
   let tail = 0;
@@ -168,6 +169,9 @@ export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: Space
   post.connect(dry).connect(trim);
   const levels: Record<string, GainNode> = {};
   const sends = new Map<string, AudioNode>();
+  // where the sends' returns join the dry: the trim itself, or a stage the caller puts in front of it for the
+  // returns alone (round stereo-room: a part space's tails held to their own width, its dry left as it plays)
+  const wet = opts.returnsVia ? opts.returnsVia(trim) : trim;
   // Built in order; a send's `into` names a later one, so its door is built first.
   const doors = row.sends.map((s) => { const g = gain(1); sends.set(s.id, g); return g; });
   row.sends.forEach((s, i) => {
@@ -176,7 +180,7 @@ export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: Space
     const fx = build(s);
     doors[i].connect(fx.input);
     const ret = chain(fx.output, s.after ?? []);
-    ret.connect(trim);
+    ret.connect(wet);
     for (const [to, v] of Object.entries(s.into ?? {})) ret.connect(gain(v)).connect(sends.get(to)!);
   });
   return {
@@ -190,7 +194,8 @@ export function buildSpace(ctx: BaseAudioContext, settings: Settings, row: Space
       for (const fx of made) fx.dispose(when);
       if (isOffline(ctx)) return;
       const wait = Math.max(0, (when ?? ctx.currentTime) - ctx.currentTime) + tail + 0.1;
-      setTimeout(() => { for (const n of nodes) n.disconnect(); }, wait * 1000);
+      // cut, then held a while (round crash-resume, `graph-scope.ts`)
+      setTimeout(() => cutAndHold(nodes), wait * 1000);
     },
   };
 }

@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "kind": "top-lanes",
+  "round": "top-lanes",
+  "revision": 4,
+  "note": "The lanes we have, turned (round top-lanes, 11-02; his word on the top end's table: T13, T21, T23 and T31 go, T15 and T37 as pairs only; pass 3: T15 a rule, T37 a holder). The sixteenth lane's figure leans (T13), its ghosts and the closed hat's ghosts take their own place in the stereo round a centred offbeat hat (T21), the lane's figure breathes in pairs of bars (T23), and the closed hat and the sixteenths reach into the kit's short room by Tide (T31), and a beat-led main never runs without its offbeat hat (T15, pass 3). Nothing raises a level: a leaned figure carries the lane's own energy a bar, the room's tail is paid for by the dry hit. Each idea is a word in the place's list (`SubRates.top`) and a block here, so one comes out by ear without the others; T37, the hats carrying a deep break, went to the top form's holders (`top-form.json`, `floor.holders.carry`). Every number is a starting point for listening.",
+  "units": {
+    "*.db": "dB",
+    "*.pan": "pan, -1 left to 1 right",
+    "*.chance": "share",
+    "*.weight": "weight",
+    "*.steps": "sixteenths",
+    "leans.*": "lean (src/lean.ts) about the house's own birds"
+  },
+  "centre": { "ember": 0.394, "tide": 0.558, "zephyr": 0.377, "root": 0.717, "gleam": 0.359, "veil": 0.473, "spark": 0.275, "loom": 0.578 },
+  "lean": {
+    "says": "T13, a shaker that leans: where the theme plays a sixteenth lane of its own (never a hand player's phrase), at `chance` a theme its mined figure gives way to one of these figures, a level a step in dB under the figure's loudest step (`null` rests). The 'e' near silent or gone, the 'and' strong, the bar's last 'a' pushed: a shuffle without swing. The figure carries the mined figure's own energy a bar (the sum of its hits' squares), so a figure with more hits plays each one quieter, and never louder than the mined figure's loudest hit. Spark leans the busy figures in and the sparse one out; the gallop waits for `gallopFrom`. The figure is a mark, not the groove (his ear 11-02 on the lean as a constant figure: \"too busy, maybe use that filling hats not throughly but in some areas to unsealing structure track changes\"): it plays only round the section changes `marks` gives it, and the plain figure plays everywhere else.",
+    "chance": 0.6,
+    "leans": { "spark": { "on": 1.5 } },
+    "gallopFrom": 0.3,
+    "marks": {
+      "says": "Where the lean plays: `before` bars into a section change and `after` bars out of it, wherever the lane plays there, then back to the plain figure. A change is a section line where a main or a drop turns, taken in the order of `changes` (a main into a breakdown first, then an arrival out of a breakdown or a build, then a main into the next, then the way out); the first arrival, out of the intro, is never a mark, so the plain figure is heard first. At most `most` marks a track and `share` of the lane's bars, each sounding in `least` bars or more and at least `apart` bars of anything else from the next mark, so it reads as a mark.",
+      "before": 4,
+      "after": 4,
+      "most": 3,
+      "share": 0.25,
+      "apart": 8,
+      "least": 2,
+      "phrase": {
+        "says": "The lean follows the harmony's phrase (pass 3, his ear 11-02 on Vibe - Sunrise: \"more dense hats on first two cords, and the sparce on last to underline the end of conversation\"). Each side of a marked change reads one phrase of the harmony: the progression's cycle, `least` to `most` bars, counted from the change's line. Where the phrase moves through two chords or more, the side is the whole phrase: the lean while the harmony states it, the plain figure on its closing chord (its cadence). Where the harmony holds one chord across the side, the side is `before` or `after` bars as it was.",
+        "on": true,
+        "least": 4,
+        "most": 8
+      },
+      "changes": [
+        { "id": "into-break", "from": ["main", "drop"], "to": ["breakdown", "build"] },
+        { "id": "arrival", "from": ["breakdown", "build"], "to": ["main", "drop"] },
+        { "id": "turn", "from": ["main", "drop"], "to": ["main", "drop"] },
+        { "id": "way-out", "from": ["main", "drop"], "to": ["outro"] }
+      ]
+    },
+    "figures": [
+      { "id": "lean", "weight": 1, "says": "the beat, the 'and' and the 'a', the 'e' nearly empty, the bar's last 'a' almost the hat's",
+        "db": [-5, -18, -2, -5, -5, -18, -2, -5, -5, -18, -2, -5, -5, -18, -2, -1.5], "leans": { "spark": 3 } },
+      { "id": "no-e", "weight": 1, "says": "the 'e' gone: three sixteenths a beat",
+        "db": [-5, null, -2, -5, -5, null, -2, -5, -5, null, -2, -5, -5, null, -2, -1.5], "leans": { "spark": 2 } },
+      { "id": "gallop", "weight": 0.8, "says": "the 'and' and the 'a' only, a gallop; from Spark `gallopFrom`",
+        "db": [null, null, -2, -4, null, null, -2, -4, null, null, -2, -4, null, null, -2, -1], "gallop": true, "leans": { "spark": 1.5 } },
+      { "id": "pickups", "weight": 1, "says": "the 'a's only, the bar's last pushed: a pickup into every beat, the sparse one",
+        "db": [null, null, null, -6, null, null, null, -6, null, null, null, -6, null, null, null, 0], "leans": { "spark": -3 } }
+    ]
+  },
+  "ghostPan": {
+    "says": "T21, ghost sixteenths with their own place in the stereo: one template a theme places every hit on a sixteenth between the eighths (the sixteenth lane's own, and the closed hat's ghosts and pickups) left or right, with a small level column (a ghost off the middle sits a touch behind); the offbeat closed hat goes to the middle (`offbeatPan`) where ghosts play in `leastBars` bars or more (never for a stray pickup), so the groove is wide and the hat is mono. Tide sets the depth (`depth`: close near the middle, wide as written). Panned, never an inverted copy. Hits on a beat or an 'and' of the sixteenth lane keep the template's own column too.",
+    "offbeatPan": 0,
+    "leastBars": 4,
+    "depth": { "least": 0.3, "atTideOne": 1 },
+    "templates": [
+      { "id": "a-right", "weight": 1, "says": "the 'a' steps right, the 'e' of one and four left",
+        "pan": [0, -0.4, 0, 0.35, 0, 0, 0, 0.35, 0, 0, 0, 0.35, 0, -0.4, 0, 0.35], "db": [0, -1.5, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, -1.5, 0, -1] },
+      { "id": "per-beat", "weight": 1, "says": "inside every beat left, right, right, left, the downbeat near the middle",
+        "pan": [-0.15, 0.4, 0.15, -0.45, -0.15, 0.4, 0.15, -0.45, -0.15, 0.4, 0.15, -0.45, -0.15, 0.4, 0.15, -0.45], "db": [0, -1.5, 0, -1.5, 0, -1.5, 0, -1.5, 0, -1.5, 0, -1.5, 0, -1.5, 0, -1.5] },
+      { "id": "ends-left", "weight": 0.8, "says": "the bar's first and last ghosts left, the middle ones right",
+        "pan": [0, -0.45, 0, -0.3, 0, 0.35, 0, 0.4, 0, 0.4, 0, 0.35, 0, -0.3, 0, -0.45], "db": [0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1] },
+      { "id": "lean-right", "weight": 0.8, "says": "the ghosts leaning right of a centred hat",
+        "pan": [0, 0.35, 0, 0.45, 0, 0.35, 0, 0.45, 0, 0.35, 0, 0.45, 0, 0.35, 0, 0.45], "db": [0, -1.5, 0, -1, 0, -1.5, 0, -1, 0, -1.5, 0, -1, 0, -1.5, 0, -1] }
+    ]
+  },
+  "breath": {
+    "says": "T23, the loop breathes in pairs of bars: the sixteenth lane's figure becomes A and B, B the second bar of every pair counted from the section's start, differing from A in two to four steps. One move a theme, drawn among those that leave B two to four steps from A, leaning to the moves whose added hits fall where the keys rest (B answers the voices, never a second groove). A move carries its accent: an added hit takes a dropped hit's level in turn, and past the drops it is a ghost (the figure's quietest level).",
+    "chance": 0.6,
+    "leans": { "loom": { "on": 1 } },
+    "keysRestLean": 4,
+    "moves": [
+      { "id": "late-a", "says": "the bar's last 'a' moves back to the 'e' of four", "drop": [15], "add": [13] },
+      { "id": "answer-two", "says": "an 'a' of two and an 'e' of three answer", "add": [7, 9] },
+      { "id": "push-three", "says": "beat three's 'and' moves to its 'a', and the 'e' of one joins", "drop": [10], "add": [11, 1] },
+      { "id": "rest-one", "says": "the first beat rests: its hits out, the 'a' of one kept", "drop": [0, 1, 2], "add": [3] },
+      { "id": "pickup-four", "says": "the last beat fills: its 'e' and 'and' join", "add": [13, 14] }
+    ]
+  },
+  "wash": {
+    "says": "T31, the hats' own wash: at a wider Tide the closed hat and the sixteenth lane send more into the kit's short room, and the room's tail is longer, so the gaps between the ticks fill with their own tails. From `fromTide` (close: as today) to Tide one: the send `gain` times the theme's kit room floor (`most` at most), the room's length `longer` times more (`mostSeconds` at most; the room is the kit's, so the clap's and the snare's tails lengthen with it), and the dry hit gives back `dryDbPerRoom` dB a unit of added send. Measured on a featured groove at Tide one: the quiet frame between the hits 32.7 dB under the bar's mean before, 26.7 at a 0.9 s room; the send alone moved it 0.4 dB (the room's tail was too short to reach the gap).",
+    "fromTide": 0.25,
+    "gain": 3.2,
+    "most": 0.7,
+    "longer": 1.25,
+    "mostSeconds": 0.8,
+    "dryDbPerRoom": -0.75
+  },
+  "offbeatFloor": {
+    "says": "T15, no groove without its offbeat hat (pass 3, his ear 11-02 on the lowered pair: \"actually sounds pretty good\"): a beat-led house main never runs without its offbeat hat. Where a main or a drop (`sections`) plays no closed hat on an offbeat in any of its bars, every bar of it the kick plays in takes a soft tight hat on the offbeats (`steps`), `db` under a plain hat (`vel` and `gain`, the house's plain tight hat as the pair heard it), at the middle. Wave 1's -6 dB was \"a bit intense\" (6-12 kHz up 10 dB on Vibe - Night Side); -12 dB lifts it about 5, so it supports and does not lead. A main with its own hat, a resting hat inside it, a front drone and a drumless bar are left as they are.",
+    "voice": "hatTight",
+    "vel": 0.9,
+    "gain": 0.83,
+    "db": -12,
+    "steps": [2, 6, 10, 14],
+    "sections": ["main", "drop"],
+    "holdsSays": "Whether a deep break's holder (the top form's whisper, ticks or carried hat) may take its hat from this floor (round hat-ceiling). true: a groove whose only hat is the floor gives its break a few of the floor's ticks; false: the floor is the groove's support and not its hat, the holder finds nothing to copy there and the break stays as the draw left it (beatless, the top's air arcs free to play). true by his ear 11-02 (\"actually keep the ticks\"): Vibe - Night Side's break keeps its few ticks.",
+    "holds": true
+  },
+  "level": {
+    "says": "The hats' level at the house's pace (round hats-level, his ear 11-02: \"on my Studio Display it feels like hats are a bit too loud now\", then on headphones \"hats now a bit too pronounced to steal attention from mix as the whole\"). With the gaps filled by the top's quiet voices and the air richer, the same hat takes attention, and our top already sat over the sources' at matched loudness (6-12 kHz -21.0 against -23.5 dB, 12-16 kHz 3.4 dB over). Every hat of the kit's lanes (the closed and the open hat, the offbeat floor, the break's holders, a sixteenth lane's hat) plays `db` down; the top's quiet voices are set against the hat before it, so they stay where his ear put them, and the shaker, the cabasa, the hands and the clap are not hats. One number: nought is the hats as they were.",
+    "db": 0,
+    "ceilingSays": "Round hat-ceiling (the follow-up the flat cut asked for: a flat cut darkens the tracks already dark, Vibe - Drizzle's hat 28 dB under the mix before it). In place of the flat cut, a ceiling: the kit's hats come down to `ceilingDb` against the mix (the hat's power over the groove's bars against the mix's), and a hat already under it is left where it was drawn, never raised. Read off the plan once the trim is known (`read`), never metered. The sources' deep house hat sits -21 to -24 dB against its mix; the ceiling is that window's top, the least cut inside it. `db` is the flat cut and stays beside it: each one number, either can come out by ear (nought, or no `ceilingDb`).",
+    "ceilingDb": -21,
+    "floorSays": "Round hat-floor (his ear 11-03 on a bright, busy groove: \"hats sound a bit too quiet now\", \"even the snare is louder than the hat there\"). The ceiling reads the hats broadband, which is where too loud is heard; too quiet is heard in the highs, where Spark's bright keys, a driven bass, the snare and the bus's edge can crowd a hat the ceiling has already cut. So a floor beside it: where the kit's hats stand more than `floor.db` under the rest of the groove above 3 kHz (the plan's read, `src/tops-read.ts`, off the engine's measured table of the voices' tops), they come back up to it, never past the level they were drawn at: only what the ceiling took is given back, and a hat the ceiling did not cut is not moved. His good grooves at the house's pace sit at -2.1 and over in that band (the plan reads them -1.2 and -1.5). He chose the floor by ear (11-04, live in the app): at -1.2 Drive - Eli's Ignition got 1.7 dB, at -0.3 2.6, the hats level with the snare in the highs: *\"sounds alright\"*. Vibe - Heat Haze, his lowest good groove, comes up 0.9 there: *\"Heat Haze sounds fine, so lets take 2.6\"*. Out with `floor` taken out of the row.",
+    "floor": { "db": -0.3 },
+    "read": {
+      "says": "MEASURED (round hat-ceiling, 11-02): the plan's read of the hats against the mix. `voiceDb`, a hat's one hit at unit gain and velocity, its ring's energy apart (the ladder hats' ten-decibel time, ring and tail as the voice plays them), fitted on 88 house mains rendered at nought with their hats alone (seed=1-90&v=2, the longest main's first 16 bars): the hat's own level lands 0.71 dB rms from the stem's. `mixDb`, a main's power against the aim its trim is fitted for: the median over the same mains (0.87-1.03 dB rms). Together 1.08 dB rms on the house, 1.6 on the eleven featured deep tracks held out (the sparse grooves, whose loudness the trim's model reads hot, read low: Vibe - Night Side 4.1 dB, Vibe - Sunrise 2.6). A hat voice not listed here is not read; no other hat plays at the house's pace.",
+      "voiceDb": { "hatClosed": -9.02, "hatOpen": -8.3, "hatTight": -29.5, "hatLoose": -17.26 },
+      "mixDb": -2.35
+    }
+  }
+}

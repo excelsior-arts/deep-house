@@ -275,7 +275,8 @@ const checks: [string, string[] | null, string, (() => boolean)?][] = noTests ? 
 // docs/ itself once the release has rebuilt it.
 checks.push(['the release audit', tool('check-release.ts', ...at), 'the release audit fails.']);
 if (soundTouched && !noTests) checks.push(['the sound', tool('test.ts', ...at, ...suitePort), 'the sound has moved, or it could not be metered.']);
-if (soundTouched && !skipBrowsers) checks.push(['a minute of live play', tool('test-browsers.ts', ...at, ...suitePort), 'the browsers did not play the set through.']);
+// (every row at a cut, the weekly tier: the recordings and Firefox's own list too, round test-sane)
+if (soundTouched && !skipBrowsers) checks.push(['a minute of live play', tool('test-browsers.ts', ...at, ...suitePort, '--tier', 'weekly'), 'the browsers did not play the set through.']);
 
 const GATE_FAULTS = checks.map(([, , why]) => why);
 for (const [what, args, why, run] of checks) {

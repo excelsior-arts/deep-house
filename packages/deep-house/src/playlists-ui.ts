@@ -30,13 +30,15 @@ import { writePlaylistLink, readPlaylistLink, isPlaylistLink, savePlaylistLink, 
 import { linkQuery, linkRaw, SOUND } from './link-table.ts';
 import type { LinkProblem } from './link.ts';
 import type { LibraryDoc, Playlist, Track, FileOut } from './playlists.ts';
-import { colourOf, genreOf, timeOf, totalOf, constellationOf, tempoOf } from './sky.ts';
+import { colourOf, genreOf, timeOf, timeLater, totalOf, constellationOf, tempoOf } from './sky.ts';
 import { listTempo } from './performance.ts';
 import { cleanLink, copyText, clock } from './share-link.ts';
 import { pageBase } from './page-base.ts';
 import { appleDevice, openInApp, APP_STORE, syncAppBanner } from './open-in-app.ts';
 import { note } from './ledger.ts';
-import { stepIndex, indexOfSound, seamDue, placeWords, playMark } from './playlist-play.ts';
+import { stepIndex, indexOfSound, seamDue, playMark } from './playlist-play.ts';
+import { w, onLang, featuredName } from './words.ts';
+import { genreName } from './words-ring.ts';
 import { romanNumeral, placeStored } from './control.ts';
 import { linkBare } from './link.ts';
 import { FEATURED, FEATURED_WORD, featuredTracks, copyOfFeatured, featKey, isFeat, featOf, featuredPlace, trackShareLink, linkInFeatured } from './featured.ts';
@@ -119,8 +121,10 @@ const FEAT_LISTS = new Map<string, Playlist>(FEATURED.map((f) => [featKey(f.id),
  * **The line over the featured section while you have no playlist** (featured, 10-23; his review): a loved track
  * starts your own.
  */
-const YOURS_FIRST = 'Love a track to start your own';
-const shownName = (n: Name) => featOf(n)?.name ?? n ?? SAVED;
+const YOURS_FIRST = (): string => w('pl.yoursFirst');
+/** the default list's stored name (`SAVED`, also its key for sync) said in the page's language, "Saved 2" too */
+const savedShown = (n: string): string => { const m = /^Saved( \d+)?$/.exec(n); return m ? `${w('pl.saved')}${m[1] ?? ''}` : n; };
+const shownName = (n: Name) => { const f = featOf(n); return f ? featuredName(f.key, f.name) : n == null ? w('pl.saved') : savedShown(n); };
 const keyOf = (n: Name) => n ?? '';
 const say = (text: string) => { const el = document.getElementById('say'); if (el) el.textContent = text; };
 /** Your playlists, in the order you keep them (`inOrder`, pl-order). */
@@ -137,11 +141,11 @@ function linkParts(link: string) {
 function titleOf(t: Track): string {
   if (t.label) return t.label;
   const { seed, theme } = linkParts(t.link);
-  return `Theme ${romanNumeral(theme + 1)} · seed ${seed}`;
+  return w('pl.title', { n: romanNumeral(theme + 1), seed });
 }
 /** A named track's own words under its name, as the hover's tip (his word 10-27); none for an unnamed one. */
 const tipOf = (t: Track) => (t.label ? ` title="${esc(titleOf({ link: t.link }))}"` : '');
-const genreSafe = (link: string) => { try { return genreOf(link).name; } catch (e) { return ''; } };
+const genreSafe = (link: string) => { try { return genreName(genreOf(link).name); } catch (e) { return ''; } };
 const colourSafe = (link: string) => { try { return colourOf(link); } catch (e) { return 'var(--gold)'; } };
 
 /**
@@ -237,8 +241,8 @@ function keepTimes(): void {
 }
 /**
  * **Times are planned only while they can be seen** (the review of 10-21, F7): the panel open on Playlists. Each is
- * a whole plan on the page's thread, so with the panel closed or on another tab the queue waits, and `seamTick` starts
- * it again within a second of the tab showing. The calculation is the same; moving it to the plan worker is later.
+ * a whole plan, so with the panel closed or on another tab the queue waits, and `seamTick` starts it again within a
+ * second of the tab showing. The calculation is the same, made in the planner's worker since smooth-start (11-03).
  * **Not while the panel opens** (panel-motion): a plan costs the page 20 to 100 ms, and a session's first opening
  * started them 30 ms in, each one a held frame of the zoom and the ring's glide; they wait for the zoom to land.
  */
@@ -253,19 +257,27 @@ function runTimes(): void {
     if (libraryRolling()) { later(work); return; }
     const l = queue.shift();
     if (l) {
-      const t = timeOf(l);
-      const now = { clock: t ? t.clock : '', minutes: t?.minutes ?? 0 };
-      const was = kept.get(l);
-      known.set(l, now);
-      if (!was || was.clock !== now.clock || Math.round(was.minutes * 1000) !== Math.round(now.minutes * 1000)) paintTimes();
-      keepTimes();
+      // from the planner's worker (smooth-start, 11-03), one at a time; on this thread only where there is none
+      const off = timeLater(l);
+      if (off) {
+        void off.then((t) => { took(l, t); if (queue.length) later(work); else queued = false; });
+        return;
+      }
+      took(l, timeOf(l));
     }
     if (queue.length) later(work); else queued = false;
+  };
+  const took = (l: string, t: ReturnType<typeof timeOf>) => {
+    const now = { clock: t ? t.clock : '', minutes: t?.minutes ?? 0 };
+    const was = kept.get(l);
+    known.set(l, now);
+    if (!was || was.clock !== now.clock || Math.round(was.minutes * 1000) !== Math.round(now.minutes * 1000)) paintTimes();
+    keepTimes();
   };
   later(work);
 }
 /** Repeat is said only where it applies (his word 10-20): on the current or playing playlist. */
-const modeOf = (n: Name) => (playing && playing.name === n ? ' · Repeat' : '');
+const modeOf = (n: Name) => (playing && playing.name === n ? w('pl.repeat') : '');
 /**
  * **A playlist's stats, one plain string** (his word 10-20: "let's do strings"), the count first as music apps say it
  * (featured, 10-23: "5 tracks · 39 m"): "6 tracks · 46 m", "4 tracks · 2 h 44 m" past the hour, and "· Repeat" on the
@@ -279,8 +291,8 @@ function totalCols(n: Name): string {
   let sum = 0, all = true;
   for (const l of links) { const t = timeText(l); if (t === null) all = false; else sum += timeKnown(l)?.minutes ?? 0; }
   const m = Math.round(sum);
-  const time = links.length && all ? ` · ${m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} m`}` : '';
-  return `${links.length} track${links.length === 1 ? '' : 's'}${time}${esc(modeOf(n))}`;
+  const time = links.length && all ? ` · ${m >= 60 ? w('pl.hours', { h: Math.floor(m / 60), m: m % 60 }) : w('pl.minutes', { m })}` : '';
+  return `${w(links.length === 1 ? 'pl.track' : 'pl.tracks', { n: links.length })}${time}${esc(modeOf(n))}`;
 }
 /**
  * **The playing mark** (his review 10-20): three level bars after the name, moving with the set's own beat (`levelTick`);
@@ -458,14 +470,14 @@ function openShareMenu(): void {
   m.className = 'plMenu shareMenu';
   m.setAttribute('role', 'menu');
   m.dataset.by = menuBy;
-  m.setAttribute('aria-label', 'Share');
+  m.setAttribute('aria-label', w('share.menu'));
   const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
   // the system's share sheet in the iPhone and iPad app; the Mac app's web view has none that answers (his report 10-21)
   const native = !!window.deepHouseShell && (window.deepHouseShell as { platform?: string }).platform !== 'macos';
-  m.innerHTML = '<button type="button" role="menuitem" tabindex="-1" data-share="link">Copy link</button>'
+  m.innerHTML = `<button type="button" role="menuitem" tabindex="-1" data-share="link">${esc(w('share.copy'))}</button>`
     + '<button type="button" role="menuitem" tabindex="-1" data-share="at"></button>'
-    + (native ? '<button type="button" role="menuitem" tabindex="-1" data-share="native">Share…</button>' : '')
-    + (appleDevice() ? '<button type="button" role="menuitem" tabindex="-1" data-share="app">Open in app</button>' : '');
+    + (native ? `<button type="button" role="menuitem" tabindex="-1" data-share="native">${esc(w('share.native'))}</button>` : '')
+    + (appleDevice() ? `<button type="button" role="menuitem" tabindex="-1" data-share="app">${esc(w('share.app'))}</button>` : '');
   k.after(m);
   shareMenu = m;
   k.setAttribute('aria-expanded', 'true');
@@ -477,15 +489,15 @@ function openShareMenu(): void {
   const inList = (link: string) => trackShareLink(link, playing?.name);
   const timed = () => { const w = deps.control.link.withTime(); return inList(cleanLink(new URL(w).search, base, true) ?? w); };
   const plain = () => inList(cleanLink(location.search, base) ?? cleanLink(new URL(deps.control.link.withTime()).search, base) ?? base);
-  const paint = () => { if (!at.dataset.done) at.textContent = `Copy at ${clock(seconds())}`; };
+  const paint = () => { if (!at.dataset.done) at.textContent = w('share.copyAt', { at: clock(seconds()) }); };
   paint();
   shareTick = window.setInterval(paint, 250);
   fitShareMenu();
   m.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
   const copied = (b: HTMLElement) => {
     b.dataset.done = '1';
-    b.textContent = 'Copied';
-    say('Copied');
+    b.textContent = w('share.copied');
+    say(w('share.copied'));
     window.setTimeout(() => { if (shareMenu === m) closeShareMenu(true); }, 900);
   };
   m.addEventListener('click', (e) => {
@@ -555,9 +567,9 @@ export function pressThrone(release: () => void = () => {}): void {
 }
 /** Save `link` into a playlist (none named: where `saveTarget` says), never doubled, then the save's motion. */
 function saveInto(name: string | undefined, link: string): boolean {
-  if (name !== undefined && indexOfSound(linksOf(name), link) >= 0) { say('Already there'); return false; }
+  if (name !== undefined && indexOfSound(linksOf(name), link) >= 0) { say(w('pl.alreadyThere')); return false; }
   if (!edit(() => saveTrack(doc, link, Date.now(), undefined, name))) return false;
-  say('Saved');
+  say(w('pl.savedTo'));
   saveMotion();
   return true;
 }
@@ -604,15 +616,15 @@ function openThroneMenu(names: string[], link: string): void {
   m.className = 'plMenu thMenu';
   m.setAttribute('role', 'menu');
   m.dataset.by = menuBy;
-  m.setAttribute('aria-label', 'Save to');
-  m.innerHTML = names.map((n) => `<button type="button" role="menuitem" tabindex="-1" data-name="${esc(n)}">${sky(linksOf(n), 16)}<span>${esc(n)}</span></button>`).join('');
+  m.setAttribute('aria-label', w('pl.saveTo'));
+  m.innerHTML = names.map((n) => `<button type="button" role="menuitem" tabindex="-1" data-name="${esc(n)}">${sky(linksOf(n), 16)}<span>${esc(shownName(n))}</span></button>`).join('');
   document.body.append(m);
   throneMenu = m;
   // under the throne, centred on it, kept inside the window (the mini player's may cover the ring)
   const t = deps.throne()?.getBoundingClientRect();
-  const w = m.offsetWidth, h = m.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
-  const x = t ? t.left + t.width / 2 - w / 2 : (vw - w) / 2, y = t ? t.bottom + 6 : 40;
-  m.style.left = `${Math.max(6, Math.min(vw - w - 6, x)).toFixed(1)}px`;
+  const mw = m.offsetWidth, h = m.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  const x = t ? t.left + t.width / 2 - mw / 2 : (vw - mw) / 2, y = t ? t.bottom + 6 : 40;
+  m.style.left = `${Math.max(6, Math.min(vw - mw - 6, x)).toFixed(1)}px`;
   m.style.top = `${Math.max(6, Math.min(vh - h - 6, y)).toFixed(1)}px`;
   const items = () => [...m.querySelectorAll<HTMLElement>('[role="menuitem"]')];
   items()[0]?.focus({ preventScroll: true });
@@ -622,8 +634,8 @@ function openThroneMenu(names: string[], link: string): void {
     const name = b.dataset.name!;
     if (indexOfSound(linksOf(name), link) >= 0) {
       // already there: said in the menu a moment, nothing doubled
-      m.innerHTML = '<p class="thNote" role="status">Already there</p>';
-      say('Already there');
+      m.innerHTML = `<p class="thNote" role="status">${esc(w('pl.alreadyThere'))}</p>`;
+      say(w('pl.alreadyThere'));
       window.setTimeout(closeThroneMenu, 900);
       return;
     }
@@ -751,7 +763,7 @@ function pulseTick(): void {
  * `was` is the playlist's place the record still is (`null`: none), where a pause that drops the step puts it back
  * (`stepDropped`).
  */
-let asked: { from: string; at: number; was: { name: Name; index: number } | null } | null = null;
+let asked: { from: string; at: number; was: { name: Name; index: number } | null; own?: boolean } | null = null;
 let lastRecord = '';
 const recordKey = () => deps.control.placeHeard;
 
@@ -770,17 +782,17 @@ function playAt(name: Name, i: number, kind: 'cast' | 'skip' | 'back' = 'cast', 
   const links = linksOf(name);
   if (!links.length) return false;
   const at = d ? playableFrom(links, i, d) : stepIndex(i, links.length, 0);
-  if (at < 0 || !playable(links[at])) { notice = 'Needs a newer version'; render(); return false; }
+  if (at < 0 || !playable(links[at])) { notice = w('pl.newer'); render(); return false; }
   const c = deps.control, from = recordKey(), was = c.state.position, mixing = !!c.state.mix, prev = playing;
   // the list's clock before the track is asked for, so it arrives on it
   c.listClock(clockOfList(name));
   const ok = c.playPlace(links[at], kind, atSeam);
-  if (!ok) { notice = 'Can’t play this link'; render(); return false; }
+  if (!ok) { notice = w('pl.cantPlay'); render(); return false; }
   playing = { name, index: at };
   outgoing = mixing && sounding() && prev && prev.name === name && prev.index !== at ? { name, index: prev.index, seen: false } : null;
   // playing, the track is on its way to the seam; stopped, it is already where the set is
   // a second ask before the first arrived leaves the record where it was: the place to go back to is the first's
-  if (mixing) asked = { from, at: was, was: asked ? asked.was : prev && { ...prev } };
+  if (mixing) asked = { from, at: was, was: asked ? asked.was : prev && { ...prev }, ...(atSeam ? { own: true } : {}) };
   else { asked = null; lastRecord = recordKey(); }
   deps.control.remember();
   render();
@@ -798,6 +810,10 @@ function pressTrack(name: Name, i: number): void {
 }
 function step(d: number, kind: 'skip' | 'back' | 'cast', atSeam = false): boolean {
   if (!playing) return false;
+  // **A press counts from the track the record is** (his word 11-03: *"Next still should be next, and not next after
+  // one that's in the mixing"*): the list's own next track, asked ahead of the record's seam and not yet heard, is the
+  // one a Next lands on, and Back steps from the record. A step a hand asked still counts from where it is going.
+  if (kind !== 'cast' && asked && asked.own && asked.was && listOf(asked.was.name) && recordKey() === asked.from) playing = { ...asked.was };
   const n = linksOf(playing.name).length;
   if (!n || !listOf(playing.name)) { leave(); return false; }
   return playAt(playing.name, stepIndex(playing.index, n, d), kind, d < 0 ? -1 : 1, atSeam);
@@ -922,10 +938,21 @@ function seamTick(): void {
     lastRecord = rec;
     render();
   }
+  askIfDue();
+}
+/**
+ * **The next track, asked ahead of the record's seam** (`seamTick` once a second, and `seeked` the moment a seek has
+ * landed). Never while the hand is on the band or a seek is landing (playlist-scrub, his report 11-03): the position
+ * is then the hand's and the record is still where it was, so an ask made in a tap's press was taken ahead of a
+ * record a minute from its seam, and the lift's seek let it go again.
+ */
+function askIfDue(): void {
+  if (!playing) return;
+  const c = deps.control, s = c.state, rec = recordKey();
   // arrived: another place heard, or the needle back at the start of the same one; `at` follows the needle forward
   if (asked && (rec !== asked.from || s.position < asked.at - 1)) asked = null;
   else if (asked) asked.at = Math.max(asked.at, s.position);
-  if (!c.playing || s.starting || s.castTo !== null || asked) return;
+  if (!c.playing || s.starting || s.scrubbing || c.seeking || s.castTo !== null || asked) return;
   if (!seamDue(s.position, c.seamAt)) return;
   // **A one-track playlist**: the transport never hands over into the place it is at, so nothing is asked here; the
   // set's own next theme comes, and the step above brings the track back at once
@@ -967,7 +994,7 @@ function pickFile(): void {
 }
 async function openFile(f: File): Promise<void> {
   let text = '';
-  try { text = await f.text(); } catch (e) { notice = 'Can’t read this file'; openLibrary('playlists'); render(); return; }
+  try { text = await f.text(); } catch (e) { notice = w('pl.cantRead'); openLibrary('playlists'); render(); return; }
   const r = readDeephouseFile(text);
   if (r.error !== undefined) { notice = r.error; view = { kind: 'overview' }; render(); openLibrary('playlists'); return; }
   if (r.kind === 'library') {
@@ -1022,8 +1049,8 @@ function render(): void {
   if (view.kind === 'list' && !listOf(view.name)) view = { kind: 'overview' };
   if (menu && (view.kind !== 'list' || (menu.link && indexOfSound(linksOf(view.name), menu.link) < 0))) menu = null;
   const head = (notice ? `<p class="plNotice" role="status">${esc(notice)}</p>` : '')
-    + (noticeApp ? `<p class="plNotice" role="status">Not installed? <a href="${APP_STORE}" target="_blank" rel="noopener">Get the app</a></p>` : '');
-  const foot = undo ? `<div class="plUndo" role="status"><span>${esc(undo.text)}</span><button type="button" data-act="undo">Undo</button></div>` : '';
+    + (noticeApp ? `<p class="plNotice" role="status">${esc(w('share.notInstalled'))} <a href="${APP_STORE}" target="_blank" rel="noopener">${esc(w('share.getApp'))}</a></p>` : '');
+  const foot = undo ? `<div class="plUndo" role="status"><span>${esc(undo.text)}</span><button type="button" data-act="undo">${esc(w('pl.undo'))}</button></div>` : '';
   let body = '';
   if (view.kind === 'overview') body = overview();
   else if (view.kind === 'list') body = listPage(view.name, view.from);
@@ -1043,7 +1070,7 @@ function render(): void {
   // what is being typed survives a re-render
   for (const [k, v] of drafts) { const i = section.querySelector<HTMLInputElement>(`input[data-focus="${k}"]`); if (i) i.value = v; }
   // New, Open and Back up belong to the overview's foot alone; Back up only once there is something of yours to keep
-  if (plFoot) plFoot.innerHTML = view.kind === 'overview' && (liveLists().length || FEATURED.length) ? `${naming === 'new' ? '' : newBox('new')}${key('open', 'open', 'Open a .deephouse file', 'Open')}${liveLists().length ? key('backup', 'backup', 'Back up everything', 'Back up') : ''}` : '';
+  if (plFoot) plFoot.innerHTML = view.kind === 'overview' && (liveLists().length || FEATURED.length) ? `${naming === 'new' ? '' : newBox('new')}${key('open', 'open', w('pl.openTip'), w('pl.open'))}${liveLists().length ? key('backup', 'backup', w('pl.backupTip'), w('pl.backup')) : ''}` : '';
   const backRow = focused === 'back' && backFrom !== null && view.kind === 'overview' ? `l:${backFrom}` : null;
   backFrom = null;
   if (backRow || focused) section.querySelector<HTMLElement>(`[data-focus="${CSS.escape(backRow ?? focused!)}"]`)?.focus({ preventScroll: true });
@@ -1071,15 +1098,15 @@ function overview(): string {
   const shown = lists.filter((p) => p.name !== undefined || tracksOf(p).length || !named.length);
   // **the featured section** (featured, his word 10-23): under yours, a hairline with the section's word, the rows as yours look
   const featured = FEATURED.length
-    ? `<div class="plSplit"><span class="plCaps">${esc(FEATURED_WORD)}</span></div><ul class="plLists plFeatured">${FEATURED.map((f) => rowHtml(featKey(f.id), f.links)).join('')}</ul>`
+    ? `<div class="plSplit"><span class="plCaps">${esc(FEATURED_WORD === 'Featured' ? w('pl.featured') : FEATURED_WORD)}</span></div><ul class="plLists plFeatured">${FEATURED.map((f) => rowHtml(featKey(f.id), f.links)).join('')}</ul>`
     : '';
   const newRow = naming === 'new' ? `<li class="plRow plNewRow">${newBox('new')}</li>` : '';
   if (!shown.length) {
     // nothing of yours yet: one line saying how yours starts, then the featured playlists (they took the example sky's
     // place); the foot holds New and Open. With no featured playlist either, the first visit's words and its two keys.
-    if (featured) return `${newRow ? `<ul class="plLists">${newRow}</ul>` : `<p class="plLead">${esc(YOURS_FIRST)}</p>`}${featured}`;
-    return `<div class="libFirst"><h2>No playlists yet</h2><p>Press the heart on the ring to save</p>
-      ${naming === 'new' ? newBox('new') : `<div class="plKeys">${newBox('new')}${key('open', 'open', 'Open a .deephouse file', 'Open file')}</div>`}</div>`;
+    if (featured) return `${newRow ? `<ul class="plLists">${newRow}</ul>` : `<p class="plLead">${esc(YOURS_FIRST())}</p>`}${featured}`;
+    return `<div class="libFirst"><h2>${esc(w('pl.none'))}</h2><p>${esc(w('pl.noneHint'))}</p>
+      ${naming === 'new' ? newBox('new') : `<div class="plKeys">${newBox('new')}${key('open', 'open', w('pl.openTip'), w('pl.openFile'))}</div>`}</div>`;
   }
   const rows = shown.map((p) => rowHtml(p.name ?? null, tracksOf(p).map((t) => t.link), shown.length > 1 ? p.id : undefined)).join('');
   // a new playlist's name is typed in place, as the first row: where it lands (pl-order)
@@ -1114,8 +1141,8 @@ function commitLabel(el: HTMLInputElement): void {
   edit(() => setLabel(doc, link, value));
 }
 function newBox(where: string): string {
-  if (naming === where) return `<form class="plNew" data-form="${where}">${textField('placeholder="Name" aria-label="New playlist" maxlength="80" data-focus="newName"')}<button type="submit" class="plIcon" aria-label="Save" title="Save">${glyph('check')}</button></form>`;
-  return key('new', 'plus', 'New playlist', 'New', ` data-where="${where}"`);
+  if (naming === where) return `<form class="plNew" data-form="${where}">${textField(`placeholder="${esc(w('pl.name'))}" aria-label="${esc(w('pl.newList'))}" maxlength="80" data-focus="newName"`)}<button type="submit" class="plIcon" aria-label="${esc(w('pl.save'))}" title="${esc(w('pl.save'))}">${glyph('check')}</button></form>`;
+  return key('new', 'plus', w('pl.newList'), w('pl.new'), ` data-where="${where}"`);
 }
 
 // --- the ⋯ menu: one component for a track and a playlist (his note 10-20) ---
@@ -1132,7 +1159,7 @@ let renamingList = false;
  * Esc or leaving it empty cancels, and a re-render keeps what is typed.
  */
 const editField = (kind: 'label' | 'rename', input: string) =>
-  `<form class="plFieldForm plEdit" data-form="${kind}">${input}<button type="submit" class="plIcon" aria-label="Save" title="Save">${glyph('check')}</button></form>`;
+  `<form class="plFieldForm plEdit" data-form="${kind}">${input}<button type="submit" class="plIcon" aria-label="${esc(w('pl.save'))}" title="${esc(w('pl.save'))}">${glyph('check')}</button></form>`;
 /** Focus a rename's field with the caret at the end of its text. */
 function focusEnd(sel: string): void {
   const i = section?.querySelector<HTMLInputElement>(sel);
@@ -1172,29 +1199,29 @@ function trackMenu(n: Name, link: string): string {
   // the second level, shared by Move to… and Copy to…: the other playlists
   if (menu && menu.level !== 'top') {
     const others = liveLists().filter((p) => (p.name ?? null) !== n);
-    const [act, label] = menu.level === 'move' ? ['moveTo', 'Move to'] : ['copyTo', 'Copy to'];
+    const [act, label] = menu.level === 'move' ? ['moveTo', w('pl.moveTo')] : ['copyTo', w('pl.copyTo')];
     return menuHtml([{ act: 'moveBack', label: `‹ ${label}` }, ...others.map((p) => ({ act, label: shownName(p.name ?? null), data: { name: enc(p.name ?? null) } }))], label);
   }
   // **a featured playlist's track is read-only** (featured, 10-23): it is copied into one of yours, its link copied
   // or opened in the app; never renamed, moved or removed
-  if (isFeat(n)) return menuHtml([...(liveLists().length ? [{ act: 'copyOpen', label: 'Copy to…' }] : []), { act: 'copy', label: 'Copy link' }, ...(appleDevice() ? [{ act: 'openApp', label: 'Open in app' }] : [])], 'Track');
+  if (isFeat(n)) return menuHtml([...(liveLists().length ? [{ act: 'copyOpen', label: w('pl.copyToOpen') }] : []), { act: 'copy', label: w('share.copy') }, ...(appleDevice() ? [{ act: 'openApp', label: w('share.app') }] : [])], w('pl.track1'));
   const others = liveLists().length > 1;
   // the order by the menu as well as by a drag (his word 10-21), each only where it can go
   const at = indexOfSound(linksOf(n), link), last = linksOf(n).length - 1;
-  const order = n === null || at < 0 ? [] : [...(at > 0 ? [{ act: 'moveUp', label: 'Move up' }] : []), ...(at < last ? [{ act: 'moveDown', label: 'Move down' }] : [])];
-  return menuHtml([{ act: 'renameTrack', label: 'Rename' }, ...order,
-    ...(others ? [{ act: 'moveOpen', label: 'Move to…' }, { act: 'copyOpen', label: 'Copy to…' }] : []), { act: 'copy', label: 'Copy link' }, ...(appleDevice() ? [{ act: 'openApp', label: 'Open in app' }] : []), { act: 'removeTrack', label: 'Remove' }], 'Track');
+  const order = n === null || at < 0 ? [] : [...(at > 0 ? [{ act: 'moveUp', label: w('pl.moveUp') }] : []), ...(at < last ? [{ act: 'moveDown', label: w('pl.moveDown') }] : [])];
+  return menuHtml([{ act: 'renameTrack', label: w('pl.rename') }, ...order,
+    ...(others ? [{ act: 'moveOpen', label: w('pl.moveToOpen') }, { act: 'copyOpen', label: w('pl.copyToOpen') }] : []), { act: 'copy', label: w('share.copy') }, ...(appleDevice() ? [{ act: 'openApp', label: w('share.app') }] : []), { act: 'removeTrack', label: w('pl.remove') }], w('pl.track1'));
 }
 function listMenu(n: Name): string {
   // a featured playlist's: Save a copy (an ordinary playlist of yours) and Open in app; nothing that edits it
-  if (isFeat(n)) return menuHtml([{ act: 'saveCopy', label: 'Save a copy' }, ...(appleDevice() ? [{ act: 'openAppList', label: 'Open in app' }] : [])], 'Playlist');
+  if (isFeat(n)) return menuHtml([{ act: 'saveCopy', label: w('pl.saveCopy') }, ...(appleDevice() ? [{ act: 'openAppList', label: w('share.app') }] : [])], w('pl.playlist'));
   // Make default is the header's star circle alone (his word 10-20): no second way in the menu
   // its place among yours by the menu as well as by a drag (pl-order), each only where it can go
   const lists = liveLists(), at = lists.findIndex((p) => (p.name ?? null) === n);
-  const order = at < 0 ? [] : [...(at > 0 ? [{ act: 'listUp', label: 'Move up' }] : []), ...(at < lists.length - 1 ? [{ act: 'listDown', label: 'Move down' }] : [])];
+  const order = at < 0 ? [] : [...(at > 0 ? [{ act: 'listUp', label: w('pl.moveUp') }] : []), ...(at < lists.length - 1 ? [{ act: 'listDown', label: w('pl.moveDown') }] : [])];
   // Download (round pl-link, his word 10-26: the head's ↓ key "as regular menu icon into dropdown menu"): the
   // .deephouse file, beside Open in app, the two ways the playlist leaves the page, and before Remove
-  return menuHtml([{ act: 'renameFocus', label: 'Rename' }, ...order, { act: 'download', label: 'Download' }, ...(appleDevice() && tracksOf(listOf(n)).length ? [{ act: 'openAppList', label: 'Open in app' }] : []), { act: 'removeList', label: 'Remove', data: { name: enc(n) } }], 'Playlist');
+  return menuHtml([{ act: 'renameFocus', label: w('pl.rename') }, ...order, { act: 'download', label: w('pl.download') }, ...(appleDevice() && tracksOf(listOf(n)).length ? [{ act: 'openAppList', label: w('share.app') }] : []), { act: 'removeList', label: w('pl.remove'), data: { name: enc(n) } }], w('pl.playlist'));
 }
 /** Focus the open menu's first item. */
 function focusMenu(): void { section?.querySelector<HTMLElement>('.plMenu [role="menuitem"]')?.focus({ preventScroll: true }); }
@@ -1265,12 +1292,12 @@ window.visualViewport?.addEventListener('scroll', () => refitSoon());
 /** **The playlist's link**: this page's own origin and path, then the playlist (`playlist-link.ts`). */
 function shareUrl(n: Name): string {
   const p = listOf(n)!;
-  return `${pageBase()}?${writePlaylistLink({ name: shownName(p.name ?? n), id: p.id ?? null, tracks: tracksOf(p) })}`;
+  return `${pageBase()}?${writePlaylistLink({ name: featOf(p.name ?? n)?.name ?? p.name ?? shownName(n), id: p.id ?? null, tracks: tracksOf(p) })}`; // a featured list's link keeps its own (English) name
 }
 /** Share, and beside it "Copied" for a moment, with "Long link" past `LONG_LINK`. */
 function shareKey(n: Name, count: number): string {
-  const word = shared && shared.name === n ? `<span class="plShared" role="status">Copied${shared.long ? '<b>Long link</b>' : ''}</span>` : '';
-  return `<span class="plShareAt">${key('share', 'link', 'Share link', '', count ? '' : ' disabled')}${word}</span>`;
+  const word = shared && shared.name === n ? `<span class="plShared" role="status">${esc(w('share.copied'))}${shared.long ? `<b>${esc(w('share.long'))}</b>` : ''}</span>` : '';
+  return `<span class="plShareAt">${key('share', 'link', w('pl.shareLink'), '', count ? '' : ' disabled')}${word}</span>`;
 }
 /** **A press of Share**: the link to the clipboard; the system's share only where there is no clipboard. No question. */
 function share(n: Name): void {
@@ -1278,7 +1305,7 @@ function share(n: Name): void {
   const done = () => {
     if (shared) clearTimeout(shared.timer);
     shared = { name: n, long: url.length > LONG_LINK, timer: window.setTimeout(() => { shared = null; render(); }, 2400) };
-    say('Copied');
+    say(w('share.copied'));
     render();
   };
   const viaShare = () => {
@@ -1311,11 +1338,11 @@ export function openListLink(): LinkProblem | null {
   const r = readPlaylistLink(location.search);
   if (!r.list) {
     address('');
-    return { param: 'play', short: 'bad playlist link', long: `the playlist link was not read (${r.error}); the page opens as it would` };
+    return { param: 'play', get short() { return w('pl.badLink'); }, get long() { return w('pl.badLinkLong', { why: String(r.error ?? '') }); } };
   }
   const list = r.list;
   let id = '';
-  if (!edit(() => { const s = savePlaylistLink(doc, list); id = s.id; return s.doc; }, { silent: true, ...(playlistById(doc, list.id ?? undefined) ? { undoText: 'Updated' } : {}) })) {
+  if (!edit(() => { const s = savePlaylistLink(doc, list); id = s.id; return s.doc; }, { silent: true, ...(playlistById(doc, list.id ?? undefined) ? { undoText: w('pl.updated') } : {}) })) {
     address(list.tracks.find((t) => playable(t.link))?.link ?? '');
     return null;
   }
@@ -1387,11 +1414,11 @@ function listPage(n: Name, from?: string): string {
   // a featured playlist's page: the same rows, nothing that edits it (no drag, no rename, no download); the ↓ .deephouse
   // is Download in the playlist's ⋯ (round pl-link)
   const fixed = isFeat(n);
-  const banner = from ? `<div class="plFrom"><span class="plCaps">From a ${esc(from)} · ${esc(shownName(n))}</span><button type="button" data-act="removeList" data-name="${totalAttr(n)}">Remove</button></div>` : '';
-  const named = p.name ?? SAVED;
+  const banner = from ? `<div class="plFrom"><span class="plCaps">${esc(w(from === 'file' ? 'pl.fromFile' : 'pl.fromLink', { name: shownName(n) }))}</span><button type="button" data-act="removeList" data-name="${totalAttr(n)}">${esc(w('pl.remove'))}</button></div>` : '';
+  const named = p.name ?? w('pl.saved');
   const name = renamingList && !fixed
-    ? editField('rename', textField(`class="plLabel plRename" value="${esc(named)}" aria-label="Playlist name" maxlength="80" data-rename="${esc(named)}" data-focus="rename"`))
-    : `<span class="plTitle">${esc(named)}</span>`;
+    ? editField('rename', textField(`class="plLabel plRename" value="${esc(named)}" aria-label="${esc(w('pl.listName'))}" maxlength="80" data-rename="${esc(named)}" data-focus="rename"`))
+    : `<span class="plTitle">${esc(shownName(n))}</span>`; // said in the page's language; the rename field keeps the stored name
   const headMenu = menu && !menu.link ? listMenu(n) : '';
   // no Play or Pause here (his word 10-20): a row's press plays, and the ring's own transport plays and pauses
   const rows = ts.map((t, i) => {
@@ -1401,29 +1428,29 @@ function listPage(n: Name, from?: string): string {
     const mix = outgoing && outgoing.name === n ? (out ? 'out' : inn ? 'in' : null) : null;
     const time = timeText(t.link);
     return `<li class="plTrack${mark === 'playing' ? ' on' : mark ? ' current' : ''}${renaming === t.link ? ' renaming' : ''}" data-i="${i}"${fixed ? '' : ' data-drag="1"'}>
-      <button type="button" class="plPlay" data-act="play" data-i="${i}" aria-label="Play ${esc(titleOf(t))}" data-focus="t:${i}">
+      <button type="button" class="plPlay" data-act="play" data-i="${i}" aria-label="${esc(w('pl.play', { name: titleOf(t) }))}" data-focus="t:${i}">
         <span class="plNum" aria-hidden="true">${i + 1}</span><span class="plDot" style="background:${esc(colourSafe(t.link))}"></span>
-        <span class="plText">${renaming === t.link ? '' : `<span class="plName"${tipOf(t)}><span class="plNameText">${esc(titleOf(t))}</span>${mark ? levelMark(mark === 'playing', mix) : ''}</span>`}<span class="plSub">${esc(playable(t.link) ? genreSafe(t.link) : 'Needs a newer version')}</span></span>
+        <span class="plText">${renaming === t.link ? '' : `<span class="plName"${tipOf(t)}><span class="plNameText">${esc(titleOf(t))}</span>${mark ? levelMark(mark === 'playing', mix) : ''}</span>`}<span class="plSub">${esc(playable(t.link) ? genreSafe(t.link) : w('pl.newer'))}</span></span>
         <span class="plTime" data-time="${esc(t.link)}">${esc(time ?? '')}</span></button>
-      ${renaming === t.link ? editField('label', textField(`class="plLabel" data-label="${esc(t.link)}" value="${esc(t.label ?? '')}" maxlength="200" placeholder="${esc(titleOf({ link: t.link }))}" aria-label="Label" data-focus="label"`)) : ''}
-      <button type="button" class="plMore" aria-label="Track" aria-haspopup="menu" aria-expanded="${menu?.link === t.link}" data-act="trackMenu" data-link="${esc(t.link)}" data-focus="m:${i}">⋯</button>${menu?.link === t.link ? trackMenu(n, t.link) : ''}</li>`;
+      ${renaming === t.link ? editField('label', textField(`class="plLabel" data-label="${esc(t.link)}" value="${esc(t.label ?? '')}" maxlength="200" placeholder="${esc(titleOf({ link: t.link }))}" aria-label="${esc(w('pl.label'))}" data-focus="label"`)) : ''}
+      <button type="button" class="plMore" aria-label="${esc(w('pl.track1'))}" aria-haspopup="menu" aria-expanded="${menu?.link === t.link}" data-act="trackMenu" data-link="${esc(t.link)}" data-focus="m:${i}">⋯</button>${menu?.link === t.link ? trackMenu(n, t.link) : ''}</li>`;
   }).join('');
-  return `${banner}<div class="plListHead"><button type="button" class="plBack" aria-label="Back" title="All playlists" data-act="back" data-focus="back"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.6 2.6 L4.2 7 L8.6 11.4"/></svg></button>${sky(links, 52)}
+  return `${banner}<div class="plListHead"><button type="button" class="plBack" aria-label="${esc(w('pl.back'))}" title="${esc(w('pl.allLists'))}" data-act="back" data-focus="back"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.6 2.6 L4.2 7 L8.6 11.4"/></svg></button>${sky(links, 52)}
       <div class="plText"><span class="plTitleRow">${name}</span><span class="plSub" data-total="${totalAttr(n)}">${totalCols(n)}</span></div>
       ${shareKey(n, ts.length)}
-      <button type="button" class="plMore" aria-label="Playlist" aria-haspopup="menu" aria-expanded="${!!headMenu}" data-act="menu" data-focus="menu">⋯</button>${headMenu}</div>
+      <button type="button" class="plMore" aria-label="${esc(w('pl.playlist'))}" aria-haspopup="menu" aria-expanded="${!!headMenu}" data-act="menu" data-focus="menu">⋯</button>${headMenu}</div>
     <ul class="plTracks" data-list="${totalAttr(n)}">${rows}</ul>`;
 }
 
 function askFile(v: Extract<View, { kind: 'askFile' }>): string {
-  return `<div class="plAsk"><span class="plCaps">From a file</span><p>“${esc(shownName(v.name))}” is already here</p>
-    <div class="plKeys">${key('keepBoth', 'plus', 'Keep both', 'Keep both')}${key('replaceFile', 'replace', 'Replace', 'Replace')}${key('cancel', 'remove', 'Cancel', 'Cancel')}</div></div>`;
+  return `<div class="plAsk"><span class="plCaps">${esc(w('pl.askFile'))}</span><p>${esc(w('pl.alreadyHere', { name: shownName(v.name) }))}</p>
+    <div class="plKeys">${key('keepBoth', 'plus', w('pl.keepBoth'), w('pl.keepBoth'))}${key('replaceFile', 'replace', w('pl.replace'), w('pl.replace'))}${key('cancel', 'remove', w('pl.cancel'), w('pl.cancel'))}</div></div>`;
 }
 function askBackup(v: Extract<View, { kind: 'askBackup' }>): string {
   const gone = v.removed.length ? `<ul class="plGone">${v.removed.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
-  return `<div class="plAsk"><span class="plCaps">A backup</span><p>${esc(v.text)}</p>${gone}
-    <div class="plKeys">${key('merge', 'download', 'Import', 'Import')}${key('cancel', 'remove', 'Cancel', 'Cancel')}</div>
-    <button type="button" class="plLink" data-act="replaceAll">Replace instead</button></div>`;
+  return `<div class="plAsk"><span class="plCaps">${esc(w('pl.askBackup'))}</span><p>${esc(v.text)}</p>${gone}
+    <div class="plKeys">${key('merge', 'download', w('pl.merge'), w('pl.merge'))}${key('cancel', 'remove', w('pl.cancel'), w('pl.cancel'))}</div>
+    <button type="button" class="plLink" data-act="replaceAll">${esc(w('pl.replaceAll'))}</button></div>`;
 }
 
 /** **Under the ring, while a playlist plays**: its small constellation, its name and "8 of 10"; a press opens it. */
@@ -1434,8 +1461,9 @@ function paintLabel(): void {
   label.hidden = false;
   // where you are, always; quieter while nothing sounds
   label.classList.toggle('quiet', !sounding());
-  label.innerHTML = `${sky(links, 18)}<span class="nlName">${esc(shownName(playing.name))}</span><span class="nlOf">${esc(placeWords(playing.index, links.length))}</span>`;
-  label.setAttribute('aria-label', `${sounding() ? 'Playing from' : 'In'} ${shownName(playing.name)}, ${placeWords(playing.index, links.length)}: open it`);
+  const at = w('now.of', { i: playing.index + 1, n: links.length });
+  label.innerHTML = `${sky(links, 18)}<span class="nlName">${esc(shownName(playing.name))}</span><span class="nlOf">${esc(at)}</span>`;
+  label.setAttribute('aria-label', w(sounding() ? 'now.playingFrom' : 'now.in', { name: shownName(playing.name), at }));
 }
 
 // --- the hand ----------------------------------------------------------------
@@ -1467,8 +1495,8 @@ function act(el: HTMLElement): void {
     case 'saveCopy': if (v.kind === 'list') {
       const f = featOf(v.name);
       let id = '';
-      if (f && edit(() => { const c = copyOfFeatured(doc, f); id = c.id; return c.doc; }, { undoText: 'Saved a copy', silent: true })) {
-        say('Saved');
+      if (f && edit(() => { const c = copyOfFeatured(doc, { ...f, name: featuredName(f.key, f.name) }); id = c.id; return c.doc; }, { undoText: w('pl.savedCopy'), silent: true })) {
+        say(w('pl.savedTo'));
         view = { kind: 'list', name: playlistById(doc, id)?.name ?? null };
       }
     } break;
@@ -1486,7 +1514,7 @@ function act(el: HTMLElement): void {
     case 'removeList': {
       const n = nameOf(el);
       if (n === null) return;
-      if (edit(() => removePlaylist(doc, n), { undoText: `Removed ${n}`, silent: true })) {
+      if (edit(() => removePlaylist(doc, n), { undoText: w('pl.removed', { name: shownName(n) }), silent: true })) {
         if (playing && playing.name === n) dropPlaying();
         view = { kind: 'overview' };
       }
@@ -1517,21 +1545,21 @@ function act(el: HTMLElement): void {
     case 'moveTo': if (v.kind === 'list' && was?.link) {
       const to = nameOf(el), link = was.link;
       const i = indexOfSound(linksOf(v.name), link);
-      if (to !== null && edit(() => removeTrack(addToPlaylist(doc, to, link), v.name, link), { undoText: `Moved to ${shownName(to)}`, silent: true }))
+      if (to !== null && edit(() => removeTrack(addToPlaylist(doc, to, link), v.name, link), { undoText: w('pl.movedTo', { name: shownName(to) }), silent: true }))
         if (playing && playing.name === v.name && i >= 0 && i < playing.index) playing.index -= 1;
     } break;
     // a copy: the track stays here and joins the picked playlist at its end (one sound may sit in several, in step)
     case 'copyTo': if (was?.link) {
       const to = nameOf(el), link = was.link;
       if (to === null) break;
-      if (indexOfSound(linksOf(to), link) >= 0) { notice = 'Already there'; break; }
-      edit(() => addToPlaylist(doc, to, link), { undoText: `Copied to ${shownName(to)}`, silent: true });
+      if (indexOfSound(linksOf(to), link) >= 0) { notice = w('pl.alreadyThere'); break; }
+      edit(() => addToPlaylist(doc, to, link), { undoText: w('pl.copiedTo', { name: shownName(to) }), silent: true });
     } break;
     case 'removeTrack': if (v.kind === 'list' && was?.link) {
       const link = was.link;
       const i = indexOfSound(linksOf(v.name), link);
       const t = tracksOf(playlistOf(doc, v.name)).find((x) => soundKey(x.link) === soundKey(link));
-      if (edit(() => removeTrack(doc, v.name, link), { undoText: `Removed ${t ? titleOf(t) : ''}`.trim(), silent: true }))
+      if (edit(() => removeTrack(doc, v.name, link), { undoText: w('pl.removed', { name: t ? titleOf(t) : '' }).trim(), silent: true }))
         if (playing && playing.name === v.name && i >= 0 && i < playing.index) playing.index -= 1;
     } break;
     case 'openApp': if (was?.link) { menu = null; openInApp(normaliseLink(was.link).link, appMissed); } break;
@@ -1540,14 +1568,14 @@ function act(el: HTMLElement): void {
     case 'copy': if (was?.link) {
       const url = trackShareLink(`${pageBase()}?${normaliseLink(was.link).link}`, v.kind === 'list' ? v.name : null);
       menu = null;
-      void navigator.clipboard?.writeText(url).then(() => say('Link copied'), () => { notice = url; render(); });
+      void navigator.clipboard?.writeText(url).then(() => say(w('share.linkCopied')), () => { notice = url; render(); });
     } break;
     case 'keepBoth': case 'replaceFile': if (v.kind === 'askFile') { addFile(v.file, a === 'keepBoth' ? 'keep-both' : 'replace', v.name); return; } break;
-    case 'merge': if (v.kind === 'askBackup') { edit(() => mergeLibraries(doc, v.file), { undoText: 'Imported', silent: true }); view = { kind: 'overview' }; } break;
+    case 'merge': if (v.kind === 'askBackup') { edit(() => mergeLibraries(doc, v.file), { undoText: w('pl.imported'), silent: true }); view = { kind: 'overview' }; } break;
     case 'replaceAll': if (v.kind === 'askBackup') {
       const file = v.file;
       // it wins over sync (sync-fixes, 10-21): what it drops is tombstoned and what it writes dated, now
-      edit(() => replaceLibrary(doc, file), { undoText: 'Replaced', silent: true });
+      edit(() => replaceLibrary(doc, file), { undoText: w('pl.replaced'), silent: true });
       if (playing && !listOf(playing.name)) dropPlaying();
       view = { kind: 'overview' };
     } break;
@@ -1628,7 +1656,7 @@ function rename(el: HTMLInputElement): void {
 function shiftTrack(name: string, from: number, to: number): void {
   if (isFeat(name)) return;
   const t = tracksOf(playlistOf(doc, name))[from];
-  if (edit(() => moveTrack(doc, name, from, to), { silent: true, undoText: `Moved ${t ? titleOf(t) : ''}`.trim() })) {
+  if (edit(() => moveTrack(doc, name, from, to), { silent: true, undoText: w('pl.moved', { name: t ? titleOf(t) : '' }).trim() })) {
     if (playing && playing.name === name) {
       const p = playing.index;
       playing.index = p === from ? to : p > from && p <= to ? p - 1 : p < from && p >= to ? p + 1 : p;
@@ -1641,7 +1669,7 @@ function shiftTrack(name: string, from: number, to: number): void {
 function shiftList(id: string, to: number): boolean {
   const p = playlistById(doc, id);
   if (!p) return false;
-  if (!edit(() => movePlaylist(doc, id, to), { silent: true, undoText: `Moved ${shownName(p.name ?? null)}` })) return false;
+  if (!edit(() => movePlaylist(doc, id, to), { silent: true, undoText: w('pl.moved', { name: shownName(p.name ?? null) }) })) return false;
   render();
   return true;
 }
@@ -1656,6 +1684,17 @@ function wireGestures(): void {
   let g: { id: number; el: HTMLElement; kind: 'drag' | 'wait'; x: number; y: number; from: number; to: number; hold: number; touch: boolean } | null = null;
   /** the rows the held one moves among: its own list's that move (a playlist's tracks, or your playlists) */
   const rowsOf = (el: HTMLElement) => [...(el.parentElement?.children ?? [])].filter((x): x is HTMLElement => x instanceof HTMLElement && x.matches('li[data-drag]'));
+  // **a track's Play planned as the pointer comes to it** (smooth-start, 11-03): a mouse arriving over it, a finger
+  // touching down on it, so the press finds its plan made off the page's thread (`control.preplan`)
+  const ahead = (e: PointerEvent) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-act="play"]');
+    const v = view;
+    if (!b || v.kind !== 'list' || !deps) return;
+    const link = linksOf(v.name)[Number(b.dataset.i)];
+    if (link) deps.control.preplan(link);
+  };
+  section.addEventListener('pointerover', ahead);
+  section.addEventListener('pointerdown', ahead);
   section.addEventListener('pointerdown', (e) => {
     const li = (e.target as HTMLElement).closest<HTMLElement>('.plTracks > li[data-drag], .plOwn > li[data-drag]');
     if (!li || (e.target as HTMLElement).closest('.plMore')) return;
@@ -1773,6 +1812,8 @@ function showPlaying(): boolean {
 
 export function startPlaylists(d: PlaylistDeps): void {
   deps = d;
+  // another language (round japanese): the section, the line under the ring and an open share menu said again
+  onLang(() => { if (shareMenu) closeShareMenu(false); render(); });
   // a reload carries on in the playlist the store names, where what plays is still its track
   const r = d.control.resumedPlaylist;
   const opened = !!fromLink && !!listOf(fromLink.name);
@@ -1786,7 +1827,10 @@ export function startPlaylists(d: PlaylistDeps): void {
   lastRecord = recordKey();
   // the address names the playing Featured playlist (`in`) while its track plays (round featured-address)
   d.control.steer({ next: () => step(1, 'skip'), back: () => step(-1, 'back'), leave, place: () => playing && { ...playing }, heard,
-    context: (search) => trackShareLink(search, playing?.name) });
+    context: (search) => trackShareLink(search, playing?.name),
+    // a seek let go of the step on its way: the list names the record's track again, and asks from where it landed
+    dropped: () => { if (asked && recordKey() === asked.from) { stepDropped(); render(); } },
+    seeked: () => { askIfDue(); } });
   // a reload carries on at the list's clock as well
   syncClock();
   // the place written down once the steer is there to say it, so a reload resumes in the playlist; a reload put back

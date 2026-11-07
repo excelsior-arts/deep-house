@@ -6,7 +6,7 @@
 //
 //   phrasing     the arrangement's phrases (U2/U2d): the sub-segments, their builds, the outs, the cooldowns, the answers
 //   house        the house's own small things as heard: the fills, the drop-out bars (a breath, a kick out, the bass
-//                out), the switch-ups, the turnarounds, the variations
+//                out), the switch-ups, the turnarounds, the variations; the top form's breather (the low track's dots)
 //   glue         the lead-ins' risers into a line
 //   arc          the pad arc's crest (U3)
 //   producer     what the fast places' producer did, read as fields (`track.passage.marks`, `ProducerMarks` in
@@ -90,7 +90,7 @@ export interface MomentsInput {
   bars: number;
   phrasing?: Parameters<typeof subMarksOf>[0] | null;
   /** the house's small things as heard (the sub-sections the readout names) */
-  house?: ReadonlyArray<{ kind: string; startBar: number; bars: number; label: string }>;
+  house?: ReadonlyArray<{ kind: string; startBar: number; bars: number; label: string; top?: string }>;
   /** the lead-ins' risers into a line, in bars */
   risers?: ReadonlyArray<{ from: number; to: number; label?: string }>;
   padArc?: { arcs?: ReadonlyArray<{ crest?: readonly [number, number] | number[] | null }> } | null;
@@ -170,6 +170,10 @@ export function momentsOf(I: MomentsInput): Moment[] {
   // the hats' moves at the transitions (hat-moves): a turn where the move starts, inside its bar
   for (const h of I.phrasing?.hats ?? []) add('turn', h.bar + h.from / 16, h.bar + h.from / 16, h.label, 'phrasing', true);
   for (const s of I.house ?? []) { const k = HOUSE_KIND[s.kind]; if (k) add(k, s.startBar, s.startBar + s.bars, s.label, 'house'); }
+  // the top form's breather (round top-end-1; his ear 11-02: a breather "should have a mark on ring"): the kick and the
+  // bass out under a top that plays on, drawn as the low track's own words for the bass gone, over its bars
+  for (const s of I.house ?? []) if (s.kind === 'top' && s.top === 'breather') add('bass-out', s.startBar, s.startBar + s.bars,
+    `a breather ${s.startBar}-${s.startBar + s.bars - 1}: the kick and the bass out, the top on`, 'house');
   for (const r of I.risers ?? []) add('lead-in', r.from, r.to, r.label ?? 'a riser into the line', 'glue');
   for (const k of I.keys ?? []) add('featured', k.from, k.to, k.label, 'keys');
   for (const a of I.padArc?.arcs ?? []) if (a.crest && a.crest.length === 2) add('crest', a.crest[0], a.crest[1], `the pad arc's crest ${a.crest[0]}-${a.crest[1] - 1}`, 'arc');

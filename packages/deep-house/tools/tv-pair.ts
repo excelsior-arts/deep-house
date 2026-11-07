@@ -7,6 +7,7 @@
 // skip, a seam, a pause, a tilt; each frame rate; a picture of the TV at each step.
 //
 //   node tools/tv-pair.ts --url http://127.0.0.1:7510/ --out <dir> [--delay 0] [--minute 60] [--link 'seed=1&v=2']
+//                         [--tv-size 1920x1080@1]
 //
 // Silent (`out=silent`, Chrome's `--mute-audio`), headless, and it writes only into `--out`.
 
@@ -27,6 +28,13 @@ const LINK = arg('link', 'seed=1&v=2');
  * full rate while the TV is shown, `--tv-half` draws the TV at 30, `--no-tv` leaves the TV's page out.
  */
 const MEASURE = Number(arg('measure', '0'));
+/**
+ * `--tv-size <w>x<h>[@<dpr>]`: the TV's page at that size and pixel ratio (1920x1080@1 when unset). Round tv-4k: a 4K
+ * TV as the app drew it before (3840x2160@1, the ring at its cap), magnified (1920x1080@1: the page's work is a 1080
+ * TV's; the magnifying is the compositor's) and zoomed (1920x1080@2: the 1080 layout drawn at 4K's pixels).
+ */
+const TV_SIZE = /^(\d+)x(\d+)(?:@([\d.]+))?$/.exec(arg('tv-size', '1920x1080@1'));
+if (!TV_SIZE) { console.error('tv-pair: --tv-size <w>x<h>[@<dpr>]'); process.exit(2); }
 const FLAG = (k: string) => process.argv.includes(`--${k}`);
 if (!OUT) { console.error('tv-pair: --out <dir> is needed'); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
@@ -60,7 +68,7 @@ renice(browser);
 // (two contexts, since a touch screen is a context's: the TV's page starts with no storage of its own and waits for
 // the phone's word, where the app's one store would have given it the phone's place a moment earlier)
 const phoneCtx = await browser.newContext({ viewport: { width: 420, height: 810 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
-const tvCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+const tvCtx = await browser.newContext({ viewport: { width: +TV_SIZE[1], height: +TV_SIZE[2] }, deviceScaleFactor: +(TV_SIZE[3] ?? 1) });
 const phone = await phoneCtx.newPage();
 const tv = await tvCtx.newPage();
 for (const [p, name] of [[phone, 'phone'], [tv, 'tv']] as const) {

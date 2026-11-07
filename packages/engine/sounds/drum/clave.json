@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "clave",
+  "revision": 1,
+  "topology": "block",
+  "dice": 201.7,
+  "parameters": {
+    "boost": 30,
+    "hz": 2800,
+    "secondHz": 4350,
+    "second": 0.25,
+    "q": 14,
+    "strikeDecay": 0.003,
+    "t10": 0.012,
+    "seconds": 0.2,
+    "variants": 3,
+    "variantCents": 16,
+    "attack": 0.001,
+    "trim": 0.5,
+    "rateSpread": 0.03,
+    "gainSpread": 0.07,
+    "decaySpread": 0.1,
+    "panSpread": 0.03,
+    "velBright": 0.15,
+    "velDecay": 0.15,
+    "pan": 0,
+    "room": 0.08
+  },
+  "descriptor": {
+    "family": "drum",
+    "roles": [
+      "sixteenth"
+    ],
+    "bus": "drums",
+    "level": "shaker",
+    "layer": "shaker",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "mid",
+    "timbres": {
+      "clave": {
+        "family": "drum",
+        "struck": true,
+        "hold": 0,
+        "brightnessHz": 2800,
+        "loudnessDb": -30
+      }
+    },
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "top-voices",
+    "module": "perc.ts",
+    "note": "A clave (top-voices, T19): the woodblock's two resonators tuned high and hard, 2.8 kHz and 4.35 kHz, a 3 ms burst, about 20 ms. A sketch row: nothing draws it."
+  }
+}

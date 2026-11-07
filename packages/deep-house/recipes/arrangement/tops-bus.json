@@ -1,0 +1,39 @@
+{
+ "schema": 1,
+ "kind": "arrangement-tops-bus",
+ "round": "tops-bus",
+ "revision": 1,
+ "note": "The drums' top lanes on a bus of their own, moved by the form (his word 11-01: 'make our root deep house music more interesting and fill in a bit better our lacking high freq domain'; 11-02: 'All T1-12 improvements are go'). Four moves, each its own block and its own switch, each by rule and never by a coin: the lid (T06), the top stepping out before a drop (T11), the air coming up slowly (T12) and the air a phrase after the kick returns (T04, its filter half). None raises the top's level over a track: our top already sits 1.8 to 3.4 dB over the sources' at matched loudness, and his own word on the hats is 'too pronounced'. What they add is the top turning with the form instead of switching. Every number is a starting point for listening.",
+ "place": {
+  "says": "where the bus moves at all: a beat-led theme (a kick in the span each move reads) that plays an offbeat hat (a top of hands or a woodblock alone has no air to lid, and a hatless deep groove stays as dark as it is), in this tempo window, in BPM, inclusive: the house's pace (the featured deep tracks play at 96-111); the faster beat-led places wait for their own listening",
+  "bpm": [88, 118]
+ },
+ "lid": {
+  "says": "T06: with the kick running, the top held under the low-pass for the bars before a phrase line inside a main after the first, and snapped open on the line, once a track. It takes the place of one of the house's own top switches there (a drop-out row on the bar before the line that clears the closed hats: the hats resting, the breath, the drop-out), which is not played: the lid is the switch, turned. The corner by Zephyr, `hz[0]` at nought to `hz[1]` at one. Veil from `snapVeil` up drops it over one beat and holds it `bars` (the sources' median four); under, it is lowered across the span to the corner by the line's last beat (the top losing its sparkle), over `bars`, or `longBars` from Loom `loomLong` up. Inside the main and after its first phrase. Released on the line's downbeat in `openS` seconds",
+  "takes": ["drop-out"],
+  "bars": 4,
+  "longBars": 8,
+  "loomLong": 0.75,
+  "hz": [3500, 5000],
+  "snapVeil": 0.5,
+  "openS": 0.012
+ },
+ "stepOut": {
+  "says": "T11: at a line where the kick comes back after a breakdown or a build, the top steps out so its return is the event; the full top lands on the downbeat. Only where the top is there to step out (the last two bars carry at least `presentShare` of the groove's top hits a bar) and the seam does not step out already (its last bar keeps its kick and at least half the top of the bar before) or land a gesture of its own there (a fill, a drop-out, a turn, a bass out: one shape per line); one shape per line, never at a line the second drop (below) holds. Veil from `everyVeil` up takes every such line, under it only the track's last. The shape by what the line already has: a riser or a swell sounding into it takes the dive (the top darkening while the noise rises: `dive.hz` over `dive.bars`, `dive.longBars` from the lid's Loom up); a build before it (its own rise) takes the gate (the top out from step `gate.step[0]`, `gate.step[1]` from Veil `everyVeil` up, faded over `gate.fadeS`); else the cut (the bus to `cut.hz` for the last `cut.bars[0]` of a bar, `cut.bars[1]` from Veil `everyVeil` up). The card said 8 kHz; its source cut everything above 9.5 kHz by 23 dB, and our 12 dB/oct low-pass at 8 kHz took 4-7 dB off a breakdown's hat (Vibe - Saturn Rings, bar 51): inaudible. At 3 kHz it takes the depth the source has. Two lines in a row never take one shape: the second takes the other of the cut and the gate",
+  "presentShare": 0.5,
+  "everyVeil": 0.5,
+  "cut": { "hz": 3000, "bars": [0.5, 1] },
+  "gate": { "step": [14, 12], "fadeS": 0.03 },
+  "dive": { "hz": [16000, 5000], "bars": 2, "longBars": 4 }
+ },
+ "air": {
+  "says": "T12: the air comes up slowly. `main`: over the last `bars` of a main of `leastBars` or more (`longBars` from Loom `loomLong` up, where the main is 8 longer), the shelf at 8 kHz rises by `db[0]` at Zephyr nought to `db[1]` at one, and is back on the line; the track's last such main that the lid does not hold. Against the ceiling the rise starts from a lowered shelf, held across the whole theme at the level that keeps the top's mean power, weighted by where the top plays, at or under its own: the track's top as a whole never goes up. `build`: in a build with the top playing, the low-pass opens from `hz[0]` at Zephyr nought (a smaller move) or `hz[1]` at one to `openHz` on the line, exponentially, starting where the melodic bus's own sweep into the build ends, so the two never move together",
+  "main": { "leastBars": 32, "bars": 24, "longBars": 32, "loomLong": 0.5, "db": [2.5, 5] },
+  "build": { "hz": [5000, 3000], "openHz": 16000 }
+ },
+ "secondDrop": {
+  "says": "T04, its filter half: where the lanes' round lays its second drop (`Section.topOpens`, once a track, after the longest breakdown), the drop lands twice: the kick and the bass on the line under a top held at the low-pass and the lanes' thin hat, the air opening in `openBeats` beat on the line the lanes' top opens on. The corner by Zephyr, `hz[0]` at nought to `hz[1]` at one. One moment for both halves (round top-end-1; wave 1 read its own off the sections and laid two on Vibe - Deep Dive)",
+  "hz": [5000, 6000],
+  "openBeats": 1
+ }
+}

@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "crushPluck",
+  "revision": 2,
+  "topology": "crush-pluck",
+  "parameters": {
+    "partials": [
+      [
+        1,
+        0.55,
+        1
+      ],
+      [
+        2.32,
+        0.22,
+        0.5
+      ],
+      [
+        4.25,
+        0.1,
+        0.32
+      ],
+      [
+        6.63,
+        0.05,
+        0.2
+      ]
+    ],
+    "pitchCents": 260,
+    "pitchTime": 0.012,
+    "noise": 1.4,
+    "noiseTone": 0.55,
+    "noiseTime": 0.012,
+    "holdHz": 7350,
+    "bits": 5,
+    "crushMix": 0.75,
+    "maxSeconds": 1.6,
+    "ringLevel": 0.32,
+    "peakCeiling": 1.0,
+    "attack": 0.001,
+    "release": 0.12,
+    "lpHz": 5200,
+    "veloOpen": 0.8,
+    "hpHz": 350,
+    "detuneCents": 8,
+    "spread": 0.4,
+    "cacheLimit": 64,
+    "trim": 1.6,
+    "reverb": 0.22,
+    "delay": 0.2
+  },
+  "descriptor": {
+    "family": "keyboard",
+    "roles": [
+      "figure",
+      "melody"
+    ],
+    "bus": "keys",
+    "level": "keys",
+    "layer": "keys",
+    "plays": null,
+    "mono": false,
+    "treat": true,
+    "cost": "mid",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "dark-fronts",
+    "module": "crush-pluck.ts",
+    "note": "A crushed metal pluck: four partials at a metal plate's ratios (1, 2.32, 4.25, 6.63), a breath of darkened noise and a fall of a minor third onto the pitch in the strike, then held at 7.35 kHz and rounded to five bits, three quarters crushed. Computed once a pitch and cached, as the Karplus string is.",
+    "notes": {
+      "holdHz": "The reduced rate: its images are the grit, at the voice's own register.",
+      "bits": "Five bits: 32 steps, a coarse staircase on the ring's tail.",
+      "timbres": "none declared: a sketch row, held at nought (AWAITING) until his pick admits it",
+      "hpHz": "350 Hz (round dark-fronts' fourth pass): clear of the low-mids the reese and the formant pad fill (150-600 Hz), so it stands in front by its band and not by its level."
+    }
+  }
+}

@@ -1,4 +1,5 @@
 // check-composer, shard 3 of 4 (sections): the composer's holes within the locks, as `check-composer-common.ts` says.
+import { upTo, swept, FULL_SWEEP } from './sweep.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
@@ -25,7 +26,9 @@ test('S2: a glue noise comes in and goes out by a curve by the spell\'s side —
   const SHAPES: Record<string, string[]> = { sweepDown: ['attack'], swell: ['release'], riser: ['release'] };
   for (const [spell, beats] of SPELLS) for (let seed = 1; seed <= 20; seed++) for (let n = 0; n < 3; n++) {
     const p = planTheme(seed, n, { style: ungated as typeof style, preset: 'auto', spell });
-    for (const e of p.events.filter(e => e.layer === 'fx')) {
+    // (the glue's fx: since the top-voices-2 integration (11-02) the top's air on the fx layer (the bed faded in over its
+    // first bars, the held hiss) is the top's quiet voices, by its own row's attack, and no glue; `by: top-voices/...`)
+    for (const e of p.events.filter(e => e.layer === 'fx' && !String(e.by ?? '').startsWith('top-voices/'))) {
       const keys = SHAPES[e.voice] ?? [];
       for (const k of ['attack', 'release']) {
         if (beats == null || !keys.includes(k)) assert.equal(e.p[k], undefined, `${seed}#${n} ${e.voice} at ${e.bar} writes ${k}`);
@@ -249,7 +252,7 @@ test('S6: no bird can promote a weight-0 hat or one whose ring outlasts the grid
   assert.ok(asked > 200);
 });
 
-test('S6: the offbeat hat rests in a breakdown\'s first phrase and keeps only the offbeats of beats one and three in its later phrases, an intro\'s first and an outro\'s last; mains, builds and drops untouched; never under house-v1', () => {
+test('S6: the offbeat hat rests in a breakdown\'s first phrase and keeps only the offbeats of beats one and three in its later phrases, an intro\'s first and an outro\'s last; mains, builds and drops untouched; never under house-v1; the top form\'s holder of the first phrase and its hats leading a long breakdown out aside (round top-form)', () => {
   let breakdowns = 0;
   for (let seed = 1; seed <= 20; seed++) for (let n = 0; n < 3; n++) {
     const t = planTheme(seed, n, { strategy: 'house-v2', spell: HOUSE });
@@ -258,7 +261,11 @@ test('S6: the offbeat hat rests in a breakdown\'s first phrase and keeps only th
       const phraseOf = (bar: number) => { let k = 0; s.phrases.forEach((p, i) => { if (p.startBar <= bar) k = i; }); return k; };
       for (const e of hats) {
         const k = phraseOf(e.bar!);
-        if (s.kind === 'breakdown') { assert.notEqual(k, 0, `${seed}#${n}: a hat in a breakdown's first phrase at ${e.bar}`); assert.ok([2, 10].includes(e.step!), `${seed}#${n}: a breakdown hat on ${e.step}`); }
+        // (round top-form: the first phrase's hats are the top form's holder's alone — the hat as a whisper, a few ticks —
+        // and a long breakdown's last phrase may bring the offbeat back on plain eighths, the hats leading the way out)
+        const by = String((e as { by?: unknown }).by ?? '');
+        if (s.kind === 'breakdown' && k === 0) assert.ok(by.startsWith('top-form/'), `${seed}#${n}: a hat in a breakdown's first phrase at ${e.bar} not the top form's holder`);
+        else if (s.kind === 'breakdown') assert.ok(by === 'top/hats-lead-out' ? [2, 6, 10, 14].includes(e.step!) : [2, 10].includes(e.step!), `${seed}#${n}: a breakdown hat on ${e.step}`);
         if ((s.kind === 'intro' && k === 0 && s.phrases.length > 1) || (s.kind === 'outro' && k === s.phrases.length - 1 && s.phrases.length > 1)) assert.ok([2, 10].includes(e.step!), `${seed}#${n}: an ${s.kind} hat on ${e.step}`);
       }
       if (s.kind === 'breakdown') breakdowns++;
@@ -365,7 +372,11 @@ test('S13: no theme opens silent under the house, the ambient, a driving and a T
 test('S14: the noise glue asks the spell and the cast — 26925 theme 4 at the house has none, a driving spell keeps it, a slow one has none, and the impact and the vinyl bed are not noise glue', async () => {
   const { isNoiseGlue } = await import('../src/glue.ts');
   assert.deepEqual(['riser', 'sweepDown', 'swell', 'sweepUp', 'crash', 'impact', 'vinylBed'].map(isNoiseGlue), [true, true, true, true, true, false, false]);
-  const noise = (t: Plan) => t.events.filter(e => e.layer === 'fx' && isNoiseGlue(e.voice)).length;
+  // (the glue's noises: since the top-voices-2 integration (11-02) the top's quiet voices lay a soft wash on a kick's
+  // return, the kit's cymbal (his ear on the sketches, T28, and on wave 2: "voices in the tracks sound great too!", Vibe -
+  // Sunrise, Saturn Rings and Deep Dive among them); laid after the gates and never glue, they are not counted here:
+  // `by: top-voices/...`. 26925's fourth theme draws one at bar 44, beside its held hiss: left for his ear)
+  const noise = (t: Plan) => t.events.filter(e => e.layer === 'fx' && isNoiseGlue(e.voice) && !String(e.by ?? '').startsWith('top-voices/')).length;
   assert.equal(noise(planTheme('26925', 3, { strategy: 'house-v2', preset: 'auto' })), 0, '26925 theme 4 keeps its wind');
   const driving = { ...HOUSE, ember: 0.75, spark: 0.3 };
   const bright = planTheme('21323', 1, { strategy: 'house-v2', preset: 'auto', spell: driving });
@@ -484,7 +495,10 @@ test('S19: house-v2 cuts every theme to 0.85 of its drawn length off the mains f
   // before break") every section line is then put on the phrase (`onPhraseLines`), each length on its own, so a stub
   // goes to the outro and a break rounds to its nearer phrase differently at the two lengths. The cut is S19's with the
   // lines off, and the lines keep the length the cut heard.
-  const cutStyle = { ...style, switches: { ...(style.switches as Record<string, boolean>), phraseLines: false } } as typeof style;
+  // Restated in round long-main (11-04): a main that stands still a run's length may give eight bars to a half-break
+  // after the length is set, and the uncut theme's longer main earns one where the cut's doesn't; the cut is S19's
+  // with the half-breaks off too.
+  const cutStyle = { ...style, switches: { ...(style.switches as Record<string, boolean>), phraseLines: false, halfBreaks: false } } as typeof style;
   const uncutOf = (seed: number, n: number, heard: number) => planTheme(seed, n, { style: cutStyle, preset: 'auto', themeBars: Math.ceil(heard / 0.85 / 4) * 4 });
   const kinds = (t: Plan) => { const o: Record<string, number> = {}; for (const x of t.arrangement.sections) o[x.kind] = (o[x.kind] || 0) + x.bars; return o; };
   let before = 0, after = 0, mains = 0;
@@ -587,7 +601,8 @@ test('S21: no theme has two bars of silence past its intro\'s first phrase and b
   const bench = { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   const gapped = (st: typeof style, spell: typeof HOUSE) => {
     const found: string[] = [];
-    const themes: Array<[string, number]> = [...Array.from({ length: 60 }, (_, i) => [String(i + 1), 3] as [string, number]), ['92970', 4], ['21323', 4]];
+    // (seeds 1-60 at night, every third at the merge gate: `tools/sweep.ts`; the golden themes always)
+    const themes: Array<[string, number]> = [...upTo(60).map((i) => [String(i), 3] as [string, number]), ['92970', 4], ['21323', 4]];
     for (const [m, k] of themes) for (let n = 0; n < k; n++) {
       const t = planTheme(m, n, { style: st, preset: 'auto', spell });
       const runs = silentRuns(programOf(t).events as any, t.arrangement.sections, t.bars, t.barSeconds);
@@ -599,7 +614,11 @@ test('S21: no theme has two bars of silence past its intro\'s first phrase and b
   const beforeHouse = gapped(off, HOUSE), beforeAmbient = gapped(off, bench);
   // (10-28: the ringing keys' phrases ring under a pedal and close a gap or two of their own: 14 and 36 then; keys-room,
   // 10-29: the ringing keys stay in the breakdown, so the gaps the rule was written for close at the house: 5 and 36)
-  assert.ok(beforeHouse.length >= 4 && beforeAmbient.length >= 15, `${beforeHouse.length} and ${beforeAmbient.length} themes with a gap with the rule off`);
+  // (11-02, top-form: a breakdown's first phrase held by the top form's holder closes most of the rest at the house: 2;
+  // top-voices-2, 11-02: the top's arcs of air in a beatless break close one more, seed 14's second theme at 34-39: 1)
+  // (at the merge gate, every third seed: the ambient spell's gaps scale with the list; the house's one or two are the
+  // night's to find, `tools/sweep.ts`)
+  assert.ok(beforeHouse.length >= (FULL_SWEEP ? 1 : 0) && beforeAmbient.length >= swept(15), `${beforeHouse.length} and ${beforeAmbient.length} themes with a gap with the rule off`);
   assert.deepEqual(gapped(style, HOUSE), [], 'a gap at the house');
   assert.deepEqual(gapped(style, bench), [], 'a gap under the ambient spell');
   const t = planTheme('41475', 2, { strategy: 'house-v2' });
@@ -611,6 +630,15 @@ test('S21: no theme has two bars of silence past its intro\'s first phrase and b
   // its four-bar outro a phrase off the first main (the breakdown at 36; his word 10-29: "both chillstep songs in Drive
   // playlist were chopped in the end after we reduced length").
   const [gap] = [[37, 7]];
+  // (11-02, top-form: the breakdown's first phrase is held at the top now — the groove's hat as a whisper — so the
+  // interval is no longer empty before the rule: the holder is what closes it, and the rule has nothing to add)
+  const held = before.events.filter(e => String((e as { by?: unknown }).by ?? '').startsWith('top-form/') && e.bar! >= gap[0] - 1 && e.bar! < gap[0] + gap[1]);
+  if (held.length) {
+    assert.deepEqual(silentRuns(programOf(before).events as any, before.arrangement.sections, before.bars, before.barSeconds), []);
+    assert.ok(held.every(e => e.layer === 'hats' || e.layer === 'clap'), 'the holder is the groove\'s own top');
+    assert.ok(!('switches' in v1));
+    return;
+  }
   assert.deepEqual(silentRuns(programOf(before).events as any, before.arrangement.sections, before.bars, before.barSeconds), [gap]);
   const pads = t.events.filter(e => e.layer === 'pad' && e.bar! >= gap[0] && e.bar! < gap[0] + gap[1]);
   assert.ok(pads.length > 0 && t.timeline[gap[0] + 1].layers.includes('pad'), 'the breakdown takes no bed');

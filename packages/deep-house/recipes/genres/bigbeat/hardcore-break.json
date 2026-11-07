@@ -234,14 +234,14 @@
     "drop"
   ],
   "provenance": {
-    "pattern": "the rave-to-big-beat break at the fast end (the Prodigy's early records, around 135-150): a sped-up Amen-derived break over a driving kick, eighth hats and a held rave bass",
+    "pattern": "the rave-to-big-beat break at the fast end (the early rave records, around 135-150): a sped-up break derived from the classic jungle one over a driving kick, eighth hats and a held rave bass",
     "knowledge": "public knowledge of the genre: the pattern as drummers, producers and tutorials commonly write it; no recording was sampled, transcribed from audio or mined",
-    "note": "Two bars: the Amen's first bar with a four under it, then its chopped answer with a roll into the bar line; eighth hats; the sub held on the root and stepping down at the phrase. 135-150 is above the fast band's 130 and below drum and bass's 160, so it plays at 130 under the Breaks spell.",
+    "note": "Two bars: the classic break's first bar with a four under it, then its chopped answer with a roll into the bar line; eighth hats; the sub held on the root and stepping down at the phrase. 135-150 is above the fast band's 130 and below drum and bass's 160, so it plays at 130 under the Breaks spell.",
     "standing": {
       "reaches": false,
       "eventRateZ": -0.9,
       "syncopationZ": -1.1,
-      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (notes/rounds/recipes-g1.md tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
+      "rule": "reaches: the event rate and the syncopation each within one spread of the genre target at the row's audit link (round recipes-g1 tables); weight 0.75 where it reaches, 0.5 where it leans (round GA3)"
     }
   }
 }

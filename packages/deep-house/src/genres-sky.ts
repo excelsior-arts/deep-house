@@ -1,24 +1,25 @@
 // **The Genres tab: the sky** (PLAN-LIBRARY §2, phase 4). A flat sky on a canvas you pan and zoom, line work only:
 //
-// - each family a region, its name small and quiet, fading as you zoom in;
+// - each family with a lit star a region, its name small and quiet, fading as you zoom in;
 // - each lit star (`sky.ts`, `lit`) a dot with its name, at its real place: its spell through the frozen projection;
-// - each other sub-genre a small open ring scattered round its family's region, named on hover, focus or a tap;
+// - **no other sub-genre** (his word 11-05: *"need to hide disabled genres completely … if we can't click it and we
+//   didn't invest in the genre, just hide it from the map"*): an untuned one, which used to be a small gray open ring
+//   named on hover, is not drawn, said or reached, and a family with no lit star (Misc) has no name either. The table
+//   keeps them (`genres.json`), and `SKY_REGIONS` still works out their rings, so the frame and the dots stand as before;
 // - round each lit star, four unnamed dots (`sky.ts`, `SKY_DOTS`): the star's spell with a steering bird or two nudged,
-//   at their own places, quieter than an open ring; hover or focus says whose ("NEAR BOWLS"), and a press tunes there;
+//   at their own places, small and quiet; hover or focus says whose ("NEAR BOWLS"), and a press tunes there;
 // - the Map's playlist (the playing one, else the one last opened): a dashed line through its tracks, each a point in
 //   its own colour that plays it, the playing one marked;
-// - **colour means pressable, gray means not yet** (his word 10-28): an untuned sub-genre's ring and its name, a family's
-//   name and figure, and under house-v1 every star but the house's and every dot, are faint gray;
+// - **colour means pressable, gray means not yet** (his word 10-28): a family's name and figure, and under house-v1
+//   every star but the house's and every dot, are faint gray;
 // - where you are: a ring round the playing track's place, live as the birds move.
 //
 // **A lit star pressed** asks the control for its spell exactly as the machine view's genre keys did (`setSpell`, a
 // spell and nothing else): the address carries it at once and the set mixes in at the next phrase line. The star is
 // marked until the birds leave it. A dot presses the same way, at its own spell. Under house-v1, which reads no birds,
-// only the house's star presses. An open ring does nothing but show its name.
+// only the house's star presses.
 //
-// The rings round a family stand at no spell of their own (an untuned sub-genre has none), so their places are a
-// drawing: pushed out from the sky's middle and scattered by their names, worked out once. Every lit star and every
-// track stands where its birds put it.
+// Every lit star, every dot and every track stands where its birds put it.
 
 import { SKY_PLACES, SKY_DOTS, SKY_REGIONS, skyOf, spellOf, rngOf } from './sky.ts';
 import type { SkyDot, SkyPlace, SkyPoint } from './sky.ts';
@@ -31,6 +32,9 @@ import { libraryOpen } from './library-panel.ts';
 import { skyFeed, skyPress, skyWatch } from './playlists-ui.ts';
 import type { SkyList } from './playlists-ui.ts';
 import { ringColour, hexToLch, lchToHex, liftToContrast } from './ring-colour.ts';
+import { w, onLang } from './words.ts';
+// a genre said as the language says it (round japanese, his word 11-03: katakana, as Japanese streaming apps write them)
+import { genreName as said, genreBoth } from './words-ring.ts';
 
 type P2 = { x: number; y: number };
 
@@ -41,16 +45,17 @@ const DOT_BY_ID = new Map(SKY_DOTS.map((d) => [d.id, d]));
 /** A dot's star. */
 const starOf = (d: SkyDot): SkyPlace => PLACE_BY_ID.get(d.star)!;
 /** A dot's name for a reader ("Near Bowls 2"), and the faint words hover and focus show ("NEAR BOWLS"). */
-const dotLabel = (d: SkyDot) => `Near ${starOf(d).name} ${d.n}`;
-const dotTip = (d: SkyDot) => `NEAR ${starOf(d).name.toUpperCase()}`;
+const dotLabel = (d: SkyDot) => w('map.near', { name: said(starOf(d).name), n: d.n });
+const dotTip = (d: SkyDot) => w('map.nearTip', { name: said(starOf(d).name).toUpperCase() });
 /** **What a press marks**: a lit star or a dot, the spell it asked and where it stands. */
 interface Mark { id: string; name: string; spell: Readonly<Partial<Spell>>; point: SkyPoint }
 const markOfDot = (d: SkyDot): Mark => ({ id: d.id, name: dotLabel(d), spell: d.spell, point: d.point });
 
 // --- the drawing's fixed layout, in sky units ---------------------------------
 
-/** The families' regions and their open rings, a drawing worked out once (`sky.ts`, `SKY_REGIONS`). */
+/** The families' regions, a drawing worked out once (`sky.ts`, `SKY_REGIONS`); a family with no lit star is not drawn. */
 const CLUSTERS = SKY_REGIONS;
+const DRAWN_REGIONS = CLUSTERS.filter((c) => LIT.some((p) => p.family === c.family));
 /** **The families' figures**: for each family of two lit stars or more, the shortest tree joining them (Prim's). */
 const FIGURES: { family: string; a: P2; b: P2 }[] = FAMILY_NAMES.flatMap((family) => {
   const ps = LIT.filter((p) => p.family === family).map((p) => p.point);
@@ -66,7 +71,10 @@ const FIGURES: { family: string; a: P2; b: P2 }[] = FAMILY_NAMES.flatMap((family
   return out;
 });
 
-/** The sky's frame in sky units: every star and ring, with a margin. Fixed, so nothing moves as tracks are saved. */
+/**
+ * The sky's frame in sky units: every star and ring, with a margin. Fixed, so nothing moves as tracks are saved; the
+ * rings no longer drawn (11-05) still count, so the frame, and with it every view a hand has kept, stays as it was.
+ */
 const FRAME = (() => {
   const ps: P2[] = [...LIT.map((p) => p.point), ...SKY_DOTS.map((d) => d.point), ...CLUSTERS.flatMap((c) => [c.centre, ...c.rings.map((r) => r.at)])];
   const m = 0.06;
@@ -92,7 +100,7 @@ const recentre = document.getElementById('skyHome') as HTMLButtonElement | null;
 let control: Control;
 /** the lit star or the dot pressed, marked until the birds leave it */
 let pressed: Mark | null = null;
-/** the open ring or the dot whose words show (a tap, a hover, a focus) */
+/** the dot or the track's point whose words show (a tap, a hover, a focus) */
 let shown: string | null = null;
 /** the lit star under the mouse or the keyboard's focus: its dot and name light together */
 let hover: string | null = null;
@@ -108,6 +116,8 @@ const starLive = (p: SkyPlace) => !v1() || p.home;
 const dotLive = () => !v1();
 /** the shown names' boxes, as last painted: a name is its star's target too */
 let labels = new Map<string, { x0: number; y0: number; x1: number; y1: number }>();
+/** the dots drawn, as last painted: one waiting for a zoom is no target */
+let drawnDots = new Set<string>();
 let size = { w: 0, h: 0 };
 /** The canvas size the view was last laid at (`draw`). */
 let laidAt = { w: 0, h: 0 };
@@ -314,7 +324,7 @@ let measure: CanvasRenderingContext2D | null = null;
 function widthOf(text: string, fs: number, track: number): number {
   measure ??= document.createElement('canvas').getContext('2d');
   if (!measure) return text.length * fs * 0.75;
-  measure.font = `450 ${fs}px Jost, Futura, sans-serif`;
+  measure.font = `450 ${fs}px Jost, 'DH Japanese', Futura, sans-serif`;
   return measure.measureText(text).width + text.length * fs * track;
 }
 const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
@@ -336,7 +346,7 @@ function placeNames(fs: number, taken: Box[], hereAt: P2): Map<string, { x: numb
   for (const p of order) {
     const q = toPx(p.point);
     if (q.x < -40 || q.x > size.w + 40 || q.y < -40 || q.y > size.h + 40) continue;
-    const text = p.name.toUpperCase(), w = widthOf(text, fs, 0.06), h = fs, g = 12;
+    const text = said(p.name).toUpperCase(), w = widthOf(text, fs, 0.06), h = fs, g = 12;
     const at = (x: number, base: number, anchor: string) => {
       const x0 = anchor === 'middle' ? x - w / 2 : anchor === 'end' ? x - w : x;
       return { x, y: base, anchor, b: { x0: x0 - 2, x1: x0 + w + 2, y0: base - h * 0.78 - 1, y1: base + h * 0.22 + 1 } };
@@ -434,12 +444,11 @@ function draw(): void {
     glide = null;
     lastHere = here();
     // the keys: one for every star, for the keyboard and a reader; a pointer finds the nearest star itself
-    const keys = [...LIT.map((p) => ({ p, lit: true })), ...CLUSTERS.flatMap((c) => c.rings.map((g) => ({ p: g.place, lit: false })))]
-      .map(({ p, lit }) => `<button type="button" class="skyKey${lit ? '' : ' open'}" data-id="${esc(p.id)}" aria-label="${esc(lit ? p.name : `${p.name}, not tuned`)}"${lit ? '' : ' aria-disabled="true"'}></button>`);
-    // a star's dots after every lit star, before the open rings: Tab meets the stars first
-    keys.splice(LIT.length, 0, ...SKY_DOTS.map((d) => `<button type="button" class="skyKey dot" data-id="${esc(d.id)}" aria-label="${esc(dotLabel(d))}"></button>`));
+    const keys = LIT.map((p) => `<button type="button" class="skyKey" data-id="${esc(p.id)}" aria-label="${esc(genreBoth(p.name))}"></button>`);
+    // a star's dots after every lit star: Tab meets the stars first
+    keys.push(...SKY_DOTS.map((d) => `<button type="button" class="skyKey dot" data-id="${esc(d.id)}" aria-label="${esc(dotLabel(d))}"></button>`));
     wrap.querySelectorAll('canvas.skyField, svg.sky, .skyKey').forEach((e) => e.remove());
-    wrap.insertAdjacentHTML('afterbegin', `<canvas class="skyField" aria-hidden="true"></canvas><svg class="sky" role="img" aria-label="The genre sky"></svg>`);
+    wrap.insertAdjacentHTML('afterbegin', `<canvas class="skyField" aria-hidden="true"></canvas><svg class="sky" role="img" aria-label="${esc(w('map.sky'))}"></svg>`);
     fieldKey = '';
     wrap.insertAdjacentHTML('beforeend', keys.join(''));
     listSig = '';
@@ -451,7 +460,7 @@ function draw(): void {
 const markSig = (l: SkyList | null) => (l ? `${l.key}|${l.tracks.map((t) => t.mark ?? '-').join()}` : '');
 /**
  * **The Map's playlist, read**: the playlist the panel names (`skyFeed`), and its points' keys, rebuilt when the playlist
- * or its tracks change (another playlist replaces them all). The keys sit after the dots' and before the open rings'.
+ * or its tracks change (another playlist replaces them all). The keys sit after the dots'.
  */
 function syncList(): void {
   list = skyFeed().list;
@@ -463,8 +472,7 @@ function syncList(): void {
   if (ptIndex(shown) >= 0) shown = null;
   if (!list) return;
   const keys = list.tracks.map((t, i) => `<button type="button" class="skyKey point" data-id="${ptId(i)}" aria-label="${esc(t.title)}"></button>`).join('');
-  const ring = wrap.querySelector('.skyKey.open');
-  if (ring) ring.insertAdjacentHTML('beforebegin', keys); else wrap.insertAdjacentHTML('beforeend', keys);
+  wrap.insertAdjacentHTML('beforeend', keys);
 }
 
 /** Everything at its screen place for the view as it is. */
@@ -502,9 +510,9 @@ function paint(): void {
   const names = placeNames(fs, [], hereAt);
   labels = new Map([...names].map(([id, n]) => [id, n.b]));
   const nameBoxes = [...names.values()].map((n) => n.b);
-  const regions = figures + CLUSTERS.map((c) => {
+  const regions = figures + DRAWN_REGIONS.map((c) => {
     // the family's name at its lit stars' centroid, stepped up or down off any dot, kept inside the canvas
-    const text = c.family.toUpperCase(), w = widthOf(text, fam, 0.16);
+    const text = said(c.family).toUpperCase(), w = widthOf(text, fam, 0.16);
     const at = toPx(c.centre), x = Math.min(Math.max(at.x, w / 2 + 4), size.w - w / 2 - 4);
     const boxAt = (y: number): Box => ({ x0: x - w / 2, x1: x + w / 2, y0: y - fam / 2, y1: y + fam / 2 });
     const y = [0, 14, -14, 26, -26].map((d) => at.y + d).find((yy) => !dotBoxes.some((b) => overlaps(boxAt(yy), b)) && !taken.some((b) => overlaps(boxAt(yy), b))
@@ -515,28 +523,29 @@ function paint(): void {
       if (fade > 0.3) taken.push({ x0: q.x - w / 2, x1: q.x + w / 2, y0: q.y - fam / 2, y1: q.y + fam / 2 });
       label = `<text class="skyFamily" x="${f1(q.x)}" y="${f1(q.y + fam / 2 - 1)}" font-size="${fam}" opacity="${(0.55 * fade).toFixed(2)}">${esc(text)}</text>`;
     }
-    return label + c.rings.map((g) => { const p = toPx(g.at); return `<circle class="skyOpen${g.dim ? ' dim' : ''}" cx="${f1(p.x)}" cy="${f1(p.y)}" r="${g.r}"/>`; }).join('');
+    return label;
   }).join('');
   // **the stars' dots** (his idea 10-28): small and quiet in their star's ink, under every name; one a name covers waits
   // for a zoom, like a name with no room
   const covers = [...taken, ...[...names.values()].map((n) => n.b)];
+  drawnDots = new Set();
   const skyDots = SKY_DOTS.map((d) => {
     const q = toPx(d.point), on = shown === d.id;
     if (q.x < -4 || q.y < -4 || q.x > size.w + 4 || q.y > size.h + 4) return '';
     if (!on && covers.some((b) => overlaps(b, { x0: q.x - 1.5, x1: q.x + 1.5, y0: q.y - 1.5, y1: q.y + 1.5 }))) return '';
     // a dot under a star's own mark (a settled dot a later star stands on) waits for the zoom that parts them
     if (!on && LIT.some((p) => { const s = toPx(p.point); return Math.hypot(s.x - q.x, s.y - q.y) < 5; })) return '';
+    drawnDots.add(d.id);
     return `<circle class="skyDot${on ? ' on' : ''}${dotLive() ? '' : ' inert'}" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${on ? 2 : 1.2}" style="fill:${dotLive() ? INK.get(d.star) : INERT.name}"/>`;
   }).join('');
   const stars = LIT.map((p) => {
     const q = toPx(p.point), n = names.get(p.id), live = starLive(p), lit = live && hover === p.id;
     // hovered or focused, the dot and its name light together; a star that presses nothing here is gray
     const ink = live ? INK.get(p.id) : INERT.mark, nameInk = lit ? '#ffffff' : live ? NAME_INK.get(p.id) : INERT.name;
-    return `<circle class="skyStar${live ? '' : ' inert'}" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${lit ? 4.2 : 3}" style="fill:${ink}"/>${n ? `<text class="skyName${live ? '' : ' inert'}" x="${f1(n.x)}" y="${f1(n.y)}" text-anchor="${n.anchor}" font-size="${fs}" style="fill:${nameInk}">${esc(p.name.toUpperCase())}</text>` : ''}`;
+    return `<circle class="skyStar${live ? '' : ' inert'}" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${lit ? 4.2 : 3}" style="fill:${ink}"/>${n ? `<text class="skyName${live ? '' : ' inert'}" x="${f1(n.x)}" y="${f1(n.y)}" text-anchor="${n.anchor}" font-size="${fs}" style="fill:${nameInk}">${esc(said(p.name).toUpperCase())}</text>` : ''}`;
   }).join('');
   const h = toPx(hereAt), pr = pressed ? toPx(pressed.point) : null;
   let tip = '';
-  const ring = shown ? CLUSTERS.flatMap((c) => c.rings).find((g) => g.place.id === shown) : null;
   const dot = shown ? DOT_BY_ID.get(shown) : undefined;
   const pi = ptIndex(shown), track = list && pi >= 0 ? list.tracks[pi] : undefined;
   const tipAt = (q: P2, text: string, cls: string, ink: string) => {
@@ -545,8 +554,6 @@ function paint(): void {
   };
   if (track) tip = tipAt(pts[pi], track.title, ' track', track.colour); // a track's own name as written, never a genre's capitals (his word 10-28)
   else if (dot) tip = tipAt(toPx(dot.point), dotTip(dot), ' near', dotLive() ? NAME_INK.get(dot.star)! : INERT.name);
-  // an untuned sub-genre's name, gray: it presses nothing
-  else if (ring) tip = tipAt(toPx(ring.at), ring.place.name.toUpperCase(), ' inert', INERT.name);
   paintField();
   svg.setAttribute('viewBox', `0 0 ${size.w} ${size.h}`);
   svg.innerHTML = `${line}${regions}${skyDots}${points}${stars}${pr ? `<circle class="skyPressed" r="6.5" cx="${f1(pr.x)}" cy="${f1(pr.y)}"/>` : ''}<circle class="skyHere" r="${HERE_R}" cx="${f1(h.x)}" cy="${f1(h.y)}"/>${tip}`;
@@ -557,7 +564,7 @@ function paint(): void {
     k.toggleAttribute('data-pressed', !!pressed && id === pressed.id);
     // what presses nothing here is no stop for the keyboard, and a reader hears it disabled
     const p = id ? PLACE_BY_ID.get(id) : undefined;
-    const inert = k.classList.contains('open') || (k.classList.contains('dot') && !dotLive()) || (!!p?.lit && !starLive(p));
+    const inert = (k.classList.contains('dot') && !dotLive()) || (!!p?.lit && !starLive(p));
     k.tabIndex = inert ? -1 : 0;
     if (inert) k.setAttribute('aria-disabled', 'true'); else k.removeAttribute('aria-disabled');
     if (k.classList.contains('point')) { const t = list?.tracks[ptIndex(id)]; if (t?.mark === 'playing') k.setAttribute('aria-current', 'true'); else k.removeAttribute('aria-current'); }
@@ -588,7 +595,7 @@ function press(p: SkyPlace): void {
   if (v1() && !p.home) return;
   ask(p, `genre preset: ${p.name}`, p.name);
   // **a press always shows its result whole**: the star, its rings and its name come inside the canvas
-  bringIn(markBoxes(p.point, HERE_R, p.name));
+  bringIn(markBoxes(p.point, HERE_R, said(p.name)));
   schedule();
 }
 /** **Press a star's dot** (his idea 10-28): exactly a star's press, at the dot's own spell. */
@@ -611,14 +618,14 @@ function ask(m: Mark, what: string, genre: string): void {
   lastHere = here();
 }
 
-/** What a pointer is over: a track's point, a lit star (or its name), a star's dot, an open ring. */
-type Hit = { kind: 'point' | 'lit' | 'dot' | 'open'; id: string };
+/** What a pointer is over: a track's point, a lit star (or its name), a star's dot. */
+type Hit = { kind: 'point' | 'lit' | 'dot'; id: string };
 /** A dot's reach for a pointer, in px: under a star's, over nothing else. */
 const DOT_REACH_PX = 12;
 
 /**
- * The star nearest a point on the canvas, within a finger's reach (22 px): a lit one first; then the nearer of a star's
- * dot within 12 px and an open ring within 14.
+ * The star nearest a point on the canvas, within a finger's reach (22 px): a lit one first, unless a drawn dot within
+ * 12 px is nearer the pointer than the star or its name; then a track's point within 12.
  */
 function nearest(x: number, y: number): Hit | null {
   // **a track's point first** where the press is right on it (his word 10-28): it wins over a star or a dot under it
@@ -639,30 +646,33 @@ function nearest(x: number, y: number): Hit | null {
     }
     if (d <= at) { at = d; best = { kind: 'lit', id: p.id }; }
   }
-  if (best) return best;
-  at = Infinity;
-  for (const g of SKY_DOTS) { const q = toPx(g.point), d = Math.hypot(q.x - x, q.y - y); if (d <= DOT_REACH_PX && d < at) { at = d; best = { kind: 'dot', id: g.id }; } }
+  // (11-03: a dot drawn 22 px off its star and 2 px off FIELD's name was asked after them and never won its own press)
+  if (!best) at = Infinity;
+  for (const g of SKY_DOTS) { if (!drawnDots.has(g.id)) continue; const q = toPx(g.point), d = Math.hypot(q.x - x, q.y - y); if (d <= DOT_REACH_PX && d < at) { at = d; best = { kind: 'dot', id: g.id }; } }
+  if (best?.kind === 'lit') return best;
   if (pi >= 0 && pd <= DOT_REACH_PX && pd < at) { at = pd; best = { kind: 'point', id: ptId(pi) }; }
-  for (const g of CLUSTERS.flatMap((c) => c.rings)) { const q = toPx(g.at), d = Math.hypot(q.x - x, q.y - y); if (d <= 14 && d < at) { at = d; best = { kind: 'open', id: g.place.id }; } }
   return best;
 }
-/** Where a key's star, dot or ring stands on the canvas. */
+/** Where a key's star or dot stands on the canvas. */
 function pointOf(id: string | undefined): P2 {
   const i = ptIndex(id);
   if (i >= 0) { const q = listPoints()[i]; return q ? toPx(q) : { x: -99, y: -99 }; }
   const p = id ? PLACE_BY_ID.get(id) : undefined, d = id ? DOT_BY_ID.get(id) : undefined;
   if (d) return toPx(d.point);
-  if (p?.lit) return toPx(p.point);
-  const g = p ? CLUSTERS.flatMap((c) => c.rings).find((r) => r.place.id === p.id) : undefined;
-  return g ? toPx(g.at) : { x: -99, y: -99 };
+  return p?.lit ? toPx(p.point) : { x: -99, y: -99 };
 }
-/** A press on a star, a dot or a ring: a star and a dot tune, a ring says its name. */
+/** **A track's point under the pointer, planned before its press** (smooth-start, 11-03), as its row's Play is (`control.preplan`). */
+function aheadOf(hit: Hit | null): void {
+  if (!hit || hit.kind !== 'point' || !list) return;
+  const t = list.tracks[ptIndex(hit.id)];
+  if (t) control.preplan(t.link);
+}
+/** A press on a star or a dot: both tune. */
 function pressHit(hit: Hit): void {
   // a track's point plays that track in its playlist, exactly as its row in the list does
   if (hit.kind === 'point') { if (list) { pressed = null; shown = null; skyPress(list.key, ptIndex(hit.id)); } schedule(); }
   else if (hit.kind === 'lit') press(PLACE_BY_ID.get(hit.id)!);
-  else if (hit.kind === 'dot') pressDot(DOT_BY_ID.get(hit.id)!);
-  else { shown = hit.id; schedule(); }
+  else pressDot(DOT_BY_ID.get(hit.id)!);
 }
 /** The cursor over a hit: the hand where a press does something, the arrow over what is gray, the open hand over empty sky. */
 const cursorOf = (hit: Hit | null) => {
@@ -671,7 +681,7 @@ const cursorOf = (hit: Hit | null) => {
   return live ? 'pointer' : 'default';
 };
 
-/** A tap: a lit star or a dot tunes, an open ring shows its name, empty sky clears it. */
+/** A tap: a lit star or a dot tunes, empty sky clears what shows. */
 function tap(x: number, y: number): void {
   const hit = nearest(x, y);
   if (!hit) { if (shown) { shown = null; schedule(); } return; }
@@ -693,7 +703,7 @@ function wireGestures(el: HTMLElement): void {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* gone */ }
     pts.set(e.pointerId, local(e));
-    if (pts.size === 1) { const p = local(e); start = { x: p.x, y: p.y, t: performance.now(), panned: false }; pinch = null; }
+    if (pts.size === 1) { const p = local(e); start = { x: p.x, y: p.y, t: performance.now(), panned: false }; pinch = null; aheadOf(nearest(p.x, p.y)); }
     if (pts.size === 2) { pinch = pair(); if (start) start.panned = true; }
   });
   el.addEventListener('pointermove', (e) => {
@@ -701,12 +711,13 @@ function wireGestures(el: HTMLElement): void {
     // a mouse with no button down is hovering, whatever a lost pointerup left behind
     if (e.pointerType === 'mouse' && e.buttons === 0 && pts.has(e.pointerId)) { pts.delete(e.pointerId); if (!pts.size) { start = null; pinch = null; } }
     if (!pts.has(e.pointerId)) {
-      // a mouse hovering, by the same hit test as a press: a lit star or its name shows the hand, an open ring the arrow
-      // (and says its name), the empty sky the open hand
+      // a mouse hovering, by the same hit test as a press: a lit star or its name shows the hand, the empty sky the open
+      // hand
       if (e.pointerType !== 'mouse') return;
       const hit = nearest(p.x, p.y);
       el.style.cursor = cursorOf(hit);
-      // an open ring and a dot say their words; a lit star lights with its name
+      aheadOf(hit);
+      // a dot says its words; a lit star lights with its name
       const next = hit && hit.kind !== 'lit' ? hit.id : null;
       const over = hit && hit.kind === 'lit' ? hit.id : null;
       if (next !== shown || over !== hover) { shown = next; hover = over; schedule(); }
@@ -762,6 +773,8 @@ function wireGestures(el: HTMLElement): void {
 
 export function startGenres(c: Control): void {
   control = c;
+  // another language (round japanese): the keys and the sky's words laid again (the view stays where the hand left it)
+  onLang(() => { wrap?.querySelectorAll('.skyKey').forEach((e) => e.remove()); laidAt = { w: -1, h: -1 }; draw(); });
   if (!section || !wrap) return;
   wireGestures(wrap);
   // a key pressed by the keyboard is its own star; pointers are the gestures' (the keys take none)
@@ -772,13 +785,12 @@ export function startGenres(c: Control): void {
     if (ptIndex(id) >= 0) pressHit({ kind: 'point', id });
     else if (DOT_BY_ID.has(id)) pressHit({ kind: 'dot', id });
     else if (PLACE_BY_ID.get(id)?.lit) pressHit({ kind: 'lit', id });
-    else if (PLACE_BY_ID.has(id)) pressHit({ kind: 'open', id });
   });
   wrap.addEventListener('focusin', (e) => {
     const key = (e.target as HTMLElement).closest<HTMLElement>('.skyKey');
     if (!key) return;
-    // an open ring and a dot say their words; a lit star lights with its name
-    const words = key.classList.contains('open') || key.classList.contains('dot') || key.classList.contains('point');
+    // a dot says its words; a lit star lights with its name
+    const words = key.classList.contains('dot') || key.classList.contains('point');
     shown = words ? key.dataset.id ?? null : null;
     hover = words ? null : key.dataset.id ?? null;
     // a star focused out of sight comes into view

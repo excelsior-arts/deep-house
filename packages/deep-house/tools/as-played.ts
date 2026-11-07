@@ -33,6 +33,7 @@ export interface Departure { id: string; match: RegExp; why: string }
  * Hold the app's faults: every one a named departure (counted into `tally` and said on the test), none of a new kind.
  * Returns the departures' counts for this theme.
  */
+const VERBOSE = process.env.DEEP_HOUSE_VERBOSE === '1' || process.argv.includes('--verbose');
 export function asPlayed(ctx: { diagnostic: (m: string) => void }, found: string[], known: readonly Departure[], tally: Map<string, { n: number; themes: number; first: string }>): void {
   const unknown = found.filter((f) => !known.some((k) => k.match.test(f)));
   for (const k of known) {
@@ -40,7 +41,8 @@ export function asPlayed(ctx: { diagnostic: (m: string) => void }, found: string
     if (!xs.length) continue;
     const was = tally.get(k.id) ?? { n: 0, themes: 0, first: xs[0] };
     tally.set(k.id, { n: was.n + xs.length, themes: was.themes + 1, first: was.first });
-    ctx.diagnostic(`as the app plays it, ${k.id}: ${xs.length} (${xs[0]})`);
+    // (a line a theme only under DEEP_HOUSE_VERBOSE=1, round test-sane: the tally is what a run reads, not 240 KB of it)
+    if (VERBOSE) ctx.diagnostic(`as the app plays it, ${k.id}: ${xs.length} (${xs[0]})`);
   }
   assert.deepEqual(unknown, [], 'what the app plays breaks a rule in a way no departure names');
 }

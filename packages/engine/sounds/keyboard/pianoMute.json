@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "pianoMute",
-  "revision": 2,
+  "revision": 4,
   "topology": "piano",
   "parameters": {
     "attack": 0.006,
@@ -111,7 +111,26 @@
         "top": 600,
         "level": 1.2,
         "decay": 0.03
-      }
+      },
+      "after": {
+        "seconds": 8.7,
+        "slope": 0.7,
+        "damper": 0.15,
+        "fade": 2.8,
+        "keep": { "by": [{ "life": 0.5, "db": 6.5 }, { "life": 1, "db": 3.8 }, { "life": 2.5, "db": 1.4 }, { "life": 2.8, "db": 1.2 }] }
+      },
+      "unison": [
+        {
+          "cents": 3.11,
+          "level": 1
+        },
+        {
+          "cents": -3.89,
+          "level": 0.8
+        }
+      ],
+      "touch": 0.85,
+      "touchUp": 0
     }
   },
   "descriptor": {
@@ -126,6 +145,7 @@
     "plays": null,
     "mono": false,
     "treat": true,
+    "home": { "spread": "pitch", "body": 1 },
     "returns": [],
     "timbres": {},
     "dispatches": [],
@@ -136,6 +156,7 @@
     "round": "liquid-keys",
     "note": "An upright with its practice felt down between hammer and strings: a soft thud before the pitch, the top gone almost at once, a short note and two strings seven cents apart, a dark muffled warmth.",
     "notes": {
+      "after": "Round voice-homes 3 (his question 11-01: \"is this piano sound upgrade goes to all piano variety incl liquid dnb?\"): the house piano's aftersound, a held key ringing until its release and the damper, its length by this row's own (`decaySlow`), its strike held to the plucked string's loudness by the note's life (`keep`, fitted on this row: by register within about a decibel of before at lives of one and 2.5 s); the touch scaled by this row's lid (its reach), only darkening when soft (`touchUp` 0: a felt stays dark); its unison centred on the note, its two strings as far apart as before (they beat as they did; the note had sat 3.1 cents flat). (round piano-pool) Its keep is by life (`keep.by`), measured note by note against the string without the aftersound at lives of half a second to its longest: the log line had read only lives of one and 2.5 s, so a long held chord kept none and stood 1 to 1.7 dB over (seed 3's far grand in its liquid breakdown, +0.7 now); every register and life within a decibel.",
       "copiedFrom": "piano, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
       "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row",
       "string": "The deep house keys' string (round liquid-keys-2, his word 10-29 on the old grands the liquid keys draw: \"yeah, that's the trick we might want to pull updated piano there as well\"): the piano row's stiff string, wooden board and felt hammer in place of the six partials and the band of hiss, keeping this row's own envelope, lid (brightMin and brightMax), unison and high-pass, with the small box, a stiff string reaching barely a third as high, and the practice felt's thud low and long (280 Hz, 30 ms, louder than the hammer's own). Its `register` is its level by register against this row's six partials, measured note by note (MIDI 36-88, velocities 0.5 and 0.6, 3 s from the strike, dry): every register plays as loud as it did, the mean difference under 0.55 dB."

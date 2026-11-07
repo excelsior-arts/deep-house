@@ -41,7 +41,7 @@ import { BAND_RANGE, BAND_STEP, LEVEL_STEP, deskFor } from './desk.ts';
 import type { Band } from './desk.ts';
 import { keyHelp, quiet, resume } from './help.tsx';
 
-// **The per-instrument export is the private tier's** (Eugene, 09-22: kept for
+// **The per-instrument export is the private tier's** (his word, 09-22: kept for
 // his wave analysis, never public). This glob is the one place a shipped file
 // reaches `./private/`: behind `__PRIVATE_TOOLS__`, which only a dev or preview
 // build sets, and against a folder `.releaseignore` strips, so a release build
@@ -122,7 +122,7 @@ function Key({ x, y = 0, w = HIT_W, h = HIT_H, text, name, on, lit, disabled, ac
 }
 
 /**
- * **Where the device is** (DESK-UX1, Eugene 10-05: the strip's key read `100`,
+ * **Where the device is** (DESK-UX1, his word 10-05: the strip's key read `100`,
  * which says nothing of what is behind it): a small device at the key's left —
  * three short lines of unequal length, each with a fader's cap on it — in the
  * key's own ink, line work and no fill; the level with its unit at the right.
@@ -165,7 +165,7 @@ function Popover({ anchor, label, onClose, children }: {
   close.current = onClose;
   // where the anchor stood when the box was placed, so a scroll of the page carries the box by as much
   const from = useRef<{ x: number; y: number; left: number; top: number; z: number } | null>(null);
-  // **Where it opens** (M8, Eugene: *"some bus box popovers went off the screen
+  // **Where it opens** (M8, his word: *"some bus box popovers went off the screen
   // or too far"*): its top-left at the control's bottom-left, or its right
   // edge on the control's right edge where the control is near the pane's
   // right; above the control where there is no room below; and always inside
@@ -175,7 +175,7 @@ function Popover({ anchor, label, onClose, children }: {
   // pixels landed at 1.25 or 1.5 times as far — it is written here divided by
   // the zoom it is drawn at.
   //
-  // **Placed once, never moved by its own growth** (DESK-UX1, Eugene 10-05:
+  // **Placed once, never moved by its own growth** (DESK-UX1, his word 10-05:
   // the box was placed again whenever it grew, so a line opened near the foot
   // moved the whole box up and the slider was no longer under the pointer).
   // At open the side is chosen — below the control, or above where below has
@@ -306,14 +306,14 @@ function Popover({ anchor, label, onClose, children }: {
 /**
  * A fader with − and + at its ends, for the fine steps a finger cannot make on a slider.
  *
- * `bare` (DESK-UX1, Eugene 10-05: the open line was drawn twice, `hpHz · 92.1 Hz`
+ * `bare` (DESK-UX1, his word 10-05: the open line was drawn twice, `hpHz · 92.1 Hz`
  * and under it `hpHz 92.1 Hz` again): a fader opened under a device's line has no
  * head of its own, since the line above it is its label and its readout — amber
  * while moved, the value in its cell. The range keeps the whole name for a
  * reader. The strip's level and a band's lean keep their head: there the fader
  * is the line. A bare fader carries no manual page either (`page` unset): a
  * hand working it is not asking what it is, and the page that opened under the
- * drag every time (Eugene 10-05: *"not user friendly"*) is the device head's.
+ * drag every time (his word 10-05: *"not user friendly"*) is the device head's.
  */
 function Fader({ name, value, min, max, step, text, onMove, onLet, stepBy, page, bare = false }: {
   name: string; value: number; min: number; max: number; step: number; text: string;
@@ -335,7 +335,7 @@ function Fader({ name, value, min, max, step, text, onMove, onLet, stepBy, page,
 }
 
 /**
- * **The device** (PLAN-DESK D0, Eugene 10-04: *"once we were raising the mids
+ * **The device** (PLAN-DESK D0, his word 10-04: *"once we were raising the mids
  * we discovered we had low-pass filters sitting on the piano; if I had that
  * visible in the machine view … I would have got there faster"*): every
  * parameter the instrument's row carries, as the note renders it this theme —
@@ -352,7 +352,7 @@ function Fader({ name, value, min, max, step, text, onMove, onLet, stepBy, page,
  * renders from the moved number; a moved line is drawn in amber. Words, names,
  * switches, lists and a part the row does not build stay a reading.
  *
- * **Always shown** (DESK-UX1, Eugene 10-05): the strip's popover opens with
+ * **Always shown** (DESK-UX1, his word 10-05): the strip's popover opens with
  * its fader, its keys and the device under them; the key that showed it, and
  * the session's memory of that key, are gone.
  */
@@ -424,7 +424,7 @@ function LineFader({ p, backPage, backLabel, waits, onMove, onLet }: {
 /**
  * A device's head: whose it is and the facts of it, in one dim line under the
  * name; and how the panel is used — the paragraph that stood under the table
- * (DESK-UX1, Eugene 10-05), which a hand reads once. Where the head has a
+ * (DESK-UX1, his word 10-05), which a hand reads once. Where the head has a
  * manual page (a row's `key:param`, a stage box's `key:stageparam`) the head is
  * that page's trigger, and the page opens with the paragraph's own sentences
  * at its top — one tooltip, not a title and a page over each other (his word:
@@ -484,7 +484,7 @@ function ParamTable({ who, params, settable, open, toggle, mark, title, under, w
               } : {})}
               title={title(p)} data-mark={mark(p) || undefined}>
               <th scope="row">{p.path}</th>
-              {/* two columns and no third (Eugene, 10-04: *"most controls have empty space on the right,
+              {/* two columns and no third (his word, 10-04: *"most controls have empty space on the right,
                   only in Bassline some text there and it seems duplicating label"*): a mark that is
                   not a name — the ring's number after an arrow, "next theme", "default" — rides
                   after the value in the dim ink, and a knob's or a control's name is the title's */}
@@ -528,7 +528,7 @@ function DevicePanel({ control, voice, timbres }: { control: Control; voice: str
   const spell: Record<string, number> = (track && (track as { knobs?: Record<string, Record<string, number>> }).knobs?.[voice]) || {};
   const own = <RowDevice control={control} device={device} spell={spell} />;
   if (!device.parts.length) return own;
-  // **One sound first, the routing folded under it** (Eugene, 10-04, on the
+  // **One sound first, the routing folded under it** (his word, 10-04, on the
   // drone strip: *"it seems it has two instrument voices inside"* — it has
   // one: a theme plays a dispatcher through one row, and what read as a
   // second instrument was the pad's routing table drawn over the row). So the
@@ -549,7 +549,7 @@ function DevicePanel({ control, voice, timbres }: { control: Control; voice: str
 }
 
 /**
- * A dispatcher's table as one line a timbre (Eugene, 10-04, on `timbres.stri… stringsPad`,
+ * A dispatcher's table as one line a timbre (his word, 10-04, on `timbres.stri… stringsPad`,
  * `timbres.stri… off` two lines deep): the timbre's name, the row it plays, and `held` where the
  * sustained role holds the patch; `by`, `none` and `otherwise` as they are.
  */
@@ -619,7 +619,7 @@ function RowDevice({ control, device, spell, through }: {
 }
 
 /**
- * **How a dispatcher is read, said once** (DESK-UX1, Eugene 10-05): the
+ * **How a dispatcher is read, said once** (DESK-UX1, his word 10-05): the
  * paragraph that stood under its table is the title of the fold's summary and
  * of its own head. A row's and a stage box's paragraphs open their manual pages
  * (`key:param`, `key:stageparam`), whose first sentences they are.
@@ -786,7 +786,7 @@ export function InsertControl({ lane, treatment, width, height }: { lane: string
 }
 
 /**
- * **The strip's one reset** (DESK-UX1, Eugene 10-05: *"'Reset strip' only
+ * **The strip's one reset** (DESK-UX1, his word 10-05: *"'Reset strip' only
  * resets the sound but not the params; we should combine it as one tool to
  * reset everything in the popup"*): one press puts back everything the popover
  * holds — the level, mute, solo and sends of every instrument on the strip, and
@@ -809,8 +809,10 @@ function StripReset({ control, voices, timbres, label }: { control: Control; voi
   }, [track, voices.join(' '), JSON.stringify(timbres)]);
   const mixed = voices.some((v) => sourceLevel(mix, v) !== 1 || mix.mute.includes(v) || mix.solo.includes(v) || mix.dry.includes(v));
   const devices = rows.filter((v) => state.device[v] && Object.keys(state.device[v]).length);
+  // dimmed and not `disabled` (the playback review of 11-02): a theme that swaps the strip's instrument took the
+  // move away under a focused reset, and a disabled button dropped the focus out of the popover to the page
   return (
-    <button type="button" {...keyHelp('key:reset')} className="desk-reset" aria-label={`Reset ${label}`} disabled={!mixed && !devices.length}
+    <button type="button" {...keyHelp('key:reset')} className="desk-reset" aria-label={`Reset ${label}`} aria-disabled={!mixed && !devices.length}
       onClick={() => { if (mixed) desk.resetGroup(voices, label); for (const v of devices) desk.resetDevice(v); }}>reset</button>
   );
 }
@@ -874,7 +876,7 @@ export function SourceControls({ control, voices, timbres = {}, label, width, he
               <span className="desk-name">tools</span>
               <button type="button" aria-label={`Export ${label} WAV`} disabled={control.state.render.busy}
                 // the tool is a chunk loaded at the press; a page left open across a rebuild asks for a chunk that
-                // is gone, and a press that did nothing (Eugene, 10-05) now says so instead
+                // is gone, and a press that did nothing (his word, 10-05) now says so instead
                 onClick={() => {
                   exporter!().then((m) => m.exportSource(control, voices, { dry: control.sourceMix.dry.filter((v) => voices.includes(v)) }))
                     .catch(() => { control.state.render = { busy: false, note: 'the export tool could not load: reload the page', ok: false }; control.emit(); });

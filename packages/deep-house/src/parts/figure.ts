@@ -173,7 +173,7 @@ export function phrasePhase(starts: readonly number[], count: number, index: num
 // interpreter, never to a recipe. Omitted requests retain every old default.
 export const AMBIENCE_ROLES = ['backbeat', 'sixteenth', 'figure'] as const;
 export const PRESENCE_ROLES = [...AMBIENCE_ROLES, 'sustained'] as const;
-export const AMBIENCE_NAMES = ['intimate', 'spacious', 'distant', 'echo'] as const;
+export const AMBIENCE_NAMES = ['intimate', 'spacious', 'distant', 'echo', 'tidal'] as const;
 export type Ambience = Partial<Record<typeof AMBIENCE_ROLES[number], typeof AMBIENCE_NAMES[number]>>;
 export type Presence = Partial<Record<typeof PRESENCE_ROLES[number], 'supporting' | 'background'>>;
 
@@ -188,5 +188,5 @@ export function ambienceProblems(value: any): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return ['wants.ambience must be keyed by role'];
   return Object.entries(value).flatMap(([role, space]) =>
     !(AMBIENCE_ROLES as readonly string[]).includes(role) || !(AMBIENCE_NAMES as readonly string[]).includes(String(space)) || (role === 'figure' && space === 'distant')
-      ? [`wants.ambience.${role}: use intimate or spacious; distant is available for backbeat and sixteenth percussion`] : []);
+      ? [`wants.ambience.${role}: use intimate, spacious or tidal (the two by Tide); distant is available for backbeat and sixteenth percussion`] : []);
 }

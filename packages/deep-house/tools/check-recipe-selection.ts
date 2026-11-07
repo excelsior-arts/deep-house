@@ -10,6 +10,7 @@ import { BY_NAME } from '@deep-house/engine/voices';
 import { SECTION_LIBRARY, TREATMENT_LIBRARY, LIBRARY, GLIDE_LIBRARY, FORM_LIBRARY } from '../src/recipes.ts';
 import { RIFF_ROWS, PHRASED_ROWS } from '../src/glide.ts';
 import { KIT_ROWS } from '../src/kit.ts';
+import { isKitHat } from '../src/top-lanes.ts';
 import { unperformed } from '../src/recipe-request.ts';
 import { PLAYED_KINDS } from '../src/treatment.ts';
 import { drawSectionRows } from '../src/sections.ts';
@@ -59,7 +60,8 @@ test('motif comparisons retain drums, harmony, tempo and non-target bass events'
     // (U2d: a theme's builds draw their gestures in line order, so an out one motif lays and another does not moves the
     // next build's gesture: the drums are compared off every build's bars of either, its lead-in and its line with them)
     const marked=new Set([t,tracks[0]].flatMap(x=>[...(x.phrasing?.outs??[]).flatMap(o=>[o.to-1,o.to]),...(x.phrasing?.builds??[]).flatMap(b=>[b.line-2,b.line-1,b.line])]));
-    const drums=(x:typeof t)=>x.events.filter(e=>['drum','noise'].includes(BY_NAME[e.voice]?.family)&&!marked.has(e.bar));
+    // (and the kit's hats' gain, since the hat-ceiling integration (11-03): the ceiling reads the hats against the whole mix, so a part that moves the mix moves the hats' level, never their hits; `isKitHat`)
+    const drums=(x:typeof t)=>x.events.filter(e=>['drum','noise'].includes(BY_NAME[e.voice]?.family)&&!marked.has(e.bar)).map(e=>isKitHat(e)?{...e,p:{...e.p,gain:undefined}}:e);
     assert.ok(drums(t).length > 0); assert.deepEqual(drums(t),drums(tracks[0]));
   }
   const [lick,answer]=tracks.filter(t=>t.dice.motifRegister==='lead');

@@ -14,7 +14,7 @@
 // straight through. Both of them came out of this chain for that reason, which
 // left the soft clipper as the only ceiling -- and a dense scene at -12 LUFS
 // drives a memoryless waveshaper into audible distortion. Measured on master
-// seed 84658, the growl scenes Eugene marked reach the clipper at 0 dBFS with
+// seed 84658, the growl scenes he marked reach the clipper at 0 dBFS with
 // 2.1-2.5% of samples shaped and a worst deviation of a quarter of full scale.
 // That is the "clipping crazy now" in the ratings log.
 //
@@ -61,7 +61,7 @@
  */
 
 // **The output at full scale, heard where every sample passes** (round S16).
-// The view's taps saw it only while the view was open, and the fault Eugene
+// The view's taps saw it only while the view was open, and the fault he
 // asked to hear about is the one that happens when nobody is looking. The
 // processor already touches every sample of the record, so it measures what
 // its output becomes after the clipper and the trim, and when that reaches

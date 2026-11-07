@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "kind": "recipe",
+  "id": "half/double-time",
+  "revision": 1,
+  "name": "double time",
+  "scope": "treatment",
+  "applies": "switch-up",
+  "origin": "listener",
+  "interpreter": "v2.25",
+  "birds": {},
+  "tempo": {
+    "bpm": [
+      134,
+      160
+    ]
+  },
+  "figure": {
+    "bars": 1,
+    "lanes": {
+      "backbeat": {
+        "clear": 0,
+        "mask": [
+          "....X.......X..."
+        ]
+      },
+      "kick": {
+        "clear": 0,
+        "mask": [
+          "X.......X......."
+        ]
+      }
+    }
+  },
+  "place": {
+    "sections": [
+      "main",
+      "drop"
+    ],
+    "kit": "any",
+    "bars": [
+      8
+    ]
+  },
+  "forbids": [],
+  "weight": 1,
+  "score": {
+    "chef": 0,
+    "likes": 0
+  },
+  "provenance": {
+    "source": "his ear 11-04 on Drive - Cloudburst's next theme (dark-fronts, the eleventh pass): \"could we add more sub segments for drums to add little breaks and moves around straight line, similar to how we did for all our deep house genre … on long mains it could add more interesting development and phrasing\"",
+    "kind": "switch-up",
+    "where": "a span of eight bars inside a main or a drop of 24 bars or more",
+    "idiom": "the snare on two and four under a kick on one and three for a phrase: the felt pulse doubled, then the half-time groove back; under a kit with no snare the kick alone thins to one and three",
+    "knowledge": "written from the idiom of half-time bass music, as a producer of it varies a straight groove: the kick thinned or pulled to the one, the snare withheld, the hats halved or gapped, a phrase at double time; nothing sampled, no audio copied",
+    "moved": "round dark-fronts, the eleventh pass (2026-11-04): a row of the deep half-time place's own figures, drawn by its weight among the rows of its kind where the place table draws the kind, boxed to the place's tempo so the house and the fast broken places draw exactly as they did"
+  }
+}

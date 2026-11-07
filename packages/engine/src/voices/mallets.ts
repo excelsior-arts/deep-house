@@ -231,7 +231,11 @@ function bar(
   }
 
   const tail = insert(ctx, p, g, time, end, settings);
-  route(ctx, tail, out, { dry: 1, delay: p.delay ?? S.delay, reverb: p.reverb ?? S.reverb });
+  // **A seat for the whole strike** (round top-voices, `strikePan`, -1..1): a tick that answers itself left and right.
+  // Absent, nothing is built and the bar sits where its partials' spread puts it, as before.
+  let seated: AudioNode = tail;
+  if (typeof p.strikePan === 'number' && Number.isFinite(p.strikePan)) { seated = panner(ctx, Math.max(-1, Math.min(1, p.strikePan))); tail.connect(seated); }
+  route(ctx, seated, out, { dry: 1, delay: p.delay ?? S.delay, reverb: p.reverb ?? S.reverb });
   return end;
 }
 

@@ -28,7 +28,7 @@
 // notes a bar at most, and a phone can carry that where it could not carry a
 // sixteenth figure of them.
 
-import { midiToHz, adsrEnv, route, panner, phasedLfo, startTime, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR } from '../dsp.ts';
+import { midiToHz, adsrEnv, route, panner, phasedLfo, startTime, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR, fanned, lowFan } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Settings } from '../settings.ts';
 import { insert } from './treat.ts';
@@ -88,7 +88,7 @@ function stack(ctx: BaseAudioContext, into: AudioNode, time: number, p: NotePara
     // MEASURED elsewhere in this engine and true here: everything under
     // 300 Hz is close to mono on these records, so the low voices of a stack
     // keep their spread to themselves.
-    const pan = panner(ctx, k * spread * (hz > 300 ? 1 : 0.3));
+    const pan = panner(ctx, k * fanned(spread, true) * lowFan(hz));
     o.connect(pan);
     pan.connect(level);
     o.start(time);
@@ -153,7 +153,7 @@ function supersawPad(row: SoundRow, ctx: BaseAudioContext, out: VoiceOut, time: 
       .on('q', (v) => [[lp.Q, v]])
       .on('hpHz', (v) => [[hp.frequency, v]])
       .on('detuneCents', (v) => built.voices.map(({ o, k }) => [o.detune, k * v * 0.5] as [AudioParam, number]))
-      .on('spread', (v) => (p.spread != null ? [] : built.voices.map(({ pan, k }) => [pan.pan, side(k * v * (p.spreadMul ?? 1) * (built.hz > 300 ? 1 : 0.3))] as [AudioParam, number])))
+      .on('spread', (v) => (p.spread != null ? [] : built.voices.map(({ pan, k }) => [pan.pan, side(k * fanned(v * (p.spreadMul ?? 1), true) * lowFan(built.hz))] as [AudioParam, number])))
       .on('voiceLevel', (v) => { cur.voiceLevel = v; return [lvl()]; })
       .on('trim', (v) => { if (!(S.trim > 0)) return []; cur.trim = v; return [lvl()]; })
       .on('driftHz', (v) => [[built.drift.frequency, v]])

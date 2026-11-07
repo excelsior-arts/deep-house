@@ -1,0 +1,57 @@
+[
+{
+"name": "Vibe - Pure Gold",
+"link": "seed=40&v=2",
+"bpm": 104
+},
+{
+"name": "Vibe - Aurora",
+"link": "seed=68599&v=2&spell=ti:0.17,ze:0.32,gl:0.16,ve:1.00,sp:0.10,lo:0.34",
+"bpm": 101
+},
+{
+"name": "Vibe - Warm Front",
+"link": "seed=47004&v=2&theme=11&spell=em:0.36,ti:0.34,ze:0.63,ro:0.66,gl:0.05,ve:0.54,sp:0.19,lo:0.80",
+"bpm": 101.5
+},
+{
+"name": "Vibe - Night Side",
+"link": "seed=80800&v=2&spell=ti:0.17,ze:0.00,gl:0.16,ve:1.00,sp:0.10,lo:0.34",
+"bpm": 96
+},
+{
+"name": "Vibe - Heat Haze",
+"link": "seed=47004&v=2&theme=16&spell=em:0.36,ti:0.48,ze:0.63,ro:0.66,gl:0.05,ve:0.39,sp:0.19,lo:0.80",
+"bpm": 102
+},
+{
+"name": "Vibe - Sunrise",
+"link": "seed=97369&v=2&spell=em:0.37,ti:0.17,ze:0.32,gl:0.16,ve:0.00,sp:0.10,lo:0.34",
+"bpm": 96
+},
+{
+"name": "Vibe - Saturn Rings",
+"link": "seed=33617&v=2&spell=em:0.37,ti:0.37,ze:0.14,ro:0.00,gl:0.00,ve:0.11,sp:0.00,lo:1.00",
+"bpm": 100
+},
+{
+"name": "Vibe - Deep Dive",
+"link": "seed=97058&v=2&spell=em:0.33,ti:1.00,ze:0.32,gl:0.16,ve:0.00,sp:0.45,lo:1.00",
+"bpm": 97
+},
+{
+"name": "Vibe - Drizzle",
+"link": "seed=1557&v=2&spell=em:0.53,ti:1.00,ze:0.00,gl:0.46,ve:0.11,sp:0.45,lo:0.71",
+"bpm": 106
+},
+{
+"name": "Drive - Eli's Ignition",
+"link": "seed=1&v=2&theme=16&spell=ro:0.53,gl:0.20,sp:1.00",
+"bpm": 111
+},
+{
+"name": "Drive - Slow Burn",
+"link": "seed=68599&v=2&spell=ti:0.17,ze:0.32,gl:0.16,ve:0.00,sp:0.10,lo:0.34",
+"bpm": 101
+}
+]

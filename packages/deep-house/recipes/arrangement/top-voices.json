@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "id": "arrangement/top-voices",
+  "revision": 1,
+  "kind": "arrangement",
+  "name": "The top's quiet voices",
+  "note": "The quiet players up top his ear took on 11-02 (T14, T16-T20, T26b, T27c, T28, T30c, T38), drawn a few a track and turned by the top's rota on the phrase lines. Levels are dB against the theme's own closed hat (the 90th percentile of its notes' level), each as the sketch he heard it, moved by his word where he gave one (the chk 5 dB down, the talking percussion 6 dB down, the held hiss 4 dB down). Every number is a starting point for listening.",
+  "centre": { "loom": 0.578, "veil": 0.473, "spark": 0.275, "root": 0.717, "tide": 0.558, "zephyr": 0.377 },
+  "tempo": { "bpm": [88, 116] },
+  "set": {
+    "size": 3,
+    "four": 0.5,
+    "fourLeans": { "spark": { "on": 1 }, "veil": { "on": 0.5 } },
+    "grooveLeast": 2,
+    "barsPerGrooveVoice": 24
+  },
+  "rota": {
+    "lines": 8,
+    "gaps": [8, 16],
+    "short": { "veil": 1.2 },
+    "atOnce": 2,
+    "enter": 0.6,
+    "leastBars": 16
+  },
+  "front": { "admit": ["bed", "hiss", "arcs", "wash"] },
+  "voices": {
+    "chk": {
+      "idea": "T14", "where": "groove", "weight": 1,
+      "leans": { "spark": { "on": -1 }, "root": { "on": -0.5 } },
+      "rows": [{ "v": "chk", "w": 1 }],
+      "steps": [4, 12], "rel": -11.1, "vel": 0.9
+    },
+    "splash": {
+      "idea": "T17", "where": "groove", "weight": 1,
+      "leans": { "veil": { "on": 0.6 }, "loom": { "on": 0.6 }, "spark": { "on": -0.5 } },
+      "rows": [{ "v": "splash", "w": 0.6, "rel": -14.8 }, { "v": "splashLong", "w": 0.2, "rel": -15.0 }, { "v": "shakeThrow", "w": 0.2, "rel": -14.2 }],
+      "vel": 0.9
+    },
+    "tick": {
+      "idea": "T18", "where": "groove", "weight": 0.8,
+      "leans": { "zephyr": { "on": 0.8 }, "tide": { "on": 0.5 } },
+      "rows": [{ "v": "tickTuned", "w": 0.45, "rel": -11.8 }, { "v": "glint", "w": 0.3, "rel": -11.5 }, { "v": "tickLone", "w": 0.25, "rel": -11.7 }],
+      "acoustic": ["piano", "keysRhodes", "keysEp", "keysSuitcase", "keysReed", "keysTineDark", "keys", "karplusPluck", "marimba", "vibes", "clavKey", "keysPluck", "guitar"],
+      "synthPads": ["pad", "sawPad", "supersawPad", "wavePad", "shimmerPad", "grainPad", "formantPad", "padHaze", "supersawLead"],
+      "vel": 0.9
+    },
+    "talk": {
+      "idea": "T19", "where": "groove", "weight": 0.8,
+      "leans": { "tide": { "on": 1 }, "spark": { "on": 0.5 } },
+      "rows": [{ "v": "clave", "w": 0.5, "rel": -16.8 }, { "v": "rimshot", "w": 0.25, "rel": -22.4 }, { "v": "woodblock", "w": 0.25, "rel": -18.8 }],
+      "pan": 0.4, "room": 0.1, "vel": 0.85
+    },
+    "puff": {
+      "idea": "T20", "where": "groove", "weight": 1.2,
+      "leans": {},
+      "rows": [{ "v": "puff", "w": 1, "rel": -16.4 }],
+      "figure": 0.45,
+      "gaps": { "prefer": [12, 4, 13, 9, 5, 15], "second": 0.5, "secondDb": -3, "spreadDb": 3 },
+      "vel": 0.9
+    },
+    "jingle": {
+      "idea": "T38", "where": "groove", "weight": 0.8,
+      "leans": { "zephyr": { "on": 1 }, "spark": { "on": -0.5 } },
+      "zephyrLeast": 0.25,
+      "rows": [{ "v": "jingleLight", "w": 1 }],
+      "down": { "steps": [0, 4, 8, 12], "rel": -19.1, "vel": 0.8 },
+      "off": { "steps": [2, 6, 10, 14], "rel": -14.1, "vel": 0.9 }
+    },
+    "bed": {
+      "idea": "T26b", "where": "groove", "weight": 0.8,
+      "leans": { "zephyr": { "on": 0.8 }, "tide": { "on": 0.8 } },
+      "rows": [{ "v": "airTop", "w": 1, "rel": -2.5 }],
+      "attackBars": 2, "pumpDb": 4
+    },
+    "snap": {
+      "idea": "T16", "where": "break", "weight": 1,
+      "leans": { "spark": { "on": -0.5 }, "tide": { "on": 0.8 } },
+      "leastBars": 8,
+      "rows": [{ "v": "snap", "w": 0.65, "rel": -2.4, "answer": { "room": -6.4, "delay": -10.9 } }, { "v": "rimshot", "w": 0.35, "rel": -9.4, "answer": { "room": -13.4, "delay": -17.9 } }],
+      "step": 4, "answerStep": 14, "delay": { "base": 0.45, "tide": -0.8, "least": 0.15, "most": 0.75 }, "vel": 0.9
+    },
+    "wash": {
+      "idea": "T28", "where": "return", "weight": 1,
+      "leans": { "veil": { "on": 0.6 } },
+      "chance": 0.5, "chanceLeans": { "veil": { "on": 1 } },
+      "rows": [{ "v": "washSoft", "w": 0.65, "rel": -19.3 }, { "v": "crashFar", "w": 0.2, "rel": -18.3 }, { "v": "washSoft", "w": 0.15, "rel": -19.3, "ring": { "v": "ringHigh", "rel": -27.3 } }],
+      "reverb": { "washSoft": 0.4, "crashFar": 0.6 }, "vel": 0.9
+    },
+    "hiss": {
+      "idea": "T27c", "where": "breakEnd", "weight": 0.9,
+      "leans": { "veil": { "on": 0.6 } },
+      "rows": [{ "v": "airRise", "w": 1, "rel": -0.7 }],
+      "bars": 4, "attack": 1.2, "chance": 0.8, "leastBars": 8
+    },
+    "arcs": {
+      "idea": "T30c", "where": "beatless", "weight": 0.7,
+      "leans": { "tide": { "on": 1 }, "veil": { "on": 0.6 } },
+      "rows": [{ "v": "airArc", "w": 1, "rel": -2.5 }],
+      "every": 8, "arcs": [[0, 2], [3, 1], [5, 2]],
+      "moving": ["phaser", "hpRise", "lpClose", "breath"],
+      "underSays": "The holders of a deep break the arcs may sound over, by maker (round hat-ceiling): a bar where only these play is beatless for the arcs. Empty: any hat, kick, clap or shaker is a beat. The ticks by his ear 11-02 (\"why not both? it's just a hint of noise with beat and piano way more noticeable\"): Vibe - Night Side's break keeps its ticks with the swells over them; Vibe - Pure Gold's break takes swells beside its hiss, Vibe - Deep Dive's second break a held hiss.",
+      "under": ["top-form/ticks"]
+    }
+  },
+  "figures": [
+    { "id": "top/call-two-answer-four", "name": "a call on two, its answer on four a bar later", "bars": 2,
+      "hits": [[4, "c", 0], [28, "a", -1]], "leans": { "spark": { "on": -0.8 } }, "weight": 1 },
+    { "id": "top/pickup-question", "name": "a pickup into two, answered on the 'e' of the next bar", "bars": 2,
+      "hits": [[3, "c", -3], [4, "c", 0], [21, "a", -1], [28, "a", -3]], "leans": {}, "weight": 1 },
+    { "id": "top/three-and-one", "name": "three steps of call, a bar's rest, one step of answer", "bars": 4,
+      "hits": [[4, "c", 0], [7, "c", -4], [12, "c", -1], [44, "a", 0]], "leans": { "loom": { "on": 0.8 } }, "weight": 1 },
+    { "id": "top/the-turnaround", "name": "four held on three bars, a turnaround in the fourth", "bars": 4,
+      "hits": [[12, "c", 0], [28, "c", -1], [44, "c", 0], [57, "a", -3], [60, "a", 0], [63, "a", -4]], "leans": { "loom": { "on": 0.8 }, "spark": { "on": 0.5 } }, "weight": 0.8 },
+    { "id": "top/late-answer", "name": "a call off the beat, its answer late in the next bar", "bars": 2,
+      "hits": [[5, "c", -1], [12, "c", 0], [29, "a", -2], [31, "a", 0]], "leans": { "spark": { "on": 0.8 } }, "weight": 0.9 },
+    { "id": "top/returning-pair", "name": "a pair that returns each bar, answered at the fourth", "bars": 4,
+      "hits": [[4, "c", 0], [9, "c", -3], [20, "c", 0], [25, "c", -3], [36, "c", 0], [41, "c", -3], [60, "a", 0], [63, "a", -3]], "leans": { "spark": { "on": 0.6 }, "veil": { "on": -0.4 } }, "weight": 0.7 }
+  ]
+}

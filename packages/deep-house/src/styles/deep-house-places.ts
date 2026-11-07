@@ -188,6 +188,33 @@ const OM_FORM = Object.freeze({
   sectionBars: Object.freeze({ intro: { p25: 3, p75: 5, median: 4 }, groove: { p25: 20, p75: 28, median: 24 }, breakdown: { p25: 12, p75: 20, median: 16 },
     outro: { p25: 6, p75: 10, median: 8 } }),
 });
+/**
+ * **FIELD's claim**: its spell's neighbourhood only, 0.28 about it (ambient-field): within it no one-bird pull of BOWLS,
+ * BELLS, WAVES, PSY, OM or the Ambient tile, of Deep Field's spell or of seed 6's reads it (every bird in steps of
+ * 0.05), and no featured track does; at 0.3 it took BOWLS's Gleam from 0.10 to 0.20, 0.296 from it.
+ */
+const FIELD_RADIUS = 0.28;
+/**
+ * A held drone under a field recording's shape (PLAN-AMBIENT P3, ambient-field): the wave pad on an open fifth or a
+ * cluster, the wind, a fine rain or a dark cloud over it one after another with no gap, a distant rumble now and then,
+ * a bird far back. It stands 0.457 from Deep Field's spell (HELD_DRONE, its own entry in the conversation's table) and
+ * 0.558 from seed 6's (pinned within 0.15); named in one table only, the conversation's, its harmony, form and bed on its
+ * entry as OM's and BOWLS's are.
+ */
+const FIELD: Place = Object.freeze({ ...place({ ember: 0.02, tide: 0.75, zephyr: 0.45, root: 0.45, gleam: 0.15, veil: 0.20, spark: 0.05, loom: 1.0 }, [40, 70]), radius: FIELD_RADIUS });
+/**
+ * FIELD's level: the existing ambient step's aim (the brief: −15.8). Measured offline and silent on the branch's site,
+ * the place's windows (seeds 1-4, 30-210 s) read some −15.3 LUFS at a trim of nought (−13.1 to −16.1, the drone's own
+ * spread by key and voicing), so the trim stands at −0.5 dB.
+ */
+const FIELD_TARGET_LUFS = -15.8;
+const FIELD_MEASURED_LUFS = -15.3;
+/** FIELD's form: the weather and the drone entering, two long middles around a quieter one, the drone dying in the weather. */
+const FIELD_FORM = Object.freeze({
+  orders: [['intro', 'groove', 'breakdown', 'groove', 'outro']],
+  sectionBars: Object.freeze({ intro: { p25: 3, p75: 5, median: 4 }, groove: { p25: 20, p75: 28, median: 24 }, breakdown: { p25: 12, p75: 20, median: 16 },
+    outro: { p25: 6, p75: 10, median: 8 } }),
+});
 /** The Liquid key's own spell (the Drum & Bass tile's liquid centre), read by the riff, form and development tables. */
 const LIQUID_KEY = { ember: 0.95, tide: 0.45, zephyr: 0.60, root: 0.75, veil: 0.60, spark: 0.85, loom: 0.85 };
 /** The liquid centre as a place (liquid-space, 10-11). */
@@ -400,7 +427,7 @@ export const BASS_SOUND: readonly BassEntry[] = Object.freeze([
   // a beat, where the place's line held three in four through to the next.
   // Round DNB-5 (his ear on DNB-4, 10-05: *"their bass is pronounced: a
   // well-phrased DnB wobbly bassline; ours sounds like a cheap bass guitar
-  // plugged into a Metal Zone"*), read off source 8's first tune in memory: its
+  // plugged into a [metal distortion pedal]"*), read off source 8's first tune in memory: its
   // line is a sine, the second harmonic 25-30 dB under the note, whose notes
   // glide into the next over a sixteenth or two and whose pitch wobbles some
   // thirty cents on the eighths, with the faint harmonics over it moving at the
@@ -618,7 +645,7 @@ export const BASS_DRIVE: readonly BassDriveEntry[] = Object.freeze([
   // Round DNB-3: a breath of edge under the liquid sub, not a growl — the blend
   // 0.15 (16 dB under the bass) where it was 0.35, the drive 0.6, no wobble.
   // Round DNB-5: off — the line is a clean sine and the copy's edge was half
-  // the fizz he heard ("a Metal Zone"); the row stays, at nought.
+  // the fizz he heard ("a [metal distortion pedal]"); the row stays, at nought.
   { id: 'driven-under-fast-broken', place: FAST_BROKEN, blend: 0, drive: 0.6, toneHarmonic: 16, floorHz: 240 },
   // The rest keep the clean bass alone.
   ...[BROKEN_DRIVING, DEEP_STILL, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
@@ -999,7 +1026,22 @@ export const DRUMS: readonly DrumsEntry[] = Object.freeze([
  * itself its mains' own (`THE_HOUSE_SUBSECTIONS`, round M1), and the drone
  * places none.
  */
-export const HOUSE_SUBSECTIONS: SubRates = Object.freeze({ switchUp: 0, switchBars: [], turnaround: 0, fill: 0.3, dropOut: 0.1, crash: false });
+/**
+ * **The top follows the form** (round top-form, his word 11-02 on the table: "All T1-12 improvements are go"; the planner
+ * `src/top-form.ts`, its numbers and its tempo window, the house's pace, `recipes/arrangement/top-form.json`): a groove
+ * at the house's pace turns its top on the phrase lines wherever its place lists the ideas — the house, the places near
+ * it, and the held drone's, whose deep grooves at that pace (a long Loom, a still Spark) read it. One word an idea, so
+ * one comes out by ear without the others: T01 the rota, T02 the break's slope and floor, T03 the open-hat clock, T04 the
+ * second drop, T05 the breather, T07 the hats' growth, T08 the staged entries, T09 the eighth-bar answer, T10 the deep
+ * break's pulse. The fast places list none.
+ */
+// The lanes' own turns (round top-lanes, `src/top-lanes.ts`, `recipes/arrangement/top-lanes.json`), on the same list and the
+// same tempo window: T13 the sixteenths' lean, T21 the ghosts' place in the stereo, T23 the pairs of bars, T31 the hats'
+// own wash; and T15 (pass 3), no beat-led main without its offbeat hat; and the hats' level (round hats-level), the kit's
+// hats a little down under the quiet voices.
+export const TOP_IDEAS_HOUSE = Object.freeze(['rota', 'floor', 'clock', 'second-drop', 'breather', 'grow', 'steps', 'answer', 'pulse', 'voices',
+  'lean', 'ghost-pan', 'breath', 'wash', 'offbeat', 'level'] as const);
+export const HOUSE_SUBSECTIONS: SubRates = Object.freeze({ switchUp: 0, switchBars: [], turnaround: 0, fill: 0.3, dropOut: 0.1, crash: false, top: TOP_IDEAS_HOUSE });
 /**
  * **The house's own mains** (round M1, the mains pass; `notes/rounds/mains-m1.md`).
  * Read the same way, bar by bar against the cycles before it, a reference
@@ -1021,6 +1063,8 @@ export const THE_HOUSE_SUBSECTIONS: SubRates = Object.freeze({
   // The hats' own (his word on seed 1): a variation over a sixteen-bar phrase's second half one phrase in two,
   // half a phrase or a quarter of one (the last four bars), and at least one in any main past sixteen bars.
   variation: 0.5, variationBars: [8], variationFloor: 16,
+  // the top follows the form (round top-form): every idea, as at the places near the house (`TOP_IDEAS_HOUSE`)
+  top: TOP_IDEAS_HOUSE,
 });
 // Which figure plays is the rows' own weight (`recipes/treatments/`, round T1):
 // the rolling snare and the doubled snare at 3, the kick push and the stepper
@@ -1036,13 +1080,41 @@ const MANY_SUBSECTIONS: SubRates = Object.freeze({
   switchUp: 0, switchBars: [8, 16, 16], turnaround: 0.35, fill: 0.8, dropOut: 0.2, crash: true,
   variation: 0.5, variationBars: [8], variationFloor: 16,
 });
+/**
+ * **The drums develop where the groove is felt at half** (round dark-fronts, the eleventh pass; his ear 11-04 on Drive -
+ * Cloudburst's next theme: *"could we add more sub segments for drums to add little breaks and moves around straight
+ * line, similar to how we did for all our deep house genre … on long mains it could add more interesting development
+ * and phrasing"*). The deep half-time place read the near places' row (a fill on three lines in ten, a drop-out on one
+ * in ten, nothing else), and the house's own figures are boxed to the house's tempo and the mix's to the fast places',
+ * so at 134-160 its mains ran straight. Now it draws as the house's own mains do (`THE_HOUSE_SUBSECTIONS`), with one
+ * difference his word asks for: every groove of 24 bars or more carries a switch-up (a felt-half groove of 24 written
+ * bars is 40 s of one beat; the house's three in five would leave two long mains in five straight), a turnaround on
+ * three four-bar groups in ten, a drop-out on half the sixteen-bar lines, a fill into two lines in five, a variation
+ * over a phrase's second half; its figures its own kit's
+ * (`recipes/treatments/half/`, boxed to its tempo): a kick dropped, the snare held back, the kick pulled to the one, the
+ * hats halved, a double-time phrase, the hats on the offbeats, the shaker resting. Phrased on the written bar, as the
+ * mined half-time cuts are (a two-step drop at 170 varies its beat about once in four written bars): the gestures are a
+ * second or two long whatever the felt pulse, and every four-bar group's last bar ends a felt bar. Spark leans the
+ * rates: a livelier air turns around, drops out and varies more; the fill keeps the house's share.
+ */
+const HALF_SUBSECTIONS: SubRates = Object.freeze({
+  switchUp: 1, switchBars: [8, 8, 16], turnaround: 0.3, fill: 0.4, dropOut: 0.5, crash: false, turnIntoSwitch: true,
+  variation: 0.5, variationBars: [8], variationFloor: 16,
+});
+const HALF_LEANS: BirdLeans = Object.freeze({
+  centre: Object.freeze({ spark: DEEP_HALF.birds.spark! }),
+  by: Object.freeze({ spark: Object.freeze({ turnaround: 0.8, dropOut: 0.5, variation: 0.5 }) }),
+});
 export const SUBSECTIONS: readonly SubSectionsEntry[] = Object.freeze([
   // the birds at the fast places (PLAN-UNIFY U2): Veil on the fill at a section's line
   { id: 'many-small-things', place: FAST_BROKEN, rates: MANY_SUBSECTIONS, leans: FAST_LEANS },
   { id: 'many-small-things-deep', place: FAST_BROKEN_DEEP, rates: MANY_SUBSECTIONS, leans: FAST_LEANS },
   ...[BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR]
-    .map((place, i) => ({ id: `some-small-things-${i + 1}`, place, rates: HOUSE_SUBSECTIONS })),
-  ...[FLOATING, HELD_DRONE].map((place, i) => ({ id: `no-small-things-${i + 1}`, place, rates: NO_SUBS })),
+    .map((place, i) => (place === DEEP_HALF ? { id: 'the-drums-develop-at-half', place, rates: HALF_SUBSECTIONS, leans: HALF_LEANS }
+      : { id: `some-small-things-${i + 1}`, place, rates: HOUSE_SUBSECTIONS })),
+  // (the held drone's deep grooves at the house's pace turn their top, round top-form; its drumless themes have no top
+  // to turn, and the floating pulse's entry is BELLS's borrowed row, kept as it was frozen)
+  ...[FLOATING, HELD_DRONE].map((place, i) => ({ id: `no-small-things-${i + 1}`, place, rates: place === HELD_DRONE ? Object.freeze({ ...NO_SUBS, top: TOP_IDEAS_HOUSE }) : NO_SUBS })),
 ] as SubSectionsEntry[]);
 
 /**
@@ -1366,7 +1438,10 @@ export const SEA: readonly SeaEntry[] = Object.freeze([
  * round's, by his ear). The places are the ambient voices' own, so the time that plays is the one the producer's
  * place names. Every other place is the ring's own rule, and says so.
  */
-const FAST_TIME = Object.freeze({ felt: 'half' as const, phrase: Object.freeze({ bars: 8, loom: Object.freeze({ centre: LIQUID_KEY.loom, strength: 0 }) }) });
+// (a kit that plays half-time names the half-time length row, `length: 'half'` (`deep-house-length.ts`; round dark-fronts'
+// tenth pass, his word 11-04: these tracks "have fast bpm, but fundamentally they are slow"); the plan's own drums decide
+// whether it is played, `feltPulseOf`)
+const FAST_TIME = Object.freeze({ felt: 'half' as const, length: 'half', phrase: Object.freeze({ bars: 8, loom: Object.freeze({ centre: LIQUID_KEY.loom, strength: 0 }) }) });
 export const TIME: readonly TimeEntry[] = Object.freeze([
   { id: 'half-time-eight-bar-phrases-fast', place: FAST_BROKEN, ...FAST_TIME },
   { id: 'half-time-eight-bar-phrases-deep', place: FAST_BROKEN_DEEP, ...FAST_TIME },
@@ -1374,7 +1449,7 @@ export const TIME: readonly TimeEntry[] = Object.freeze([
   { id: 'half-time-eight-bar-phrases-islands', place: LIQUID_ISLANDS, ...FAST_TIME },
   { id: 'half-time-eight-bar-phrases-roller', place: LIQUID_ROLLER, ...FAST_TIME },
   { id: 'half-time-eight-bar-phrases-broken', place: LIQUID_BROKEN, ...FAST_TIME },
-  { id: 'half-time-felt-deep-half', place: DEEP_HALF, felt: 'half' },
+  { id: 'half-time-felt-deep-half', place: DEEP_HALF, felt: 'half', length: 'half' },
   ...[BROKEN_DRIVING, DEEP_STILL, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE]
     .map((place, i) => ({ id: `the-ring-s-own-time-${i + 1}`, place })),
 ] as TimeEntry[]);
@@ -1409,6 +1484,13 @@ export const CONVERSATION: readonly ConversationEntry[] = Object.freeze([
       silences: Object.freeze(['bassline', 'figure']), level: Object.freeze({ targetLufs: OM_TARGET_LUFS, measuredLufs: OM_MEASURED_LUFS }),
       harmony: Object.freeze({ cycles: Object.freeze([{ degrees: [0], every: 16, loop: 16, voicing: 'fifths', w: 1 }]) }), form: OM_FORM,
       bed: Object.freeze({ swell: 2, strings: 1 }), bedDb: -12, needs: Object.freeze(['no-kit'] as const) }) },
+  // ambient-field (PLAN-AMBIENT P3): a held drone (the wave pad on an open fifth or a cluster, the bed the entry's own)
+  // under the weather's shapes and a bird far back; the sub and the keys' figure held off
+  { id: 'drone-in-the-field', place: FIELD,
+    technique: Object.freeze({ kind: 'conversation', row: 'drone-in-the-field', priority: 1, foreground: true, noiseGlue: false,
+      silences: Object.freeze(['bassline', 'figure']), level: Object.freeze({ targetLufs: FIELD_TARGET_LUFS, measuredLufs: FIELD_MEASURED_LUFS }),
+      harmony: Object.freeze({ cycles: Object.freeze([{ degrees: [0], every: 16, loop: 16, voicing: 'fifths', w: 2 }, { degrees: [0], every: 16, loop: 16, voicing: 'cluster', w: 1 }]) }),
+      form: FIELD_FORM, bed: Object.freeze({ wavePad: 1 }), bedDb: -4, needs: Object.freeze(['no-kit'] as const) }) },
   ...[FAST_BROKEN, FAST_BROKEN_DEEP, BROKEN_DRIVING, DEEP_STILL, DEEP_HALF, SLOW_WET, DRIVING_FOUR, BRIGHT_FOUR, HIGH_FOUR, FLOATING, HELD_DRONE,
     LIQUID_CENTRE, LIQUID_ISLANDS, LIQUID_ROLLER, LIQUID_BROKEN]
     .map((place, i) => ({ id: `no-conversation-${i + 1}`, place })),
@@ -1509,9 +1591,12 @@ const hookAt = (place: Place, picks: Readonly<Record<string, number>>) => Object
 export const HOOK: readonly HookEntry[] = Object.freeze([
   // each tile's own mix of his five picks (trance-2): Trance the gallop and the dark one, Hard Trance the dark gallop,
   // Uplifting Trance the bright one; the birds lean it about the tile (Gleam, Loom and Tide, Veil and Spark)
-  { id: 'saw-corner', place: SAW_CORNER, technique: hookAt(SAW_CORNER, { gallop: 0.25, 'gated-chords': 0.15, 'gallop-dark': 0.4, 'gallop-sparse': 0.15, 'gallop-bright': 0.05 }) },
-  { id: 'saw-corner-dark', place: SAW_DARK, technique: hookAt(SAW_DARK, { 'gallop-dark': 0.55, gallop: 0.2, 'gated-chords': 0.1, 'gallop-sparse': 0.1, 'gallop-bright': 0.02 }) },
-  { id: 'saw-corner-bright', place: SAW_BRIGHT, technique: hookAt(SAW_BRIGHT, { 'gallop-bright': 0.45, 'gallop-sparse': 0.3, gallop: 0.15, 'gated-chords': 0.1 }) },
+  // (pass 2 of trance-drawn, his ear 11-04 on a bright gallop at the dark tile: *"it's one to one of what we mined
+  // originally … not very pleasant to me personally"*; the gated chords, the gallop, the dark and the sparse ones "well
+  // rounded"): the bright gallop, the measured chop at its most open, drawn less everywhere, never removed
+  { id: 'saw-corner', place: SAW_CORNER, technique: hookAt(SAW_CORNER, { gallop: 0.25, 'gated-chords': 0.15, 'gallop-dark': 0.4, 'gallop-sparse': 0.15, 'gallop-bright': 0.02 }) },
+  { id: 'saw-corner-dark', place: SAW_DARK, technique: hookAt(SAW_DARK, { 'gallop-dark': 0.55, gallop: 0.2, 'gated-chords': 0.1, 'gallop-sparse': 0.1, 'gallop-bright': 0.008 }) },
+  { id: 'saw-corner-bright', place: SAW_BRIGHT, technique: hookAt(SAW_BRIGHT, { 'gallop-bright': 0.3, 'gallop-sparse': 0.38, gallop: 0.17, 'gated-chords': 0.15 }) },
   { id: 'the-high-four', place: HIGH_FOUR, technique: hookAt(HIGH_FOUR, { gallop: 0.3, 'gated-chords': 0.3, 'gallop-dark': 0.25, 'gallop-sparse': 0.15 }) },
   // the house's own share (the hook row's zone about the house) where the table reads the bright four
   { id: 'bright-four-home-zone', place: BRIGHT_FOUR, technique: Object.freeze({ kind: 'hook' as const, row: 'supersaw-hook', priority: 5, foreground: false, zone: Object.freeze({ share: 0 }), house: true }) },

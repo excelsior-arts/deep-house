@@ -14,3 +14,6 @@ __pycache__/
 mining/
 node_modules/
 tmp/
+# the promo films (11-03): the cut list is kept, the renders beside it are not
+promo/*/*
+!promo/*/reel.json

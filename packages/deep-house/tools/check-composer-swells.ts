@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  planTheme, programOf, interpretWants, pushCurve, generate, style, settings, v1, HOUSE, biasFor, swellsOf, spellVerdict, sweepsOf, v2, houseTables, leadInStyle, leadInsOf,
+  planTheme, programOf, interpretWants, pushCurve, generate, style, settings, v1, HOUSE, biasFor, swellsOf, spellVerdict, sweepsOf, v2, houseTables, leadInStyle, leadInsOf, isWindEvent,
 } from './check-composer-common.ts';
 import type { Arrangement, Section, Plan } from './check-composer-common.ts';
 import { HELD_BLOCK_ROWS, isBlock } from '../src/held-block.ts';
@@ -22,7 +22,8 @@ test('R34: the palette biases the lead-in and never gates it: a dry or tight the
       const risen = r.kind === 'riser' || r.kind === 'swell-long';
       // the second of two returns alternates away from a rise whatever it earned
       const free = i === 0 || !['riser', 'swell-long'].includes(all[i - 1].kind);
-      if (r.contrast === 1 && r.gained >= 5 && free && r.s.bars > 4) { loud++; if (risen) { loudRisen++; quiet.push(r.rise!.p.gain!); } }
+      // (the wind as the riser stands at or under the step, its ceiling's: round wind)
+      if (r.contrast === 1 && r.gained >= 5 && free && r.s.bars > 4) { loud++; if (risen) { loudRisen++; quiet.push(isWindEvent(r.rise!) && r.rise!.p.gain! <= .5 + 1e-9 ? .5 : r.rise!.p.gain!); } }
       if (r.gained <= 3) { modest++; if (risen) modestRisen++; }
     });
   }
@@ -319,7 +320,18 @@ test('S2: over seeds and spells a sweep is laid only where its gates let it, one
         if (m.kind === 'breath') for (let b = m.bar; b < m.bar + m.bars; b++) assert.ok(!t.timeline[b].layers.includes('kick'), `${at}: a breath over the kick`);
       });
       const lines = programOf(t).automation.filter(l => l.param.startsWith('sweep'));
-      assert.equal(lines.length, (laid.some(m => m.stage === 'hp') ? 3 : 0) + (laid.some(m => m.stage === 'lp') ? 3 : 0), `${at}: a stage built with no move on it`);
+      // The low-pass stage has a second owner since round top-form (T02, the break slopes): a breakdown's close of the
+      // harmony is carried by it (`carry`), so with no laid low-pass move its lines are the carry's, moving only inside breakdowns.
+      const lp = lines.filter(l => l.param.startsWith('sweep.lp'));
+      assert.equal(lines.length - lp.length, laid.some(m => m.stage === 'hp') ? 3 : 0, `${at}: a high-pass stage built with no move on it`);
+      if (laid.some(m => m.stage === 'lp')) assert.equal(lp.length, 3, `${at}: a low-pass move with no stage`);
+      else if (lp.length) {
+        assert.equal(lp.length, 3, `${at}: a carry's stage is three lines`);
+        // heard only where engaged: the wet rises a crossfade (under a tenth of a bar) before the break's line and falls at its end
+        const wet = lp.find(l => l.param === 'sweep.lp.wet.gain')!.points, edge = 0.1 * t.barSeconds;
+        const breaks = t.arrangement.sections.filter(s => s.kind === 'breakdown').map(s => [s.startBar * t.barSeconds, (s.startBar + s.bars) * t.barSeconds]);
+        assert.ok(wet.filter(p => p.value > 1e-6).every(p => breaks.some(([a, z]) => p.t >= a - edge && p.t <= z + edge)), `${at}: a low-pass stage built with no move on it (engaged outside a breakdown)`);
+      }
     }
   });
   // Measured 09-25 over seeds 1-30 x 3: the house sweeps now and then, the ambient spell more, a driving kick never.

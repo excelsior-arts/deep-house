@@ -65,3 +65,46 @@ export function beatOf(track: BeatTrack, events: readonly BeatEvent[], bpm: numb
   const tempo = Math.max(0, Math.min(1, (felt - lo) / (hi - lo)));
   return { value: +(tempo * drums).toFixed(3), felt: +felt.toFixed(1), tempo: +tempo.toFixed(3), drums: +drums.toFixed(3) };
 }
+
+/**
+ * **The pulse a fast theme is felt at, read off its drums** (round dark-fronts, the tenth pass; his word 11-04: *"they
+ * have fast bpm, but fundamentally they are slow … 140 BPM of trance does feel fast, but 145 of chillstep or 170 of
+ * liquid DnB actually should be divided by two for real BPM perception"*). Never a name: a kick on every beat feels the
+ * written tempo (trance, the four on the floor, at any speed); a backbeat that lands once a bar (the snare on three) over
+ * a kick that leaves beats empty, or a broken beat past `fastFrom` whose snare a listener counts on two and four of a
+ * bar twice as long, feels half. Under `leastBpm` nothing halves (a slow backbeat on three is still the written pulse).
+ * Read over the grooves (the mains and the drops; the whole theme where it has none), as `beatOf` reads them.
+ */
+export const HALF_TIME = Object.freeze({ leastBpm: BEAT_LED_TEMPO[1], kicksAtMost: 2.5, backbeatsAtMost: 1.25, onThree: 0.5, fastFrom: 156 });
+export interface FeltPulse { half: boolean; felt: number; kicksPerBar: number; backbeatsPerBar: number;
+  /** the share of the backbeat's hits that land on the bar's third beat */
+  onThree: number }
+export function feltPulseOf(track: BeatTrack, events: ReadonlyArray<BeatEvent & { layer?: string; step?: number }>, bpm: number): FeltPulse {
+  const bs = track.barSeconds;
+  const S = track.arrangement?.sections ?? [];
+  const groove = S.filter((s) => s.kind === 'main' || s.kind === 'drop');
+  const spans = (groove.length ? groove : S).map((s) => [s.startBar * bs, (s.startBar + s.bars) * bs] as const);
+  const bars = Math.max(1, spans.reduce((a, [x, y]) => a + Math.round((y - x) / bs), 0));
+  let kicks = 0, backs = 0, three = 0;
+  for (const e of events) {
+    const bus = e.bus ?? ((e.voice && VOICE_BUS[e.voice]) || 'melodic');
+    const lane = e.layer ?? '';
+    if (!spans.some(([x, y]) => e.t >= x && e.t < y)) continue;
+    if (bus === 'kick' || lane === 'kick') { kicks++; continue; }
+    const back = lane === 'clap' || /clap|snare|rim/i.test(e.voice ?? '');
+    if (back && !/ghost/i.test(e.voice ?? '')) {
+      backs++;
+      const step = e.step ?? Math.round(((e.t / bs) % 1) * 16);
+      if (step >= 7 && step <= 9) three++;
+    }
+  }
+  const kpb = kicks / bars, bpb = backs / bars, on3 = backs ? three / backs : 0;
+  // the snare is what a listener counts: once a bar on three it halves the pulse whatever the kick does under it (the
+  // deep half-time groove with a driving kick); where it is absent or on two and four, a kick that leaves beats empty
+  // halves it only with a sparse backbeat, or past `fastFrom` (the broken beat a listener counts at half)
+  const H = HALF_TIME;
+  const half = track.clock !== 'free' && bpm >= H.leastBpm && (
+    (bpb > 0.5 && bpb <= H.backbeatsAtMost && on3 >= H.onThree)
+    || (kpb <= H.kicksAtMost && (bpb <= H.backbeatsAtMost || bpm >= H.fastFrom)));
+  return { half, felt: +(half ? bpm / 2 : bpm).toFixed(1), kicksPerBar: +kpb.toFixed(2), backbeatsPerBar: +bpb.toFixed(2), onThree: +(backs ? three / backs : 0).toFixed(2) };
+}

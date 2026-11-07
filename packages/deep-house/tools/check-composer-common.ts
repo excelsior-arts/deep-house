@@ -12,6 +12,7 @@
 // policy, the organ rule) or by a switch (`sectionEdges`, and round (g)'s
 // `sectionPhrases` and `leadIns`), and the golden and program digests hold v1
 // byte for byte.
+import { isWindEvent } from '../src/wind.ts';
 import { planTheme } from './composer-plans.ts';
 import Rng from '../src/rng.ts';
 import { programOf, seamPlan, blendAsked } from '../src/performance.ts';
@@ -48,11 +49,16 @@ export const pcIn = (t: Plan, midi: number) => t.key.scale.includes(((midi - t.k
 // and the fall is the bar before it (0.45, one bar).
 export const RHYTHM_GATES = ['kick', 'hatClosed', 'hatOpen', 'sixteenths', 'clap', 'bass'];
 export function leadInsOf(t: Plan) {
-  const bs = t.barSeconds, glue = t.events.filter(e => (e.role === 'texture' || e.layer === 'fx') && e.p.gain !== undefined);
+  // (the glue: since the top-voices-2 integration (11-02) the top's quiet voices lay air on the fx layer, a bed that
+  // fades in where the top opens and a held hiss over a break's last bars; they are the top's (`by: top-voices/...`), no
+  // lead-in, and R34 holds the hiss apart: it never shares a return a lead-in of the glue's leads)
+  const bs = t.barSeconds, glue = t.events.filter(e => (e.role === 'texture' || e.layer === 'fx') && e.p.gain !== undefined && !String(e.by ?? '').startsWith('top-voices/'));
   const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
   const played = new Set(t.timeline.flatMap(r => r.layers.filter(l => RHYTHM_GATES.includes(l))));
   const secs = t.arrangement.sections;
-  const risers = glue.filter(e => e.p.dur && e.p.dur >= bs - 1e-9 && [0.35, 0.5, 0.65].includes(e.p.gain!) && secs.some(x => x.startBar > 0 && near(e.t + e.p.dur!, x.startBar * bs)));
+  // (the wind as the riser, round wind: its level is its ceiling's against the mix, at or under the rule's step, so it is
+  // read by its shape, a rise ending on the line, and not by its gain; `isWindEvent`)
+  const risers = glue.filter(e => e.p.dur && e.p.dur >= bs - 1e-9 && !e.p.arrive && ([0.35, 0.5, 0.65].includes(e.p.gain!) || isWindEvent(e)) && secs.some(x => x.startBar > 0 && near(e.t + e.p.dur!, x.startBar * bs)));
   const returns = secs.flatMap((s, i) => {
     const next = secs[i + 1];
     if (!next || !['drop', 'main'].includes(next.kind) || s.phrases.at(-1)!.layers.kick) return [];
@@ -72,6 +78,7 @@ export function leadInsOf(t: Plan) {
 }
 
 export {
+  isWindEvent,
   planTheme,
   Rng,
   programOf,

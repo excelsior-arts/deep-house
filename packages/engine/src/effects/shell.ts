@@ -23,6 +23,7 @@
 // the rest.
 
 import { line } from '../ramp.ts';
+import { cutAndHold } from '../graph-scope.ts';
 
 /**
  * Is this a render rather than a device? An OfflineAudioContext has
@@ -273,11 +274,8 @@ export function shell(ctx: BaseAudioContext, { mix = 1, tail = 0 }: ShellOptions
       }
       if (isOffline(ctx)) return;
       const wait = Math.max(0, end - ctx.currentTime) * 1000 + 50;
-      const letGo = () => {
-        for (const n of nodes) {
-          try { n.disconnect(); } catch (e) { /* already gone */ }
-        }
-      };
+      // cut, then held a while (round crash-resume, `graph-scope.ts`)
+      const letGo = () => cutAndHold(nodes);
       if (typeof setTimeout === 'function') setTimeout(letGo, wait);
       else letGo();
     },

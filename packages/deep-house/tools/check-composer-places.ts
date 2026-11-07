@@ -463,7 +463,16 @@ test('GA6: the mids and highs — a held lead over the high four, a climbing plu
 test('GA6: the kitchen\'s voices play where a place names them and nowhere else — the sine line at the fast broken place, the driven bass at the broken drive, the resonant line at the driving four, the shimmer holding where it floats, the wide saw holding at the high four, the struck organ on the stab at the bright four — each a swap on a lane that already plays a voice as dear, in no list the registry widens, never at the house or under 27191\'s spell; the echo counts as a spatial return', async () => {
   const { BY_PLACE, AWAITING } = await import('../src/catalogue-v2.ts');
   const { costOfVoices, BY_NAME } = await import('@deep-house/engine/voices');
-  const kitchen = BY_PLACE.map(e => e.id);
+  // Restated at the top-voices-2 integration (11-02): the top's quiet voices (`src/top-voices.ts`, his ear 11-02) are
+  // BY_PLACE rows too, but no kitchen swap: the house's own place names them (its top list's word `voices`), so they
+  // play at the house by design. They are held apart below: at the house and anywhere else only the top's planner lays
+  // them (`by: top-voices/...`), and never under 27191's spell.
+  const { TOP_VOICES } = await import('../src/top-voices.ts');
+  // (the rows of the top's own: the BY_PLACE ones; the rim and the woodblock it borrows are other lanes' too)
+  const topRows = new Set(Object.values(TOP_VOICES.voices).flatMap((v: any) => v.rows.flatMap((r: any) => [r.v, ...(r.ring ? [r.ring.v] : [])]))
+    .filter((id: string) => BY_PLACE.some(e => e.id === id)));
+  const byTop = (e: any) => String(e.by ?? '').startsWith('top-voices/');
+  const kitchen = BY_PLACE.map(e => e.id).filter(id => !topRows.has(id));
   const at = (birds: object) => ({ ...HOUSE, ...birds });
   // A place's own set beyond the one voice measured: the fast broken place
   // plays its deep reese where Root is up (DNB-1) and its tight kick and dry
@@ -493,6 +502,7 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
     for (let seed = 1; seed <= 8; seed++) {
       const t = planTheme(seed, 1, { strategy: 'house-v2', spell: at(birds), library: [] });
       const heard = new Set(t.events.map(e => e.voice));
+      for (const e of t.events) if (topRows.has(e.voice)) assert.ok(byTop(e), `${name} ${seed}: ${e.voice} played by no top planner`);
       if (heard.has(voice)) on++;
       // one place, one of the kitchen's voices per lane it swaps
       for (const k of kitchen) if (k !== voice && !(own[name] ?? []).includes(k) && heard.has(k)) {
@@ -508,13 +518,16 @@ test('GA6: the kitchen\'s voices play where a place names them and nowhere else 
     assert.ok(costOfVoices([voice]) <= costOfVoices([lane]), `${voice} costs more than ${lane}`);
   }
   // in no list the registry widens: every candidate list and timbre list of house-v2
-  for (const c of (style.candidates as any[])) for (const e of c.list()) assert.ok(!kitchen.includes(String(e.v ?? e)), `${c.id} names ${e.v ?? e}`);
-  assert.ok(AWAITING.some(a => a.id === 'siren'), 'the siren has a lane of its own it could take, and none was written');
+  // (the top's own rows with them: a planner plays them, no list)
+  for (const c of (style.candidates as any[])) for (const e of c.list()) assert.ok(!kitchen.includes(String(e.v ?? e)) && !topRows.has(String(e.v ?? e)), `${c.id} names ${e.v ?? e}`);
+  // the siren waited for a lane of its own; since ambient-field (10-31) FIELD's row writes its chirps, a place's and no list's
+  assert.ok(AWAITING.some(a => a.id === 'siren') || BY_PLACE.some(a => a.id === 'siren'), 'the siren has a lane of its own it could take, and none was written');
   // never at the house, at any tempo, or under 27191's spell
   const bench = { ...HOUSE, ember: 0.14, gleam: 0, veil: 0.34, spark: 0, loom: 0.81 };
   for (const spell of [HOUSE, bench]) for (let seed = 1; seed <= 10; seed++) for (const n of [0, 1, 2]) {
     const t = planTheme(seed, n, { strategy: 'house-v2', spell, library: [] });
     for (const e of t.events) assert.ok(!kitchen.includes(e.voice) && !e.p?.echo, `seed ${seed}#${n}: ${e.voice} at the house's birds`);
+    for (const e of t.events) if (topRows.has(e.voice)) assert.ok(spell === HOUSE && byTop(e), `seed ${seed}#${n}: ${e.voice} ${spell === HOUSE ? 'played by no top planner' : 'under 27191\'s spell'}`);
   }
   // a swapped bass is the lane's, so the faster family's lighter bass leans it
   {

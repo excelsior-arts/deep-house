@@ -26,7 +26,7 @@
 // somebody moves rather than a walk written when the note starts. The
 // arithmetic of holding is `held.ts`'s and is not written twice.
 
-import { midiToHz, adsrEnv, route, panner, phasedLfo, noiseSource, noiseBuffer, startTime, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR } from '../dsp.ts';
+import { midiToHz, adsrEnv, route, panner, phasedLfo, noiseSource, noiseBuffer, startTime, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR, fanned } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import type { Settings } from '../settings.ts';
 import { insert } from './treat.ts';
@@ -159,7 +159,14 @@ export function formantBody(
   nodes.push(src);
 
   const bands: { bp: BiquadFilterNode; from: number; to: number; pan: StereoPannerNode; side: number }[] = [];
-  const pans = [-0.55, 0.1, 0.5];
+  // **The loudest formant nearest the middle** (round stereo-room, the audit's 5.2): the three bands were seated at
+  // -0.55 / +0.10 / +0.50 whatever their levels, so where the first was the loudest (1 / 0.5 / 0.26 on the house's
+  // row) the chord band stood 6.7 dB in the left ear. Seated by level instead: the loudest in the middle, the next
+  // to one side and the quietest further to the other, so the voice sums within a decibel of the centre and keeps
+  // its spread.
+  const SEATS = [0, -0.35, 0.5];
+  const rank = [0, 1, 2].sort((a, b) => F.formantLevel[b] - F.formantLevel[a] || a - b);
+  const pans = [0, 1, 2].map((i) => SEATS[rank.indexOf(i)]);
   for (let i = 0; i < 3; i++) {
     const bp = ctx.createBiquadFilter();
     bp.type = 'bandpass';
@@ -224,7 +231,13 @@ export function formantBody(
     if (vibrato) vibrato.connect(o.detune);
     // The outer voices wander, so the width breathes: the same drift the
     // ensemble has, at the space table's own rate.
-    o.connect(src);
+    // (round stereo-room) ...and the two stand a little apart, one to each side, so every formant is two ears of
+    // the same breath and the voice's width is its own ensemble's, in the middle: where the loudest formant stood
+    // off to one side, it now stands in the middle and keeps its width. Their mono sum is the one it always was.
+    const seat = panner(ctx, side * fanned(spread));
+    o.connect(seat);
+    seat.connect(src);
+    nodes.push(seat);
     o.start(time);
     sources.push(o);
     voices.push({ o, side });

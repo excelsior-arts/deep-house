@@ -40,7 +40,7 @@
 // left there by EQ-2 when the corner opened to 2.2), the three knobs' measured
 // defaults and slopes — is the rows' now, beside the numbers it describes.
 
-import { midiToHz, adsrEnv, route, panner, phasedLfo, startTime, noiseSource, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR } from '../dsp.ts';
+import { midiToHz, adsrEnv, route, panner, phasedLfo, startTime, noiseSource, MIN_RELEASE, GAIN_FLOOR, CUTOFF_FLOOR, lowFan } from '../dsp.ts';
 import type { VoiceOut } from '../dsp.ts';
 import { insert, pair, rampFrequency } from './treat.ts';
 import { knobScale } from './descriptor.ts';
@@ -54,6 +54,7 @@ import { centsOf, liveArmed, liveOf, side } from './live.ts';
 import type { SoundRow, Topology } from './sound.ts';
 import type { PatchOf } from './schema.ts';
 import { bool, contract, inUnit, int, list, num, table, word, CENTS, HZ, LEVEL, LFO_HZ, PAN, Q, SECONDS, UNIT, WAIT } from './schema.ts';
+import { cutAndHold } from '../graph-scope.ts';
 
 /**
  * What a strings row carries (`schema.ts`): the ensemble's body, the breath a
@@ -177,7 +178,7 @@ function strings(
     lfo.stop(end + 0.05);
     // MEASURED: everything under 300 Hz is close to mono, so the low voices of
     // a chord keep their spread to themselves.
-    const pn = panner(ctx, pan * spread * (hz > 300 ? 1 : 0.35));
+    const pn = panner(ctx, pan * spread * lowFan(hz));
     const wet = ctx.createGain();
     wet.gain.value = S.ensembleWet;
     ensIn.push(dl);
@@ -291,7 +292,7 @@ function strings(
     o.detune.value = k * S.detuneCents;
     vibDepth.connect(o.detune);
     if (i !== mid) (k < 0 ? driftNeg : driftDepth).connect(o.detune);
-    const pan = panner(ctx, k * spread * 0.6 * (hz > 300 ? 1 : 0.3));
+    const pan = panner(ctx, k * spread * 0.6 * lowFan(hz));
     o.connect(pan);
     pan.connect(level);
     o.start(time);
@@ -341,8 +342,8 @@ function strings(
       .on('octaveLevel', (v) => { cur.octave = v; return [[octG.gain, cur.voiceLevel * v * top]]; })
       .on('detuneCents', (v) => section.map(({ o, k }) => [o.detune, k * v] as [AudioParam, number]))
       .on('spread', (v) => (ownSpread ? [] : [
-        ...section.map(({ pan, k }) => [pan.pan, side(k * width(v) * 0.6 * (hz > 300 ? 1 : 0.3))] as [AudioParam, number]),
-        ...sides.map(({ pn, pan }) => [pn.pan, side(pan * width(v) * (hz > 300 ? 1 : 0.35))] as [AudioParam, number]),
+        ...section.map(({ pan, k }) => [pan.pan, side(k * width(v) * 0.6 * lowFan(hz))] as [AudioParam, number]),
+        ...sides.map(({ pn, pan }) => [pn.pan, side(pan * width(v) * lowFan(hz))] as [AudioParam, number]),
       ]))
       .on('vibratoHz', (v) => [[vib.frequency, v]])
       // the depth arrives after the attack, as the note wrote it: a move before then lands there
@@ -463,7 +464,7 @@ export function holdStrings(
     lfo.connect(depth);
     depth.connect(dl.delayTime);
     lfo.start(time);
-    const pn = panner(ctx, pan * spread * (hz > 300 ? 1 : 0.35));
+    const pn = panner(ctx, pan * spread * lowFan(hz));
     const wet = ctx.createGain();
     wet.gain.value = S.ensembleWet;
     ensIn.push(dl);
@@ -515,7 +516,7 @@ export function holdStrings(
     o.frequency.value = hz;
     o.detune.value = k * S.detuneCents;
     if (i !== mid) (k < 0 ? driftNeg : driftDepth).connect(o.detune);
-    const pan = panner(ctx, k * spread * 0.6 * (hz > 300 ? 1 : 0.3));
+    const pan = panner(ctx, k * spread * 0.6 * lowFan(hz));
     o.connect(pan);
     pan.connect(voiceLevel);
     o.start(time);
@@ -604,9 +605,8 @@ export function holdStrings(
       for (const s of sources) {
         try { s.stop(); } catch (e) { /* already stopped, or never started */ }
       }
-      for (const node of [...nodes, ...sources]) {
-        try { node.disconnect(); } catch (e) { /* already gone */ }
-      }
+      // cut, then held a while (round crash-resume, `graph-scope.ts`)
+      cutAndHold([...nodes, ...sources]);
     },
   };
   return held;

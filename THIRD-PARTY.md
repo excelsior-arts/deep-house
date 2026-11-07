@@ -3,19 +3,20 @@
 Nothing you can hear.
 
 The [licence](LICENSE) covers what was made here. **No framework, no library,
-no sample and no network call is anywhere near the sound or the ring**, and one
-font file is near the ring's words and nowhere else (below): every import under either package's `src/` that the ring's page reaches
+no sample and no network call is anywhere near the sound or the ring**, and two
+faces are near the ring's words and nowhere else (below): every import under either package's `src/` that the ring's page reaches
 is a path to another file in this repository — a relative one, or the name of
 the other package in this same workspace — and the only outside thing the music
 uses is the Web Audio API the browser already has. Every sound you hear is built
 at runtime out of oscillators and generated noise, the reverb's impulse
 included.
 
-## One face, for the page's type
+## Two faces, for the page's type
 
 | what | licence | where it is |
 |---|---|---|
-| [Jost](https://github.com/indestructible-type/Jost) 3.710, by indestructible type | [SIL Open Font License 1.1](public/fonts/OFL.txt) | `public/fonts/jost.woff2`, the page's one face; its outlines are also the wordmark |
+| [Jost](https://github.com/indestructible-type/Jost) 3.710, by indestructible type | [SIL Open Font License 1.1](public/fonts/OFL.txt) | `public/fonts/jost.woff2`, the page's face; its outlines are also the wordmark |
+| [M PLUS 1](https://github.com/coz-m/MPLUS_FONTS), by the M+ FONTS Project | [SIL Open Font License 1.1](public/fonts/OFL-MPLUS1.txt) | `public/fonts/ja-400.woff2`, `public/fonts/ja-450.woff2`, the kana and kanji of the Japanese page |
 
 The file is Jost's variable font cut to what the page reaches — the weight axis
 from 400 to 500 and the Latin range — and nothing else is changed in it; the
@@ -25,6 +26,12 @@ file: no font service is asked for anything. The wordmark
 (`public/wordmark.svg`, `public/wordmark-logo.svg`) is DEEP HOUSE drawn from
 Jost Medium's outlines and spaced by hand, which the OFL allows of any
 document made with the font.
+
+M PLUS 1 is used only where the page speaks Japanese, for the characters Jost has
+none of. Its variable font is set at two weights and cut to the characters the
+page's Japanese words use (`packages/deep-house/tools/ja-font-cut.py`), and
+nothing else is changed in it; its licence travels beside it as
+`fonts/OFL-MPLUS1.txt`.
 
 ## Two, in the machine view, and nowhere else
 

@@ -12,6 +12,11 @@ import {BY_NAME} from '@deep-house/engine/voices';
 const family=e=>BY_NAME[e.voice].family,drum=e=>!!e.part&&family(e)==='drum';
 import {blessed,fixture,hashOf,rowNamed} from './fixtures/programs.ts';
 const recipe=fixture('hand-tone-08'),opts={strategy:'house-v2',spell:HOUSE,accompaniment:'auto',development:'percussion'};
+// The stab's phrase (its calls, answers and close), whose level its ceiling sets against the mix section by section
+// since round stab-punch (merged 11-04, approved; `stabCeiling` in src/set-plan.ts): a hand colour or phrase that moves
+// the mix moves the phrase's level, never its hits, as the hats' ceiling does. Its gain is read apart (restated 11-05).
+const PHRASE=new Set(['call','answer','close']);
+const unpunched=(t,events)=>events.map(e=>PHRASE.has(t.events[e.i]?.punch)?{...e,p:{...e.p,gain:undefined}}:e);
 
 test('current percussion programs lock the catalogue adoption with the approved chord score',()=>{
   for(const name of ['calm-piano-02/percussion/6','pump/percussion/4','ringing-chords-01/percussion/4'])
@@ -24,8 +29,8 @@ test('nine colours preserve every onset and the backing while targeting only the
     const r=structuredClone(recipe);r.wants.rhythm.sixteenth[1].character=character;
     const t=planTheme('4',0,{...opts,recipe:r}),p=programOf(t);
     assert.deepEqual(p,programOf(planTheme('4',0,{...opts,recipe:r})));
-    const normalize=p=>({...p,events:p.events.map(e=>!drum(e)?e:{...e,p:{vel:e.p.vel,pan:e.p.pan}})});
-    if(baseline)assert.deepEqual(normalize(p),normalize(baseline));else baseline=p;
+    const normalize=(p,t)=>({...p,events:unpunched(t,p.events).map(e=>!drum(e)?e:{...e,p:{vel:e.p.vel,pan:e.p.pan}})});
+    if(baseline)assert.deepEqual(normalize(p,t),normalize(baseline.p,baseline.t));else baseline={p,t};
     const hits=p.events.filter(drum);assert.ok(hits.length>20);
     assert.ok(p.events.some(e=>e.part===recipe.id&&family(e)==='noise'));
     assert.ok(hits.every(e=>e.p.gain>0&&Number.isFinite(e.p.gain)));
@@ -61,13 +66,13 @@ test('phrases contain quiet touches, displaced body notes, short runs and whole-
   let backing,trim;
   for(const r of phrases){
     const part=r.wants.rhythm.sixteenth[1],p=programOf(planTheme('4',0,{...opts,recipe:r}));
-    const rest=p.events.filter(e=>e.layer!=='shaker').map(({i,...e})=>e);
-    if(backing)assert.deepEqual(rest,backing);else backing=rest;
     // One backing, but not one trim: since the 09-22 refit house-v2's headroom
     // reads the hand rows' rate (`rateShaker`), so a busier phrase may be
     // levelled lower. What holds is that the program carries the plan's own
     // trim, and that the phrases move it by no more than a decibel.
     const t=planTheme('4',0,{...opts,recipe:r});
+    const rest=unpunched(t,p.events.filter(e=>e.layer!=='shaker')).map(({i,...e})=>e);
+    if(backing)assert.deepEqual(rest,backing);else backing=rest;
     assert.equal(p.trimDb,loudnessTrimDb(t,t.style));
     if(trim===undefined)trim=p.trimDb;else assert.ok(Math.abs(p.trimDb-trim)<=1,`${r.id} trims ${p.trimDb} against ${trim}`);
     assert.ok(Number.isFinite(p.trimDb));

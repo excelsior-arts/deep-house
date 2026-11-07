@@ -1,0 +1,235 @@
+{
+ "schema": 1,
+ "kind": "arrangement-dark-fronts",
+ "round": "dark-fronts",
+ "revision": 8,
+ "note": "The front in the dark, bass-led places (his ear 11-03 on two pages of sketches: the stabs off the mood; the crushed pluck, the formant call as long curves and the swelling noise-saw chords approved; the dark bell as hints only, 'overdoing it steals the vibe'). Where a place turned the roles round (the reese carries the sub, the kick the rhythm), from `leastBpm` up, the theme's front lane is written here. Who leads the drop follows the beat: where the kick falls under `halfTimeKicks` times a bar through the drops (half-time, the backbeat on three) the bar has room between the bass's hits and the pluck plays in it, its sparse call answering the bass's re-strike under `callUnderLoom` and its short figure at or over it; where the kick is on the beats and the reese holds under it there is no room, and the front holds chords that swell in and open. A main section holds its lead back `mainFrom` bars. The call plays long gliding curves over the build's last eight bars and through every breakdown; where the pluck leads, it trades with the pluck in some drop segments (`trade`: the second half of every other 16-bar block, two bars each, never together). The bell plays hints only, and only where the air (Zephyr and Gleam, `(zephyr + gleam) / 0.8`) reaches `hintAir`: `hintNotes` in the breaths of the second breakdown, or of the one breakdown where the air reaches `oneBreakAir`, its lid darker with less air (`lid`); one throw at most, into the last drop a breakdown leads into, where the air reaches `throwAir` (over the region's themes about one in three; the darker two thirds none). The front's gain on the keys lane is `gain`. Every number is a starting point for listening. Fourth pass (his ear 11-03 on the whole tracks: the call 'sinking behind other synths', the bells 'too loud', and Vibe - Undertow's piano missed): the call, the pluck and the chords carry a presence (`lift`: a floor at 300 Hz clearing the low-mids the reese and the pad fill, a bell at 2.6 kHz), the bell's hints and throw sit `bellDb` under the front, and where today's front in the drops is a piano (`keepLead`, by its topology) playing at least `keepLeadPerBar` notes a bar there, the piano stays the drop's lead: the call joins in the build's last eight bars and the breaks, the chords only where their register stands `swellBesideLead` semitones clear of the piano's. Fifth pass (his ear 11-03 on the live app: 'bells still too loud'): the bell's hints and throw 12 dB under the front (`bellDb`), half as many hints a break (`hintNotes` 1 to 2), and the bell's row struck softer and darker (a slower attack, a smaller index), a shimmer behind the music, not a strike. The throw 18 dB under the front (`throwDb`): at the hints' 12 its reverb still stood level with the call. Sixth pass (his ear 11-03 on Drive - Cloudburst's next theme: 'this use of piano isn't great'; Vibe - Undertow's piano he likes): a piano is kept only when it is a line like Undertow's, measured on today's notes through the drops: the house's grand (`keepLead`, the piano topology; the bright piano is not kept), a note a bar or more, a range of `keepLeadRange` semitones or more, at most `keepLeadRepeat` of its bars the same as the one before, its median note at `keepLeadMedian` or over. Elsewhere the side the kick picks leads. Seventh pass (his ear 11-03 on the live app: Vibe - Undertow 'was a complete track … we don't really need the Call there either'; 'the rule is inserting it in every chillstep track'; 'Call sounds the best on breaks and lightweight segments'; swells over pads and the reese 'too many competing long-wave voices', but 'waves could stack, maybe for extra expression in drops'): a piano line like Undertow's leaves the theme whole; elsewhere each part is drawn by the theme's own die (`draw`): a share of themes keep today's front untouched, the pluck where the beat has room, the swells where no held pad sounds and, over one, only a drawn moment at a drop's peak (`momentBars`), the call only in drawn breaks and at a drawn build's end (never in a drop), the bell's hints and its throw each drawn; today's front keeps every bar no drawn part takes, unless it is a loop. Eighth pass (his ear 11-04 on the live app: the marimba's clean tone 'isn't a great fit', coloured instead by the birds with 'bitcrusher or other processing events'; the bells 'above mix … due to their bright nature and rest of mix is darker'; the call alone in a break 'interesting for a couple of seconds but gets a bit boring after 6-7 secs'): the accents are ground by where the birds stand (`colour`): the darker the air, the more of the tone is ground down (fewer bits, a lower held rate, more of the ground strike over the clean); the heavier the bass, the hotter the tape in front of the crush; the wider the room, the more the strike is smeared into grains; the crush closes over the last bars into a drop and opens after it, and over a break the tone comes up out of the grit and goes back into it, a still texture only at those seams, a shifting one breathing it every phrase (Veil). A marimba today's front keeps is played ground (`regrind`). Every accent's top sits at the bed's (`lid`: the plan's read of the pad and the bass above 3 kHz, the darker the bed the lower the lid). In a break the call plays two bars and rests two, and the ground marimba answers in its rests (`answer`), the eighth bar of each eight left to the bed. Ninth pass (his ear 11-04 on Drive - Cloudburst's next theme at Tide 0.9: the saw stab 'sounds fairly dry, hence a bit scratching the ear … what if we actually research on making it maximum wet on this Tide bird'; then 'max wet should be taken responsibly, maybe for known voices that we know will perform archetypically fine for the genre'): `wet`. Tide takes a voice no wetter than its own sound allows (the measured table `@deep-house/engine/voices/wet-fit`: it peaks at once, stops when released, has little under 200 Hz; and the theme's notes sit in the middle register) and the theme's die decides how far within that; far enough, a chord the rule swells is struck short instead, its repeats carrying the bars (the echo send: a dotted eighth fed back, darker each pass, ducked to the kick) and its room opening, now and then a phrase's last chord thrown; less far, the swells keep their shape and only their room opens. Low Tide plays as before. And the break (his ear 11-04 on his link's break: 'twice as long as needed for this kind of track … Call coolness in its situational appearance, and not prolonged variations'; 'when using Call voice having two separate breaks could be a great compromise'): `form`. The call makes one statement a break (`cameo`: its long curve over four bars, then gone), the ground marimba under the bed after it (`underDb`); a break the call plays that runs `splitFrom` bars or more becomes two short breaks with a groove passage of `passage` bars between them (the last groove's own bars, the track's length kept), the second a breather; a second statement in a track is shorter and answered; at most two a track. The last break before the final drop builds: the reese back under its second half, filtered and opening (`build`). `mode` `cut` instead shortens such a break to `cutTo` bars (the track shorter), for the A/B only. The same measure takes every other struck part the rule writes (the ground marimba in a break, under the bed), section by section as it plays there: short notes and few of them pass; its room and its repeats open by Tide; the pluck and the bell keep theirs. Tenth pass (his ear 11-04, pass 9 live: the groove passage between the two breaks 'doesn't have enough time to unfold with current bass wave and motif, it should be at least twice the size'; a section shorter than its phrase 'feels chopped'): the split is one piece with long-main's splice (`set-plan.ts`): the break's two pieces are whole phrases, the passage between them is planned by the generator as a groove of its own, long enough for the groove's material to come round `passage.cycles` times and never under `passage.phrases` phrases, and the theme grows where the break's own bars were too few. `mode` cut is gone. And a dark front moves by grit, not by pitch (his ear 11-04 on the saw stab: 'some modulation effects that make it cartoonish and diminish its darkness'): `movement`.",
+ "rows": [
+  {
+   "id": "dark-fronts",
+   "name": "the front where the bass leads",
+   "units": {
+    "says": "what each knob counts",
+    "leastBpm": "bpm",
+    "halfTimeKicks": "kicks a bar",
+    "callUnderLoom": "bird",
+    "mainFrom": "bars",
+    "hintNotes": "notes at no air and at full",
+    "oneBreakAir": "air",
+    "throwAir": "air",
+    "lid": "the bell's lid share at no air and at full",
+    "gain": "level",
+    "hintAir": "air",
+    "lift": "a floor in Hz under the front and a presence bell (Hz, dB, Q) on the call, the pluck and the chords",
+    "bellDb": "dB under the front, the bell's hints and its throw",
+    "keepLead": "the topologies whose front the rule keeps as the drop's lead",
+    "swellBesideLead": "semitones the chords stand clear of a kept lead's median, or they stay out",
+    "keepLeadPerBar": "the kept kind's notes a bar through the drops, at least, for it to lead (a sparser piano is a colour, and the row's lead takes the front)",
+    "throwDb": "dB under the front, the bell's one throw (its reverb carries it, so it sits under the hints)",
+    "keepLeadRange": "semitones, the kept piano's range through the drops, at least (a line that moves)",
+    "keepLeadRepeat": "share of its bars the same as the bar before, at most (no loop)",
+    "keepLeadMedian": "MIDI, its median note, at least (above the body of the reese and the pad)",
+    "draw": "the theme's own die (its seed): the share of themes left untouched (with a front today, and with none), the pluck drawn where the beat has room, a swell moment in a drop over a held pad and its bars, the call in each break and at the build's end, the bell's hints and its throw; and the share of today's front bars that repeat the bar before over which it counts as a loop and leaves",
+    "colour": "the accents' grind by the birds: `grind`, `bits`, `holdHz` from the lightest air to the darkest, `drive` from no bass weight to full, `smear` from a close room to a wide one; `event` the grind's move (`depth`), over how many bars at a still texture and a shifting one, and the share of phrases a shifting one breathes; `lid` the band-limit's corner at the reference bed's top, its move in octaves per `dbPerOctave` of the bed's, and its bounds; `makeupDb` the level a voice gets back for the top its lid takes (the pluck, measured: 2.7 dB quieter in his link's drop with the lid on)",
+    "answer": "the voice answering the call in a break, and the call's level there in dB",
+    "regrind": "today's front voices a coloured theme plays ground, and the ground voice",
+    "liftVoices": "which of the row's parts carry the presence (the pluck's top is the lid's now)",
+    "wet": "Tide's wetness: `tide` the Tide where it starts and where it is whole; `die` the share of the voice's ceiling a theme's die draws, its least and most; `sound` each of the voice's measured facts where it still passes whole and where it no longer passes at all (`onsetMs` to its loudest moment, `tail` its share sounding 0.6 s on, `low` its share under 200 Hz); `register` the notes' median MIDI band and how far past it the ceiling fades out; `dubFrom` the wetness from which a swelled chord is struck short; `strike` its length in sixteenths; `echo` and `reverb` the sends at the whole wetness; `throw` a phrase end's sends and the chance a phrase's last chord is thrown; `roomDelay` the send into the room's own line where the echo return does not fit the phone's budget; `played` how the notes are played in a section, each passing whole to its first number and not at all from its second: their median length in seconds and their onsets a bar; `frozen` the row's parts Tide never takes (his ear 11-04: the bells and the pluck's top 'got into their golden position, we can keep it'); `strikeDb` the struck chord's level over the swell's (the swell's notes sit 7 dB down for their length; a strike of a third of a second measured 4.5 dB under the swell's loudest moment and its echoes 12 dB under its body)",
+    "form": "the break's form: `splitFrom` the bars from which a break the call plays is split in two around a groove passage (each piece a whole phrase or more); `passage` the passage's least length, in phrases of the theme's own, in cycles of the groove's material (the front's figure, twice the bass's pattern) and in felt bars (twice the written at half-time, by the drums' own read), whichever is longest, rounded up to whole phrases; the theme grows where the break's bars are too few; `build` the reese's return under the last break's second half: its low-pass from `lp[0]` to `lp[1]` of its own corner, its level from `gainDb` up",
+    "underDb": "dB under the front, the ground marimba under the bed in a break",
+    "movement": "a dark front's movement, by the birds: the grit is `air` times the darkness of the air (one less Zephyr and Gleam over 0.8) plus `root` times Root, nought to one (the saw stab's own `p.grit`: the stack pulled tight, the strike's zap flattened, the crush and the drive up); a held chord's filter opens `openMul[0]` times its corner at no grit, `openMul[1]` at half, `openMul[2]` at full (under one, it closes); the call's wobble depth `wobble` at no grit, none at full"
+   },
+   "roles": [
+    "the-line-carries-the-sub"
+   ],
+   "leastBpm": 110,
+   "halfTimeKicks": 3,
+   "pluck": "crushPluck",
+   "swell": "sawStabDark",
+   "call": "formantCall",
+   "bell": "bellDark",
+   "callUnderLoom": 0.33,
+   "mainFrom": 8,
+   "hintNotes": [
+    1,
+    2
+   ],
+   "oneBreakAir": 0.6,
+   "throwAir": 0.6,
+   "lid": [
+    0.55,
+    1.0
+   ],
+   "gain": 0.85,
+   "hintAir": 0.4,
+   "lift": {
+    "hz": 2600,
+    "db": 4,
+    "q": 0.8,
+    "floorHz": 300
+   },
+   "bellDb": -12,
+   "keepLead": [
+    "piano"
+   ],
+   "swellBesideLead": 8,
+   "keepLeadPerBar": 1,
+   "throwDb": -18,
+   "keepLeadRange": 10,
+   "keepLeadRepeat": 0.25,
+   "keepLeadMedian": 64,
+   "draw": {
+    "untouched": 0.4,
+    "untouchedNoFront": 0.2,
+    "pluck": 0.75,
+    "swellMoment": 0.6,
+    "momentBars": 4,
+    "callBreak": 0.55,
+    "callBuild": 0.45,
+    "bell": 0.5,
+    "throw": 0.5,
+    "loops": 0.5
+   },
+   "colour": {
+    "voices": [
+     "crushPluck",
+     "marimbaGrit"
+    ],
+    "lidVoices": [
+     "crushPluck",
+     "marimbaGrit",
+     "bellDark"
+    ],
+    "grind": [
+     0.35,
+     0.85
+    ],
+    "bits": [
+     8,
+     4
+    ],
+    "holdHz": [
+     10000,
+     3500
+    ],
+    "drive": [
+     0.1,
+     0.7
+    ],
+    "smear": [
+     0,
+     0.6
+    ],
+    "event": {
+     "depth": 0.3,
+     "bars": [
+      4,
+      2
+     ],
+     "phrase": 1.0
+    },
+    "lid": {
+     "refHz": 2000,
+     "refTilt": -31.4,
+     "dbPerOctave": 10,
+     "least": 1200,
+     "most": 5000
+    },
+    "makeupDb": {
+     "crushPluck": 1.5
+    }
+   },
+   "regrind": {
+    "marimba": "marimbaGrit"
+   },
+   "answer": {
+    "voice": "marimbaGrit",
+    "callDb": -3
+   },
+   "liftVoices": [
+    "call",
+    "swell"
+   ],
+   "wet": {
+    "tide": [
+     0.6,
+     0.95
+    ],
+    "die": [
+     0.6,
+     1.0
+    ],
+    "sound": {
+     "onsetMs": [
+      40,
+      120
+     ],
+     "tail": [
+      0.05,
+      0.2
+     ],
+     "low": [
+      0.05,
+      0.2
+     ]
+    },
+    "register": [
+     50,
+     76,
+     12
+    ],
+    "dubFrom": 0.45,
+    "strike": 3,
+    "echo": 0.6,
+    "reverb": 0.55,
+    "throw": {
+     "echo": 0.95,
+     "reverb": 0.85,
+     "chance": 0.35
+    },
+    "roomDelay": 0.9,
+    "played": {
+     "lenS": [
+      0.6,
+      1.5
+     ],
+     "perBar": [
+      2.5,
+      5
+     ]
+    },
+    "frozen": [
+     "pluck",
+     "bell"
+    ],
+    "strikeDb": 6
+   },
+   "form": {
+    "splitFrom": 24,
+    "passage": {
+     "phrases": 1,
+     "cycles": 1,
+     "feltBars": 8
+    },
+    "build": {
+     "lp": [
+      0.12,
+      1
+     ],
+     "gainDb": -9
+    }
+   },
+   "underDb": -6,
+   "movement": {
+    "air": 0.5,
+    "root": 0.5,
+    "openMul": [
+     5,
+     1,
+     0.5
+    ],
+    "wobble": 0.08
+   }
+  }
+ ]
+}

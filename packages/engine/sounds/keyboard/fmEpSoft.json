@@ -2,7 +2,7 @@
   "schema": 1,
   "kind": "sound",
   "id": "fmEpSoft",
-  "revision": 1,
+  "revision": 2,
   "topology": "fm-key",
   "parameters": {
     "ratio": 1,
@@ -47,7 +47,8 @@
     "treat": true,
     "timbres": {},
     "dispatches": [],
-    "mood": []
+    "mood": [],
+    "edgeShare": 0.25
   },
   "provenance": {
     "module": "fm-keys.ts",
@@ -55,7 +56,8 @@
     "note": "A two-operator electric piano played soft: the index falls over 600 ms so the bark is velocity's and brief, the tine a tenth of the body, two carriers five cents apart for width.",
     "notes": {
       "copiedFrom": "fmEp, its numbers changed for a soft keys backdrop; held at nought (AWAITING) until a part admits it",
-      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row"
+      "timbres": "none declared yet: the loudness fit measures a timbre when a part admits the row",
+      "edgeShare": "A quarter of the edge (round ep-noise, his ear 11-05 at the trance corner: the edge's buzz on its near-sines \"a bit out of control\", and of four strengths, \"let's do number 2 (-12 dB)\"): its top over 2 kHz is all the edge's copy, so the copy stays, 12 dB down, 25 LU under the voice and 6 dB over its own 2-4 kHz."
     }
   }
 }

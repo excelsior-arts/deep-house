@@ -34,7 +34,7 @@ export const INK = {
   /** the one accent: the engine's own lines in the ledger, and a hand's focus */
   signal: '#4fc3f7',
   /**
-   * **The wiring is grey** (Eugene, 09-25: *"no acid blue lines — shades of
+   * **The wiring is grey** (his word, 09-25: *"no acid blue lines — shades of
    * grey for the wiring"*): the main path the lightest and heaviest, a signal
    * a step down, a send the faintest; a return and the sidechain are the
    * signal's grey, told apart by their dash.
@@ -48,7 +48,7 @@ export const INK = {
   /** a meter's LED that is not lit: there, and dark */
   ledOff: '#0e1a14',
   /**
-   * **The view's two inks for words** (M6, Eugene: *"if labels are goldish, all
+   * **The view's two inks for words** (M6, his word: *"if labels are goldish, all
    * value text should be more in the white domain"* — and *"the machine view
    * should not follow the ring's colour; it's a tech tool and should be
    * consistent"*): a name, a title or a label in the house gold, fixed; a value
@@ -62,7 +62,7 @@ export const INK = {
 } as const;
 
 /**
- * **One spacing scale for the whole view** (M5, Eugene: *"the layout needs
+ * **One spacing scale for the whole view** (M5, his word: *"the layout needs
  * better fine-tuning of paddings around boxes and buttons; some boxes touch
  * borders, it looks cheap"*): every gap, inset and padding in the drawing and
  * in the panes is one of these, in the drawing's units (a CSS pixel at scale 1).
@@ -76,7 +76,7 @@ export const INK = {
 export const SPACE = { hair: 4, s: 8, m: 12, l: 16, xl: 24 } as const;
 
 /**
- * **The density, by the width the view is seen at** (M6, Eugene: *"for mobile
+ * **The density, by the width the view is seen at** (M6, his word: *"for mobile
  * we compress all paddings to the most dense view, but on bigger screens give
  * it more space to fill the canvas proportionally"*). Two numbers:
  *
@@ -85,7 +85,7 @@ export const SPACE = { hair: 4, s: 8, m: 12, l: 16, xl: 24 } as const;
  *                the drawing, in pixels, is its phone value times g;
  *   the type     t(w) = 1 up to 1999 px and 1.25 from 2000, one step and no
  *                more: the size of a box and of a word, and the left column's
- *                (M8, Eugene: *"if I make the browser bigger I just want to see
+ *                (M8, his word: *"if I make the browser bigger I just want to see
  *                more of the machine blocks … only on super-big screens do we
  *                see a bigger left panel"*) — up to the break every pixel of
  *                width goes to the graph.
@@ -173,7 +173,7 @@ export const SHEET = `
 :root[data-view="machine"] #tilt { width: 100%; height: 100%; }
 
 /* The way in is the panel's corner key, and neither the gyroscope nor the
-   panel is seen in the view (M8, Eugene: *"the bottom-right icon going to the
+   panel is seen in the view (M8, his word: *"the bottom-right icon going to the
    machine view should be hidden in the machine view itself"*): the ways out
    are CLOSE in the toolbar under the ring (M13) and a still press on the dark
    round the ring. */
@@ -195,7 +195,7 @@ export const SHEET = `
 }
 #machine * { box-sizing: border-box; }
 
-/* **Three columns** (Eugene's sketch, 09-19): the ring and every reading down
+/* **Three columns** (his sketch, 09-19): the ring and every reading down
    the left with the one control at the foot of them, the graph edge to edge in
    the middle with nothing drawn over it, and the ledger down the right. */
 #machine .view.rack { height: 100dvh; }
@@ -274,12 +274,12 @@ export const SHEET = `
 /* the pane is the canvas's ground, not a panel: with the ledger put away the
    drawing ends a key's width short of the pane's edge to keep the log key's
    corner clear (M20), and under that strip, and under a drawing shorter than
-   its pane, the panel tone read as a gap of another colour (Eugene, 10-05:
+   its pane, the panel tone read as a gap of another colour (his word, 10-05:
    *"the dark background doesn't go to the right end of the page and there is
    a strange gap of a lighter colour"*) */
 #machine .pane.graph { grid-area: graph; overflow: auto; background: ${INK.ground}; }
 /* the ledger put away (M6): the graph takes its column */
-/* put away (M20, Eugene: "closed ledger looks trashy, side panel for no
+/* put away (M20, his word: "closed ledger looks trashy, side panel for no
    reason"): no rail and no panel, the graph the whole width, and one key
    floating over the canvas — top-right beside where the ledger stands, at the
    page's foot on a phone — its face the log mark, four short lines */
@@ -365,11 +365,11 @@ export const SHEET = `
    lit colours, a word key as wide as its word */
 #machine .desk-pop button { font-family: inherit; font-size: ${KEY.font}px; letter-spacing: 0.04em; text-transform: uppercase; height: ${KEY.h}px; min-width: ${KEY.w}px; line-height: 1; border-radius: 2px; color: ${INK.value}; background: ${INK.sunken}; border: 1px solid ${INK.edge}; padding: 0 ${SPACE.s}px; cursor: pointer; }
 #machine .desk-pop button:hover, #machine .desk-pop button:focus-visible { border-color: ${INK.bright}; color: ${INK.bright}; outline: none; }
-#machine .desk-pop button:disabled { opacity: .4; cursor: default; }
+#machine .desk-pop button:disabled, #machine .desk-pop button[aria-disabled="true"] { opacity: .4; cursor: default; }
 #machine .desk-pop .desk-toggle.on { background: ${INK.bright}; color: ${INK.ground}; border-color: ${INK.bright}; font-weight: 700; }
 #machine .desk-pop .desk-toggle.mute.on { background: ${INK.red}; border-color: ${INK.red}; }
 #machine .desk-pop .desk-toggle.solo.on { background: ${INK.amber}; border-color: ${INK.amber}; }
-/* **A reset is a peripheral** (DESK-UX1, Eugene 10-05): one step smaller than a
+/* **A reset is a peripheral** (DESK-UX1, his word 10-05): one step smaller than a
    working key and in the dim ink until a hand is on it, when it takes the
    ordinary key's — every reset in a popover alike: under a fader, a strip's, a
    bus's, a device's and a stage box's "all", a band's */
@@ -419,7 +419,7 @@ export const SHEET = `
   border-bottom: 1px solid ${INK.line};
   background: ${INK.sunken};
 }
-/* **A key in a header takes no height of its own** (M10, Eugene: *"both BACK on
+/* **A key in a header takes no height of its own** (M10, his word: *"both BACK on
    genres and the LEDGER buttons, when present, stretch the header vertically,
    and the page wiggles on pressing them"*): the key is 20 px on a 12 px title
    line, and it stretched its row by the difference, so a header grew when its
@@ -457,7 +457,7 @@ export const SHEET = `
 #machine .fact .v {
   min-width: 0;
   color: ${INK.value};
-  /* (M19, Eugene: "too large") the readings at 11 px, a phone's as a desktop's */
+  /* (M19, his word: "too large") the readings at 11 px, a phone's as a desktop's */
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -465,7 +465,7 @@ export const SHEET = `
 }
 #machine .fact.wide .v { flex: 1 1 auto; text-align: right; }
 #machine .fact.wrap .v { white-space: normal; overflow: visible; }
-/* The spell tile (M8, Eugene: *"the alignment of the SPELL label and the inner
+/* The spell tile (M8, his word: *"the alignment of the SPELL label and the inner
    values looks off — need to uniform the paddings"*): a tile like any other —
    the same padding, its name where every tile's name is, the spell's colour a
    line under the name the width of the cells (10-05) — and the eight cells one row of equal
@@ -482,7 +482,7 @@ export const SHEET = `
 #machine .spell-grid .cell .v { font-size: 11px; color: ${INK.note}; overflow: visible; }
 #machine .spell-grid .cell.off .k { opacity: 1; }
 #machine .spell-grid .cell.off .v { color: ${INK.value}; }
-/* **On a phone a tile is one line** (M8, Eugene: *"on mobile the 9-tile grid is
+/* **On a phone a tile is one line** (M8, his word: *"on mobile the 9-tile grid is
    fine — it's just that the label/value pairs could be one-liners"*): the name
    at the left and the value at the right on one baseline, a pair that does not
    fit going to a second line only then; the spell's cells each a name and its
@@ -612,7 +612,7 @@ export const SHEET = `
 #machineDiagram text.v { fill: ${INK.value}; }
 #machineDiagram text.v.warn { fill: ${INK.amber}; }
 #machineDiagram text.n { fill: ${INK.note}; }
-/* A key's letter is printed, not engraved (M8, Eugene: a lit M and S read as
+/* A key's letter is printed, not engraved (M8, his word: a lit M and S read as
    black blobs): the page's knockout stroke round every SVG word, in the page's
    black, thickened the ground-coloured letter on the red and amber fill into a
    shape. On a key the letter has no stroke; lit, it is the ground's colour on

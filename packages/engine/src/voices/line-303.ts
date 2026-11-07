@@ -1,6 +1,6 @@
 // The 303 line topology: one oscillator through a resonant low-pass that the
 // note's own envelope throws open and lets fall, with an accent and a glide
-// between tied notes. The sound of a TB-303, from the arithmetic of one.
+// between tied notes. The sound of the classic acid bass synth, from the arithmetic of one.
 //
 // Round KV1 of the kitchen: a resonant, swept filter and a glide on a bass
 // voice, which nothing in the catalogue had; round R1 made its numbers a row

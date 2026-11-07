@@ -99,7 +99,7 @@
     "window": "up to 32 bars of main groove per theme, the window the imprint was read over",
     "anchors": "anchors.json@1e899ba4",
     "signatures": "2026-09-18",
-    "calibration": "notes/analysis/imprint-calibration.md",
+    "calibration": "the imprint-calibration analysis",
     "note": "The two rooms are the two clusters the calibration found, and it found them without knowing a room existed: Tide, Zephyr, Veil and Spark separate sub from growl in the golden with no overlap. A roll inside this row is a roll inside one cluster, where a roll inside the house row is a roll between two."
   }
 }

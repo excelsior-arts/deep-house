@@ -33,7 +33,8 @@ test('registered, and each a place\'s: out of AWAITING, in BY_PLACE, named by no
     assert.ok(!BY_PLACE.some((a) => a.id === id), `${id} is admitted by a place`);
   }
   for (const id of NEW) assert.ok(!AWAITING.some((a) => a.id === id) && BY_PLACE.some((a) => a.id === id), `${id} is not a place's`);
-  const allowed = new Set([path.join(ROOT, 'src', 'catalogue-v2.ts'), path.join(ROOT, 'src', 'bird-labels.json')]);
+  // (round japanese: the labels' own words in other languages, keyed by the labels' English)
+  const allowed = new Set([path.join(ROOT, 'src', 'catalogue-v2.ts'), path.join(ROOT, 'src', 'bird-labels.json'), path.join(ROOT, 'src', 'words-ring.json')]);
   const named: string[] = [];
   const walk = (dir: string): void => {
     for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -52,22 +53,22 @@ test('registered, and each a place\'s: out of AWAITING, in BY_PLACE, named by no
 
 /** The first 16 hex digits of each whole program (`themeHash`) as `local` 79a9443b planned it; the four inside the bells' box as zones-pilot-2 plans them (the zone, the bowl's level by register) and zones-pilot-3 (the place's trim). Re-pinned in round length-after to `local` fb344631, where round length-2's lengths moved all but house-v1's and nothing else did (his word 10-28: "The length around is great ... so we can merge it now"). The Ambient tile's seed 3 re-pinned to `local` after the September-studies merge, where the piano's bus moved it and nothing else did (his words 10-28: "the ensembles are good for now"; "once piano rounds are back just accept it to unblock the next round"). The three in the bells' box re-pinned in round v24-bugs for the bells' hand the soft woodblock alone (his ear 10-29: "the woodblock is the only matching percussion ... all other claps are distracting"): the hand's strikes alone moved. Four re-pinned to `local` after round chillstep-ends's tail rule and phrase seam (his word 10-30: "Those are actually fine. We can accept them and merge"): the forms' outros and seams alone moved. Two re-pinned to `local` after round break-pulse-rule (his word 10-30: "all breaks changes approved, you got it right!"): a beat-led break's carrier and the pad hole's cut alone moved. Re-pinned after loudness-place (his word 10-30: "loudness round 2 sounds good", "yeah merge it"): every theme's trim, density and the lifted deep groove's kick and clap set-down moved; no note or figure did. */
 const LOCAL: Record<string, string> = {
-  'seed=1&v=2': 'bb83d6f2eb959338',
-  'seed=10&v=2': 'bf45689d5799b08a',
-  'seed=35&v=2': '0856ece1ebfc3dcc',
-  'seed=1&v=1': '41a594173310055a',
-  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '401d3474e265e505',
-  'seed=5&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '1571b72101c30ea7',
+  'seed=1&v=2': '40fb77a7073cd4f9',
+  'seed=10&v=2': '4752e9907fcbd078',
+  'seed=35&v=2': '20a3ea8a7351d243',
+  'seed=1&v=1': 'c8a2e677ee6d4d4f',
+  'seed=1&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '5bb825234d7f738b',
+  'seed=5&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=1': '86c208e403784e16',
   // a library turn at the bells' tile, which the zone plays as the conversation (zones-pilot; check-conversation's TURNED locks it)
-  'seed=10&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=2': 'ce9be1842ec160d1',
-  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': 'c73795ad1370643c', // piano-tone: the new piano
-  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'db003cff5f51b938',
-  'seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&theme=3': '4fa3955f41d4a223',
-  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:0.00,ro:0.00,gl:0.00,ve:0.00,sp:0.00,lo:0.00': 'dea569773934f854',
-  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:1.00,gl:1.00,ve:1.00,sp:1.00,lo:1.00': '0b527975c10d7824', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
+  'seed=10&v=2&spell=em:0.05,ti:0.65,ze:0.65,ro:0.10,gl:0.80,ve:0.30,sp:0.55,lo:0.90&theme=2': 'ecbbb6621882bb7c',
+  'seed=3&v=2&spell=em:0.10,ti:0.85,ze:0.90,ro:0.50,ve:0.30,sp:0.00,lo:0.80': '6183c1ba3010f17d', // piano-tone: the new piano
+  'seed=6&v=2&spell=em:0.00,ti:0.90,ze:0.25,ro:0.85,ve:0.15,sp:0.10,lo:0.80&theme=1': 'a1405abd83f2d337',
+  'seed=27191&v=2&spell=em:0.14,gl:0.00,ve:0.34,sp:0.00,lo:0.81&theme=3': '1e7dda79c687ce78',
+  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:0.00,ro:0.00,gl:0.00,ve:0.00,sp:0.00,lo:0.00': '7d9b66bc77b1968c',
+  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:1.00,gl:1.00,ve:1.00,sp:1.00,lo:1.00': '43ff715dcf5d63c1', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
   // inside the bells' box (Ember 0, Spark 1, Veil 0): the zone's conversation since zones-pilot
-  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:1.00,gl:0.00,ve:0.00,sp:1.00,lo:1.00': 'fcdb4d49ec9e40e5',
-  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': 'e3a59f3dbc688818', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
+  'seed=1&v=2&spell=em:0.00,ti:0.00,ze:1.00,ro:1.00,gl:0.00,ve:0.00,sp:1.00,lo:1.00': 'fb61626c04d145e9',
+  'seed=1&v=2&spell=em:1.00,ti:1.00,ze:1.00,ro:0.00,gl:1.00,ve:1.00,sp:1.00,lo:0.00': '7115ebb7658905e6', // piano-tone: the new piano; liquid-keys-2 (blessed 10-31): the liquid keys widened
 };
 
 test('the links plan what they planned on local, and no event of the three', () => {

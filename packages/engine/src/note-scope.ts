@@ -29,8 +29,9 @@
 //   and, for a note carrying a kitchen effect (`p.fx`), that effect's tail, which
 //   the effect's shell lets go of on its own (`effects/shell.ts`).
 // - **A held voice** starts sources it stops only at its release. Its doors
-//   wait: the release's `stop()` is noted against the note, and when the last
-//   pending source has a stop, the doors are armed off it as above.
+//   wait: they are armed when the last of the note's sources has ended, which a
+//   held one does only after its release's `stop()` (round crash-resume: every
+//   source's own end is counted, so a buffer played to its end arms it too).
 // - **A render is untouched**: an offline context, and a context with no Web
 //   Audio sources (the node stand-in), gets the bus itself and no door, so every
 //   locked render and every node check is what it was.
@@ -40,8 +41,13 @@
 //   note of it started is stopped and every door disconnected there and then,
 //   rather than a held pad's or a drone's sources running on for half a minute
 //   holding the dead graph alive behind their doors (`releaseNotes`).
+// - **The whole chain is cut, then held** (round crash-resume, 11-03): every node the note made itself is noted as it
+//   is made (`noteNodes`), and at the letting go each one is disconnected, doors and all, and held two seconds more
+//   before the page drops it (`cutAndHold`, `graph-scope.ts`), so WebKit never frees a chain still wired: its audio
+//   thread aborted on the junctions such a chain's freeing dirtied.
 import { SEND_NAMES, type VoiceOut } from './dsp.ts';
 import { isOffline } from './effects/shell.ts';
+import { cutAndHold, noteNodes } from './graph-scope.ts';
 
 /** How long after a note's last source ends its doors are let go, in seconds. */
 export const NOTE_MARGIN_S = 4;
@@ -50,32 +56,32 @@ export const FX_MARGIN_S = 30;
 
 interface Scope {
   doors: GainNode[];
+  /** every node the note made itself (`noteNodes`): cut whole with its doors, then held a while (`cutAndHold`) */
+  nodes: AudioNode[];
   /** the note's doors into nodes outside the buses (a shared return's input), by that node (`noteDoor`) */
   into: Map<AudioNode, GainNode> | null;
-  /** every source the note started, weakly: an ended source is the browser's to collect (its stop is in `stopAt`) */
+  /** every source the note started, weakly (its stop is in `stopAt`) */
   sources: Array<WeakRef<AudioScheduledSourceNode>>;
   /** the graph the note was fired into, whose teardown lets it go (`releaseNotes`) */
   owner: object | null;
   /** the doors' timer, once the last source has ended */
   timer: ReturnType<typeof setTimeout> | null;
   released: boolean;
-  /** sources started and not yet given a stop */
-  pending: Set<AudioScheduledSourceNode>;
-  /** the source stopping last, and when */
-  last: AudioScheduledSourceNode | null;
-  lastAt: number;
+  /** sources started and not yet ended */
+  running: number;
+  /** whether the voice's call has returned: a note's sources all end only once it has */
+  built: boolean;
   margin: number;
-  armed: boolean;
 }
 
-// The note being built (set around the voice's call), and the notes whose held
-// sources are still waiting for a stop, by source.
+// The note being built (set around the voice's call).
 let building: Scope | null = null;
-const waiting = new WeakMap<AudioScheduledSourceNode, Scope>();
 // the notes still holding doors, by the graph they were fired into
 const live = new WeakMap<object, Set<Scope>>();
 // the stop each scoped source was given
 const stopAt = new WeakMap<AudioScheduledSourceNode, number>();
+// every source a note started
+const noted = new WeakSet<AudioScheduledSourceNode>();
 let patched = false;
 
 function patchSources(): void {
@@ -89,44 +95,44 @@ function patchSources(): void {
     if (Object.prototype.hasOwnProperty.call(P, 'start')) {
       const start = P.start;
       P.start = function (this: AudioScheduledSourceNode, ...args: Parameters<typeof start>) {
-        if (building) { building.pending.add(this); building.sources.push(new WeakRef(this)); }
-        return start.apply(this, args);
+        const scope = building;
+        const r = start.apply(this, args);
+        if (scope && !noted.has(this)) started(scope, this);
+        return r;
       } as typeof start;
     }
     if (Object.prototype.hasOwnProperty.call(P, 'stop')) {
       const stop = P.stop;
       P.stop = function (this: AudioScheduledSourceNode, ...args: Parameters<typeof stop>) {
-        // the note that started it: a held one waiting for its release, or the one being built (a stop inside
-        // a later note's call — a mono voice cutting its last note — is the earlier note's, never the new one's)
-        const scope = waiting.get(this) ?? (building?.pending.has(this) ? building : null);
-        if (scope) noteStop(scope, this, args[0] ?? 0);
+        if (noted.has(this)) stopAt.set(this, args[0] ?? 0);
         return stop.apply(this, args);
       } as typeof stop;
     }
   }
 }
 
-function noteStop(scope: Scope, source: AudioScheduledSourceNode, when: number): void {
-  stopAt.set(source, when);
-  scope.pending.delete(source);
-  waiting.delete(source);
-  if (!scope.last || when >= scope.lastAt) { scope.last = source; scope.lastAt = when; }
-  // a held note's release: once nothing is left without a stop, arm the doors
-  if (building !== scope) arm(scope);
+/**
+ * **A note has finished when every source it started has ended** (round crash-resume, 11-03). Until then the note
+ * counted the `stop()` calls and waited on the last one's end, so a source that ends of itself — a buffer played to
+ * its end, a slice given a duration, the drums' and the grains' every hit — never armed it: such a note's doors and
+ * chain stayed wired until its deck's teardown. Each source's own `ended` is counted now, whatever ends it; a held
+ * source still ends only at its release.
+ */
+function started(scope: Scope, source: AudioScheduledSourceNode): void {
+  noted.add(source);
+  scope.sources.push(new WeakRef(source));
+  scope.running++;
+  source.addEventListener('ended', () => {
+    scope.running--;
+    arm(scope);
+  }, { once: true });
 }
 
 function arm(scope: Scope): void {
-  if (scope.armed || scope.pending.size || !scope.last || !scope.doors.length) return;
-  scope.armed = true;
-  const margin = scope.margin * 1000;
-  scope.last.addEventListener('ended', () => {
-    // every source of the note has ended: nothing is left to stop at a teardown, and the scope holds no source
-    // (a node's wrapper holds the chain it feeds, so an ended one held here would hold the note's whole chain)
-    scope.sources.length = 0;
-    scope.last = null;
-    scope.pending.clear();
-    if (!scope.released) scope.timer = setTimeout(() => letGo(scope), margin);
-  }, { once: true });
+  if (scope.released || scope.timer !== null || !scope.built || scope.running > 0 || !scope.sources.length || !scope.doors.length) return;
+  // every source of the note has ended: nothing is left to stop at a teardown
+  scope.sources.length = 0;
+  scope.timer = setTimeout(() => letGo(scope), scope.margin * 1000);
 }
 
 /** Disconnect a note's doors, once, and forget it. */
@@ -134,7 +140,11 @@ function letGo(scope: Scope): void {
   if (scope.released) return;
   scope.released = true;
   if (scope.timer !== null) { clearTimeout(scope.timer); scope.timer = null; }
-  for (const d of scope.doors) d.disconnect();
+  // the whole chain, not only its doors (round crash-resume): a chain the collector takes still wired is cut by
+  // WebKit node by node as it frees them, which is what its audio thread aborted on; cut here, held two seconds
+  cutAndHold([...scope.doors, ...scope.nodes]);
+  scope.doors.length = 0;
+  scope.nodes.length = 0;
   if (scope.owner) live.get(scope.owner)?.delete(scope);
 }
 
@@ -197,7 +207,7 @@ export const scoped = (ctx: BaseAudioContext): boolean =>
 export function playScoped(ctx: BaseAudioContext, out: VoiceOut, hasFx: boolean, play: (out: VoiceOut) => void, owner: object | null = null): void {
   if (!scoped(ctx)) { play(out); return; }
   patchSources();
-  const scope: Scope = { doors: [], into: null, pending: new Set(), last: null, lastAt: -Infinity, margin: hasFx ? FX_MARGIN_S : NOTE_MARGIN_S, armed: false,
+  const scope: Scope = { doors: [], nodes: [], into: null, running: 0, built: false, margin: hasFx ? FX_MARGIN_S : NOTE_MARGIN_S,
     sources: [], owner, timer: null, released: false };
   const doorOf = new Map<string, GainNode>();
   const doored: VoiceOut = {};
@@ -228,12 +238,11 @@ export function playScoped(ctx: BaseAudioContext, out: VoiceOut, hasFx: boolean,
   const outer = building;
   building = scope;
   try {
-    play(doored);
+    noteNodes(ctx, scope.nodes, () => play(doored));
   } finally {
     building = outer;
   }
-  // a source the note started and did not stop is a held one: its stop, at the release, arms the doors
-  for (const s of scope.pending) waiting.set(s, scope);
+  scope.built = true;
   // a note that took a door is noted against its graph until the door is let go
   if (owner && scope.doors.length) {
     let set = live.get(owner);

@@ -17,6 +17,7 @@
 // (`library-draw.ts`); the storage key and the format keep the plan's words.
 
 import { linkRead, linkWrite, linkWithTime, pageDefault } from './link.ts';
+import { w } from './words.ts';
 import type { LinkState } from './link.ts';
 import { ROW, linkQuery } from './link-table.ts';
 import { BIRDS, HOUSE, isHouse } from './spell.ts';
@@ -240,15 +241,15 @@ export const newId = (): string => {
 export function readLibrary(input: unknown, now: number = Date.now()): ReadResult {
   let v: unknown = input;
   if (typeof input === 'string') {
-    try { v = JSON.parse(input); } catch (e) { return { error: 'This file is not a Deep House library: it does not read as JSON.' }; }
+    try { v = JSON.parse(input); } catch (e) { return { error: w('lib.notJson') }; }
   }
-  if (!v || typeof v !== 'object' || Array.isArray(v)) return { error: 'This file is not a Deep House library: it holds no playlists.' };
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return { error: w('lib.noPlaylists') };
   let doc = clone(v) as LibraryDoc;
-  if (doc.format !== undefined && doc.format !== LIBRARY_FORMAT) return { error: `This file is not a Deep House library: its format is ${JSON.stringify(doc.format)}.` };
+  if (doc.format !== undefined && doc.format !== LIBRARY_FORMAT) return { error: w('lib.format', { v: JSON.stringify(doc.format) }) };
   const version = doc.version === undefined ? 1 : Number(doc.version);
-  if (!Number.isInteger(version) || version < 1) return { error: `This library names a version this edition cannot read (${JSON.stringify(doc.version)}).` };
+  if (!Number.isInteger(version) || version < 1) return { error: w('lib.version', { v: JSON.stringify(doc.version) }) };
   if (version > LIBRARY_VERSION)
-    return { error: `This library was written by a newer Deep House (version ${version}); this edition reads version ${LIBRARY_VERSION}. Update the app to open it.` };
+    return { error: w('lib.newer', { v: version, ours: LIBRARY_VERSION }) };
   for (let at = version; at < LIBRARY_VERSION; at++) doc = MIGRATIONS[at](doc);
   doc.format = LIBRARY_FORMAT;
   doc.version = LIBRARY_VERSION;
@@ -874,8 +875,8 @@ export function readDeephouseFile(text: string, now: number = Date.now()): FileI
   if (r.error !== undefined) return { error: r.error };
   const lists = r.doc.playlists.filter(isList);
   const named = r.doc.kind ?? (lists.length === 1 && r.doc.playlists.length === 1 && lists[0].name !== undefined ? 'playlist' : 'library');
-  if (named !== 'playlist' && named !== 'library') return { error: `This file holds a kind of Deep House file this edition does not know (${JSON.stringify(named)}).` };
-  if (named === 'playlist' && lists.length !== 1) return { error: 'This playlist file holds no single playlist.' };
+  if (named !== 'playlist' && named !== 'library') return { error: w('lib.kind', { v: JSON.stringify(named) }) };
+  if (named === 'playlist' && lists.length !== 1) return { error: w('lib.single') };
   r.doc.kind = named;
   return { kind: named, doc: r.doc, bad: r.bad };
 }
@@ -978,14 +979,14 @@ export function backupSummary(here: LibraryDoc, file: LibraryDoc, bad: BadTrack[
     removed.push({ playlist: v.playlist, link: v.t.link, ...(v.t.label ? { label: v.t.label } : {}) });
   }
   const parts: string[] = [];
-  if (added) parts.push(`adds ${added}`);
-  if (labels) parts.push(`updates ${labels} label${labels === 1 ? '' : 's'}`);
-  if (removed.length) parts.push(`removes ${removed.length}`);
-  for (const n of newPlaylists) parts.push(`new playlist ${n}`);
-  for (const r of renamed) parts.push(`renames ${r.from} to ${r.to}`);
-  for (const n of removedPlaylists) parts.push(`removes playlist ${n}`);
-  if (bad.length) parts.push(`${bad.length} link${bad.length === 1 ? '' : 's'} this edition cannot play`);
-  const text = parts.length ? parts.join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Nothing new';
+  if (added) parts.push(w('lib.adds', { n: added }));
+  if (labels) parts.push(w(labels === 1 ? 'lib.label' : 'lib.labels', { n: labels }));
+  if (removed.length) parts.push(w('lib.removes', { n: removed.length }));
+  for (const n of newPlaylists) parts.push(w('lib.newList', { name: n }));
+  for (const r of renamed) parts.push(w('lib.renames', { from: r.from, to: r.to }));
+  for (const n of removedPlaylists) parts.push(w('lib.removesList', { name: n }));
+  if (bad.length) parts.push(w(bad.length === 1 ? 'lib.bad' : 'lib.bads', { n: bad.length }));
+  const text = parts.length ? parts.join(w('lib.joint')).replace(/^./, (c) => c.toUpperCase()) : w('lib.nothing');
   return { added, labels, removed, newPlaylists, removedPlaylists, renamed, bad: bad.length, text };
 }
 
@@ -1040,7 +1041,7 @@ export function libraryStore(storage?: Storage | null, events?: Pick<Window, 'ad
     read,
     write(doc) {
       const s = store();
-      if (!s) return { ok: false, error: 'blocked', message: 'This browser keeps no storage for this page, so playlists cannot be saved here.' };
+      if (!s) return { ok: false, error: 'blocked', message: w('lib.noStorage') };
       // **never over a library this edition can't read** (the test round, 10-21): a newer edition's is refused with its
       // sentence, so an old page (or an old tab left open) never writes its smaller copy over it; one that doesn't read
       // at all is kept once under a spare key before it is replaced, so nothing is lost without a trace
@@ -1055,8 +1056,8 @@ export function libraryStore(storage?: Storage | null, events?: Pick<Window, 'ad
         }
       } catch (e) { /* the copy is a courtesy; the write below says what went wrong */ }
       try { s.setItem(LIBRARY_KEY, JSON.stringify(doc)); } catch (e) {
-        if (isQuota(e)) return { ok: false, error: 'quota', message: 'This browser\'s storage for the page is full, so the change was not saved. Back up everything, then remove a playlist or old tracks.' };
-        return { ok: false, error: 'blocked', message: 'This browser refused to save the playlists.' };
+        if (isQuota(e)) return { ok: false, error: 'quota', message: w('lib.full') };
+        return { ok: false, error: 'blocked', message: w('lib.refused') };
       }
       for (const fn of listeners) fn(doc);
       return { ok: true };

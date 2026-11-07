@@ -792,6 +792,7 @@
    "pad": {
     "says": "the bed rests through the passage; one bloom on the chord's fifth and seventh, gone before the drums' departure",
     "rootFloor": 52,
+    "memoryBars": 2,
     "levelDb": 3,
     "blooms": [
      {

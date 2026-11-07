@@ -14,6 +14,7 @@
 // clock, so a minute of a set is a second of node and nothing depends on how
 // busy the machine is.
 
+import './test-timers.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { liveStandin } from '@deep-house/engine/standin';
@@ -121,8 +122,11 @@ test('every anticipatory event is reached by the live pump at or before its onse
   // intro): one more, two.
   // Round length-2's forms (the grooves 3-4 minutes, every section line on the phrase; his word 10-27: "We should aim
   // for 3-4mins here") put one more return where a reverse swell leads in: three.
-  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 3 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
-  assert.equal(n, 15);
+  // Round wind (11-03, his pick C) lays the glue's wind on an impact's line as a breath that arrives on it, two seconds
+  // before its line: seed 12's second theme draws the wind for its impact and lays three (bars 4, 44 and 68), each
+  // struck on its line before and rising after it: six, every one reached at or before its onset.
+  assert.deepEqual(by, { 'house-v1': 12, 'house-v2': 6 }, `the 48 themes carry ${JSON.stringify(by)} anticipatory events`);
+  assert.equal(n, 18);
   assert.ok(worst <= 1e-9, `an anticipatory event was reached ${worst.toFixed(3)} s after its onset`);
 });
 
@@ -843,14 +847,50 @@ test('a next pressed while a cast is being built goes on into the cast\'s set, a
   mix.stop();
 });
 
-test('a next pressed inside a seam goes to the theme after the one arriving, never to theme null', async () => {
+// **Next is next** (his word 11-03: "Next still should be next, and not next after one that's in the mixing"): inside
+// the set's own blend, before the swap, the screen still names the theme leaving, so a next lands on the one arriving.
+test('a next pressed inside the set\'s own blend, before the swap, lands on the theme arriving, never on theme null', async () => {
   const { ctx, mix } = await inABlend(1);
   assert.equal(mix.state.incoming?.index, 1);
+  assert.equal(mix.state.themeIndex, 0, 'the blend had swapped already');
   await mix.skip();
-  await until(ctx, () => mix.state.themeIndex !== 1, 30);
-  assert.equal(mix.record!.track.seed, '1#2', `the skip landed on ${mix.record!.track.seed}`);
-  assert.equal(mix.state.themeIndex, 2);
+  await until(ctx, () => mix.state.themeIndex !== 0 && !mix.state.incoming && mix.state.transition === 0, 30);
+  await play(ctx, 4);
+  assert.equal(mix.record!.track.seed, '1#1', `the skip landed on ${mix.record!.track.seed}`);
+  assert.equal(mix.state.themeIndex, 1);
   mix.stop();
+});
+
+// **The playback review of 11-02, finding 1** (the browser row "a next inside the wait of the next before it leaves no
+// hole: the record plays on to the cut" until round test-sane, 11-05, which moved it here): a next pressed inside the
+// wait of the cut before it landed a deck that starts on a later beat and let the record go in 80 ms, a hole until the
+// arriving deck's instant. The record plays on, its fader up and its graph whole, to the instant the second cut lays.
+test('a next inside the wait of the next before it leaves no hole: the record plays on to the cut (the playback review of 11-02)', async () => {
+  const { ctx, mix } = await aSet('15576');
+  try {
+    for (let k = 0; k < 2; k++) {
+      await play(ctx, 2);
+      const from = mix.state.themeIndex;
+      const record: any = mix.record!;
+      const first: any = mix.skip();
+      const armed = await until(ctx, () => !!mix.state.incoming, 4);
+      assert.ok(armed, `round ${k + 1}: the first next laid no cut`);
+      const p1: any = await first;
+      assert.ok(p1 && ctx.currentTime < p1.at, `round ${k + 1}: the first cut's deck had started already`);
+      const p2: any = await mix.skip();
+      assert.ok(p2 && p2.at, `round ${k + 1}: the second next laid no cut`);
+      const holes: string[] = [];
+      while (ctx.currentTime < p2.at - 0.03) {
+        const l = record.lineOf && record.lineOf('fader.gain');
+        const up = l ? l.at(ctx.currentTime) : 0;
+        if (record.graph.disposed || up < 0.3) holes.push(`${(p2.at - ctx.currentTime).toFixed(2)} s before the cut (${record.graph.disposed ? 'let go' : up.toFixed(2)})`);
+        await play(ctx, TICK_MS / 1000);
+      }
+      assert.deepEqual(holes.slice(0, 3), [], `round ${k + 1}: the record fell silent before the second cut`);
+      const landed = await until(ctx, () => mix.state.themeIndex === from + 2 && !mix.state.incoming, 30);
+      assert.ok(landed, `round ${k + 1}: two nexts from theme ${from + 1} landed on ${mix.state.themeIndex + 1}`);
+    }
+  } finally { mix.stop(); }
 });
 
 // --- the journal: presses add up, and the far end is the one that goes -----------

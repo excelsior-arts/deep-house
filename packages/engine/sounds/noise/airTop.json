@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "sound",
+  "id": "airTop",
+  "revision": 1,
+  "topology": "air",
+  "parameters": {
+    "shape": "bed",
+    "pink": true,
+    "corr": 0.6,
+    "hpHz": 5000,
+    "poles": 1,
+    "lpHz": 14000,
+    "q": 0.5,
+    "driftHz": 0.06,
+    "driftDepth": 0.3,
+    "attack": 4,
+    "release": 2.5,
+    "curve": 1,
+    "bandHz": [
+      5000,
+      9000
+    ],
+    "bandQ": 1,
+    "peak": 0.5,
+    "sway": 0,
+    "reverb": 0.12,
+    "delay": 0,
+    "trim": 0.0426
+  },
+  "descriptor": {
+    "family": "effect",
+    "roles": [
+      "texture"
+    ],
+    "bus": "melodic",
+    "level": "fx",
+    "layer": "fx",
+    "plays": null,
+    "mono": false,
+    "treat": false,
+    "cost": "cheap",
+    "timbres": {},
+    "dispatches": [],
+    "mood": []
+  },
+  "provenance": {
+    "round": "air-voices",
+    "module": "none",
+    "note": "A bed of air above the hats' body: two streams of pink noise, 5-14 kHz, a lid that drifts. It comes in on a phrase line and leaves at the section; a note may ask it to breathe (the lid closing over three bars of four)."
+  }
+}

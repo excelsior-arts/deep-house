@@ -50,8 +50,8 @@ import { admits } from './sections.ts';
 import { DEFAULT_LETTERS, PLAYED_KINDS, type Insertion, type LaneEdit, type Letter, type PlayedKind } from './treatment.ts';
 import { BIRDS, type Spell } from './spell.ts';
 
-/** What a span inside a section is. */
-export type SubKind = PlayedKind;
+/** What a span inside a section is: a kind the library's rows play, or the top form's own (round top-form, `src/top-form.ts`). */
+export type SubKind = PlayedKind | 'top';
 
 /** One sub-section: its kind, where it is, how long, the row that plays it, and the name a listener reads. */
 export interface SubSection {
@@ -85,6 +85,8 @@ export interface SubSection {
    * drum role (a drop-out bar, a breath) says so by its lanes (`silencesKit`) and needs no flag
    */
   silence?: boolean;
+  /** the top form's idea this sub-section plays (round top-form, `src/top-form.ts`), on a `top` sub-section */
+  top?: import('./top-form.ts').TopIdea;
 }
 
 /** Whether a figure takes the whole kit out: it clears every drum role (the kick, the backbeat, the hats, the sixteenths). */
@@ -121,6 +123,14 @@ export interface SubRates {
   variation?: number;
   variationBars?: readonly number[];
   variationFloor?: number;
+  /**
+   * the top form's ideas the place plays (round top-form, `src/top-form.ts`; each a word, so one comes out by ear
+   * without the others): the rota, the break's floor, the open-hat clock, the second drop, the breather, the hats'
+   * growth, the staged entries, the eighth-bar answer, the deep break's pulse; and the lanes' own turns (round
+   * top-lanes, `src/top-lanes.ts`): the sixteenths' lean, the ghosts' pan, the pairs of bars, the hats' wash. Absent,
+   * none: the top as it was
+   */
+  top?: readonly (import('./top-form.ts').TopIdea | import('./top-lanes.ts').LaneIdea)[];
 }
 
 /** None of it: the drone places, and any theme without drums. */
@@ -584,9 +594,11 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
       if (edit(bar, k, role, e, letters, row.id) === 'empty' && f.without?.[role]) for (const [r2, e2] of Object.entries(f.without[role].lanes)) edit(bar, k, r2, e2, letters, row.id);
     }
   };
-  // The switch-ups first: the bar marks read the bar as a switch-up left it.
+  // The switch-ups first: the bar marks read the bar as a switch-up left it (and the top form's spans with them: a turn
+  // of the top is a span the bar marks sit inside, round top-form).
+  const span = (s: SubSection) => s.kind === 'switch-up' || s.kind === 'variation' || s.kind === 'top';
   for (const s of subs) {
-    if (s.kind !== 'switch-up' && s.kind !== 'variation') continue;
+    if (!span(s)) continue;
     mark = changed();
     silencing = silences(s, s.row);
     for (let b = s.startBar; b < s.startBar + s.bars; b++) play(s.row, b, b - s.startBar);
@@ -604,7 +616,7 @@ export function playSubSections(events: Ev[], subs: readonly SubSection[], at: (
     note(s);
   }
   for (const s of subs) {
-    if (s.kind === 'switch-up' || s.kind === 'variation') continue;
+    if (span(s)) continue;
     mark = changed();
     const f = s.row.figure!;
     overlaying = !!s.overlay;
